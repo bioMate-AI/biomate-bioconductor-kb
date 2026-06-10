@@ -1,118 +1,95 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DFP
-// This package provides a supervised technique able to identify differentially expressed genes, based 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DFP/inst/doc/DFP.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("DFP")
+// Bioconductor workflow: dfp — quick_discriminant_fuzzy_pattern
+// Quickly identify differentially expressed genes from an ExpressionSet object using default parameters.
+// Input: rmadataset
+// Container: quay.io/biocontainers/bioconductor-dfp:1.68.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DFP {
+process BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dfp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dfp:1.64.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dfp:1.64.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-dfp:1.68.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dfp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dfp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dfp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "dfp")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(DFP)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: featureNames
-    data(rmadataset)
-    # Number of genes in the test set
-    length(featureNames(rmadataset))
-    # --- Discriminantfuzzypattern [] ---
-    # Key functions: discriminantFuzzyPattern
-    res <- discriminantFuzzyPattern(rmadataset)
-    # --- Plotdiscriminantfuzzypattern [] ---
-    # Key functions: plotDiscriminantFuzzyPattern
-    plotDiscriminantFuzzyPattern(res$discriminant.fuzzy.pattern)
-    # --- Readcsv [] ---
-    # Key functions: readCSV
-    rmadataset <- readCSV(fileExprs, filePhenodata); rmadataset
-    # --- Calculatemembershipfunctions [] ---
-    # Key functions: calculateMembershipFunctions, plotMembershipFunctions, featureNames
-    mfs <- calculateMembershipFunctions(rmadataset, skipFactor); mfs[[1]]
-    plotMembershipFunctions(rmadataset, mfs, featureNames(rmadataset)[1:2])
-    # --- Discretizeexpressionvalues [] ---
-    # Key functions: discretizeExpressionValues, showDiscreteValues, featureNames
-    dvs <- discretizeExpressionValues(rmadataset, mfs, zeta, overlapping); dvs[1:4,1:10]
-    showDiscreteValues(dvs, featureNames(rmadataset)[1:10],c("healthy", "AML-inv"))
-    # --- Calculatefuzzypatterns [] ---
-    # Key functions: calculateFuzzyPatterns, showFuzzyPatterns
-    fps <- calculateFuzzyPatterns(rmadataset, dvs, piVal, overlapping); fps[1:30,]
-    showFuzzyPatterns(fps, "healthy")[21:50]
-    # --- Calculatediscriminantfuzzypattern [] ---
-    # Key functions: calculateDiscriminantFuzzyPattern, plotDiscriminantFuzzyPattern
-    dfps <- calculateDiscriminantFuzzyPattern(rmadataset, fps); dfps[1:5,]
-    plotDiscriminantFuzzyPattern(dfps, overlapping)
-    # --- Tolatex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dfp_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # Read the user input ExpressionSet object from the working directory
+    if (file.exists("rmadataset")) {
+      rmadataset <- readRDS("rmadataset")
+    } else if (file.exists("rmadataset.rds")) {
+      rmadataset <- readRDS("rmadataset.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dfp_results.csv")
+      stop("Error: Input file 'rmadataset' or 'rmadataset.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dfp_output.rds")
-    }
+    
+    # Stage 1: Run the wrapper function discriminantFuzzyPattern
+    res <- discriminantFuzzyPattern(rmadataset)
+    
+    # Save the complete results list as an RDS object
+    saveRDS(res, "dfp_results.rds")
+    
+    # Save the discriminant fuzzy pattern matrix as a CSV table
+    write.csv(as.data.frame(res\$discriminant.fuzzy.pattern), "discriminant_fuzzy_pattern.csv", row.names = TRUE)
+    
+    # Stage 2: Plot the resulting discriminant fuzzy patterns to a PDF file
+    pdf("discriminant_fuzzy_pattern_plot.pdf", width = 11, height = 8.5)
+    plotDiscriminantFuzzyPattern(res\$discriminant.fuzzy.pattern)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DFP:", paste0("    dfp: ", packageVersion("DFP"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN":
+        dfp: \$(Rscript -e 'cat(as.character(packageVersion("dfp")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dfp_results.csv
-    touch ${prefix}_dfp_output.rds
-    echo "BIOC_DFP:" > versions.yml
-    echo "    dfp: 0.0.0" >> versions.yml
+    touch ${prefix}_quick_discriminant_fuzzy_pattern.csv versions.yml
     """
 }
 
-
-workflow BIOC_DFP_WORKFLOW {
+workflow BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rmadataset ] ]
 
     main:
-    BIOC_DFP(ch_input)
+    BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN(ch_input)
 
     emit:
-    results  = BIOC_DFP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DFP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DFP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DFP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN.out.tables
+    plots    = BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN.out.plots
+    objects  = BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN.out.objects
+    versions = BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN.out.versions
 }

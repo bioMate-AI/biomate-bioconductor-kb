@@ -1,89 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: spiky
-// spiky implements methods and model generation for cfMeDIP (cell-free methylated DNA immunoprecipitat
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/spiky/inst/doc/spiky_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("spiky")
+// Bioconductor workflow: spiky — cfmedip_quant_bedpe
+// Perform absolute quantification and bias adjustment of cfMeDIP-seq data using BEDPE input files.
+// Input: genomic_bedpe.bed.gz, genomic_bedpe.bed.gz.tbi, spike_bedpe.bed.gz, spike_bedpe.bed.gz.tbi
+// Container: quay.io/biocontainers/bioconductor-spiky:1.16.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPIKY {
+process BIOC_SPIKY_CFMEDIP_QUANT_BEDPE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-spiky"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spiky:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-spiky:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-spiky:1.16.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_spiky_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_spiky_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_spiky_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg38", "spiky")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(spiky)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(spike)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spiky_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spiky_results.csv")
+    library(BSgenome.Hsapiens.UCSC.hg38)
+    
+    # Define input file paths from the working directory
+    genomic_bedpe_path <- "genomic_bedpe.bed.gz"
+    spike_bedpe_path <- "spike_bedpe.bed.gz"
+    
+    # Verify input files exist
+    if (!file.exists(genomic_bedpe_path)) {
+      stop(paste("Required genomic BEDPE file missing:", genomic_bedpe_path))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spiky_output.rds")
+    if (!file.exists(spike_bedpe_path)) {
+      stop(paste("Required spike BEDPE file missing:", spike_bedpe_path))
     }
+    
+    # Load the reference spike-in database from the package namespace
+    spike <- spiky::spike
+    
+    # 1. Scan genomic BEDPE to get genomic coverage
+    message("Scanning genomic BEDPE...")
+    genomic_coverage <- scan_genomic_bedpe(genomic_bedpe_path, genome="hg38")
+    
+    # 2. Scan spike-in BEDPE to get spike coverage
+    message("Scanning spike BEDPE...")
+    spikes_coverage <- scan_spike_bedpe(spike_bedpe_path, spike=spike)
+    
+    # 3. Calculate methylation specificity
+    message("Calculating methylation specificity...")
+    methyl_spec <- methylation_specificity(spikes_coverage, spike=spike)
+    print(methyl_spec)
+    
+    # 4. Fit Gaussian GLM on spike-in data
+    message("Fitting Gaussian GLM...")
+    gaussian_glm <- model_glm_pmol(spikes_coverage, spike=spike)
+    print(summary(gaussian_glm))
+    
+    # 5. Predict molar concentration (pmol) for genomic regions
+    message("Predicting pmol concentration...")
+    sample_data_pmol <- predict_pmol(gaussian_glm, genomic_coverage, bsgenome="BSgenome.Hsapiens.UCSC.hg38", ret="df")
+    print(head(sample_data_pmol, n=1))
+    
+    # 6. Bin and adjust molar concentration into genomic windows
+    message("Binning pmol concentration...")
+    sample_binned_data <- bin_pmol(sample_data_pmol)
+    print(head(sample_binned_data, n=1))
+    
+    # Save results to output files
+    message("Saving outputs...")
+    saveRDS(methyl_spec, "methylation_specificity.rds")
+    write.table(as.data.frame(methyl_spec), "methylation_specificity.txt", sep="\t", quote=FALSE, row.names=TRUE)
+    
+    saveRDS(gaussian_glm, "gaussian_glm.rds")
+    sink("glm_summary.txt")
+    print(summary(gaussian_glm))
+    sink()
+    
+    write.csv(sample_data_pmol, "sample_data_pmol.csv", row.names=TRUE)
+    saveRDS(sample_data_pmol, "sample_data_pmol.rds")
+    
+    write.csv(sample_binned_data, "sample_binned_data.csv", row.names=TRUE)
+    saveRDS(sample_binned_data, "sample_binned_data.rds")
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPIKY:", paste0("    spiky: ", packageVersion("spiky"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SPIKY_CFMEDIP_QUANT_BEDPE":
+        spiky: \$(Rscript -e 'cat(as.character(packageVersion("spiky")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_spiky_results.csv
-    touch ${prefix}_spiky_output.rds
-    echo "BIOC_SPIKY:" > versions.yml
-    echo "    spiky: 0.0.0" >> versions.yml
+    touch ${prefix}_cfmedip_quant_bedpe.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPIKY_WORKFLOW {
+workflow BIOC_SPIKY_CFMEDIP_QUANT_BEDPE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ genomic_bedpe.bed.gz, genomic_bedpe.bed.gz.tbi, spike_bedpe.bed.gz, spike_bedpe.bed.gz.tbi ] ]
 
     main:
-    BIOC_SPIKY(ch_input)
+    BIOC_SPIKY_CFMEDIP_QUANT_BEDPE(ch_input)
 
     emit:
-    results  = BIOC_SPIKY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPIKY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPIKY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPIKY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPIKY_CFMEDIP_QUANT_BEDPE.out.tables
+    plots    = BIOC_SPIKY_CFMEDIP_QUANT_BEDPE.out.plots
+    objects  = BIOC_SPIKY_CFMEDIP_QUANT_BEDPE.out.objects
+    versions = BIOC_SPIKY_CFMEDIP_QUANT_BEDPE.out.versions
 }

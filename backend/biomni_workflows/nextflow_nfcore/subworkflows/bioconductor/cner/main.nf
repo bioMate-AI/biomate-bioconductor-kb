@@ -1,156 +1,115 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNEr
-// Large-scale identification and advanced visualization of sets of conserved noncoding elements.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNEr/inst/doc/CNEr.R
-// Upstream  : GenomeInfoDb, Gviz, biomaRt, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("CNEr")
+// Bioconductor workflow: cner — pairwise_genome_alignment
+// Generate pairwise whole-genome net alignments (.net.axt files) from 2bit or fasta files using LASTZ and Kent utilities.
+// Input: assemblyTarget.2bit, assemblyQuery.2bit
+// Container: quay.io/biocontainers/bioconductor-cner:1.46.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNER {
+process BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cner"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cner:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cner:1.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-cner:1.46.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cner_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cner_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cner_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biomart", "cner", "genomeinfodb", "gviz", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(CNEr)
-    library(BiomartGeneRegionTrack)
-    library(CNE)
-    library(CNE12)
-    library(CNE21)
-    library(GenomeAxisTrack)
-    library(UcscTrack)
-    library(jsonlite)
-
-    # --- Alignment Quality Control [] ---
-    # Key functions: matchDistribution, syntenicDotplot
-    matchDistribution(axtHg38DanRer10)
-    fn_chr4 <- system.file("extdata", "chr4.hg19.galGal3.net.axt.gz", package = "CNEr")
-    axt_chr4 <- readAxt(
-        fn_chr4, 
-        tAssemblyFn = system.file("extdata", package = "BSgenome.Hsapiens.UCSC.hg19"),
-        qAssemblyFn = system.file("extdata", package = "BSgenome.Ggallus.UCSC.galGal3")
-    )
-    syntenicDotplot(axt_chr4, firstChrs = "chr4", secondChrs = "chr4", type = "dot")
-
-
-    # --- Conserved Non-coding Elements Scanning [] ---
-    # Key functions: CNE, ceScan, CNE12, CNE21
-    cneDanRer10Hg38 <- CNE(
-        assembly1Fn = system.file("extdata", package = "BSgenome.Drerio.UCSC.danRer10"),
-        assembly2Fn = system.file("extdata", package = "BSgenome.Hsapiens.UCSC.hg38"),
-        axt12Fn = axt_danRer, 
-        axt21Fn = axt_hg38,
-        cutoffs1 = 8L, 
-        cutoffs2 = 4L
-    )
-    cneList <- ceScan(
-        x = cneDanRer10Hg38, 
-        tFilter = danRer10Filter,
-        qFilter = hg38Filter,
-        window = c(50L, 50L, 50L), 
-        identity = c(45L, 48L, 49L)
-    )
-    cne_12_res <- CNE12(cneList[["45_50"]])
-
-
-    # --- CNE Merging and Database Storage [] ---
-    # Key functions: cneMerge, saveCNEToSQLite
-    cneMergedList <- lapply(cneList, cneMerge)
-    db_path <- tempfile()
-    saveCNEToSQLite(
-        cneMergedList[[1]], 
-        dbName = db_path, 
-        tableName = "danRer10_hg38_45_50",
-        overwrite = TRUE
-    )
-
-
-    # --- Query and Density Visualization [] ---
-    # Key functions: readCNERangesFromSQLite, plotCNEWidth, CNEDensity
-    fetchedRanges <- readCNERangesFromSQLite(
-        dbName = db_path, 
-        tableName = "danRer10_hg38_45_50", 
-        chr = "chr6", 
-        start = 24000000L, 
-        end = 27000000L, 
-        whichAssembly = "first",
-        minLength = 50L
-    )
-    cne_density <- CNEDensity(
-        dbName = db_path, 
-        tableName = "danRer10_hg38_45_50",
-        whichAssembly = "first", 
-        chr = "chr6", 
-        start = 24000000L,
-        end = 27000000L, 
-        windowSize = 200L, 
-        minLength = 50L
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cner_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cner_results.csv")
+    
+    # Verify that the required user input files exist in the working directory
+    target_file <- "assemblyTarget.2bit"
+    query_file <- "assemblyQuery.2bit"
+    
+    if (!file.exists(target_file)) {
+      stop(paste("Error: Target assembly file missing:", target_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cner_output.rds")
+    if (!file.exists(query_file)) {
+      stop(paste("Error: Query assembly file missing:", query_file))
     }
+    
+    # Define input paths and output directory
+    assemblyTarget <- target_file
+    assemblyQuery <- query_file
+    axtDir <- "axt_output"
+    dir.create(axtDir, showWarnings = FALSE, recursive = TRUE)
+    
+    # 1. Run LASTZ alignment to generate LAV files
+    lavs <- lastz(assemblyTarget, assemblyQuery, outputDir=axtDir, chrsTarget=c("chr1", "chr2", "chr3"), chrsQuery=c("chr1", "chr2", "chr3"), distance="far", mc.cores=4)
+    saveRDS(lavs, file=file.path(axtDir, "lavs.rds"))
+    
+    # 2. Convert LAV files to PSL files
+    psls <- lavToPsl(lavs, removeLav=FALSE, binary="lavToPsl")
+    saveRDS(psls, file=file.path(axtDir, "psls.rds"))
+    
+    # 3. Join close alignments into chains
+    chains <- axtChain(psls, assemblyTarget=assemblyTarget, assemblyQuery=assemblyQuery, distance="far", removePsl=FALSE, binary="axtChain")
+    saveRDS(chains, file=file.path(axtDir, "chains.rds"))
+    
+    # 4. Sort and combine chains
+    allChain <- chainMergeSort(chains, assemblyTarget, assemblyQuery, allChain=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case=TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case=TRUE), ".all.chain")), removeChains=FALSE, binary="chainMergeSort")
+    saveRDS(allChain, file=file.path(axtDir, "allChain.rds"))
+    
+    # 5. Filter chains
+    allPreChain <- chainPreNet(allChain, assemblyTarget, assemblyQuery, allPreChain=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".all.pre.chain")), removeAllChain=FALSE, binary="chainPreNet")
+    saveRDS(allPreChain, file=file.path(axtDir, "allPreChain.rds"))
+    
+    # 6. Net chains and add synteny information
+    netSyntenicFile <- chainNetSyntenic(allPreChain, assemblyTarget, assemblyQuery, netSyntenicFile=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".noClass.net")), binaryChainNet="chainNet", binaryNetSyntenic="netSyntenic")
+    saveRDS(netSyntenicFile, file=file.path(axtDir, "netSyntenicFile.rds"))
+    
+    # 7. Create net.axt files
+    netToAxt(netSyntenicFile, allPreChain, assemblyTarget, assemblyQuery, axtFile=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".net.axt")), removeFiles=FALSE, binaryNetToAxt="netToAxt", binaryAxtSort="axtSort")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNER:", paste0("    cner: ", packageVersion("CNEr"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT":
+        cner: \$(Rscript -e 'cat(as.character(packageVersion("cner")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cner_results.csv
-    touch ${prefix}_cner_output.rds
-    echo "BIOC_CNER:" > versions.yml
-    echo "    cner: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_genome_alignment.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNER_WORKFLOW {
+workflow BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ assemblyTarget.2bit, assemblyQuery.2bit ] ]
 
     main:
-    BIOC_CNER(ch_input)
+    BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT(ch_input)
 
     emit:
-    results  = BIOC_CNER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT.out.tables
+    plots    = BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT.out.plots
+    objects  = BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT.out.objects
+    versions = BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT.out.versions
 }

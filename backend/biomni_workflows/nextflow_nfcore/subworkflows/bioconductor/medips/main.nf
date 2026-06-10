@@ -1,132 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MEDIPS
-// MEDIPS was developed for analyzing data derived from methylated DNA immunoprecipitation (MeDIP) expe
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MEDIPS/inst/doc/MEDIPS.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MEDIPS")
+// Bioconductor workflow: medips — differential_coverage_analysis
+// Identify genomic regions with significant differential coverage (differential methylation) between two conditions using replicates and input controls.
+// Input: bam.file.hESCs.Rep1.MeDIP, bam.file.hESCs.Rep2.MeDIP, bam.file.hESCs.Input, bam.file.DE.Input
+// Container: quay.io/biocontainers/bioconductor-medips:1.62.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MEDIPS {
+process BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-medips"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-medips:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-medips:1.58.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-medips:1.62.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_medips_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_medips_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_medips_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CpGenrich)
-    library(jsonlite)
-
-    # --- Genomes [] ---
-    # Key functions: genomes
-    ## available.genomes()
-    # --- Createset [] ---
-    # Key functions: createSet
-    ## hESCs_MeDIP = MEDIPS.createSet(file=bam.file.hESCs.Rep1.MeDIP, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select)
-    # --- Data [] ---
-    # Key functions: data
-    data(hESCs_MeDIP)
-    data(DE_MeDIP)
-    # --- Createset [] ---
-    # Key functions: createSet
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "medips")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(MEDIPS)
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    
+    # Define input files from the working directory as specified
+    bam.file.hESCs.Rep1.MeDIP = "bam.file.hESCs.Rep1.MeDIP"
+    bam.file.hESCs.Rep2.MeDIP = "bam.file.hESCs.Rep2.MeDIP"
+    bam.file.hESCs.Input = "bam.file.hESCs.Input"
+    bam.file.DE.Input = "bam.file.DE.Input"
+    
+    # Define key parameters matching the documented workflow
+    BSgenome = "BSgenome.Hsapiens.UCSC.hg19"
+    uniq = 1e-3
+    extend = 300
+    shift = 0
+    ws = 100
+    chr.select = "chr22"
+    
+    # 1. Create MEDIPS sets for IP and Input samples using MEDIPS.createSet
+    hESCs_MeDIP = MEDIPS.createSet(file=bam.file.hESCs.Rep1.MeDIP, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select)
+    hESCs_MeDIP = c(hESCs_MeDIP, MEDIPS.createSet(file=bam.file.hESCs.Rep2.MeDIP, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select))
     hESCs_Input = MEDIPS.createSet(file=bam.file.hESCs.Input, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select)
     DE_Input = MEDIPS.createSet(file=bam.file.DE.Input, BSgenome=BSgenome, extend=extend, shift=shift, uniq=uniq, window_size=ws, chr.select=chr.select)
-    # --- Couplingvector [] ---
-    # Key functions: couplingVector
+    
+    # Adapt the MeDIP sets to separate the replicates into two conditions (DE_MeDIP vs hESCs_MeDIP)
+    # since we have 2 MeDIP replicates and need to perform differential analysis.
+    DE_MeDIP = hESCs_MeDIP[2]
+    hESCs_MeDIP = hESCs_MeDIP[1]
+    
+    # 2. Generate a coupling vector for CpG density normalization using MEDIPS.couplingVector
     CS = MEDIPS.couplingVector(pattern="CG", refObj=hESCs_MeDIP[[1]])
-    # --- Meth [] ---
-    # Key functions: meth
+    
+    # 3. Calculate genome-wide coverage, methylation profiles, and differential coverage using MEDIPS.meth
     mr.edgeR = MEDIPS.meth(MSet1=DE_MeDIP, MSet2=hESCs_MeDIP, CSet=CS, ISet1=DE_Input, ISet2=hESCs_Input, p.adj="bonferroni", diff.method="edgeR", MeDIP=T, CNV=F, minRowSum=10)
-    # --- Selectsig [] ---
-    # Key functions: selectSig
+    
+    # Save the full differential coverage results
+    saveRDS(mr.edgeR, "mr_edgeR_results.rds")
+    
+    # 4. Select significant windows using MEDIPS.selectSig
     mr.edgeR.s = MEDIPS.selectSig(results=mr.edgeR, p.value=0.1, adj=T, ratio=NULL, bg.counts=NULL, CNV=F)
-    # --- Mergeframes [] ---
-    # Key functions: mergeFrames
-    mr.edgeR.s.gain.m = MEDIPS.mergeFrames(frames=mr.edgeR.s.gain, distance=1)
-    # --- Selectrois [] ---
-    # Key functions: selectROIs
-    ## rois.s=MEDIPS.selectROIs(results=mr.edgeR, rois=mr.edgeR.s.gain.m, columns=columns, summarize="avg")
-    # --- Saturation [] ---
-    # Key functions: saturation
-    sr=MEDIPS.saturation(file=bam.file.hESCs.Rep1.MeDIP, BSgenome=BSgenome, uniq=uniq, extend=extend, shift=shift, window_size=ws, chr.select=chr.select, nit=10, nrit=1, empty_bins=TRUE, rank=FALSE)
-    # --- Saturationplot [] ---
-    # Key functions: plotSaturation
-    MEDIPS.plotSaturation(sr)
-    # --- Correlation [] ---
-    # Key functions: correlation
-    ## cor.matrix=MEDIPS.correlation(MSets=c(hESCs_MeDIP, DE_MeDIP, hESCs_Input, DE_Input), plot=T, method="pearson")
-    # --- Seqcoverage [] ---
-    # Key functions: seqCoverage
-    cr=MEDIPS.seqCoverage(file=bam.file.hESCs.Rep1.MeDIP, pattern="CG", BSgenome=BSgenome, chr.select=chr.select, extend=extend, shift=shift, uniq=uniq)
-    # --- Coverageplot [] ---
-    # Key functions: plotSeqCoverage
-    MEDIPS.plotSeqCoverage(seqCoverageObj=cr, type="pie", cov.level = c(0,1, 2, 3, 4, 5))
-    # --- Coverageplothist [] ---
-    # Key functions: plotSeqCoverage
-    MEDIPS.plotSeqCoverage(seqCoverageObj=cr, type="hist", t = 15, main="Sequence pattern coverage, histogram")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_medips_results.csv", row.names = TRUE)
+    write.csv(mr.edgeR.s, "significant_windows.csv", row.names=FALSE)
+    
+    # 5. Filter and merge adjacent significant windows into regions of interest using MEDIPS.mergeFrames
+    mr.edgeR.s.gain = mr.edgeR.s[which(mr.edgeR.s[,grep("logFC", colnames(mr.edgeR.s))]>0),]
+    
+    # Ensure mergeFrames is called robustly even if no significant gain windows are found
+    if (!is.null(mr.edgeR.s.gain) && nrow(mr.edgeR.s.gain) > 0) {
+        mr.edgeR.s.gain.m = MEDIPS.mergeFrames(frames=mr.edgeR.s.gain, distance=1)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_medips_results.csv")
+        mr.edgeR.s.gain.m = data.frame()
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_medips_output.rds")
+    write.csv(mr.edgeR.s.gain.m, "merged_gain_regions.csv", row.names=FALSE)
+    
+    # 6. Extract and summarize data at regions of interest using MEDIPS.selectROIs
+    columns=names(mr.edgeR)[grep("counts",names(mr.edgeR))]
+    
+    if (!is.null(mr.edgeR.s.gain.m) && nrow(mr.edgeR.s.gain.m) > 0) {
+        tryCatch({
+            rois=MEDIPS.selectROIs(results=mr.edgeR, rois=mr.edgeR.s.gain.m, columns=columns, summarize=NULL)
+            write.csv(rois, "rois_detailed.csv", row.names=FALSE)
+        }, error = function(e) {
+            message("Error selecting detailed ROIs: ", e\$message)
+            write.csv(data.frame(), "rois_detailed.csv", row.names=FALSE)
+        })
+        
+        tryCatch({
+            rois.s=MEDIPS.selectROIs(results=mr.edgeR, rois=mr.edgeR.s.gain.m, columns=columns, summarize="avg")
+            write.csv(rois.s, "rois_summarized.csv", row.names=FALSE)
+        }, error = function(e) {
+            message("Error selecting summarized ROIs: ", e\$message)
+            write.csv(data.frame(), "rois_summarized.csv", row.names=FALSE)
+        })
+    } else {
+        message("No significant regions of interest found. Writing empty ROI files.")
+        write.csv(data.frame(), "rois_detailed.csv", row.names=FALSE)
+        write.csv(data.frame(), "rois_summarized.csv", row.names=FALSE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MEDIPS:", paste0("    medips: ", packageVersion("MEDIPS"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS":
+        medips: \$(Rscript -e 'cat(as.character(packageVersion("medips")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_medips_results.csv
-    touch ${prefix}_medips_output.rds
-    echo "BIOC_MEDIPS:" > versions.yml
-    echo "    medips: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_coverage_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MEDIPS_WORKFLOW {
+workflow BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bam.file.hESCs.Rep1.MeDIP, bam.file.hESCs.Rep2.MeDIP, bam.file.hESCs.Input, bam.file.DE.Input ] ]
 
     main:
-    BIOC_MEDIPS(ch_input)
+    BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MEDIPS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MEDIPS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MEDIPS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MEDIPS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS.out.tables
+    plots    = BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS.out.plots
+    objects  = BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS.out.objects
+    versions = BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS.out.versions
 }

@@ -1,0 +1,136 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: methimpute — binned_methylation_calling
+// Call and impute methylation status on binned genomic data (e.g., 100bp bins).
+// Input: arabidopsis_bsseeker.txt.gz, arabidopsis_sequence.fa.gz
+// Container: quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("methimpute")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
+    library(methimpute)
+    
+    # Define input files (expected to be in the working directory)
+    file <- "arabidopsis_bsseeker.txt.gz"
+    fasta.file <- "arabidopsis_sequence.fa.gz"
+    
+    # Verify input files exist
+    if (!file.exists(file)) {
+      stop(paste("Required input file missing in working directory:", file))
+    }
+    if (!file.exists(fasta.file)) {
+      stop(paste("Required input file missing in working directory:", fasta.file))
+    }
+    
+    # 1. Import the BSSeeker data
+    message("Importing BSSeeker data...")
+    bsseeker.data <- importBSSeeker(file)
+    print(bsseeker.data)
+    
+    # 2. Extract all genomic cytosine positions from the FASTA reference
+    message("Extracting cytosine positions from FASTA...")
+    cytosine.positions <- extractCytosinesFromFASTA(fasta.file,
+                                                    contexts = c('CG','CHG','CHH'))
+    
+    # 3. Inflate the methylome to include non-covered cytosines
+    message("Inflating methylome...")
+    methylome <- inflateMethylome(bsseeker.data, cytosine.positions)
+    print(methylome)
+    
+    # 4. Bin the inflated methylome into fixed-size windows
+    message("Binning methylome...")
+    binnedMethylome <- binMethylome(methylome, binsize = 100, contexts = c('total','CG'))
+    print(binnedMethylome\$CG)
+    
+    # 5. Call and impute methylation status on the binned data
+    message("Calling methylation on binned data...")
+    binnedModel <- callMethylation(data = binnedMethylome\$CG)
+    print(binnedModel)
+    
+    # Save the model object and export results
+    message("Saving binned model to RDS...")
+    saveRDS(binnedModel, file = "binned_model.rds")
+    
+    message("Exporting binned model data to CSV...")
+    binned_df <- as.data.frame(binnedModel\$data)
+    write.csv(binned_df, file = "binned_methylation_calls.csv", row.names = FALSE)
+    
+    # 6. Plot diagnostics and save to PDF
+    message("Generating diagnostic plots...")
+    pdf("binned_methylation_plots.pdf", width = 8, height = 6)
+    
+    # Plot convergence
+    p1 <- plotConvergence(binnedModel)
+    print(p1)
+    
+    # Plot transition probabilities
+    p2 <- plotTransitionProbs(binnedModel)
+    print(p2)
+    
+    # Plot histogram
+    p3 <- plotHistogram(binnedModel, total.counts = 150)
+    print(p3)
+    
+    dev.off()
+    
+    message("Pipeline completed successfully!")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING":
+        methimpute: \$(Rscript -e 'cat(as.character(packageVersion("methimpute")))')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_binned_methylation_calling.csv versions.yml
+    """
+}
+
+workflow BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ arabidopsis_bsseeker.txt.gz, arabidopsis_sequence.fa.gz ] ]
+
+    main:
+    BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING(ch_input)
+
+    emit:
+    tables   = BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING.out.tables
+    plots    = BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING.out.plots
+    objects  = BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING.out.objects
+    versions = BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING.out.versions
+}

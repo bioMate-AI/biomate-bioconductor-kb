@@ -1,146 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChIPsim
-// A general framework for the simulation of ChIP-seq data. Although currently focused on nucleosome po
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChIPsim/inst/doc/ChIPsimIntro.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ChIPsim")
+// Bioconductor workflow: chipsim — nucleosome_positioning_simulation
+// Simulate nucleosome positioning ChIP-seq data using default parameters and a reference genome.
+// Input: genome.fasta
+// Container: quay.io/biocontainers/bioconductor-chipsim:1.64.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIPSIM {
+process BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chipsim"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chipsim:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chipsim:1.60.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chipsim:1.64.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chipsim_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chipsim_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chipsim_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "chipsim")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # 1. Initialize random seed and load reference genome
     library(ChIPsim)
-    library(DNAStringSet)
-    library(jsonlite)
-
-    # --- Feature Placement [] ---
-    # Key functions: placeFeatures
-    transition <- list(Binding=c(Background=1),
-                       Background=c(Binding=0.05, Background=0.95))
-    transition <- lapply(transition, "class<-", "StateDistribution")
-    init <- c(Binding=0, Background=1)
-    class(init) <- "StateDistribution"
-    backgroundFeature <- function(start, length=1000, shape=1, scale=20){
-        weight <- rgamma(1, shape=1, scale=20)
-        params <- list(start = start, length = length, weight = weight)
-        class(params) <- c("Background", "SimulatedFeature")
-        params
+    library(Biostrings)
+    
+    set.seed(1)
+    
+    # Read the reference genome from the user-provided FASTA file
+    if (!file.exists("genome.fasta")) {
+      stop("Error: 'genome.fasta' not found in the working directory.")
     }
-    bindingFeature <- function(start, length=500, shape=1, scale=20){
-        weight <- rgamma(1, shape=1, scale=40)
-        params <- list(start = start, length = length, weight = weight)
-        class(params) <- c("Binding", "SimulatedFeature")
-        params
+    genome <- readDNAStringSet("genome.fasta")
+    
+    # 2. Define custom read sequence and quality generation functions
+    randomQuality <- function(read, ...){
+    	paste(sample(unlist(strsplit(rawToChar(as.raw(64:104)),"")), 
+    					nchar(read), replace = TRUE), collapse="")
     }
-    generator <- list(Binding=bindingFeature, Background=backgroundFeature)
-    features <- ChIPsim::placeFeatures(generator, transition, init,
-        start = 0, length = 1e5, globals=list(shape=1, scale=20),
-        experimentType="TFExperiment",
-        lastFeat=c(Binding = FALSE, Background = TRUE))
-
-
-    # --- Density Calculation [] ---
-    # Key functions: feat2dens, bindDens2readDens
-    constRegion <- function(weight, length) rep(weight, length)
-    featureDensity.Binding <- function(feature, ...) {
-        constRegion(feature$weight, feature$length)
+    
+    dfReads <- function(readPos, readNames, sequence, readLen, ...){
+    	readSeq <- character(sum(sapply(readPos, sapply, length)))
+    	readQual <- character(sum(sapply(readPos, sapply, length)))
+    	idx <- 1
+    	for(k in length(readPos)){
+    		for(i in 1:2){
+    			for(j in 1:length(readPos[[k]][[i]])){
+    				readSeq[idx] <- as.character(readSequence(readPos[[k]][[i]][j], sequence[[k]], 
+    						strand=ifelse(i==1, 1, -1), readLen=readLen))
+    				readQual[idx] <- randomQuality(readSeq[idx])
+    				readSeq[idx] <- readError(readSeq[idx], decodeQuality(readQual[idx]))
+    				idx <- idx + 1
+    			}
+    		}
+    	}
+    	data.frame(name=unlist(readNames), sequence=readSeq, quality=readQual, 
+    			stringsAsFactors = FALSE)
     }
-    featureDensity.Background <- function(feature, ...) {
-        constRegion(feature$weight, feature$length)
-    }
-    dens <- ChIPsim::feat2dens(features, length = 1e5)
-    fragLength <- function(x, minLength, maxLength, meanLength, ...){
-        sd <- (maxLength - minLength)/4
-        prob <- dnorm(minLength:maxLength, mean = meanLength, sd = sd)
-        prob <- prob/sum(prob)
-        prob[x - minLength + 1]
-    }
-    readDens <- ChIPsim::bindDens2readDens(dens, fragLength, bind = 50,
-        minLength = 150, maxLength = 250, meanLength = 200)
+    
+    # 3. Retrieve default simulation functions and customize the read sequence function
+    myFunctions <- defaultFunctions()
+    myFunctions\$readSequence <- dfReads 
+    
+    # 4. Run the simulation using simChIP with customized control parameters
+    nReads <- 1000
+    simulated <- simChIP(nReads, genome, file = "", functions = myFunctions,
+    		control = defaultControl(readDensity=list(meanLength = 150)))
+    
+    # 5. Write named output files for the meaningful results
+    # Save the complete simulated object
+    saveRDS(simulated, file = "simulated_nucleosomes.rds")
+    
+    # Save the simulated reads as a CSV table
+    write.csv(simulated\$readSequence, file = "simulated_reads.csv", row.names = FALSE)
+    
+    # Generate and save the density plot
+    pdf("nucleosome_density_plot.pdf", width = 8, height = 6)
+    tryCatch({
+      feat <- simulated\$features[[1]]
+      stableIdx <- which(sapply(feat, inherits, "StableFeature"))
+      if (length(stableIdx) > 0) {
+        start <- feat[[stableIdx[1]]]\$start
+        plot_range <- (start - 2000):(start + 500)
+        # Ensure indices are within bounds of the density vector
+        plot_range <- plot_range[plot_range > 0 & plot_range <= length(simulated\$bindDensity[[1]])]
+        
+        plot(plot_range, simulated\$bindDensity[[1]][plot_range], xlab = "Chromosome 1",
+             ylab = "Density", type = 'l', main = "Nucleosome and Read Densities")
+        lines(plot_range, simulated\$readDensity[[1]][plot_range, 1], col = 4)
+        lines(plot_range, simulated\$readDensity[[1]][plot_range, 2], col = 2)
+        legend("topright", legend = c("Nucleosome density", "Read density (+)", "Read density (-)"), 
+               col = c(1, 4, 2), lwd = 1)
+      } else {
+        # Fallback plot if no StableFeature is found
+        plot(simulated\$bindDensity[[1]][1:min(5000, length(simulated\$bindDensity[[1]]))], 
+             type = 'l', xlab = "Position", ylab = "Density", main = "Nucleosome Density (First 5kb)")
+      }
+    }, error = function(e) {
+      warning("Could not generate density plot: ", e\$message)
+    })
+    dev.off()
 
-
-    # --- Read Sampling and Simulation [] ---
-    # Key functions: sampleReads, defaultFunctions, defaultControl, simChIP
-    readLoc <- ChIPsim::sampleReads(readDens, 1e3)
-    myFunctions <- ChIPsim::defaultFunctions()
-    controlArgs <- ChIPsim::defaultControl(
-        features = list(generator = generator, transition = transition,
-                        init = init, start = 0, length = 1e5,
-                        globals = list(shape = 1, scale = 20),
-                        experimentType = "TFExperiment",
-                        lastFeat = c(Binding = FALSE, Background = TRUE)),
-        readDensity = list(meanLength = 150)
-    )
-    simulated <- ChIPsim::simChIP(1000, genome, file = "",
-        functions = myFunctions, control = controlArgs)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chipsim_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chipsim_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chipsim_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIPSIM:", paste0("    chipsim: ", packageVersion("ChIPsim"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION":
+        chipsim: \$(Rscript -e 'cat(as.character(packageVersion("chipsim")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chipsim_results.csv
-    touch ${prefix}_chipsim_output.rds
-    echo "BIOC_CHIPSIM:" > versions.yml
-    echo "    chipsim: 0.0.0" >> versions.yml
+    touch ${prefix}_nucleosome_positioning_simulation.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIPSIM_WORKFLOW {
+workflow BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ genome.fasta ] ]
 
     main:
-    BIOC_CHIPSIM(ch_input)
+    BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION(ch_input)
 
     emit:
-    results  = BIOC_CHIPSIM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIPSIM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIPSIM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIPSIM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION.out.tables
+    plots    = BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION.out.plots
+    objects  = BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION.out.objects
+    versions = BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION.out.versions
 }

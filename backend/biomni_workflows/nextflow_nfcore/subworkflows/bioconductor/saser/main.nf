@@ -1,124 +1,175 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: saseR
-// saseR is a highly performant and fast framework for aberrant expression and splicing analyses. The m
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/saseR/inst/doc/saseR-vignette.R
-// Upstream  : ASpli, BiocParallel, DESeq2, DEXSeq, GenomicAlignments
-// Downstream: none
-//
-// Install: BiocManager::install("saseR")
+// Bioconductor workflow: saser — aberrant_expression_analysis
+// Detect aberrant gene expression from BAM files and GTF annotation.
+// Input: BAMFiles, gtfFileName
+// Container: quay.io/biocontainers/bioconductor-saser:1.6.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SASER {
+process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-saser"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-saser:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-saser:1.2.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-saser:1.6.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_saser_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_saser_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_saser_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicFeatures", "PRROC", "aspli", "biocparallel", "data.table", "deseq2", "dexseq", "dplyr", "edgeR", "genomicalignments", "igraph", "limma", "saser", "txdbmaker")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(saseR)
-    library(BamtoAspliCounts)
-    library(DESeqDataSetFromMatrix)
-    library(DGEList)
-    library(MulticoreParam)
-    library(jsonlite)
-
-    # --- Filtering and Normalisation [] ---
-    # Key functions: filterByExpr, calculateOffsets
-    filtergenes <- filterByExpr(SEgenes)
-    SEgenes <- SEgenes[filtergenes, ]
-    SEgenes <- calculateOffsets(SEgenes, method = "TMM")
-    filterbins <- filterByExpr(SEbins)
-    SEbins <- SEbins[filterbins, ]
-    SEbins <- calculateOffsets(SEbins, method = "AS", aggregation = "locus")
-
-
-    # --- Encoding Dimension Estimation [] ---
-    # Key functions: saseRfindEncodingDim
-    SEgenes <- saseRfindEncodingDim(SEgenes, method = "GD")
-    SEbins <- saseRfindEncodingDim(SEbins, method = "GD")
-    SEjunctions <- saseRfindEncodingDim(SEjunctions, method = "GD")
-
-
-    # --- Model Fitting and Splicing Analysis [] ---
-    # Key functions: saseRfit
-    SEgenes <- saseRfit(SEgenes, analysis = "AE", padjust = "BH", fit = "fast")
-    SEbins <- saseRfit(SEbins, analysis = "AS", padjust = "BH", fit = "fast")
-    SEjunctions <- saseRfit(SEjunctions, analysis = "AS", padjust = "BH",
-                            fit = "fast")
-
-
-    # --- Result Extraction [] ---
-    # Key functions: assays, metadata
-    gene_pvals <- assays(SEgenes)$pValue
-    bin_pvals <- assays(SEbins)$pValue
-    sig_genes <- lapply(seq_len(ncol(SEgenes)), function(x) {
-        rownames(SEgenes)[assays(SEgenes)$pValueAdjust[, x] < 0.05]
-    })
-    sig_bins <- lapply(seq_len(ncol(SEbins)), function(x) {
-        rownames(SEbins)[assays(SEbins)$pValueAdjust[, x] < 0.05]
-    })
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_saser_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_saser_results.csv")
+    suppressWarnings(library(ASpli))
+    library(edgeR)
+    library(DESeq2)
+    library(limma)
+    library(GenomicFeatures)
+    library(dplyr)
+    library(PRROC)
+    library(BiocParallel)
+    library(data.table)
+    library(igraph)
+    library(txdbmaker)
+    
+    # -----------------------------------------------------------------------------
+    # 1. USER INPUTS
+    # Read GTF and BAM files from the working directory
+    # -----------------------------------------------------------------------------
+    gtfFileName <- list.files(pattern = "\\.gtf\$", full.names = TRUE)[1]
+    BAMFiles <- list.files(pattern = "\\.bam\$", full.names = TRUE)
+    
+    if (is.na(gtfFileName)) {
+      stop("Error: No GTF file (.gtf) found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_saser_output.rds")
+    if (length(BAMFiles) == 0) {
+      stop("Error: No BAM files (.bam) found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SASER:", paste0("    saser: ", packageVersion("saseR"))),
-        "versions.yml"
+    
+    # Construct targets data frame dynamically based on the input BAM files
+    targets <- data.frame( 
+      row.names = paste0('Sample', seq_along(BAMFiles)),
+      bam = BAMFiles,
+      f1 = rep("A", length(BAMFiles)),
+      stringsAsFactors = FALSE
     )
+    
+    # -----------------------------------------------------------------------------
+    # 2. GENOME ANNOTATION & FEATURE EXTRACTION
+    # -----------------------------------------------------------------------------
+    genomeTxDb <- txdbmaker::makeTxDbFromGFF(gtfFileName)
+    features <- binGenome(genomeTxDb, logTo = NULL)
+    
+    # -----------------------------------------------------------------------------
+    # 3. READ COUNTING
+    # -----------------------------------------------------------------------------
+    ASpliSE <- BamtoAspliCounts(
+      features = features,
+      targets = targets,
+      minReadLength = 100,
+      libType = "SE",
+      BPPARAM = MulticoreParam(1L)
+    )
+    
+    # -----------------------------------------------------------------------------
+    # 4. ABERRANT EXPRESSION ANALYSIS PIPELINE
+    # -----------------------------------------------------------------------------
+    # Extract gene counts
+    SEgenes <- convertASpli(ASpliSE, type = "gene")
+    
+    # Define design formula in metadata
+    metadata(SEgenes)\$design <- ~1
+    
+    # Filter low-count genes
+    filtergenes <- filterByExpr(SEgenes)
+    SEgenes <- SEgenes[filtergenes,]
+    
+    # Calculate normalization offsets
+    SEgenes <- calculateOffsets(SEgenes, method = "TMM")
+    
+    # Estimate latent confounders
+    SEgenes <- saseRfindEncodingDim(SEgenes, method = "GD")
+    
+    # Fit the regression model and calculate p-values
+    SEgenes <- saseRfit(
+      SEgenes,
+      analysis = "AE",
+      padjust = "BH",
+      fit = "fast"
+    )
+    
+    # -----------------------------------------------------------------------------
+    # 5. WRITE OUTPUTS
+    # -----------------------------------------------------------------------------
+    # Save the complete SummarizedExperiment object
+    saveRDS(SEgenes, file = "aberrant_expression_results.rds")
+    
+    # Extract and save p-values and adjusted p-values
+    pvals <- assays(SEgenes)\$pValue
+    pvals_adj <- assays(SEgenes)\$pValueAdjust
+    
+    write.csv(as.data.frame(pvals), file = "p_values.csv", row.names = TRUE)
+    write.csv(as.data.frame(pvals_adj), file = "adjusted_p_values.csv", row.names = TRUE)
+    
+    # Generate and save diagnostic plot
+    pdf("p_value_distribution.pdf", width = 8, height = 6)
+    hist(
+      pvals, 
+      col = "skyblue", 
+      border = "white", 
+      main = "Distribution of Aberrant Expression p-values", 
+      xlab = "p-value", 
+      ylab = "Frequency"
+    )
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to working directory.")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS":
+        saser: \$(Rscript -e 'cat(as.character(packageVersion("saser")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_saser_results.csv
-    touch ${prefix}_saser_output.rds
-    echo "BIOC_SASER:" > versions.yml
-    echo "    saser: 0.0.0" >> versions.yml
+    touch ${prefix}_aberrant_expression_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SASER_WORKFLOW {
+workflow BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ BAMFiles, gtfFileName ] ]
 
     main:
-    BIOC_SASER(ch_input)
+    BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SASER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SASER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SASER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SASER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS.out.tables
+    plots    = BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS.out.plots
+    objects  = BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS.out.objects
+    versions = BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS.out.versions
 }

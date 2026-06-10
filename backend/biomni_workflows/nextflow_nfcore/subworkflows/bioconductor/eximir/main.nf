@@ -1,119 +1,105 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ExiMiR
-// This package contains functions for reading raw data in ImaGene TXT format obtained from Exiqon miRC
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ExiMiR/inst/doc/ExiMiR-vignette.R
-// Upstream  : affy
-// Downstream: none
-//
-// Install: BiocManager::install("ExiMiR")
+// Bioconductor workflow: eximir — affymetrix_mirna_normalization
+// Read, annotate, and normalize Affymetrix miRNA CEL files using spike-in or quantile normalization.
+// Input: CEL files, miRNA-1_0.CDF
+// Container: quay.io/biocontainers/bioconductor-eximir:2.52.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_EXIMIR {
+process BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-eximir"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-eximir:2.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-eximir:2.48.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-eximir:2.52.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_eximir_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_eximir_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_eximir_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(NormiR)
-    library(jsonlite)
-
-    # --- Eximir Vignette.Rnw:694 696 [] ---
-    # Key functions: data
-    library(ExiMiR)
-    data(GSE19183)
-    # --- Eximir Vignette.Rnw:699 705 [] ---
-    # Key functions: expresso
-    library(affy)
-    eset.rma <- expresso(GSE19183, bgcorrect.method='rma',
-    			       normalize.method='quantiles',
-    			       pmcorrect.method='pmonly',
-    			       summary.method='medianpolish')
-    # --- Eximir Vignette.Rnw:708 713 [] ---
-    # Key functions: NormiR
-    eset.spike <- NormiR(GSE19183, bgcorrect.method='rma',
-    			       normalize.method='spikein',
-    			       normalize.param=list(figures.show=FALSE),
-    			       pmcorrect.method='pmonly',
-    			       summary.method='medianpolish')
-    # --- Eximir Vignette.Rnw:723 726 [] ---
-    # Key functions: data
-    library(ExiMiR)
-    data(galenv)
-    data(GSE20122)
-    # --- Eximir Vignette.Rnw:730 733 [] ---
-    # Key functions: NormiR
-    eset.rma <- NormiR(GSE20122, bg.correct=FALSE,
-    			     normalize.method='quantile',
-    			     summary.method='medianpolish')
-    # --- Eximir Vignette.Rnw:736 740 [] ---
-    # Key functions: NormiR
-    eset.spike <- NormiR(GSE20122, bg.correct=FALSE,
-    			       normalize.method='spikein',
-    			       normalize.param=list(figures.show=FALSE),
-    			       summary.method='medianpolish')
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_eximir_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("affy", "eximir", "makecdfenv", "mirna10cdf")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Create the 'Affymetrix' directory as expected by the documented code
+    dir.create("Affymetrix", showWarnings = FALSE, recursive = TRUE)
+    
+    # Find and copy the CDF file
+    cdf_file <- list.files(pattern = "(?i)miRNA-1_0\\.cdf\$")
+    if (length(cdf_file) > 0) {
+      file.copy(cdf_file[1], "Affymetrix/miRNA-1_0.CDF", overwrite = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_eximir_results.csv")
+      stop("Required CDF file 'miRNA-1_0.CDF' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_eximir_output.rds")
+    
+    # Find and copy CEL files
+    cel_files <- list.files(pattern = "(?i)\\.cel\$")
+    if (length(cel_files) > 0) {
+      for (f in cel_files) {
+        file.copy(f, file.path("Affymetrix", f), overwrite = TRUE)
+      }
+    } else {
+      stop("No CEL files found in the working directory.")
     }
+    
+    # Documented workflow
+    try(library(mirna10cdf), silent = TRUE)
+    library(makecdfenv)
+    cdfenv <- make.cdf.env(cdf.path='Affymetrix', filename='miRNA-1_0.CDF')
+    library(affy)
+    abatch <- ReadAffy(cdfname='cdfenv', celfile.path='Affymetrix')
+    library(ExiMiR)
+    eset.spike <- NormiR(abatch, bgcorrect.method='rma',
+                                    normalize.method='spikein',
+                                    pmcorrect.method='pmonly',
+                                    summary.method='medianpolish')
+    
+    # Save outputs
+    saveRDS(eset.spike, file = "eset_spike.rds")
+    write.csv(exprs(eset.spike), file = "normalized_intensities.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_EXIMIR:", paste0("    eximir: ", packageVersion("ExiMiR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION":
+        eximir: \$(Rscript -e 'cat(as.character(packageVersion("eximir")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_eximir_results.csv
-    touch ${prefix}_eximir_output.rds
-    echo "BIOC_EXIMIR:" > versions.yml
-    echo "    eximir: 0.0.0" >> versions.yml
+    touch ${prefix}_affymetrix_mirna_normalization.csv versions.yml
     """
 }
 
-
-workflow BIOC_EXIMIR_WORKFLOW {
+workflow BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ CEL files, miRNA-1_0.CDF ] ]
 
     main:
-    BIOC_EXIMIR(ch_input)
+    BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION(ch_input)
 
     emit:
-    results  = BIOC_EXIMIR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_EXIMIR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_EXIMIR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_EXIMIR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION.out.tables
+    plots    = BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION.out.plots
+    objects  = BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION.out.objects
+    versions = BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION.out.versions
 }

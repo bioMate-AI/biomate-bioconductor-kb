@@ -1,122 +1,184 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ProteoDisco
-// ProteoDisco is an R package to facilitate proteogenomics studies. It houses functions to create cust
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ProteoDisco/inst/doc/Overview_ProteoDisco.R
-// Upstream  : knitr, plyr, dplyr, ggplot2, reshape2
-// Downstream: none
-//
-// Install: BiocManager::install("ProteoDisco")
+// Bioconductor workflow: proteodisco — genomic_variants_workflow
+// Generate a customized protein database incorporating genomic variants (SNVs, MNVs, InDels) from VCF/MAF files.
+// Input: validationSet_hg19.vcf
+// Container: quay.io/biocontainers/bioconductor-proteodisco:1.16.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PROTEODISCO {
+process BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-proteodisco"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-proteodisco:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-proteodisco:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-proteodisco:1.16.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_proteodisco_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_proteodisco_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_proteodisco_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationDbi", "BSgenome.Hsapiens.UCSC.hg19", "TxDb.Hsapiens.UCSC.hg19.knownGene", "dplyr", "ggplot2", "knitr", "org.Hs.eg.db", "plyr", "proteodisco", "reshape2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(ProteoDisco)
-    library(AAStringSetList)
-    library(DNAString)
-    library(DataFrame)
-    library(jsonlite)
-
-    # --- Import Genomic Variants [] ---
-    # Key functions: importGenomicVariants
-    vcf_file <- system.file(
-        "extdata", "validationSet_hg19.vcf",
-        package = "ProteoDisco"
-    )
-    discography <- ProteoDisco::importGenomicVariants(
-        ProteoDiscography = discography,
-        files = vcf_file,
-        samplenames = "Validation Set (GRCh37)",
-        threads = 1,
-        performAnchorCheck = FALSE
-    )
-
-
-    # --- Incorporate Genomic Variants [] ---
-    # Key functions: incorporateGenomicVariants
-    discography <- ProteoDisco::incorporateGenomicVariants(
-        ProteoDiscography = discography,
-        aggregateSamples = FALSE,
-        aggregateWithinExon = TRUE,
-        aggregateWithinTranscript = TRUE,
-        ignoreOverlappingMutations = TRUE,
-        threads = 1
-    )
-
-
-    # --- Summarize and Analyze Mutations [] ---
-    # Key functions: summary
-    summary_data <- summary(discography, verbose = FALSE)
-    mutation_overview <- summary_data$overviewMutations
-    filtered_overview <- mutation_overview[
-        !is.na(mutation_overview$sample), 
-    ]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_proteodisco_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_proteodisco_results.csv")
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    library(ggplot2)
+    library(reshape2)
+    library(dplyr)
+    library(org.Hs.eg.db)
+    library(AnnotationDbi)
+    
+    # Define input file
+    vcf_file <- "validationSet_hg19.vcf"
+    
+    # Check if input file exists in the working directory
+    if (!file.exists(vcf_file)) {
+      stop(paste("Required input file missing:", vcf_file, "\nPlease place it in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_proteodisco_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PROTEODISCO:", paste0("    proteodisco: ", packageVersion("ProteoDisco"))),
-        "versions.yml"
+    
+    # 1. Generate the ProteoDiscography reference database
+    message("Generating ProteoDiscography reference database...")
+    ProteoDiscography.hg19 <- ProteoDisco::generateProteoDiscography(
+      TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene, 
+      genomeSeqs = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     )
+    
+    # 2. Import genomic variants
+    message("Importing genomic variants from VCF...")
+    ProteoDiscography.hg19 <- ProteoDisco::importGenomicVariants(
+      ProteoDiscography = ProteoDiscography.hg19,
+      files = vcf_file, 
+      samplenames = 'Validation Set (GRCh37)',
+      threads = 1, 
+      performAnchorCheck = FALSE
+    )
+    
+    # Generate and save summary of imported variants
+    message("Generating variant summary...")
+    z <- summary(ProteoDiscography.hg19, verbose = FALSE)
+    
+    # Save summary tables to CSV
+    if (!is.null(z\$overviewMutations)) {
+      write.csv(z\$overviewMutations, "imported_variants_overview.csv", row.names = FALSE)
+      
+      # Generate and save plot
+      tryCatch({
+        plot_data <- reshape2::melt(z\$overviewMutations, id.vars = 'sample') %>% 
+          dplyr::filter(!is.na(value))
+        
+        p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = sample, y = value, fill = variable)) + 
+          ggplot2::geom_bar(stat = 'identity', width = .8, color = 'black', position = ggplot2::position_dodge(preserve = 'single')) + 
+          ggplot2::scale_y_continuous(trans = scales::pseudo_log_trans(), breaks = c(0, 10, 100, 1000, 10000)) +
+          ggplot2::labs(x = 'Provided samples', y = 'Nr. of variants (log10)', title = "Imported Genomic Variants Overview") +
+          ggplot2::scale_fill_brewer(name = 'Category', palette = 'Greens') +
+          ggplot2::theme_minimal()
+        
+        ggplot2::ggsave("variant_distribution.pdf", plot = p, width = 8, height = 6)
+      }, error = function(e) {
+        warning("Could not generate summary plot: ", e\$message)
+      })
+    }
+    
+    # 3. Incorporate genomic variants into transcripts
+    message("Incorporating genomic variants into transcripts...")
+    ProteoDiscography.hg19 <- ProteoDisco::incorporateGenomicVariants(
+      ProteoDiscography = ProteoDiscography.hg19,
+      aggregateSamples = FALSE, 
+      aggregateWithinExon = TRUE, 
+      aggregateWithinTranscript = TRUE, 
+      ignoreOverlappingMutations = TRUE, 
+      threads = 1
+    )
+    
+    # Convert TxIDs to gene symbols to enrich the output
+    message("Converting TxIDs to gene symbols...")
+    tryCatch({
+      x <- ProteoDisco::mutantTranscripts(ProteoDiscography.hg19)
+      if (!is.null(x\$genomicVariants) && nrow(x\$genomicVariants) > 0) {
+        geneSymbols <- unique(AnnotationDbi::select(
+          org.Hs.eg.db::org.Hs.eg.db, 
+          keys = x\$genomicVariants\$geneID, 
+          keytype = 'ENTREZID', 
+          columns = 'SYMBOL'
+        ))
+        
+        x\$genomicVariants <- merge(
+          x\$genomicVariants, geneSymbols, 
+          by.x = 'geneID', by.y = 'ENTREZID', all.x = TRUE
+        )
+        
+        ProteoDiscography.hg19 <- ProteoDisco::setMutantTranscripts(
+          ProteoDiscography.hg19, 
+          transcripts = x\$genomicVariants, 
+          slotType = 'genomicVariants'
+        )
+        
+        # Save mutant transcripts table
+        write.csv(x\$genomicVariants, "mutant_transcripts_annotated.csv", row.names = FALSE)
+      }
+    }, error = function(e) {
+      warning("Could not convert TxIDs to gene symbols: ", e\$message)
+    })
+    
+    # 4. Export the customized database to FASTA
+    message("Exporting customized protein database to FASTA...")
+    ProteoDisco::exportProteoDiscography(
+      ProteoDiscography = ProteoDiscography.hg19,
+      outFile = 'example.fasta',
+      aggregateSamples = TRUE
+    )
+    
+    # Save the final ProteoDiscography object as RDS
+    message("Saving ProteoDiscography object to RDS...")
+    saveRDS(ProteoDiscography.hg19, file = "ProteoDiscography_hg19.rds")
+    
+    message("Pipeline completed successfully!")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW":
+        proteodisco: \$(Rscript -e 'cat(as.character(packageVersion("proteodisco")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_proteodisco_results.csv
-    touch ${prefix}_proteodisco_output.rds
-    echo "BIOC_PROTEODISCO:" > versions.yml
-    echo "    proteodisco: 0.0.0" >> versions.yml
+    touch ${prefix}_genomic_variants_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_PROTEODISCO_WORKFLOW {
+workflow BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ validationSet_hg19.vcf ] ]
 
     main:
-    BIOC_PROTEODISCO(ch_input)
+    BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_PROTEODISCO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PROTEODISCO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PROTEODISCO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PROTEODISCO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW.out.tables
+    plots    = BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW.out.plots
+    objects  = BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW.out.objects
+    versions = BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW.out.versions
 }

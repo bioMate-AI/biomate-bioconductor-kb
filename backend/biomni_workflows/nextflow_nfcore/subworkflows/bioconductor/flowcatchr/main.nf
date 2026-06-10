@@ -1,119 +1,155 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: flowcatchR
-// flowcatchR is a set of tools to analyze in vivo microscopy imaging data, focused on tracking flowing
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/flowcatchR/inst/doc/flowcatchr_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("flowcatchR")
+// Bioconductor workflow: flowcatchr — cell_tracking_and_kinematics
+// Track flowing blood cells in time-lapse microscopy images and analyze their kinematic properties.
+// Input: image.files
+// Container: quay.io/biocontainers/bioconductor-flowcatchr:1.44.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_FLOWCATCHR {
+process BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-flowcatchr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-flowcatchr:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-flowcatchr:1.40.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-flowcatchr:1.44.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_flowcatchr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_flowcatchr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_flowcatchr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(flowcatchR)
-    library(jsonlite)
-
-    # --- Particle Identification [] ---
-    # Key functions: particles, select.particles, add.contours
-    platelets <- particles(plateletsMesenterium, preprocessedPlatelets)
-    selectedPlatelets <- select.particles(platelets, min.area = 3)
-    paintedPlatelets <- add.contours(
-        raw.frames = MesenteriumSubset,
-        binary.frames = preprocessedPlatelets,
-        mode = "particles"
-    )
-
-
-    # --- Particle Tracking [] ---
-    # Key functions: link.particles, trajectories, penaltyFunctionGenerator
-    linkedPlatelets <- link.particles(
-        platelets,
-        L = 26, R = 3,
-        epsilon1 = 0, epsilon2 = 0,
-        lambda1 = 1, lambda2 = 0,
-        penaltyFunction = penaltyFunctionGenerator(),
-        include.area = FALSE
-    )
-    trajPlatelets <- trajectories(linkedPlatelets)
-
-
-    # --- Kinematic Analysis [] ---
-    # Key functions: kinematics
-    allKinematicFeats <- kinematics(
-        trajPlatelets,
-        trajectoryIDs = NULL,
-        acquisitionFrequency = 30,
-        scala = 50,
-        feature = NULL
-    )
-    allVelocities <- kinematics(trajPlatelets, feature = "curvilinearVelocity")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_flowcatchr_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("flowcatchr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library("flowcatchR")
+    
+    # Define and validate input path
+    input_path <- "image.files"
+    if (!file.exists(input_path)) {
+      stop("Required input 'image.files' (folder or file containing paths) not found in the working directory.")
+    }
+    
+    # Load raw images into a Frames object
+    if (dir.exists(input_path)) {
+      files <- list.files(input_path, pattern = "\\.(tiff|tif|png|jpg|jpeg)\$", ignore.case = TRUE, full.names = TRUE)
+      if (length(files) == 0) {
+        stop("No TIFF/JPG/PNG images found in 'image.files' directory.")
+      }
+      MesenteriumSubset <- read.Frames(image.files = input_path, nframes = length(files))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_flowcatchr_results.csv")
+      # If it's a file, assume it contains a list of image paths (one per line)
+      file_paths <- readLines(input_path)
+      file_paths <- file_paths[file_paths != ""]
+      if (length(file_paths) == 0) {
+        stop("The 'image.files' file is empty.")
+      }
+      MesenteriumSubset <- read.Frames(image.files = file_paths, nframes = length(file_paths))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_flowcatchr_output.rds")
-    }
+    
+    # Extract the channel of interest (red for platelets)
+    plateletsMesenterium <- channel.Frames(MesenteriumSubset, mode="red")
+    
+    # Preprocess and segment the frames
+    preprocessedPlatelets <- preprocess.Frames(plateletsMesenterium,
+                                               brush.size=3, brush.shape="disc",
+                                               at.offset=0.15, at.wwidth=10, at.wheight=10,
+                                               kern.size=3, kern.shape="disc",
+                                               ws.tolerance=1, ws.radius=1)
+    
+    # Detect particles and extract features
+    platelets <- particles(plateletsMesenterium, preprocessedPlatelets)
+    
+    # Filter out noise particles based on area
+    selectedPlatelets <- select.particles(platelets, min.area=3)
+    
+    # Link particles across frames to form trajectories
+    linkedPlatelets <- link.particles(platelets,  
+                                      L=26, R=3,
+                                      epsilon1=0, epsilon2=0,
+                                      lambda1=1, lambda2=0,
+                                      penaltyFunction=penaltyFunctionGenerator(),
+                                      include.area=FALSE)
+    
+    # Extract trajectories into a TrajectorySet
+    trajPlatelets <- trajectories(linkedPlatelets)
+    
+    # Calculate kinematic features
+    allKinematicFeats.allPlatelets <- kinematics(trajPlatelets,
+                                                 trajectoryIDs=NULL, # will select all trajectory IDs 
+                                                 acquisitionFrequency=30, # value in milliseconds
+                                                 scala=50, # 1 pixel is equivalent to ... micrometer
+                                                 feature=NULL) # all kinematic features available
+    
+    # Create output directory
+    output_dir <- "pipeline_output"
+    dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+    
+    # Save R objects
+    saveRDS(selectedPlatelets, file = file.path(output_dir, "selected_platelets.rds"))
+    saveRDS(trajPlatelets, file = file.path(output_dir, "trajectory_platelets.rds"))
+    saveRDS(allKinematicFeats.allPlatelets, file = file.path(output_dir, "kinematic_features.rds"))
+    
+    # Export particles using package function
+    export.particles(selectedPlatelets, dir = file.path(output_dir, "exported_particles"))
+    
+    # Generate and save diagnostic plots
+    pdf(file.path(output_dir, "trajectories_2D_flat.pdf"))
+    plot2D.TrajectorySet(trajPlatelets, MesenteriumSubset)
+    dev.off()
+    
+    pdf(file.path(output_dir, "curvilinear_velocities_histogram.pdf"))
+    allVelocities <- kinematics(trajPlatelets, feature="curvilinearVelocity")
+    hist(allVelocities, breaks=10, probability=TRUE, col="cadetblue",
+         xlab="Curvilinear Velocities Distribution",
+         main="Trajectory Analysis: Curvilinear Velocities")
+    lines(density(allVelocities, na.rm=TRUE), col="steelblue", lwd=2)
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs saved to 'pipeline_output/'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FLOWCATCHR:", paste0("    flowcatchr: ", packageVersion("flowcatchR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS":
+        flowcatchr: \$(Rscript -e 'cat(as.character(packageVersion("flowcatchr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_flowcatchr_results.csv
-    touch ${prefix}_flowcatchr_output.rds
-    echo "BIOC_FLOWCATCHR:" > versions.yml
-    echo "    flowcatchr: 0.0.0" >> versions.yml
+    touch ${prefix}_cell_tracking_and_kinematics.csv versions.yml
     """
 }
 
-
-workflow BIOC_FLOWCATCHR_WORKFLOW {
+workflow BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ image.files ] ]
 
     main:
-    BIOC_FLOWCATCHR(ch_input)
+    BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS(ch_input)
 
     emit:
-    results  = BIOC_FLOWCATCHR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FLOWCATCHR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FLOWCATCHR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FLOWCATCHR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS.out.tables
+    plots    = BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS.out.plots
+    objects  = BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS.out.objects
+    versions = BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS.out.versions
 }

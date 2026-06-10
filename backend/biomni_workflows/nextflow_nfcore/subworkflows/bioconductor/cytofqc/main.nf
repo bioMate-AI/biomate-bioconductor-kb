@@ -1,95 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cytofQC
-// cytofQC is a package for initial cleaning of CyTOF data. It uses a semi-supervised approach for labe
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cytofQC/inst/doc/cytofQC.R
-// Upstream  : RColorBrewer, uwot
-// Downstream: none
-//
-// Install: BiocManager::install("cytofQC")
+// Bioconductor workflow: cytofqc — all_in_one_qc_labeling
+// Automatically label CyTOF events using the all-in-one labelQC function.
+// Input: raw_cytof.fcs
+// Container: quay.io/biocontainers/bioconductor-cytofqc:1.6.0--r44hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CYTOFQC {
+process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cytofqc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cytofqc:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cytofqc:1.6.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-cytofqc:1.6.0--r44hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cytofqc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cytofqc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cytofqc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CATALYST", "SingleCellExperiment", "cytofqc", "ggplot2", "gridExtra", "rcolorbrewer", "uwot")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(cytofQC)
-    library(jsonlite)
-
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, scale_color_manual, guides, labs
-    library(RColorBrewer)
-    ggplot(lab.umapD, aes(x = x, y = y)) +
-    geom_point(aes(color = labs), size = 0.5, alpha = 0.5) +
-    # --- PrepData analysis [] ---
-    # Key functions: prepData, readCytof, labelQC, cytofHist, initialBead, svmLabel, initialDebris, initialDoublet
-    bead <- cytofHist(scores(x, type = 'bead'), label(x), type = "density", title = "Bead score")
-    debris <- cytofHist(scores(x, type = 'debris'), label(x), type = "density", title = "Debris score")
-    doublet <- cytofHist(scores(x, type = 'doublet'), label(x), type = "density", title = "Doublet score")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cytofqc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cytofqc_results.csv")
+    library(CATALYST)
+    library(SingleCellExperiment)
+    library(ggplot2)
+    library(gridExtra)
+    
+    # Define input file path (must be in the working directory)
+    f <- "raw_cytof.fcs"
+    
+    if (!file.exists(f)) {
+      stop(paste("Required input file '", f, "' not found in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cytofqc_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CYTOFQC:", paste0("    cytofqc: ", packageVersion("cytofQC"))),
-        "versions.yml"
+    
+    # 1. Read FCS data and define QC channels using readCytof
+    x <- readCytof(f, 
+                   beads = c("Bead"),
+                   dna = c("DNA1", "DNA2"),
+                   event_length = "Event_length",
+                   viability = "Live_Dead",
+                   gaussian = c("Center", "Offset", "Width", "Residual"))
+    
+    # 2. Run the all-in-one labeling using labelQC
+    x <- labelQC(x)
+    
+    # 3. Retrieve labels, scores, and probabilities using label, scores, and probs
+    lbls <- label(x)
+    scrs <- scores(x)
+    init <- initial(x)
+    prbs <- probs(x)
+    
+    # Print summary tables to console
+    print("Label distribution:")
+    print(table(lbls))
+    
+    print("Head of scores:")
+    print(head(scrs))
+    
+    print("Head of initial classifications:")
+    print(head(init))
+    
+    print("Head of probabilities:")
+    print(head(prbs))
+    
+    # Save tabular results to CSV
+    results_summary <- data.frame(
+      Event_Index = seq_len(ncol(x)),
+      Label = lbls
     )
+    results_summary <- cbind(results_summary, as.data.frame(scrs), as.data.frame(prbs))
+    write.csv(results_summary, "cytof_qc_results.csv", row.names = FALSE)
+    
+    # Save the SingleCellExperiment object
+    saveRDS(x, "cytof_qc_sce.rds")
+    
+    # 4. Visualize the scores using cytofHist
+    bead <- cytofHist(scores(x, type = 'bead'), label(x), title = "Bead score")
+    debris <- cytofHist(scores(x, type = 'debris'), label(x), title = "Debris score")
+    doublet <- cytofHist(scores(x, type = 'doublet'), label(x), title = "Doublet score")
+    
+    # Save the visualization to a PDF file
+    pdf("cytof_qc_histograms.pdf", width = 8, height = 11)
+    grid.arrange(bead, debris, doublet, ncol = 1)
+    dev.off()
+    
+    # Also generate and save the density-scaled histograms
+    bead_dens <- cytofHist(scores(x, type = 'bead'), label(x), type = "density", title = "Bead score (Density)")
+    debris_dens <- cytofHist(scores(x, type = 'debris'), label(x), type = "density", title = "Debris score (Density)")
+    doublet_dens <- cytofHist(scores(x, type = 'doublet'), label(x), type = "density", title = "Doublet score (Density)")
+    
+    pdf("cytof_qc_density_histograms.pdf", width = 8, height = 11)
+    grid.arrange(bead_dens, debris_dens, doublet_dens, ncol = 1)
+    dev.off()
+    
+    print("Pipeline completed successfully. Outputs saved: 'cytof_qc_results.csv', 'cytof_qc_sce.rds', 'cytof_qc_histograms.pdf', 'cytof_qc_density_histograms.pdf'.")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING":
+        cytofqc: \$(Rscript -e 'cat(as.character(packageVersion("cytofqc")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cytofqc_results.csv
-    touch ${prefix}_cytofqc_output.rds
-    echo "BIOC_CYTOFQC:" > versions.yml
-    echo "    cytofqc: 0.0.0" >> versions.yml
+    touch ${prefix}_all_in_one_qc_labeling.csv versions.yml
     """
 }
 
-
-workflow BIOC_CYTOFQC_WORKFLOW {
+workflow BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_cytof.fcs ] ]
 
     main:
-    BIOC_CYTOFQC(ch_input)
+    BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING(ch_input)
 
     emit:
-    results  = BIOC_CYTOFQC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CYTOFQC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CYTOFQC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CYTOFQC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING.out.tables
+    plots    = BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING.out.plots
+    objects  = BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING.out.objects
+    versions = BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING.out.versions
 }

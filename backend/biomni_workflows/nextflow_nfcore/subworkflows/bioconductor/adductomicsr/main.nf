@@ -1,100 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: adductomicsR
-// Processes MS2 data to identify potentially adducted peptides from spectra that has been corrected fo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/adductomicsR/inst/doc/adductomicsRWorkflow.R
-// Upstream  : ExperimentHub, adductData, devtools
-// Downstream: none
-//
-// Install: BiocManager::install("adductomicsR")
+// Bioconductor workflow: adductomicsr — adductomics_workflow
+// Correct retention time drift, identify peptide adducts, generate a target table, quantify peaks, and filter the final peak table from raw mzXML files.
+// Input: mzXML files, runOrder.csv, allResults_ALVLIAFAQYLQQCPFEDHVK_example.csv, exampletargTable2.csv
+// Container: quay.io/biocontainers/bioconductor-adductomicsr:1.26.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ADDUCTOMICSR {
+process BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-adductomicsr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-adductomicsr:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-adductomicsr:1.22.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-adductomicsr:1.26.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_adductomicsr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_adductomicsr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_adductomicsr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("adductdata", "adductomicsr", "devtools", "experimenthub")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
     library(adductomicsR)
-    library(jsonlite)
-
-    # --- Adduct Quantification [] ---
-    # Key functions: adductQuant
-    quantResults <- adductQuant(
-        mzxmlFiles = c("ORB35017.mzXML", "ORB35022.mzXML"),
-        targTable = targTable,
-        saveDir = tempdir()
+    
+    # 1. Model retention time deviation across samples using rtDevModelling
+    rtDevModelling(
+      MS2Dir = ".",
+      nCores = 4,
+      runOrder = "runOrder.csv"
     )
-
-
-    # --- Spectral Similarity Validation [] ---
-    # Key functions: specSimVal
-    validated <- specSimVal(
-        quantResults = quantResults,
-        mzxmlFiles = c("ORB35017.mzXML", "ORB35022.mzXML")
+    
+    # 2. Identify peptide adducts and group spectra using specSimPepId
+    specSimPepId(
+      MS2Dir = ".",
+      nCores = 4,
+      rtDevModels = "./rtDevModels.RData"
     )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_adductomicsr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_adductomicsr_results.csv")
+    
+    # 3. Generate a target table of adducts for quantification using generateTargTable
+    generateTargTable(
+      allresultsFile = "allResults_ALVLIAFAQYLQQCPFEDHVK_example.csv",
+      csvDir = "."
+    )
+    
+    # 4. Quantify adduct peaks across samples using adductQuant
+    object <- adductQuant(
+      nCores = 2,
+      targTable = "exampletargTable2.csv",
+      intStdRtDrift = 30,
+      rtDevModels = "./rtDevModels.RData",
+      filePaths = list.files(".", pattern = ".mzXML", all.files = FALSE, full.names = TRUE),
+      quantObject = NULL,
+      indivAdduct = NULL,
+      maxPpm = 5,
+      minSimScore = 0.8,
+      spikeScans = 1,
+      minPeakHeight = 100,
+      maxRtDrift = 20,
+      maxRtWindow = 240,
+      isoWindow = 80,
+      hkPeptide = 'LVNEVTEFAK',
+      gaussAlpha = 16
+    )
+    
+    # Ensure the quantification object is loaded if it was saved to disk instead of returned
+    if (!exists("object") || is.null(object)) {
+      if (file.exists("adductQuantResults.Rda")) {
+        load("adductQuantResults.Rda")
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_adductomicsr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ADDUCTOMICSR:", paste0("    adductomicsr: ", packageVersion("adductomicsR"))),
-        "versions.yml"
+    
+    # 5. Extract and save the peak table from the quantification object using outputPeakTable
+    outputPeakTable(
+      object = object,
+      outputDir = "."
     )
+    
+    # 6. Filter the peak table to remove noisy adducts and low-quality samples using filterAdductTable
+    filterAdductTable(
+      paste0("./adductQuantif_peakList_", Sys.Date(), ".csv")
+    )
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW":
+        adductomicsr: \$(Rscript -e 'cat(as.character(packageVersion("adductomicsr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_adductomicsr_results.csv
-    touch ${prefix}_adductomicsr_output.rds
-    echo "BIOC_ADDUCTOMICSR:" > versions.yml
-    echo "    adductomicsr: 0.0.0" >> versions.yml
+    touch ${prefix}_adductomics_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_ADDUCTOMICSR_WORKFLOW {
+workflow BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mzXML files, runOrder.csv, allResults_ALVLIAFAQYLQQCPFEDHVK_example.csv, exampletargTable2.csv ] ]
 
     main:
-    BIOC_ADDUCTOMICSR(ch_input)
+    BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_ADDUCTOMICSR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ADDUCTOMICSR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ADDUCTOMICSR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ADDUCTOMICSR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW.out.tables
+    plots    = BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW.out.plots
+    objects  = BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW.out.objects
+    versions = BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW.out.versions
 }

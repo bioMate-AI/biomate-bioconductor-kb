@@ -1,186 +1,209 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RegionalST
-// This package analyze spatial transcriptomics data through cross-regional cell type-specific analysis
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RegionalST/inst/doc/RegionalST.R
-// Upstream  : BayesSpace, CARD, Matrix, ggplot2, gridExtra
-// Downstream: none
-//
-// Install: BiocManager::install("RegionalST")
+// Bioconductor workflow: regionalst — analysis_with_cell_type_proportions
+// Perform ROI selection, cross-regional differential expression, and pathway enrichment using continuous cell type deconvolution proportions.
+// Input: path/to/spaceranger/outs/, CARD_obj
+// Container: quay.io/biocontainers/bioconductor-regionalst:1.8.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_REGIONALST {
+process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-regionalst"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-regionalst:1.4.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-regionalst:1.4.2--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-regionalst:1.8.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_regionalst_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_regionalst_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_regionalst_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("S4Vectors", "bayesspace", "card", "ggplot2", "gridextra", "matrix", "regionalst")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(BayesSpace)
     library(RegionalST)
-    library(CARD_deconvolution)
-    library(GetOneRadiusEntropy_withProp)
-    library(ManualSelectCenter)
-    library(PlotOneSelectedCenter)
-    library(RankCenterByEntropy_withProp)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Entropy Calculation [] ---
-    # Key functions: GetOneRadiusEntropy_withProp
+    library(S4Vectors)
+    library(gridExtra)
+    library(ggplot2)
+    
+    # Create output directory
+    dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
+    
+    # 1. Load and preprocess spatial data using BayesSpace
+    # Read Visium data from the declared user input directory
+    sce <- BayesSpace::readVisium("path/to/spaceranger/outs/")
+    
+    # Read CARD deconvolution results from the declared user input file
+    CARD_obj <- readRDS("CARD_obj")
+    
+    # Add deconvolution proportions to the SCE object metadata
+    S4Vectors::metadata(sce)\$Proportions <- RegionalST::getProportions(CARD_obj)
+    
+    # Extract proportions and assign dominant cell type labels to the spots
+    props <- S4Vectors::metadata(sce)\$Proportions
+    dominant_celltype <- colnames(props)[apply(props, 1, which.max)]
+    sce\$celltype <- dominant_celltype
+    sce\$CellType <- dominant_celltype  # Ensure both cases are covered for downstream functions
+    sce\$spot <- colnames(sce)
+    
+    # Preprocess spatial transcriptomics data
+    sce <- sce[, colSums(counts(sce)) > 0]
+    sce <- mySpatialPreprocess(sce, platform="Visium")
+    
+    # Set required spatial coordinate metadata for plotting
+    sce\$"array_col" <- sce\$col
+    sce\$"array_row" <- sce\$row
+    sce\$"pxl_col_in_fullres" <- sce\$imagecol
+    sce\$"pxl_row_in_fullres" <- sce\$imagerow
+    
+    # 2. Define cell type weights and calculate weighted entropy
+    # Dynamically construct the weight data frame based on the cell types present in the deconvolution results
+    celltypes <- colnames(props)
     weight <- data.frame(
-        celltype = c("Cancer Epithelial", "CAFs", "T-cells", "Endothelial",
-                     "PVL", "Myeloid", "B-cells", "Normal Epithelial",
-                     "Plasmablasts"),
-        weight = c(0.25, 0.05, 0.25, 0.05, 0.025, 0.05, 0.25, 0.05, 0.025)
+      celltype = celltypes,
+      weight = rep(1 / length(celltypes), length(celltypes))
     )
-    OneRad <- GetOneRadiusEntropy_withProp(
-        example_sce,
-        selectN = length(example_sce$spot),
-        weight = weight,
-        radius = 5,
-        doPlot = FALSE,
-        mytitle = "Radius 5 weighted entropy"
-    )
-
-
-    # --- Region of Interest Selection [] ---
-    # Key functions: RankCenterByEntropy_withProp, PlotOneSelectedCenter, DrawRegionProportion_withProp
-    example_sce <- RankCenterByEntropy_withProp(
-        example_sce,
-        weight,
-        selectN = round(length(example_sce$spot) / 5),
-        topN = 3,
-        min_radius = 10,
-        radius_vec = c(5, 10),
-        doPlot = FALSE
-    )
-    sel_plot <- PlotOneSelectedCenter(example_sce, ploti = 1)
-    prop_plot <- DrawRegionProportion_withProp(
-        example_sce,
-        label = "CellType",
-        selCenter = c(1, 2, 3)
-    )
-
-
-    # --- Cross-Regional Differential Expression [] ---
-    # Key functions: GetCrossRegionalDE_withProp
-    CR12_DE <- GetCrossRegionalDE_withProp(
-        example_sce,
-        twoCenter = c(1, 2),
-        label = "celltype",
-        angle = 30,
-        hjust = 0,
-        size = 3,
-        padj_filter = 0.05,
-        doHeatmap = FALSE
-    )
-
-
-    # --- Cell-Type Specific Regional Analysis [] ---
-    # Key functions: FindRegionalCells, GetCellTypeSpecificDE_withProp
-    thisID1 <- S4Vectors::metadata(example_sce)$selectCenters$selectID[1]
-    OutRegRes1 <- FindRegionalCells(
-        example_sce,
-        centerID = thisID1,
-        radius = 20,
-        enhanced = FALSE,
-        doPlot = FALSE,
-        returnPlot = FALSE
-    )
-    thisID2 <- S4Vectors::metadata(example_sce)$selectCenters$selectID[2]
-    OutRegRes2 <- FindRegionalCells(
-        example_sce,
-        centerID = thisID2,
-        radius = 20,
-        enhanced = FALSE,
-        doPlot = FALSE,
-        returnPlot = FALSE
-    )
-    CTS_DE <- GetCellTypeSpecificDE_withProp(
-        example_sce,
-        Regional1ID = OutRegRes1$closeID,
-        Regional2ID = OutRegRes2$closeID,
-        n_markers = 10,
-        angle = 30,
-        hjust = 0,
-        size = 3,
-        padj_filter = 1,
-        doHeatmap = FALSE
-    )
-
-
-    # --- Pathway Enrichment Analysis [] ---
-    # Key functions: DoGSEA, DrawDotplot
+    
+    # Calculate and plot weighted entropy at radius 5
+    pdf("outputs/weighted_entropy_radius5.pdf")
+    OneRad <- GetOneRadiusEntropy_withProp(sce,
+                                 selectN = length(sce\$spot),
+                                 weight = weight,
+                                 radius = 5,
+                                 doPlot = TRUE,
+                                 mytitle = "Radius 5 weighted entropy")
+    dev.off()
+    
+    # 3. Automatically select Regions of Interest (ROIs) based on entropy
+    pdf("outputs/roi_selection.pdf")
+    sce <- RankCenterByEntropy_withProp(sce, 
+                                        weight,
+                                        selectN = round(length(sce\$spot)/5),
+                                        topN = 3, 
+                                        min_radius = 10,
+                                        radius_vec = c(5,10),
+                                        doPlot = TRUE)
+    dev.off()
+    
+    # Visualize and save the first selected ROI
+    pdf("outputs/selected_center_1.pdf")
+    PlotOneSelectedCenter(sce, ploti = 1)
+    dev.off()
+    
+    # Draw and save cell type proportions for the selected ROIs
+    pdf("outputs/region_proportions.pdf")
+    DrawRegionProportion_withProp(sce,
+                                  label = "CellType",
+                                  selCenter = c(1,2,3))
+    dev.off()
+    
+    # 4. Perform cross-regional cell type-specific differential expression
+    # Compare the first and second ROIs
+    CR12_DE <- GetCrossRegionalDE_withProp(sce, 
+                                           twoCenter = c(1,2),
+                                           label = "celltype",
+                                           angle = 30,
+                                           hjust = 0,
+                                           size = 3,
+                                           padj_filter = 0.05,
+                                           doHeatmap = TRUE)
+    
+    write.csv(CR12_DE\$allDE, "outputs/cross_regional_DE_1_vs_2.csv", row.names = TRUE)
+    
+    # Identify regional cells for self-defined cross-regional analysis
+    thisID1 <- S4Vectors::metadata(sce)\$selectCenters\$selectID[1]
+    thisRadius1 <- S4Vectors::metadata(sce)\$selectCenters\$selectRadius[1]
+    OutRegRes1 <- RegionalST::FindRegionalCells(sce,
+                                                centerID = thisID1,
+                                                radius = 20,
+                                                enhanced = FALSE,
+                                                doPlot = FALSE,
+                                                returnPlot = FALSE)
+    
+    thisID2 <- S4Vectors::metadata(sce)\$selectCenters\$selectID[2]
+    thisRadius2 <- S4Vectors::metadata(sce)\$selectCenters\$selectRadius[2]
+    OutRegRes2 <- RegionalST::FindRegionalCells(sce,
+                                                centerID = thisID2,
+                                                radius = 20,
+                                                enhanced = FALSE,
+                                                doPlot = FALSE,
+                                                returnPlot = FALSE)
+    
+    Regional1ID <- OutRegRes1\$closeID
+    Regional2ID <- OutRegRes2\$closeID
+    
+    # Perform cell type-specific differential expression across the two regions
+    CTS_DE <- GetCellTypeSpecificDE_withProp(sce,
+                                             Regional1ID = Regional1ID,
+                                             Regional2ID = Regional2ID,
+                                             n_markers = 10,
+                                             angle = 30,
+                                             hjust = 0,
+                                             size = 3,
+                                             padj_filter = 1,
+                                             doHeatmap = FALSE)
+    
+    write.csv(CTS_DE\$allDE, "outputs/cell_type_specific_DE.csv", row.names = TRUE)
+    
+    # 5. Run GSEA pathway enrichment on the DE genes and visualize
     lCTres <- list(CTS_DE)
     CTres <- DoGSEA(lCTres, whichDB = "hallmark", withProp = TRUE)
-    gsea_plot <- DrawDotplot(
-        CTres,
-        CT = 1,
-        angle = 15,
-        vjust = 1,
-        chooseP = "padj"
-    )
+    
+    saveRDS(CTres, "outputs/gsea_results.rds")
+    
+    # Draw and save GSEA dotplots for the identified pathways
+    pdf("outputs/gsea_dotplots.pdf")
+    tryCatch({
+      DrawDotplot(CTres, CT = 1, angle = 15, vjust = 1, chooseP = "padj")
+    }, error = function(e) {
+      message("Could not draw GSEA dotplot for CT = 1: ", e\$message)
+    })
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_regionalst_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_regionalst_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_regionalst_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REGIONALST:", paste0("    regionalst: ", packageVersion("RegionalST"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS":
+        regionalst: \$(Rscript -e 'cat(as.character(packageVersion("regionalst")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_regionalst_results.csv
-    touch ${prefix}_regionalst_output.rds
-    echo "BIOC_REGIONALST:" > versions.yml
-    echo "    regionalst: 0.0.0" >> versions.yml
+    touch ${prefix}_analysis_with_cell_type_proportions.csv versions.yml
     """
 }
 
-
-workflow BIOC_REGIONALST_WORKFLOW {
+workflow BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ path/to/spaceranger/outs/, CARD_obj ] ]
 
     main:
-    BIOC_REGIONALST(ch_input)
+    BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS(ch_input)
 
     emit:
-    results  = BIOC_REGIONALST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REGIONALST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REGIONALST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REGIONALST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS.out.tables
+    plots    = BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS.out.plots
+    objects  = BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS.out.objects
+    versions = BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS.out.versions
 }

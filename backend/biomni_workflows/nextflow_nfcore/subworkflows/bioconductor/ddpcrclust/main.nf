@@ -1,92 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ddPCRclust
-// The ddPCRclust algorithm can automatically quantify the CPDs of non-orthogonal ddPCR reactions with 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ddPCRclust/inst/doc/ddPCRclust.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("ddPCRclust")
+// Bioconductor workflow: ddpcrclust — ddpcr_clustering_and_analysis
+// Automatically cluster ddPCR droplet amplitudes, assign targets, and calculate copies per droplet (CPD) using a template.
+// Input: csv, csv
+// Container: quay.io/biocontainers/bioconductor-ddpcrclust:1.30.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DDPCRCLUST {
+process BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ddpcrclust"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ddpcrclust:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ddpcrclust:1.26.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ddpcrclust:1.30.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(ggplot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ddpcrclust_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ddpcrclust_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ddpcrclust_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ddPCRclust)
-    library(jsonlite)
-
-    # --- Files [] ---
-    # Key functions: files, package, readFiles, readTemplate, ddPCRclust, ggplot
-    library(ddPCRclust)
-    # Read files
-    exampleFiles <- list.files(paste0(find.package('ddPCRclust'), '/extdata'),
-                               full.names = TRUE)
-    files <- readFiles(exampleFiles[3])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ddpcrclust_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ddpcrclust_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ddpcrclust", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ddpcrclust_output.rds")
+    
+    # Load required libraries
+    library(ddPCRclust)
+    library(ggplot2)
+    
+    # Identify input files in the working directory
+    csv_files <- list.files(path = ".", pattern = "\\.csv\$", ignore.case = TRUE, full.names = TRUE)
+    
+    if (length(csv_files) == 0) {
+      stop("No CSV files found in the working directory.")
+    }
+    
+    template_file <- NULL
+    amplitude_files <- c()
+    
+    # Distinguish the template file from the raw amplitude files
+    for (f in csv_files) {
+      header <- tryCatch(colnames(read.csv(f, nrows = 1)), error = function(e) NULL)
+      if (!is.null(header)) {
+        if (any(grepl("Well|Sample|Marker|No.of.markers", header, ignore.case = TRUE))) {
+          template_file <- f
+        } else if (any(grepl("Ch1|Ch2|Amplitude", header, ignore.case = TRUE))) {
+          amplitude_files <- c(amplitude_files, f)
+        }
+      }
+    }
+    
+    # Fallback detection based on column count if headers are non-standard
+    if (is.null(template_file)) {
+      for (f in csv_files) {
+        test_df <- tryCatch(read.csv(f, nrows = 2), error = function(e) NULL)
+        if (!is.null(test_df)) {
+          if (ncol(test_df) > 2) {
+            template_file <- f
+          } else {
+            amplitude_files <- unique(c(amplitude_files, f))
+          }
+        }
+      }
+    }
+    
+    # Ensure we have both template and amplitude files
+    if (is.null(template_file)) {
+      stop("Could not identify a template CSV file in the working directory.")
+    }
+    if (length(amplitude_files) == 0) {
+      stop("No raw droplet amplitude CSV files identified in the working directory.")
+    }
+    
+    # 1. Read raw ddPCR amplitude files
+    files <- readFiles(amplitude_files)
+    
+    # 2. Read template
+    template <- readTemplate(template_file)
+    
+    # 3. Run ddPCRclust
+    result <- ddPCRclust(files, template)
+    
+    # 4. Plot the results
+    # Dynamically select the first available well from the results for plotting
+    well_name <- names(result)[1]
+    plot_data <- result[[well_name]]\$data
+    
+    p <- ggplot(data = plot_data,
+                mapping = aes(x = Ch2.Amplitude, y = Ch1.Amplitude))
+    p <- p + geom_point(aes(color = factor(Cluster)), size = .5, na.rm = TRUE) +
+         ggtitle(paste(well_name, 'example')) + theme_bw() + theme(legend.position='none')
+    
+    # Save the plot
+    ggsave(filename = "ddPCRclust_plot.pdf", plot = p, width = 7, height = 6)
+    
+    # Save the RDS object
+    saveRDS(result, file = "ddPCRclust_results.rds")
+    
+    # Export results to CSV files for each well
+    for (well in names(result)) {
+      output_filename <- paste0("ddPCRclust_result_", well, ".csv")
+      write.csv(result[[well]]\$data, file = output_filename, row.names = FALSE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DDPCRCLUST:", paste0("    ddpcrclust: ", packageVersion("ddPCRclust"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS":
+        ddpcrclust: \$(Rscript -e 'cat(as.character(packageVersion("ddpcrclust")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ddpcrclust_results.csv
-    touch ${prefix}_ddpcrclust_output.rds
-    echo "BIOC_DDPCRCLUST:" > versions.yml
-    echo "    ddpcrclust: 0.0.0" >> versions.yml
+    touch ${prefix}_ddpcr_clustering_and_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DDPCRCLUST_WORKFLOW {
+workflow BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(ggplot_object) ]
+    ch_input  // channel: [ val(meta), [ csv, csv ] ]
 
     main:
-    BIOC_DDPCRCLUST(ch_input)
+    BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DDPCRCLUST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DDPCRCLUST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DDPCRCLUST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DDPCRCLUST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS.out.tables
+    plots    = BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS.out.plots
+    objects  = BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS.out.objects
+    versions = BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS.out.versions
 }

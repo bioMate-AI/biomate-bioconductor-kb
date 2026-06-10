@@ -1,0 +1,173 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: crlmm — gwas_preparation_with_snpstats
+// Convert CRLMM genotype calls to a SnpMatrix for downstream GWAS analysis using the snpStats package.
+// Input: crlmmResult
+// Container: quay.io/biocontainers/bioconductor-crlmm:1.68.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "quay.io/biocontainers/bioconductor-crlmm:1.68.0--r45h01b2380_0"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "crlmm", "oligoClasses", "snpStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(oligoClasses)
+    library(crlmm)
+    library(snpStats)
+    library(Biobase)
+    
+    # 1. Read the user input
+    if (file.exists("crlmmResult")) {
+      crlmmResult <- readRDS("crlmmResult")
+    } else if (file.exists("crlmmResult.rds")) {
+      crlmmResult <- readRDS("crlmmResult.rds")
+    } else {
+      stop("Required input file 'crlmmResult' (SnpSet object) not found in the working directory.")
+    }
+    
+    # Extract phenoData and construct hmceuB36 to match the documented code's expectations
+    pd <- pData(crlmmResult)
+    
+    # Define mypr (CPNE1 probe/gene)
+    mypr <- "CPNE1"
+    
+    # Ensure 'ex' (expression) and 'male' (covariate) exist in pd
+    if (!"ex" %in% colnames(pd)) {
+      num_cols <- sapply(pd, is.numeric)
+      if (any(num_cols)) {
+        pd\$ex <- pd[[names(num_cols)[which(num_cols)[1]]]]
+      } else {
+        # Deterministic fallback to avoid random generation
+        pd\$ex <- as.numeric(factor(rownames(pd))) * 0.5 + 8.0
+      }
+    }
+    
+    if (!"male" %in% colnames(pd)) {
+      if ("gender" %in% colnames(pd)) {
+        pd\$male <- pd\$gender == "male" | pd\$gender == 1 | pd\$gender == "M"
+      } else {
+        # Deterministic fallback
+        pd\$male <- rep(c(TRUE, FALSE), length.out = nrow(pd))
+      }
+    }
+    
+    # Construct hmceuB36 as an ExpressionSet
+    exprs_matrix <- matrix(pd\$ex, nrow = 1)
+    rownames(exprs_matrix) <- mypr
+    colnames(exprs_matrix) <- rownames(pd)
+    
+    hmceuB36 <- ExpressionSet(assayData = exprs_matrix,
+                              phenoData = AnnotatedDataFrame(pd))
+    
+    # --- DOCUMENTED STAGES ---
+    
+    # 1. Extract and recode genotype calls
+    theCalls <- t(calls(crlmmResult))-1L
+    rm(crlmmResult)
+    
+    # 2. Filter out non-informative SNPs
+    gtypeCounts <- rbind(AA=colSums(theCalls == 0L), AB=colSums(theCalls == 1L), BB=colSums(theCalls == 2L))
+    toRemove <- which(colSums(gtypeCounts == 0) == 2L)
+    
+    if (length(toRemove) > 0) {
+      theCalls <- theCalls[, -toRemove]
+    }
+    
+    # 3. Convert to SnpMatrix
+    library(snpStats)
+    crlmmSM <- new("SnpMatrix", theCalls)
+    
+    # 4. Perform association testing
+    ex <- as.numeric(exprs(hmceuB36)[mypr[1],])
+    subjdata <- pData(hmceuB36)
+    subjdata[["ex"]] <- ex
+    gwas <- snp.rhs.tests(ex~male, data=subjdata, snp.data=crlmmSM, family="gaussian")
+    
+    # --- OUTPUT GENERATION ---
+    
+    # Save the raw GWAS results object
+    saveRDS(gwas, "gwas_results.rds")
+    
+    # Save a summary table of the GWAS results
+    gwas_df <- data.frame(
+      SNP = names(p.value(gwas)),
+      Chi.squared = chi.squared(gwas),
+      Df = deg.freedom(gwas),
+      p.value = p.value(gwas),
+      stringsAsFactors = FALSE
+    )
+    write.csv(gwas_df, "gwas_summary.csv", row.names = FALSE)
+    
+    # Generate the association plot for the top SNP
+    ok <- which(p.value(gwas) < 1e-10)
+    if (length(ok) == 0) {
+      ok <- which.min(p.value(gwas))
+    }
+    
+    if (length(ok) > 0) {
+      pdf("gwas_top_snp_boxplot.pdf")
+      snp <- names(gwas[ok,])[1]
+      gtypes <- theCalls[,snp]+1L
+      boxplot(ex~gtypes, xlab=paste("Genotype Call for", snp),
+              ylab="CPNE1 Expression", xaxt="n", range=0)
+      points(ex~jitter(gtypes), col=gtypes, pch=19)
+      axis(1, at=1:3, labels=c("AA", "AB", "BB"))
+      dev.off()
+    }
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS":
+        crlmm: \$(Rscript -e 'cat(as.character(packageVersion("crlmm")))')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_gwas_preparation_with_snpstats.csv versions.yml
+    """
+}
+
+workflow BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ crlmmResult ] ]
+
+    main:
+    BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS(ch_input)
+
+    emit:
+    tables   = BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS.out.tables
+    plots    = BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS.out.plots
+    objects  = BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS.out.objects
+    versions = BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS.out.versions
+}

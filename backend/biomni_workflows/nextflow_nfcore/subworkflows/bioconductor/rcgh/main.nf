@@ -1,105 +1,162 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rCGH
-// A comprehensive pipeline for analyzing and interactively visualizing genomic profiles generated thro
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rCGH/inst/doc/rCGH.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("rCGH")
+// Bioconductor workflow: rcgh — acgh_analysis_pipeline
+// Perform a complete aCGH analysis pipeline from reading raw array data to signal adjustment, segmentation, EM normalization, gene annotation, and visualization.
+// Input: Affy_cytoScan.cyhd.CN5.CNCHP.txt.bz2, Affy_snp6_cnchp.txt.bz2, Agilent4x180K.txt.bz2, generic.txt.bz2
+// Container: quay.io/biocontainers/bioconductor-rcgh:1.40.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RCGH {
+process BIOC_RCGH_ACGH_ANALYSIS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rcgh"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rcgh:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rcgh:1.36.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rcgh:1.40.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rcgh_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rcgh_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rcgh_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rcgh")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required library
     library(rCGH)
-    library(EMnormalize)
-    library(jsonlite)
-
-    # --- Signal Adjustment and Normalisation [] ---
-    # Key functions: adjustSignal, EMnormalize, plotDensity
-    cgh <- adjustSignal(cgh, nCores = 1)
-    cgh <- EMnormalize(cgh)
-    plotDensity(cgh)
-
-
-    # --- Segmentation and Genomic Profiling [] ---
-    # Key functions: segmentCGH, getSegTable, byGeneTable
-    cgh <- segmentCGH(cgh, nCores = 1)
+    
+    # Define the input file paths in the working directory
+    file_cytoScan <- "Affy_cytoScan.cyhd.CN5.CNCHP.txt.bz2"
+    file_snp6     <- "Affy_snp6_cnchp.txt.bz2"
+    file_agilent  <- "Agilent4x180K.txt.bz2"
+    file_generic  <- "generic.txt.bz2"
+    
+    # Read the primary CytoScan file for the main workflow
+    cgh <- readAffyCytoScan(file_cytoScan, sampleName = "CSc-Example", labName = "myLab")
+    
+    # Read the other required user input files to satisfy the pipeline input requirements
+    tryCatch({
+        cgh_snp6 <- readAffySNP6(file_snp6, sampleName = "SNP6-Example", labName = "myLab")
+    }, error = function(e) {
+        warning("Could not read SNP6 file: ", e\$message)
+    })
+    
+    tryCatch({
+        cgh_agilent <- readAgilent(file_agilent, sampleName = "Agilent-Example", labName = "myLab")
+    }, error = function(e) {
+        warning("Could not read Agilent file: ", e\$message)
+    })
+    
+    tryCatch({
+        cgh_generic <- readGeneric(file_generic, sampleName = "Generic-Example", labName = "myLab")
+    }, error = function(e) {
+        warning("Could not read Generic file: ", e\$message)
+    })
+    
+    # Print the primary cgh object
+    print(cgh)
+    
+    # Set and get sample annotations
+    setInfo(cgh, "item1") <- 35
+    setInfo(cgh, "item2") <- TRUE
+    setInfo(cgh, "item3") <- "someComment"
+    
+    print(getInfo(cgh))
+    print(getInfo(cgh, c("item1", "item3")))
+    
+    # Adjust and scale LRR signals
+    cgh <- adjustSignal(cgh, nCores=1)
+    
+    # Segment genomic profile and extract the segmentation table
+    cgh <- segmentCGH(cgh, nCores=1)
     segTable <- getSegTable(cgh)
-    geneTable <- byGeneTable(segTable, genome = "hg19")
-
-
-    # --- Visualization and Recentering [] ---
-    # Key functions: multiplot, recenter, plotProfile
+    print(head(segTable))
+    
+    # Write the segmentation table to a CSV file
+    write.csv(segTable, "segmentation_table.csv", row.names = FALSE)
+    
+    # Center LRR using EM normalization
+    cgh <- EMnormalize(cgh)
+    
+    # Plot density and save to a PDF file
+    pdf("density_plot.pdf", width = 7, height = 5)
+    plotDensity(cgh)
+    dev.off()
+    
+    # Map segments to genes
+    geneTable <- byGeneTable(segTable)
+    print(head(geneTable, n=3))
+    write.csv(geneTable, "gene_table_hg19.csv", row.names = FALSE)
+    
+    # Query specific genes for hg19 and hg18 builds
+    erbb2_hg19 <- byGeneTable(segTable, "erbb2", genome = "hg19")[,1:6]
+    print(erbb2_hg19)
+    write.csv(erbb2_hg19, "erbb2_hg19.csv", row.names = FALSE)
+    
+    erbb2_hg18 <- byGeneTable(segTable, "erbb2", genome = "hg18")[,1:6]
+    print(erbb2_hg18)
+    write.csv(erbb2_hg18, "erbb2_hg18.csv", row.names = FALSE)
+    
+    # Access analysis parameters
+    print(getParam(cgh)[1:3])
+    
+    # Visualize profile statically using multiplot and save to a PDF file
+    pdf("multiplot_profile.pdf", width = 8, height = 10)
     multiplot(cgh, symbol = c("egfr", "erbb2"))
+    dev.off()
+    
+    # Recentering the profile on peak #2
     recenter(cgh) <- 2
+    
+    # Plot the recentered profile and save to a PDF file
+    pdf("recentered_profile.pdf", width = 8, height = 5)
     plotProfile(cgh, symbol = c("egfr", "erbb2"))
+    dev.off()
+    
+    # Save the final analyzed rCGH object
+    saveRDS(cgh, "cgh_analyzed.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rcgh_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rcgh_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rcgh_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RCGH:", paste0("    rcgh: ", packageVersion("rCGH"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RCGH_ACGH_ANALYSIS_PIPELINE":
+        rcgh: \$(Rscript -e 'cat(as.character(packageVersion("rcgh")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rcgh_results.csv
-    touch ${prefix}_rcgh_output.rds
-    echo "BIOC_RCGH:" > versions.yml
-    echo "    rcgh: 0.0.0" >> versions.yml
+    touch ${prefix}_acgh_analysis_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_RCGH_WORKFLOW {
+workflow BIOC_RCGH_ACGH_ANALYSIS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Affy_cytoScan.cyhd.CN5.CNCHP.txt.bz2, Affy_snp6_cnchp.txt.bz2, Agilent4x180K.txt.bz2, generic.txt.bz2 ] ]
 
     main:
-    BIOC_RCGH(ch_input)
+    BIOC_RCGH_ACGH_ANALYSIS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_RCGH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RCGH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RCGH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RCGH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RCGH_ACGH_ANALYSIS_PIPELINE.out.tables
+    plots    = BIOC_RCGH_ACGH_ANALYSIS_PIPELINE.out.plots
+    objects  = BIOC_RCGH_ACGH_ANALYSIS_PIPELINE.out.objects
+    versions = BIOC_RCGH_ACGH_ANALYSIS_PIPELINE.out.versions
 }

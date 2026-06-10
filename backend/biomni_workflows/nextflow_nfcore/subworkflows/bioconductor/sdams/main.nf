@@ -1,125 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SDAMS
-// This Package utilizes a Semi-parametric Differential Abundance/expression analysis (SDA) method for 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SDAMS/inst/doc/SDAMS.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SDAMS")
+// Bioconductor workflow: sdams — csv_to_sda
+// Create a SummarizedExperiment object from feature and group CSV files and perform semi-parametric differential abundance analysis.
+// Input: feature.csv, group.csv
+// Container: quay.io/biocontainers/bioconductor-sdams:1.30.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SDAMS {
+process BIOC_SDAMS_CSV_TO_SDA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sdams"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sdams:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sdams:1.26.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-sdams:1.30.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sdams_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sdams_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sdams_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SDA)
-    library(jsonlite)
-
-    # --- Quick Start [] ---
-    # Key functions: SDA
-    ## library("SDAMS")
-    ## data("exampleSumExp")
-    ## results <- SDA(exampleSumExp)
-    # --- Getdirectory [] ---
-    # Key functions: path
-    directory1 <- system.file("extdata", package = "SDAMS", mustWork = TRUE)
-    path1 <- file.path(directory1, "ProstateFeature.csv")
-    directory2 <- system.file("extdata", package = "SDAMS", mustWork = TRUE)
-    path2 <- file.path(directory2, "ProstateGroup.csv")
-    # --- Csvinput [] ---
-    # Key functions: createSEFromCSV
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("sdams")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # 1. Define paths to the feature and group CSV files
+    path1 <- "feature.csv"
+    path2 <- "group.csv"
+    
+    # Verify that the required input files exist in the working directory
+    if (!file.exists(path1)) {
+      stop("Error: Required input file 'feature.csv' not found in the working directory.")
+    }
+    if (!file.exists(path2)) {
+      stop("Error: Required input file 'group.csv' not found in the working directory.")
+    }
+    
+    # 2. Load the SDAMS library
     library("SDAMS")
+    
+    # 3. Create a SummarizedExperiment object using createSEFromCSV
     exampleSE1 <- createSEFromCSV(path1, path2)
-    exampleSE1
-    # --- Accessors [] ---
-    # Key functions: assay, colData
-    head(assay(exampleSE1)[,1:10])
-    head(colData(exampleSE1)$grouping)
-    # --- Matrixinput [] ---
-    # Key functions: runif, frame, sample
-    set.seed(100)
-    featureInfo <- matrix(runif(8000, -2, 5), ncol = 40)
-    featureInfo[featureInfo<0] <- 0
-    rownames(featureInfo) <- paste("gene", 1:200, sep = '')
-    colnames(featureInfo) <- paste('cell', 1:40, sep = '')
-    # --- Resultsforgamma [] ---
-    # Key functions: SDA
+    
+    # Save the constructed SummarizedExperiment object
+    saveRDS(exampleSE1, file = "sda_se.rds")
+    
+    # 4. Perform differential abundance analysis using SDA
     results <- SDA(exampleSE1)
-    head(results$gamma[,1])
-    head(results$pv_gamma[,1])
-    head(results$qv_gamma[,1])
-    # --- Analysisandresults [] ---
-    # Key functions: SDA
-    results_SC <- SDA(exampleSE2)
-    head(results_SC$pv_gamma[,1])
-    head(results_SC$qv_gamma[,1])
-    head(results_SC$pv_beta[,1])
-    head(results_SC$qv_beta[,1])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sdams_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sdams_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sdams_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SDAMS:", paste0("    sdams: ", packageVersion("SDAMS"))),
-        "versions.yml"
+    
+    # Save the complete results list object
+    saveRDS(results, file = "sda_results.rds")
+    
+    # 5. Extract and display results for gamma, beta, and the two-part test
+    cat("=== Head of Gamma ===\n")
+    print(head(results\$gamma[, 1]))
+    
+    cat("\n=== Head of P-Value Gamma ===\n")
+    print(head(results\$pv_gamma[, 1]))
+    
+    cat("\n=== Head of Q-Value Gamma ===\n")
+    print(head(results\$qv_gamma[, 1]))
+    
+    cat("\n=== Head of Beta ===\n")
+    print(head(results\$beta[, 1]))
+    
+    cat("\n=== Head of P-Value Beta ===\n")
+    print(head(results\$pv_beta[, 1]))
+    
+    cat("\n=== Head of Q-Value Beta ===\n")
+    print(head(results\$qv_beta[, 1]))
+    
+    cat("\n=== Head of P-Value 2-Part ===\n")
+    print(head(results\$pv_2part[, 1]))
+    
+    cat("\n=== Head of Q-Value 2-Part ===\n")
+    print(head(results\$qv_2part[, 1]))
+    
+    cat("\n=== Head of Feature Names ===\n")
+    print(head(results\$feat.names))
+    
+    # Construct a comprehensive data frame of the results and export to CSV
+    results_df <- data.frame(
+      Feature = results\$feat.names,
+      Gamma = results\$gamma[, 1],
+      PValue_Gamma = results\$pv_gamma[, 1],
+      QValue_Gamma = results\$qv_gamma[, 1],
+      Beta = results\$beta[, 1],
+      PValue_Beta = results\$pv_beta[, 1],
+      QValue_Beta = results\$qv_beta[, 1],
+      PValue_2part = results\$pv_2part[, 1],
+      QValue_2part = results\$qv_2part[, 1],
+      stringsAsFactors = FALSE
     )
+    
+    write.csv(results_df, file = "sda_results.csv", row.names = FALSE)
+    
+    cat("\nPipeline completed successfully.\n")
+    cat("Outputs written:\n")
+    cat("- 'sda_se.rds' (SummarizedExperiment object)\n")
+    cat("- 'sda_results.rds' (Raw SDA results list)\n")
+    cat("- 'sda_results.csv' (Structured results table)\n")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SDAMS_CSV_TO_SDA":
+        sdams: \$(Rscript -e 'cat(as.character(packageVersion("sdams")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sdams_results.csv
-    touch ${prefix}_sdams_output.rds
-    echo "BIOC_SDAMS:" > versions.yml
-    echo "    sdams: 0.0.0" >> versions.yml
+    touch ${prefix}_csv_to_sda.csv versions.yml
     """
 }
 
-
-workflow BIOC_SDAMS_WORKFLOW {
+workflow BIOC_SDAMS_CSV_TO_SDA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ feature.csv, group.csv ] ]
 
     main:
-    BIOC_SDAMS(ch_input)
+    BIOC_SDAMS_CSV_TO_SDA(ch_input)
 
     emit:
-    results  = BIOC_SDAMS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SDAMS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SDAMS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SDAMS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SDAMS_CSV_TO_SDA.out.tables
+    plots    = BIOC_SDAMS_CSV_TO_SDA.out.plots
+    objects  = BIOC_SDAMS_CSV_TO_SDA.out.objects
+    versions = BIOC_SDAMS_CSV_TO_SDA.out.versions
 }

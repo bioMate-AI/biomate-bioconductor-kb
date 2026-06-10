@@ -1,124 +1,99 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: prebs
-// The prebs package aims at making RNA-sequencing (RNA-seq) data more comparable to microarray data. T
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/prebs/inst/doc/prebs.R
-// Upstream  : affy, hgu133plus2probe, parallel
-// Downstream: none
-//
-// Install: BiocManager::install("prebs")
+// Bioconductor workflow: prebs — custom_cdf_expression
+// Calculate gene-level expression values from RNA-seq BAM files using a Custom CDF mapping.
+// Input: input1.bam, input2.bam, HGU133Plus2_Hs_ENSG_mapping.txt
+// Container: quay.io/biocontainers/bioconductor-prebs:1.50.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PREBS {
+process BIOC_PREBS_CUSTOM_CDF_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-prebs"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-prebs:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-prebs:1.46.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-prebs:1.50.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_prebs_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_prebs_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_prebs_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "affy", "hgu133plus2probe", "parallel", "prebs", "prebsdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # 1. Load the prebs and prebsdata libraries
     library(prebs)
-    library(jsonlite)
-
-    # --- Table [] ---
-    # Key functions: exprs
-    ## write.table(exprs(prebs_values), file="prebs_values.txt", quote=FALSE)
-    # --- Makecluster [] ---
-    # Key functions: makeCluster, calc_prebs, stopCluster
-    ## library("parallel")
-    ## N_CORES = 2
-    ## CLUSTER <- makeCluster(N_CORES)
-    ## prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1, cluster=CLUSTER)
-    ## stopCluster(CLUSTER)
-    # --- Calc Prebs [] ---
-    # Key functions: calc_prebs
-    ## prebs_values <- calc_prebs(bam_files, custom_cdf_mapping2)
-    # --- Calc Prebs [] ---
-    # Key functions: calc_prebs, exprs
-    prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping)
-    head(exprs(prebs_values))
-    # --- Calc Prebs [] ---
-    # Key functions: calc_prebs
-    ## prebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping,
-    ##                            cdf_name="hgu133plus2cdf")
-    # --- Frame [] ---
-    # Key functions: frame
-    library("hgu133plus2probe")
-    probes <- as.data.frame(hgu133plus2probe)
-    head(probes)
-    # --- Substr [] ---
-    # Key functions: xy2indices
-    ## library("affy")
-    ## probes <- probes[substr(probes$Probe.Set.Name,1,4) != "AFFX",]
-    ## probes$Probe.ID <- xy2indices(probes$x, probes$y, cdf="hgu133plus2cdf")
-    ## write.table(probes, file="probes.txt", quote=FALSE, row.names=FALSE, col.names=TRUE)
-    # --- Table [] ---
-    # Key functions: frame
-    ## probe_mappings <- read.table("output_probe_mappings.map")
-    ##
-    ## colnames(probe_mappings) <- c("Probe.ID", "strand",
-    ##                               "chr", "start", "seq", "match", "multiple")
-    ##
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_prebs_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_prebs_results.csv")
+    library(prebsdata)
+    library(Biobase)
+    
+    # 2. Define paths to BAM files and the Custom CDF mapping file
+    # Reading directly from the working directory as specified by the user
+    bam_file1 <- "input1.bam"
+    bam_file2 <- "input2.bam"
+    bam_files <- c(bam_file1, bam_file2)
+    custom_cdf_mapping1 <- "HGU133Plus2_Hs_ENSG_mapping.txt"
+    
+    # Verify that the required input files exist
+    for (f in c(bam_files, custom_cdf_mapping1)) {
+        if (!file.exists(f)) {
+            stop(paste("Required input file is missing from the working directory:", f))
+        }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_prebs_output.rds")
-    }
+    
+    # 3. Run calc_prebs to compute gene-level expression values
+    prebs_values <- calc_prebs(bam_files, custom_cdf_mapping1)
+    
+    # 4. Extract and view the expression matrix using exprs()
+    expression_matrix <- exprs(prebs_values)
+    print("First few rows of the calculated PREBS expression values:")
+    print(head(expression_matrix))
+    
+    # 5. Write named output files for the meaningful results
+    write.table(expression_matrix, file="prebs_values.txt", quote=FALSE, sep="\t", col.names=NA)
+    saveRDS(prebs_values, file="prebs_values.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PREBS:", paste0("    prebs: ", packageVersion("prebs"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PREBS_CUSTOM_CDF_EXPRESSION":
+        prebs: \$(Rscript -e 'cat(as.character(packageVersion("prebs")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_prebs_results.csv
-    touch ${prefix}_prebs_output.rds
-    echo "BIOC_PREBS:" > versions.yml
-    echo "    prebs: 0.0.0" >> versions.yml
+    touch ${prefix}_custom_cdf_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_PREBS_WORKFLOW {
+workflow BIOC_PREBS_CUSTOM_CDF_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input1.bam, input2.bam, HGU133Plus2_Hs_ENSG_mapping.txt ] ]
 
     main:
-    BIOC_PREBS(ch_input)
+    BIOC_PREBS_CUSTOM_CDF_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_PREBS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PREBS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PREBS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PREBS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PREBS_CUSTOM_CDF_EXPRESSION.out.tables
+    plots    = BIOC_PREBS_CUSTOM_CDF_EXPRESSION.out.plots
+    objects  = BIOC_PREBS_CUSTOM_CDF_EXPRESSION.out.objects
+    versions = BIOC_PREBS_CUSTOM_CDF_EXPRESSION.out.versions
 }

@@ -1,144 +1,167 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ATACseqQC
-// ATAC-seq, an assay for Transposase-Accessible Chromatin using sequencing, is a rapid and sensitive m
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ATACseqQC/inst/doc/ATACseqQC.R
-// Upstream  : ChIPpeakAnno, GenomicAlignments, MotifDb, Rsamtools
-// Downstream: none
-//
-// Install: BiocManager::install("ATACseqQC")
+// Bioconductor workflow: atacseqqc — atac_seq_qc_and_preprocessing
+// Perform quality control, Tn5 shift correction, nucleosome-fraction splitting, and downstream footprinting/V-plot analysis on ATAC-seq BAM files.
+// Input: sample.bam, sample.bam.bai
+// Container: quay.io/biocontainers/bioconductor-atacseqqc:1.34.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ATACSEQQC {
+process BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-atacseqqc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-atacseqqc:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-atacseqqc:1.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-atacseqqc:1.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_atacseqqc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_atacseqqc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_atacseqqc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "TxDb.Hsapiens.UCSC.hg19.knownGene", "atacseqqc", "chippeakanno", "genomicalignments", "motifdb", "phastCons100way.UCSC.hg19", "rsamtools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(ATACseqQC)
-    library(BamFile)
-    library(NFRscore)
-    library(PTscore)
-    library(Position)
-    library(ScanBamParam)
-    library(TSSEscore)
-    library(jsonlite)
-
-    # --- Alignment Shifting and Filtering [] ---
-    # Key functions: readBamFile, shiftGAlignmentsList
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    library(ChIPpeakAnno)
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(phastCons100way.UCSC.hg19)
+    library(MotifDb)
+    library(GenomicAlignments)
+    library(Rsamtools)
+    
+    # Define input files from the working directory
+    bamfile <- "sample.bam"
+    bamfile.labels <- gsub(".bam", "", basename(bamfile))
+    
+    # Start PDF device to capture all diagnostic plots
+    pdf("atacseq_qc_plots.pdf", width=10, height=8)
+    
+    # 1. Estimate library complexity
+    lib_complexity <- estimateLibComplexity(readsDupFreq(bamfile))
+    write.csv(as.data.frame(lib_complexity), "library_complexity.csv", row.names=FALSE)
+    
+    # 2. Generate fragment size distribution
+    fragSize <- fragSizeDist(bamfile, bamfile.labels)
+    saveRDS(fragSize, "fragment_size_distribution.rds")
+    
+    # 3. Read BAM file and shift coordinates to adjust for Tn5 transposase dimer insertion
+    possibleTag <- list("integer"=c("AM", "AS", "CM", "CP", "FI", "H0", "H1", "H2", "HI", "IH", "MQ", "NH", "NM", "OP", "PQ", "SM", "TC", "UQ"), "character"=c("BC", "BQ", "BZ", "CB", "CC", "CO", "CQ", "CR", "CS", "CT", "CY", "E2", "FS", "LB", "MC", "MD", "MI", "OA", "OC", "OQ", "OX", "PG", "PT", "PU", "Q2", "QT", "QX", "R2", "RG", "RX", "SA", "TS", "U2"))
+    bamTop100 <- scanBam(BamFile(bamfile, yieldSize = 100), param = ScanBamParam(tag=unlist(possibleTag)))[[1]]\$tag
+    tags <- names(bamTop100)[lengths(bamTop100)>0]
+    
+    outPath <- "splited"
+    if (!dir.exists(outPath)) {
+      dir.create(outPath)
+    }
+    
     seqlev <- "chr1"
-    seqinformation <- GenomeInfoDb::seqinfo(txdb)
-    which_gr <- as(seqinformation[seqlev], "GRanges")
-    gal <- readBamFile(bamfile, which=which_gr, asMates=TRUE, bigFile=TRUE)
-    shifted_bam <- tempfile(fileext = ".bam")
-    gal_shifted <- shiftGAlignmentsList(gal, outbam=shifted_bam)
+    seqinformation <- seqinfo(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    which <- as(seqinformation[seqlev], "GRanges")
+    gal <- readBamFile(bamfile, tag=tags, which=which, asMates=TRUE, bigFile=TRUE)
+    shiftedBamfile <- file.path(outPath, "shifted.bam")
+    gal1 <- shiftGAlignmentsList(gal, outbam=shiftedBamfile)
+    
+    # 4. Calculate Promoter/Transcript body (PT) score
+    txs <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    pt <- PTscore(gal1, txs)
+    plot(pt\$log2meanCoverage, pt\$PT_score, xlab="log2 mean coverage", ylab="Promoter vs Transcript")
+    write.csv(as.data.frame(pt), "pt_score.csv", row.names=FALSE)
+    
+    # 5. Calculate Nucleosome Free Regions (NFR) score
+    nfr <- NFRscore(gal1, txs)
+    plot(nfr\$log2meanCoverage, nfr\$NFR_score, xlab="log2 mean coverage", ylab="Nucleosome Free Regions score", main="NFRscore for 200bp flanking TSSs", xlim=c(-10, 0), ylim=c(-5, 5))
+    write.csv(as.data.frame(nfr), "nfr_score.csv", row.names=FALSE)
+    
+    # 6. Calculate Transcription Start Site (TSS) Enrichment Score
+    tsse <- TSSEscore(gal1, txs)
+    plot(100*(-9:10-.5), tsse\$values, type="b", xlab="distance to TSS", ylab="aggregate TSS score")
+    write.csv(as.data.frame(tsse\$values), "tsse_score_values.csv", row.names=FALSE)
+    saveRDS(tsse, "tsse_score.rds")
+    
+    # 7. Split shifted reads into nucleosome-free and nucleosome-bound fractions
+    txs <- txs[seqnames(txs) %in% "chr1"]
+    genome <- Hsapiens
+    objs <- splitGAlignmentsByCut(gal1, txs=txs, genome=genome, outPath = outPath, conservation=phastCons100way.UCSC.hg19)
+    saveRDS(objs, "split_alignments.rds")
+    
+    # 8. Plot cumulative percentage and TSS enrichment of split fractions
+    bamfiles <- file.path(outPath, c("NucleosomeFree.bam", "mononucleosome.bam", "dinucleosome.bam", "trinucleosome.bam"))
+    cumulativePercentage(bamfiles[1:2], as(seqinformation["chr1"], "GRanges"))
+    TSS <- promoters(txs, upstream=0, downstream=1)
+    TSS <- unique(TSS)
+    librarySize <- estLibSize(bamfiles)
+    NTILE <- 101
+    dws <- ups <- 1010
+    sigs <- enrichedFragments(gal=objs[c("NucleosomeFree", "mononucleosome", "dinucleosome", "trinucleosome")], TSS=TSS, librarySize=librarySize, seqlev=seqlev, TSS.filter=0.5, n.tile = NTILE, upstream = ups, downstream = dws)
+    sigs.log2 <- lapply(sigs, function(.ele) log2(.ele+1))
+    featureAlignedHeatmap(sigs.log2, reCenterPeaks(TSS, width=ups+dws), zeroAt=.5, n.tile=NTILE)
+    out <- featureAlignedDistribution(sigs, reCenterPeaks(TSS, width=ups+dws), zeroAt=.5, n.tile=NTILE, type="l", ylab="Averaged coverage")
+    range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+    out <- apply(out, 2, range01)
+    matplot(out, type="l", xaxt="n", xlab="Position (bp)", ylab="Fraction of signal")
+    axis(1, at=seq(0, 100, by=10)+1, labels=c("-1K", seq(-800, 800, by=200), "1K"), las=2)
+    abline(v=seq(0, 100, by=10)+1, lty=2, col="gray")
+    write.csv(as.data.frame(out), "tss_enrichment_distribution.csv", row.names=FALSE)
+    
+    # 9. Generate transcription factor footprints
+    CTCF <- query(MotifDb, c("CTCF"))
+    CTCF <- as.list(CTCF)
+    sigs <- factorFootprints(shiftedBamfile, pfm=CTCF[[1]], genome=genome, min.score="90%", seqlev=seqlev, upstream=100, downstream=100)
+    featureAlignedHeatmap(sigs\$signal, feature.gr=reCenterPeaks(sigs\$bindingSites, width=200+width(sigs\$bindingSites[1])), annoMcols="score", sortBy="score", n.tile=ncol(sigs\$signal[[1]]))
+    saveRDS(sigs, "ctcf_footprints.rds")
+    
+    # 10. Generate V-plots
+    vp <- vPlot(shiftedBamfile, pfm=CTCF[[1]], genome=genome, min.score="90%", seqlev=seqlev, upstream=200, downstream=200, ylim=c(30, 250), bandwidth=c(2, 1))
+    distanceDyad(vp, pch=20, cex=.5)
+    saveRDS(vp, "ctcf_vplot.rds")
+    
+    # Close PDF device
+    dev.off()
 
-
-    # --- Transcription Start Site and Nucleosome Scoring [] ---
-    # Key functions: PTscore, NFRscore, TSSEscore
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    txs <- GenomicFeatures::transcripts(txdb)
-    pt <- PTscore(gal_shifted, txs)
-    nfr <- NFRscore(gal_shifted, txs)
-    tsse <- TSSEscore(gal_shifted, txs)
-    plot(pt$log2meanCoverage, pt$PT_score,
-         xlab="log2 mean coverage", ylab="PT score")
-    plot(nfr$log2meanCoverage, nfr$NFR_score,
-         xlab="log2 mean coverage", ylab="NFR score")
-
-
-    # --- Nucleosome Fraction Splitting [] ---
-    # Key functions: splitGAlignmentsByCut
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    txs <- GenomicFeatures::transcripts(txdb)
-    txs_chr1 <- txs[GenomeInfoDb::seqnames(txs) %in% "chr1"]
-    genome <- BSgenome.Hsapiens.UCSC.hg19::Hsapiens
-    conservation <- phastCons100way.UCSC.hg19::phastCons100way.UCSC.hg19
-    out_path <- tempdir()
-    objs <- splitGAlignmentsByCut(gal_shifted, txs=txs_chr1, genome=genome,
-                                  outPath=out_path, conservation=conservation)
-
-
-    # --- Signal Enrichment and Heatmap Visualization [] ---
-    # Key functions: estLibSize, enrichedFragments, featureAlignedHeatmap
-    bamfiles <- file.path(out_path,
-                          c("NucleosomeFree.bam", "mononucleosome.bam"))
-    lib_size <- estLibSize(bamfiles)
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    txs <- GenomicFeatures::transcripts(txdb)
-    tss <- GenomicRanges::promoters(txs, upstream=0, downstream=1)
-    tss <- unique(tss)
-    sigs <- enrichedFragments(gal=objs[c("NucleosomeFree", "mononucleosome")],
-                              TSS=tss, librarySize=lib_size, seqlev="chr1",
-                              TSS.filter=0.5, n.tile=101, upstream=1010,
-                              downstream=1010)
-    sigs_log2 <- lapply(sigs, function(x) log2(x + 1))
-    ChIPpeakAnno::featureAlignedHeatmap(sigs_log2,
-                                        ChIPpeakAnno::reCenterPeaks(tss, width=2020),
-                                        zeroAt=0.5, n.tile=101)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_atacseqqc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_atacseqqc_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_atacseqqc_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ATACSEQQC:", paste0("    atacseqqc: ", packageVersion("ATACseqQC"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING":
+        atacseqqc: \$(Rscript -e 'cat(as.character(packageVersion("atacseqqc")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_atacseqqc_results.csv
-    touch ${prefix}_atacseqqc_output.rds
-    echo "BIOC_ATACSEQQC:" > versions.yml
-    echo "    atacseqqc: 0.0.0" >> versions.yml
+    touch ${prefix}_atac_seq_qc_and_preprocessing.csv versions.yml
     """
 }
 
-
-workflow BIOC_ATACSEQQC_WORKFLOW {
+workflow BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample.bam, sample.bam.bai ] ]
 
     main:
-    BIOC_ATACSEQQC(ch_input)
+    BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING(ch_input)
 
     emit:
-    results  = BIOC_ATACSEQQC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ATACSEQQC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ATACSEQQC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ATACSEQQC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING.out.tables
+    plots    = BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING.out.plots
+    objects  = BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING.out.objects
+    versions = BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING.out.versions
 }

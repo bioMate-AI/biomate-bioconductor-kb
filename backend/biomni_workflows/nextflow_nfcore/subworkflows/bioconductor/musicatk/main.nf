@@ -1,133 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: musicatk
-// Mutational signatures are carcinogenic exposures or aberrant cellular processes that can cause alter
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/musicatk/inst/doc/musicatk.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("musicatk")
+// Bioconductor workflow: musicatk — de_novo_signature_discovery
+// Extract variants from VCF/MAF files, build standard mutation count tables, discover novel mutational signatures and exposures de novo, and perform downstream vi
+// Input: public_TCGA.LUSC.maf, public_LUAD_TCGA-97-7938.vcf, sample_annotations.txt
+// Container: quay.io/biocontainers/bioconductor-musicatk:2.4.0--r45h1f0d9b5_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MUSICATK {
+process BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-musicatk"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-musicatk:2.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-musicatk:2.0.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-musicatk:2.4.0--r45h1f0d9b5_0"
 
     input:
-    tuple val(meta), path(vcf_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_musicatk_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_musicatk_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_musicatk_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("musicatk")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(musicatk)
-    library(jsonlite)
-
-    # --- Count Table Construction [] ---
-    # Key functions: build_standard_table, annotate_transcript_strand, build_custom_table
+    
+    # Set seed for reproducibility of stochastic algorithms (NMF, UMAP)
+    set.seed(1)
+    
+    # Define input file paths from the working directory
+    lusc_maf <- "public_TCGA.LUSC.maf"
+    luad_vcf <- "public_LUAD_TCGA-97-7938.vcf"
+    sample_annotations_file <- "sample_annotations.txt"
+    
+    # 1. Extract variants from files
+    lusc.variants <- extract_variants_from_maf_file(maf_file = lusc_maf)
+    luad.variants <- extract_variants_from_vcf_file(vcf_file = luad_vcf)
+    variants <- extract_variants(c(lusc_maf, luad_vcf))
+    
+    # 2. Select reference genome
+    g <- select_genome("hg38")
+    
+    # 3. Create a musica object
+    musica <- create_musica_from_variants(x = variants, genome = g)
+    
+    # 4. Build standard mutation count tables
     build_standard_table(musica, g = g, table_name = "SBS96")
-    annotate_transcript_strand(musica, "19", build_table = FALSE)
-    build_custom_table(
-        musica = musica, variant_annotation = "Transcript_Strand",
-        name = "Transcript_Strand",
-        description = "A table of transcript strand of variants",
-        data_factor = c("T", "U"), overwrite = TRUE
-    )
-
-
-    # --- Signature Discovery and Evaluation [] ---
-    # Key functions: compare_k_vals, discover_signatures, exposures, signatures
+    
+    # 5. Determine optimal signature count (k)
     k_comparison <- compare_k_vals(musica, "SBS96",
-        reps = 5, min_k = 2, max_k = 4, algorithm = "nmf"
+      reps = 5, min_k = 2, max_k = 4,
+      algorithm = "nmf"
     )
+    saveRDS(k_comparison, "k_comparison.rds")
+    
+    # 6. Discover signatures and exposures de novo
     discover_signatures(
-        musica = musica, modality = "SBS96", num_signatures = 3,
-        algorithm = "nmf", model_id = "ex_result", nstart = 10
+      musica = musica, modality = "SBS96", num_signatures = 3,
+      algorithm = "nmf", model_id = "ex_result", nstart = 10
     )
+    
+    # 7. Extract exposures and signatures
     expos <- exposures(musica, "result", "SBS96", "ex_result")
     sigs <- signatures(musica, "result", "SBS96", "ex_result")
-
-
-    # --- Signature Prediction and Comparison [] ---
-    # Key functions: predict_exposure, get_model, compare_results
-    data("cosmic_v2_sigs")
-    predict_exposure(
-        musica = musica, modality = "SBS96",
-        signature_res = cosmic_v2_sigs, model_id = "ex_pred_result",
-        signatures_to_use = c(1, 4, 7, 13), algorithm = "lda"
-    )
-    model <- get_model(musica, "result", "SBS96", "ex_result")
-    predict_exposure(
-        musica = musica, modality = "SBS96",
-        signature_res = model, algorithm = "lda",
-        model_id = "pred_our_sigs"
-    )
-    compare_results(musica, "ex_pred_result", "pred_our_sigs", 0.60)
-
-
-    # --- Visualization and Dimensionality Reduction [] ---
-    # Key functions: plot_signatures, plot_exposures, create_umap, plot_umap
+    
+    # Write extracted matrices to CSV
+    write.csv(expos, "exposures.csv", row.names = TRUE)
+    write.csv(sigs, "signatures.csv", row.names = TRUE)
+    
+    # Plot and save initial signatures
+    pdf("signatures_plot.pdf", width = 10, height = 6)
     plot_signatures(musica, model_id = "ex_result", modality = "SBS96")
+    dev.off()
+    
+    # Rename signatures and plot again
+    name_signatures(musica, "ex_result", c("Smoking", "APOBEC", "UV"))
+    
+    pdf("signatures_named_plot.pdf", width = 10, height = 6)
+    plot_signatures(musica, model_id = "ex_result", modality = "SBS96")
+    dev.off()
+    
+    # Plot and save exposures
+    pdf("exposures_plot.pdf", width = 10, height = 6)
     plot_exposures(musica, "ex_result", plot_type = "bar")
-    create_umap(musica, "ex_result")
-    plot_umap(musica, "ex_result")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_musicatk_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_musicatk_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_musicatk_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MUSICATK:", paste0("    musicatk: ", packageVersion("musicatk"))),
-        "versions.yml"
+    dev.off()
+    
+    # 8. Annotate samples using sample metadata
+    annot <- read.table(sample_annotations_file, sep = "\t", header = TRUE)
+    samp_annot(musica, "Tumor_Subtypes") <- annot\$Tumor_Subtypes
+    
+    # 9. Visualize exposures grouped by annotation
+    pdf("exposures_by_subtype_plot.pdf", width = 10, height = 6)
+    plot_exposures(musica, "ex_result",
+      plot_type = "bar", group_by = "annotation",
+      annotation = "Tumor_Subtypes"
     )
+    dev.off()
+    
+    # Visualize samples in 2D using UMAP (wrapped in tryCatch in case of low sample size)
+    tryCatch({
+      create_umap(musica, "ex_result")
+      
+      pdf("umap_plot.pdf", width = 8, height = 6)
+      plot_umap(musica, "ex_result")
+      dev.off()
+    }, error = function(e) {
+      message("UMAP generation skipped or failed: ", e\$message)
+    })
+    
+    # Save the final musica object
+    saveRDS(musica, "musica_object.rds")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY":
+        musicatk: \$(Rscript -e 'cat(as.character(packageVersion("musicatk")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_musicatk_results.csv
-    touch ${prefix}_musicatk_output.rds
-    echo "BIOC_MUSICATK:" > versions.yml
-    echo "    musicatk: 0.0.0" >> versions.yml
+    touch ${prefix}_de_novo_signature_discovery.csv versions.yml
     """
 }
 
-
-workflow BIOC_MUSICATK_WORKFLOW {
+workflow BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(vcf_object) ]
+    ch_input  // channel: [ val(meta), [ public_TCGA.LUSC.maf, public_LUAD_TCGA-97-7938.vcf, sample_annotations.txt ] ]
 
     main:
-    BIOC_MUSICATK(ch_input)
+    BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY(ch_input)
 
     emit:
-    results  = BIOC_MUSICATK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MUSICATK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MUSICATK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MUSICATK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY.out.tables
+    plots    = BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY.out.plots
+    objects  = BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY.out.objects
+    versions = BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY.out.versions
 }

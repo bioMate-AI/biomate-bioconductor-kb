@@ -1,22 +1,11 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor workflow: Nebulosa — seurat_density
+// Bioconductor workflow: nebulosa — seurat_density
 // Perform gene-weighted density estimation and visualization on a Seurat object.
 // Input: pbmc3k_filtered_gene_bc_matrices.tar.gz
 // Container: quay.io/biocontainers/bioconductor-nebulosa:1.20.0--r45hdfd78af_0
-// Requires: BiocFileCache, Nebulosa, Seurat, patchwork
-// Visualizations: UMAP/t-SNE plot, density plot
-// QC: count normalization, clustering QC
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
-
-// Steps:
-//  * 1. [Input & Preparation] Download and import 10X data using Read10X
-//  * 2. [Input & Preparation] Create a Seurat object and filter low-quality cells
-//  * 3. [Core Analysis] Normalize data using SCTransform
-//  * 4. [Core Analysis] Perform PCA and UMAP dimensionality reduction
-//  * 5. [Core Analysis] Cluster cells using FindNeighbors and FindClusters
-//  * 6. [Visualization & Output] Visualize single-gene density and multi-gene joint density using plot_density
 
 nextflow.enable.dsl = 2
 
@@ -24,7 +13,7 @@ process BIOC_NEBULOSA_SEURAT_DENSITY {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    container "quay.io/biocontainers/bioconductor-nebulosa:1.20.0--r45hdfd78af_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -42,35 +31,35 @@ process BIOC_NEBULOSA_SEURAT_DENSITY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
-        }
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Nebulosa", "Seurat", "patchwork")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
     
     # Load required libraries
     library("Nebulosa")
     library("Seurat")
-    library("BiocFileCache")
     library("patchwork")
     
-    # 1. Import 10X data from local file
-    data_file <- "pbmc3k_filtered_gene_bc_matrices.tar.gz"
-    if (!file.exists(data_file)) {
-      stop("Error: Input file 'pbmc3k_filtered_gene_bc_matrices.tar.gz' not found in the working directory.")
+    # Define the input file path (must be in the working directory)
+    input_file <- "pbmc3k_filtered_gene_bc_matrices.tar.gz"
+    
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
     }
     
-    message("Extracting 10X Genomics data...")
-    untar(data_file, exdir = tempdir())
+    # Untar the input file to a temporary directory
+    temp_dir <- tempdir()
+    untar(input_file, exdir = temp_dir)
     
-    message("Reading 10X Genomics data...")
-    data <- Read10X(data.dir = file.path(tempdir(),
-      "filtered_gene_bc_matrices",
-      "hg19"
-    ))
+    # Read the 10X Genomics matrix
+    data <- Read10X(data.dir = file.path(temp_dir, "filtered_gene_bc_matrices", "hg19"))
     
-    # 2. Create Seurat object and filter low-quality cells
-    message("Creating Seurat object...")
+    # Create Seurat object
     pbmc <- CreateSeuratObject(
       counts = data,
       project = "pbmc3k",
@@ -78,66 +67,50 @@ process BIOC_NEBULOSA_SEURAT_DENSITY {
       min.features = 200
     )
     
-    message("Performing quality control filtering...")
+    # Quality control and filtering
     pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
     pbmc <- subset(pbmc, subset = nFeature_RNA < 2500 & percent.mt < 5)
     
-    # 3. Normalize data using SCTransform
-    message("Running SCTransform...")
+    # Normalize data using SCTransform
     pbmc <- SCTransform(pbmc, verbose = FALSE)
     
-    # 4. Perform PCA and UMAP dimensionality reduction
-    message("Running PCA...")
+    # Dimensionality reduction
     pbmc <- RunPCA(pbmc)
-    message("Running UMAP...")
     pbmc <- RunUMAP(pbmc, dims = 1:30)
     
-    # 5. Cluster cells using FindNeighbors and FindClusters
-    message("Finding neighbors...")
+    # Clustering
     pbmc <- FindNeighbors(pbmc, dims = 1:30)
-    message("Finding clusters...")
     pbmc <- FindClusters(pbmc)
     
-    # Save the processed Seurat object
-    message("Saving processed Seurat object...")
+    # Save processed Seurat object and metadata
     saveRDS(pbmc, file = "pbmc_processed.rds")
+    write.csv(pbmc@meta.data, file = "pbmc_metadata.csv", row.names = TRUE)
     
-    # 6. Visualize single-gene density and multi-gene joint density using plot_density
-    message("Generating plots...")
-    pdf("nebulosa_density_plots.pdf", width = 8, height = 10)
+    # Generate and save density plots
+    pdf("nebulosa_density_plots.pdf", width = 8, height = 11)
     
-    # Single-gene density plots
-    p_cd4 <- plot_density(pbmc, "CD4")
-    print(p_cd4)
+    # 1. Single-gene density plot for CD4
+    p1 <- plot_density(pbmc, "CD4")
+    print(p1)
     
-    p_cd3d <- plot_density(pbmc, "CD3D")
-    print(p_cd3d)
-    
-    # Multi-gene density plots
+    # 2. Multi-gene density plot for CD8A and CCR7
     p3 <- plot_density(pbmc, c("CD8A", "CCR7"))
     print(p3 + plot_layout(ncol = 1))
     
-    p4_cd8_ccr7 <- plot_density(pbmc, c("CD8A", "CCR7"), joint = TRUE)
-    print(p4_cd8_ccr7 + plot_layout(ncol = 1))
+    # 3. Joint density plot for CD8A and CCR7
+    p4 <- plot_density(pbmc, c("CD8A", "CCR7"), joint = TRUE)
+    print(p4 + plot_layout(ncol = 1))
     
+    # 4. Joint density plot with combine = FALSE (extracting the joint plot only)
     p_list <- plot_density(pbmc, c("CD8A", "CCR7"), joint = TRUE, combine = FALSE)
     print(p_list[[length(p_list)]])
     
-    p4_cd4_ccr7 <- plot_density(pbmc, c("CD4", "CCR7"), joint = TRUE)
-    print(p4_cd4_ccr7 + plot_layout(ncol = 1))
-    
-    # Joint density with DimPlot
-    p_joint_dim <- p4_cd4_ccr7[[3]] / DimPlot(pbmc, label = TRUE, repel = TRUE)
-    print(p_joint_dim)
-    
     dev.off()
-    
-    message("Pipeline completed successfully. Outputs saved to 'pbmc_processed.rds' and 'nebulosa_density_plots.pdf'.")
 
-    writeLines(c(
-        '"BIOC_NEBULOSA_SEURAT_DENSITY":',
-        paste0('    Nebulosa: ', as.character(packageVersion('Nebulosa')))
-    ), "versions.yml")
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_NEBULOSA_SEURAT_DENSITY":
+        nebulosa: \$(Rscript -e 'cat(as.character(packageVersion("nebulosa")))')
+    END_VERSIONS
     """
 
     stub:

@@ -1,90 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rmspc
-// The rmspc package runs MSPC (Multiple Sample Peak Calling) software using R. The analysis of ChIP-se
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rmspc/inst/doc/rmpsc.R
-// Upstream  : BiocManager, GenomicRanges, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("rmspc")
+// Bioconductor workflow: rmspc — peak_calling_from_bed_files
+// Run MSPC peak calling using paths to BED files as input.
+// Input: rep1.bed, rep2.bed
+// Container: quay.io/biocontainers/bioconductor-rmspc:1.16.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RMSPC {
+process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rmspc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rmspc:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rmspc:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rmspc:1.16.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rmspc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rmspc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rmspc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(rmspc)
-    library(jsonlite)
-
-    # --- mspc [] ---
-    # Key functions: mspc
-    library(rmspc)
-    path <- system.file("extdata", package = "rmspc")
-    list.files(path)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rmspc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rmspc_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biocmanager", "genomicranges", "rmspc", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rmspc_output.rds")
+    
+    # Load required libraries
+    library(rmspc)
+    library(GenomicRanges)
+    
+    # 1. Define paths to input BED files (from the working directory)
+    input1 <- "rep1.bed"
+    input2 <- "rep2.bed"
+    
+    # Verify that the input files exist before proceeding
+    if (!file.exists(input1) || !file.exists(input2)) {
+      stop("Required input files 'rep1.bed' and/or 'rep2.bed' are missing from the working directory.")
+    }
+    
+    input <- c(input1, input2)
+    
+    # 2. Run the mspc function with BED file paths and threshold parameters
+    results <- mspc(
+        input = input, replicateType = "Technical",
+        stringencyThreshold = 1e-8,
+        weakThreshold = 1e-4, gamma = 1e-8,
+        keep = FALSE, GRanges = TRUE,
+        multipleIntersections = "Lowest",
+        c = 2, alpha = 0.05)
+    
+    # 3. Retrieve status and GRanges output objects
+    status <- results\$status
+    gr_objects <- results\$GRangesObjects
+    
+    # Print status and head of GRangesObjects to console
+    cat("MSPC Execution Status:", status, "\n")
+    print(head(gr_objects, 3))
+    
+    # Access specific GRanges objects as documented
+    consensus_peaks <- results\$GRangesObjects\$ConsensusPeaks
+    rep1_background <- results\$GRangesObjects\$`rep1/Background`
+    
+    # 4. Write named output files for the meaningful results
+    # Save the complete results object as an RDS file
+    saveRDS(results, file = "mspc_results.rds")
+    
+    # Export Consensus Peaks to a CSV file
+    if (!is.null(consensus_peaks)) {
+      consensus_df <- as.data.frame(consensus_peaks)
+      write.csv(consensus_df, file = "consensus_peaks.csv", row.names = FALSE)
+    }
+    
+    # Export Replicate 1 Background Peaks to a CSV file
+    if (!is.null(rep1_background)) {
+      rep1_bg_df <- as.data.frame(rep1_background)
+      write.csv(rep1_bg_df, file = "rep1_background_peaks.csv", row.names = FALSE)
+    }
+    
+    # Export other available GRanges objects to CSV files
+    for (name in names(gr_objects)) {
+      # Replace slashes in names to avoid directory path issues when saving files
+      safe_name <- gsub("/", "_", name)
+      gr_df <- as.data.frame(gr_objects[[name]])
+      write.csv(gr_df, file = paste0("mspc_", safe_name, ".csv"), row.names = FALSE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RMSPC:", paste0("    rmspc: ", packageVersion("rmspc"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES":
+        rmspc: \$(Rscript -e 'cat(as.character(packageVersion("rmspc")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rmspc_results.csv
-    touch ${prefix}_rmspc_output.rds
-    echo "BIOC_RMSPC:" > versions.yml
-    echo "    rmspc: 0.0.0" >> versions.yml
+    touch ${prefix}_peak_calling_from_bed_files.csv versions.yml
     """
 }
 
-
-workflow BIOC_RMSPC_WORKFLOW {
+workflow BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rep1.bed, rep2.bed ] ]
 
     main:
-    BIOC_RMSPC(ch_input)
+    BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES(ch_input)
 
     emit:
-    results  = BIOC_RMSPC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RMSPC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RMSPC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RMSPC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES.out.tables
+    plots    = BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES.out.plots
+    objects  = BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES.out.objects
+    versions = BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES.out.versions
 }

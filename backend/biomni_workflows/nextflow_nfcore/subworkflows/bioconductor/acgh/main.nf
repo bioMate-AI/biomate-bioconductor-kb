@@ -1,154 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: aCGH
-// Functions for reading aCGH data from image analysis output files and clone information files, creati
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/aCGH/inst/doc/aCGH.R
-// Upstream  : none
-// Downstream: CRImage
-//
-// Install: BiocManager::install("aCGH")
+// Bioconductor workflow: acgh — standard_acgh_pipeline
+// Import generic log2 ratio, clone mapping, and phenotype text files, process and filter clones, impute missing values, fit HMM states, identify genomic events, a
+// Input: clones.info.ex.txt, log2.ratios.ex.txt, pheno.type.ex.txt
+// Container: quay.io/biocontainers/bioconductor-acgh:1.88.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ACGH {
+process BIOC_ACGH_STANDARD_ACGH_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-acgh"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-acgh:1.84.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-acgh:1.84.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-acgh:1.88.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_acgh_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_acgh_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_acgh_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Samples)
-    library(Surv)
-    library(jsonlite)
-
-    # --- Process [] ---
-    # Key functions: process
-    ex.acgh <-
-        aCGH.process(ex.acgh, chrom.remove.threshold = 23, prop.missing = .25, sample.quality.threshold = .4, unmapScreen=TRUE, dupRemove = FALSE)
-    # --- Imputed [] ---
-    # Key functions: imputed, lowess
-    log2.ratios.imputed(ex.acgh) <- impute.lowess(ex.acgh, maxChrom=24)
-    # --- Data [] ---
-    # Key functions: data
-    data(colorectal)
-    colorectal
-    summary(colorectal)
-    # --- Plotgenome [] ---
-    # Key functions: plotGenome
-    plotGenome(ex.acgh, samples=2, Y = FALSE)
-    # --- Hmm [] ---
-    # Key functions: hmm, states, merged, mergeHmmStates, samples, Samples, events, postscript
-    ## Determining hmm states of the clones. In the interest of time,
-    ##we have commented this step out and used pre-computed results.
-    ##hmm(ex.acgh) <- find.hmm.states(ex.acgh)
-    hmm(ex.acgh) <- ex.acgh.hmm
-    ## Merging hmm states
-    # --- Plothmmstates [] ---
-    # Key functions: plotHmmStates
-    plotHmmStates(colorectal, sample.ind = 1, chr = 1)
-    # --- Plotfreqstat [] ---
-    # Key functions: plotFreqStat
-    plotFreqStat(colorectal, all = T)
-    # --- Clones [] ---
-    # Key functions: clones
-    summarize.clones(colorectal)[1:10 ,]
-    # --- Func [] ---
-    # Key functions: func, ratios, samples
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("acgh", "multtest", "survival")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    library(aCGH)
+    library(multtest)
+    library(survival)
+    
+    # 1. Import data and create aCGH object
+    clones.info <- read.table(file = "clones.info.ex.txt",
+                              header = TRUE, sep = "\t", quote = "", comment.char = "")
+    log2.ratios <- read.table(file = "log2.ratios.ex.txt",
+                              header = TRUE, sep = "\t", quote = "", comment.char = "")
+    pheno.type <- read.table(file = "pheno.type.ex.txt",
+                             header = TRUE, sep = "\t", quote = "", comment.char = "")
+    ex.acgh <- create.aCGH(log2.ratios, clones.info, pheno.type)
+    
+    # 2. Filter and process clones
+    ex.acgh <- aCGH.process(ex.acgh, chrom.remove.threshold = 23, prop.missing = .25, 
+                            sample.quality.threshold = .4, unmapScreen = TRUE, dupRemove = FALSE)
+    
+    # 3. Impute missing values
+    log2.ratios.imputed(ex.acgh) <- impute.lowess(ex.acgh, maxChrom = 24)
+    
+    # 4. Fit HMM states
+    hmm(ex.acgh) <- find.hmm.states(ex.acgh)
+    
+    # 5. Merge HMM states
+    hmm.merged(ex.acgh) <- mergeHmmStates(ex.acgh, model.use = 1, minDiff = .25)
+    
+    # 6. Compute sample standard deviations
+    sd.samples(ex.acgh) <- computeSD.Samples(ex.acgh)
+    
+    # 7. Identify genomic events
+    genomic.events(ex.acgh) <- find.genomic.events(ex.acgh)
+    
+    # Open PDF device for all visualizations
+    pdf("acgh_pipeline_plots.pdf", width = 10, height = 8)
+    
+    # 8. Visualize profiles and HMM states
+    plot(ex.acgh)
+    
+    plotGenome(ex.acgh, samples = 2, Y = FALSE)
+    
+    plotHmmStates(ex.acgh, sample.ind = 1, chr = 1)
+    
+    plotFreqStat(ex.acgh, all = TRUE)
+    
+    # Save clone summary table
+    clones_summary <- summarize.clones(ex.acgh)
+    write.csv(clones_summary, "summarized_clones.csv", row.names = FALSE)
+    
+    # Thresholding and saving threshold matrix
     factor <- 3
-    tbl <- threshold.func(log2.ratios(colorectal),
-                posThres=factor*(sd.samples(colorectal)$madGenome))
-    rownames(tbl) <- clone.names(colorectal)
-    colnames(tbl) <- sample.names(colorectal)
-    # --- Func [] ---
-    # Key functions: func
-    col.fga <- fga.func(colorectal, factor=3,chrominfo=human.chrom.info.Jul03)
-    cbind(gainP=col.fga$gainP,lossP=col.fga$lossP)[1:5,]
-    # --- Colnames [] ---
-    # Key functions: phenotype, na, info, imputed, maxT
-    colnames(phenotype(colorectal))
-    sex <- phenotype(colorectal)$sex
+    tbl <- threshold.func(log2.ratios(ex.acgh),
+                          posThres = factor * (sd.samples(ex.acgh)\$madGenome))
+    rownames(tbl) <- clone.names(ex.acgh)
+    colnames(tbl) <- sample.names(ex.acgh)
+    write.csv(tbl, "threshold_matrix.csv")
+    
+    # Fraction of genome altered (FGA)
+    col.fga <- fga.func(ex.acgh, factor = 3, chrominfo = human.chrom.info.Jul03)
+    write.csv(as.data.frame(col.fga), "fga_results.csv")
+    
+    # 9. Perform association testing
+    # Categorical outcome (Sex)
+    sex <- phenotype(ex.acgh)\$sex
     sex.na <- !is.na(sex)
-    index.clones.use <- which(clones.info(colorectal)$Chrom < 23)
-    colorectal.na <- colorectal[ index.clones.use,sex.na , keep=TRUE]
-    # --- Plotfreqstat [] ---
-    # Key functions: plotFreqStat
-    plotFreqStat(colorectal.na, resT.sex, sex[sex.na], factor=3, titles =
-                 c("Female", "Male"), X = FALSE, Y = FALSE)
-    # --- Plotsummaryprofile [] ---
-    # Key functions: plotSummaryProfile
-    plotSummaryProfile(colorectal, response = sex,
+    index.clones.use <- which(clones.info(ex.acgh)\$Chrom < 23)
+    ex.acgh.na <- ex.acgh[index.clones.use, sex.na, keep = TRUE]
+    dat <- log2.ratios.imputed(ex.acgh.na)
+    resT.sex <- mt.maxT(dat, sex[sex.na], test = "t.equalvar", B = 1000)
+    write.csv(resT.sex, "sex_association_t_test.csv", row.names = FALSE)
+    
+    plotFreqStat(ex.acgh.na, resT.sex, sex[sex.na], factor = 3, titles =
+                   c("Female", "Male"), X = FALSE, Y = FALSE)
+    
+    plotSummaryProfile(ex.acgh, response = sex,
                        titles = c("Female", "Male"),
                        X = FALSE, Y = FALSE, maxChrom = 22)
-    # --- Gainloss [] ---
-    # Key functions: gainLoss, ratios, samples, info, imputed, maxT
-    factor <- 3
-    minChanged <- 0.1
-    gainloss <- gainLoss(log2.ratios(colorectal)[,sex.na], cols=1:length(which(sex.na)), thres=(factor*(sd.samples(colorectal)$madGenome))[sex.na])
-    ind.clones.use <- which(gainloss$gainP >= minChanged | gainloss$lossP>= minChanged & clones.info(colorectal)$Chrom < 23)
-    colorectal.na <- colorectal[ind.clones.use,sex.na, keep=TRUE]
-    # --- Plotfreqstat [] ---
-    # Key functions: plotFreqStat
-    plotFreqStat(colorectal.na, resT.sex, sex[sex.na],factor=factor,titles = c("Male", "Female"))
+    
+    # Censored outcome (Survival)
+    time <- rexp(ncol(ex.acgh), rate = 1 / 12)
+    events <- rbinom(ncol(ex.acgh), size = 1, prob = .5)
+    surv.obj <- Surv(time, events)
+    stat.coxph <- aCGH.test(ex.acgh, surv.obj, test = "coxph", p.adjust.method = "fdr")
+    write.csv(stat.coxph, "survival_association_coxph.csv")
+    
+    # Continuous outcome (Age)
+    age <- phenotype(ex.acgh)\$age
+    age.na <- which(!is.na(age))
+    age <- age[age.na]
+    ex.acgh.na2 <- ex.acgh[, age.na]
+    stat.age <- aCGH.test(ex.acgh.na2, age, test = "linear.regression", p.adjust.method = "fdr")
+    write.csv(stat.age, "age_association_linear.csv")
+    
+    # 10. Cluster samples
+    par(mfrow = c(2, 1))
+    clusterGenome(ex.acgh.na, response = sex[sex.na],
+                  titles = c("Female", "Male"),
+                  byclass = FALSE, showaber = TRUE, vecchrom = c(4, 8, 9),
+                  dendPlot = FALSE, imp = FALSE)
+    
+    dev.off()
+    
+    # Save the final processed S4 object
+    saveRDS(ex.acgh, "processed_ex_acgh.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_acgh_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_acgh_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_acgh_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ACGH:", paste0("    acgh: ", packageVersion("aCGH"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ACGH_STANDARD_ACGH_PIPELINE":
+        acgh: \$(Rscript -e 'cat(as.character(packageVersion("acgh")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_acgh_results.csv
-    touch ${prefix}_acgh_output.rds
-    echo "BIOC_ACGH:" > versions.yml
-    echo "    acgh: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_acgh_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_ACGH_WORKFLOW {
+workflow BIOC_ACGH_STANDARD_ACGH_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ clones.info.ex.txt, log2.ratios.ex.txt, pheno.type.ex.txt ] ]
 
     main:
-    BIOC_ACGH(ch_input)
+    BIOC_ACGH_STANDARD_ACGH_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_ACGH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ACGH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ACGH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ACGH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ACGH_STANDARD_ACGH_PIPELINE.out.tables
+    plots    = BIOC_ACGH_STANDARD_ACGH_PIPELINE.out.plots
+    objects  = BIOC_ACGH_STANDARD_ACGH_PIPELINE.out.objects
+    versions = BIOC_ACGH_STANDARD_ACGH_PIPELINE.out.versions
 }

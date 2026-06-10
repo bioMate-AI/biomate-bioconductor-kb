@@ -1,99 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pqsfinder
-// Pqsfinder detects DNA and RNA sequence patterns that are likely to fold into an intramolecular G-qua
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pqsfinder/inst/doc/pqsfinder.R
-// Upstream  : Gviz, biomaRt, ggplot2, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("pqsfinder")
+// Bioconductor workflow: pqsfinder — g4_detection_and_export
+// Detect potential G-quadruplexes in a DNA sequence, analyze their density, and export the results to GFF3 or FASTA formats.
+// Input: sequence.fa
+// Container: quay.io/biocontainers/bioconductor-pqsfinder:2.26.0--r45ha27e39d_1
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PQSFINDER {
+process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pqsfinder"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pqsfinder:2.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pqsfinder:2.22.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-pqsfinder:2.26.0--r45ha27e39d_1"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pqsfinder_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pqsfinder_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pqsfinder_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BiomartGeneRegionTrack)
-    library(DNAString)
-    library(DNAStringSet)
-    library(DataTrack)
-    library(GenomeAxisTrack)
-    library(SequenceTrack)
-    library(jsonlite)
-
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot
-    sf <- data.frame(score = score(pqs))
-    ggplot(sf) + geom_histogram(mapping = aes(x = score), binwidth = 5)
-    # --- DNAString analysis [] ---
-    # Key functions: DNAString, pqsfinder, elementMetadata, density, DNAStringSet, DataTrack, SequenceTrack, export
-    load(system.file("extdata", "gtrack_ahnak.RData", package="pqsfinder"))
-    library(biomaRt)
-    gtrack <- BiomartGeneRegionTrack(genome = gnm, symbol = gene, name = gene)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pqsfinder_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pqsfinder_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "biomart", "ggplot2", "gviz", "pqsfinder", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pqsfinder_output.rds")
+    
+    # Load required libraries
+    library(pqsfinder)
+    library(Biostrings)
+    library(rtracklayer)
+    
+    # ==========================================
+    # 1. Load sequence into a DNAString object
+    # ==========================================
+    # Read the user-provided FASTA file from the working directory
+    fasta_file <- "sequence.fa"
+    if (!file.exists(fasta_file)) {
+      stop(paste("Error: Input file", fasta_file, "not found in the working directory."))
     }
+    
+    dna_set <- readDNAStringSet(fasta_file)
+    if (length(dna_set) == 0) {
+      stop("Error: The input FASTA file is empty.")
+    }
+    
+    # Extract the first sequence as a DNAString object
+    seq <- dna_set[[1]]
+    
+    # ==========================================
+    # 2. Run pqsfinder to detect potential G-quadruplexes
+    # ==========================================
+    # Basic quadruplex detection
+    pqs <- pqsfinder(seq, min_score = 20)
+    print("Basic PQS detection results:")
+    print(pqs)
+    
+    # Extract metadata
+    meta <- elementMetadata(pqs)
+    print("PQS Metadata:")
+    print(meta)
+    
+    # Save metadata to a CSV file
+    write.csv(as.data.frame(meta), "pqs_metadata.csv", row.names = FALSE)
+    
+    # Detect overlapping PQS
+    pqs_overlap <- pqsfinder(seq, overlapping = TRUE, min_score = 30)
+    print("Overlapping PQS detection results:")
+    print(pqs_overlap)
+    
+    # ==========================================
+    # 3. Extract metadata and calculate density
+    # ==========================================
+    # Run pqsfinder with deep = TRUE to enable density calculation
+    pqs <- pqsfinder(seq, deep = TRUE, min_score = 20)
+    pqs_density <- density(pqs)
+    
+    # Save density values to a CSV file
+    density_df <- data.frame(Position = 1:length(pqs_density), Density = pqs_density)
+    write.csv(density_df, "pqs_density.csv", row.names = FALSE)
+    
+    # Plot and save the density distribution
+    pdf("pqs_density_plot.pdf", width = 10, height = 4)
+    plot(pqs_density, type = "h", main = "PQS Density along Sequence", 
+         xlab = "Position (bp)", ylab = "Density", col = "blue")
+    dev.off()
+    
+    # ==========================================
+    # 4. Convert results to GRanges and export to GFF3
+    # ==========================================
+    gr <- as(pqs, "GRanges")
+    print("GRanges representation:")
+    print(gr)
+    
+    # Export to GFF3 format
+    export(gr, "test.gff", version = "3")
+    
+    # ==========================================
+    # 5. Convert results to DNAStringSet and export to FASTA
+    # ==========================================
+    dss <- as(pqs, "DNAStringSet")
+    print("DNAStringSet representation:")
+    print(dss)
+    
+    # Export to FASTA format
+    writeXStringSet(dss, file = "test.fa", format = "fasta")
+    
+    print("Pipeline completed successfully. Outputs generated: pqs_metadata.csv, pqs_density.csv, pqs_density_plot.pdf, test.gff, test.fa")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PQSFINDER:", paste0("    pqsfinder: ", packageVersion("pqsfinder"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT":
+        pqsfinder: \$(Rscript -e 'cat(as.character(packageVersion("pqsfinder")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pqsfinder_results.csv
-    touch ${prefix}_pqsfinder_output.rds
-    echo "BIOC_PQSFINDER:" > versions.yml
-    echo "    pqsfinder: 0.0.0" >> versions.yml
+    touch ${prefix}_g4_detection_and_export.csv versions.yml
     """
 }
 
-
-workflow BIOC_PQSFINDER_WORKFLOW {
+workflow BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sequence.fa ] ]
 
     main:
-    BIOC_PQSFINDER(ch_input)
+    BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT(ch_input)
 
     emit:
-    results  = BIOC_PQSFINDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PQSFINDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PQSFINDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PQSFINDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT.out.tables
+    plots    = BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT.out.plots
+    objects  = BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT.out.objects
+    versions = BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT.out.versions
 }

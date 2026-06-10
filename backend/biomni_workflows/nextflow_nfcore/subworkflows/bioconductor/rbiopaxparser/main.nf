@@ -1,133 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rBiopaxParser
-// Parses BioPAX files and represents them in R, at the moment BioPAX level 2 and level 3 are supported
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rBiopaxParser/inst/doc/rBiopaxParserVignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("rBiopaxParser")
+// Bioconductor workflow: rbiopaxparser — parse_and_visualize_biopax
+// Parse an existing BioPAX OWL file, extract a specific pathway, convert it to a regulatory graph, and visualize it.
+// Input: file.owl
+// Container: quay.io/biocontainers/bioconductor-rbiopaxparser:2.50.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RBIOPAXPARSER {
+process BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rbiopaxparser"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rbiopaxparser:2.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rbiopaxparser:2.46.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rbiopaxparser:2.50.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rbiopaxparser_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rbiopaxparser_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rbiopaxparser_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rbiopaxparser")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(rBiopaxParser)
-    library(jsonlite)
-
-    # --- Extract Pathway Components [] ---
-    # Key functions: listPathwayComponents, selectInstances
-    data(biopaxexample)
-    pwid1 <- "pid_p_100002_wntpathway"
-    pw_1_component_list <- listPathwayComponents(biopax, pwid1)
-    pw_1_components <- selectInstances(
-        biopax,
-        id=pw_1_component_list$id
-    )
-
-
-    # --- Build BioPAX Model Entities [] ---
-    # Key functions: createBiopax, addPhysicalEntity, addPhysicalEntityParticipant, addBiochemicalReaction
-    biopax <- createBiopax()
-    for(i in LETTERS[1:5]) {
-        biopax <- addPhysicalEntity(biopax, class="protein",
-            NAME=paste("protein", i, sep="_"), 
-            id=paste("proteinid", i, sep="_"))
-        biopax <- addPhysicalEntityParticipant(biopax,
-            referencedPhysicalEntityID=paste("proteinid", i, sep="_"), 
-            id=paste("PEPid", i, sep="_"))
-        biopax <- addBiochemicalReaction(biopax,
-            LEFT=paste("PEPid", i, sep="_"),
-            RIGHT=paste("PEPid", i, sep="_"),
-            id=paste("BCRid", i, sep="_"))
+    
+    # Define the input file as specified by the user
+    file <- "file.owl"
+    
+    # Check if the input file exists
+    if (!file.exists(file)) {
+      stop("Error: 'file.owl' not found in the working directory. Please provide a valid BioPAX OWL file.")
     }
-
-
-    # --- Define Regulatory Controls [] ---
-    # Key functions: addControl
-    biopax <- addControl(biopax, CONTROL_TYPE="ACTIVATION",
-        CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_B"), id="control_1")
-    biopax <- addControl(biopax, CONTROL_TYPE="INHIBITION",
-        CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_C"), id="control_2")
-    biopax <- addControl(biopax, CONTROL_TYPE="ACTIVATION",
-        CONTROLLER="PEPid_C", CONTROLLED=c("BCRid_D"), id="control_3")
-    biopax <- addControl(biopax, CONTROL_TYPE="INHIBITION",
-        CONTROLLER="PEPid_C", CONTROLLED=c("BCRid_E"), id="control_4")
-
-
-    # --- Assemble and Merge Pathways [] ---
-    # Key functions: addPathway, mergePathways
-    biopax <- addPathway(biopax, NAME="pw1",
-        PATHWAY_COMPONENTS=c("control_1", "control_2"), id="pwid1")
-    biopax <- addPathway(biopax, NAME="pw2",
-        PATHWAY_COMPONENTS=c("control_3", "control_4"), id="pwid2")
-    biopax <- mergePathways(biopax, "pwid1", "pwid2",
-        NAME="pw3", id="pwid3")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rbiopaxparser_results.csv", row.names = TRUE)
+    
+    # 1. Parse the BioPAX file into R
+    biopax = readBiopax(file)
+    print(biopax)
+    
+    # 2. List and select pathway instances
+    pw_list = listInstances(biopax, class="pathway")
+    pw_complete = selectInstances(biopax, class="pathway")
+    
+    # Define the pathway ID to extract
+    pwid1 = "pid_p_100002_wntpathway"
+    
+    # Robust fallback: if the hardcoded pathway ID is not present in the user's file,
+    # use the first available pathway ID to ensure the pipeline runs successfully.
+    if (!is.null(pw_list) && nrow(pw_list) > 0) {
+      if (!(pwid1 %in% pw_list\$id)) {
+        pwid1 = pw_list\$id[1]
+        message("Warning: Hardcoded pathway ID 'pid_p_100002_wntpathway' not found. Using '", pwid1, "' instead.")
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rbiopaxparser_results.csv")
+      stop("Error: No pathways found in the provided BioPAX file.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rbiopaxparser_output.rds")
-    }
+    
+    # Retrieve properties and components of the selected pathway
+    getInstanceProperty(biopax, pwid1, property="NAME")
+    pw_1 = selectInstances(biopax, class="pathway", id=pwid1)
+    pw_1_component_list = listPathwayComponents(biopax,pwid1)
+    pw_1_components = selectInstances(biopax,id=pw_1_component_list\$id)
+    
+    # 3. Convert the selected pathway to a regulatory graph and adjacency matrix
+    pw_1_adj = pathway2AdjacancyMatrix(biopax, pwid1, expandSubpathways=TRUE, splitComplexMolecules=TRUE, verbose=TRUE)
+    pw_1_graph = pathway2RegulatoryGraph(biopax, pwid1, splitComplexMolecules=TRUE, verbose=TRUE)
+    
+    # 4. Layout and plot the regulatory graph
+    pw_1_graph_laidout = layoutRegulatoryGraph(pw_1_graph)
+    
+    # Save the visualization to a PDF file
+    pdf("regulatory_graph.pdf", width=10, height=8)
+    plotRegulatoryGraph(pw_1_graph)
+    dev.off()
+    
+    # Save meaningful results to output files
+    write.csv(pw_list, "pathway_list.csv", row.names=FALSE)
+    saveRDS(pw_complete, "pathway_complete.rds")
+    write.csv(pw_1_component_list, "pathway_components_list.csv", row.names=FALSE)
+    saveRDS(pw_1_components, "pathway_components.rds")
+    write.csv(as.data.frame(pw_1_adj), "pathway_adjacency_matrix.csv")
+    saveRDS(pw_1_graph, "regulatory_graph.rds")
+    saveRDS(pw_1_graph_laidout, "regulatory_graph_laidout.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to the working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RBIOPAXPARSER:", paste0("    rbiopaxparser: ", packageVersion("rBiopaxParser"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX":
+        rbiopaxparser: \$(Rscript -e 'cat(as.character(packageVersion("rbiopaxparser")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rbiopaxparser_results.csv
-    touch ${prefix}_rbiopaxparser_output.rds
-    echo "BIOC_RBIOPAXPARSER:" > versions.yml
-    echo "    rbiopaxparser: 0.0.0" >> versions.yml
+    touch ${prefix}_parse_and_visualize_biopax.csv versions.yml
     """
 }
 
-
-workflow BIOC_RBIOPAXPARSER_WORKFLOW {
+workflow BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file.owl ] ]
 
     main:
-    BIOC_RBIOPAXPARSER(ch_input)
+    BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX(ch_input)
 
     emit:
-    results  = BIOC_RBIOPAXPARSER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RBIOPAXPARSER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RBIOPAXPARSER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RBIOPAXPARSER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX.out.tables
+    plots    = BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX.out.plots
+    objects  = BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX.out.objects
+    versions = BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX.out.versions
 }

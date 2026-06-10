@@ -1,142 +1,164 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: IsoformSwitchAnalyzeR
-// Analysis of alternative splicing and isoform switches with predicted functional consequences (e.g. g
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/IsoformSwitchAnalyzeR/inst/doc/IsoformSwitchAnalyzeR.R
-// Upstream  : VennDiagram
-// Downstream: none
-//
-// Install: BiocManager::install("IsoformSwitchAnalyzeR")
+// Bioconductor workflow: isoformswitchanalyzer — high_level_two_part_analysis
+// Perform a complete isoform switch analysis using high-level wrapper functions to import, test, extract sequences, integrate external annotations, and predict co
+// Input: salmon_quant_dir, annotation.gtf, transcript_sequences.fasta, cpc2_result.txt, pfam_results.txt, iupred2a_result.txt.gz, signalP_results.txt
+// Container: quay.io/biocontainers/bioconductor-isoformswitchanalyzer:2.10.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ISOFORMSWITCHANALYZER {
+process BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-isoformswitchanalyzer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-isoformswitchanalyzer:2.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-isoformswitchanalyzer:2.6.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-isoformswitchanalyzer:2.10.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_isoformswitchanalyzer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_isoformswitchanalyzer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_isoformswitchanalyzer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("isoformswitchanalyzer", "venndiagram")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(IsoformSwitchAnalyzeR)
-    library(jsonlite)
-
-    # --- Filtering and Part 1 Analysis [] ---
-    # Key functions: subsetSwitchAnalyzeRlist, isoformSwitchAnalysisPart1
-    data("exampleSwitchList")
-    exampleSwitchList <- subsetSwitchAnalyzeRlist(
-        switchAnalyzeRlist = exampleSwitchList,
-        subset = abs(exampleSwitchList$isoformFeatures$dIF) > 0.4
+    
+    # Define input file paths as specified by the user
+    salmon_quant_dir <- "salmon_quant_dir"
+    annotation_gtf <- "annotation.gtf"
+    transcript_sequences_fasta <- "transcript_sequences.fasta"
+    cpc2_result <- "cpc2_result.txt"
+    pfam_results <- "pfam_results.txt"
+    iupred2a_result <- "iupred2a_result.txt.gz"
+    signalP_results <- "signalP_results.txt"
+    
+    # 1. Import isoform expression data
+    salmonQuant <- importIsoformExpression(
+        parentDir = salmon_quant_dir
     )
-    exampleSwitchList <- isoformSwitchAnalysisPart1(
-        switchAnalyzeRlist   = exampleSwitchList,
-        outputSequences      = FALSE,
-        prepareForWebServers = FALSE
+    
+    # 2. Create a design matrix
+    myDesign <- data.frame(
+        sampleID = colnames(salmonQuant\$abundance)[-1],
+        condition = gsub('_.*', '', colnames(salmonQuant\$abundance)[-1])
     )
-
-
-    # --- Functional Consequences and Part 2 Analysis [] ---
-    # Key functions: isoformSwitchAnalysisPart2, extractSwitchSummary
-    exampleSwitchList <- isoformSwitchAnalysisPart2(
-        switchAnalyzeRlist        = exampleSwitchList,
-        n                         = 10,
-        removeNoncodinORFs        = TRUE,
-        pathToCPC2resultFile      = system.file(
-            "extdata/cpc2_result.txt", package = "IsoformSwitchAnalyzeR"
-        ),
-        pathToPFAMresultFile      = system.file(
-            "extdata/pfam_results.txt", package = "IsoformSwitchAnalyzeR"
-        ),
-        pathToIUPred2AresultFile  = system.file(
-            "extdata/iupred2a_result.txt.gz", package = "IsoformSwitchAnalyzeR"
-        ),
-        pathToSignalPresultFile   = system.file(
-            "extdata/signalP_results.txt", package = "IsoformSwitchAnalyzeR"
-        ),
-        outputPlots               = FALSE
+    
+    # 3. Build the switchAnalyzeRlist
+    aSwitchList <- importRdata(
+        isoformCountMatrix   = salmonQuant\$counts,
+        isoformRepExpression = salmonQuant\$abundance,
+        designMatrix         = myDesign,
+        isoformExonAnnoation = annotation_gtf,
+        isoformNtFasta       = transcript_sequences_fasta,
+        fixStringTieAnnotationProblem = TRUE,
+        showProgress = FALSE
     )
-    summary_df <- extractSwitchSummary(exampleSwitchList)
-
-
-    # --- Visualization and Enrichment Analysis [] ---
-    # Key functions: switchPlot, extractSwitchOverlap, extractConsequenceSummary
-    data("exampleSwitchListAnalyzed")
-    switchPlot(
-        exampleSwitchListAnalyzed,
-        gene='ZAK',
-        condition1 = 'COAD_ctrl',
-        condition2 = 'COAD_cancer'
-    )
-    overlap <- extractSwitchOverlap(
-        exampleSwitchListAnalyzed,
-        filterForConsequences=TRUE,
-        plotIsoforms = FALSE
-    )
-    conseq_summary <- extractConsequenceSummary(
-        exampleSwitchListAnalyzed,
-        consequencesToAnalyze='all',
-        plotGenes = FALSE,
-        asFractionTotal = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_isoformswitchanalyzer_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_isoformswitchanalyzer_results.csv")
+    
+    # Handle potential NA values in dIF before subsetting to prevent errors
+    if ("dIF" %in% colnames(aSwitchList\$isoformFeatures)) {
+        aSwitchList\$isoformFeatures\$dIF[is.na(aSwitchList\$isoformFeatures\$dIF)] <- 0
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_isoformswitchanalyzer_output.rds")
+    
+    # Subset the switch list for isoforms with significant usage changes
+    aSwitchList <- subsetSwitchAnalyzeRlist(
+        switchAnalyzeRlist = aSwitchList,
+        subset = abs(aSwitchList\$isoformFeatures\$dIF) > 0.1
+    )
+    
+    # 4. Run Part 1 analysis (filtering, testing, ORF annotation, sequence extraction)
+    aSwitchList <- isoformSwitchAnalysisPart1(
+        switchAnalyzeRlist   = aSwitchList,
+        outputSequences      = FALSE, 
+        prepareForWebServers = FALSE  
+    )
+    
+    # Extract and display initial switch summary
+    extractSwitchSummary( aSwitchList )
+    
+    # 5. Run Part 2 analysis (integrating external results and predicting consequences)
+    aSwitchList <- isoformSwitchAnalysisPart2(
+      switchAnalyzeRlist        = aSwitchList, 
+      n                         = 10,    
+      removeNoncodinORFs        = TRUE,
+      pathToCPC2resultFile      = cpc2_result,
+      pathToPFAMresultFile      = pfam_results,
+      pathToIUPred2AresultFile  = iupred2a_result,
+      pathToSignalPresultFile   = signalP_results,
+      outputPlots               = FALSE  
+    )
+    
+    # 6. Extract top switching genes with predicted consequences
+    top_switches <- extractTopSwitches(aSwitchList, filterForConsequences = TRUE, n=3)
+    
+    # Write meaningful results to output files
+    saveRDS(aSwitchList, file = "isoform_switch_list_analyzed.rds")
+    
+    switch_summary <- extractSwitchSummary(aSwitchList)
+    write.csv(switch_summary, file = "switch_summary.csv", row.names = FALSE)
+    
+    write.csv(top_switches, file = "top_switching_genes.csv", row.names = FALSE)
+    
+    # Generate and save a switch plot for the top gene if available
+    if (nrow(top_switches) > 0) {
+        top_gene <- top_switches\$gene_name[1]
+        if (is.na(top_gene) || top_gene == "") {
+            top_gene <- top_switches\$gene_id[1]
+        }
+        
+        conds <- unique(aSwitchList\$designMatrix\$condition)
+        
+        pdf("top_isoform_switch_plot.pdf", onefile = FALSE, height = 6, width = 9)
+        if (length(conds) >= 2) {
+            switchPlot(aSwitchList, gene = top_gene, condition1 = conds[1], condition2 = conds[2])
+        } else {
+            switchPlot(aSwitchList, gene = top_gene)
+        }
+        dev.off()
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ISOFORMSWITCHANALYZER:", paste0("    isoformswitchanalyzer: ", packageVersion("IsoformSwitchAnalyzeR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS":
+        isoformswitchanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("isoformswitchanalyzer")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_isoformswitchanalyzer_results.csv
-    touch ${prefix}_isoformswitchanalyzer_output.rds
-    echo "BIOC_ISOFORMSWITCHANALYZER:" > versions.yml
-    echo "    isoformswitchanalyzer: 0.0.0" >> versions.yml
+    touch ${prefix}_high_level_two_part_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ISOFORMSWITCHANALYZER_WORKFLOW {
+workflow BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ salmon_quant_dir, annotation.gtf, transcript_sequences.fasta, cpc2_result.txt, pfam_results.txt, iupred2a_result.txt.gz, signalP_results.txt ] ]
 
     main:
-    BIOC_ISOFORMSWITCHANALYZER(ch_input)
+    BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ISOFORMSWITCHANALYZER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ISOFORMSWITCHANALYZER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ISOFORMSWITCHANALYZER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ISOFORMSWITCHANALYZER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS.out.tables
+    plots    = BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS.out.plots
+    objects  = BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS.out.objects
+    versions = BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS.out.versions
 }

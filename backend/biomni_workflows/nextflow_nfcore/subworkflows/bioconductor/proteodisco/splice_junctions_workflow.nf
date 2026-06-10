@@ -1,0 +1,128 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: proteodisco — splice_junctions_workflow
+// Generate a customized protein database incorporating alternative splicing events from BED or custom splice junction files.
+// Input: spliceJunctions_pyQUILTS_chr22.bed, validationSetSJ_hg19.txt
+// Container: quay.io/biocontainers/bioconductor-proteodisco:1.16.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "quay.io/biocontainers/bioconductor-proteodisco:1.16.0--r45hdfd78af_0"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "ProteoDisco", "TxDb.Hsapiens.UCSC.hg19.knownGene", "dplyr", "readr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(ProteoDisco)
+    library(dplyr)
+    library(readr)
+    
+    # 1. Generate the ProteoDiscography reference database
+    ProteoDiscography.hg19 <- ProteoDisco::generateProteoDiscography(
+      TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene, 
+      genomeSeqs = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    )
+    
+    # 2. Import splice junctions
+    # Import from the user-provided BED file
+    ProteoDiscography.hg19 <- ProteoDisco::importSpliceJunctions(
+      ProteoDiscography = ProteoDiscography.hg19, 
+      inputSpliceJunctions = 'spliceJunctions_pyQUILTS_chr22.bed', 
+      samples = c('pyQUILTS'), 
+      isTopHat = TRUE,
+      aggregateSamples = FALSE,
+      removeExisting = TRUE
+    )
+    
+    # Import from the user-provided custom text file
+    testSJ <- readr::read_tsv('validationSetSJ_hg19.txt', show_col_types = FALSE) %>% 
+      dplyr::select(sample, identifier, junctionA, junctionB)
+    
+    ProteoDiscography.hg19 <- ProteoDisco::importSpliceJunctions(
+      ProteoDiscography = ProteoDiscography.hg19, 
+      inputSpliceJunctions = testSJ, 
+      removeExisting = FALSE
+    )
+    
+    # 3. Generate junction models
+    ProteoDiscography.hg19 <- ProteoDisco::generateJunctionModels(
+      ProteoDiscography = ProteoDiscography.hg19, 
+      maxDistance = 150, 
+      skipCanonical = TRUE,
+      threads = 1
+    )
+    
+    # 4. Export the customized database to FASTA
+    ProteoDisco::exportProteoDiscography(
+      ProteoDiscography = ProteoDiscography.hg19, 
+      outFile = 'exported_junctions.fasta', 
+      aggregateSamples = TRUE
+    )
+    
+    # Save additional meaningful output files
+    saveRDS(ProteoDiscography.hg19, 'ProteoDiscography_final.rds')
+    
+    # Extract and save mutant transcripts
+    mt <- ProteoDisco::mutantTranscripts(ProteoDiscography.hg19)
+    saveRDS(mt, 'mutant_transcripts.rds')
+    
+    if ("splicing" %in% names(mt) && !is.null(mt\$splicing)) {
+      write.csv(as.data.frame(mt\$splicing), 'mutant_transcripts_splicing.csv', row.names = FALSE)
+    }
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW":
+        proteodisco: \$(Rscript -e 'cat(as.character(packageVersion("proteodisco")))')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_splice_junctions_workflow.csv versions.yml
+    """
+}
+
+workflow BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ spliceJunctions_pyQUILTS_chr22.bed, validationSetSJ_hg19.txt ] ]
+
+    main:
+    BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW(ch_input)
+
+    emit:
+    tables   = BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW.out.tables
+    plots    = BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW.out.plots
+    objects  = BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW.out.objects
+    versions = BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW.out.versions
+}

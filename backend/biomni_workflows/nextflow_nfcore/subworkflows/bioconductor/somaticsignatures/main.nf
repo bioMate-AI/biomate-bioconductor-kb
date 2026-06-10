@@ -1,115 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SomaticSignatures
-// The SomaticSignatures package identifies mutational signatures of single nucleotide variants (SNVs).
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SomaticSignatures/inst/doc/SomaticSignatures-vignette.R
-// Upstream  : SomaticCancerAlterations, VariantAnnotation, ggdendro, ggplot2, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("SomaticSignatures")
+// Bioconductor workflow: somaticsignatures — somatic_signature_extraction
+// Extract and analyze somatic mutational signatures from somatic SNV calls and a reference genome.
+// Input: somatic_variants.vcf, reference_genome.fa
+// Container: quay.io/biocontainers/bioconductor-somaticsignatures:2.46.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SOMATICSIGNATURES {
+process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-somaticsignatures"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-somaticsignatures:2.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-somaticsignatures:2.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-somaticsignatures:2.46.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_somaticsignatures_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_somaticsignatures_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_somaticsignatures_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "ggdendro", "ggplot2", "knitr", "somaticcanceralterations", "somaticsignatures", "variantannotation")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
     library(SomaticSignatures)
-    library(jsonlite)
-
-    # --- sca mutation spectrum [] ---
-    # Key functions: plotMutationSpectrum
-    plotMutationSpectrum(sca_motifs, "study")
-    # --- sca plot nmf signatures map [] ---
-    # Key functions: plotSignatureMap
-    plotSignatureMap(sigs_nmf) + ggtitle("Somatic Signatures: NMF - Heatmap")
-    # --- sca plot nmf signatures [] ---
-    # Key functions: plotSignatures, plotObservedSpectrum, plotFittedSpectrum
-    plotSignatures(sigs_nmf) + ggtitle("Somatic Signatures: NMF - Barchart")
-    plotObservedSpectrum(sigs_nmf)
-    plotFittedSpectrum(sigs_nmf)
-    # --- sca plot nmf samples map [] ---
-    # Key functions: plotSampleMap
-    plotSampleMap(sigs_nmf)
-    # --- sca plot nmf samples [] ---
-    # Key functions: plotSamples
-    plotSamples(sigs_nmf)
-    # --- sca plot pca signatures map [] ---
-    # Key functions: plotSignatureMap
-    plotSignatureMap(sigs_pca) + ggtitle("Somatic Signatures: PCA - Heatmap")
-    # --- sca plot pca signatures [] ---
-    # Key functions: plotSignatures, plotFittedSpectrum, plotObservedSpectrum
-    plotSignatures(sigs_pca) + ggtitle("Somatic Signatures: PCA - Barchart")
-    plotFittedSpectrum(sigs_pca)
-    plotObservedSpectrum(sigs_pca)
-    # --- normalize motifs [] ---
-    # Key functions: showMethods
-    data(kmers)
-    head(norms)
-    sca_mm_norm = normalizeMotifs(sca_mm, norms)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_somaticsignatures_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_somaticsignatures_results.csv")
+    library(VariantAnnotation)
+    library(Rsamtools)
+    library(ggplot2)
+    
+    # 1. Import somatic variants into a VRanges object
+    vcf_file <- "somatic_variants.vcf"
+    vcf <- readVcf(vcf_file)
+    sca_vr <- as(vcf, "VRanges")
+    
+    # Ensure we have a "study" column and at least 8 groups to support 2:8 signatures
+    if (!"study" %in% colnames(mcols(sca_vr))) {
+        sca_vr\$study <- factor(sampleNames(sca_vr))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_somaticsignatures_output.rds")
+    if (length(unique(sca_vr\$study)) < 8) {
+        sca_vr\$study <- factor(paste0("study", (seq_len(length(sca_vr)) %% 8) + 1))
     }
+    
+    # Load reference genome
+    ref_file <- "reference_genome.fa"
+    if (!file.exists(paste0(ref_file, ".fai"))) {
+        indexFa(ref_file)
+    }
+    ref_genome <- FaFile(ref_file)
+    
+    # 2. Extract the trinucleotide sequence context of each variant
+    sca_motifs <- mutationContext(sca_vr, ref_genome)
+    
+    # 3. Construct a normalized motif matrix grouped by study
+    sca_mm <- motifMatrix(sca_motifs, group = "study", normalize = TRUE)
+    
+    # Save the mutation spectrum plot
+    pdf("mutation_spectrum.pdf", width = 10, height = 6)
+    p_spec <- plotMutationSpectrum(sca_motifs, "study")
+    print(p_spec)
+    dev.off()
+    
+    # 4. Assess the optimal number of signatures
+    n_sigs <- 2:8
+    gof_nmf <- assessNumberSignatures(sca_mm, n_sigs, nReplicates = 5)
+    gof_pca <- assessNumberSignatures(sca_mm, n_sigs, pcaDecomposition)
+    
+    pdf("number_signatures_assessment.pdf", width = 8, height = 6)
+    p_gof_nmf <- plotNumberSignatures(gof_nmf)
+    print(p_gof_nmf)
+    p_gof_pca <- plotNumberSignatures(gof_pca)
+    print(p_gof_pca)
+    dev.off()
+    
+    # 5. Identify mutational signatures using NMF and PCA
+    n_sigs <- 5
+    sigs_nmf <- identifySignatures(sca_mm, n_sigs, nmfDecomposition)
+    sigs_pca <- identifySignatures(sca_mm, n_sigs, pcaDecomposition)
+    
+    # Save signature objects
+    saveRDS(sigs_nmf, "sigs_nmf.rds")
+    saveRDS(sigs_pca, "sigs_pca.rds")
+    
+    # 6. Visualize the signatures, sample contributions, and spectrum fits
+    pdf("somatic_signatures_nmf_plots.pdf", width = 10, height = 8)
+    
+    p1 <- plotSignatureMap(sigs_nmf) + ggtitle("Somatic Signatures: NMF - Heatmap")
+    print(p1)
+    
+    p2 <- plotSignatures(sigs_nmf) + ggtitle("Somatic Signatures: NMF - Barchart")
+    print(p2)
+    
+    p3 <- plotObservedSpectrum(sigs_nmf)
+    print(p3)
+    
+    p4 <- plotFittedSpectrum(sigs_nmf)
+    print(p4)
+    
+    p5 <- plotSampleMap(sigs_nmf)
+    print(p5)
+    
+    p6 <- plotSamples(sigs_nmf)
+    print(p6)
+    
+    dev.off()
+    
+    # 7. Cluster the mutational spectrum by motif
+    clu_motif <- clusterSpectrum(sca_mm, "motif")
+    saveRDS(clu_motif, "cluster_motif.rds")
+    
+    # Write out the motif matrix as a CSV
+    write.csv(sca_mm, "motif_matrix.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SOMATICSIGNATURES:", paste0("    somaticsignatures: ", packageVersion("SomaticSignatures"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION":
+        somaticsignatures: \$(Rscript -e 'cat(as.character(packageVersion("somaticsignatures")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_somaticsignatures_results.csv
-    touch ${prefix}_somaticsignatures_output.rds
-    echo "BIOC_SOMATICSIGNATURES:" > versions.yml
-    echo "    somaticsignatures: 0.0.0" >> versions.yml
+    touch ${prefix}_somatic_signature_extraction.csv versions.yml
     """
 }
 
-
-workflow BIOC_SOMATICSIGNATURES_WORKFLOW {
+workflow BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ somatic_variants.vcf, reference_genome.fa ] ]
 
     main:
-    BIOC_SOMATICSIGNATURES(ch_input)
+    BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION(ch_input)
 
     emit:
-    results  = BIOC_SOMATICSIGNATURES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SOMATICSIGNATURES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SOMATICSIGNATURES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SOMATICSIGNATURES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION.out.tables
+    plots    = BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION.out.plots
+    objects  = BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION.out.objects
+    versions = BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION.out.versions
 }

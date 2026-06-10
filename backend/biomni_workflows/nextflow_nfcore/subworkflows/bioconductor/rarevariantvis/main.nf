@@ -1,103 +1,103 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RareVariantVis
-// Second version of RareVariantVis package aims to provide comprehensive information about rare varian
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RareVariantVis/inst/doc/RareVariantsVis.R
-// Upstream  : DataRareVariantVis
-// Downstream: none
-//
-// Install: BiocManager::install("RareVariantVis")
+// Bioconductor workflow: rarevariantvis — single_sample_analysis
+// Identify, annotate, and visualize rare single nucleotide and structural variants from a single genome sample.
+// Input: CoriellIndex_S1.vcf.gz, CoriellIndex_S1.sv.vcf.gz
+// Container: quay.io/biocontainers/bioconductor-rarevariantvis:2.38.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RAREVARIANTVIS {
+process BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rarevariantvis"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rarevariantvis:2.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rarevariantvis:2.34.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rarevariantvis:2.38.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rarevariantvis_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rarevariantvis_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rarevariantvis_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("datararevariantvis", "rarevariantvis")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(RareVariantVis)
-    library(jsonlite)
-
-    # --- Multiple Chromosome Visualization [] ---
-    # Key functions: multipleChromosomesVis
-    multipleChromosomesVis(
-        sampleId = "sample1",
-        chromosomes = c("chr1", "chr2", "chr3"),
-        outputDir = tempdir()
-    )
-
-
-    # --- Moving Average Smoothing [] ---
-    # Key functions: movingAverage
-    positions <- seq(1, 100000, by = 100)
-    values <- runif(length(positions))
-    ma_res <- movingAverage(
-        positions = positions,
-        values = values,
-        windowSize = 10000
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rarevariantvis_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rarevariantvis_results.csv")
+    library(DataRareVariantVis)
+    
+    # Define input file paths from the working directory
+    sample <- "CoriellIndex_S1.vcf.gz"
+    sv_sample <- "CoriellIndex_S1.sv.vcf.gz"
+    
+    # Verify input files exist
+    if (!file.exists(sample)) {
+      stop(paste("Required input SNV VCF file missing in working directory:", sample))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rarevariantvis_output.rds")
+    if (!file.exists(sv_sample)) {
+      stop(paste("Required input SV VCF file missing in working directory:", sv_sample))
     }
+    
+    # Run chromosomeVis to perform variant discovery, annotation, and static visualization
+    message("Running chromosomeVis for chromosome 19...")
+    chromosomeVis(sample=sample, sv_sample=sv_sample,
+        chromosomes=c("19"))
+    
+    # Verify that the expected intermediate text file was generated by chromosomeVis
+    expected_txt <- "RareVariants_CoriellIndex_S1.txt"
+    if (!file.exists(expected_txt)) {
+      stop(paste("Expected output file from chromosomeVis not found:", expected_txt))
+    }
+    
+    # Run rareVariantVis to generate an interactive HTML visualization of the rare variants
+    message("Running rareVariantVis to generate interactive HTML...")
+    rareVariantVis("RareVariants_CoriellIndex_S1.txt",
+                   "RareVariants_CoriellIndex_S1.html",
+                   "CorielIndex")
+    
+    message("Workflow completed successfully. Outputs generated in the working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RAREVARIANTVIS:", paste0("    rarevariantvis: ", packageVersion("RareVariantVis"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS":
+        rarevariantvis: \$(Rscript -e 'cat(as.character(packageVersion("rarevariantvis")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rarevariantvis_results.csv
-    touch ${prefix}_rarevariantvis_output.rds
-    echo "BIOC_RAREVARIANTVIS:" > versions.yml
-    echo "    rarevariantvis: 0.0.0" >> versions.yml
+    touch ${prefix}_single_sample_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_RAREVARIANTVIS_WORKFLOW {
+workflow BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ CoriellIndex_S1.vcf.gz, CoriellIndex_S1.sv.vcf.gz ] ]
 
     main:
-    BIOC_RAREVARIANTVIS(ch_input)
+    BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_RAREVARIANTVIS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RAREVARIANTVIS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RAREVARIANTVIS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RAREVARIANTVIS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS.out.tables
+    plots    = BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS.out.plots
+    objects  = BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS.out.objects
+    versions = BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS.out.versions
 }

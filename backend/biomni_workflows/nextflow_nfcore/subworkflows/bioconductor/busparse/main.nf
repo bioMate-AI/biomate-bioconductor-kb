@@ -1,123 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BUSpaRse
-// The kallisto | bustools pipeline is a fast and modular set of tools to convert single cell RNA-seq r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BUSpaRse/inst/doc/sparse-matrix.R
-// Upstream  : Matrix, TENxBUSData, ggplot2, zeallot
-// Downstream: none
-//
-// Install: BiocManager::install("BUSpaRse")
+// Bioconductor workflow: busparse — bus_to_sparse_matrix_and_filtering
+// Convert sorted BUS output files into sparse gene count and TCC matrices, and filter out empty droplets using knee plots.
+// Input: ./out_hgmm100/output.sorted.txt, ./out_hgmm100/matrix.ec
+// Container: quay.io/biocontainers/bioconductor-busparse:1.24.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BUSPARSE {
+process BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-busparse"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-busparse:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-busparse:1.20.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-busparse:1.24.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_busparse_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_busparse_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_busparse_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(TENxBUSData)
-    library(jsonlite)
-
-    # --- Tenxbusdata [] ---
-    # Key functions: TENxBUSData
-    ---------------------------------------------------------------------
-    TENxBUSData(".", dataset = "hgmm100")
-    # --- transcript2gene [] ---
-    # Key functions: transcript2gene
-    ---------------------------------------------------------------------
-    tr2g <- transcript2gene(species = c("Homo sapiens", "Mus musculus"), type = "vertebrate",
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("busparse", "ggplot2", "matrix", "tenxbusdata", "zeallot")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(BUSpaRse)
+    library(Matrix)
+    library(zeallot)
+    library(ggplot2)
+    
+    # Define input paths
+    input_dir <- "./out_hgmm100"
+    bus_file <- file.path(input_dir, "output.sorted.txt")
+    ec_file <- file.path(input_dir, "matrix.ec")
+    
+    # Verify input files exist
+    if (!dir.exists(input_dir)) {
+      stop(paste("Error: Input directory does not exist:", input_dir))
+    }
+    if (!file.exists(bus_file)) {
+      stop(paste("Error: Sorted BUS file does not exist:", bus_file))
+    }
+    if (!file.exists(ec_file)) {
+      stop(paste("Error: Equivalence class file does not exist:", ec_file))
+    }
+    
+    # Create output directory if it doesn't exist
+    output_dir <- "./output_results"
+    if (!dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE)
+    }
+    
+    # Stage 1: Generate transcript-to-gene mapping using transcript2gene
+    message("Generating transcript-to-gene mapping...")
+    tr2g <- transcript2gene(species = c("Homo sapiens", "Mus musculus"), 
                             kallisto_out_path = "./out_hgmm100", ensembl_version = 99,
                             write_tr2g = FALSE)
-    # --- Colsums [] ---
-    # Key functions: colSums
-    ---------------------------------------------------------------------
-    tot_counts <- Matrix::colSums(gene_count)
-    summary(tot_counts)
-    # --- Get Knee Df [] ---
-    # Key functions: get_knee_df, get_inflection
-    ---------------------------------------------------------------------
+    
+    # Save the tr2g mapping
+    write.csv(tr2g, file = file.path(output_dir, "tr2g_mapping.csv"), row.names = FALSE)
+    message("Saved transcript-to-gene mapping to output_results/tr2g_mapping.csv")
+    
+    # Stage 2: Convert sorted BUS file to sparse gene count and TCC matrices using make_sparse_matrix
+    message("Converting BUS file to sparse matrices...")
+    c(gene_count, tcc) %<-% make_sparse_matrix("./out_hgmm100/output.sorted.txt",
+                                   tr2g = tr2g, est_ncells = 1e5,
+                                   est_ngenes = nrow(tr2g))
+    
+    # Save raw matrices
+    saveRDS(gene_count, file = file.path(output_dir, "gene_count_raw.rds"))
+    saveRDS(tcc, file = file.path(output_dir, "tcc_raw.rds"))
+    
+    # Stage 3-7 for Gene Count Matrix: Filter empty droplets using knee plot
+    message("Processing gene count matrix...")
+    tot_counts_gene <- Matrix::colSums(gene_count)
     df1 <- get_knee_df(gene_count)
     infl1 <- get_inflection(df1)
-    # --- Knee Plot [] ---
-    # Key functions: knee_plot
-    ---------------------------------------------------------------------
-    knee_plot(df1, infl1)
-    # --- Colsums [] ---
-    # Key functions: colSums
-    ---------------------------------------------------------------------
-    tot_counts <- Matrix::colSums(tcc)
-    summary(tot_counts)
-    # --- Get Knee Df [] ---
-    # Key functions: get_knee_df, get_inflection
-    ---------------------------------------------------------------------
+    
+    # Plot and save knee plot for gene count
+    p1 <- knee_plot(df1, infl1)
+    ggsave(filename = file.path(output_dir, "knee_plot_gene_count.pdf"), plot = p1, width = 6, height = 5)
+    
+    # Filter gene count matrix
+    gene_count_filtered <- gene_count[, tot_counts_gene > infl1]
+    saveRDS(gene_count_filtered, file = file.path(output_dir, "gene_count_filtered.rds"))
+    message(paste("Filtered gene count matrix saved. Original dimensions:", 
+                  paste(dim(gene_count), collapse="x"), 
+                  "| Filtered dimensions:", 
+                  paste(dim(gene_count_filtered), collapse="x")))
+    
+    # Stage 3-7 for TCC Matrix: Filter empty droplets using knee plot
+    message("Processing TCC matrix...")
+    tot_counts_tcc <- Matrix::colSums(tcc)
     df2 <- get_knee_df(tcc)
     infl2 <- get_inflection(df2)
-    # --- Knee Plot [] ---
-    # Key functions: knee_plot
-    ---------------------------------------------------------------------
-    knee_plot(df2, infl2)
+    
+    # Plot and save knee plot for TCC
+    p2 <- knee_plot(df2, infl2)
+    ggsave(filename = file.path(output_dir, "knee_plot_tcc.pdf"), plot = p2, width = 6, height = 5)
+    
+    # Filter TCC matrix
+    tcc_filtered <- tcc[, tot_counts_tcc > infl2]
+    saveRDS(tcc_filtered, file = file.path(output_dir, "tcc_filtered.rds"))
+    message(paste("Filtered TCC matrix saved. Original dimensions:", 
+                  paste(dim(tcc), collapse="x"), 
+                  "| Filtered dimensions:", 
+                  paste(dim(tcc_filtered), collapse="x")))
+    
+    message("Pipeline completed successfully. All outputs are saved in './output_results'.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_busparse_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_busparse_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_busparse_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BUSPARSE:", paste0("    busparse: ", packageVersion("BUSpaRse"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING":
+        busparse: \$(Rscript -e 'cat(as.character(packageVersion("busparse")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_busparse_results.csv
-    touch ${prefix}_busparse_output.rds
-    echo "BIOC_BUSPARSE:" > versions.yml
-    echo "    busparse: 0.0.0" >> versions.yml
+    touch ${prefix}_bus_to_sparse_matrix_and_filtering.csv versions.yml
     """
 }
 
-
-workflow BIOC_BUSPARSE_WORKFLOW {
+workflow BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ./out_hgmm100/output.sorted.txt, ./out_hgmm100/matrix.ec ] ]
 
     main:
-    BIOC_BUSPARSE(ch_input)
+    BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING(ch_input)
 
     emit:
-    results  = BIOC_BUSPARSE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BUSPARSE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BUSPARSE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BUSPARSE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING.out.tables
+    plots    = BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING.out.plots
+    objects  = BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING.out.objects
+    versions = BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING.out.versions
 }

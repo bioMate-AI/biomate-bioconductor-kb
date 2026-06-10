@@ -1,96 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ExCluster
-// ExCluster flattens Ensembl and GENCODE GTF files into GFF files, which are used to count reads per n
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ExCluster/inst/doc/ExCluster.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ExCluster")
+// Bioconductor workflow: excluster — differential_splicing_analysis
+// Perform a complete differential splicing analysis from GTF and BAM files, identify differentially spliced genes, plot exon log2 fold changes, and format results
+// Input: GTF_file, bamFiles
+// Container: quay.io/biocontainers/bioconductor-excluster:1.28.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_EXCLUSTER {
+process BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-excluster"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-excluster:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-excluster:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-excluster:1.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_excluster_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_excluster_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_excluster_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("excluster")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(ExCluster)
-    library(GRangesFromExClustResults)
-    library(jsonlite)
-
-    # --- Samples [] ---
-    # Key functions: samples, ExCluster
-    # assign condition numbers to your samples (we have 4 samples, 2 replicates per condition)
-    condNums <- c(1,1,2,2)
-    # now we run ExCluster, assigning its output to the ExClustResults variable
-    # we are not writing out the ExClustResults table, nor are we plotting exons
-    # we also use combine.Exons=FALSE to discover one 'significant' gene for example plot purposes
-    # --- Grangesfromexclustresults [] ---
-    # Key functions: GRangesFromExClustResults
-    GRanges.ExClustResults <- GRangesFromExClustResults(results.ExClust=ExClust_Results)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_excluster_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 1. Input File Detection & Setup
+    # ==========================================
+    
+    # Detect GTF file in the working directory
+    gtf_files <- list.files(pattern = "\\.gtf\$", ignore.case = TRUE)
+    if (length(gtf_files) > 0) {
+      GTF_file <- gtf_files[1]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_excluster_results.csv")
+      GTF_file <- "annotation.gtf"
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_excluster_output.rds")
+    
+    # Detect BAM files in the working directory
+    bamFiles <- list.files(pattern = "\\.bam\$", ignore.case = TRUE, full.names = TRUE)
+    
+    # Validate input files
+    if (!file.exists(GTF_file)) {
+      stop(paste("Error: GTF file not found at:", GTF_file, 
+                 "\nPlease ensure a GTF file is present in the working directory."))
     }
+    if (length(bamFiles) == 0) {
+      stop("Error: No BAM files found in the working directory. Please provide aligned RNA-seq BAM files.")
+    }
+    
+    # Dynamically generate sample names from BAM file names
+    sampleNames <- gsub("\\.bam\$", "", basename(bamFiles), ignore.case = TRUE)
+    
+    # Assign condition numbers (split samples evenly between condition 1 and condition 2)
+    n_samples <- length(bamFiles)
+    condNums <- rep(c(1, 2), each = ceiling(n_samples / 2))[1:n_samples]
+    
+    message("--- Pipeline Configuration ---")
+    message("GTF File: ", GTF_file)
+    message("BAM Files detected: ", n_samples)
+    for (i in seq_along(bamFiles)) {
+      message("  - ", bamFiles[i], " (Sample Name: ", sampleNames[i], ", Condition: ", condNums[i], ")")
+    }
+    message("------------------------------")
+    
+    # ==========================================
+    # 2. Run ExCluster Workflow
+    # ==========================================
+    
+    # Stage 1: Convert GTF to flattened GFF format
+    message("Stage 1: Converting GTF to flattened GFF format...")
+    GFF <- GFF_convert(GTF.File=GTF_file)
+    
+    # Stage 2: Count and normalize reads per exon bin from BAM files
+    message("Stage 2: Counting and normalizing reads per exon bin...")
+    normCounts <- processCounts(bam.Files=bamFiles, sample.Names=sampleNames, annot.GFF=GFF, paired.Reads=TRUE)
+    
+    # Stage 3: Run core differential splicing analysis
+    message("Stage 3: Running core differential splicing analysis...")
+    ExClust_Results <- ExCluster(exon.Counts=normCounts, cond.Nums=condNums, annot.GFF=GFF, combine.Exons=FALSE)
+    
+    # Stage 4: Plot exon log2 fold changes for significant genes
+    message("Stage 4: Plotting exon log2 fold changes...")
+    outDir <- "./Images/"
+    if (!dir.exists(outDir)) {
+      dir.create(outDir, recursive = TRUE)
+    }
+    plotExonlog2FC(results.Data=ExClust_Results, out.Dir=outDir, plot.Type="PNG")
+    
+    # Stage 5: Convert results to a GRanges object
+    message("Stage 5: Converting results to GRanges object...")
+    GRanges.ExClustResults <- GRangesFromExClustResults(results.ExClust=ExClust_Results)
+    
+    # ==========================================
+    # 3. Save Outputs
+    # ==========================================
+    message("Saving pipeline results...")
+    
+    # Save the main ExCluster results table
+    write.csv(ExClust_Results, file = "ExCluster_Results.csv", row.names = FALSE)
+    
+    # Save normalized exon counts
+    write.csv(normCounts, file = "Normalized_Exon_Counts.csv", row.names = TRUE)
+    
+    # Save GRanges object
+    saveRDS(GRanges.ExClustResults, file = "GRanges_ExClustResults.rds")
+    
+    # Save flattened GFF annotation
+    saveRDS(GFF, file = "Flattened_GFF_Annotation.rds")
+    
+    message("Pipeline completed successfully! Outputs saved to the working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_EXCLUSTER:", paste0("    excluster: ", packageVersion("ExCluster"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS":
+        excluster: \$(Rscript -e 'cat(as.character(packageVersion("excluster")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_excluster_results.csv
-    touch ${prefix}_excluster_output.rds
-    echo "BIOC_EXCLUSTER:" > versions.yml
-    echo "    excluster: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_splicing_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_EXCLUSTER_WORKFLOW {
+workflow BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GTF_file, bamFiles ] ]
 
     main:
-    BIOC_EXCLUSTER(ch_input)
+    BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_EXCLUSTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_EXCLUSTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_EXCLUSTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_EXCLUSTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS.out.tables
+    plots    = BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS.out.plots
+    objects  = BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS.out.objects
+    versions = BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS.out.versions
 }

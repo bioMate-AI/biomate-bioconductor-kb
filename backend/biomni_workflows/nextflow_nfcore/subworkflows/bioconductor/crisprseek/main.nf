@@ -1,107 +1,109 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CRISPRseek
-// The package includes functions to find potential guide RNAs for the CRISPR editing system including 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CRISPRseek/inst/doc/CRISPRseek.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CRISPRseek")
+// Bioconductor workflow: crisprseek — standard_offtarget_analysis
+// Identify gRNAs in an input sequence, perform off-target analysis against a reference genome, and annotate off-targets.
+// Input: inputseq.fa
+// Container: quay.io/biocontainers/bioconductor-crisprseek:1.50.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CRISPRSEEK {
+process BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-crisprseek"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-crisprseek:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-crisprseek:1.46.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-crisprseek:1.50.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_crisprseek_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_crisprseek_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_crisprseek_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg38", "TxDb.Hsapiens.UCSC.hg38.knownGene", "crisprseek", "org.Hs.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # 1. Load required annotation and genome packages
     library(CRISPRseek)
-    library(jsonlite)
-
-    # --- Target Sequence Comparison [] ---
-    # Key functions: compare2Sequences
-    seqFile1 <- system.file("extdata", "seq1.fa", package = "CRISPRseek")
-    seqFile2 <- system.file("extdata", "seq2.fa", package = "CRISPRseek")
-    comparison <- CRISPRseek::compare2Sequences(
-        seqFile1,
-        seqFile2,
-        outputDir = tempdir(),
-        overwrite = TRUE
-    )
-
-
-    # --- gRNA Filtering [] ---
-    # Key functions: filtergRNAs
-    all_gRNAs <- Biostrings::DNAStringSet(
-        c("ATCGATCGATCGATCGATCG", "GCTAGCTAGCTAGCTAGCTA")
-    )
-    filtered <- CRISPRseek::filtergRNAs(
-        all_gRNAs,
-        pairgRNA = FALSE,
-        constraint = "GG"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_crisprseek_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_crisprseek_results.csv")
+    library(BSgenome.Hsapiens.UCSC.hg38)
+    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+    library(org.Hs.eg.db)
+    
+    # 2. Define input and output paths
+    inputFilePath <- "inputseq.fa"
+    outputDir <- getwd()
+    
+    # Verify input file exists
+    if (!file.exists(inputFilePath)) {
+      stop(paste("Error: Required input file '", inputFilePath, "' not found in the working directory.", sep = ""))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_crisprseek_output.rds")
-    }
+    
+    # 3. Run offTargetAnalysis with input sequence, BSgenome, TxDb, and OrgDb
+    res <- offTargetAnalysis(inputFilePath = inputFilePath,
+                             BSgenomeName = Hsapiens,
+                             chromToSearch= "chrX", 
+                             
+                             # Annotation packages required for annotation.
+                             txdb = TxDb.Hsapiens.UCSC.hg38.knownGene, 
+                             orgAnn = org.Hs.egSYMBOL,
+                             
+                             outputDir = outputDir,
+                             overwrite = TRUE)
+    
+    # Display preview of results
+    cat("\n--- Summary Results Preview ---\n")
+    print(head(res\$summary[, c("names", "gRNAsPlusPAM", "gRNAefficacy")]))
+    
+    cat("\n--- Off-target Results Preview ---\n")
+    print(head(res\$offtarget[, c("name", "OffTargetSequence", "alignment", "score", "gRNAefficacy")]))
+    
+    # 4. Write named output files for the meaningful results
+    write.csv(res\$summary, file = file.path(outputDir, "summary_results.csv"), row.names = FALSE)
+    write.csv(res\$offtarget, file = file.path(outputDir, "offtarget_results.csv"), row.names = FALSE)
+    saveRDS(res, file = file.path(outputDir, "offtarget_analysis_res.rds"))
+    
+    cat("\nAnalysis complete. Outputs saved to 'summary_results.csv', 'offtarget_results.csv', and 'offtarget_analysis_res.rds'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CRISPRSEEK:", paste0("    crisprseek: ", packageVersion("CRISPRseek"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS":
+        crisprseek: \$(Rscript -e 'cat(as.character(packageVersion("crisprseek")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_crisprseek_results.csv
-    touch ${prefix}_crisprseek_output.rds
-    echo "BIOC_CRISPRSEEK:" > versions.yml
-    echo "    crisprseek: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_offtarget_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CRISPRSEEK_WORKFLOW {
+workflow BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ inputseq.fa ] ]
 
     main:
-    BIOC_CRISPRSEEK(ch_input)
+    BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CRISPRSEEK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CRISPRSEEK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CRISPRSEEK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CRISPRSEEK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS.out.tables
+    plots    = BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS.out.plots
+    objects  = BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS.out.objects
+    versions = BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS.out.versions
 }

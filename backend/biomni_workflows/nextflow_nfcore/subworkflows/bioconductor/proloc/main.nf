@@ -1,127 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pRoloc
-// The pRoloc package implements machine learning and visualisation methods for the analysis and intero
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pRoloc/inst/doc/v01-pRoloc-tutorial.R
-// Upstream  : BiocManager, MSnbase, class, knitr, pRolocGUI
-// Downstream: bandle, pRolocGUI
-//
-// Install: BiocManager::install("pRoloc")
+// Bioconductor workflow: proloc — supervised_classification_svm
+// Optimize SVM parameters and predict protein sub-cellular localization using supervised machine learning.
+// Input: exprsFile.csv, fdataFile.csv, pdataFile.csv
+// Container: quay.io/biocontainers/bioconductor-proloc:1.50.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PROLOC {
+process BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-proloc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-proloc:1.46.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-proloc:1.46.1--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-proloc:1.50.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_proloc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_proloc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_proloc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biocmanager", "class", "knitr", "msnbase", "proloc", "prolocgui")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(MSnbase)
     library(pRoloc)
-    library(jsonlite)
-
-    # --- Normalisation and Preprocessing [] ---
-    # Key functions: normalise
-    data(tan2009r1, package = "pRolocdata")
-    tan_norm <- normalise(tan2009r1, method = "sum")
-
-
-    # --- Marker Profiling and Clustering [] ---
-    # Key functions: mrkHClust, getMarkerClasses, mrkConsProfiles, plotConsProfiles
-    data(tan2009r1, package = "pRolocdata")
-    hc <- mrkHClust(tan2009r1, plot = FALSE)
-    mm <- getMarkerClasses(tan2009r1)
-    m_order <- levels(factor(mm))[order.dendrogram(hc)]
-    fmat <- mrkConsProfiles(tan2009r1)
-    plotConsProfiles(fmat, order = m_order)
-
-
-    # --- Dimensionality Reduction and Visualisation [] ---
-    # Key functions: plot2D, addLegend, FeaturesOfInterest, highlightOnPlot
-    data(tan2009r1, package = "pRolocdata")
-    plot2D(tan2009r1, fcol = "markers.orig")
-    addLegend(tan2009r1, fcol = "markers.orig", where = "bottomright")
-    foi1 <- FeaturesOfInterest(description = "Feats of interest 1",
-                               fnames = featureNames(tan2009r1)[1:10])
-    highlightOnPlot(tan2009r1, foi1, col = "black", lwd = 2)
-
-
-    # --- Quality Control and Organelle Separation [] ---
-    # Key functions: QSep, levelPlot
-    data(hyperLOPIT2015, package = "pRolocdata")
-    hlq <- QSep(hyperLOPIT2015)
-    levelPlot(hlq)
-    plot(hlq)
-
-
-    # --- Unsupervised Clustering [] ---
-    # Key functions: MLearn, kmeansI, hclustI, pamI
-    data(tan2009r1, package = "pRolocdata")
-    kcl <- MLearn(~ ., tan2009r1, kmeansI, centers = 5)
-    plot(kcl, exprs(tan2009r1))
-    hcl <- MLearn(~ ., tan2009r1, hclustI(distFun = dist,
-                                          cutParm = list(k = 5)))
-    plot(hcl, labels = FALSE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_proloc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_proloc_results.csv")
+    
+    # Define input file paths
+    f1 <- "exprsFile.csv"
+    f2 <- "fdataFile.csv"
+    f3 <- "pdataFile.csv"
+    
+    # Check for existence of input files
+    if (!file.exists(f1)) {
+      stop(paste("Error: Input file missing:", f1))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_proloc_output.rds")
+    if (!file.exists(f2)) {
+      stop(paste("Error: Input file missing:", f2))
     }
+    if (!file.exists(f3)) {
+      stop(paste("Error: Input file missing:", f3))
+    }
+    
+    # 1. Import quantitative and metadata files into an MSnSet object
+    tan2009r1 <- readMSnSet(exprsFile = f1, featureDataFile = f2, phenoDataFile = f3, sep = ",")
+    
+    # Ensure the markers column exists
+    if (!"markers" %in% fvarLabels(tan2009r1)) {
+      stop("The feature metadata must contain a 'markers' column for supervised classification.")
+    }
+    
+    # 2. Normalize the expression data to sum to 1
+    itraqdata <- tan2009r1
+    itraqnorm <- normalise(itraqdata, method = "sum")
+    tan2009r1 <- itraqnorm
+    
+    # 3. Optimize SVM hyperparameters (cost and sigma) via grid search and cross-validation
+    params <- svmOptimisation(tan2009r1, times = 10, xval = 5, verbose = FALSE)
+    
+    # 4. Train the classifier and predict localization of unknown proteins
+    tan2009r1 <- svmClassification(tan2009r1, params)
+    
+    # Write outputs
+    # Save the classification results to CSV
+    write.csv(fData(tan2009r1), file = "svm_classification_results.csv", row.names = TRUE)
+    
+    # Save the optimized parameters and the final MSnSet object to RDS
+    saveRDS(params, file = "svm_params.rds")
+    saveRDS(tan2009r1, file = "svm_classified_msnset.rds")
+    
+    # Generate a PCA plot of the classification results and save to PDF
+    tryCatch({
+      pdf("svm_classification_plot.pdf", width = 8, height = 6)
+      plot2D(tan2009r1, fcol = "svm")
+      addLegend(tan2009r1, fcol = "svm", where = "topright", bty = "n", cex = 0.8)
+      dev.off()
+    }, error = function(e) {
+      warning("Could not generate the PDF plot: ", e\$message)
+    })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PROLOC:", paste0("    proloc: ", packageVersion("pRoloc"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM":
+        proloc: \$(Rscript -e 'cat(as.character(packageVersion("proloc")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_proloc_results.csv
-    touch ${prefix}_proloc_output.rds
-    echo "BIOC_PROLOC:" > versions.yml
-    echo "    proloc: 0.0.0" >> versions.yml
+    touch ${prefix}_supervised_classification_svm.csv versions.yml
     """
 }
 
-
-workflow BIOC_PROLOC_WORKFLOW {
+workflow BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprsFile.csv, fdataFile.csv, pdataFile.csv ] ]
 
     main:
-    BIOC_PROLOC(ch_input)
+    BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM(ch_input)
 
     emit:
-    results  = BIOC_PROLOC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PROLOC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PROLOC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PROLOC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM.out.tables
+    plots    = BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM.out.plots
+    objects  = BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM.out.objects
+    versions = BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM.out.versions
 }

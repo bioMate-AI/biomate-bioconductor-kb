@@ -1,0 +1,131 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: moleculeexperiment — subset_and_aggregate_to_spatial_experiment
+// Subset a MoleculeExperiment object by spatial coordinates and aggregate molecule counts within boundaries to create a cell-level SpatialExperiment object.
+// Input: meMerscope, me
+// Container: quay.io/biocontainers/bioconductor-moleculeexperiment:1.10.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "quay.io/biocontainers/bioconductor-moleculeexperiment:1.10.0--r45hdfd78af_0"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MoleculeExperiment", "SpatialExperiment", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(MoleculeExperiment)
+    library(SpatialExperiment)
+    library(ggplot2)
+    
+    # 1. Read user input files from the working directory
+    meMerscope_file <- if (file.exists("meMerscope.rds")) "meMerscope.rds" else "meMerscope"
+    me_file <- if (file.exists("me.rds")) "me.rds" else "me"
+    
+    if (!file.exists(meMerscope_file)) {
+      stop("Required input file 'meMerscope' or 'meMerscope.rds' not found in the working directory.")
+    }
+    if (!file.exists(me_file)) {
+      stop("Required input file 'me' or 'me.rds' not found in the working directory.")
+    }
+    
+    meMerscope <- readRDS(meMerscope_file)
+    me <- readRDS(me_file)
+    
+    # 2. Define the spatial coordinates for subsetting
+    new_extent = extent(meMerscope, "detected") - c(0, 100, 0, 0)
+    
+    # 3. Subset the MoleculeExperiment object using subset_by_extent
+    me_sub = subset_by_extent(meMerscope, new_extent)
+    
+    # 4. Aggregate the molecule-level transcripts into cell-level counts using countMolecules
+    spe <- countMolecules(me, boundariesAssay = "nucleus")
+    
+    # 5. Save meaningful results
+    # Save the subsetted MoleculeExperiment object
+    saveRDS(me_sub, "me_subset.rds")
+    
+    # Save the aggregated SpatialExperiment object
+    saveRDS(spe, "spe_aggregated.rds")
+    
+    # Export count matrix to CSV
+    if (requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+      counts_matrix <- SummarizedExperiment::assay(spe, "counts")
+      write.csv(as.matrix(counts_matrix), "cell_counts_matrix.csv", row.names = TRUE)
+    }
+    
+    # Export spatial coordinates to CSV
+    if (requireNamespace("SpatialExperiment", quietly = TRUE)) {
+      spatial_coords <- SpatialExperiment::spatialCoords(spe)
+      write.csv(as.data.frame(spatial_coords), "spatial_coordinates.csv", row.names = TRUE)
+    }
+    
+    # Generate a PDF plot of the subsetted MoleculeExperiment
+    tryCatch({
+      pdf("me_subset_plot.pdf", width = 7, height = 7)
+      p <- ggplot_me() +
+        geom_polygon_me(me_sub, assayName = "cell", fill = "grey", alpha = 0.5) +
+        geom_point_me(me_sub, assayName = "detected", size = 0.5) +
+        ggtitle("Subsetted MoleculeExperiment") +
+        theme_minimal()
+      print(p)
+      dev.off()
+    }, error = function(e) {
+      warning("Could not generate PDF plot: ", e\$message)
+    })
+    
+    cat("Pipeline completed successfully. Outputs saved: me_subset.rds, spe_aggregated.rds, cell_counts_matrix.csv, spatial_coordinates.csv, me_subset_plot.pdf\n")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT":
+        moleculeexperiment: \$(Rscript -e 'cat(as.character(packageVersion("moleculeexperiment")))')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_subset_and_aggregate_to_spatial_experiment.csv versions.yml
+    """
+}
+
+workflow BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ meMerscope, me ] ]
+
+    main:
+    BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT(ch_input)
+
+    emit:
+    tables   = BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT.out.tables
+    plots    = BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT.out.plots
+    objects  = BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT.out.objects
+    versions = BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT.out.versions
+}

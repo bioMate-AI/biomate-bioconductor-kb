@@ -35,6 +35,14 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "SummarizedExperiment", "tximeta")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
         for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
           .bm_bn <- basename(.bm_f)
@@ -44,7 +52,6 @@ process BIOC_TXIMETA_MIXED_REFERENCE_IMPORT {
     # Load required libraries
     library(tximeta)
     library(GenomicRanges)
-    library(SummarizedExperiment)
     
     # 1. Read user input files from the working directory
     sample_table_path <- "sample_table.csv"

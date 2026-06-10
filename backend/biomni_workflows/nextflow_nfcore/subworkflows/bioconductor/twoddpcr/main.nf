@@ -1,122 +1,103 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: twoddpcr
-// The twoddpcr package takes Droplet Digital PCR (ddPCR) droplet amplitude data from Bio-Rad's QuantaS
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/twoddpcr/inst/doc/twoddpcr.R
-// Upstream  : ggplot2, reshape2
-// Downstream: none
-//
-// Install: BiocManager::install("twoddpcr")
+// Bioconductor workflow: twoddpcr — standard_kmeans_mahalanobis
+// Load raw ddPCR amplitude data, classify droplets using k-means, apply Mahalanobis distance-based rain filtering, and generate a Poisson concentration summary.
+// Input: data/amplitudes
+// Container: quay.io/biocontainers/bioconductor-twoddpcr:1.34.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TWODDPCR {
+process BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-twoddpcr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-twoddpcr:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-twoddpcr:1.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-twoddpcr:1.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_twoddpcr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_twoddpcr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_twoddpcr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggplot2", "reshape2", "twoddpcr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(twoddpcr)
-    library(jsonlite)
-
-    # --- Threshold and K-means Classification [] ---
-    # Key functions: thresholdClassify, kmeansClassify, commonClassificationMethod
-    plate <- thresholdClassify(plate, ch1Threshold=6789, ch2Threshold=3000)
+    library(ggplot2)
+    
+    # Create output directory if it doesn't exist
+    dir.create("output", showWarnings = FALSE, recursive = TRUE)
+    
+    # 1. Load raw amplitude data into a ddpcrPlate object
+    # Reading from the user-specified directory containing raw droplet amplitude CSV files
+    plate <- ddpcrPlate(wells="data/amplitudes")
+    
+    # 2. Classify droplets using the k-means algorithm
     plate <- kmeansClassify(plate)
-    method <- commonClassificationMethod(plate)
-    dropletPlot(plate, cMethod="kmeans")
-
-
-    # --- Mahalanobis Distance Rain Filtering [] ---
-    # Key functions: mahalanobisRain, plateSummary
-    plate <- mahalanobisRain(plate, cMethod="kmeans", maxDistances=3)
+    
+    # 3. Apply Mahalanobis distance-based rain filtering with customized cluster distances
+    plate <- mahalanobisRain(plate, cMethod="kmeans", maxDistances=list(NN=35, NP=35, PN=35, PP=35))
+    
+    # 4. Generate a Poisson concentration summary
     kmeansMahRainSummary <- plateSummary(plate, cMethod="kmeansMahRain")
-    head(kmeansMahRainSummary)
+    
+    # Print the head of the summary to the console
+    print(head(kmeansMahRainSummary))
+    
+    # Write the summary table to a CSV file
+    write.csv(kmeansMahRainSummary, file="output/kmeans_mahalanobis_summary.csv", row.names=TRUE)
+    
+    # Save the classified ddpcrPlate object as an RDS file
+    saveRDS(plate, file="output/classified_plate.rds")
+    
+    # Generate and save the droplet classification plot as a PDF
+    pdf("output/droplet_plot_kmeans_mahalanobis.pdf", width=8, height=6)
+    p <- dropletPlot(plate, cMethod="kmeansMahRain")
+    print(p)
+    dev.off()
 
-
-    # --- Supervised Classification using KNN [] ---
-    # Key functions: removeDropletClasses, knnClassify
-    trainWells <- plate[c("E03", "A04")]
-    trainPlate <- ddpcrPlate(wells=trainWells)
-    trainPlate <- kmeansClassify(trainPlate)
-    trainPlate <- mahalanobisRain(trainPlate, cMethod="kmeans", maxDistances=3)
-    trainSet <- removeDropletClasses(trainPlate, cMethod="kmeansMahRain")
-    trainSet <- do.call(rbind, trainSet)
-    trainAmplitudes <- trainSet[, c("Ch1.Amplitude", "Ch2.Amplitude")]
-    trainCl <- trainSet$kmeansMahRain
-    plate <- knnClassify(plate, trainData=trainAmplitudes, cl=trainCl, k=3)
-
-
-    # --- Alternative Classification Methods [] ---
-    # Key functions: gridClassify, sdRain
-    plate <- gridClassify(plate,
-                          ch1NNThreshold=6500, ch2NNThreshold=2110,
-                          ch1NPThreshold=5765, ch2NPThreshold=5150,
-                          ch1PNThreshold=8550, ch2PNThreshold=2450,
-                          ch1PPThreshold=6700, ch2PPThreshold=3870)
-    plate <- sdRain(plate, cMethod="kmeans",
-                    errorLevel=list(NN=5, NP=5, PN=3, PP=3))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_twoddpcr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_twoddpcr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_twoddpcr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TWODDPCR:", paste0("    twoddpcr: ", packageVersion("twoddpcr"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS":
+        twoddpcr: \$(Rscript -e 'cat(as.character(packageVersion("twoddpcr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_twoddpcr_results.csv
-    touch ${prefix}_twoddpcr_output.rds
-    echo "BIOC_TWODDPCR:" > versions.yml
-    echo "    twoddpcr: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_kmeans_mahalanobis.csv versions.yml
     """
 }
 
-
-workflow BIOC_TWODDPCR_WORKFLOW {
+workflow BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data/amplitudes ] ]
 
     main:
-    BIOC_TWODDPCR(ch_input)
+    BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS(ch_input)
 
     emit:
-    results  = BIOC_TWODDPCR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TWODDPCR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TWODDPCR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TWODDPCR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS.out.tables
+    plots    = BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS.out.plots
+    objects  = BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS.out.objects
+    versions = BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS.out.versions
 }

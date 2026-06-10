@@ -1,117 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: seahtrue
-// Seahtrue organizes oxygen consumption and extracellular acidification analysis data from experiments
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/seahtrue/inst/doc/seahtrue.R
-// Upstream  : dplyr, ggplot2, tidyverse
-// Downstream: none
-//
-// Install: BiocManager::install("seahtrue")
+// Bioconductor workflow: seahtrue — seahorse_xf_preprocessing
+// Read, preprocess, and validate Seahorse XF analyzer Excel data into structured nested tibbles.
+// Input: 20191219_SciRep_PBMCs_donor_A.xlsx
+// Container: quay.io/biocontainers/bioconductor-seahtrue:1.4.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEAHTRUE {
+process BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seahtrue"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seahtrue:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seahtrue:1.0.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-seahtrue:1.4.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seahtrue_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seahtrue_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seahtrue_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dplyr", "ggplot2", "purrr", "readr", "seahtrue", "stringr", "tidyverse")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(dplyr)
     library(seahtrue)
-    library(jsonlite)
-
-    # --- Seahorse XF Plate Data Import ---
-    # Key functions: revive_xfplate
-    xlsx_file <- system.file(
-        "extdata", 
-        "20191219_SciRep_PBMCs_donor_A.xlsx",
-        package = "seahtrue"
-    )
-    seahorse_data <- seahtrue::revive_xfplate(xlsx_file)
-    print(names(seahorse_data))
-
-    # --- Metadata Extraction ---
-    # Key functions: revive_xfplate
-    assay_info <- purrr::pluck(seahorse_data, "assay_info", 1)
-    injection_info <- purrr::pluck(seahorse_data, "injection_info", 1)
-    cartridge_barcode <- dplyr::pull(assay_info, cartridge_barcode)
-    ksv_value <- dplyr::pull(assay_info, KSV)
-    f0_value <- dplyr::pull(assay_info, F0)
-
-    # --- Rate and Raw Data Retrieval ---
-    # Key functions: revive_xfplate
-    rate_data <- purrr::pluck(seahorse_data, "rate_data", 1)
-    raw_data <- purrr::pluck(seahorse_data, "raw_data", 1)
-    rate_summary <- dplyr::glimpse(rate_data)
-    raw_summary <- dplyr::glimpse(raw_data)
-
-    # --- Quality Control and Background Correction Verification ---
-    # Key functions: revive_xfplate
-    rate_data <- purrr::pluck(seahorse_data, "rate_data", 1)
-    bg_corrected <- attr(rate_data, "was_background_corrected")
-    start_time <- purrr::pluck(seahorse_data, "assay_info", 1) %>%
-        dplyr::pull(minutes_to_start_measurement_one)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seahtrue_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seahtrue_results.csv")
+    library(purrr)
+    library(stringr)
+    library(readr)
+    
+    # Define input file path (must exist in the working directory)
+    input_file <- "20191219_SciRep_PBMCs_donor_A.xlsx"
+    
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file not found in the working directory:", input_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seahtrue_output.rds")
-    }
+    
+    # 1. Read and preprocess the Seahorse plate data using revive_xfplate()
+    # Adapted from the documented code to read directly from the local file
+    revive_output_donor_A <- 
+      input_file %>% 
+      seahtrue::revive_xfplate()
+    
+    # 2. Inspect the structure of the nested tibble
+    revive_output_donor_A %>%  
+      dplyr::glimpse()
+    
+    # 3. Extract rate data, raw data, assay information, and injection information using purrr::pluck()
+    # Extract Rate Data
+    rate_data <- revive_output_donor_A %>%  
+      purrr::pluck("rate_data", 1)
+    
+    print("Rate Data:")
+    print(rate_data)
+    
+    # Extract Raw Data
+    raw_data <- revive_output_donor_A %>%  
+      purrr::pluck("raw_data", 1)
+    
+    print("Raw Data:")
+    print(raw_data)
+    
+    # Extract Assay Info and Cartridge Barcode
+    cartridge_barcode <- revive_output_donor_A %>%  
+      purrr::pluck("assay_info", 1) %>% 
+      pull(cartridge_barcode)
+    
+    print(paste("Cartridge Barcode:", cartridge_barcode))
+    
+    # KSV in barcode
+    ksv_barcode <- revive_output_donor_A %>%  
+      purrr::pluck("assay_info", 1) %>% 
+      pull(cartridge_barcode) %>% 
+      stringr::str_sub(-18, -13)
+    
+    print(paste("KSV in barcode:", ksv_barcode))
+      
+    # KSV in assay info sheet
+    ksv_assay <- revive_output_donor_A %>%  
+      purrr::pluck("assay_info", 1) %>% 
+      pull(KSV) 
+    
+    print(paste("KSV in assay info:", ksv_assay))
+    
+    # F0 from assay info sheet
+    f0_assay <- revive_output_donor_A %>%  
+      purrr::pluck("assay_info", 1) %>% 
+      pull(F0) 
+    
+    print(paste("F0 from assay info:", f0_assay))
+    
+    # Minutes to start measurement one
+    minutes_to_start <- revive_output_donor_A %>%  
+      purrr::pluck("assay_info", 1) %>% 
+      pull(minutes_to_start_measurement_one)
+    
+    print(paste("Minutes to start measurement one:", minutes_to_start))
+    
+    # Inspect rate data structure and attributes
+    revive_output_donor_A %>%  
+      purrr::pluck("rate_data", 1) %>% 
+      str()
+    
+    # Check background correction status attribute
+    was_bg_corrected <- revive_output_donor_A %>%  
+      purrr::pluck("rate_data", 1) %>% 
+      attributes() %>% 
+      purrr::pluck("was_background_corrected")
+    
+    print(paste("Was background corrected:", was_bg_corrected))
+    
+    # Extract Injection Info
+    injection_info <- revive_output_donor_A %>%  
+      purrr::pluck("injection_info", 1)
+    
+    print("Injection Info:")
+    print(injection_info)
+    
+    # 4. Write named output files for the meaningful results
+    message("Saving processed outputs to disk...")
+    
+    # Save the complete nested tibble as an RDS object
+    saveRDS(revive_output_donor_A, "revive_output_donor_A.rds")
+    
+    # Save individual extracted tables as CSV files
+    readr::write_csv(rate_data, "rate_data.csv")
+    readr::write_csv(raw_data, "raw_data.csv")
+    readr::write_csv(revive_output_donor_A %>% purrr::pluck("assay_info", 1), "assay_info.csv")
+    readr::write_csv(injection_info, "injection_info.csv")
+    
+    message("Pipeline completed successfully. Outputs saved: 'revive_output_donor_A.rds', 'rate_data.csv', 'raw_data.csv', 'assay_info.csv', 'injection_info.csv'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEAHTRUE:", paste0("    seahtrue: ", packageVersion("seahtrue"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING":
+        seahtrue: \$(Rscript -e 'cat(as.character(packageVersion("seahtrue")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seahtrue_results.csv
-    touch ${prefix}_seahtrue_output.rds
-    echo "BIOC_SEAHTRUE:" > versions.yml
-    echo "    seahtrue: 0.0.0" >> versions.yml
+    touch ${prefix}_seahorse_xf_preprocessing.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEAHTRUE_WORKFLOW {
+workflow BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ 20191219_SciRep_PBMCs_donor_A.xlsx ] ]
 
     main:
-    BIOC_SEAHTRUE(ch_input)
+    BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING(ch_input)
 
     emit:
-    results  = BIOC_SEAHTRUE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEAHTRUE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEAHTRUE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEAHTRUE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING.out.tables
+    plots    = BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING.out.plots
+    objects  = BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING.out.objects
+    versions = BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING.out.versions
 }

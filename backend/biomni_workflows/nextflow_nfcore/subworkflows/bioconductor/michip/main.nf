@@ -1,120 +1,107 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MiChip
-// This package takes the MiChip miRNA microarray .grp scanner output files and parses these out, provi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MiChip/inst/doc/MiChip.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MiChip")
+// Bioconductor workflow: michip — step_by_step_processing
+// Manually parse, filter, flag-correct, summarize, plot, normalize, and export MiChip miRNA microarray data step-by-step.
+// Input: B_676.gpr, B_677.gpr
+// Container: quay.io/biocontainers/bioconductor-michip:1.64.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MICHIP {
+process BIOC_MICHIP_STEP_BY_STEP_PROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-michip"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-michip:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-michip:1.60.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-michip:1.64.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_michip_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_michip_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_michip_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("michip")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required library
     library(MiChip)
-    library(jsonlite)
-
-    # --- Defaultrawdata [] ---
-    # Key functions: parseRawData
-    datadir <-system.file("extdata", package="MiChip")
+    
+    # Define the directory containing the user-provided GPR files (B_676.gpr and B_677.gpr)
+    datadir <- "."
+    
+    # 1. Parse raw data from the current directory
     defaultRawData <- parseRawData(datadir)
-    # --- Noe [] ---
-    # Key functions: removeUnwantedRows
+    
+    # 2. Filter out empty and unwanted rows
     noEmptiesDataSet <- removeUnwantedRows(defaultRawData, c("Empty"))
-    # --- Humandataset [] ---
-    # Key functions: standardRemoveRows
     humanDataSet <- standardRemoveRows(defaultRawData)
-    # --- Flagcorrectdataset [] ---
-    # Key functions: correctForFlags
+    
+    # 3. Correct for bad flags and low-intensity background
     flagCorrectedDataSet <- correctForFlags(humanDataSet)
-    # --- Flagcorrecteddataset [] ---
-    # Key functions: correctForFlags
     flagCorrectedDataSet <- correctForFlags(humanDataSet, intensityCutoff = 50)
-    # --- Summeddata [] ---
-    # Key functions: summarizeIntensitiesAsMedian
-    summedData <- summarizeIntensitiesAsMedian(flagCorrectedDataSet,minSumlength = 0, madAdjust=FALSE)
-    # --- Plotintensities [] ---
-    # Key functions: plotIntensitiesScatter, exprs
+    
+    # 4. Summarize replicate spot intensities
+    summedData <- summarizeIntensitiesAsMedian(flagCorrectedDataSet, minSumlength = 0, madAdjust=FALSE)
+    
+    # 5. Generate diagnostic scatter and box plots
+    # These functions automatically write files to the working directory with the specified prefixes
     plotIntensitiesScatter(exprs(summedData), NULL, "MiChipDemX", "SummarizedScatter")
-    # --- Boxplotsummed [] ---
-    # Key functions: boxplotData, exprs
     boxplotData(exprs(summedData), "MiChipDemX", "Summarized")
-    # --- Mednormeddata [] ---
-    # Key functions: normalizePerChipMedian
+    
+    # 6. Perform per-chip median normalization
     mednormedData <- normalizePerChipMedian(summedData)
-    # --- Outputannot [] ---
-    # Key functions: outputAnnotatedDataMatrix
-    outputAnnotatedDataMatrix(mednormedData, "MiChipDemo", "medNormedIntensity",  "exprs")
-    # --- Mynormedeset [] ---
-    # Key functions: workedExampleMedianNormalize
-    datadir <-system.file("extdata", package="MiChip")
-     myNormedEset <- workedExampleMedianNormalize("NormedDemo", intensityCutoff = 50,datadir)
+    
+    # 7. Export the annotated normalized data matrix
+    outputAnnotatedDataMatrix(mednormedData, "MiChipDemo", "medNormedIntensity", "exprs")
+    
+    # Save R objects for downstream analysis
+    saveRDS(defaultRawData, file = "defaultRawData.rds")
+    saveRDS(noEmptiesDataSet, file = "noEmptiesDataSet.rds")
+    saveRDS(humanDataSet, file = "humanDataSet.rds")
+    saveRDS(flagCorrectedDataSet, file = "flagCorrectedDataSet.rds")
+    saveRDS(summedData, file = "summedData.rds")
+    saveRDS(mednormedData, file = "mednormedData.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_michip_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_michip_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_michip_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MICHIP:", paste0("    michip: ", packageVersion("MiChip"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MICHIP_STEP_BY_STEP_PROCESSING":
+        michip: \$(Rscript -e 'cat(as.character(packageVersion("michip")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_michip_results.csv
-    touch ${prefix}_michip_output.rds
-    echo "BIOC_MICHIP:" > versions.yml
-    echo "    michip: 0.0.0" >> versions.yml
+    touch ${prefix}_step_by_step_processing.csv versions.yml
     """
 }
 
-
-workflow BIOC_MICHIP_WORKFLOW {
+workflow BIOC_MICHIP_STEP_BY_STEP_PROCESSING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ B_676.gpr, B_677.gpr ] ]
 
     main:
-    BIOC_MICHIP(ch_input)
+    BIOC_MICHIP_STEP_BY_STEP_PROCESSING(ch_input)
 
     emit:
-    results  = BIOC_MICHIP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MICHIP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MICHIP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MICHIP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MICHIP_STEP_BY_STEP_PROCESSING.out.tables
+    plots    = BIOC_MICHIP_STEP_BY_STEP_PROCESSING.out.plots
+    objects  = BIOC_MICHIP_STEP_BY_STEP_PROCESSING.out.objects
+    versions = BIOC_MICHIP_STEP_BY_STEP_PROCESSING.out.versions
 }

@@ -1,130 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: hapFabia
-// A package to identify very short IBD segments in large sequencing data by FABIA biclustering. Two ha
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/hapFabia/inst/doc/hapfabia.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("hapFabia")
+// Bioconductor workflow: hapfabia — vcf_pipeline
+// Convert a VCF file to sparse matrix format, split it into overlapping intervals, run iterative FABIA, identify duplicates, and analyze/plot the resulting IBD se
+// Input: filename.vcf
+// Container: quay.io/biocontainers/bioconductor-hapfabia:1.52.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_HAPFABIA {
+process BIOC_HAPFABIA_VCF_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hapfabia"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hapfabia:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hapfabia:1.48.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-hapfabia:1.52.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hapfabia_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hapfabia_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hapfabia_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("hapfabia")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # hapfabia VCF Pipeline
+    # This script converts a VCF file to sparse matrix format, splits it into overlapping intervals,
+    # runs iterative FABIA, identifies duplicates, and analyzes/plots the resulting IBD segments.
+    
+    # Define intervals, overlap, and filename
+    shiftSize <- 5000
+    intervalSize <- 10000
+    fileName <- "filename" # without type (expects filename.vcf in the working directory)
+    
+    # Load required library
     library(hapFabia)
-    library(SNVs)
-    library(jsonlite)
-
-    # --- Haplotype Biclustering [] ---
-    # Key functions: hapFabia
-    hapRes <- hapFabia(
-        fileName = "dataSim1fabia",
-        prefixPath = "",
-        sparseMatrixPostfix = "_mat",
-        annotPostfix = "_annot.txt",
-        individualsPostfix = "_individuals.txt",
-        p = 10,
-        iter = 1,
-        quant = 0.01,
-        eps = 1e-5,
-        alpha = 0.03,
-        cyc = 50,
-        non_negative = 1,
-        write_file = 0,
-        norm = 0,
-        lap = 100.0,
-        IBDsegmentLength = 10
-    )
-
-
-    # --- Simulation of IBD Segments [] ---
-    # Key functions: simulateIBDsegmentsFabia
-    sim_res <- simulateIBDsegmentsFabia(
-        minruns = 2,
-        maxruns = 2
-    )
-
-
-    # --- Visualisation and Plotting [] ---
-    # Key functions: histL, plotL
-    h1 <- histL(res, n = 1, p = 0.9, w = NULL, intervv = 50, off = 0)
-    plotL(
-        res,
-        n = 1,
-        p = 0.95,
-        w = NULL,
-        type = "histogram",
-        intervv = 50,
-        off = 0,
-        t = "p",
-        cex = 1
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hapfabia_results.csv", row.names = TRUE)
+    
+    # 1. Convert VCF to sparse matrix format
+    vcftoFABIA(fileName=fileName)
+    
+    # 2. Copy genotype matrix to the active matrix file
+    file.copy(paste(fileName,"_matG.txt",sep=""),
+              paste(fileName,"_mat.txt",sep=""),
+              overwrite = TRUE)
+    
+    # 3. Split the sparse matrix into overlapping intervals
+    split_sparse_matrix(fileName=fileName,intervalSize=intervalSize,
+                        shiftSize=shiftSize,annotation=TRUE)
+    
+    # Compute how many intervals we have
+    ina <- as.numeric(readLines(paste(fileName,"_mat.txt",sep=""),n=2))
+    noSNVs <- ina[2]
+    over <- intervalSize%/%shiftSize
+    N1 <- noSNVs%/%shiftSize
+    endRunA <- (N1-over+2)
+    
+    # 4. Run iterative FABIA across intervals
+    iterateIntervals(startRun=1,endRun=endRunA,shift=shiftSize,
+                     intervalSize=intervalSize,fileName=fileName,individuals=0,
+                     upperBP=0.05,p=10,iter=40,alpha=0.03,cyc=50,IBDsegmentLength=50,
+                     Lt = 0.1,Zt = 0.2,thresCount=1e-5,mintagSNVsFactor=3/4,
+                     pMAF=0.035,haplotypes=FALSE,cut=0.8,procMinIndivids=0.1,thresPrune=1e-3,
+                     simv="minD",minTagSNVs=6,minIndivid=2,avSNVsDist=100,SNVclusterLength=100)
+    
+    # 5. Identify duplicate IBD segments across overlapping intervals
+    identifyDuplicates(fileName=fileName,startRun=1,endRun=endRunA,
+                       shift=shiftSize,intervalSize=intervalSize)
+    
+    # 6. Analyze the non-duplicate IBD segments
+    anaRes <- analyzeIBDsegments(fileName=fileName,startRun=1,endRun=endRunA,
+                                 shift=shiftSize,intervalSize=intervalSize)
+    
+    # Save analysis results to disk
+    saveRDS(anaRes, file="analysis_results.rds")
+    
+    # 7. Load and plot specific IBD segments
+    # Select a valid interval index (robust fallback if endRunA is small)
+    posAll <- min(50, max(1, endRunA - 1))
+    start <- (posAll-1)*shiftSize
+    end <- start + intervalSize
+    pRange <- paste("_",format(start,scientific=FALSE),"_",
+                    format(end,scientific=FALSE),sep="")
+    
+    rda_file <- paste(fileName,pRange,"_resAnno",".Rda",sep="")
+    
+    if (file.exists(rda_file)) {
+        load(file=rda_file)
+        IBDsegmentList <- resHapFabia\$mergedIBDsegmentList
+    
+        summary(IBDsegmentList)
+        
+        # Plot the entire IBD segment list for this interval
+        tryCatch({
+            plot(IBDsegmentList,filename=paste(fileName,pRange,"_mat",sep=""))
+        }, error = function(e) {
+            message("Could not plot IBDsegmentList: ", e\$message)
+        })
+    
+        # Plot the first individual IBD segment if available
+        if (length(IBDsegmentList) > 0) {
+            IBDsegment <- IBDsegmentList[[1]]
+            tryCatch({
+                plot(IBDsegment,filename=paste(fileName,pRange,"_mat",sep=""))
+            }, error = function(e) {
+                message("Could not plot individual IBDsegment: ", e\$message)
+            })
+        }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hapfabia_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hapfabia_output.rds")
+        message("No results found for interval index: ", posAll, " (File not found: ", rda_file, ")")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HAPFABIA:", paste0("    hapfabia: ", packageVersion("hapFabia"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_HAPFABIA_VCF_PIPELINE":
+        hapfabia: \$(Rscript -e 'cat(as.character(packageVersion("hapfabia")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hapfabia_results.csv
-    touch ${prefix}_hapfabia_output.rds
-    echo "BIOC_HAPFABIA:" > versions.yml
-    echo "    hapfabia: 0.0.0" >> versions.yml
+    touch ${prefix}_vcf_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_HAPFABIA_WORKFLOW {
+workflow BIOC_HAPFABIA_VCF_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ filename.vcf ] ]
 
     main:
-    BIOC_HAPFABIA(ch_input)
+    BIOC_HAPFABIA_VCF_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_HAPFABIA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HAPFABIA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HAPFABIA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HAPFABIA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HAPFABIA_VCF_PIPELINE.out.tables
+    plots    = BIOC_HAPFABIA_VCF_PIPELINE.out.plots
+    objects  = BIOC_HAPFABIA_VCF_PIPELINE.out.objects
+    versions = BIOC_HAPFABIA_VCF_PIPELINE.out.versions
 }

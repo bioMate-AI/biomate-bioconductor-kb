@@ -1,111 +1,163 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: IONiseR
-// IONiseR provides tools for the quality assessment of Oxford Nanopore MinION data. It extracts summar
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/IONiseR/inst/doc/IONiseR.R
-// Upstream  : ShortRead, dplyr, ggplot2, gridExtra, minionSummaryData
-// Downstream: none
-//
-// Install: BiocManager::install("IONiseR")
+// Bioconductor workflow: ioniser — minion_quality_control
+// Read FAST5 files, summarize their contents, and generate various quality control plots.
+// Input: /path/to/data/*.fast5
+// Container: quay.io/biocontainers/bioconductor-ioniser:2.34.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_IONISER {
+process BIOC_IONISER_MINION_QUALITY_CONTROL {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ioniser"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ioniser:2.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ioniser:2.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ioniser:2.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ioniser_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ioniser_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ioniser_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dplyr", "ggplot2", "gridextra", "ioniser", "minionsummarydata", "shortread")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(IONiseR)
-    library(jsonlite)
-
-    # --- Read Quality Control and Accumulation [] ---
-    # Key functions: plotReadAccumulation, plotActiveChannels, plotReadCategoryCounts, plotReadCategoryQuals
-    p1 <- plotReadAccumulation(minionSummaryData::s.typhi.rep1)
-    p2 <- plotActiveChannels(minionSummaryData::s.typhi.rep1)
-    p3 <- plotReadCategoryCounts(minionSummaryData::s.typhi.rep1)
-    p4 <- plotReadCategoryQuals(minionSummaryData::s.typhi.rep1)
-
-
-    # --- Spatial Channel Activity Analysis [] ---
-    # Key functions: layoutPlot, channelActivityPlot, eventData
-    p1 <- layoutPlot(minionSummaryData::s.typhi.rep1, attribute = "nreads")
-    p2 <- layoutPlot(minionSummaryData::s.typhi.rep1, attribute = "kb")
-    z_scale <- dplyr::select(
-        eventData(minionSummaryData::s.typhi.rep3),
-        id,
-        median_signal
-    )
-    p3 <- channelActivityPlot(minionSummaryData::s.typhi.rep3, zScale = z_scale)
-
-
-    # --- K-mer Frequency Correlation [] ---
-    # Key functions: plotKmerFrequencyCorrelation
-    kmer_corr <- plotKmerFrequencyCorrelation(
-        minionSummaryData::s.typhi.rep3,
-        only2D = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ioniser_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ioniser_results.csv")
+    library(ggplot2)
+    library(gridExtra)
+    library(dplyr)
+    library(ShortRead)
+    
+    # 1. List FAST5 files from the user-specified directory
+    fast5files <- list.files(path = "/path/to/data/", pattern = ".fast5\$", full.names = TRUE)
+    
+    if (length(fast5files) == 0) {
+      stop("No FAST5 files found in /path/to/data/")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ioniser_output.rds")
-    }
+    
+    # 2. Read summaries using readFast5Summary()
+    example.summary <- readFast5Summary( fast5files )
+    
+    # Save the summary object to disk
+    saveRDS(example.summary, file = "fast5_summary.rds")
+    
+    # Map the summary object to the variables used in the documented code
+    s.typhi.rep1 <- example.summary
+    s.typhi.rep3 <- example.summary
+    
+    # 3. Extract basecalled data using baseCalled()
+    bc_all <- baseCalled(s.typhi.rep1)
+    write.csv(bc_all, file = "basecalled_all.csv", row.names = FALSE)
+    
+    # Subset safely in case there are fewer than 2 reads in the dataset
+    tryCatch({
+      if (nrow(bc_all) >= 2) {
+        bc_subset <- baseCalled(s.typhi.rep1[1:2])
+        write.csv(bc_subset, file = "basecalled_subset.csv", row.names = FALSE)
+      } else {
+        message("Fewer than 2 reads available; skipping subsetting step.")
+      }
+    }, error = function(e) {
+      message("Error during subsetting: ", e\$message)
+    })
+    
+    # 4. Plot read accumulation and active channels
+    pdf("qc_plots_accumulation_active.pdf", width = 12, height = 6)
+    p1 <- plotReadAccumulation(s.typhi.rep1)
+    p2 <- plotActiveChannels(s.typhi.rep1)
+    grid.arrange(p1, p2, ncol = 2)
+    dev.off()
+    
+    # 5. Plot read categories and qualities
+    pdf("qc_plots_categories_quals.pdf", width = 12, height = 6)
+    p1 <- plotReadCategoryCounts(s.typhi.rep1)
+    p2 <- plotReadCategoryQuals(s.typhi.rep1)
+    grid.arrange(p1, p2, ncol = 2)
+    dev.off()
+    
+    # 6. Plot event and base production rates
+    pdf("qc_plots_rates.pdf", width = 12, height = 6)
+    p1 <- plotEventRate(s.typhi.rep1)
+    p2 <- plotBaseProductionRate(s.typhi.rep1)
+    grid.arrange(p1, p2, ncol = 2)
+    dev.off()
+    
+    # 7. Generate flow cell layout plots
+    pdf("qc_plots_layout.pdf", width = 12, height = 6)
+    p1 <- layoutPlot(s.typhi.rep1, attribute = "nreads")
+    p2 <- layoutPlot(s.typhi.rep1, attribute = "kb")
+    grid.arrange(p1, p2, ncol = 2)
+    dev.off()
+    
+    # 8. Generate custom channel heatmaps
+    read_count_2D <- baseCalled(s.typhi.rep1) %>% ## start with base called reads
+      filter(strand == 'template') %>% ## keep template so we don't count things twice
+      left_join(readInfo(s.typhi.rep1), by = 'id') %>% ## channel stored in @readInfo slot, match by id column
+      group_by(channel) %>% ## group according to channel
+      summarise(d2_count = length(which(full_2D == TRUE)), ## count those with full 2D status
+                d2_prop = length(which(full_2D == TRUE)) / n()) ## divide by total count of reads from channel
+    
+    write.csv(read_count_2D, file = "read_count_2D.csv", row.names = FALSE)
+    
+    pdf("qc_plots_channel_heatmap.pdf", width = 12, height = 6)
+    p1 <- channelHeatmap(read_count_2D, zValue = 'd2_count')
+    p2 <- channelHeatmap(read_count_2D, zValue = 'd2_prop')
+    grid.arrange(p1, p2, ncol = 2)
+    dev.off()
+    
+    # 9. Plot channel activity over time
+    pdf("qc_plots_channel_activity.pdf", width = 10, height = 6)
+    z_scale = select(eventData(s.typhi.rep3), id, median_signal)
+    channelActivityPlot( s.typhi.rep3, zScale = z_scale )
+    dev.off()
+    
+    # 10. Plot k-mer frequency correlation
+    pdf("qc_plots_kmer_correlation.pdf", width = 8, height = 8)
+    plotKmerFrequencyCorrelation( s.typhi.rep3, only2D = FALSE )
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IONISER:", paste0("    ioniser: ", packageVersion("IONiseR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_IONISER_MINION_QUALITY_CONTROL":
+        ioniser: \$(Rscript -e 'cat(as.character(packageVersion("ioniser")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ioniser_results.csv
-    touch ${prefix}_ioniser_output.rds
-    echo "BIOC_IONISER:" > versions.yml
-    echo "    ioniser: 0.0.0" >> versions.yml
+    touch ${prefix}_minion_quality_control.csv versions.yml
     """
 }
 
-
-workflow BIOC_IONISER_WORKFLOW {
+workflow BIOC_IONISER_MINION_QUALITY_CONTROL_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ /path/to/data/*.fast5 ] ]
 
     main:
-    BIOC_IONISER(ch_input)
+    BIOC_IONISER_MINION_QUALITY_CONTROL(ch_input)
 
     emit:
-    results  = BIOC_IONISER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IONISER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IONISER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IONISER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IONISER_MINION_QUALITY_CONTROL.out.tables
+    plots    = BIOC_IONISER_MINION_QUALITY_CONTROL.out.plots
+    objects  = BIOC_IONISER_MINION_QUALITY_CONTROL.out.objects
+    versions = BIOC_IONISER_MINION_QUALITY_CONTROL.out.versions
 }

@@ -1,95 +1,110 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ptairMS
-// This package implements a suite of methods to preprocess data from PTR-TOF-MS instruments (HDF5 form
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ptairMS/inst/doc/ptairMS.R
-// Upstream  : ptairData
-// Downstream: none
-//
-// Install: BiocManager::install("ptairMS")
+// Bioconductor workflow: ptairms — single_file_raw_inspection
+// Read, calibrate, and inspect raw data and expiration limits from a single PTR-TOF-MS HDF5 file.
+// Input: sample_file.h5
+// Container: quay.io/biocontainers/bioconductor-ptairms:1.18.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PTAIRMS {
+process BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ptairms"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ptairms:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ptairms:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ptairms:1.18.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ptairms_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ptairms_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ptairms_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ptairdata", "ptairms")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
     library(ptairMS)
-    library(jsonlite)
-
-    # --- Visualization and reporting [] ---
-    # Key functions: opls, getLoadingMN
-    exhaledPca<-ropls::opls(exhaledEset,crossvalI=5,info.txtC="none",fig.pdfC="none")
-    ropls::plot(exhaledPca, parAsColFcVn=Biobase::pData(exhaledEset)[, "individual"],typeVc="x-score")
-    load1<-ropls::getLoadingMN(exhaledPca)[,1]
-    # --- Table formatting and display [] ---
-    # Key functions: createPtrSet, getFileNames, kable, plotCalib, calibration, changeTimeLimits, readRaw, timeLimits
-    plotFeatures(exhaledPtrset,mz = 53.0387,typePlot = "ggplot",colorBy = "individual")
-    plotFeatures(exhaledPtrset,mz = 67.0539,typePlot = "ggplot",colorBy = "individual")
-    dir <- system.file("extdata/mycobacteria",  package = "ptairData")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ptairms_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ptairms_results.csv")
+    
+    # Define input file
+    samplePath <- "sample_file.h5"
+    
+    # Check if input file exists
+    if (!file.exists(samplePath)) {
+      stop(paste("Required input file '", samplePath, "' not found in the working directory.", sep = ""))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ptairms_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PTAIRMS:", paste0("    ptairms: ", packageVersion("ptairMS"))),
-        "versions.yml"
+    
+    # 1. Read the raw HDF5 file into a ptrRaw object using readRaw
+    sampleRaw <- readRaw(samplePath, calib = FALSE)
+    
+    # Save the raw object to an RDS file
+    saveRDS(sampleRaw, file = "sampleRaw.rds")
+    
+    # 2. Determine and plot expiration limits using timeLimits
+    # Open PDF device to capture the plots generated by timeLimits(..., plotDel = TRUE)
+    pdf("expiration_limits_plots.pdf", width = 10, height = 7)
+    
+    # First expiration limit determination (fracMaxTIC = 0.5, mzBreathTracer = 60.05)
+    expirationLimit <- timeLimits(sampleRaw,fracMaxTIC =  0.5,plotDel = TRUE, mzBreathTracer = 60.05)
+    saveRDS(expirationLimit, file = "expirationLimit_frac05.rds")
+    limit_05_val <- expirationLimit
+    
+    # Second expiration limit determination (fracMaxTIC = 0.9, mzBreathTracer = NULL)
+    expirationLimit <- timeLimits(sampleRaw,fracMaxTIC =  0.9,plotDel = TRUE,mzBreathTracer = NULL)
+    saveRDS(expirationLimit, file = "expirationLimit_frac09.rds")
+    limit_09_val <- expirationLimit
+    
+    # Close PDF device
+    dev.off()
+    
+    # Write a summary CSV of the determined limits
+    limits_summary <- data.frame(
+      Method = c("BreathTracer_60.05_frac0.5", "TIC_frac0.9"),
+      Start_Time = c(limit_05_val[1], limit_09_val[1]),
+      End_Time = c(limit_05_val[2], limit_09_val[2])
     )
+    write.csv(limits_summary, file = "expiration_limits_summary.csv", row.names = FALSE)
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION":
+        ptairms: \$(Rscript -e 'cat(as.character(packageVersion("ptairms")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ptairms_results.csv
-    touch ${prefix}_ptairms_output.rds
-    echo "BIOC_PTAIRMS:" > versions.yml
-    echo "    ptairms: 0.0.0" >> versions.yml
+    touch ${prefix}_single_file_raw_inspection.csv versions.yml
     """
 }
 
-
-workflow BIOC_PTAIRMS_WORKFLOW {
+workflow BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample_file.h5 ] ]
 
     main:
-    BIOC_PTAIRMS(ch_input)
+    BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION(ch_input)
 
     emit:
-    results  = BIOC_PTAIRMS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PTAIRMS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PTAIRMS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PTAIRMS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION.out.tables
+    plots    = BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION.out.plots
+    objects  = BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION.out.objects
+    versions = BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION.out.versions
 }

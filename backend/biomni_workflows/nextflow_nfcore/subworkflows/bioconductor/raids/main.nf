@@ -1,95 +1,152 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RAIDS
-// This package implements specialized algorithms that enable genetic ancestry inference from various c
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RAIDS/inst/doc/Create_Reference_GDS_File.R
-// Upstream  : SNPRelate, gdsfmt, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("RAIDS")
+// Bioconductor workflow: raids — dna_ancestry_inference
+// Infer genetic ancestry from DNA sequencing data (WGS, exome, panels) using profile-specific parameter optimization.
+// Input: ex1.vcf.gz, ex1_good_small_1KG.gds, ex1_good_small_1KG_Annot.gds
+// Container: quay.io/biocontainers/bioconductor-raids:1.8.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RAIDS {
+process BIOC_RAIDS_DNA_ANCESTRY_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-raids"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-raids:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-raids:1.4.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-raids:1.8.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_raids_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_raids_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_raids_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RAIDS)
-    library(jsonlite)
-
-    # --- snpgds Open [] ---
-    # Key functions: snpgdsOpen
-    library(RAIDS)
-    library(SNPRelate)
-    pathRef <- system.file("extdata/", package="RAIDS")
-    # --- unlink [] ---
-    # Key functions: unlink
-    library(RAIDS)
-    library(SNPRelate)
-    library(gdsfmt)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_raids_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_raids_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg38", "Seqinfo", "gdsfmt", "ggplot2", "knitr", "raids", "snprelate")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_raids_output.rds")
+    
+    # Load required libraries
+    library(RAIDS)
+    library(ggplot2)
+    library(BSgenome.Hsapiens.UCSC.hg38)
+    library(Seqinfo)
+    
+    # Define input files from the current working directory
+    fileGDS <- "ex1_good_small_1KG.gds"
+    fileAnnotGDS <- "ex1_good_small_1KG_Annot.gds"
+    fileDonorVCF <- "ex1.vcf.gz"
+    
+    # Verify that the required input files exist in the working directory
+    if (!file.exists(fileGDS)) {
+        stop(paste("Required input file missing:", fileGDS))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RAIDS:", paste0("    raids: ", packageVersion("RAIDS"))),
-        "versions.yml"
+    if (!file.exists(fileAnnotGDS)) {
+        stop(paste("Required input file missing:", fileAnnotGDS))
+    }
+    if (!file.exists(fileDonorVCF)) {
+        stop(paste("Required input file missing:", fileDonorVCF))
+    }
+    
+    # 1. Set up the working directory structure and copy reference files
+    pathWorkingDirectory <- file.path(tempdir(), "workingDirectory")
+    pathWorkingDirectoryData <- file.path(pathWorkingDirectory, "data")
+    if (!dir.exists(pathWorkingDirectory)) {
+        dir.create(pathWorkingDirectory, recursive = TRUE)
+        dir.create(pathWorkingDirectoryData, recursive = TRUE)
+        dir.create(file.path(pathWorkingDirectoryData, "refGDS"), recursive = TRUE)
+        dir.create(file.path(pathWorkingDirectoryData, "profileGDS"), recursive = TRUE)
+    }
+    
+    file.copy(fileGDS, file.path(pathWorkingDirectoryData, "refGDS"))
+    file.copy(fileAnnotGDS, file.path(pathWorkingDirectoryData, "refGDS"))
+    
+    pathReference <- file.path(pathWorkingDirectoryData, "refGDS")
+    refGenotype <- file.path(pathReference, "ex1_good_small_1KG.gds")
+    refAnnotation <- file.path(pathReference, "ex1_good_small_1KG_Annot.gds")
+    
+    pathProfileGDS <- file.path(pathWorkingDirectoryData, "profileGDS")
+    if (!dir.exists(pathProfileGDS)) {
+        dir.create(pathProfileGDS, recursive = TRUE)
+    }
+    
+    # 2. Select reference profiles for data synthesis
+    set.seed(3043)
+    dataRef <- select1KGPopForSynthetic(fileReferenceGDS=refGenotype, nbProfiles=2L)
+    
+    # 3. Load chromosome length information from BSgenome
+    genome <- BSgenome.Hsapiens.UCSC.hg38::Hsapiens
+    chrInfo <- Seqinfo::seqlengths(genome)[1:25]
+    
+    # 4. Run ancestry inference and parameter optimization
+    resOut <- inferAncestry(
+        profileFile=fileDonorVCF, 
+        pathProfileGDS=pathProfileGDS, 
+        fileReferenceGDS=refGenotype, 
+        fileReferenceAnnotGDS=refAnnotation, 
+        chrInfo=chrInfo, 
+        syntheticRefDF=dataRef, 
+        genoSource=c("VCF")
     )
+    
+    # 5. Inspect results and visualize performance
+    print("Class of output:")
+    print(class(resOut))
+    
+    print("Names of output list:")
+    print(names(resOut))
+    
+    print("Inferred Ancestry:")
+    print(resOut\$Ancestry)
+    
+    # Write meaningful results to output files
+    write.csv(resOut\$Ancestry, "ancestry_inference_results.csv", row.names = FALSE)
+    saveRDS(resOut, "ancestry_inference_output.rds")
+    
+    # Generate and save the AUROC performance graph
+    p <- createAUROCGraph(dfAUROC=resOut\$paraSample\$dfAUROC, title="Example ex1")
+    ggsave("auroc_performance_graph.pdf", plot = p, width = 8, height = 6)
+    
+    # Clean up temporary working directory
+    unlink(pathWorkingDirectory, recursive = TRUE, force = TRUE)
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RAIDS_DNA_ANCESTRY_INFERENCE":
+        raids: \$(Rscript -e 'cat(as.character(packageVersion("raids")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_raids_results.csv
-    touch ${prefix}_raids_output.rds
-    echo "BIOC_RAIDS:" > versions.yml
-    echo "    raids: 0.0.0" >> versions.yml
+    touch ${prefix}_dna_ancestry_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_RAIDS_WORKFLOW {
+workflow BIOC_RAIDS_DNA_ANCESTRY_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ex1.vcf.gz, ex1_good_small_1KG.gds, ex1_good_small_1KG_Annot.gds ] ]
 
     main:
-    BIOC_RAIDS(ch_input)
+    BIOC_RAIDS_DNA_ANCESTRY_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_RAIDS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RAIDS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RAIDS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RAIDS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RAIDS_DNA_ANCESTRY_INFERENCE.out.tables
+    plots    = BIOC_RAIDS_DNA_ANCESTRY_INFERENCE.out.plots
+    objects  = BIOC_RAIDS_DNA_ANCESTRY_INFERENCE.out.objects
+    versions = BIOC_RAIDS_DNA_ANCESTRY_INFERENCE.out.versions
 }

@@ -1,99 +1,114 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tidyCoverage
-// `tidyCoverage` framework enables tidy manipulation of collections of genomic tracks and features usi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tidyCoverage/inst/doc/tidyCoverage.R
-// Upstream  : AnnotationHub, ggplot2, plyranges, purrr, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("tidyCoverage")
+// Bioconductor workflow: tidycoverage — single_locus_coverage
+// Extract and plot coverage of multiple tracks over a single genomic locus.
+// Input: Scc1.bw, RNA.fwd.bw, RNA.rev.bw, PolII.bw, MNase.bw
+// Container: quay.io/biocontainers/bioconductor-tidycoverage:1.6.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TIDYCOVERAGE {
+process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tidycoverage"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tidycoverage:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tidycoverage:1.2.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-tidycoverage:1.6.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tidycoverage_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tidycoverage_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tidycoverage_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "annotationhub", "ggplot2", "plyranges", "purrr", "rtracklayer", "tidycoverage")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(tidyCoverage)
-    library(AnnotationHub)
-    library(BigWigFileList)
-    library(CoverageExperiment)
-    library(GRanges)
-    library(jsonlite)
-
-    # --- Resolution Coarsening and Expansion [] ---
-    # Key functions: coarsen, expand
-    cov_coarse <- coarsen(cov_exp, window = 20)
-    cov_expanded <- expand(cov_coarse)
-
-
-    # --- Coverage Aggregation [] ---
-    # Key functions: aggregate, as_tibble
-    cov_aggregated <- aggregate(cov_exp, bin = 20)
-    cov_tibble <- as_tibble(cov_aggregated)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tidycoverage_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tidycoverage_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tidycoverage_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TIDYCOVERAGE:", paste0("    tidycoverage: ", packageVersion("tidyCoverage"))),
-        "versions.yml"
+    library(GenomicRanges)
+    library(rtracklayer)
+    library(ggplot2)
+    
+    # 1. Load genomic tracks as a BigWigFileList from the working directory
+    tracks <- list(
+        Scc1 = "Scc1.bw", 
+        RNA_fwd = "RNA.fwd.bw",
+        RNA_rev = "RNA.rev.bw",
+        PolII = "PolII.bw", 
+        MNase = "MNase.bw"
+    ) |> BigWigFileList()
+    
+    # 2. Define the genomic locus of interest as a GRanges object
+    locus <- GRanges("II:450001-475000")
+    
+    # 3. Instantiate a CoverageExperiment object
+    CE_chrII <- CoverageExperiment(
+        tracks = tracks, 
+        features = locus,
+        width = width(locus)
     )
+    
+    # Save the raw CoverageExperiment object
+    saveRDS(CE_chrII, file = "CE_chrII.rds")
+    
+    # 4. Coarsen the coverage resolution using coarsen()
+    # 5. Expand the object into a tidy tibble using expand()
+    expanded_df <- CE_chrII |> 
+        coarsen(window = 10) |> 
+        expand()
+    
+    # Save the expanded tidy tibble to a CSV file
+    write.csv(expanded_df, file = "expanded_coverage.csv", row.names = FALSE)
+    
+    # 6. Plot the coverage tracks using ggplot2 and geom_coverage()
+    p <- expanded_df |> 
+        ggplot() + 
+        geom_coverage(aes(fill = track)) + 
+        facet_grid(track~., scales = 'free')
+    
+    # Save the generated plot to a PDF file
+    ggsave("coverage_plot.pdf", plot = p, width = 10, height = 8)
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE":
+        tidycoverage: \$(Rscript -e 'cat(as.character(packageVersion("tidycoverage")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tidycoverage_results.csv
-    touch ${prefix}_tidycoverage_output.rds
-    echo "BIOC_TIDYCOVERAGE:" > versions.yml
-    echo "    tidycoverage: 0.0.0" >> versions.yml
+    touch ${prefix}_single_locus_coverage.csv versions.yml
     """
 }
 
-
-workflow BIOC_TIDYCOVERAGE_WORKFLOW {
+workflow BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Scc1.bw, RNA.fwd.bw, RNA.rev.bw, PolII.bw, MNase.bw ] ]
 
     main:
-    BIOC_TIDYCOVERAGE(ch_input)
+    BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE(ch_input)
 
     emit:
-    results  = BIOC_TIDYCOVERAGE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TIDYCOVERAGE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TIDYCOVERAGE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TIDYCOVERAGE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE.out.tables
+    plots    = BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE.out.plots
+    objects  = BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE.out.objects
+    versions = BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE.out.versions
 }
