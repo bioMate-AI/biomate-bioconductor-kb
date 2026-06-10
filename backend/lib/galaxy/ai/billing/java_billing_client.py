@@ -312,38 +312,43 @@ class JavaBillingClient:
                                 key=f"legacy/{volume_type}", transaction_id=transaction_id)
 
     # ------------------------------------------------------------------
-    # Quota (concurrent resource slots)
+    # Quota (LEGACY — the colleague's 2026-06-10 refactor removed
+    # QuotaController and pivoted from a hard-quota model to a
+    # wallet/credits model. Nothing in biomate currently calls these,
+    # but keep no-op shims so any future caller doesn't crash.)
     # ------------------------------------------------------------------
 
     def acquire_quota(self, user_id: str, spec_code: str, resource_id: str) -> bool:
-        """Acquire a concurrent resource slot before starting a job.
-
-        Call before submitting a Nextflow/Batch run.
-        Always call release_quota() in the completion/failure path.
-        """
-        return self._post("/api/billing/quota/acquire", {
-            "externalCustomerId": external_id(user_id),
-            "specCode": spec_code,
-            "resourceId": resource_id,
-        })
+        """No-op shim — quota model superseded by wallet/credits."""
+        log.debug("[java_billing] acquire_quota no-op (wallet model): user=%s spec=%s",
+                  user_id, spec_code)
+        return True
 
     def release_quota(self, user_id: str, spec_code: str, resource_id: str) -> bool:
-        """Release a concurrent resource slot after a job ends (idempotent)."""
-        return self._post("/api/billing/quota/release", {
-            "externalCustomerId": external_id(user_id),
-            "specCode": spec_code,
-            "resourceId": resource_id,
-        })
+        """No-op shim — quota model superseded by wallet/credits."""
+        log.debug("[java_billing] release_quota no-op (wallet model): user=%s spec=%s",
+                  user_id, spec_code)
+        return True
 
     # ------------------------------------------------------------------
     # Query endpoints (used for proxying to frontend)
     # ------------------------------------------------------------------
 
     def get_current_usage(self, user_id: str) -> Optional[dict]:
-        """Fetch current billing period usage from Java service (live from Lago)."""
+        """
+        Fetch current billing period usage. Re-routed onto the colleague's
+        new /api/billing/usage/summary (old /usage/current was removed in
+        the 2026-06-10 refactor). Returns month-to-date UsageSummaryVO.
+        """
+        from datetime import date
+        today = date.today()
         return self._get(
-            "/api/billing/usage/current",
-            {"externalCustomerId": external_id(user_id)},
+            "/api/billing/usage/summary",
+            {
+                "externalCustomerId": external_id(user_id),
+                "startDate": today.replace(day=1).isoformat(),
+                "endDate": today.isoformat(),
+            },
         )
 
     def get_usage_summary(
@@ -383,10 +388,14 @@ class JavaBillingClient:
         )
 
     def get_quota(self, user_id: str) -> Optional[dict]:
-        """Fetch plan quota limits and current usage from Java service."""
+        """
+        Fetch the user's wallet (balance + granted credits). Replaces the
+        old plan-quota lookup which the colleague's refactor removed when
+        moving to the wallet/credits model. Returns WalletSummaryVO.
+        """
         return self._get(
-            "/api/billing/quota/usage",
-            {"externalCustomerId": external_id(user_id)},
+            f"/api/billing/customers/{external_id(user_id)}/wallet",
+            {},  # path-param only
         )
 
     def get_invoices(
