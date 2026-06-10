@@ -1537,6 +1537,7 @@ class NextflowQCGateHandler:
         "DRUGGABILITY_QC_GATE":      ("*", "qc_metrics.json"),  # fpocket druggability ≥0.5 (GOLD, Le Guilloux 2009)
         "RETROSYNTHESIS_REPORT":     ("*", "qc_metrics.json"),  # aizynthfinder ≥1 solved route (GOLD, Genheden 2020)
         "P0_PKPD_SEMAGLUTIDE":       ("*", "qc_metrics.json"),  # semaglutide wk30 Δweight ∈ [-6,+3] kg (GOLD, Overgaard 2019)
+        "CLINICAL_TRIAL_SIMULATION": ("*", "qc_metrics.json"),  # BOIN MTD DLT≤φ (GOLD, Liu & Yuan 2015)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
