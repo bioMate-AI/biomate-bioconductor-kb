@@ -16,6 +16,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
+import { buildCanonicalFixturePromptSection } from './canonical-fixtures';
 
 // Per-request override of `this.galaxyAPI`. Set by processMessage() when the
 // caller (chat-stream) provides context.galaxyAPIOverride; resolved at every
@@ -824,13 +825,26 @@ export function remapInlineParametersForWorkflow(
 }
 
 export function buildWorkflowRoutingBlock(preferredDomains: string[]): string {
+  // The canonical-fixture auto-resolve rule is the bioinformatics analog of
+  // the existing ADMET-from-SMILES and pocket-from-PDB-id rules. It belongs
+  // at the top of the routing block so the LLM applies it before any
+  // domain-specific rule that might re-introduce a clarification ask.
+  // See docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md for the gap audit.
+  const fixturePreamble = buildCanonicalFixturePromptSection();
+
+  let domainRules: string;
   if (!preferredDomains || preferredDomains.length === 0) {
-    return Object.values(DOMAIN_ROUTING_RULES).join('\n');
+    domainRules = Object.values(DOMAIN_ROUTING_RULES).join('\n');
+  } else {
+    const matched = preferredDomains
+      .map(d => DOMAIN_ROUTING_RULES[d])
+      .filter((r): r is string => !!r);
+    domainRules = matched.length > 0
+      ? matched.join('\n')
+      : Object.values(DOMAIN_ROUTING_RULES).join('\n');
   }
-  const matched = preferredDomains
-    .map(d => DOMAIN_ROUTING_RULES[d])
-    .filter((r): r is string => !!r);
-  return matched.length > 0 ? matched.join('\n') : Object.values(DOMAIN_ROUTING_RULES).join('\n');
+
+  return `${fixturePreamble}\n\n${domainRules}`;
 }
 
 /**
