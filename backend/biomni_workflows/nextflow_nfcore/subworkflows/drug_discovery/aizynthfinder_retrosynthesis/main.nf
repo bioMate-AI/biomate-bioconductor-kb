@@ -113,12 +113,14 @@ process AIZYNTHFINDER_PREDICT {
         # image rebuild.
         if ! grep -q "^expansion:" "${config}" 2>/dev/null; then
             echo "[aizynth-predict] no expansion policy in ${config}; attempting runtime download" >&2
-            python3 -c "
-from aizynthfinder.tools.download_public_data import download_public_data
-import os
-os.makedirs('/opt/aizynthfinder/models', exist_ok=True)
-download_public_data('/opt/aizynthfinder/models')
-" >&2 || true
+            mkdir -p /opt/aizynthfinder/models
+            # API name varies by version — try both module attributes and the
+            # CLI subcommand. Whichever path lands the ONNX + templates wins.
+            (python3 -c "from aizynthfinder.tools.download_public_data import main; main(['/opt/aizynthfinder/models'])" 2>/dev/null \
+             || python3 -c "import aizynthfinder.tools.download_public_data as m; getattr(m, 'download_public_data', getattr(m, 'download_public_files', lambda d: None))('/opt/aizynthfinder/models')" 2>/dev/null \
+             || aizynthcli --download_public_data /opt/aizynthfinder/models 2>/dev/null \
+             || aizynthcli --download-public-data /opt/aizynthfinder/models 2>/dev/null) || true
+            ls -la /opt/aizynthfinder/models/ >&2 || true
             if [ -f /opt/aizynthfinder/models/uspto_model.onnx ] && [ -f /opt/aizynthfinder/models/uspto_templates.csv ]; then
                 python3 /tmp/setup_aizynthfinder.py 2>/dev/null \
                     || python3 -c "
