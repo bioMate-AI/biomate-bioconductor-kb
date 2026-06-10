@@ -86,7 +86,7 @@ process BOLTZ_PREDICT {
 
 // -- Summarise results --------------------------------------------------------
 
-process SUMMARISE_RESULTS {
+process BOLTZ_SUMMARISE_RESULTS {
     tag "summary"
     label 'process_low'
     publishDir "${params.outdir}", mode: params.publish_dir_mode
@@ -97,7 +97,8 @@ process SUMMARISE_RESULTS {
     path(results_dir)
 
     output:
-    path("boltz_summary.json"), emit: summary
+    path("boltz_summary.json"),  emit: summary
+    path("qc_metrics.json"),     emit: qc_metrics
 
     script:
     """
@@ -123,6 +124,42 @@ summary = {
 with open("boltz_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 print(json.dumps(summary, indent=2))
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# structure-prediction gates (Jumper 2021 / Tunyasuvunakool 2021):
+#   mean_plddt           ≥ 70 → downstream-docking ready (GOLD)
+#   confident_fraction   ≥ 0.70 → bulk of model well-modelled (SILVER)
+#   max_pae              ≤ 8 Å inter-domain (SILVER, skipped when None)
+# Boltz output keys vary by version; defensively extract whatever the
+# top-ranked confidence file reports.
+mean_plddt = None
+confident_fraction = None
+max_pae = None
+if confidence_data:
+    top = confidence_data[0]["scores"]
+    for k in ("complex_plddt", "mean_plddt", "plddt_mean", "plddt", "ptm_iptm_global_plddt"):
+        if k in top and top[k] is not None:
+            mean_plddt = float(top[k])
+            break
+    for k in ("confident_fraction", "frac_plddt_gt_70", "plddt_confident_frac"):
+        if k in top and top[k] is not None:
+            confident_fraction = float(top[k])
+            break
+    for k in ("max_pae", "pae_max", "complex_pae"):
+        if k in top and top[k] is not None:
+            v = top[k]
+            max_pae = float(v) if not isinstance(v, list) else float(max(max(row) for row in v))
+            break
+
+qc_metrics = {
+    "mean_plddt":         round(mean_plddt, 2) if mean_plddt is not None else None,
+    "confident_fraction": round(confident_fraction, 3) if confident_fraction is not None else None,
+    "max_pae":            round(max_pae, 2) if max_pae is not None else None,
+    "structures_predicted": len(structures),
+    "tool":               "Boltz-2",
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2)
 EOF
     """
 }
@@ -140,5 +177,5 @@ workflow {
 
     PREPARE_INPUT(fasta_ch, yaml_ch)
     BOLTZ_PREDICT(PREPARE_INPUT.out.input_file)
-    SUMMARISE_RESULTS(BOLTZ_PREDICT.out.results_dir)
+    BOLTZ_SUMMARISE_RESULTS(BOLTZ_PREDICT.out.results_dir)
 }
