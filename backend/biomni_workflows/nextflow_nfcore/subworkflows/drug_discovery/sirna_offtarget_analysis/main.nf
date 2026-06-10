@@ -420,8 +420,8 @@ for r in report['recommendations']:
     lines.append(f'         → {r["fix"]}')
 
 with open('summary_report.txt', 'w') as f:
-    f.write('\n'.join(lines))
-print('\n'.join(lines))
+    f.write(chr(10).join(lines))
+print(chr(10).join(lines))
 PYEOF
 
     python3 -c "print('sirna_offtarget_analysis: 1.0')" > versions.yml
