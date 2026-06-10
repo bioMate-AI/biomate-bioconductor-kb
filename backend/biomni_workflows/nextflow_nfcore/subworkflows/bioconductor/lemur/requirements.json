@@ -1,0 +1,19 @@
+{
+  "package": "lemur",
+  "requirements": [
+    "SingleCellExperiment",
+    "dplyr",
+    "lemur",
+    "tidyverse",
+    "uwot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "lemur",
+      "tidyverse",
+      "uwot"
+    ]
+  }
+}

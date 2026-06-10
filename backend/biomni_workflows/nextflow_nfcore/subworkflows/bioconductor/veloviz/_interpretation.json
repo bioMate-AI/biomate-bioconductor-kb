@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: curr=Matrix of observed current transcriptional states ;; proj=Matrix of predicted future transcriptional states ;; normalize.depth=Logical indicating whether to normalize depth ;; use.ods.genes=Logical indicating whether to use overdispersed genes ;; pca=Logical indicating whether to perform PCA ;; nPCs=Number of principal components to use ;; center=Logical indicating whether to center data for PCA ;; scale=Logical indicating whether to scale data for PCA ;; k=Number of neighbors for the graph ;; similarity.threshold=Threshold for similarity ;; distance.weight=Weight for distance ;; distance.threshold=Threshold for distance ;; weighted=Logical indicating whether the graph is weighted ;; verbose=Logical indicating whether to print progress\n- alternatives: Standard dimension reduction methods (like t-SNE or UMAP) with velocity vectors projected post-hoc (e.g., using scVelo or velocyto.R), whereas VeloViz constructs the embedding directly from the velocity-informed graph.\n- when_to_use: Use when you have single-cell RNA-seq data and have computed current and projected transcriptional states (RNA velocity) and want to visualize the developmental trajectories in a 2D embedding that directly incorporates velocity information.\n- pitfalls: Ensure that the input matrices (curr and proj) are properly aligned (same cells and genes) and that parameters like nPCs and k are appropriately tuned for the dataset size to avoid misleading embeddings.",
+  "workflows": [
+    {
+      "name": "veloviz_trajectory_embedding",
+      "intent": "Build a velocity-informed 2D embedding from current and projected transcriptional states and visualize it.",
+      "input": [
+        "curr (matrix of observed current transcriptional states)",
+        "proj (matrix of predicted future transcriptional states)"
+      ],
+      "stages": "1. Extract or load current and projected transcriptional states ;; 2. Build the VeloViz graph using buildVeloviz ;; 3. Extract the 2D embedding coordinates from the VeloViz object ;; 4. Plot the embedding",
+      "code": "data(vel)\n\ncurr <- vel$current #observed current transcriptional state\nproj <- vel$projected #predicted future transcriptional state\n\nveloviz <-  veloviz::buildVeloviz(curr = curr, proj = proj,\n                         normalize.depth = TRUE,\n                         use.ods.genes = FALSE,  \n                         pca = TRUE, nPCs = 3,\n                         center = TRUE, scale = TRUE,\n                         k = 10, similarity.threshold = -1,\n                         distance.weight = 1, distance.threshold = 1,\n                         weighted = TRUE, verbose = FALSE)\n\nemb.veloviz <- veloviz$fdg_coords\nplot(emb.veloviz)"
+    }
+  ]
+}

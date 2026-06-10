@@ -1,0 +1,13 @@
+{
+  "package": "synlet",
+  "requirements": [
+    "data.table",
+    "synlet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "data.table",
+      "synlet"
+    ]
+  }
+}

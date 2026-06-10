@@ -1,0 +1,26 @@
+{
+  "package": "chipenrich",
+  "requirements": [
+    "chipenrich"
+  ],
+  "by_workflow": {
+    "diagnostic_qc_plots.nf": [
+      "chipenrich"
+    ],
+    "hybrid_enrichment.nf": [
+      "chipenrich"
+    ],
+    "main.nf": [
+      "chipenrich"
+    ],
+    "narrow_peak_enrichment_chipenrich.nf": [
+      "chipenrich"
+    ],
+    "narrow_peak_enrichment_polyenrich.nf": [
+      "chipenrich"
+    ],
+    "proximity_to_regulatory_regions.nf": [
+      "chipenrich"
+    ]
+  }
+}

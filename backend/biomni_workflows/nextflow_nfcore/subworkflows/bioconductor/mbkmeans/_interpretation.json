@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=The input matrix-like object (matrix, Matrix, HDF5Matrix, DelayedMatrix, SummarizedExperiment, or SingleCellExperiment) with variables (genes) in rows and observations (cells) in columns ;; clusters=The number of clusters (k) to find ;; reduceMethod=The dimensionality reduction slot to use for clustering (default is \"PCA\"); set to NA to use an assay instead ;; whichAssay=The assay to use as input when reduceMethod is NA (e.g., \"logcounts\") ;; batch_size=The size of the mini-batches brought into memory at any one time; can use blocksize() to determine a reasonable size based on RAM ;; initializer=The initialization method, either \"random\" or \"kmeans++\" (default) ;; init_fraction=The percentage of data to use for initialization centroids (default matches batch_size converted to a proportion) ;; calc_wcss=Logical indicating whether to calculate the within-cluster sum of squares (WCSS) ;; num_init=Number of initializations to run to find the best starting centroids\n- alternatives: stats::kmeans()=Classic k-means algorithm, which should be preferred when the dataset is small enough to fit entirely in memory and exact convergence is required ;; ClusterR::MiniBatchKmeans()=Mini-batch k-means implementation, which should be preferred for standard statistical applications where observations are in rows and data is in-memory ;; bluster::clusterRows()=A flexible framework for clustering in Bioconductor, which should be preferred when integrating clustering into broader Bioconductor workflows using MbkmeansParam()\n- when_to_use: Appropriate for clustering very large single-cell RNA-sequencing datasets (e.g., hundreds of thousands or millions of cells) where the full data matrix cannot fit in memory, or where standard k-means is too slow.\n- pitfalls: mbkmeans assumes genes (variables) are in rows and cells (observations) are in columns, which is the opposite of standard R functions like stats::kmeans() and ClusterR::MiniBatchKmeans() ;; Setting a very large init_fraction can cause the initialization step to use a massive amount of memory, potentially exceeding the memory used by the clustering algorithm itself ;; Choosing batch_size as a percentage of overall sample size rather than an absolute number of cells can negate memory and speed gains on very large datasets ;; mbkmeans will not converge to the exact same result as standard kmeans even with the same initialization if batch_size < ncol(x), due to different search paths and non-convexity.",
+  "workflows": [
+    {
+      "name": "mbkmeans_direct_clustering",
+      "intent": "Cluster single-cell data represented as a SingleCellExperiment or matrix-like object using the mini-batch k-means algorithm, including batch size estimation and optimal k selection.",
+      "input": [
+        "sce_object.rds (SingleCellExperiment object containing raw or normalized counts)"
+      ],
+      "stages": "1. Run mbkmeans on a specific assay of the SingleCellExperiment ;; 2. Estimate optimal batch size using blocksize() ;; 3. Run mbkmeans with random initialization ;; 4. Perform PCA and run mbkmeans across multiple k values to find the optimal number of clusters using WCSS.",
+      "code": "res <- mbkmeans(sce1000, clusters = 5,\n                reduceMethod = NA,\n                whichAssay = \"logcounts\")\nbatchsize <- blocksize(sce1000)\nres_random <- mbkmeans(sce1000, clusters = 5, \n                reduceMethod = NA,\n                whichAssay = \"logcounts\",\n                initializer = \"random\")\nsce1000 <- runPCA(sce1000, ncomponents=20)\n\nks <- seq(5, 15)\nres <- lapply(ks, function(k) {\n    mbkmeans(sce1000, clusters = k,\n             reduceMethod = \"PCA\",\n             calc_wcss = TRUE, num_init=10)\n})\n\nwcss <- sapply(res, function(x) sum(x$WCSS_per_cluster))\nplot(ks, wcss, type = \"b\")"
+    },
+    {
+      "name": "bluster_mbkmeans_clustering",
+      "intent": "Cluster single-cell data using the bluster framework's clusterRows function with MbkmeansParam.",
+      "input": [
+        "pca_matrix.rds (Matrix of PCA coordinates with cells in rows)",
+        "sce_object.rds (SingleCellExperiment object containing logcounts assay)"
+      ],
+      "stages": "1. Run clusterRows on PCA coordinates with default MbkmeansParam ;; 2. Run clusterRows on PCA coordinates with custom batch size ;; 3. Run clusterRows on PCA coordinates returning full mbkmeans output ;; 4. Run clusterRows on transposed logcounts assay.",
+      "code": "library(bluster)\nclusterRows(mat, MbkmeansParam(centers=5))\nclusterRows(mat, MbkmeansParam(centers=5, batch_size=10))\nclusterRows(mat, MbkmeansParam(centers=5, batch_size=10), full = TRUE)\nclusterRows(t(logcounts(sce1000)), MbkmeansParam(centers=4))"
+    }
+  ]
+}

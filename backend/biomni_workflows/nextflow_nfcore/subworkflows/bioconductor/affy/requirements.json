@@ -1,0 +1,13 @@
+{
+  "package": "affy",
+  "requirements": [
+    "Biobase",
+    "affy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "affy"
+    ]
+  }
+}

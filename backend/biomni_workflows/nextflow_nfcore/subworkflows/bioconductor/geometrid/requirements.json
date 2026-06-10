@@ -1,0 +1,35 @@
+{
+  "package": "geometrid",
+  "requirements": [
+    "GenomicFeatures",
+    "GenomicRanges",
+    "InteractionSet",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "geomeTriD",
+    "htmlwidgets",
+    "org.Hs.eg.db",
+    "trackViewer"
+  ],
+  "by_workflow": {
+    "chromatin_2d_loop_bouquet.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "InteractionSet",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "geomeTriD",
+      "org.Hs.eg.db"
+    ],
+    "main.nf": [
+      "InteractionSet",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "geomeTriD",
+      "htmlwidgets",
+      "org.Hs.eg.db",
+      "trackViewer"
+    ],
+    "single_cell_3d_plot.nf": [
+      "geomeTriD",
+      "htmlwidgets"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "microbiome",
+  "requirements": [
+    "microbiome"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "microbiome"
+    ]
+  }
+}

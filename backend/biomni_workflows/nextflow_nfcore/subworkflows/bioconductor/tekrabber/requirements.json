@@ -1,0 +1,14 @@
+{
+  "package": "tekrabber",
+  "requirements": [
+    "TEKRABber"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TEKRABber"
+    ],
+    "within_species_comparison.nf": [
+      "TEKRABber"
+    ]
+  }
+}

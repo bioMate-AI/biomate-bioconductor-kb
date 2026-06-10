@@ -1,0 +1,13 @@
+{
+  "package": "sesame",
+  "requirements": [
+    "SummarizedExperiment",
+    "sesame"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "sesame"
+    ]
+  }
+}

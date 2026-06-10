@@ -1,0 +1,17 @@
+{
+  "package": "otubase",
+  "requirements": [
+    "OTUbase",
+    "vegan"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OTUbase",
+      "vegan"
+    ],
+    "taxonomic_classification_analysis.nf": [
+      "OTUbase",
+      "vegan"
+    ]
+  }
+}

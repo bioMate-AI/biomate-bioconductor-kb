@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gene=A vector of Entrez gene IDs for over-representation analysis ;; organism=Organism identifier (default is \"human\") ;; pvalueCutoff=P-value cutoff threshold for enrichment significance ;; pAdjustMethod=Method used for p-value adjustment (e.g., \"BH\", \"bonferroni\") ;; measure=Semantic similarity method (one of \"Resnik\", \"Schlicker\", \"Jiang\", \"Lin\", or \"Wang\")\n- alternatives: clusterProfiler=Use when performing broader functional enrichment analyses such as GO or KEGG pathway analysis ;; meshes=Use when semantic similarity or enrichment analysis of MeSH terms is required\n- when_to_use: Use when analyzing high-throughput genomic data (such as RNA-seq or microarray gene lists) to identify associated diseases, or when calculating functional similarity between genes based on disease annotations.\n- pitfalls: Inputting gene symbols instead of Entrez gene IDs, which will result in empty or failed enrichment analyses ;; Failing to sort the gene list in decreasing order of fold change before running GSEA functions (gseDO, gseDGN, gseNCG).",
+  "workflows": [
+    {
+      "name": "disease_ontology_enrichment",
+      "intent": "Perform over-representation analysis of disease ontology terms on a list of Entrez gene IDs.",
+      "input": [
+        "gene_list.txt (a vector of Entrez gene IDs)"
+      ],
+      "stages": "1. Load the DOSE package ;; 2. Run enrichment analysis using enrichDO, enrichDGN, or enrichNCG ;; 3. Visualize results using simplot or theme_dose.",
+      "code": "library(DOSE)"
+    },
+    {
+      "name": "gene_set_enrichment_analysis",
+      "intent": "Perform gene set enrichment analysis using disease ontology.",
+      "input": [
+        "ranked_gene_list.txt (a sorted, named numeric vector of fold changes with Entrez gene IDs as names)"
+      ],
+      "stages": "1. Load the DOSE package ;; 2. Run gene set enrichment analysis using gseDO, gseDGN, or gseNCG.",
+      "code": "library(DOSE)"
+    },
+    {
+      "name": "semantic_similarity_analysis",
+      "intent": "Calculate semantic similarity between DO terms or genes.",
+      "input": [
+        "gene_ids.txt (a vector of Entrez gene IDs or DO term IDs)"
+      ],
+      "stages": "1. Load the DOSE package ;; 2. Compute semantic similarity using doSim, geneSim, clusterSim, or mclusterSim.",
+      "code": "library(DOSE)"
+    }
+  ]
+}

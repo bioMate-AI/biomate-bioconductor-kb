@@ -1,0 +1,31 @@
+{
+  "package": "vanillaice",
+  "requirements": [
+    "ArrayTV",
+    "BSgenome.Hsapiens.UCSC.hg18",
+    "GenomicRanges",
+    "IRanges",
+    "VanillaICE",
+    "crlmm",
+    "data.table",
+    "lattice",
+    "oligoClasses"
+  ],
+  "by_workflow": {
+    "cnv_calling_from_crlmm_cnset.nf": [
+      "ArrayTV",
+      "GenomicRanges",
+      "IRanges",
+      "VanillaICE",
+      "crlmm",
+      "oligoClasses"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg18",
+      "GenomicRanges",
+      "VanillaICE",
+      "data.table",
+      "lattice"
+    ]
+  }
+}

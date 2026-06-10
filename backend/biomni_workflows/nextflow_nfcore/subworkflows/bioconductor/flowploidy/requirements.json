@@ -1,0 +1,13 @@
+{
+  "package": "flowploidy",
+  "requirements": [
+    "flowCore",
+    "flowPloidy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCore",
+      "flowPloidy"
+    ]
+  }
+}

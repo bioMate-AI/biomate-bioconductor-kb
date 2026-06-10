@@ -1,0 +1,11 @@
+{
+  "package": "mbcb",
+  "requirements": [
+    "MBCB"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MBCB"
+    ]
+  }
+}

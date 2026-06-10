@@ -1,0 +1,20 @@
+{
+  "package": "ngsreports",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "ngsReports"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "ngsReports"
+    ],
+    "ngs_log_import_and_plotting.nf": [
+      "dplyr",
+      "ggplot2",
+      "ngsReports"
+    ]
+  }
+}

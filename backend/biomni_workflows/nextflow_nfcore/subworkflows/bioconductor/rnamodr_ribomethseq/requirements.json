@@ -1,0 +1,15 @@
+{
+  "package": "rnamodr_ribomethseq",
+  "requirements": [
+    "RNAmodR.RiboMethSeq",
+    "rnamodr_ribomethseq",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RNAmodR.RiboMethSeq",
+      "rnamodr_ribomethseq",
+      "rtracklayer"
+    ]
+  }
+}

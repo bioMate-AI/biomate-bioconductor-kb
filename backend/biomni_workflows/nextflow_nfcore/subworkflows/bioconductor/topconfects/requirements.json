@@ -1,0 +1,30 @@
+{
+  "package": "topconfects",
+  "requirements": [
+    "DESeq2",
+    "dplyr",
+    "edgeR",
+    "ggplot2",
+    "limma",
+    "topconfects"
+  ],
+  "by_workflow": {
+    "deseq2_confects.nf": [
+      "DESeq2",
+      "ggplot2",
+      "topconfects"
+    ],
+    "edger_confects.nf": [
+      "edgeR",
+      "ggplot2",
+      "topconfects"
+    ],
+    "main.nf": [
+      "dplyr",
+      "edgeR",
+      "ggplot2",
+      "limma",
+      "topconfects"
+    ]
+  }
+}

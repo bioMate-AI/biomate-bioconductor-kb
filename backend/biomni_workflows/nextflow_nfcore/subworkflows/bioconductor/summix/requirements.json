@@ -1,0 +1,17 @@
+{
+  "package": "summix",
+  "requirements": [
+    "Summix"
+  ],
+  "by_workflow": {
+    "allele_frequency_adjustment.nf": [
+      "Summix"
+    ],
+    "local_ancestry_estimation.nf": [
+      "Summix"
+    ],
+    "main.nf": [
+      "Summix"
+    ]
+  }
+}

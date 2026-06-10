@@ -1,0 +1,14 @@
+{
+  "package": "asset",
+  "requirements": [
+    "ASSET"
+  ],
+  "by_workflow": {
+    "disease_subtype_analysis.nf": [
+      "ASSET"
+    ],
+    "main.nf": [
+      "ASSET"
+    ]
+  }
+}

@@ -1,123 +1,194 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BioCartaImage
-// The core functionality of the package is to provide coordinates of genes on the BioCarta pathway ima
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BioCartaImage/inst/doc/BioCartaImage.R
-// Upstream  : grid, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("BioCartaImage")
+// Bioconductor workflow: BioCartaImage — biocarta_pathway_imaging
+// Map microscopy image intensities to BioCarta pathway genes and generate customized pathway visualizations.
+// Input: image.tif
+// Container: 1.8.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BioCartaImage, EBImage
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIOCARTAIMAGE {
+process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biocartaimage"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biocartaimage:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biocartaimage:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biocartaimage_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biocartaimage_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biocartaimage_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
     library(BioCartaImage)
-    library(jsonlite)
-
-    # --- Gene Querying [] ---
-    # Key functions: genes_in_pathway
-    genes_by_id <- genes_in_pathway("h_RELAPathway")
-    genes_by_obj <- genes_in_pathway(p_obj)
-
-
-    # --- Pathway Visualization [] ---
-    # Key functions: grid.biocarta
-    grid::grid.newpage()
-    grid.biocarta(
-        "h_RELAPathway",
-        color = c("1387" = "yellow")
-    )
-    grid::grid.newpage()
-    grid.biocarta(
-        "h_RELAPathway",
-        x = grid::unit(0.2, "npc"),
-        y = grid::unit(0.9, "npc"),
-        just = c("left", "top"),
-        color = c("1387" = "yellow"),
-        width = grid::unit(6, "cm")
-    )
-
-
-    # --- Advanced Gene Marking and Customization [] ---
-    # Key functions: biocartaGrob, mark_gene, pos_by_polygon
-    grob <- biocartaGrob("h_RELAPathway")
-    grid::grid.newpage()
-    grob_marked <- mark_gene(grob, "1387", function(x, y) {
-        pos <- pos_by_polygon(x, y, where = "left")
-        grid::pointsGrob(
-            pos[1], pos[2],
-            default.units = "native",
-            pch = 16,
-            gp = grid::gpar(col = "yellow")
-        )
-    })
-    grid::grid.draw(grob_marked)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biocartaimage_results.csv", row.names = TRUE)
+    library(grid)
+    if (!requireNamespace("EBImage", quietly = TRUE)) {
+        stop("EBImage package is required to read the input microscopy image.")
+    }
+    
+    # Stage 2: Read and process the input microscopy image
+    message("Reading input microscopy image...")
+    img <- EBImage::readImage("image.tif")
+    img_arr <- as.array(img)
+    
+    # Handle multi-channel or 3D images by extracting the first channel/slice
+    if (length(dim(img_arr)) >= 3) {
+        img_mat <- img_arr[, , 1]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biocartaimage_results.csv")
+        img_mat <- img_arr
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biocartaimage_output.rds")
+    
+    # Stage 3: Retrieve BioCarta Pathway Information
+    pathway_id <- "h_RELAPathway"
+    message(paste("Retrieving pathway information for:", pathway_id))
+    p <- get_pathway(pathway_id)
+    genes <- genes_in_pathway(p)
+    
+    if (length(genes) == 0) {
+        stop("No genes found in the specified pathway.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIOCARTAIMAGE:", paste0("    biocartaimage: ", packageVersion("BioCartaImage"))),
-        "versions.yml"
+    
+    # Stage 4: Map Image Intensities to Pathway Genes
+    # Divide the microscopy image into sub-regions to simulate distinct gene expression levels
+    dims <- dim(img_mat)
+    rows <- seq(1, dims[1], length.out = 5)
+    cols <- seq(1, dims[2], length.out = 5)
+    intensities <- numeric(length(genes))
+    
+    idx <- 1
+    for (i in 1:4) {
+        for (j in 1:4) {
+            if (idx <= length(genes)) {
+                sub_img <- img_mat[rows[i]:rows[i+1], cols[j]:cols[j+1]]
+                intensities[idx] <- mean(sub_img, na.rm = TRUE)
+                idx <- idx + 1
+            }
+        }
+    }
+    
+    # Fill any remaining genes with the global mean intensity
+    if (idx <= length(genes)) {
+        intensities[idx:length(genes)] <- mean(img_mat, na.rm = TRUE)
+    }
+    
+    names(intensities) <- genes
+    
+    # Normalize intensities to [0, 1] for color mapping
+    min_val <- min(intensities, na.rm = TRUE)
+    max_val <- max(intensities, na.rm = TRUE)
+    range_val <- max_val - min_val
+    if (range_val == 0) range_val <- 1
+    
+    norm_intensities <- (intensities - min_val) / range_val
+    
+    # Create a color palette (yellow to red) representing expression intensity
+    col_fun <- colorRamp(c("yellow", "red"))
+    gene_colors <- rgb(col_fun(norm_intensities), maxColorValue = 255)
+    names(gene_colors) <- genes
+    
+    # Save the mapping to a CSV file
+    df_out <- data.frame(
+        Entrez_ID = genes,
+        Simulated_Intensity = intensities,
+        Normalized_Intensity = norm_intensities,
+        Assigned_Color = gene_colors,
+        stringsAsFactors = FALSE
     )
+    write.csv(df_out, "gene_pathway_mapping.csv", row.names = FALSE)
+    message("Saved gene-to-pathway mapping to gene_pathway_mapping.csv")
+    
+    # Stage 5: Standard Pathway Visualization
+    message("Generating standard pathway visualization...")
+    pdf("biocarta_pathway_analysis.pdf", width = 10, height = 10)
+    grid.newpage()
+    grid.biocarta(pathway_id, color = gene_colors)
+    dev.off()
+    message("Saved standard pathway visualization to biocarta_pathway_analysis.pdf")
+    
+    # Stage 6: Advanced Custom Pathway Visualization
+    message("Generating advanced custom pathway visualization...")
+    pdf("biocarta_custom_annotations.pdf", width = 10, height = 10)
+    grid.newpage()
+    
+    # Create the base BioCarta grob
+    grob <- biocartaGrob(pathway_id)
+    
+    # Add custom annotations (colored circles representing intensity) to the left of each gene
+    for (gene in genes) {
+        val <- norm_intensities[gene]
+        col <- gene_colors[gene]
+        
+        # Use tryCatch to handle any genes that might fail to map to coordinates
+        grob <- tryCatch({
+            mark_gene(grob, gene, function(x, y) {
+                pos <- pos_by_polygon(x, y, where = "left")
+                # Draw a custom circle indicator next to the gene node
+                circleGrob(
+                    x = pos[1] - 8, 
+                    y = pos[2], 
+                    r = 6 * val + 3, 
+                    default.units = "native",
+                    gp = gpar(fill = col, col = "black", lwd = 1.5)
+                )
+            })
+        }, error = function(e) {
+            warning(paste("Could not mark gene:", gene, "-", e\$message))
+            grob
+        })
+    }
+    
+    grid.draw(grob)
+    dev.off()
+    message("Saved advanced custom pathway visualization to biocarta_custom_annotations.pdf")
+
+    writeLines(c(
+        '"BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING":',
+        paste0('    BioCartaImage: ', as.character(packageVersion('BioCartaImage')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biocartaimage_results.csv
-    touch ${prefix}_biocartaimage_output.rds
-    echo "BIOC_BIOCARTAIMAGE:" > versions.yml
-    echo "    biocartaimage: 0.0.0" >> versions.yml
+    touch ${prefix}_biocarta_pathway_imaging.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIOCARTAIMAGE_WORKFLOW {
+workflow BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BIOCARTAIMAGE(ch_input)
+    BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING(ch_input)
 
     emit:
-    results  = BIOC_BIOCARTAIMAGE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIOCARTAIMAGE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIOCARTAIMAGE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIOCARTAIMAGE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING.out.tables
+    plots    = BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING.out.plots
+    objects  = BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING.out.objects
+    versions = BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING.out.versions
 }

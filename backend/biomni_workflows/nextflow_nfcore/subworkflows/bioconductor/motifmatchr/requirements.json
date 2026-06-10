@@ -1,0 +1,25 @@
+{
+  "package": "motifmatchr",
+  "requirements": [
+    "BSgenome",
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biostrings",
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "motifmatchr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "motifmatchr"
+    ],
+    "motif_matching_sequences.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "Biostrings",
+      "motifmatchr"
+    ]
+  }
+}

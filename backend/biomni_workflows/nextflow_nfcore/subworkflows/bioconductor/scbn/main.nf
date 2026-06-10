@@ -1,110 +1,117 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SCBN
-// This package provides a scale based normalization (SCBN) method to identify genes with differential 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SCBN/inst/doc/SCBN.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SCBN")
+// Bioconductor workflow: SCBN — cross_species_differential_expression
+// Normalize cross-species RNA-seq data and identify differentially expressed orthologous genes.
+// Input: orthologous_genes_data.csv
+// Container: quay.io/biocontainers/bioconductor-scbn:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SCBN
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Calculate the optimal scaling factor using the SCBN function with housekeeping gene indices. 2. Extract the scaling factor and pre
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCBN {
+process BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scbn"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scbn:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scbn:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scbn_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scbn_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scbn_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(SCBN)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: na, generateDataset
-    ---------------------------------------------------------------------
-    data(orthgenes)
-    orthgenes[, 6:9] <- round(orthgenes[, 6:9])
-    orthgenes1 <- orthgenes[!(is.na(orthgenes[,6])|is.na(orthgenes[,7])|
-                            is.na(orthgenes[,8])|is.na(orthgenes[,9])), ]
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(orthgenes)
-    head(orthgenes)
-    # --- Data [] ---
-    # Key functions: SCBN
-    ---------------------------------------------------------------------
-    data(sim_data)
-    factor <- SCBN(orth_gene=sim_data, hkind=1:1000, a=0.05)
-    factor
-    # --- Data [] ---
-    # Key functions: sageTestNew
-    ---------------------------------------------------------------------
-    data(sim_data)
-    orth_gene <- sim_data
-    hkind <- 1:1000
-    scale <- factor$scbn_val
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scbn_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scbn_results.csv")
+    
+    # Read the user input file from the working directory
+    if (!file.exists("orthologous_genes_data.csv")) {
+      stop("Error: 'orthologous_genes_data.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scbn_output.rds")
-    }
+    
+    orth_gene <- read.csv("orthologous_genes_data.csv", header = TRUE)
+    
+    # Ensure the input is a data frame
+    orth_gene <- as.data.frame(orth_gene)
+    
+    # Define housekeeping genes index (hkind)
+    # We use the first 1000 genes (or fewer if the dataset is smaller) as housekeeping genes
+    hkind <- 1:min(1000, nrow(orth_gene))
+    
+    # 1. Calculate the optimal scaling factor using the SCBN function
+    factor <- SCBN(orth_gene=orth_gene, hkind=hkind, a=0.05)
+    
+    # 2. Extract the scaling factor and prepare vectors for read counts, gene lengths, and library sizes
+    scale <- factor\$scbn_val
+    x <- orth_gene[, 2]
+    y <- orth_gene[, 4]
+    lengthx <- orth_gene[, 1]
+    lengthy <- orth_gene[, 3]
+    n1 <- sum(x)
+    n2 <- sum(y)
+    
+    # 3. Compute p-values for each orthologous gene using the sageTestNew function
+    p_value <- sageTestNew(x, y, lengthx, lengthy, n1, n2, scale)
+    
+    # Prepare the final results data frame
+    results <- orth_gene
+    results\$p_value <- p_value
+    results\$significant_05 <- p_value < 0.05
+    
+    # Write the results to output files
+    write.csv(results, "scbn_differential_expression_results.csv", row.names = FALSE)
+    saveRDS(list(factor = factor, scale = scale, results = results), "scbn_output.rds")
+    
+    cat("SCBN pipeline completed successfully. Results saved to 'scbn_differential_expression_results.csv' and 'scbn_output.rds'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCBN:", paste0("    scbn: ", packageVersion("SCBN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION":',
+        paste0('    SCBN: ', as.character(packageVersion('SCBN')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scbn_results.csv
-    touch ${prefix}_scbn_output.rds
-    echo "BIOC_SCBN:" > versions.yml
-    echo "    scbn: 0.0.0" >> versions.yml
+    touch ${prefix}_cross_species_differential_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCBN_WORKFLOW {
+workflow BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ orthologous_genes_data.csv ] ]
 
     main:
-    BIOC_SCBN(ch_input)
+    BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_SCBN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCBN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCBN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCBN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION.out.tables
+    plots    = BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION.out.plots
+    objects  = BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION.out.objects
+    versions = BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION.out.versions
 }

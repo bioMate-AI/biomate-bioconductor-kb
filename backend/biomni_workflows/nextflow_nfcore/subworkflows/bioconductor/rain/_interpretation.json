@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=The set of time series as a matrix, one column per series, one row per time point ;; period=The period length to test for ;; period.delta=Interval to search a range of periods [period - period.delta; period + period.delta] ;; deltat=Time difference between two data points, using the same scale as period ;; na.rm=If TRUE, NA values are treated as never measured and null distributions are calculated individually (takes longer) ;; method='independent' (for independent biological specimens per time point) or 'longitudinal' (for repeated measurements from the same individual/cell culture) ;; nr.series=Number of regular repeats per time point ;; measure.sequence=Vector specifying the number of repeats for each time point individually (for irregular repeats or irregular time series) ;; peak.border=Vector of 2 numbers between 0 and 1 controlling the limits of peak asymmetry (skewness) ;; verbose=Logical value to show progress status while running\n- alternatives: None mentioned (uses Mack & Wolfe (1981) K-Sample Rank Tests for Umbrella Alternatives)\n- when_to_use: Use when analyzing time-series genomics data (e.g., RNA-seq) to detect rhythmic/circadian patterns, especially when the shape of the oscillation is expected to be asymmetric (like a sawtooth wave) rather than a symmetric sine wave, and when dealing with replicates or missing values.\n- pitfalls: Input matrix x must have time points as rows and series as columns, which often requires transposing genomic datasets (e.g., t(data)) ;; In longitudinal mode, strong trends can lead to false positives (pure trends detected as strong asymmetries) ;; Setting na.rm=TRUE requires individual null distribution calculations for each series, which significantly increases computation time ;; Repeats in the input matrix must be ordered sequentially by time point (e.g., time 1 repeat 1, time 1 repeat 2, time 2 repeat 1, etc.).",
+  "workflows": [
+    {
+      "name": "rhythm_detection_analysis",
+      "intent": "Detect rhythmic and asymmetric oscillations in time-series expression data.",
+      "input": [
+        "expression_matrix.csv (matrix of gene expression values with genes as rows and samples/timepoints as columns)"
+      ],
+      "stages": "1. Transpose the input matrix so that time points are rows and genes/series are columns ;; 2. Run the rain function specifying the period, sampling interval (deltat), repeats (nr.series or measure.sequence), and peak asymmetry borders ;; 3. Sort or filter results by p-value to identify top rhythmic candidates.",
+      "code": "rainresult <- rain(measure, period=24, \n                deltat=2, peak.border=c(0.1,0.9),\n                verbose=FALSE\n)\n\nresults <- rain(t(menetRNASeqMouseLiver), deltat=4, period=24, nr.series=2,\n                peak.border=c(0.3, 0.7), verbose=FALSE) \n\nbest <- order(results$pVal)[1:10]"
+    }
+  ]
+}

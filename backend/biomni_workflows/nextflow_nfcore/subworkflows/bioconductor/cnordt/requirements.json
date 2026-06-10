@@ -1,0 +1,13 @@
+{
+  "package": "cnordt",
+  "requirements": [
+    "CNORdt",
+    "CellNOptR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CNORdt",
+      "CellNOptR"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "gdsarray",
+  "requirements": [
+    "GDSArray",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "gdsfmt"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GDSArray",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "gdsfmt"
+    ]
+  }
+}

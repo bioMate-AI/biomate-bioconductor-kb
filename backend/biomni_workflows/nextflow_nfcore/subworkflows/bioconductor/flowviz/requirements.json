@@ -1,0 +1,24 @@
+{
+  "package": "flowviz",
+  "requirements": [
+    "flowCore",
+    "flowStats",
+    "flowViz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCore",
+      "flowStats",
+      "flowViz"
+    ],
+    "one_dimensional_density_plots.nf": [
+      "flowCore",
+      "flowStats",
+      "flowViz"
+    ],
+    "parallel_coordinate_plots.nf": [
+      "flowCore",
+      "flowViz"
+    ]
+  }
+}

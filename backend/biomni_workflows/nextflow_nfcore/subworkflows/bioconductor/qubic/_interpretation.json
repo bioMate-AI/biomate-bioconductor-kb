@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=The input gene expression matrix (real or discretized) ;; r=Discretization parameter affecting the range of values ;; q=Quantile parameter for discretization ;; c=Consistency level for the biclusters ;; o=Number of biclusters to output ;; f=Filtering parameter for overlapping biclusters or consistency level for expanding ;; k=Minimum column number of a bicluster ;; weight=Adjacency matrix representing external biological weights (e.g., PPI network) for query-based biclustering ;; seedbicluster=An existing bicluster result object used as a seed for expanding\n- alternatives: Cheng and Church (2000) and Plaid (Lazzeroni et al. 2002) (both implemented in the R package biclust), and Bayesian Biclustering (BCC, Gu and Liu 2008). QUBIC is preferred for large-scale real biological datasets due to its superior prediction performance and computational efficiency.\n- when_to_use: Use when you want to identify co-expressed gene modules (biclusters) where genes are co-expressed only under a subset of experimental conditions, especially in large-scale transcriptomics datasets.\n- pitfalls: Ensure that the weight matrix for query-based biclustering is formatted correctly as an adjacency matrix (e.g., using igraph::get.adjacency). Bicluster expansion requires a valid prior bicluster result object as a seed.",
+  "workflows": [
+    {
+      "name": "standard_biclustering",
+      "intent": "Perform standard qualitative biclustering on a gene expression matrix, visualize results with heatmaps, and construct co-expression networks.",
+      "input": [
+        "expression_matrix.csv (Gene expression matrix with genes as rows and conditions as columns)"
+      ],
+      "stages": "1. Discretize the expression matrix ;; 2. Run the QUBIC algorithm ;; 3. Visualize specific biclusters using heatmaps ;; 4. Construct co-expression networks ;; 5. Export networks to XGMML format",
+      "code": "matrix2 <- qudiscretize(matrix1)\nres <- qubiclust(ecoli, r = 1, q = 0.06, c = 0.95, o = 100, f = 0.25, k = max(ncol(ecoli)%/%20, 2))\nquheatmap(ecoli, res, number = 5, showlabel = TRUE, col = paleta)\nnet <- qunetwork(ecoli, res, number = 5, group = 5, method = \"spearman\")\nqunet2xml(net, minimum = 0.6, color = cbind(rainbow(length(net[[2]]) - 1), \"gray\"))"
+    },
+    {
+      "name": "query_based_biclustering",
+      "intent": "Perform guided biclustering by incorporating external biological information (e.g., protein-protein interaction network weights).",
+      "input": [
+        "expression_matrix.csv (Gene expression matrix)",
+        "weight_matrix.csv (Adjacency matrix representing interaction weights between genes)"
+      ],
+      "stages": "1. Run the QUBIC algorithm with the weight parameter",
+      "code": "res4 <- qubiclust(ecoli, weight = ecoli.weight, verbose = FALSE)"
+    },
+    {
+      "name": "bicluster_expanding",
+      "intent": "Expand existing biclusters to recruit more genes under a specified consistency level.",
+      "input": [
+        "expression_matrix.csv (Gene expression matrix)",
+        "existing_biclusters.rds (An existing QUBICBiclustResult object)"
+      ],
+      "stages": "1. Run the QUBIC algorithm with the seedbicluster parameter and consistency level f",
+      "code": "res5 <- qubiclust(x = ecoli, seedbicluster = res, f = 0.25, verbose = FALSE)\nsummary(res5)"
+    }
+  ]
+}

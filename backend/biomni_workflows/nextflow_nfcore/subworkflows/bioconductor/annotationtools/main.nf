@@ -1,100 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: annotationTools
-// Functions to annotate microarrays, find orthologs, and integrate heterogeneous gene expression profi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/annotationTools/inst/doc/annotationTools.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("annotationTools")
+// Bioconductor workflow: annotationTools — cross_species_probeset_mapping
+// Map all probe sets from a source microarray platform to their orthologous probe sets on a target platform to build a translation table.
+// Input: HG-U133_Plus_2_annot.csv, Mouse430_2_annot.csv, homologene.data
+// Container: quay.io/biocontainers/bioconductor-annotationtools:1.84.0--r45hdfd78af_0
+// R packages: annotationTools
+// Bioconductor: 3.20 | R: 4.4
+// Requires: annotationTools
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load source and target annotation files and the HomoloGene database. 2. Map source probe sets to Entrez Gene IDs. 3. Find target s
 
 nextflow.enable.dsl = 2
 
-process BIOC_ANNOTATIONTOOLS {
+process BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-annotationtools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-annotationtools:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-annotationtools:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_annotationtools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_annotationtools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_annotationtools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("annotationTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(annotationTools)
-    library(I)
-    library(jsonlite)
+    library(stats)
+    
+    # 1. Load source and target annotation files and the HomoloGene database
+    annotation_HGU133Plus2 <- read.csv('HG-U133_Plus_2_annot.csv',
+                                       colClasses = 'character', comment.char = '#')
+    annotation_Mouse4302 <- read.csv('Mouse430_2_annot.csv',
+                                     colClasses = 'character', comment.char = '#')
+    homologene <- read.delim('homologene.data', header = FALSE)
+    target_species <- 10090
+    
+    # 2. Map source probe sets to Entrez Gene IDs
+    ps_HGU133Plus2 <- annotation_HGU133Plus2[, 1]
+    gid_HGU133Plus2 <- getGENEID(ps_HGU133Plus2, annotation_HGU133Plus2)
+    length_gid_HGU133Plus2 <- sapply(gid_HGU133Plus2, function(x) { length(x) })
+    
+    # 3. Find target species orthologous Gene IDs using getHOMOLOG
+    gid_Mouse4302 <- getHOMOLOG(unlist(gid_HGU133Plus2), target_species, homologene)
+    length_gid_Mouse4302 <- sapply(gid_Mouse4302, function(x) { length(x) })
+    
+    # 4. Map target Gene IDs to target probe sets using getPROBESET
+    ps_Mouse4302 <- getPROBESET(unlist(gid_Mouse4302), annotation_Mouse4302)
+    
+    # 5. Compact and clean the mapped lists using compactList to handle multi-mapping
+    ps_Mouse4302_1 <- compactList(ps_Mouse4302, length_gid_Mouse4302)
+    ps_Mouse4302_2 <- compactList(ps_Mouse4302_1, length_gid_HGU133Plus2)
+    gid_Mouse4302_1 <- compactList(gid_Mouse4302, length_gid_HGU133Plus2)
+    
+    ps_Mouse4302_2 <- lapply(ps_Mouse4302_2, function(x) { unique(x) })
+    ps_Mouse4302_2 <- lapply(ps_Mouse4302_2, function(x) {
+      if (length(x) > 1) na.omit(x) else x
+    })
+    gid_Mouse4302_1 <- lapply(gid_Mouse4302_1, function(x) { unique(x) })
+    gid_Mouse4302_1 <- lapply(gid_Mouse4302_1, function(x) {
+      if (length(x) > 1) na.omit(x) else x
+    })
+    
+    # 6. Combine and write the final mapping table to a text file
+    orthoTable <- cbind(ps_HGU133Plus2, listToCharacterVector(gid_HGU133Plus2, sep = ','),
+                        listToCharacterVector(gid_Mouse4302_1, sep = ','),
+                        listToCharacterVector(ps_Mouse4302_2, sep = ','))
+    colnames(orthoTable) <- c('ps_HGU133Plus2', 'gid_HGU133Plus2',
+                              'gid_Mouse4302', 'ps_Mouse4302')
+    write.table(orthoTable, file = 'HGU133Plus2_Mouse4302.txt', sep = '\t',
+                col.names = TRUE, row.names = FALSE)
+    
+    # Perform the entire process using the wrapper function ps2ps and overwrite/save
+    orthoTable <- ps2ps(annotation_HGU133Plus2, annotation_Mouse4302, homologene, 10090)
+    write.table(orthoTable, file = 'HGU133Plus2_Mouse4302.txt', sep = '\t',
+                col.names = TRUE, row.names = FALSE)
 
-    # --- Cross-Species Comparison Plotting [] ---
-    # Key functions: getOrthologousProbesets
-    orthops_maxAbsT_ind <- match(
-        unlist(orthops_maxAbsT[[1]]),
-        table_human[, 1]
-    )
-    plot(
-        table_mouse[selection, 2],
-        table_human[orthops_maxAbsT_ind, 2],
-        pch = 19,
-        col = "gray",
-        xlab = "log fold change in mouse",
-        ylab = "log fold change in human"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_annotationtools_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_annotationtools_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_annotationtools_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ANNOTATIONTOOLS:", paste0("    annotationtools: ", packageVersion("annotationTools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING":',
+        paste0('    annotationTools: ', as.character(packageVersion('annotationTools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_annotationtools_results.csv
-    touch ${prefix}_annotationtools_output.rds
-    echo "BIOC_ANNOTATIONTOOLS:" > versions.yml
-    echo "    annotationtools: 0.0.0" >> versions.yml
+    touch ${prefix}_cross_species_probeset_mapping.csv versions.yml
     """
 }
 
-
-workflow BIOC_ANNOTATIONTOOLS_WORKFLOW {
+workflow BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ HG-U133_Plus_2_annot.csv, Mouse430_2_annot.csv, homologene.data ] ]
 
     main:
-    BIOC_ANNOTATIONTOOLS(ch_input)
+    BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING(ch_input)
 
     emit:
-    results  = BIOC_ANNOTATIONTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ANNOTATIONTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ANNOTATIONTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ANNOTATIONTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING.out.tables
+    plots    = BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING.out.plots
+    objects  = BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING.out.objects
+    versions = BIOC_ANNOTATIONTOOLS_CROSS_SPECIES_PROBESET_MAPPING.out.versions
 }

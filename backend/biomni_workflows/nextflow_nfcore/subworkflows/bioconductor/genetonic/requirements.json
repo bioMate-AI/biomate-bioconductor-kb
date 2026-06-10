@@ -1,0 +1,23 @@
+{
+  "package": "genetonic",
+  "requirements": [
+    "AnnotationDbi",
+    "DESeq2",
+    "GeneTonic",
+    "ggplot2",
+    "igraph",
+    "mosdef",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "DESeq2",
+      "GeneTonic",
+      "ggplot2",
+      "igraph",
+      "mosdef",
+      "org.Hs.eg.db"
+    ]
+  }
+}

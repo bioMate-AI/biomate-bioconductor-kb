@@ -1,0 +1,20 @@
+{
+  "package": "similarpeak",
+  "requirements": [
+    "GenomicAlignments",
+    "Rsamtools",
+    "rtracklayer",
+    "similaRpeak"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicAlignments",
+      "Rsamtools",
+      "rtracklayer",
+      "similaRpeak"
+    ],
+    "metric_factory_similarity.nf": [
+      "similaRpeak"
+    ]
+  }
+}

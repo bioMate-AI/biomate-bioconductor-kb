@@ -1,0 +1,11 @@
+{
+  "package": "intercellar",
+  "requirements": [
+    "InterCellar"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "InterCellar"
+    ]
+  }
+}

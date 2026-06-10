@@ -1,0 +1,29 @@
+{
+  "package": "schex",
+  "requirements": [
+    "BiocGenerics",
+    "Seurat",
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "ggrepel",
+    "igraph",
+    "scater",
+    "schex",
+    "scran"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "Seurat",
+      "SingleCellExperiment",
+      "dplyr",
+      "ggplot2",
+      "ggrepel",
+      "igraph",
+      "scater",
+      "schex",
+      "scran"
+    ]
+  }
+}

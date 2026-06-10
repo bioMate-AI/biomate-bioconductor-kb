@@ -1,122 +1,121 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: OSAT
-// A sizable genomics study such as microarray often involves the use of multiple batches (groups) of e
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/OSAT/inst/doc/OSAT.R
-// Upstream  : xtable
-// Downstream: none
-//
-// Install: BiocManager::install("OSAT")
+// Bioconductor workflow: OSAT — standard_sample_assignment
+// Optimize sample-to-batch assignment across multiple plates using the default shuffle algorithm to minimize batch effects for all variables.
+// Input: samples.txt
+// Container: quay.io/biocontainers/bioconductor-osat:1.58.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: OSAT
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load sample metadata
+//  * 2. [Input & Preparation] Define sample setup with variables to optimize
+//  * 3. [Input & Preparation] Define container setup (plates and batch level)
+//  * 4. [Input & Preparation] Create optimized setup using the default shuffle algorithm
+//  * 5. [Visualization & Output] Export the optimized assignment to a CSV file
+//  * 6. [Visualization & Output] Map the design to a robotic loader layout and export
+//  * 7. [Visualization & Output] Perform quality control visualization and statistical testing
 
 nextflow.enable.dsl = 2
 
-process BIOC_OSAT {
+process BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-osat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-osat:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-osat:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_osat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_osat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_osat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(OSAT)
-    library(MSA)
-    library(jsonlite)
-
-    # --- Sample Setup [Sample Setup] ---
-    # Key functions: setup.sample
-    inPath <- system.file('extdata', package='osat')
-    pheno <- read.table(file.path(inPath, 'samples.txt'), 
+    
+    # 1. Load sample metadata from the working directory
+    if (!file.exists("samples.txt")) {
+      stop("Error: 'samples.txt' not found in the working directory.")
+    }
+    
+    pheno <- read.table("samples.txt", 
                         header=TRUE, sep="\t", colClasses="factor")
-    gs <- setup.sample(pheno, 
-                       optimal=c("SampleType", "Race", "AgeGrp"),
-                       strata=c("SampleType"))
-
-    # --- Container Setup [Container Setup] ---
-    # Key functions: setup.container
-    gc <- setup.container(IlluminaBeadChip96Plate, 
-                          n=6, 
-                          batch='plates')
-
-    # --- Optimization and Assignment [Optimization and Assignment] ---
-    # Key functions: create.optimized.setup, get.experiment.setup
-    gSetup <- create.optimized.setup(sample=gs, 
-                                     container=gc, 
-                                     nSim=1000)
-    assignment <- get.experiment.setup(gSetup)
-    write.csv(assignment, file="gSetup.csv", row.names=FALSE)
-
-    # --- Quality Control and Evaluation [Quality Control and Evaluation] ---
-    # Key functions: QC, multi.chisq.test
-    QC(gSetup)
-    assignment <- get.experiment.setup(gSetup)
-    multi.chisq.test(assignment, 
-                     grpVar='plates', 
-                     varList=c("SampleType", "Race", "AgeGrp"))
-
-    # --- Mapping to MSA Plate [Mapping to MSA Plate] ---
-    # Key functions: map.to.MSA
+    
+    # 2. Define sample setup with variables to optimize
+    optimal_vars <- setdiff(colnames(pheno), "ID")
+    if (length(optimal_vars) == ncol(pheno)) {
+      optimal_vars <- colnames(pheno)[-1]
+    }
+    gs <- setup.sample(pheno, optimal=optimal_vars)
+    
+    # 3. Define container setup (plates and batch level)
+    num_plates <- ceiling(nrow(pheno) / 96)
+    gc <- setup.container(IlluminaBeadChip96Plate, num_plates, batch='plates')
+    
+    # 4. Create optimized setup using the default shuffle algorithm
+    set.seed(123)
+    gSetup <- create.optimized.setup(sample=gs, container=gc, nSim=1000)
+    
+    # 5. Export the optimized assignment to a CSV file and RDS object
+    write.csv(get.experiment.setup(gSetup), 
+              file="gSetup.csv", row.names=FALSE)
+    saveRDS(gSetup, file="gSetup.rds")
+    
+    # 6. Map the design to a robotic loader layout and export
     out <- map.to.MSA(gSetup, MSA4.plate)
-    write.csv(out, "MSAsetup.csv", row.names=FALSE)
+    write.csv(out, "MSAsetup.csv", row.names = FALSE)
+    
+    # 7. Perform quality control visualization and statistical testing
+    pdf("QC_report.pdf", width=11, height=8.5)
+    QC(gSetup)
+    invisible(dev.off())
 
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_osat_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_osat_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_osat_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OSAT:", paste0("    osat: ", packageVersion("OSAT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT":',
+        paste0('    OSAT: ', as.character(packageVersion('OSAT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_osat_results.csv
-    touch ${prefix}_osat_output.rds
-    echo "BIOC_OSAT:" > versions.yml
-    echo "    osat: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_sample_assignment.csv versions.yml
     """
 }
 
-
-workflow BIOC_OSAT_WORKFLOW {
+workflow BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ samples.txt ] ]
 
     main:
-    BIOC_OSAT(ch_input)
+    BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT(ch_input)
 
     emit:
-    results  = BIOC_OSAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OSAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OSAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OSAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT.out.tables
+    plots    = BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT.out.plots
+    objects  = BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT.out.objects
+    versions = BIOC_OSAT_STANDARD_SAMPLE_ASSIGNMENT.out.versions
 }

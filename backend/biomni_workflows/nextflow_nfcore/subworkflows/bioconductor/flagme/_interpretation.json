@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rtrange=subset of elution retention time range to speed up import time ;; D=retention time penalty parameter in peaksAlignment and multipleAlignment, which must be set on the scale of the peaksrt slot (seconds or minutes) and slightly larger than average peak width ;; gap=gap penalty between 0 and 1 in peaksAlignment where 0.4-0.6 works well (high penalty discourages gaps, low penalty allows them at low cost) ;; wn.gap/wn.D=within-replicate group alignment gap and retention time penalty parameters ;; bw.gap/bw.D=between-replicate group alignment gap and retention time penalty parameters ;; usePeaks=logical; if TRUE, uses peak-based alignment; if FALSE, performs scan-based alignment\n- alternatives: AMDIS (.ELU files) vs ChromaTOF (addChromaTOFPeaks) vs XCMS/CAMERA (addXCMSPeaks) for peak detection and deconvolution ;; correlationAlignment as an alternative alignment method to dynamic programming-based multipleAlignment ;; Scan-based alignment (setting usePeaks=FALSE in peaksAlignment or multipleAlignment) instead of peak-based alignment\n- when_to_use: Appropriate when aligning and comparing metabolite peaks across multiple GC-MS runs/samples where retention time drift occurs, especially when fragment-level EI ionization patterns are available.\n- pitfalls: Setting the D parameter on the wrong scale (it must match the scale of the peaksrt slot, i.e., seconds or minutes) ;; Failing to account for consistent run-to-run retention time drift (which can be normalized) ;; Inserting arbitrary low constants for undetected peaks instead of using alignment-rich location information to impute them.",
+  "workflows": [
+    {
+      "name": "gc_ms_alignment_workflow",
+      "intent": "Read raw GC-MS data, import peak deconvolution results, perform multiple alignment across experimental groups, and extract the aligned peak table.",
+      "input": [
+        "cdfFiles (raw GC-MS NetCDF files)",
+        "eluFiles (AMDIS peak deconvolution files)"
+      ],
+      "stages": "1. Read raw NetCDF files into a peaksDataset object using peaksDataset ;; 2. Add AMDIS peak detection results using addAMDISPeaks ;; 3. Perform multiple alignment across experimental groups using multipleAlignment ;; 4. Extract aligned peak information (retention times, fragment ions, intensities) using gatherInfo",
+      "code": "gcmsPath <- paste(find.package(\"gcspikelite\"), \"data\", sep=\"/\")\ndata(targets)\ncdfFiles <- paste(gcmsPath, targets$FileName, sep=\"/\")\neluFiles <- gsub(\"CDF\", \"ELU\", cdfFiles)\npd <- peaksDataset(cdfFiles, mz=seq(50,550), rtrange=c(7.5,8.5))\npd <- addAMDISPeaks(pd, eluFiles)\nma <- multipleAlignment(pd, group=targets$Group, wn.gap=0.5, wn.D=.05, bw.gap=.6, bw.D=0.05, usePeaks=TRUE, filterMin=1, df=50, verbose=FALSE, metric = 1, type = 1)\noutList <- gatherInfo(pd,ma)\nrtmat <- matrix(unlist(lapply(outList,.subset,\"rt\"), use.names=FALSE), nr=length(outList), byrow=TRUE)\ncolnames(rtmat) <- names(outList[[1]]$rt); rownames(rtmat) <- 1:nrow(rtmat)\nround(rtmat, 3)"
+    },
+    {
+      "name": "xcms_peak_picking_alignment_workflow",
+      "intent": "Read raw GC-MS data, perform peak picking and grouping using XCMS/CAMERA within R, and align peaks.",
+      "input": [
+        "cdfFiles (raw GC-MS NetCDF files)"
+      ],
+      "stages": "1. Initialize a peaksDataset object using peaksDataset ;; 2. Perform peak picking and grouping using addXCMSPeaks with xcms::MatchedFilterParam ;; 3. Perform alignment using correlationAlignment",
+      "code": "pd.2 <- peaksDataset(cdfFiles[1:3], mz = seq(50, 550), rtrange = c(7.5, 8.5))\nmfp <- xcms::MatchedFilterParam(fwhm = 10, snthresh = 5)\npd.2 <- addXCMSPeaks(cdfFiles[1:3], pd.2, settings = mfp)\nmp <- correlationAlignment(object=pd.2, thr=0.85, D=20, penality=0.2, normalize=TRUE, minFilter=1)"
+    }
+  ]
+}

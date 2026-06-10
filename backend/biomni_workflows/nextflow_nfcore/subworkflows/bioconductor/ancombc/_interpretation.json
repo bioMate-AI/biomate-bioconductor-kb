@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=Input microbiome data, which can be a phyloseq object, a TreeSummarizedExperiment (tse) object, or a matrix of abundances ;; tax_level=Taxonomic rank to aggregate the data (e.g., \"Family\", \"Genus\", \"Phylum\") ;; formula=For ancombc, a character string specifying the model formula (e.g., \"age + region + bmi\") ;; fix_formula=For ancombc2, a character string specifying the fixed effects formula ;; rand_formula=Character string specifying random effects for longitudinal or repeated measures (e.g., \"(timepoint | subject)\") ;; p_adj_method=Method for p-value adjustment (e.g., \"holm\", \"BH\") ;; prv_cut=Prevalence cutoff fraction (0 to 1); taxa below this prevalence are filtered out ;; lib_cut=Library size cutoff; samples with total counts below this are filtered out ;; group=The categorical covariate of interest for multi-group or pairwise comparisons ;; struc_zero=Logical; whether to detect and handle structural zeros (taxa completely absent in some groups) ;; pseudo_sens=Logical; whether to perform sensitivity analysis for pseudo-count addition in ANCOM-BC2 ;; global=Logical; whether to perform a global test for multi-group variables ;; pairwise=Logical; whether to perform pairwise comparisons between groups ;; dunnet=Logical; whether to perform Dunnett's type of test against a reference group ;; trend=Logical; whether to perform pattern/trend analysis for ordered groups ;; trend_control=List of control parameters for trend analysis, including contrast matrices, node positions, and bootstrap iterations\n- alternatives: ANCOM=Heuristic method using additive log ratio (ALR) transformations, suitable when bias estimation is not required ;; ANCOM-BC=Log-linear model that estimates and corrects sample-specific sampling fraction biases ;; ANCOM-BC2=Advanced version of ANCOM-BC that corrects both sample-specific and taxon-specific biases, regularizes variance, and performs pseudo-count sensitivity analysis ;; SECOM=Sparse Estimation of Correlations among Microbiomes, preferred over standard correlation methods (like Pearson/Spearman) to estimate linear and non-linear correlations while correcting for compositionality and biases\n- when_to_use: Use ANCOM, ANCOM-BC, or ANCOM-BC2 when performing differential abundance analysis on microbiome count data to control for compositionality and sampling biases. Use SECOM when estimating linear or non-linear correlations between taxa within a single ecosystem or across multiple ecosystems.\n- pitfalls: Do not use the colon operator (:) for interactions in formulas; only the asterisk (*) operator is recognized, and using (:) will result in an error ;; When the group variable contains interaction terms, only the main effect is considered in multi-group comparisons ;; The choice of pseudo-count can impact results and inflate false positive rates; users should enable sensitivity analysis (pseudo_sens = TRUE) in ANCOM-BC2 to assess this ;; Sampling fractions are estimated only up to an additive constant; absolute values of bias-corrected log abundances are not meaningful, only their differences ;; For multiple pairwise comparisons, the mixed directional false discovery rate (mdFDR) must be controlled, as primary outputs do not control mdFDR across groups",
+  "workflows": [
+    {
+      "name": "ancom_heuristic_da",
+      "intent": "Perform differential abundance analysis using the heuristic ANCOM method with ALR transformation.",
+      "input": [
+        "microbiome_counts.tsv (microbial abundance table)",
+        "sample_metadata.tsv (sample covariates and group information)"
+      ],
+      "stages": "1. Load the microbiome data and metadata (or a phyloseq/TreeSummarizedExperiment object) ;; 2. Run the ancom function specifying the main variable, adjustment formula, and optional random formula ;; 3. Extract the W statistics and test results.",
+      "code": "out = ancom(data = pseq, tax_level = \"Family\", meta_data = NULL, p_adj_method = \"holm\", prv_cut = 0.10, lib_cut = 1000, main_var = \"bmi\", adj_formula = \"age + region\", rand_formula = NULL, lme_control = NULL, struc_zero = TRUE, neg_lb = TRUE, alpha = 0.05, n_cl = 2, verbose = TRUE)\nres = out $ res\n\nout = ancom(data = dietswap, tax_level = \"Family\", p_adj_method = \"holm\", prv_cut = 0.10, lib_cut = 1000, main_var = \"group\", adj_formula = \"nationality + timepoint\", rand_formula = \"(timepoint | subject)\", lme_control = lme4 :: lmerControl(), struc_zero = TRUE, neg_lb = TRUE, alpha = 0.05, n_cl = 2)\nres = out $ res"
+    },
+    {
+      "name": "ancombc_bias_corrected_da",
+      "intent": "Perform bias-corrected differential abundance analysis using the log-linear ANCOM-BC model.",
+      "input": [
+        "microbiome_counts.tsv (microbial abundance table)",
+        "sample_metadata.tsv (sample covariates and group information)"
+      ],
+      "stages": "1. Load the microbiome data and metadata (or a phyloseq/TreeSummarizedExperiment object) ;; 2. Run the ancombc function specifying the formula, group variable, and bias correction parameters ;; 3. Extract log fold changes, standard errors, and global test results.",
+      "code": "out = ancombc(data = pseq, tax_level = \"Family\", formula = \"age + region + bmi\", p_adj_method = \"holm\", prv_cut = 0.10, lib_cut = 1000, group = \"bmi\", struc_zero = TRUE, neg_lb = TRUE, tol = 1e-5, max_iter = 100, conserve = TRUE, alpha = 0.05, global = TRUE, n_cl = 1, verbose = TRUE)\nres = out $ res\nres_global = out $ res_global"
+    },
+    {
+      "name": "ancombc2_advanced_da",
+      "intent": "Perform advanced bias-corrected differential abundance analysis with sensitivity analysis, pairwise comparisons, Dunnett's test, and trend analysis.",
+      "input": [
+        "microbiome_counts.tsv (microbial abundance table)",
+        "sample_metadata.tsv (sample covariates and group information)"
+      ],
+      "stages": "1. Load the microbiome data and metadata (or a phyloseq/TreeSummarizedExperiment object) ;; 2. Run the ancombc2 function with pseudo-count sensitivity analysis and multi-group options enabled ;; 3. Extract primary, pairwise, Dunnett, and trend results.",
+      "code": "output = ancombc2(data = pseq, tax_level = \"Family\", fix_formula = \"age + region + bmi\", rand_formula = NULL, p_adj_method = \"holm\", pseudo_sens = TRUE, prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05, group = \"bmi\", struc_zero = TRUE, neg_lb = TRUE, alpha = 0.05, n_cl = 2, verbose = TRUE, global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE, iter_control = list(tol = 1e-2, max_iter = 20, verbose = TRUE), em_control = list(tol = 1e-5, max_iter = 100), lme_control = lme4 :: lmerControl(), mdfdr_control = list(fwer_ctrl_method = \"holm\", B = 100), trend_control = list(contrast = list(matrix(c(1, 0, -1, 1), nrow = 2, byrow = TRUE), matrix(c(-1, 0, 1, -1), nrow = 2, byrow = TRUE), matrix(c(1, 0, 1, -1), nrow = 2, byrow = TRUE)), node = list(2, 2, 1), B = 10))\nres_prim = output $ res\nres_global = output $ res_global\nres_pair = output $ res_pair\nres_dunn = output $ res_dunn\nres_trend = output $ res_trend"
+    },
+    {
+      "name": "secom_correlation_analysis",
+      "intent": "Estimate sparse linear and non-linear correlations among taxa within or across ecosystems.",
+      "input": [
+        "microbiome_counts.tsv (microbial abundance table)",
+        "sample_metadata.tsv (sample covariates and group information)"
+      ],
+      "stages": "1. Load the microbiome data and metadata (or a phyloseq/TreeSummarizedExperiment object) ;; 2. Run secom_linear to estimate linear relationships (Pearson or Spearman) ;; 3. Run secom_dist to estimate non-linear relationships (Distance correlation) ;; 4. Extract correlation matrices and co-occurrence tables.",
+      "code": "res_linear = secom_linear(data = list(pseq), taxa_are_rows = TRUE, tax_level = \"Phylum\", aggregate_data = NULL, meta_data = NULL, pseudo = 0, prv_cut = 0.5, lib_cut = 1000, corr_cut = 0.5, wins_quant = c(0.05, 0.95), method = \"pearson\", soft = FALSE, thresh_len = 20, n_cv = 10, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)\nres_dist = secom_dist(data = list(pseq), taxa_are_rows = TRUE, tax_level = \"Phylum\", aggregate_data = NULL, meta_data = NULL, pseudo = 0, prv_cut = 0.5, lib_cut = 1000, corr_cut = 0.5, wins_quant = c(0.05, 0.95), R = 1000, thresh_hard = 0.3, max_p = 0.005, n_cl = 2)"
+    }
+  ]
+}

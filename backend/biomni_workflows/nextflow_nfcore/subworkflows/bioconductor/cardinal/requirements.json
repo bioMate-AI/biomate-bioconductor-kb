@@ -1,0 +1,20 @@
+{
+  "package": "cardinal",
+  "requirements": [
+    "Cardinal"
+  ],
+  "by_workflow": {
+    "class_comparison.nf": [
+      "Cardinal"
+    ],
+    "main.nf": [
+      "Cardinal"
+    ],
+    "supervised_classification.nf": [
+      "Cardinal"
+    ],
+    "unsupervised_analysis_and_segmentation.nf": [
+      "Cardinal"
+    ]
+  }
+}

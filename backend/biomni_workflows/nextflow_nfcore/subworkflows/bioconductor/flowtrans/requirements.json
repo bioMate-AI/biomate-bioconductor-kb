@@ -1,0 +1,15 @@
+{
+  "package": "flowtrans",
+  "requirements": [
+    "flowCore",
+    "flowTrans",
+    "flowViz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCore",
+      "flowTrans",
+      "flowViz"
+    ]
+  }
+}

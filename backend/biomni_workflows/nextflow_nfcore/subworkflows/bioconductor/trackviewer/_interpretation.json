@@ -1,0 +1,47 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=In lolliplot and dandelion.plot, controls the plot style (e.g., \"pin\", \"fan\", \"pie\", \"circle\", \"flag\", \"pie.stack\") ;; rescale=In lolliplot, a logical, numeric vector, data.frame, or character (\"exon\", \"exon_99\", \"intron\") to rescale the x-axis to emphasize specific regions ;; maxgaps=In dandelion.plot, controls dandelion density (numeric fraction or GRanges object) ;; operator=In viewTracks, a character vector (e.g., \"+\", \"-\") to combine/subtract tracks ;; theme=In optimizeStyle, sets the theme style (\"bw\", \"col\", \"safe\") ;; yaxis/xaxis=Controls axis drawing and custom label positions\n- alternatives: Gviz and rtracklayer are mentioned. trackViewer is preferred over Gviz for lower memory/CPU consumption (especially with large WIG files, as it imports the entire file first and parses it later during plotting) and for specialized plots like lollipop/dandelion plots.\n- when_to_use: Appropriate when visualizing NGS coverage data (ChIP-seq, RNA-seq, etc.) alongside gene annotations, or when plotting dense mutation, SNP, or methylation data (lollipop/dandelion plots), or chromatin interaction data (Hi-C).\n- pitfalls: WIG files do not contain strand info, so strand must be set manually after import ;; For pie plots in lolliplot, score must be removed because pie considers all numeric columns except specific metadata columns (color, fill, alpha, shape, lwd, id, id.col), and at least 2 value columns are required ;; Total height for all tracks in viewTracks must sum to 1 when adjusting track heights ;; For pie.stack layout, metadata must contain stack.factor (and cannot be stack.factor.order or stack.factor.first) ;; lolliplot does not support parameters to set the title and xlab directly; users must use grid.text to add them.",
+  "workflows": [
+    {
+      "name": "genomic_track_visualization",
+      "intent": "Import NGS coverage data (WIG/BED), build gene models, and visualize them as aligned track layers.",
+      "input": [
+        "file1.wig (forward strand signal)",
+        "file2.wig (reverse strand signal)",
+        "file3.bed (genomic features/peaks)"
+      ],
+      "stages": "1. Import score data using importScore ;; 2. Set strand information manually ;; 3. Calculate coverage using coverageGR ;; 4. Build gene models using geneModelFromTxdb ;; 5. Optimize track styles using optimizeStyle ;; 6. Plot tracks using viewTracks",
+      "code": "repA <- importScore(file.path(extdata, \"cpsf160.repA_-.wig\"), file.path(extdata, \"cpsf160.repA_+.wig\"), format=\"WIG\")\nstrand(repA$dat) <- \"-\"\nstrand(repA$dat2) <- \"+\"\nfox2 <- importScore(file.path(extdata, \"fox2.bed\"), format=\"BED\", ranges=GRanges(\"chr11\", IRanges(122830799, 123116707)))\ndat <- coverageGR(fox2$dat)\nfox2$dat <- dat[strand(dat)==\"+\"]\nfox2$dat2 <- dat[strand(dat)==\"-\"]\ntrs <- geneModelFromTxdb(TxDb.Hsapiens.UCSC.hg19.knownGene, org.Hs.eg.db, gr=gr)\noptSty <- optimizeStyle(trackList(repA, fox2, trs))\ntrackList <- optSty$tracks\nviewerStyle <- optSty$style\nviewTracks(trackList, gr=gr, viewerStyle=viewerStyle)"
+    },
+    {
+      "name": "lollipop_plot",
+      "intent": "Visualize genomic variants, mutations, or methylation sites as lollipop markers over gene/protein features.",
+      "input": [
+        "variants.gr (GRanges of variants/SNPs with scores/colors)",
+        "features.gr (GRanges of gene/protein features/domains)"
+      ],
+      "stages": "1. Prepare variant GRanges with metadata (score, color, shape) ;; 2. Prepare feature GRanges with metadata (fill, height) ;; 3. Plot using lolliplot",
+      "code": "SNP <- c(10, 12, 1400, 1402)\nsample.gr <- GRanges(\"chr1\", IRanges(SNP, width=1, names=paste0(\"snp\", SNP)))\nfeatures <- GRanges(\"chr1\", IRanges(c(1, 501, 1001), width=c(120, 400, 405), names=paste0(\"block\", 1:3)))\nlolliplot(sample.gr, features)"
+    },
+    {
+      "name": "dandelion_plot",
+      "intent": "Visualize high-density methylation or mutation data where standard lollipop plots would overlap excessively.",
+      "input": [
+        "methy.bed (BED file of methylation/mutation data)",
+        "features.gr (GRanges of gene/protein features/domains)"
+      ],
+      "stages": "1. Import methylation data ;; 2. Build gene model features ;; 3. Plot using dandelion.plot with specified type (\"pin\", \"fan\", \"pie\", \"circle\")",
+      "code": "methy <- import(system.file(\"extdata\", \"methy.bed\", package=\"trackViewer\"), \"BED\")\ngr <- GRanges(\"chr22\", IRanges(50968014, 50970514, names=\"TYMP\"))\ntrs <- geneModelFromTxdb(TxDb.Hsapiens.UCSC.hg19.knownGene, org.Hs.eg.db, gr=gr)\nfeatures <- c(range(trs[[1]]$dat), range(trs[[5]]$dat))\nnames(features) <- c(trs[[1]]$name, trs[[5]]$name)\nfeatures$fill <- c(\"lightblue\", \"mistyrose\")\nfeatures$height <- c(.02, .04)\ndandelion.plot(methy, features, ranges=gr, type=\"pin\")"
+    },
+    {
+      "name": "chromatin_interaction_visualization",
+      "intent": "Plot genomic interaction data (Hi-C/GInteractions) as a heatmap track alongside coverage tracks.",
+      "input": [
+        "interactions.rds (GInteractions object)",
+        "coverage.rds (GRanges of coverage data)"
+      ],
+      "stages": "1. Convert GInteractions to track using gi2track ;; 2. Set track style parameters (breaks, color) ;; 3. Plot using viewTracks",
+      "code": "gi <- readRDS(system.file(\"extdata\", \"nij.chr6.51120000.53200000.gi.rds\", package=\"trackViewer\"))\nrange <- GRanges(\"chr6\", IRanges(51120000, 53200000))\ntr <- gi2track(gi)\nctcf <- readRDS(system.file(\"extdata\", \"ctcf.sample.rds\", package=\"trackViewer\"))\nsetTrackStyleParam(tr, \"breaks\", c(seq(from=0, to=50, by=10), 200))\nsetTrackStyleParam(tr, \"color\", c(\"lightblue\", \"yellow\", \"red\"))\nviewTracks(trackList(ctcf, tr, heightDist=c(1, 3)), gr=range, autoOptimizeStyle = TRUE)"
+    }
+  ]
+}

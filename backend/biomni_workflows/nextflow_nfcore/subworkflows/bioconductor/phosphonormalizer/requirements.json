@@ -1,0 +1,11 @@
+{
+  "package": "phosphonormalizer",
+  "requirements": [
+    "phosphonormalizer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "phosphonormalizer"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: chipname=The name of the Bioconductor annotation metadata package (e.g., \"hgu95av2.db\") containing the chip's annotation data ;; widget=Logical value (e.g., TRUE) in column selection functions to enable a graphical user interface for choosing annotation columns ;; signed=Logical value in aafTable() to enable colorization of positive and negative statistical values in the HTML output ;; logic=Character string (\"AND\" or \"OR\") in search functions to specify how multiple search terms are logically combined ;; descendents=Logical value in aafSearchGO() to include or exclude child terms in the Gene Ontology hierarchy\n- alternatives: AnnotationDbi (specifically SQLForge) is mentioned as the underlying engine that constructs the SQLite-based annotation data packages used by annaffy.\n- when_to_use: Use when analyzing Affymetrix microarray data and you need to generate shareable, visually intuitive HTML or text reports containing probe annotations, expression levels, and statistical metrics linked to online databases. It is also useful for searching chip metadata to identify probe IDs associated with specific biological terms or GO categories.\n- pitfalls: Generating HTML reports with too many probes can result in multi-megabyte, unwieldy files; always subset to top-ranked probes (e.g., top 50) before report generation. aafSearchText() does not automatically tokenize search queries (e.g., searching \"DNA polymerase\" looks for the exact phrase; use a vector with logic=\"AND\" to find both terms). Search terms are treated as Perl-compatible regular expressions, so special regex characters must be handled with caution. Single brackets [] on an aafList return another aafList, whereas double brackets [[]] are required to extract the single underlying object.",
+  "workflows": [
+    {
+      "name": "microarray_annotation_report",
+      "intent": "Generate an annotated HTML or tab-delimited text report containing statistical results, expression data, and database-linked annotations for top-ranked probes.",
+      "input": [
+        "ExpressionSet (microarray expression data containing probe IDs and sample covariates)"
+      ],
+      "stages": "1. Load the annaffy and multtest packages ;; 2. Calculate test statistics (e.g., t-statistics) and rank probes ;; 3. Select desired annotation columns using aaf.handler() ;; 4. Retrieve probe annotations using aafTableAnn() ;; 5. Format statistical data using aafTable() ;; 6. Extract expression intensities using aafTableInt() ;; 7. Merge annotation, statistical, and expression tables ;; 8. Export the merged table to HTML and tab-delimited text files",
+      "code": "library(\"annaffy\")\nlibrary(multtest)\nclass <- as.integer(pData(aafExpr)$covar1) - 1\nteststat <- mt.teststat(exprs(aafExpr), class)\nindex <- order(abs(teststat), decreasing = TRUE)\nprobeids <- featureNames(aafExpr)[index]\naaf.handler()\nanncols <- aaf.handler()[c(1:3,8:9,11:13)]\nanntable <- aafTableAnn(probeids[1:50], \"hgu95av2.db\", anncols)\ntesttable <- aafTable(\"t-statistic\" = teststat[index[1:50]], signed = TRUE)\ntable <- merge(anntable, testtable)\nexprtable <- aafTableInt(aafExpr, probeids = probeids[1:50])\ntable <- merge(table, exprtable)\nsaveHTML(table, \"example2.html\", title = \"Example Table with Data\")\nsaveText(table, \"example2.txt\")"
+    },
+    {
+      "name": "metadata_search",
+      "intent": "Search Affymetrix chip annotation metadata using text queries or Gene Ontology identifiers to find matching probe IDs.",
+      "input": [
+        "hgu95av2.db (Affymetrix annotation database package)"
+      ],
+      "stages": "1. Load the annotation database package ;; 2. Perform text searches on specific metadata columns (e.g., Description, Pathway, GenBank) using aafSearchText() ;; 3. Perform Gene Ontology searches using GO IDs (numeric or character) with aafSearchGO()",
+      "code": "library(hgu95av2.db)\nkinases <- aafSearchText(\"hgu95av2.db\", \"Description\", \"kinase\")\nprobes <- aafSearchText(\"hgu95av2.db\", c(\"Description\", \"Pathway\"), c(\"ribosome\", \"polymerase\"))\nprobes <- aafSearchText(\"hgu95av2.db\", \"Description\", c(\"DNA\", \"polymerase\"), logic = \"AND\")\ngbs <- c(\"AF035121\", \"AL021546\", \"AJ006123\", \"AL080082\", \"AI289489\")\naafSearchText(\"hgu95av2.db\", \"GenBank\", gbs)\naafSearchGO(\"hgu95av2.db\", c(\"GO:0000002\", \"GO:0000008\"))\naafSearchGO(\"hgu95av2.db\", c(\"2\", \"8\"))\naafSearchGO(\"hgu95av2.db\", c(2, 8))"
+    }
+  ]
+}

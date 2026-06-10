@@ -1,0 +1,13 @@
+{
+  "package": "swath2stats",
+  "requirements": [
+    "SWATH2stats",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SWATH2stats",
+      "rtracklayer"
+    ]
+  }
+}

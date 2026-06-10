@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <boolUpdates=The number of simulation steps (ticks) to run, which must be manually set based on model size and experimental time ;; lowerB=The lower bound for the optimization of the time-scaling factor ;; upperB=The upper bound for the optimization of the time-scaling factor ;; maxTime=The maximum time allowed for the genetic algorithm optimization in seconds ;; initBstring=A binary vector of 1s and 0s representing the initial active/inactive state of reactions in the model>\n- alternatives: <CellNOptR=The parent package, which should be preferred when fitting models to steady-state data (where simulation runs until all species are static) rather than time-course data>\n- when_to_use: <When you have time-course proteomics data and a prior knowledge network, and you want to train a boolean logic model that captures dynamic behaviors, feedback loops, or oscillations across multiple time points>\n- pitfalls: <The scaling parameter approach is simplified because it assumes a single uniform rate across all reactions in the model ;; The boolUpdates parameter must be manually specified by the user as there is currently no automated default calculation>",
+  "workflows": [
+    {
+      "name": "time_course_logic_modeling",
+      "intent": "Train and optimize a boolean logic model of a signaling network using time-course experimental data.",
+      "input": [
+        "CNOlistPB (CNOlist object containing time-course proteomics data)",
+        "modelPB (Model object representing the prior knowledge network)"
+      ],
+      "stages": "1. Load libraries and data ;; 2. Preprocess the model against the dataset ;; 3. Run genetic algorithm optimization with time-scaling parameters ;; 4. Plot and visualize the fit of the optimized model ;; 5. Export the optimized network and scaffold files",
+      "code": "library(CellNOptR)\nlibrary(CNORdt)\ndata(CNOlistPB, package=\"CNORdt\")\ndata(modelPB, package=\"CNORdt\")\nmodel = preprocessing(CNOlistPB, modelPB)\ninitBstring <- rep(1, length(model$reacID))\nopt1 <- gaBinaryDT(CNOlist=CNOlistPB, model=model, initBstring=initBstring,\nverbose=FALSE, boolUpdates=10, maxTime=30, lowerB=0.8, upperB=10)\ncutAndPlotResultsDT(\n\tmodel=model,\n\tCNOlist=CNOlistPB,\n\tbString=opt1$bString,\n\tplotPDF=FALSE,\n\tboolUpdates=10,\n\tlowerB=0.8,\n\tupperB=10\n)\nwriteScaffold(\n\tmodelComprExpanded=model,\n\toptimResT1=opt1,\n\toptimResT2=NA,\n\tmodelOriginal=modelPB,\n\tCNOlist=CNOlistPB\n)\nwriteNetwork(\n\tmodelOriginal=modelPB,\n\tmodelComprExpanded=model,\n\toptimResT1=opt1,\n\tCNOlist=CNOlistPB\n)"
+    }
+  ]
+}

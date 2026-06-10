@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A data frame containing observed and reference group allele frequencies for N genetic variants ;; reference=A character vector of the column names for K reference groups ;; observed=A character value specifying the column name for the observed group ;; pi.target=A numeric vector of the mixture proportions for K reference groups in the target group or individual ;; pi.observed=A numeric vector of the mixture proportions for K reference groups in the observed group ;; N_reference=A numeric vector of the sample sizes for each of the K reference groups in the same order as the reference parameter ;; N_observed=A numeric value of the sample size of the observed group ;; adj_method=User choice of method for the allele frequency adjustment; options \"average\" (default) and \"effective\" are available ;; filter=Sets adjusted allele frequencies equal to 1 if > 1, to 0 if > -.005 and < 0, and removes adjusted allele frequencies < -.005 (default is TRUE) ;; algorithm=User choice of algorithm to define local ancestry blocks; options \"fastcatch\" (default, recommended) and \"windows\" are available ;; selection_scan=User option to perform a selection scan on the given chromosome (default is FALSE)\n- alternatives: None mentioned\n- when_to_use: Use when working with genetic summary data (allele frequencies) from admixed or diverse populations to estimate global or local ancestry proportions, adjust allele frequencies to match a target population, or identify regions of selection.\n- pitfalls: Goodness of fit values greater than 1.5 indicate poor fit, and users should not perform further analyses. Values between 0.5 and 1.5 indicate moderate fit and should be used with caution. Overriding the automatic removal of reference groups with small proportions (<1% global for summix, <2% local for summix_local) using override_removeSmallRef or override_removeSmallAnc is not recommended. The accuracy of the allele frequency adjustment (adjAF) is likely lower for rare variants (< 0.5%). When adjusting genetic substructure, use only reference groups with non-zero mixing proportions in the observed and target samples, and ensure the order of mixing proportions in pi.target and pi.observed matches the reference groups.",
+  "workflows": [
+    {
+      "name": "global_ancestry_estimation",
+      "intent": "Estimate reference group proportions (global ancestry) in genetic summary allele frequency data.",
+      "input": [
+        "ancestryData (A data frame containing observed and reference group allele frequencies for genetic variants)"
+      ],
+      "stages": "1. Load the package and data. 2. Run summix() to estimate reference ancestry proportions.",
+      "code": "library(Summix)\nprint(head(ancestryData))\n\nsummix(data = ancestryData,\n    reference=c(\"reference_AF_afr\",\n        \"reference_AF_eas\",\n        \"reference_AF_eur\",\n        \"reference_AF_iam\",\n        \"reference_AF_sas\"),\n    observed=\"gnomad_AF_afr\")"
+    },
+    {
+      "name": "allele_frequency_adjustment",
+      "intent": "Adjust observed allele frequencies to match the substructure proportions of a target sample or individual.",
+      "input": [
+        "ancestryData (A data frame containing observed and reference group allele frequencies for genetic variants)"
+      ],
+      "stages": "1. Load the package and data. 2. Run adjAF() with target and observed proportions, reference and observed sample sizes, and adjustment method. 3. Inspect the adjusted allele frequencies.",
+      "code": "library(Summix)\n\nadjusted_data<-adjAF(data = ancestryData,\n     reference = c(\"reference_AF_afr\", \"reference_AF_eur\", \"reference_AF_iam\"),\n     observed = \"gnomad_AF_afr\",\n     pi.target = c(1, 0, 0),\n     pi.observed = c(0.812142, 0.169953, 0.017905),\n     adj_method = 'average',\n     N_reference = c(704,741, 47),\n     N_observed = 20744,\n     filter = TRUE)\n\nprint(adjusted_data$adjusted.AF[1:5,])"
+    },
+    {
+      "name": "local_ancestry_estimation",
+      "intent": "Estimate local ancestry mixture proportions and optionally perform a selection scan along a chromosome.",
+      "input": [
+        "ancestryData (A data frame containing observed and reference group allele frequencies, and genetic variant positions on a single chromosome)"
+      ],
+      "stages": "1. Load the package and data. 2. Run summix_local() to estimate local ancestry blocks and proportions.",
+      "code": "library(Summix)\n\n# load the data\n# data(\"ancestryData\")\n# \n# results <- summix_local(data = ancestryData,\n#                         reference = c(\"reference_AF_afr\",\n#                                       \"reference_AF_eas\",\n#                                       \"reference_AF_eur\",\n#                                       \"reference_AF_iam\",\n#                                       \"reference_AF_sas\"),\n#                         NSimRef = c(704,787,741,47,545),\n#                         observed=\"gnomad_AF_afr\",\n#                         goodness.of.fit = T,\n#                         type = \"variants\",\n#                         algorithm = \"fastcatch\",\n#                         minVariants = 150,\n#                         maxVariants = 250,\n#                         maxStepSize = 1000,\n#                         diffThreshold = .02,\n#                         override_fit = F,\n#                         override_removeSmallAnc = TRUE,\n#                         selection_scan = F,\n#                         position_col = \"POS\")\n# \n# print(results$results)"
+    }
+  ]
+}

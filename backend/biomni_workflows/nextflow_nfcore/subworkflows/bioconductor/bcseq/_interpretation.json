@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - sampleFile = Path to the sample FASTQ file or a DNAStringSet object containing the reads.\n    - libFile = Path to the reference library FASTA/FASTQ file or a DNAStringSet object containing the barcodes. Must be of the same type as sampleFile.\n    - outFile = Path to the output file where results (e.g., CSV count table) will be written.\n    - misMatch = Integer specifying the maximum number of mismatches (or indels for edit distance) allowed in the alignment.\n    - tMat = Two-column dataframe for user-defined prior error probabilities (first column: sequence context, second column: error rate). Defaults to 1/3.\n    - numThread = Integer specifying the number of threads for parallel computing (default is 4).\n    - count_only = Logical; if TRUE (default), writes a CSV count table and returns a list of read and barcode IDs. If FALSE, also returns a sparse alignment probability matrix.\n    - detail_info = Logical; if TRUE, writes an additional file $(outFile).txt containing detailed read-to-barcode alignment indexes (not available for custom probability models in edit distance).\n    - userProb = Vectorized R or Rcpp function for custom alignment probability calculations in bcSeq_edit.\n    - gap_left, ext_left, gap_right, ext_right, pen_max = Double values for tuning edit distance penalties (deletions, insertions, and maximum allowed penalty).\n- alternatives:\n    - None mentioned in the documentation (though MAGeCK is referenced as the source of the benchmarking dataset, bcSeq is presented as a fast Trie-based alternative).\n- when_to_use:\n    - Use when aligning short sequence reads from high-throughput CRISPR or shRNA screens to a known reference barcode library, especially when fast processing, mismatch/indel tolerance, and probabilistic resolution of ambiguous alignments are needed.\n- pitfalls:\n    - libFile and sampleFile must be of the same type (both strings pointing to files, or both DNAStringSet objects).\n    - Using a user-defined probability function (userProb) can significantly increase computation time.\n    - detail_info = TRUE is not available when using a user-defined probability model in bcSeq_edit.\n    - The Trie data structure only keeps unique barcode sequences in the library; duplicate barcodes must be resolved or removed beforehand.",
+  "workflows": [
+    {
+      "name": "barcode_alignment_hamming",
+      "intent": "Align short reads to a reference barcode library using Hamming distance to generate a barcode count table.",
+      "input": [
+        "readFile.fastq (FASTQ file of short reads)",
+        "libFile.fasta (FASTA file of reference barcodes)"
+      ],
+      "stages": "1. Load the bcSeq and Matrix libraries.\n2. Define paths for the input read file, reference barcode file, and output CSV file.\n3. Run bcSeq_hamming with specified mismatch tolerance and threading.\n4. Read the resulting CSV file containing barcode sequences and their corresponding alignment counts.",
+      "code": "library(Matrix)\nlibrary(bcSeq)\nReadFile <- \"./readFile.fastq\"\nBarFile  <- \"./libFile.fasta\"\noutFile  <- \"./count.csv\"\n\nres <- bcSeq_hamming(ReadFile, BarFile, outFile, misMatch = 2,\n    tMat = NULL, numThread = 4, count_only = TRUE )\nres <- read.csv(outFile, header=FALSE)"
+    },
+    {
+      "name": "barcode_alignment_edit",
+      "intent": "Align short reads to a reference barcode library using edit distance (allowing insertions and deletions) with customizable penalty parameters.",
+      "input": [
+        "readFile.fastq (FASTQ file of short reads)",
+        "libFile.fasta (FASTA file of reference barcodes)"
+      ],
+      "stages": "1. Define paths for the input read file, reference barcode file, and output CSV file.\n2. Run bcSeq_edit with specified mismatch tolerance, gap/extension penalties, and maximum penalty.\n3. Read the resulting CSV file containing barcode sequences and their corresponding alignment counts.",
+      "code": "res <- bcSeq_edit(ReadFile, BarFile, outFile, misMatch = 2,\n    tMat = NULL, numThread = 4, count_only = TRUE,\n    gap_left = 2, ext_left = 1, gap_right = 2, ext_right = 1,\n    pen_max = 7)\nres <- read.csv(outFile, header=FALSE)\nres[1:3,]"
+    },
+    {
+      "name": "barcode_alignment_custom_probability",
+      "intent": "Align short reads using edit distance with a user-defined R or Rcpp function to customize alignment probability calculations.",
+      "input": [
+        "sampleFile.fastq (FASTQ file of short reads)",
+        "libFile.fasta (FASTA file of reference barcodes)"
+      ],
+      "stages": "1. Define a custom probability function in R or compile an Rcpp function using sourceCpp.\n2. Run bcSeq_edit passing the custom function to the userProb argument.",
+      "code": "customizeP <- function(max_pen, prob, pen_val)\n{\n    prob * (1 - log(2) + log(1 + max_pen / (max_pen + pen_val) ) )\n}\n\nbcSeq_edit(sampleFile, libFile, outFile, misMatch = 2, tMat = NULL,\n    numThread = 4, count_only = TRUE, userProb = customizeP,\n    gap_left = 2, ext_left = 1, gap_right = 2,\n    ext_right = 1, pen_max = 5)"
+    }
+  ]
+}

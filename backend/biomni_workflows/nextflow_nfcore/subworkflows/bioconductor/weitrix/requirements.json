@@ -1,0 +1,27 @@
+{
+  "package": "weitrix",
+  "requirements": [
+    "BiocParallel",
+    "dplyr",
+    "ggplot2",
+    "limma",
+    "topconfects",
+    "weitrix"
+  ],
+  "by_workflow": {
+    "alternative_polyadenylation_shift_analysis.nf": [
+      "BiocParallel",
+      "dplyr",
+      "ggplot2",
+      "weitrix"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "dplyr",
+      "ggplot2",
+      "limma",
+      "topconfects",
+      "weitrix"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: reduction=\"mca\" = Specifies the MCA dimensionality reduction for visualization functions like DimPlotMC ;; pathways = A list of gene sets (vectors of gene symbols) to evaluate for enrichment in RunCellHGT ;; dims = Specifies the MCA dimensions to use (e.g., 1:50) in RunCellHGT, GetCellGeneSet, and GetGroupGeneSet ;; n.features = Defines the size of the extracted gene signature (default is 200) in RunCellHGT, GetCellGeneSet, and GetGroupGeneSet ;; group.by = Specifies the metadata column containing cell groupings (e.g., \"cell.type\") in GetGroupGeneSet\n- alternatives: State-of-the-art dimensionality reduction techniques like PCA (RunPCA), UMAP (RunUMAP), and tSNE (RunTSNE) are mentioned as alternatives or complements for visualization, but MCA is preferred for simultaneous representation of cells and genes to extract per-cell signatures.\n- when_to_use: Use this package when you want to perform cell-type annotation, cell-to-cell matching, or functional enrichment analysis on single-cell RNA-seq (or sci-ATAC gene activity) data without relying on intermediate clustering steps.\n- pitfalls: Restricting the analysis to protein-coding genes is highly recommended (using provided datasets like HgProteinCodingGenes or MgProteinCodingGenes). Gene identifiers must correspond to official gene symbols. Hypergeometric test p-values must be corrected for multiple testing; a threshold of -log10 corrected p-value > 2 (p < 0.01) is recommended to assign cell types, otherwise cells should remain \"unassigned\". macOS users may experience installation issues related to the Gfortran library and need to install it manually.",
+  "workflows": [
+    {
+      "name": "cell_type_prediction",
+      "intent": "Predict cell types for individual cells in a single-cell dataset using pre-established marker gene lists without clustering.",
+      "input": [
+        "expression_matrix.rds (raw counts gene expression matrix)",
+        "metadata.rds (associated cell metadata)",
+        "marker_database.tsv (curated cell-type marker lists, e.g., PanglaoDB)"
+      ],
+      "stages": "1. Filter expression matrix for protein-coding genes using HgProteinCodingGenes ;; 2. Create and normalize Seurat object using CreateSeuratObject, NormalizeData, and ScaleData ;; 3. Perform MCA dimensionality reduction using RunMCA ;; 4. Prepare marker gene sets as a named list of vectors ;; 5. Assess per-cell gene signature enrichment against marker lists using RunCellHGT ;; 6. Assign cell types based on the lowest significant corrected p-value.",
+      "code": "data(\"HgProteinCodingGenes\")\nBaronMatrixProt <- BaronMatrix[rownames(BaronMatrix) %in% HgProteinCodingGenes,]\nBaron <- CreateSeuratObject(counts = BaronMatrixProt, project = \"Baron\", min.cells = 5, meta.data = BaronMetaData)\nBaron <- NormalizeData(Baron)\nBaron <- ScaleData(Baron, features = rownames(Baron))\nBaron <- RunMCA(Baron)\nDimPlotMC(Baron, reduction = \"mca\", group.by = \"cell.type\", features = c(\"CTRL\", \"INS\", \"MYZAP\", \"CDH11\"), as.text = TRUE) + ggtitle(\"MCA with some key gene markers\")\npanglao <- read_tsv(\"https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz\")\npanglao_pancreas <- panglao %>% filter(organ == \"Pancreas\")\npanglao_pancreas <- panglao_pancreas %>%  filter(str_detect(species,\"Hs\"))\npanglao_pancreas <- panglao_pancreas %>%  \n  group_by(`cell type`) %>%  \n  summarise(geneset = list(`official gene symbol`))\npancreas_gs <- setNames(panglao_pancreas$geneset, panglao_pancreas$`cell type`)\nHGT_pancreas_gs <- RunCellHGT(Baron, pathways = pancreas_gs, dims = 1:50, n.features = 200)\npancreas_gs_prediction <- rownames(HGT_pancreas_gs)[apply(HGT_pancreas_gs, 2, which.max)]\npancreas_gs_prediction_signif <- ifelse(apply(HGT_pancreas_gs, 2, max)>2, yes = pancreas_gs_prediction, \"unassigned\")\nBaron$pancreas_gs_prediction <- pancreas_gs_prediction_signif"
+    },
+    {
+      "name": "label_transferring_across_datasets",
+      "intent": "Transfer cell-type labels from a reference single-cell dataset to a query dataset using per-cell (CelliD(c)) or per-group (CelliD(g)) gene signatures.",
+      "input": [
+        "reference_expression.rds (reference raw counts)",
+        "reference_metadata.rds (reference metadata with cell type annotations)",
+        "query_expression.rds (query raw counts)",
+        "query_metadata.rds (query metadata)"
+      ],
+      "stages": "1. Preprocess and run MCA on the reference dataset using RunMCA ;; 2. Extract per-cell gene signatures using GetCellGeneSet or per-group gene signatures using GetGroupGeneSet ;; 3. Preprocess and run MCA on the query dataset ;; 4. Assess enrichment of reference signatures in the query dataset using RunCellHGT ;; 5. Transfer labels based on the highest significant enrichment score.",
+      "code": "Baron_cell_gs <- GetCellGeneSet(Baron, dims = 1:50, n.features = 200)\nBaron_group_gs <- GetGroupGeneSet(Baron, dims = 1:50, n.features = 200, group.by = \"cell.type\")\nSeger <- NormalizeData(Seger)\nSeger <- FindVariableFeatures(Seger)\nSeger <- ScaleData(Seger)\nSeger <- RunMCA(Seger, nmcs = 50)\nHGT_baron_cell_gs <- RunCellHGT(Seger, pathways = Baron_cell_gs, dims = 1:50)\nbaron_cell_gs_match <- rownames(HGT_baron_cell_gs)[apply(HGT_baron_cell_gs, 2, which.max)]\nbaron_cell_gs_prediction <- Baron$cell.type[baron_cell_gs_match]\nbaron_cell_gs_prediction_signif <- ifelse(apply(HGT_baron_cell_gs, 2, max)>2, yes = baron_cell_gs_prediction, \"unassigned\")\nSeger$baron_cell_gs_prediction <- baron_cell_gs_prediction_signif\nHGT_baron_group_gs <- RunCellHGT(Seger, pathways = Baron_group_gs, dims = 1:50)\nbaron_group_gs_prediction <- rownames(HGT_baron_group_gs)[apply(HGT_baron_group_gs, 2, which.max)]\nbaron_group_gs_prediction_signif <- ifelse(apply(HGT_baron_group_gs, 2, max)>2, yes = baron_group_gs_prediction, \"unassigned\")\nSeger$baron_group_gs_prediction <- baron_group_gs_prediction_signif"
+    },
+    {
+      "name": "functional_annotation",
+      "intent": "Perform per-cell functional enrichment analysis against biological pathways or ontologies to interpret cell states.",
+      "input": [
+        "expression_matrix.rds (raw counts)",
+        "metadata.rds (cell metadata)",
+        "pathway_genesets.rds (functional gene sets, e.g., Hallmark MSigDB)"
+      ],
+      "stages": "1. Preprocess and run MCA on the dataset ;; 2. Assess per-cell enrichment against functional pathways using RunCellHGT ;; 3. Integrate enrichment scores as a new assay slot in the Seurat object using CreateAssayObject ;; 4. Visualize enrichment scores on a dimensionality reduction plot using FeaturePlot.",
+      "code": "HGT_Hallmark <- RunCellHGT(Seger, pathways = Hallmark, dims = 1:50)\nSeger[[\"Hallmark\"]] <- CreateAssayObject(HGT_Hallmark)\nggG2Mcell <- FeaturePlot(Seger, \"G2M-CHECKPOINT\", order = TRUE, reduction = \"tsne\", min.cutoff = 2) + \n  theme(legend.text = element_text(size =10), aspect.ratio = 1)"
+    }
+  ]
+}

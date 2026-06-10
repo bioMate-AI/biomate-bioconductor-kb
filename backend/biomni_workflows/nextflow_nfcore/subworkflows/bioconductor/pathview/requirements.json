@@ -1,0 +1,23 @@
+{
+  "package": "pathview",
+  "requirements": [
+    "org.Hs.eg.db",
+    "pathview"
+  ],
+  "by_workflow": {
+    "discrete_data_visualization.nf": [
+      "org.Hs.eg.db",
+      "pathview"
+    ],
+    "id_mapping_and_visualization.nf": [
+      "org.Hs.eg.db",
+      "pathview"
+    ],
+    "main.nf": [
+      "pathview"
+    ],
+    "multi_sample_comparison.nf": [
+      "pathview"
+    ]
+  }
+}

@@ -1,160 +1,213 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: dittoSeq
-// A universal, user friendly, single-cell and bulk RNA sequencing visualization toolkit that allows hi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/dittoSeq/inst/doc/dittoSeq.R
-// Upstream  : BiocStyle, SummarizedExperiment, bluster, scRNAseq, scater
-// Downstream: none
-//
-// Install: BiocManager::install("dittoSeq")
+// Bioconductor workflow: dittoSeq — dittoseq_bulk_rna_seq_visualization
+// Import bulk RNA-seq count data, perform dimensionality reduction, and generate a comprehensive suite of color-blind-friendly diagnostic and exploratory plots us
+// Input: counts.csv, coldata.csv
+// Container: 1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, dittoSeq
+// Visualizations: PCA plot, box plot, bar plot, heatmap, dot plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DITTOSEQ {
+process BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dittoseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dittoseq:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dittoseq:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(seurat_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dittoseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dittoseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dittoseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(dittoSeq)
-    library(BaronPancreasData)
-    library(FindMarkers)
-    library(Idents)
-    library(Seurat)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Metadata and Gene Querying [] ---
-    # Key functions: getMetas, isMeta, metaLevels, getGenes, isGene
-    meta_slots <- getMetas(bulk_sce)
-    has_conds <- isMeta("conditions", bulk_sce)
-    cond_levels <- metaLevels("conditions", bulk_sce)
-    all_genes <- getGenes(bulk_sce)
-    has_gene1 <- isGene("gene1", bulk_sce)
-    gene_check <- isGene(
-        c("gene1", "gene2", "non-existent"),
-        bulk_sce,
-        return.values = TRUE
-    )
-
-
-    # --- Dimensionality Reduction and Scatter Visualisation [] ---
-    # Key functions: dittoDimPlot, dittoScatterPlot, getReductions
-    avail_reductions <- getReductions(bulk_sce)
-    dim_plot <- dittoDimPlot(
-        object = bulk_sce,
-        var = "conditions",
-        reduction.use = "pca",
-        size = 3,
-        do.ellipse = TRUE
-    )
-    scatter_plot <- dittoScatterPlot(
-        object = bulk_sce,
-        x.var = "gene1",
-        y.var = "gene2",
-        color.var = "conditions"
-    )
-
-
-    # --- Expression and Distribution Profiling [] ---
-    # Key functions: dittoPlot, dittoBoxPlot, dittoBarPlot, dittoHeatmap
-    violin_plot <- dittoPlot(
-        object = bulk_sce,
-        var = "gene1",
-        group.by = "conditions"
-    )
-    box_plot <- dittoBoxPlot(
-        object = bulk_sce,
-        var = "gene1",
-        group.by = "conditions"
-    )
-    bar_plot <- dittoBarPlot(
-        object = bulk_sce,
-        var = "conditions",
-        group.by = "conditions"
-    )
-    heatmap_plot <- dittoHeatmap(
-        object = bulk_sce,
-        genes = getGenes(bulk_sce)[1:5],
-        annot.by = "conditions"
-    )
-
-
-    # --- Hexagonal Binning Visualisation [] ---
-    # Key functions: dittoDimHex, dittoScatterHex
-    hex_dim_plot <- dittoDimHex(
-        object = bulk_sce,
-        var = "gene1",
-        reduction.use = "pca"
-    )
-    hex_scatter_plot <- dittoScatterHex(
-        object = bulk_sce,
-        x.var = "gene1",
-        y.var = "gene2",
-        color.var = "conditions",
-        max.density = 10
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dittoseq_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 1: Load and Align Input Data
+    # ==========================================
+    message("Loading input datasets...")
+    counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata_df <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Ensure sample names are set as row names for coldata
+    if ("sample" %in% colnames(coldata_df)) {
+        rownames(coldata_df) <- coldata_df\$sample
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dittoseq_results.csv")
+        rownames(coldata_df) <- colnames(counts_df)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dittoseq_output.rds")
+    
+    # Align counts and coldata to ensure matching samples
+    common_samples <- intersect(colnames(counts_df), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+        stop("Error: No common samples found between counts.csv and coldata.csv")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DITTOSEQ:", paste0("    dittoseq: ", packageVersion("dittoSeq"))),
-        "versions.yml"
+    
+    counts_mat <- as.matrix(counts_df[, common_samples, drop = FALSE])
+    coldata_df <- coldata_df[common_samples, drop = FALSE]
+    
+    # Add a mock batch metadata to demonstrate multi-variable annotations
+    coldata_df\$batch <- factor(rep(c("Batch_A", "Batch_B"), length.out = nrow(coldata_df)))
+    
+    # ==========================================
+    # Stage 2: Normalization & Dimensionality Reduction
+    # ==========================================
+    message("Performing log-normalization and PCA...")
+    # Simple log2 transformation for visualization purposes
+    logcounts_mat <- log2(counts_mat + 1)
+    
+    # Identify highly variable genes for PCA
+    gene_vars <- apply(logcounts_mat, 1, var)
+    top_genes <- names(sort(gene_vars, decreasing = TRUE))[1:min(500, nrow(logcounts_mat))]
+    
+    # Run PCA on top variable genes
+    pca_res <- prcomp(t(logcounts_mat[top_genes, ]))
+    pca_embeddings <- pca_res\$x[, 1:2, drop = FALSE]
+    
+    # ==========================================
+    # Stage 3: Import into dittoSeq Structure
+    # ==========================================
+    message("Importing data into dittoSeq bulk structure...")
+    bulkSCE <- importDittoBulk(
+        x = list(counts = counts_mat, logcounts = logcounts_mat),
+        metadata = coldata_df,
+        reductions = list(pca = pca_embeddings)
     )
+    
+    # Verify bulk status using dittoSeq helper
+    is_bulk_dataset <- isBulk(bulkSCE)
+    message("Is the imported object recognized as bulk? ", is_bulk_dataset)
+    
+    # ==========================================
+    # Stage 4: Comprehensive Visualizations
+    # ==========================================
+    message("Generating dittoSeq visualizations...")
+    
+    # 1. PCA Plot (Dimensionality Reduction)
+    pdf("pca_plot.pdf", width = 6, height = 5)
+    dittoDimPlot(
+        object = bulkSCE, 
+        var = "condition", 
+        reduction.use = "pca", 
+        size = 4, 
+        do.ellipse = TRUE, 
+        main = "PCA of Bulk RNA-Seq Samples"
+    )
+    dev.off()
+    
+    # 2. Boxplot of the top variable gene
+    pdf("boxplot_top_gene.pdf", width = 6, height = 5)
+    dittoBoxPlot(
+        object = bulkSCE, 
+        var = top_genes[1], 
+        group.by = "condition", 
+        main = paste("Expression of", top_genes[1])
+    )
+    dev.off()
+    
+    # 3. Barplot of batch distribution across conditions
+    pdf("barplot_batch.pdf", width = 6, height = 5)
+    dittoBarPlot(
+        object = bulkSCE, 
+        var = "batch", 
+        group.by = "condition", 
+        main = "Batch Distribution by Condition"
+    )
+    dev.off()
+    
+    # 4. Heatmap of top variable genes
+    pdf("heatmap_top_genes.pdf", width = 7, height = 6)
+    dittoHeatmap(
+        object = bulkSCE, 
+        genes = top_genes[1:min(15, length(top_genes))], 
+        annot.by = c("condition", "batch"),
+        scaled.to.max = TRUE,
+        main = "Top Variable Genes Heatmap"
+    )
+    dev.off()
+    
+    # 5. DotPlot of top variable genes
+    pdf("dotplot_genes.pdf", width = 7, height = 5)
+    dittoDotPlot(
+        object = bulkSCE, 
+        vars = top_genes[1:min(8, length(top_genes))], 
+        group.by = "condition",
+        main = "Dot Plot of Top Genes"
+    )
+    dev.off()
+    
+    # ==========================================
+    # Stage 5: Extracting Underlying Data & Metadata
+    # ==========================================
+    message("Exporting underlying plot data and metadata summaries...")
+    
+    # Extract underlying data from the barplot
+    barplot_data <- dittoBarPlot(
+        object = bulkSCE, 
+        var = "batch", 
+        group.by = "condition", 
+        data.out = TRUE
+    )
+    write.csv(barplot_data\$data, "barplot_underlying_data.csv", row.names = FALSE)
+    
+    # Extract metadata summary using dittoSeq helpers
+    meta_slots <- getMetas(bulkSCE)
+    meta_summary <- data.frame(
+        Metadata = meta_slots,
+        IsPresent = sapply(meta_slots, function(m) isMeta(m, bulkSCE)),
+        Levels = sapply(meta_slots, function(m) paste(metaLevels(m, bulkSCE), collapse = ", "))
+    )
+    write.csv(meta_summary, "metadata_summary.csv", row.names = FALSE)
+    
+    message("Workflow completed successfully!")
+
+    writeLines(c(
+        '"BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION":',
+        paste0('    dittoSeq: ', as.character(packageVersion('dittoSeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dittoseq_results.csv
-    touch ${prefix}_dittoseq_output.rds
-    echo "BIOC_DITTOSEQ:" > versions.yml
-    echo "    dittoseq: 0.0.0" >> versions.yml
+    touch ${prefix}_dittoseq_bulk_rna_seq_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_DITTOSEQ_WORKFLOW {
+workflow BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(seurat_object) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_DITTOSEQ(ch_input)
+    BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_DITTOSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DITTOSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DITTOSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DITTOSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION.out.tables
+    plots    = BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION.out.plots
+    objects  = BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION.out.objects
+    versions = BIOC_DITTOSEQ_DITTOSEQ_BULK_RNA_SEQ_VISUALIZATION.out.versions
 }

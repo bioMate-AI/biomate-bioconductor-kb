@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: vfile=Input VCF file path or SeqSQC object ;; output=Prefix/path for output files (e.g., GDS file) ;; capture.region=BED file containing genomic capture regions (e.g., for WES data) ;; sample.annot=Sample annotation file containing sample name, population, and gender info ;; QCreport=Logical, whether to generate an HTML QC report ;; remove.samples=Vector of sample names to remove during individual QC steps ;; QCstep=Character string specifying the QC step for plotting (e.g., \"MissingRate\", \"SexCheck\", \"Inbreeding\", \"IBD\", \"PCA\") ;; interactive=Logical, whether to generate interactive plots\n- alternatives: None mentioned. The documentation only compares the all-in-one wrap-up function sampleQC() to running individual step-by-step QC functions (MissingRate, SexCheck, Inbreeding, IBD, PCA) if users want to skip or customize specific steps.\n- when_to_use: Appropriate for sample-level quality control of next-generation sequencing (NGS) data (WGS or WES) of any scale, especially useful for studies with small sample sizes or low variant counts by leveraging an integrated 1000 Genomes Project benchmark dataset.\n- pitfalls: When running QC steps separately, users must manually specify the list of problematic samples to be removed using the remove.samples option (unlike sampleQC which does this automatically). It is highly recommended to close the GDS file using closefn.gds() once it has been opened with SeqOpen(). Input sample annotation file must contain specific columns: sample name, population (e.g., AFR, EUR, EAS, SAS, ASN), and gender (male/female).",
+  "workflows": [
+    {
+      "name": "all_in_one_qc",
+      "intent": "Run the entire sample quality control pipeline in a single step and generate a report.",
+      "input": [
+        "example_sub.vcf (VCF file containing genotypes)",
+        "sampleAnnotation.txt (Sample annotation file with population and gender info)",
+        "CCDS.Hs37.3.reduced_chr1.bed (BED file containing capture regions)"
+      ],
+      "stages": "1. Run the all-in-one sampleQC function ;; 2. Save the resulting SeqSQC object",
+      "code": "infile <- system.file(\"extdata\", \"example_sub.vcf\", package=\"SeqSQC\")\nsample.annot <- system.file(\"extdata\", \"sampleAnnotation.txt\", package=\"SeqSQC\")\ncr <- system.file(\"extdata\", \"CCDS.Hs37.3.reduced_chr1.bed\", package=\"SeqSQC\")\noutdir <- tempdir()\noutfile <- file.path(outdir, \"testWrapUp\")\nseqfile <- sampleQC(vfile = infile, output = outfile, capture.region = cr, sample.annot = sample.annot, format.data = \"NGS\", format.file = \"vcf\", QCreport = FALSE)\nsave(seqfile, file=\"seqfile.RData\")"
+    },
+    {
+      "name": "step_by_step_qc",
+      "intent": "Run individual sample quality control steps sequentially to allow customization or skipping of specific checks.",
+      "input": [
+        "example_sub.vcf (VCF file containing genotypes)",
+        "sampleAnnotation.txt (Sample annotation file with population and gender info)",
+        "CCDS.Hs37.3.reduced_chr1.bed (BED file containing capture regions)"
+      ],
+      "stages": "1. Convert VCF to GDS and create SeqSQC object ;; 2. Check missing rate ;; 3. Check sex discordance ;; 4. Check inbreeding coefficient ;; 5. Check identity-by-descent ;; 6. Check population outliers ;; 7. Extract problematic samples ;; 8. Generate HTML report",
+      "code": "infile <- system.file(\"extdata\", \"example_sub.vcf\", package=\"SeqSQC\")\nsample.annot <- system.file(\"extdata\", \"sampleAnnotation.txt\", package=\"SeqSQC\")\ncr <- system.file(\"extdata\", \"CCDS.Hs37.3.reduced_chr1.bed\", package=\"SeqSQC\")\noutdir <- tempdir()\noutfile <- file.path(outdir, \"testWrapUp\")\nseqfile <- LoadVfile(vfile = infile, output = outfile, capture.region = cr, sample.annot = sample.annot)\nseqfile <- MissingRate(seqfile, remove.samples=NULL)\nplotQC(seqfile, QCstep = \"MissingRate\")\nseqfile <- SexCheck(seqfile, remove.samples=NULL)\nplotQC(seqfile, QCstep = \"SexCheck\")\nseqfile <- Inbreeding(seqfile, remove.samples=NULL)\nplotQC(seqfile, QCstep = \"Inbreeding\")\nseqfile <- IBD(seqfile, remove.samples=NULL)\nplotQC(seqfile, QCstep = \"IBD\")\nseqfile <- PCA(seqfile, remove.samples=NULL)\nplotQC(seqfile, QCstep = \"PCA\")\nplotQC(seqfile, QCstep = \"PCA\", interactive=TRUE)\nproblemList(seqfile)\nsave(seqfile, file=\"seqfile.Rdata\")\nRenderReport(seqfile, output=\"report.html\", interactive=TRUE)"
+    }
+  ]
+}

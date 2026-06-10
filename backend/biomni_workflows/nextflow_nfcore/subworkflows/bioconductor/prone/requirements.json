@@ -1,0 +1,15 @@
+{
+  "package": "prone",
+  "requirements": [
+    "PRONE",
+    "SummarizedExperiment",
+    "stringr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PRONE",
+      "SummarizedExperiment",
+      "stringr"
+    ]
+  }
+}

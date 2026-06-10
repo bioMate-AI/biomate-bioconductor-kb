@@ -1,101 +1,126 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: oncomix
-// This package helps identify mRNAs that are overexpressed in subsets of tumors relative to normal tis
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/oncomix/inst/doc/oncomix.R
-// Upstream  : RColorBrewer, RMySQL, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("oncomix")
+// Bioconductor workflow: oncomix — oncomix_analysis
+// Identify and visualize oncogene candidates from paired tumor-normal mRNA expression data using 2-component Gaussian mixture models.
+// Input: exprNmlIsof.csv, exprTumIsof.csv
+// Container: quay.io/biocontainers/bioconductor-oncomix:1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, oncomix
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit the mixture models to normal and tumor expression data using mixModelParams
+//  * 2. [Core Analysis] Filter for top candidate genes using topGeneQuants
+//  * 3. [Core Analysis] Select top N genes by sorting the mixture model parameters by score
+//  * 4. [Visualization & Output] Plot a histogram of expression values for a specific gene using plotGeneHist
+//  * 5. [Visualization & Output] Generate scatter plots of the differences between component means using scatterMixPlot
 
 nextflow.enable.dsl = 2
 
-process BIOC_ONCOMIX {
+process BIOC_ONCOMIX_ONCOMIX_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-oncomix"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-oncomix:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-oncomix:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_oncomix_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_oncomix_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_oncomix_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(oncomix)
-    library(MySQL)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(oncomix)
+        library(ggplot2)
+        
+        # Read user input files from the working directory
+        # The input files are expected to have genes/isoforms as rows and patients as columns
+        exprNmlIsof <- as.matrix(read.csv("exprNmlIsof.csv", row.names = 1, check.names = FALSE))
+        exprTumIsof <- as.matrix(read.csv("exprTumIsof.csv", row.names = 1, check.names = FALSE))
+        
+        # 1. Fit the mixture models to normal and tumor expression data
+        mmParams <- mixModelParams(exprNmlIsof, exprTumIsof)
+        
+        # 2. Filter for top candidate genes using topGeneQuants
+        topGeneQuant <- topGeneQuants(mmParams, deltMu2Thr=99, 
+            deltMu1Thr=10, siThr=.99)
+        
+        # 3. Select top N genes (top 10) by sorting the mixture model parameters by score
+        mmParamsTop10 <- mmParams[1:10,]
+        
+        # Define the isoform to plot. 
+        # For robustness, if the default "uc002jxc.2" is not present in the user's dataset,
+        # we dynamically fall back to the top scoring gene in the dataset.
+        isof = "uc002jxc.2"
+        if (!(isof %in% rownames(mmParams)) && nrow(mmParams) > 0) {
+            isof = rownames(mmParams)[1]
+        }
+        
+        # Open PDF device to save the visualizations
+        pdf("oncomix_visualization_plots.pdf", width = 8, height = 7)
+        
+        # 4. Plot a histogram of expression values for a specific gene
+        print(plotGeneHist(mmParams, exprNmlIsof, exprTumIsof, isof))
+        
+        # 5. Generate scatter plots of the differences between component means
+        print(scatterMixPlot(mmParams))
+        print(scatterMixPlot(mmParams, selIndThresh=.99))
+        print(scatterMixPlot(mmParams=mmParams, geneLabels=rownames(mmParamsTop10)))
+        
+        # Close the PDF device
+        dev.off()
+        
+        # Save meaningful tabular results and RDS objects
+        write.csv(mmParams, "oncomix_all_mixture_model_parameters.csv", row.names = TRUE)
+        write.csv(topGeneQuant, "oncomix_top_candidate_genes.csv", row.names = TRUE)
+        write.csv(mmParamsTop10, "oncomix_top10_genes.csv", row.names = TRUE)
+        saveRDS(mmParams, "oncomix_mmParams.rds")
 
-    # --- Oncogene Candidate Selection [] ---
-    # Key functions: topGeneQuants
-    data(exprNmlIsof, exprTumIsof, package = "oncomix")
-    mmParams <- mixModelParams(exprNmlIsof[1:50, ], exprTumIsof[1:50, ])
-    topGeneQuant <- topGeneQuants(mmParams, deltMu2Thr = 90,
-                                  deltMu1Thr = 5, siThr = 0.9)
-
-
-    # --- Expression Visualization [] ---
-    # Key functions: plotGeneHist, scatterMixPlot
-    data(exprNmlIsof, exprTumIsof, package = "oncomix")
-    mmParams <- mixModelParams(exprNmlIsof[1:50, ], exprTumIsof[1:50, ])
-    isof <- rownames(mmParams)[1]
-    plotGeneHist(mmParams, exprNmlIsof, exprTumIsof, isof)
-    scatterMixPlot(mmParams, selIndThresh = 0.9)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_oncomix_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_oncomix_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_oncomix_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ONCOMIX:", paste0("    oncomix: ", packageVersion("oncomix"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ONCOMIX_ONCOMIX_ANALYSIS":',
+        paste0('    oncomix: ', as.character(packageVersion('oncomix')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_oncomix_results.csv
-    touch ${prefix}_oncomix_output.rds
-    echo "BIOC_ONCOMIX:" > versions.yml
-    echo "    oncomix: 0.0.0" >> versions.yml
+    touch ${prefix}_oncomix_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ONCOMIX_WORKFLOW {
+workflow BIOC_ONCOMIX_ONCOMIX_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprNmlIsof.csv, exprTumIsof.csv ] ]
 
     main:
-    BIOC_ONCOMIX(ch_input)
+    BIOC_ONCOMIX_ONCOMIX_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ONCOMIX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ONCOMIX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ONCOMIX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ONCOMIX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ONCOMIX_ONCOMIX_ANALYSIS.out.tables
+    plots    = BIOC_ONCOMIX_ONCOMIX_ANALYSIS.out.plots
+    objects  = BIOC_ONCOMIX_ONCOMIX_ANALYSIS.out.objects
+    versions = BIOC_ONCOMIX_ONCOMIX_ANALYSIS.out.versions
 }

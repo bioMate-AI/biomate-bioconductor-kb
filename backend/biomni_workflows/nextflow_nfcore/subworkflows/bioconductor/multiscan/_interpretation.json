@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A numeric matrix or data frame containing the raw, untransformed intensity data of a single microarray scanned at multiple (two or more) scanner settings. Rows represent individual spots/probes, and columns represent scans.\n- alternatives: A web interface based on the original Fortran code (available at http://www.bioss.ac.uk/ktshowcase/create.cgi) which uses a different implementation of the Nelder-Mead simplex method.\n- when_to_use: Use when you have multiple scans of the same microarray at different scanner sensitivity settings and want to combine them to obtain a single, optimal estimate of gene expression that minimizes signal censoring for highly expressed genes and noise for weakly expressed genes.\n- pitfalls: Input data must be on the raw scale and NOT log-transformed or otherwise transformed. The algorithm is computationally slow and memory-intensive; for very large datasets, it is recommended to first fit the model on a random subset (e.g., 10,000 rows) to obtain initial values for scanning effects and scale parameters before fitting the full dataset.",
+  "workflows": [
+    {
+      "name": "estimate_gene_expression_multiscan",
+      "intent": "Estimate gene expressions from multiple laser scans of a single microarray and perform model diagnostics.",
+      "input": [
+        "intensity_data.csv (a CSV file containing raw, untransformed intensity measurements with rows as probes and columns as scans at different sensitivity settings)"
+      ],
+      "stages": "1. Load the raw intensity data ;; 2. Fit the non-linear functional regression model using multiscan ;; 3. Inspect the fitted model object ;; 4. Extract the estimated gene expressions ;; 5. Plot the fitted model and diagnostic residuals",
+      "code": "data(murine)\nfit<-multiscan(murine)\nfit\nstr(fit)\ngene.exprs<-fit$mu\nplot(fit)\nop<-par(mfrow=c(2,2))\nplot(fit,residual=TRUE)\npar(op)"
+    }
+  ]
+}

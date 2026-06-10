@@ -1,0 +1,17 @@
+{
+  "package": "fedup",
+  "requirements": [
+    "dplyr",
+    "fedup",
+    "ggplot2",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "fedup",
+      "ggplot2",
+      "tidyr"
+    ]
+  }
+}

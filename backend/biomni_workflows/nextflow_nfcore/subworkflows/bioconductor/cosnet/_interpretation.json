@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - cost=Regularization parameter for the COSNet algorithm (e.g., cost=0 for unregularized, cost=0.0001 or cost=0.035 for regularized).\n    - alpha=Neuron activation parameter (value in [0, pi/2[) determining the activation values (sin alpha, -cos alpha).\n    - gamma (or c)=Neuron activation threshold parameter.\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you have a partially labeled network (similarity graph) and need to predict binary labels for unlabeled nodes, particularly when the positive class is extremely rare (highly imbalanced data).\n- pitfalls:\n    - COSNet requires negative labels to be encoded as -1, positive labels as 1, and unlabeled nodes as 0. If negative labels are left as 0, they will be treated as unlabeled nodes, leading to incorrect predictions.",
+  "workflows": [
+    {
+      "name": "cosnet_cross_validation",
+      "intent": "Perform automated cross-validation to predict node labels and evaluate performance on a similarity network.",
+      "input": [
+        "Yeast.STRING.data (similarity matrix)",
+        "Yeast.STRING.FunCat (binary label matrix)"
+      ],
+      "stages": "1. Preprocess the label matrix to convert 0 (negative) values to -1.\n2. Run cross-validation using `cosnet.cross.validation` with or without regularization.\n3. Extract predictions, scores, and labels from the output.",
+      "code": "Yeast.STRING.FunCat[Yeast.STRING.FunCat == 0] <- -1\nout <- cosnet.cross.validation(labeling, Yeast.STRING.data, 5, cost=0)\nout.r <- cosnet.cross.validation(labeling, Yeast.STRING.data, 5, cost=0.0001)\npredictions <- out$predictions\nscores <- out$scores;\nlabels <- out$labels;\npredictions.r <- out.r$predictions\nscores.r <- out.r$scores;\nlabels.r <- out.r$labels;"
+    },
+    {
+      "name": "parameter_optimization_and_prediction",
+      "intent": "Manually optimize network parameters on training data and run the sub-network to predict labels for unlabeled nodes.",
+      "input": [
+        "DD.chem.data (similarity matrix)",
+        "DrugBank.Cat (binary label matrix)"
+      ],
+      "stages": "1. Partition the data into stratified folds using `find.division.strat`.\n2. Hide the test set labels by setting them to 0, and set negative training labels to -1.\n3. Project training nodes into a 2D space using `generate_points`.\n4. Optimize the alpha and gamma parameters using `optimizep`.\n5. Run the sub-network on the unlabeled nodes using `runSubnet` to obtain predictions and scores.",
+      "code": "folds <- find.division.strat(labels, 1:n, 5)\nlabels[labels <= 0] <- -1;\ntest.drugs <- folds[[1]];\ntraining.drugs <- setdiff(1:n, test.drugs);\nlabels[test.drugs] <- 0;\npoints <- generate_points(DD.chem.data, test.drugs, labels);\nopt_parameters <- optimizep(points$pos_vect[training.drugs],\n                points$neg_vect[training.drugs], labels[training.drugs]);\nalpha <- opt_parameters$alpha;\ngamma <- opt_parameters$c;\nFscore <- opt_parameters$Fscore;\nres <- runSubnet(DD.chem.data, labels, alpha, gamma, cost=0.035);"
+    }
+  ]
+}

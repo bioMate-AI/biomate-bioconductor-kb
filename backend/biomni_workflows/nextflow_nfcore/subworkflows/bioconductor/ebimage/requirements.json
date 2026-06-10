@@ -1,0 +1,11 @@
+{
+  "package": "ebimage",
+  "requirements": [
+    "EBImage"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage"
+    ]
+  }
+}

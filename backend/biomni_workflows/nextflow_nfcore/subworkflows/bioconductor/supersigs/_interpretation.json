@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: vcf=A VCF object from VariantAnnotation containing patient age stored as age in its colData ;; data=A data frame containing IndVar (logical indicator for exposure), sample_id, age, and columns of counts for all 96 trinucleotide mutations ;; factor=The exposure factor of interest (e.g., \"Smoking\" or \"age\") ;; object=A trained SuperSig S4 object ;; iupac=Logical indicating whether to use IUPAC labels to group trinucleotide features in simplify_signature ;; newdata=A data frame of new mutation data to predict on\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you have single-base mutations (exomic data) from cancer samples along with patient age and exposure/phenotype labels, and you want to identify supervised mutational signatures or predict exposure from mutational profiles.\n- pitfalls: Patient age must be stored as age in the colData of the VCF object before running process_vcf. make_matrix requires installing and loading a reference genome (e.g., BSgenome.Hsapiens.UCSC.hg19 or BSgenome.Hsapiens.UCSC.hg38). The input data frame for get_signature must contain the IndVar column as the first column (or relocated) along with sample_id, age, and all 96 trinucleotide mutation counts. The apparent AUC returned in the S4 object is not cross-validated.",
+  "workflows": [
+    {
+      "name": "train_supersig",
+      "intent": "Preprocess mutation data, build a trinucleotide feature matrix, and train a supervised mutational signature (SuperSig).",
+      "input": [
+        "chr22.vcf.gz (VCF file containing single nucleotide variants)",
+        "example_dt (Data frame of mutations with sample_id, age, chromosome, position, ref, alt)"
+      ],
+      "stages": "1. Read VCF and add patient age to colData ;; 2. Process VCF to a simplified data frame using process_vcf ;; 3. Transform mutations into a trinucleotide matrix using make_matrix ;; 4. Add the indicator variable (IndVar) to the matrix ;; 5. Train the supervised signature using get_signature ;; 6. Simplify the signature for visualization using simplify_signature",
+      "code": "vcf <- VariantAnnotation::readVcf(fl, \"hg19\") \nvcf <- vcf[, 1]\npositions <- geno(vcf)$GT != \"0|0\" \nvcf <- vcf[positions[, 1],]\ncolData(vcf)$age <- 50\ndt <- process_vcf(vcf)\ninput_dt <- make_matrix(example_dt)\ninput_dt <- input_dt %>%\n  mutate(IndVar = c(1, 1, 1, 0, 0)) %>%\n  relocate(IndVar)\nset.seed(1)\nsupersig <- get_signature(data = input_dt, factor = \"Smoking\")\nfeatures <- simplify_signature(object = supersig, iupac = FALSE)\nfeatures_iupac <- simplify_signature(object = supersig, iupac = TRUE)"
+    },
+    {
+      "name": "predict_supersig",
+      "intent": "Apply a trained or pre-trained SuperSig to a new dataset to predict classification scores.",
+      "input": [
+        "input_dt (Trinucleotide mutation matrix data frame)",
+        "supersig_ls (Pre-trained SuperSigs list provided by the package)"
+      ],
+      "stages": "1. Predict signature features and classification scores on new data using predict_signature",
+      "code": "newdata = predict_signature(supersig, newdata = input_dt, factor = \"Smoking\")\nnewdata = predict_signature(supersig_ls[[\"SMOKING (LUAD)\"]], newdata = input_dt, factor = \"Smoking\")"
+    },
+    {
+      "name": "partial_signature_adjustment",
+      "intent": "Remove the contribution of a supervised signature from a mutation data frame to adjust for a confounding factor.",
+      "input": [
+        "input_dt (Trinucleotide mutation matrix data frame)",
+        "supersig (Trained SuperSig object)"
+      ],
+      "stages": "1. Adjust the mutation matrix by removing the signature's contribution using partial_signature",
+      "code": "adjusted_dt <- partial_signature(data = input_dt, object = supersig)"
+    }
+  ]
+}

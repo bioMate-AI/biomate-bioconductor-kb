@@ -1,119 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChIPXpress
-// ChIPXpress takes as input predicted TF bound genes from ChIPx data and uses a corresponding database
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChIPXpress/inst/doc/ChIPXpress.R
-// Upstream  : ChIPXpressData, ChIPXrpess, GEOquery, affy, biganalytics
-// Downstream: none
-//
-// Install: BiocManager::install("ChIPXpress")
+// Bioconductor workflow: ChIPXpress — rank_targets_prebuilt_db
+// Rank predicted TF bound genes using a pre-built gene expression database from the ChIPXpressData package.
+// Input: Oct4ESC_ChIPgenes, DB_GPL1261.bigmemory.desc
+// Container: quay.io/biocontainers/bioconductor-chipxpress:1.42.0--r42hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ChIPXpress, ChIPXpressData, bigmemory
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the ChIPXpress and ChIPXpressData packages
+//  * 2. [Core Analysis] Attach the pre-built big.matrix database using attach.big.matrix
+//  * 3. [Core Analysis] Run ChIPXpress with the TF Entrez ID, the ranked ChIP target Entrez IDs, and the attached database
+//  * 4. [Visualization & Output] Map the ranked output back to gene symbols using the original annotation data
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIPXPRESS {
+process BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chipxpress"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chipxpress:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chipxpress:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chipxpress_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chipxpress_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chipxpress_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(ChIPXpress)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    library(ChIPXpress)
-    data(Oct4ESC_ChIPgenes)
-    head(Oct4ESC_ChIPgenes)
-    # --- Chipxpress [] ---
-    # Key functions: ChIPXpress
-    Output <- ChIPXpress(TFID="18999",ChIP=Oct4ESC_ChIPgenes$EntrezID,DB=DB_GPL1261)
-    head(Output[[1]])
-    head(Output[[2]])
-    # --- Builddatabase [] ---
-    # Key functions: buildDatabase, tempdir
-    ## library(bigmemory)
-    ## library(biganalytics)
-    ## library(ChIPXrpess)
-    ## library(GEOquery)
-    ## library(affy)
-    # --- Mget [] ---
-    # Key functions: mget
-    ## library(mouse4302.db)
-    ## EntrezID <- mget(as.character(rownames(DB)),mouse4302ENTREZID)
-    ## rownames(DB) <- as.character(EntrezID)
-    # --- Cleandatabase [] ---
-    # Key functions: cleanDatabase, tempdir
-    ## cleanDB <- cleanDatabase(DB,SaveFile="newDB_GPL1261.bigmemory",
-    ##                          SavePath=tempdir())
-    ## head(cleanDB)
-    ## ### cleanDB contains the finished database ready to be
-    ## ### inputted into ChIPXpress.
-    # --- Chipxpress [] ---
-    # Key functions: ChIPXpress
-    ## out <- ChIPXpress(TFID="18999",ChIP=Oct4ESC_ChIPgenes,DB=cleanDB)
-    ## head(out[[1]])
-    ## head(out[[2]])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chipxpress_results.csv", row.names = TRUE)
+    library(ChIPXpressData)
+    library(bigmemory)
+    
+    # 1. Read the user input files from the working directory
+    # Read Oct4ESC_ChIPgenes dataframe robustly (handling CSV, RDS, or extensionless files)
+    if (file.exists("Oct4ESC_ChIPgenes.csv")) {
+      Oct4ESC_ChIPgenes <- read.csv("Oct4ESC_ChIPgenes.csv", stringsAsFactors = FALSE)
+    } else if (file.exists("Oct4ESC_ChIPgenes.rds")) {
+      Oct4ESC_ChIPgenes <- readRDS("Oct4ESC_ChIPgenes.rds")
+    } else if (file.exists("Oct4ESC_ChIPgenes")) {
+      Oct4ESC_ChIPgenes <- tryCatch(
+        readRDS("Oct4ESC_ChIPgenes"),
+        error = function(e) read.csv("Oct4ESC_ChIPgenes", stringsAsFactors = FALSE)
+      )
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chipxpress_results.csv")
+      stop("Required input file 'Oct4ESC_ChIPgenes' (CSV or RDS) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chipxpress_output.rds")
+    
+    # Verify the descriptor file exists in the working directory
+    if (!file.exists("DB_GPL1261.bigmemory.desc")) {
+      stop("Required descriptor file 'DB_GPL1261.bigmemory.desc' not found in the working directory.")
     }
+    
+    # 2. Attach the pre-built big.matrix database
+    path <- "."
+    DB_GPL1261 <- attach.big.matrix("DB_GPL1261.bigmemory.desc", path=path)
+    
+    # 3. Run ChIPXpress with the TF Entrez ID, ranked ChIP target Entrez IDs, and the database
+    Output <- ChIPXpress(TFID="18999",ChIP=Oct4ESC_ChIPgenes\$EntrezID,DB=DB_GPL1261)
+    
+    # 4. Map the ranked output back to gene symbols using the original annotation data
+    GeneNames <- Oct4ESC_ChIPgenes\$Annotation[match(names(Output[[1]]),
+                                              Oct4ESC_ChIPgenes\$EntrezID)]
+    Result <- data.frame(1:length(Output[[1]]),GeneNames,names(Output[[1]]),Output[[1]])
+    colnames(Result) <- c("Rank","GeneNames","EntrezID","ChIPXpressScore")
+    
+    # 5. Write output files
+    # Save the final ranked target genes table
+    write.csv(Result, "ChIPXpress_Ranked_Targets.csv", row.names = FALSE)
+    
+    # Save the raw Output list object
+    saveRDS(Output, "ChIPXpress_Output.rds")
+    
+    # Generate a diagnostic plot of the ChIPXpress scores
+    pdf("ChIPXpress_Scores_Distribution.pdf", width = 7, height = 5)
+    hist(Result\$ChIPXpressScore, 
+         main = "Distribution of ChIPXpress Scores", 
+         xlab = "ChIPXpress Score", 
+         col = "skyblue", 
+         border = "white",
+         breaks = 30)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIPXPRESS:", paste0("    chipxpress: ", packageVersion("ChIPXpress"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB":',
+        paste0('    ChIPXpress: ', as.character(packageVersion('ChIPXpress')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chipxpress_results.csv
-    touch ${prefix}_chipxpress_output.rds
-    echo "BIOC_CHIPXPRESS:" > versions.yml
-    echo "    chipxpress: 0.0.0" >> versions.yml
+    touch ${prefix}_rank_targets_prebuilt_db.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIPXPRESS_WORKFLOW {
+workflow BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Oct4ESC_ChIPgenes, DB_GPL1261.bigmemory.desc ] ]
 
     main:
-    BIOC_CHIPXPRESS(ch_input)
+    BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB(ch_input)
 
     emit:
-    results  = BIOC_CHIPXPRESS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIPXPRESS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIPXPRESS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIPXPRESS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB.out.tables
+    plots    = BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB.out.plots
+    objects  = BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB.out.objects
+    versions = BIOC_CHIPXPRESS_RANK_TARGETS_PREBUILT_DB.out.versions
 }

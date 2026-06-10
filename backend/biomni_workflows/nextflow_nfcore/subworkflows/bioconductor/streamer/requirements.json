@@ -1,0 +1,11 @@
+{
+  "package": "streamer",
+  "requirements": [
+    "Streamer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Streamer"
+    ]
+  }
+}

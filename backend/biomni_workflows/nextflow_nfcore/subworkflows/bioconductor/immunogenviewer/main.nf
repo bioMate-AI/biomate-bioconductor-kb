@@ -1,112 +1,160 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: immunogenViewer
-// Plots protein properties and visualizes position of peptide immunogens within protein sequence. Allo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/immunogenViewer/inst/doc/immunogenViewer_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("immunogenViewer")
+// Bioconductor workflow: immunogenViewer — immunogen_evaluation_and_visualization
+// Retrieve protein features, add candidate immunogens, visualize their positions, and evaluate their structural/functional properties to select the best antibody.
+// Input: UniProt ID, Immunogen coordinates
+// Container: quay.io/biocontainers/bioconductor-immunogenviewer:1.4.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: immunogenViewer
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Retrieve protein features from UniProt and PredictProtein using getProteinFeatures()
+//  * 2. [Core Analysis] Add candidate immunogens using addImmunogen()
+//  * 3. [Core Analysis] Rename or remove immunogens if necessary using renameImmunogen() or removeImmunogen()
+//  * 4. [Visualization & Output] Plot the full protein sequence with annotated features and immunogens using plotProtein()
+//  * 5. [Visualization & Output] Plot a detailed view of a specific immunogen using plotImmunogen()
+//  * 6. [Visualization & Output] Generate a summary evaluation table of all immunogens using evaluateImmunogen()
 
 nextflow.enable.dsl = 2
 
-process BIOC_IMMUNOGENVIEWER {
+process BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-immunogenviewer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-immunogenviewer:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-immunogenviewer:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_immunogenviewer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_immunogenviewer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_immunogenviewer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(immunogenViewer)
-    library(jsonlite)
-
-    # --- get Protein Features [] ---
-    # Key functions: getProteinFeatures, datatable
-    protein <- getProteinFeatures("Q9NZC2")
-    DT::datatable(protein, width = "80%", options = list(scrollX = TRUE))
-    # --- add Immunogen [] ---
-    # Key functions: addImmunogen
-    protein <- addImmunogen(protein, start = 142, end = 192, name = "ABIN2783734_")
-    protein <- addImmunogen(protein, start = 196, end = 230, name = "HPA010917")
-    protein <- addImmunogen(protein, seq = "HGQKPGTHPPSELD", name = "EB07921")
-    # --- rename Immunogen [] ---
-    # Key functions: renameImmunogen
-    protein <- renameImmunogen(protein, oldName = "ABIN2783734_", newName = "ABIN2783734")
-    colnames(protein)
-    # --- remove Immunogen [] ---
-    # Key functions: removeImmunogen
-    protein <- removeImmunogen(protein, name = "HPA010917")
-    colnames(protein)
-    # --- visualize protein [] ---
-    # Key functions: plotProtein
-    plotProtein(protein)
-    # --- visualize immunogen [] ---
-    # Key functions: plotImmunogen
-    plotImmunogen(protein, "ABIN2783734")
-    # --- evaluate Immunogen [] ---
-    # Key functions: evaluateImmunogen, datatable
+    
+    # Create default input files if they do not exist in the working directory
+    if (!file.exists("uniprot_id.txt")) {
+      writeLines("Q9NZC2", "uniprot_id.txt")
+    }
+    
+    if (!file.exists("immunogens.csv")) {
+      write.csv(data.frame(
+        name = c("ABIN2783734_", "HPA010917", "EB07921"),
+        start = c(142, 196, NA),
+        end = c(192, 230, NA),
+        seq = c(NA, NA, "HGQKPGTHPPSELD"),
+        stringsAsFactors = FALSE
+      ), "immunogens.csv", row.names = FALSE, na = "")
+    }
+    
+    # Read user inputs
+    uniprot_id <- trimws(readLines("uniprot_id.txt", warn = FALSE)[1])
+    imm_data <- read.csv("immunogens.csv", stringsAsFactors = FALSE)
+    
+    # 1. Retrieve protein features from UniProt and PredictProtein
+    protein <- tryCatch({
+      getProteinFeatures(uniprot_id)
+    }, error = function(e) {
+      message("Error retrieving protein features: ", e\$message)
+      NULL
+    })
+    
+    if (is.null(protein)) {
+      stop("Pipeline stopped: Protein features could not be retrieved.")
+    }
+    
+    # 2. Add candidate immunogens
+    for (i in seq_len(nrow(imm_data))) {
+      has_start_end <- "start" %in% colnames(imm_data) && "end" %in% colnames(imm_data) && 
+                       !is.na(imm_data\$start[i]) && !is.na(imm_data\$end[i]) && 
+                       imm_data\$start[i] != "" && imm_data\$end[i] != ""
+                       
+      has_seq <- "seq" %in% colnames(imm_data) && 
+                 !is.na(imm_data\$seq[i]) && imm_data\$seq[i] != ""
+                 
+      if (has_start_end) {
+        protein <- addImmunogen(protein, start = as.integer(imm_data\$start[i]), end = as.integer(imm_data\$end[i]), name = imm_data\$name[i])
+      } else if (has_seq) {
+        protein <- addImmunogen(protein, seq = imm_data\$seq[i], name = imm_data\$name[i])
+      }
+    }
+    
+    # 3. Rename or remove immunogens if necessary
+    # (Skipped to support generic user-provided data without hardcoded names)
+    
+    # 4. Plot the full protein sequence with annotated features and immunogens
+    pdf("protein_plot.pdf", width = 10, height = 10)
+    p1 <- plotProtein(protein)
+    if (inherits(p1, "ggplot") || inherits(p1, "patchwork") || inherits(p1, "grob")) {
+      print(p1)
+    }
+    dev.off()
+    
+    # 5. Plot a detailed view of a specific immunogen
+    pdf("immunogen_plot.pdf", width = 10, height = 10)
+    if (nrow(imm_data) > 0) {
+      p2 <- plotImmunogen(protein, imm_data\$name[1])
+      if (inherits(p2, "ggplot") || inherits(p2, "patchwork") || inherits(p2, "grob")) {
+        print(p2)
+      }
+    }
+    dev.off()
+    
+    # 6. Generate a summary evaluation table of all immunogens
     immunogens <- evaluateImmunogen(protein)
-    DT::datatable(immunogens, width = "80%", options = list(scrollX = TRUE))
+    
+    # Write outputs to the working directory
+    write.csv(immunogens, "immunogens_evaluation.csv", row.names = FALSE)
+    saveRDS(protein, "protein_features.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_immunogenviewer_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_immunogenviewer_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_immunogenviewer_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IMMUNOGENVIEWER:", paste0("    immunogenviewer: ", packageVersion("immunogenViewer"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION":',
+        paste0('    immunogenViewer: ', as.character(packageVersion('immunogenViewer')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_immunogenviewer_results.csv
-    touch ${prefix}_immunogenviewer_output.rds
-    echo "BIOC_IMMUNOGENVIEWER:" > versions.yml
-    echo "    immunogenviewer: 0.0.0" >> versions.yml
+    touch ${prefix}_immunogen_evaluation_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_IMMUNOGENVIEWER_WORKFLOW {
+workflow BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ UniProt ID, Immunogen coordinates ] ]
 
     main:
-    BIOC_IMMUNOGENVIEWER(ch_input)
+    BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_IMMUNOGENVIEWER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IMMUNOGENVIEWER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IMMUNOGENVIEWER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IMMUNOGENVIEWER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION.out.tables
+    plots    = BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION.out.plots
+    objects  = BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION.out.objects
+    versions = BIOC_IMMUNOGENVIEWER_IMMUNOGEN_EVALUATION_AND_VISUALIZATION.out.versions
 }

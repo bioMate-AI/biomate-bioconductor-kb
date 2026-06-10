@@ -1,0 +1,11 @@
+{
+  "package": "ecolitk",
+  "requirements": [
+    "ecolitk"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ecolitk"
+    ]
+  }
+}

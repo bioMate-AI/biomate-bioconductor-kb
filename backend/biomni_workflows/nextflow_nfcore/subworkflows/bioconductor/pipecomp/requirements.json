@@ -1,0 +1,27 @@
+{
+  "package": "pipecomp",
+  "requirements": [
+    "ComplexHeatmap",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "edgeR",
+    "ggplot2",
+    "pipeComp",
+    "sva"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "edgeR",
+      "ggplot2",
+      "pipeComp",
+      "sva"
+    ],
+    "scrna_seq_clustering_benchmarking.nf": [
+      "ComplexHeatmap",
+      "pipeComp"
+    ]
+  }
+}

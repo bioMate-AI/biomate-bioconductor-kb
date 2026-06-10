@@ -1,0 +1,11 @@
+{
+  "package": "rdrtoolbox",
+  "requirements": [
+    "RDRToolbox"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RDRToolbox"
+    ]
+  }
+}

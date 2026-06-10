@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - transform=Variance-stabilizing transformation to apply; either \"logit\" (default) or \"asin\" (arcsin square root).\n  - clusters=Vector containing cell-type or cluster labels for each cell.\n  - sample=Vector containing sample identifiers for each cell.\n  - group=Vector containing experimental group/condition labels for each cell.\n  - robust=Logical parameter passed to limma's eBayes; TRUE (default in examples) performs robust empirical Bayes shrinkage to mitigate outlier effects.\n  - trend=Logical parameter passed to limma's eBayes; FALSE (default in examples) is recommended because variance-stabilizing transformations remove the mean-variance trend.\n  - coef=Vector of indices specifying which columns of the design matrix to test in propeller.anova.\n  - contrasts=Contrast matrix specifying pairwise comparisons to test in propeller.ttest.\n  - data.type=Type of input data in convertDataToList; either \"proportions\" or \"counts\".\n  - scale.fac=Scalar or vector representing the number of cells sequenced per sample, required when using convertDataToList with transform=\"logit\".\n- alternatives:\n  - For complex random effects with 2 or more random variables, use the lme4 or dream packages instead of limma's duplicateCorrelation.\n  - For cell type assignment, reference-based classification or label transfer methods can be used instead of unsupervised clustering.\n  - For single-cell integration prior to clustering, use Harmony, Liger, or Seurat's integration techniques.\n- when_to_use:\n  - Use when you have single-cell RNA-seq, spatial transcriptomics, or deconvoluted cell-type proportion data (e.g., NanoString GeoMx) with biological replicates in at least one group (minimum sample size of 2 in one group and 1 in the other) and want to test for statistically significant differences in cell type proportions between conditions.\n- pitfalls:\n  - Do not run propeller without biological replication (e.g., 1 sample per group), as it is highly sensitive to small changes and will yield false positives due to unmodeled technical and biological variability.\n  - Setting trend=TRUE in eBayes can cause errors because there are often too few cell types (data points) to estimate the mean-variance trend.\n  - Avoid overly refined clustering where cell types are unique to specific samples; broader cell-type lineages or combined clusters are recommended for meaningful proportion testing.",
+  "workflows": [
+    {
+      "name": "propeller_direct_object_analysis",
+      "intent": "Test for differences in cell type proportions directly from a SingleCellExperiment or Seurat object.",
+      "input": [
+        "sce_all (SingleCellExperiment or Seurat object containing 'cluster', 'sample', and 'group' columns in its metadata)"
+      ],
+      "stages": "1. Run propeller with default logit transformation.\n2. Run propeller with arcsin square root transformation.\n3. Run propeller by explicitly passing metadata vectors.\n4. Visualise cell type proportions across samples.",
+      "code": "propeller(sce_all)\npropeller(sce_all, transform=\"asin\")\npropeller(clusters=sce_all$cluster, sample=sce_all$sample, group=sce_all$group)\nplotCellTypeProps(sce_all)"
+    },
+    {
+      "name": "custom_linear_modeling_and_anova",
+      "intent": "Extract transformed proportions to perform custom linear modeling, ANOVA, pairwise t-tests, continuous trend fitting, or random effects modeling.",
+      "input": [
+        "sce_all (SingleCellExperiment object with cluster, sample, and group metadata)"
+      ],
+      "stages": "1. Extract counts, proportions, and transformed proportions.\n2. Set up a design matrix for group and pairing covariates.\n3. Perform an ANOVA test across multiple groups using propeller.anova.\n4. Perform a pairwise t-test using propeller.ttest with contrasts.\n5. Fit a continuous variable (dose/trend) directly using limma.\n6. Fit a linear model accounting for random effects using duplicateCorrelation.",
+      "code": "props <- getTransformedProps(sce_all$cluster, sce_all$sample, transform=\"logit\")\ndesign <- model.matrix(~ 0 + group + pair)\npropeller.anova(prop.list=props, design=design, coef = c(1,2,3), robust=TRUE, trend=FALSE, sort=TRUE)\nmycontr <- makeContrasts(group10x-groupdropseq, levels=design)\npropeller.ttest(props, design, contrasts = mycontr, robust=TRUE, trend=FALSE, sort=TRUE)\n\ndes.dose <- model.matrix(~dose)\nfit <- lmFit(props$TransformedProps,des.dose)\nfit <- eBayes(fit, robust=TRUE)\ntopTable(fit)\n\ndes.tech <- model.matrix(~group)\ndupcor <- duplicateCorrelation(props$TransformedProps, design=des.tech, block=pair)\nfit1 <- lmFit(props$TransformedProps, design=des.tech, block=pair, correlation=dupcor$consensus)\nfit1 <- eBayes(fit1)\ntopTable(fit1,coef=2)"
+    },
+    {
+      "name": "propeller_on_precalculated_proportions",
+      "intent": "Run propeller analysis starting from a pre-calculated cell type proportions matrix (e.g., from deconvolution or other platforms).",
+      "input": [
+        "pbmc.props (matrix or data frame of cell type proportions)",
+        "pbmc.sample.info (data frame of sample metadata)",
+        "tot.cells (vector of total cell counts per sample)"
+      ],
+      "stages": "1. Convert the proportions matrix into a propeller-compatible list object.\n2. Set up the design matrix with covariates.\n3. Define contrasts and run propeller.ttest.",
+      "code": "prop.list <- convertDataToList(pbmc.props,data.type=\"proportions\", transform=\"logit\", scale.fac=tot.cells/20)\ndesignAS <- model.matrix(~0+pbmc.sample.info$age + pbmc.sample.info$sex)\ncolnames(designAS) <- c(\"old\",\"young\",\"MvsF\")\nmycontr <- makeContrasts(young-old, levels=designAS)\npropeller.ttest(prop.list = prop.list,design = designAS, contrasts = mycontr, robust=TRUE,trend=FALSE,sort=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "tripr",
+  "requirements": [
+    "tripr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "tripr"
+    ]
+  }
+}

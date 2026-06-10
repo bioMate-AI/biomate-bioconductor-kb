@@ -1,0 +1,13 @@
+{
+  "package": "rwikipathways",
+  "requirements": [
+    "EBImage",
+    "rWikiPathways"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "rWikiPathways"
+    ]
+  }
+}

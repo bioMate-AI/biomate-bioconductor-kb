@@ -1,0 +1,11 @@
+{
+  "package": "genenetworkbuilder",
+  "requirements": [
+    "GeneNetworkBuilder"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GeneNetworkBuilder"
+    ]
+  }
+}

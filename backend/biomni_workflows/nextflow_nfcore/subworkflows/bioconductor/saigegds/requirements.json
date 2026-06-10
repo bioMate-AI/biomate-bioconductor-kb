@@ -1,0 +1,19 @@
+{
+  "package": "saigegds",
+  "requirements": [
+    "SAIGEgds",
+    "SNPRelate",
+    "SeqArray",
+    "ggmanh",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SAIGEgds",
+      "SNPRelate",
+      "SeqArray",
+      "ggmanh",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "package": "atacseqqc",
+  "requirements": [
+    "ATACseqQC",
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "ChIPpeakAnno",
+    "GenomicAlignments",
+    "MotifDb",
+    "Rsamtools",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "phastCons100way.UCSC.hg19"
+  ],
+  "by_workflow": {
+    "atacseq_downstream_analysis.nf": [
+      "ATACseqQC",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "ChIPpeakAnno",
+      "GenomicAlignments",
+      "MotifDb",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene"
+    ],
+    "main.nf": [
+      "ATACseqQC",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "ChIPpeakAnno",
+      "GenomicAlignments",
+      "MotifDb",
+      "Rsamtools",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "phastCons100way.UCSC.hg19"
+    ]
+  }
+}

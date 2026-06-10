@@ -1,0 +1,23 @@
+{
+  "package": "minimumdistance",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg18",
+    "MinimumDistance",
+    "SummarizedExperiment",
+    "VanillaICE",
+    "data.table",
+    "foreach",
+    "oligoClasses"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg18",
+      "MinimumDistance",
+      "SummarizedExperiment",
+      "VanillaICE",
+      "data.table",
+      "foreach",
+      "oligoClasses"
+    ]
+  }
+}

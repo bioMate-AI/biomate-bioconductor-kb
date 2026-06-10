@@ -1,0 +1,19 @@
+{
+  "package": "methodical",
+  "requirements": [
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "bsseq",
+    "ggplot2",
+    "methodical"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "bsseq",
+      "ggplot2",
+      "methodical"
+    ]
+  }
+}

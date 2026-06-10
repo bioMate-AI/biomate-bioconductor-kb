@@ -1,0 +1,23 @@
+{
+  "package": "tvtb",
+  "requirements": [
+    "EnsDb.Hsapiens.v75",
+    "GenomicRanges",
+    "IRanges",
+    "Rsamtools",
+    "S4Vectors",
+    "TVTB",
+    "VariantAnnotation"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EnsDb.Hsapiens.v75",
+      "GenomicRanges",
+      "IRanges",
+      "Rsamtools",
+      "S4Vectors",
+      "TVTB",
+      "VariantAnnotation"
+    ]
+  }
+}

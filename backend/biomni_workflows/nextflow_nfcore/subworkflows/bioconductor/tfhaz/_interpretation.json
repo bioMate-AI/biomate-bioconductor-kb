@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: accumulation(acctype=\"TF\"|\"region\"|\"base\", chr=\"chromosome_name\"|\"all\", w=half_width_of_window) ;; dense_zones(threshold_step=integer_step, writeBed=logical) ;; high_accumulation_zones(method=\"binding_regions\"|\"overlaps\", threshold=\"std\"|\"top_perc\", k=integer, writeBed=logical, plotZones=logical)\n- alternatives: None mentioned.\n- when_to_use: When analyzing ChIP-seq data of transcription factor binding regions to identify genomic regions with high co-localization of different transcription factors.\n- pitfalls: The \"binding_regions\" method in high_accumulation_zones requires the accumulation vector to be calculated with w=0. Calculation time of the accumulation vector increases significantly with larger values of w. acctype=\"base\" has a higher running time than \"TF\" or \"region\", especially for chromosomes with many input regions. n_zones_PCA requires the number of different threshold values used in dense_zones to be identical across all three accumulation types.",
+  "workflows": [
+    {
+      "name": "tfhaz_analysis",
+      "intent": "Find and analyze transcription factor high accumulation DNA zones from genomic coordinates of TF binding regions.",
+      "input": [
+        "tf_regions.GRanges (GRanges object containing genomic coordinates of TF binding regions and TF names in metadata)"
+      ],
+      "stages": "1. Calculate TF accumulation along the chromosome bases using accumulation ;; 2. Plot the accumulation vector using plot_accumulation ;; 3. Find dense DNA zones across multiple thresholds using dense_zones ;; 4. Plot the number of dense zones across thresholds using plot_n_zones ;; 5. Analyze the effect of window size w using w_analysis ;; 6. Perform PCA on different accumulation types using n_zones_PCA ;; 7. Identify final high accumulation zones (TFHAZ) using high_accumulation_zones",
+      "code": "data(\"Ishikawa\")\ndim(as.data.frame(Ishikawa))\nhead(Ishikawa)\n\nTF_acc_21_w_0 <- accumulation(Ishikawa, \"TF\", \"chr21\", 0)\n\nplot_accumulation(TF_acc_21_w_0)\n\nTF_dense_21_w_0 <- dense_zones(TF_acc_w_0, 1, chr = \"chr21\")\nTF_dense_21_w_0\n\nplot_n_zones(TF_dense_w_0, chr = \"chr21\")\n\nl <- list(TF_dense_w_10, TF_dense_w_100, TF_dense_w_1000, TF_dense_w_10000)\nw_analysis(l, chr = \"chr21\")\n\nn_zones_PCA(TF_dense_w_10, reg_dense_w_10, base_dense_w_10, chr = \"chr21\")\n\nTF_acc_21_w_0 <- accumulation(Ishikawa, \"TF\", \"chr21\", 0)\nTFHAZ_21_w_0 <- high_accumulation_zones(TF_acc_21_w_0, method = \"overlaps\",\nthreshold = \"std\")\nTFHAZ_21_w_0"
+    }
+  ]
+}

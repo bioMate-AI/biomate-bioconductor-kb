@@ -1,0 +1,14 @@
+{
+  "package": "icare",
+  "requirements": [
+    "iCARE"
+  ],
+  "by_workflow": {
+    "absolute_risk_model_validation.nf": [
+      "iCARE"
+    ],
+    "main.nf": [
+      "iCARE"
+    ]
+  }
+}

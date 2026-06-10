@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rank=Specifies the taxonomic level (e.g., \"Family\", \"Species\") at which to merge features in agglomerateByRank ;; agglomerateTree=A logical value indicating whether to shrink the phylogenetic tree alongside taxonomic agglomeration ;; empty.rm=A logical value indicating whether to remove features with empty or NA taxonomic classifications during agglomeration ;; method=The transformation method (e.g., \"log10\") in transformAssay or the distance metric (e.g., \"bray\") in getDissimilarity ;; pseudocount=A numeric value added to counts before transformation to avoid undefined values (e.g., log of zero) ;; sample=The target sequencing depth/number of counts per sample for subsampling in rarefyAssay ;; index=The specific alpha diversity index to calculate (e.g., \"shannon\") in addAlpha\n- alternatives: phyloseq=A legacy R package for microbiome analysis; mia provides convertFromPhyloseq and convertToPhyloseq to migrate data to and from TreeSummarizedExperiment ;; TreeSummarizedExperiment::aggValue=An alternative function for merging nodes, but mia's agglomerateByRank is preferred as it does not require tree data to be present ;; vegan=A package for ecological diversity analysis; mia wraps vegan's distance calculations via getDissimilarity and integrates them with scater's runMDS\n- when_to_use: Use this package when analyzing metagenomic or marker-gene (16S/ITS) amplicon sequencing data represented as count matrices with associated taxonomic classifications and phylogenetic trees. It is ideal for workflows requiring synchronized subsetting of samples, features, and trees, or when storing multiple taxonomic resolutions within a single object.\n- pitfalls: Setting empty.rm = TRUE in agglomerateByRank will silently discard any taxa that lack classification at the specified rank, which can drastically alter downstream abundance profiles depending on database completeness. Agglomerating data without setting agglomerateTree = TRUE keeps the original un-shrunk tree, which may lead to inconsistencies between the agglomerated features and the tree leaves.",
+  "workflows": [
+    {
+      "name": "taxonomic_agglomeration_and_tree_construction",
+      "intent": "Agglomerate microbiome count data at specific taxonomic ranks and construct or update the corresponding phylogenetic tree.",
+      "input": [
+        "esophagus.RDS (Phyloseq object containing OTU table and phylogenetic tree)",
+        "GlobalPatterns.RDS (TreeSummarizedExperiment object containing raw counts and taxonomic rowData)"
+      ],
+      "stages": "1. Convert legacy phyloseq objects to TreeSummarizedExperiment format.\n2. Inspect available taxonomic ranks and identify empty classifications.\n3. Agglomerate feature counts at a specified taxonomic rank (e.g., Family or Species), optionally shrinking the phylogenetic tree.\n4. Store the agglomerated data as an alternative experiment within the original object.\n5. Construct a taxonomic tree from rowData taxonomy and update the alternative experiment's tree structure.",
+      "code": "library(\"mia\")\nlibrary(phyloseq)\ndata(esophagus, package = \"phyloseq\")\nesophagus <- convertFromPhyloseq(esophagus)\n\ndata(GlobalPatterns, package = \"mia\")\ntse <- GlobalPatterns\ncolnames(rowData(tse))\ntaxonomyRanks(tse)\nrowData(tse)[,taxonomyRanks(tse)]\n\ntable(taxonomyRankEmpty(tse, \"Species\"))\nhead(getTaxonomyLabels(tse))\n\nx1 <- agglomerateByRank(tse, rank = \"Family\")\nx2 <- agglomerateByRank(tse, rank = \"Family\",\n                        agglomerateTree = TRUE)\n\naltExp(tse, \"family\") <- x2\n\nx1 <- agglomerateByRank(tse, rank = \"Species\", empty.rm = TRUE)\naltExp(tse,\"species\") <- agglomerateByRank(\n    tse, rank = \"Species\", empty.rm = FALSE)\n\ntse <- agglomerateByRanks(tse)\n\ntaxa <- rowData(altExp(tse,\"Species\"))[,taxonomyRanks(tse)]\ntaxa_res <- resolveLoop(as.data.frame(taxa))\ntaxa_tree <- toTree(data = taxa_res)\ntaxa_tree$tip.label <- getTaxonomyLabels(altExp(tse,\"Species\"))\nrowNodeLab <- getTaxonomyLabels(altExp(tse,\"Species\"), make.unique = FALSE)\naltExp(tse,\"Species\") <- changeTree(\n    altExp(tse,\"Species\"),\n    rowTree = taxa_tree,\n    rowNodeLab = rowNodeLab)"
+    },
+    {
+      "name": "abundance_transformation_and_rarefaction",
+      "intent": "Transform raw microbiome count data and perform rarefaction (subsampling to equal depth) for downstream statistical analyses.",
+      "input": [
+        "enterotype.RDS (TreeSummarizedExperiment object containing raw counts)",
+        "GlobalPatterns.RDS (TreeSummarizedExperiment object containing raw counts)"
+      ],
+      "stages": "1. Apply mathematical transformations (e.g., log10 with a pseudocount) to the assay data.\n2. Subsample the raw counts to an equal number of counts per sample (rarefying) using a specified random seed.\n3. Combine the original and subsampled datasets into a MultiAssayExperiment container for synchronized management.",
+      "code": "library(\"mia\")\ndata(enterotype, package = \"mia\")\nanterotype <- transformAssay(enterotype, method = \"log10\", pseudocount = 1)\n\ndata(GlobalPatterns, package = \"mia\")\ntse.subsampled <- rarefyAssay(\n    GlobalPatterns, \n    sample = 60000, \n    name = \"subsampled\",\n    replace = TRUE,\n    seed = 1938)\n\nlibrary(MultiAssayExperiment)\nmae <- MultiAssayExperiment(\n    c(\"originalTreeSE\" = GlobalPatterns,\n    \"subsampledTreeSE\" = tse.subsampled))\n\nexperiments(mae)$subsampledTreeSE"
+    },
+    {
+      "name": "community_diversity_and_ordination",
+      "intent": "Calculate alpha diversity indices and perform beta diversity ordination (MDS/PCoA) on microbiome profiles.",
+      "input": [
+        "GlobalPatterns.RDS (TreeSummarizedExperiment object containing raw counts and sample metadata)"
+      ],
+      "stages": "1. Estimate sample-wise alpha diversity (e.g., Shannon index) and append the results directly to the sample metadata (colData).\n2. Calculate inter-sample beta diversity dissimilarity (e.g., Bray-Curtis distance).\n3. Perform Multidimensional Scaling (MDS/PCoA) ordination on an agglomerated taxonomic rank and store the reduced dimensions.",
+      "code": "library(\"mia\")\ndata(GlobalPatterns, package = \"mia\")\ntse <- GlobalPatterns\n\ntse <- addAlpha(tse, index = \"shannon\")\ncolnames(colData(tse))[8:ncol(colData(tse))]\n\nlibrary(scater)\ntse <- agglomerateByRanks(tse)\naltExp(tse,\"Genus\") <- runMDS(\n    altExp(tse,\"Genus\"), \n    FUN = getDissimilarity,\n    method = \"bray\",\n    name = \"BrayCurtis\", \n    ncomponents = 5, \n    assay.type = \"counts\", \n    keep_dist = TRUE)"
+    }
+  ]
+}

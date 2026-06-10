@@ -1,0 +1,13 @@
+{
+  "package": "assessorf",
+  "requirements": [
+    "AssessORF",
+    "RSQLite"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AssessORF",
+      "RSQLite"
+    ]
+  }
+}

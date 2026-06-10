@@ -1,0 +1,13 @@
+{
+  "package": "rpx",
+  "requirements": [
+    "SummarizedExperiment",
+    "rpx"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "rpx"
+    ]
+  }
+}

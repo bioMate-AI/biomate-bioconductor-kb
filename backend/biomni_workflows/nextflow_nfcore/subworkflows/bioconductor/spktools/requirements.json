@@ -1,0 +1,11 @@
+{
+  "package": "spktools",
+  "requirements": [
+    "spkTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "spkTools"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genedata=A data.frame with three columns (gsname, gene [numeric Entrez GeneID], weight [1 for activated, -1 for repressed]) specifying the input gene sets ;; pattern=A data.frame with four columns (gsname, acttype [\"High\" or \"Low\"], cotype [\"Norm\", \"Quantile\", or \"Exprs\"], cutoff [numeric value]) specifying the activity pattern of interest ;; chipdata=The expression compendium to search, either 'moe4302' (mouse GPL1261) or 'hgu133a' (human GPL96) ;; Pval.co=Significance cutoff (adjusted p-value) for reporting active biological contexts ;; directory=An optional directory path; if specified, GSCA automatically runs recursive follow-up analyses for all significant experiments and saves the outputs ;; N=The number of top-ranked biological contexts to highlight in GSCAplot (maximum of 5) ;; Ordering=The ordering method used in GSCAeda (e.g., \"Average\")\n- alternatives: GSCAui=An interactive Shiny-based user interface recommended for users who prefer a graphical interface, easier customization of plots, and more powerful analysis options ;; CisGenome/RMA/limma=Upstream tools recommended for processing raw ChIP-seq and microarray data to generate the input gene lists\n- when_to_use: Use when you have identified a set of activated and repressed target genes for a transcription factor (or other biological pathway) and want to systematically scan public expression datasets to discover tissues, cell types, or disease states where this regulatory program is active.\n- pitfalls: Different transcription factors behave differently, meaning there is no single optimal cutoff value for the activity pattern; users must experiment with cutoff stringency ;; Setting the directory parameter to a non-NULL path in the main GSCA function triggers recursive tabSearch and GSCAeda runs for all significant experiments, which can generate a very large number of files and take a long time to complete ;; Gene IDs in the genedata data frame must be numeric Entrez GeneIDs, not gene symbols ;; Every unique geneset name defined in genedata must appear exactly once in the pattern data frame.",
+  "workflows": [
+    {
+      "name": "gsca_enrichment_analysis",
+      "intent": "Identify and visualize biological contexts (cell types, tissues, or diseases) enriched with a specific gene set activity pattern.",
+      "input": [
+        "genedata.csv (Data frame containing gene set names, Entrez Gene IDs, and activation/repression weights)",
+        "pattern.csv (Data frame defining the target activity direction, cutoff type, and cutoff value for each gene set)"
+      ],
+      "stages": "1. Format the gene set data and weights into the required three-column data frame structure ;; 2. Define the target activity pattern and cutoffs in a four-column data frame ;; 3. Run the enrichment search across the selected compendium using GSCA ;; 4. Visualize the top-ranked biological contexts using GSCAplot",
+      "code": "library(GSCA)\ndata(Oct4ESC_TG)\nactivenum <- length(Oct4ESC_TG[[1]])\nrepressnum <- length(Oct4ESC_TG[[2]])\nOctgenedata <- data.frame(\n      gsname=c(\"TF\",rep(\"TG\",activenum+repressnum)),\n      gene=c(18999,Oct4ESC_TG[[1]],Oct4ESC_TG[[2]]),\n      weight=c(rep(1,1+activenum),rep(-1,repressnum)),\n      stringsAsFactors=FALSE)\nOctpattern <- data.frame(\n      gsname=c(\"TF\",\"TG\"),\n      acttype=\"High\",\n      cotype=\"Norm\",\n      cutoff=0.1,\n      stringsAsFactors=FALSE)\ndisplayoct <- Octoutput <- GSCA(Octgenedata,Octpattern,\"moe4302\",Pval.co=0.05,directory=NULL)\nGSCAplot(Octoutput,N=5,plotfile=NULL,Title=\"GSCA plot of Oct4 in ESC\")"
+    },
+    {
+      "name": "gsca_followup_eda",
+      "intent": "Perform targeted exploratory data analysis and statistical comparisons on specific experiments or contexts of interest.",
+      "input": [
+        "genedata.csv (Data frame containing gene set names, Entrez Gene IDs, and activation/repression weights)",
+        "pattern.csv (Data frame defining the target activity direction, cutoff type, and cutoff value)",
+        "keyword (A character string representing an Experiment ID or keyword to search the compendium)"
+      ],
+      "stages": "1. Format the gene set data and target activity pattern ;; 2. Search the compendium for matching experiments or samples using tabSearch ;; 3. Perform pairwise t-tests and generate activity boxplots/heatmaps across the retrieved contexts using GSCAeda",
+      "code": "library(GSCA)\ndata(STAT1_TG)\nStatgenenum <- length(STAT1_TG)\nStatgenedata <- data.frame(gsname=c(\"TF\",rep(\"TG\",Statgenenum)),gene=c(6772,STAT1_TG),weight=1,stringsAsFactors=FALSE)\nStatpattern <- data.frame(gsname=c(\"TF\",\"TG\"),acttype=\"High\",cotype=\"Norm\",cutoff=0.1,stringsAsFactors=FALSE)\nGSE7123out <- tabSearch(\"GSE7123\",\"hgu133a\")\nGSE7123followup <- GSCAeda(Statgenedata,Statpattern,\"hgu133a\",GSE7123out,Pval.co=0.05,Ordering=\"Average\",Title=NULL,outputdir=NULL) \nGSE7123followup$Tstats\nGSE7123followup$Pval"
+    }
+  ]
+}

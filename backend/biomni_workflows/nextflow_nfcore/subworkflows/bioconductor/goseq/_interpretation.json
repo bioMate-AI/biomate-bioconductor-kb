@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genes=A named binary vector where 1 indicates differentially expressed (DE) and 0 indicates not DE, with names as unique gene identifiers ;; genome=UCSC genome identifier string (e.g., \"hg19\") ;; id=Gene identifier format string (e.g., \"ensGene\", \"knownGene\", \"geneSymbol\") ;; bias.data=Numeric vector containing the numeric value of the DE bias to account for (e.g., gene length or read counts) if not using native database values ;; method=Testing method to use: \"Wallenius\" (default approximation), \"Sampling\" (random sampling), or \"Hypergeometric\" (no bias correction) ;; repcnt=Integer specifying the number of random samples to generate when method=\"Sampling\" ;; test.cats=Vector specifying which category branches to test (e.g., c(\"GO:CC\", \"GO:BP\", \"GO:MF\") or \"KEGG\") ;; gene2cat=A data frame or list mapping genes to categories for custom/non-native category tests ;; use_genes_without_cat=Flag to switch between counting or ignoring genes with no category annotations in the background set\n- alternatives: Hypergeometric distribution (method=\"Hypergeometric\") which ignores length bias and is only appropriate for data without selection bias (like microarrays) ;; Random sampling (method=\"Sampling\") which generates the true null distribution but is computationally expensive and requires a very high repcnt to accurately call enrichment for rare terms compared to the default Wallenius approximation\n- when_to_use: When performing functional enrichment analysis (GO, KEGG, or custom categories) on RNA-seq data where gene length or read count bias confounds the probability of a gene being called differentially expressed\n- pitfalls: Ignoring length bias (using standard hypergeometric tests) can lead to false positives/negatives because longer genes are more likely to be called DE ;; Using method=\"Sampling\" with too few replicates (repcnt) will fail to accurately calculate very low p-values, potentially missing significantly enriched terms after multiple testing correction ;; Using org.Hs.egGO instead of org.Hs.egGO2ALLEGS when manually extracting GO mappings, as the former misses links to genes arising from child GO categories ;; If the genome/ID combination is not in the local database (geneLenDataBase), gene lengths must be manually specified or fetched from TxDb/UCSC",
+  "workflows": [
+    {
+      "name": "standard_go_analysis",
+      "intent": "Perform GO enrichment analysis on RNA-seq DE genes while correcting for gene length bias using the default Wallenius approximation.",
+      "input": [
+        "assayed.genes (character vector of all genes assayed)",
+        "de.genes (character vector of differentially expressed genes)"
+      ],
+      "stages": "1. Format gene vector ;; 2. Fit the Probability Weighting Function (PWF) using nullp ;; 3. Run GO enrichment analysis using goseq ;; 4. Extract and interpret enriched categories using GO.db",
+      "code": "gene.vector <- as.integer(assayed.genes %in% de.genes)\nnames(gene.vector) <- assayed.genes\npwf <- nullp(genes, \"hg19\", \"ensGene\")\nGO.wall <- goseq(pwf, \"hg19\", \"ensGene\")\nenriched.GO <- GO.wall$category[p.adjust(GO.wall$over_represented_pvalue,\n  method = \"BH\"\n) < .05]\nlibrary(GO.db)\nfor (go in enriched.GO[1:10]) {\n  print(GOTERM[[go]])\n  cat(\"--------------------------------------\\n\")\n}"
+    },
+    {
+      "name": "custom_category_analysis",
+      "intent": "Perform enrichment analysis using custom gene-to-category mappings (like KEGG pathways) or non-native organisms.",
+      "input": [
+        "genes (named binary vector of assayed genes and DE status)",
+        "org.Hs.egENSEMBL2EG (Ensembl to Entrez mapping object)",
+        "org.Hs.egPATH (Entrez to KEGG mapping object)"
+      ],
+      "stages": "1. Construct custom gene-to-category mapping list ;; 2. Fit the PWF using nullp ;; 3. Run enrichment analysis using goseq with the gene2cat argument",
+      "code": "en2eg <- as.list(org.Hs.egENSEMBL2EG)\neg2kegg <- as.list(org.Hs.egPATH)\ngrepKEGG <- function(id, mapkeys) {\n  unique(unlist(mapkeys[id], use.names = FALSE))\n}\nkegg <- lapply(en2eg, grepKEGG, eg2kegg)\npwf <- nullp(genes, \"hg19\", \"ensGene\")\nKEGG <- goseq(pwf, gene2cat = kegg)"
+    },
+    {
+      "name": "count_bias_corrected_analysis",
+      "intent": "Perform enrichment analysis correcting for read count bias instead of gene length bias.",
+      "input": [
+        "genes (named binary vector of assayed genes and DE status)",
+        "counts (matrix of raw read counts per gene)"
+      ],
+      "stages": "1. Calculate read count bias per gene ;; 2. Fit the PWF using nullp with custom bias.data ;; 3. Run GO enrichment analysis using goseq",
+      "code": "countbias <- rowSums(counts)[rowSums(counts) != 0]\npwf.counts <- nullp(genes, bias.data = countbias)\nGO.counts <- goseq(pwf.counts, \"hg19\", \"ensGene\")"
+    }
+  ]
+}

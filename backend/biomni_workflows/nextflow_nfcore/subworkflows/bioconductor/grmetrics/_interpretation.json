@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: inputData=The input data frame containing concentration, cell counts, and grouping variables ;; groupingVariables=Vector of column names in the input data frame used to group the data (e.g., cell line, drug, replicate) and not averaged over ;; case=Character string (\"A\" or \"C\") specifying the input data format case (default is \"A\") ;; force=An option in GRfit to force a sigmoidal fit even if the F-test p-value is not significant (p > 0.05) ;; plotly=Logical parameter in visualization functions (GRdrawDRC, GRscatter, GRbox) to toggle interactive plotly plots (default is TRUE) ;; experiments=Vector of experiment names to plot in GRdrawDRC ;; min=Minimum concentration limit for plotting in GRdrawDRC ;; max=Maximum concentration limit for plotting in GRdrawDRC ;; metric=The GR metric to plot in GRscatter or GRbox (e.g., 'GR50', 'GRinf', 'GRmax') ;; groupVariable=Grouping variable for the x-axis in GRbox ;; pointColor=Grouping variable to color points in GRbox ;; factors=Vector of specific factor levels to include in GRbox ;; wilA=First factor level for Wilcoxon comparison in GRbox ;; wilB=Second factor level(s) for Wilcoxon comparison in GRbox\n- alternatives: Traditional metrics (IC50, Emax) which are calculated by the package but are confounded by cell division rates ;; MATLAB and Python scripts from the Sorger Lab (gr50_tools), which include \"Case B\" (not supported in this R package) ;; Online browser interface GR Calculator (http://www.grcalculator.org)\n- when_to_use: Use when analyzing dose-response assays where untreated control cells divide during the assay, to correct for differences in division rates and assay duration across different cell lines or conditions.\n- pitfalls: Using Case C with complex data structures may lead to inappropriate matching of control and treated cell counts; users should format data as Case A instead ;; For data that does not significantly fit a sigmoidal curve (F-test p > 0.05), the curve fit is replaced by a flat line unless the \"force\" option is used ;; Input concentration values must NOT be log-transformed.",
+  "workflows": [
+    {
+      "name": "gr_metrics_case_a",
+      "intent": "Calculate GR metrics and visualize dose-response curves from data with pre-computed control and time 0 cell counts (Case A).",
+      "input": [
+        "inputCaseA (a data frame containing columns: concentration, cell_count, cell_count__time0, cell_count__ctrl, and grouping columns such as cell_line, agent, replicate, time)"
+      ],
+      "stages": "1. Load input data ;; 2. Fit GR curves and calculate metrics using GRfit with Case A ;; 3. Extract metrics table using GRgetMetrics ;; 4. Extract original and calculated GR values using GRgetValues ;; 5. Extract grouping variables using GRgetGroupVars ;; 6. Visualize dose-response curves using GRdrawDRC",
+      "code": "data(inputCaseA)\ndrc_output = GRfit(inputCaseA, groupingVariables = c('cell_line','agent'))\ndrc_output\nhead(GRgetMetrics(drc_output))\nhead(GRgetValues(drc_output))\nGRgetGroupVars(drc_output)\nGRdrawDRC(drc_output)\nGRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA', 'MCF7 drugA'))\nGRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA', 'MCF7 drugA'), min = 10^(-4), max = 10^2)\nGRdrawDRC(drc_output, plotly = FALSE)"
+    },
+    {
+      "name": "gr_metrics_case_c",
+      "intent": "Calculate GR metrics and visualize scatterplots and boxplots from stacked treated and control measurements (Case C).",
+      "input": [
+        "inputCaseC (a data frame containing columns: concentration, cell_count, time, and grouping columns such as cell_line, agent, perturbation, replicate)"
+      ],
+      "stages": "1. Load input data ;; 2. Fit GR curves and calculate metrics using GRfit with Case C ;; 3. Visualize metrics using scatterplots with GRscatter ;; 4. Visualize metrics using boxplots with GRbox",
+      "code": "data(inputCaseC)\noutput1 = GRfit(inputData = inputCaseC, groupingVariables = c('cell_line','agent', 'perturbation', 'replicate', 'time'), case = \"C\")\nGRscatter(output1, 'GR50', 'agent', c('drugA','drugD'), 'drugB')\nGRscatter(output1, 'GR50', 'agent', c('drugA','drugD'), 'drugB', plotly = FALSE)\nGRbox(output1, metric ='GRinf', groupVariable = 'cell_line', pointColor = 'agent')\nGRbox(output1, metric ='GRinf', groupVariable = 'cell_line', pointColor = 'agent', factors = c('BT20', 'MCF10A'))\nGRbox(output1, metric ='GRinf', groupVariable = 'cell_line', pointColor = 'agent', factors = c('BT20', 'MCF10A'), plotly = FALSE)\nGRbox(output1, metric ='GR50', groupVariable = 'cell_line', pointColor = 'agent', wilA = 'BT20', wilB = c('MCF7', 'MCF10A'), plotly = FALSE)"
+    }
+  ]
+}

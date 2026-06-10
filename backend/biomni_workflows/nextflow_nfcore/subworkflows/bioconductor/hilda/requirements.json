@@ -1,0 +1,15 @@
+{
+  "package": "hilda",
+  "requirements": [
+    "HiLDA",
+    "cowplot",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HiLDA",
+      "cowplot",
+      "ggplot2"
+    ]
+  }
+}

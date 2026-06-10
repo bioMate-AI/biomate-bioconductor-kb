@@ -1,0 +1,25 @@
+{
+  "package": "profileplyr",
+  "requirements": [
+    "ComplexHeatmap",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "org.Hs.eg.db",
+    "profileplyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "org.Hs.eg.db",
+      "profileplyr"
+    ]
+  }
+}

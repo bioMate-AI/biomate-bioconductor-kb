@@ -1,0 +1,17 @@
+{
+  "package": "osat",
+  "requirements": [
+    "OSAT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OSAT"
+    ],
+    "paired_sample_assignment.nf": [
+      "OSAT"
+    ],
+    "prioritized_blocking_assignment.nf": [
+      "OSAT"
+    ]
+  }
+}

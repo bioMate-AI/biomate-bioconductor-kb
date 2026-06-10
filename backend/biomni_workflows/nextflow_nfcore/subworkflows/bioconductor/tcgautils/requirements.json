@@ -1,0 +1,27 @@
+{
+  "package": "tcgautils",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "MultiAssayExperiment",
+    "RaggedExperiment",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "TCGAutils",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "MultiAssayExperiment",
+      "RaggedExperiment",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "TCGAutils",
+      "rtracklayer"
+    ]
+  }
+}

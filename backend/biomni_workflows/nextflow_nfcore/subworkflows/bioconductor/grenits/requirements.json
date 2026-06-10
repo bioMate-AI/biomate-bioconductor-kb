@@ -1,0 +1,11 @@
+{
+  "package": "grenits",
+  "requirements": [
+    "GRENITS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GRENITS"
+    ]
+  }
+}

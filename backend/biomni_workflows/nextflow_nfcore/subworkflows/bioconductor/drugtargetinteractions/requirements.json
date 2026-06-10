@@ -1,0 +1,11 @@
+{
+  "package": "drugtargetinteractions",
+  "requirements": [
+    "drugTargetInteractions"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "drugTargetInteractions"
+    ]
+  }
+}

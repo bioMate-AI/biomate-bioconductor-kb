@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mir=miRNA identifier of interest (e.g., 'miR-10b') ;; species=three-letter species code, e.g., 'hsa' (human), 'mmu' (mouse), or 'rno' (rat, which uses homology translation) ;; method=aggregation method, either 'geom' (geometric mean, recommended) or 'min' (minimum rank) ;; min_src=minimum number of prediction sources required to agree on a target (e.g., 2)\n- alternatives: method='min'=alternative aggregation method to 'geom', though 'geom' performs better against experimental data ;; KEGGprofile=alternative downstream pathway enrichment analysis package instead of topGO\n- when_to_use: When identifying potential mRNA targets of specific miRNAs and performing functional enrichment (GO or pathway analysis) on those targets using aggregated, ranked predictions from multiple algorithms.\n- pitfalls: Direct predictions are only available for Homo sapiens and Mus musculus; other species (like Rattus norvegicus) rely on homology translation from mouse. ;; Using a simple cutoff for target genes instead of rank information (the documentation recommends using rank-based tests like Kolmogorov-Smirnov via topGO instead of Fisher's exact test).",
+  "workflows": [
+    {
+      "name": "mirna_target_enrichment",
+      "intent": "Predict miRNA target genes using aggregated source predictions and perform Gene Ontology (GO) enrichment analysis using rank information.",
+      "input": [
+        "mirna_name.txt (text file containing miRNA name, e.g., 'miR-10b')"
+      ],
+      "stages": "1. Retrieve aggregated miRNA target predictions using getPredictedTargets ;; 2. Extract rank product information for downstream analysis ;; 3. Set up GO annotations and create a topGOdata object using the ranked genes ;; 4. Run Kolmogorov-Smirnov (K-S) test for GO enrichment using runTest ;; 5. Generate a table of top enriched GO terms using GenTable",
+      "code": "mir = 'miR-10b'\npredictions = getPredictedTargets(mir, species = 'hsa',\n                                    method = 'geom', min_src = 2)\nhead(predictions)\npredictions_min = getPredictedTargets(mir, species = 'hsa',\n                                    method = 'min', min_src = 2)\nhead(predictions_min)\npredictions_rat = getPredictedTargets(mir, species = 'rno',\n                                    method = 'geom', min_src = 2)\nrankedGenes = predictions[,'rank_product']\nselection = function(x) TRUE \n# we do not want to impose a cut off, instead we are using rank information\nallGO2genes = annFUN.org(whichOnto='BP', feasibleGenes = NULL,\n                mapping=\"org.Hs.eg.db\", ID = \"entrez\")\nGOdata =  new('topGOdata', ontology = 'BP', allGenes = rankedGenes, \n            annot = annFUN.GO2genes, GO2genes = allGO2genes, \n            geneSel = selection, nodeSize=10)\nresults.ks = runTest(GOdata, algorithm = \"classic\", statistic = \"ks\")\nresults.ks\nallRes = GenTable(GOdata, KS = results.ks, orderBy = \"KS\", topNodes = 20)\nallRes[,c('GO.ID','Term','KS')]"
+    }
+  ]
+}

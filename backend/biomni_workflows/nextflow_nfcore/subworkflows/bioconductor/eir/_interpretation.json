@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <priorityFn=Function used to assign priorities to compound groups during initialization (e.g., randomPriorities) ;; format=Format of input compounds, such as \"sdf\", \"smile\", \"name\", or \"compound_id\" ;; descriptorType=Type of descriptor to compute and store, default is \"ap\" (atompair), \"fp\" (fingerprint) is also supported ;; updateByName=Logical; if TRUE, existing compounds with the same name are updated with new definitions and descriptors are recomputed ;; refs=An integer indicating the number of reference compounds to randomly choose, or a list of specific compound IDs ;; d=The dimension of the embedding space (typically around 100) ;; K=The number of nearest neighbors to return in queries, performance tests, or clustering ;; asSimilarity=Logical; if TRUE, returns similarity values (between 0 and 1) instead of distances ;; minNbrs=The minimum number of shared neighbors required to join two compounds into the same cluster in Jarvis-Patrick clustering ;; cutoff=The maximum distance threshold allowed between neighbors during clustering to prevent distant compounds from being grouped>\n- alternatives: <Traditional similarity search using ChemmineR's cmp.search can be used instead of eiR. Traditional search is exact and preferred for smaller datasets, whereas eiR is preferred for very large datasets where linear scans are computationally prohibitive.>\n- when_to_use: <Use this package when you need to perform rapid structure similarity searching, nearest-neighbor lookups, or Jarvis-Patrick clustering on very large chemical compound databases (e.g., millions of molecules) where standard linear-scan similarity searches are too slow.>\n- pitfalls: <LSH is an approximate algorithm; when K is small, the default expansion ratio may not be enough to find the true nearest neighbors, requiring the user to set a larger K and manually trim results ;; Parallel database loading and embedding require a connSource function that establishes a new connection on each call, as returning an existing connection reference will fail on remote nodes ;; Parallel writes are only supported if the underlying SQL database supports them (e.g., PostgreSQL, not the default SQLite) ;; On Windows, file handles used in eiAdd may not close immediately, requiring a short delay (e.g., Sys.sleep(1)) before running subsequent operations ;; Adding new compounds with eiAdd regenerates the matrix file, which can be highly time-consuming for large databases.>",
+  "workflows": [
+    {
+      "name": "similarity_search_and_indexing",
+      "intent": "Initialize a chemical compound database, embed it into a lower-dimensional space, perform fast similarity queries, add new compounds, and evaluate search performance.",
+      "input": [
+        "sdfsample (SDFset containing small molecules to index and query)"
+      ],
+      "stages": "1. Initialize the database and compute descriptors using eiInit.\n2. Create the searchable embedded database using eiMakeDb.\n3. Query the database for similar compounds using eiQuery.\n4. Add new compounds to the database using eiAdd.\n5. Evaluate embedding and LSH performance using eiPerformanceTest.",
+      "code": "library(eiR) \ndata(sdfsample) \neiInit(sdfsample[1:99],priorityFn=randomPriorities) \nr<- 60 \nd<- 40 \nrunId <- eiMakeDb(r,d) \nresult=eiQuery(runId,sdfsample[45],K=10,asSimilarity=TRUE)\nprint(result)\neiAdd(runId,sdfsample[100]) \neiPerformanceTest(runId,K=22)"
+    },
+    {
+      "name": "compound_clustering",
+      "intent": "Perform fast Jarvis-Patrick clustering on the embedded compound database.",
+      "input": [
+        "runId (Integer identifying the active embedded database run)"
+      ],
+      "stages": "1. Cluster the database compounds using eiCluster.\n2. View the clustering results using byCluster.",
+      "code": "clustering <- eiCluster(runId,K=5,minNbrs=2,cutoff=0.5)\nbyCluster(clustering)"
+    }
+  ]
+}

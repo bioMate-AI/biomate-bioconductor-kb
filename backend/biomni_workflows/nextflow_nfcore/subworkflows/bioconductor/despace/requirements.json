@@ -1,0 +1,39 @@
+{
+  "package": "despace",
+  "requirements": [
+    "DESpace",
+    "SpatialExperiment",
+    "dplyr",
+    "edgeR",
+    "ggforce",
+    "ggplot2",
+    "patchwork",
+    "purrr",
+    "reshape2",
+    "scuttle",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "differential_spatial_patterns.nf": [
+      "DESpace",
+      "SpatialExperiment",
+      "dplyr",
+      "edgeR",
+      "ggplot2",
+      "patchwork",
+      "purrr",
+      "reshape2",
+      "tibble",
+      "tidyr"
+    ],
+    "main.nf": [
+      "DESpace",
+      "SpatialExperiment",
+      "edgeR",
+      "ggforce",
+      "ggplot2",
+      "scuttle"
+    ]
+  }
+}

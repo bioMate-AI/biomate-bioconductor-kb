@@ -1,0 +1,13 @@
+{
+  "package": "gemma_r",
+  "requirements": [
+    "gemma.R",
+    "gemma_r"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gemma.R",
+      "gemma_r"
+    ]
+  }
+}

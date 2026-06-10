@@ -1,0 +1,24 @@
+{
+  "package": "enmix",
+  "requirements": [
+    "ENmix",
+    "FlowSorted.Blood.450k",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "customized_preprocessing.nf": [
+      "ENmix"
+    ],
+    "downstream_analysis.nf": [
+      "ENmix",
+      "FlowSorted.Blood.450k",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "ENmix"
+    ],
+    "oxbs_mle.nf": [
+      "ENmix"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "treekor",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggtree",
+    "htmlwidgets",
+    "treekoR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggtree",
+      "htmlwidgets",
+      "treekoR"
+    ]
+  }
+}

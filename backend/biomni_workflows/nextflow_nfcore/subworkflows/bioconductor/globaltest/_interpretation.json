@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: model=specifies the regression model type (\"linear\", \"logistic\", \"multinomial\", \"Poisson\", \"Cox\") ;; permutations=number of permutations for calculating permutation-based p-values (default 0 uses asymptotic distribution) ;; standardize=logical indicating whether to standardize covariates to unit variance before testing ;; directional=logical or numeric to direct the test towards alternatives where coefficients have the same sign ;; subsets=a vector or list of vectors specifying subsets of covariates to test ;; weights=a vector or list of weights for the covariates\n- alternatives: Likelihood ratio test (LRT) is invariant to parametrization but breaks down in high-dimensional settings where there are more parameters than observations, whereas globaltest remains functional and powerful ;; Competitive gene set enrichment methods (like GSEA or Fisher's exact test) test if a gene set is more associated with the phenotype than random genes, whereas globaltest is a self-contained method testing if any gene in the set is associated\n- when_to_use: Use when testing whether a group of many covariates (e.g., gene expression measurements) is associated with a response variable (e.g., clinical phenotype), especially when the number of covariates is much larger than the sample size or when expecting many small effects rather than a few large ones\n- pitfalls: The test is not invariant to the parametrization of the alternative model, meaning the choice of contrasts for factor covariates and the scaling of the intercept can alter results ;; Excluding an intercept from the null model makes the test result dependent on the choice of reference category for factors ;; Permutation p-values are only available for the linear model and exchangeable null hypotheses (~1 or ~0) in other models ;; The Shaffer improvement in the inheritance procedure is only valid if the set of covariates at each node is exactly the union of its offspring leaf nodes",
+  "workflows": [
+    {
+      "name": "covariate_association_and_diagnostics",
+      "intent": "Test a group of covariates for association with a response variable and visualize individual covariate and subject contributions.",
+      "input": [
+        "Y (numeric vector of response values)",
+        "X (matrix of covariate measurements)"
+      ],
+      "stages": "1. Run the global test using gt() ;; 2. Extract test statistics and p-values ;; 3. Generate a hierarchical clustering plot of covariate contributions using covariates() ;; 4. Generate a hierarchical clustering plot of subject contributions using subjects()",
+      "code": "library(globaltest)\ngt.options(trace=FALSE, max.print=45)\nres <- gt(Y~A, Y~A+B+C, data = X)\np.value(res)\nz.score(res)\nresult(res)\nsize(res)\ncovariates(gt(Y,X))\nsubjects(gt(Y,X))"
+    },
+    {
+      "name": "gene_set_testing",
+      "intent": "Test the association of biological pathways (KEGG/GO) with a phenotype using transcriptomic expression data.",
+      "input": [
+        "Golub_Train (ExpressionSet containing gene expression data and phenotype labels)"
+      ],
+      "stages": "1. Normalize expression data ;; 2. Run pathway-specific global tests using gtKEGG() or gtGO() ;; 3. Extract and plot gene-level features using features()",
+      "code": "library(globaltest)\nlibrary(golubEsets)\ndata(Golub_Train)\nlibrary(vsn)\nexprs(Golub_Train) <- exprs(vsn2(Golub_Train))\ngt(ALL.AML, Golub_Train)\ngtKEGG(ALL.AML, Golub_Train, id = \"04110\")\nres <- gtKEGG(ALL.AML, Golub_Train, id = \"04110\")\nfeatures(res, alias=hu6800SYMBOL)"
+    },
+    {
+      "name": "graph_structured_multiple_testing",
+      "intent": "Perform multiple testing correction on structured, nested subsets of covariates using Focus Level or Inheritance methods.",
+      "input": [
+        "Y (numeric vector of response values)",
+        "X (matrix of covariate measurements)"
+      ],
+      "stages": "1. Define the DAG or tree structure of covariate subsets ;; 2. Run focusLevel() or inheritance() to adjust p-values ;; 3. Identify significant leaf nodes using leafNodes() ;; 4. Plot the significant subgraph using draw()",
+      "code": "library(globaltest)\nlevel1 <- as.list(LETTERS[1:10])\nnames(level1) <- letters[1:10]\nlevel2 <- list(abc = LETTERS[1:3], cde  = LETTERS[3:5], fgh = LETTERS[6:8], hij = LETTERS[8:10])\nlevel3 <- list(all = LETTERS[1:10])\ndag <- c(level1, level2, level3)\nfl <- findFocus(dag, maxsize=8)\nres <- gt(Y,X)\nres <- focusLevel(res, sets = dag, focus=fl)\nleafNodes(res)\ndraw(res, names=TRUE)"
+    },
+    {
+      "name": "goodness_of_fit_testing",
+      "intent": "Test for non-linearity or missed interactions in a regression model using penalized splines.",
+      "input": [
+        "kyphosis (data frame containing clinical covariates and a binary response)"
+      ],
+      "stages": "1. Fit a null generalized linear model ;; 2. Test for non-linear effects of covariates using gtPS() ;; 3. Extract the tested smooth terms using sterms()",
+      "code": "library(globaltest)\nrequire(\"rpart\")\ndata(\"kyphosis\")\nfit0<-glm(Kyphosis~., data = kyphosis, family=\"binomial\")\nres<-gtPS(fit0)\nres@result\nsterms(res)"
+    }
+  ]
+}

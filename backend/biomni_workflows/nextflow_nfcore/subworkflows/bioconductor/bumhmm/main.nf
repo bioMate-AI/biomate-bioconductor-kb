@@ -1,158 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BUMHMM
-// This is a probabilistic modelling pipeline for computing per- nucleotide posterior probabilities of 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BUMHMM/inst/doc/BUMHMM.R
-// Upstream  : Biostrings, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("BUMHMM")
+// Bioconductor workflow: BUMHMM — bumhmm_structure_probing_analysis
+// Compute per-nucleotide posterior probabilities of RNA modification from multi-replicate structure probing data.
+// Input: se, sequence
+// Container: quay.io/biocontainers/bioconductor-bumhmm:1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BUMHMM, Biostrings, SummarizedExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Select nucleotide positions for pairwise comparisons using selectNuclPos
+//  * 2. [Core Analysis] Scale drop-off rates across replicates using scaleDOR
+//  * 3. [Core Analysis] Compute uninterrupted stretches of nucleotides using computeStretches
+//  * 4. [Core Analysis] Correct coverage bias (variance stabilization) using stabiliseVariance
+//  * 5. [Input & Preparation] Define nucleotide positions for the null distribution (omitting sequence bias correction for short molecules)
+//  * 6. [Core Analysis] Compute posterior probabilities of modification using computeProbs
+//  * 7. [Core Analysis] Shift posterior probabilities up by one position to align with modification sites
 
 nextflow.enable.dsl = 2
 
-process BIOC_BUMHMM {
+process BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bumhmm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bumhmm:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bumhmm:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bumhmm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bumhmm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bumhmm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(List)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        suppressPackageStartupMessages({
+          library(BUMHMM)
+          library(Biostrings)
+        })
+        
+        # -----------------------------------------------------------------------------
+        # Stage 0: Read User Input Files
+        # -----------------------------------------------------------------------------
+        # The pipeline reads exactly these files from the working directory:
+        # - se.rds: SummarizedExperiment containing coverage, dropoff_count, and dropoff_rate assays
+        # - sequence.rds: DNAString object representing the genomic/transcriptomic reference sequence
+        if (!file.exists("se.rds") || !file.exists("sequence.rds")) {
+          stop("Required input files 'se.rds' and/or 'sequence.rds' not found in the working directory.")
+        }
+        
+        se <- readRDS("se.rds")
+        sequence <- readRDS("sequence.rds")
+        
+        # -----------------------------------------------------------------------------
+        # Stage 1: Select nucleotide positions for pairwise comparisons
+        # -----------------------------------------------------------------------------
+        Nc <- sum(se\$replicate == "control")
+        Nt <- sum(se\$replicate == "treatment")
+        t <- 1
+        nuclSelection <- selectNuclPos(se, Nc, Nt, t)
+        
+        # -----------------------------------------------------------------------------
+        # Stage 2: Scale drop-off rates across replicates
+        # -----------------------------------------------------------------------------
+        assay(se, "dropoff_rate") <- scaleDOR(se, nuclSelection, Nc, Nt)
+        
+        # -----------------------------------------------------------------------------
+        # Stage 3: Compute uninterrupted stretches of nucleotides
+        # -----------------------------------------------------------------------------
+        stretches <- computeStretches(se, t)
+        
+        # -----------------------------------------------------------------------------
+        # Stage 4: Correct coverage bias (variance stabilization)
+        # -----------------------------------------------------------------------------
+        varStab <- stabiliseVariance(se, nuclSelection, Nc, Nt)
+        LDR_C <- varStab\$LDR_C
+        LDR_CT <- varStab\$LDR_CT
+        
+        # -----------------------------------------------------------------------------
+        # Stage 5: Define nucleotide positions for the null distribution
+        # -----------------------------------------------------------------------------
+        nuclPosition <- list()
+        nuclPosition[[1]] <- 1:nchar(sequence)
+        
+        # -----------------------------------------------------------------------------
+        # Stage 6: Compute posterior probabilities of modification
+        # -----------------------------------------------------------------------------
+        posteriors <- computeProbs(LDR_C, LDR_CT, Nc, Nt, '+', nuclPosition,
+                                   nuclSelection\$analysedC, nuclSelection\$analysedCT,
+                                   stretches)
+        
+        # -----------------------------------------------------------------------------
+        # Stage 7: Shift posterior probabilities up by one position
+        # -----------------------------------------------------------------------------
+        shifted_posteriors <- matrix(, nrow=dim(posteriors)[1], ncol=1)
+        shifted_posteriors[1:(length(shifted_posteriors) - 1)] <-
+          posteriors[2:dim(posteriors)[1], 2]
+        
+        # -----------------------------------------------------------------------------
+        # Stage 8: Write Outputs
+        # -----------------------------------------------------------------------------
+        # Save raw and shifted posteriors as RDS objects
+        saveRDS(posteriors, "posteriors.rds")
+        saveRDS(shifted_posteriors, "shifted_posteriors.rds")
+        
+        # Save posteriors as CSV tables
+        write.csv(as.data.frame(posteriors), "posteriors.csv", row.names = FALSE)
+        write.csv(as.data.frame(shifted_posteriors), "shifted_posteriors.csv", row.names = FALSE)
+        
+        # Generate and save the PDF plot
+        pdf("bumhmm_output_plot.pdf", width = 7, height = 5)
+        plot(shifted_posteriors, xlab = 'Nucleotide position',
+             ylab = 'Probability of modification',
+             main = 'BUMHMM output for DMS data set',
+             col = "blue", pch = 20)
+        dev.off()
+        
+        message("BUMHMM pipeline completed successfully. Outputs written to working directory.")
 
-    # --- Style Knitr [] ---
-    # Key functions: latex
-    ----------------
-    BiocStyle::latex()
-    # --- Head [] ---
-    # Key functions: assay
-    ------------------------------------------------------------------
-    controls <- se[, se$replicate == "control"]
-    head(assay(controls, 'coverage'))
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ------------------------------------------------------------------
-    rowData(controls)[1:4,]
-    # --- Coldata [] ---
-    # Key functions: colData
-    ------------------------------------------------------------------
-    colData(controls)
-    # --- Assay [] ---
-    # Key functions: assay
-    ------------------------------------------------------------------
-    pos <- 300
-    assay(controls, 'coverage')[pos, 1]
-    assay(controls, 'dropoff_count')[pos, 1]
-    assay(controls, 'dropoff_rate')[pos, 1]
-    # --- Selectnuclpos [] ---
-    # Key functions: selectNuclPos, List
-    ------------------------------------------------------------------
-    Nc <- Nt <- 3
-    t <- 1
-    nuclSelection <- selectNuclPos(se, Nc, Nt, t)
-    List(nuclSelection)
-    # --- Apply [] ---
-    # Key functions: assay, scaleDOR
-    ------------------------------------------------------------------
-    ## Medians of original drop-off rates in each replicate
-    apply(assay(se, 'dropoff_rate'), 2, median)
-    ## Scale drop-off rates
-    assay(se, "dropoff_rate") <- scaleDOR(se, nuclSelection, Nc, Nt)
-    # --- Computestretches [] ---
-    # Key functions: computeStretches
-    ------------------------------------------------------------------
-    stretches <- computeStretches(se, t)
-    # --- Head [] ---
-    # Key functions: assay
-    ------------------------------------------------------------------
-    head(stretches)
-    assay(se, 'dropoff_count')[1748,]
-    # --- Stabilisevariance [] ---
-    # Key functions: stabiliseVariance
-    ------------------------------------------------------------------
-    varStab <- stabiliseVariance(se, nuclSelection, Nc, Nt)
-    LDR_C <- varStab$LDR_C
-    LDR_CT <- varStab$LDR_CT
-    hist(LDR_C, breaks = 30, main = 'Null distribution of LDRs')
-    # --- Nuclperm [] ---
-    # Key functions: nuclPerm
-    ------------------------------------------------------------------
-    nuclNum <- 3
-    patterns <- nuclPerm(nuclNum)
-    patterns
-    # --- Subject [] ---
-    # Key functions: subject, rowData, findPatternPos
-    ------------------------------------------------------------------
-    ## Extract the DNA sequence
-    sequence <- subject(rowData(se)$nucl)
-    sequence
-    nuclPosition <- findPatternPos(patterns, sequence, '+')
-    # --- Computeprobs [] ---
-    # Key functions: computeProbs
-    ------------------------------------------------------------------
-    posteriors <- computeProbs(LDR_C, LDR_CT, Nc, Nt, '+', nuclPosition,
-                                 nuclSelection$analysedC, nuclSelection$analysedCT,
-                                 stretches)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bumhmm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bumhmm_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bumhmm_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BUMHMM:", paste0("    bumhmm: ", packageVersion("BUMHMM"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS":',
+        paste0('    BUMHMM: ', as.character(packageVersion('BUMHMM')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bumhmm_results.csv
-    touch ${prefix}_bumhmm_output.rds
-    echo "BIOC_BUMHMM:" > versions.yml
-    echo "    bumhmm: 0.0.0" >> versions.yml
+    touch ${prefix}_bumhmm_structure_probing_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_BUMHMM_WORKFLOW {
+workflow BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ se, sequence ] ]
 
     main:
-    BIOC_BUMHMM(ch_input)
+    BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_BUMHMM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BUMHMM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BUMHMM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BUMHMM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS.out.tables
+    plots    = BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS.out.plots
+    objects  = BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS.out.objects
+    versions = BIOC_BUMHMM_BUMHMM_STRUCTURE_PROBING_ANALYSIS.out.versions
 }

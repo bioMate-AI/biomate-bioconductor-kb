@@ -1,0 +1,17 @@
+{
+  "package": "crimage",
+  "requirements": [
+    "CRImage"
+  ],
+  "by_workflow": {
+    "aperio_slide_processing.nf": [
+      "CRImage"
+    ],
+    "copy_number_correction.nf": [
+      "CRImage"
+    ],
+    "main.nf": [
+      "CRImage"
+    ]
+  }
+}

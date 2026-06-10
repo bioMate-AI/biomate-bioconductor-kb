@@ -4,6 +4,8 @@
 // Infer functionally related proteins in Human or Mouse using pre-calculated STRING kernel matrices and perform functional enrichment.
 // Input: K9606.rds, target_proteins.txt
 // Container: quay.io/biocontainers/bioconductor-ppinfer:1.36.0--r45hdfd78af_0
+// R packages: GOstats, PPInfer, org.Hs.eg.db, org.Mm.eg.db
+// Bioconductor: 3.20 | R: 4.4
 // Requires: GOstats, PPInfer, org.Hs.eg.db, org.Mm.eg.db
 // Visualizations: bar plot, enrichment plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -36,10 +38,22 @@ process BIOC_PPINFER_SPECIES_SPECIFIC_INFERENCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GOstats", "PPInfer", "org.Hs.eg.db", "org.Mm.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries

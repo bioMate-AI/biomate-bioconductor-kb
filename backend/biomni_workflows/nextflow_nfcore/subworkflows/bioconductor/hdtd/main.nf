@@ -1,116 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HDTD
-// Characterization of intra-individual variability using physiologically relevant measurements provide
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HDTD/inst/doc/HDTD.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("HDTD")
+// Bioconductor workflow: HDTD — mean_matrix_analysis
+// Test and estimate the mean relationship of row variables across column variables in transposable data.
+// Input: user_data.csv
+// Container: quay.io/biocontainers/bioconductor-hdtd:1.44.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: HDTD
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the transposable dataset
+//  * 2. [Core Analysis] Test for constant mean vector across all columns using meanmat.ts
+//  * 3. [Core Analysis] Reorder columns using orderdata to group specific columns of interest
+//  * 4. [Core Analysis] Test for constant mean vector within specific column groups using meanmat.ts with group.sizes
+//  * 5. [Core Analysis] Estimate the unstructured mean matrix using meanmat.hat
 
 nextflow.enable.dsl = 2
 
-process BIOC_HDTD {
+process BIOC_HDTD_MEAN_MATRIX_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hdtd"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hdtd:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hdtd:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hdtd_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hdtd_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hdtd_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HDTD)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load the required library
+        library("HDTD")
+        
+        # Read the user-provided transposable dataset
+        # The file 'user_data.csv' is expected to have row names in the first column
+        VEGFmouse <- as.matrix(read.csv("user_data.csv", row.names = 1, check.names = FALSE))
+        
+        # Infer the number of column variables and subjects from the column names
+        # Assuming column names repeat for each subject, potentially with a suffix like .1 or _1
+        base_colnames <- sub("[_\\\\.][0-9]+\$", "", colnames(VEGFmouse))
+        col_vars <- length(unique(base_colnames))
+        N_subjects <- ncol(VEGFmouse) / col_vars
+        
+        # 1. Test for constant mean vector across all columns
+        test1 <- meanmat.ts(VEGFmouse, N = N_subjects, group.sizes = col_vars)
+        
+        # 2. Reorder columns to group specific columns of interest
+        # Dynamically create a column order: group the first two columns (if available), 
+        # and leave the rest as individual groups to avoid hardcoding dataset-specific indices.
+        if (col_vars >= 2) {
+            columnorder <- c(2, 1, if (col_vars > 2) 3:col_vars else NULL)
+            group_sizes_test2 <- c(2, rep(1, col_vars - 2))
+        } else {
+            columnorder <- 1
+            group_sizes_test2 <- 1
+        }
+        VEGForder <- orderdata(VEGFmouse, N = N_subjects, order.cols = columnorder)
+        
+        # 3. Test for constant mean vector within specific column groups
+        test2 <- meanmat.ts(VEGForder, N = N_subjects, group.sizes = group_sizes_test2)
+        
+        # 4. Estimate the unstructured mean matrix
+        sample_mean <- meanmat.hat(VEGFmouse, N = N_subjects)
+        
+        # Save results to output files
+        saveRDS(test1, "meanmat_test_all_columns.rds")
+        saveRDS(test2, "meanmat_test_grouped_columns.rds")
+        saveRDS(sample_mean, "sample_mean_object.rds")
+        
+        # Export the estimated mean matrix to a CSV file
+        write.csv(sample_mean\$estmeanmat, "estimated_mean_matrix.csv", row.names = TRUE)
+        
+        # Write a text summary of the analysis results
+        sink("analysis_summary.txt")
+        cat("=== HDTD Mean Matrix Analysis Summary ===\n\n")
+        cat("1. Test for constant mean vector across all columns:\n")
+        print(test1)
+        cat("\n--------------------------------------------------\n\n")
+        cat("2. Test for constant mean vector within specific column groups:\n")
+        print(test2)
+        cat("\n--------------------------------------------------\n\n")
+        cat("3. Estimated Mean Matrix (First 10 rows):\n")
+        print(head(sample_mean\$estmeanmat, n = 10))
+        sink()
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    library("HDTD")
-    data("VEGFmouse")
-    dim(VEGFmouse)
-    rownames(VEGFmouse)
-    # --- Ts [] ---
-    # Key functions: ts
-    ---------------------------------------------------------------------
-    meanmat.ts(VEGFmouse, N = 40, group.sizes = 9)
-    # --- Colnames [] ---
-    # Key functions: orderdata
-    ---------------------------------------------------------------------
-    colnames(VEGFmouse)[1:9]
-    columnorder <- c(1, 4, 5, 8, 2, 3, 6, 7, 9)
-    VEGForder <- orderdata(VEGFmouse, N = 40, order.cols = columnorder)
-    colnames(VEGForder)[1:9]
-    # --- Ts [] ---
-    # Key functions: ts
-    ---------------------------------------------------------------------
-    meanmat.ts(VEGForder, N = 40, group.sizes = c(4, 1, 1, 1, 1, 1))
-    # --- Hat [] ---
-    # Key functions: hat
-    ---------------------------------------------------------------------
-    sample_mean <- meanmat.hat(VEGFmouse, N = 40)
-    sample_mean
-    # --- Ts [] ---
-    # Key functions: ts
-    ---------------------------------------------------------------------
-    covmat.ts(datamat = VEGFmouse, N = 40, voi = "columns")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hdtd_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hdtd_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hdtd_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HDTD:", paste0("    hdtd: ", packageVersion("HDTD"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HDTD_MEAN_MATRIX_ANALYSIS":',
+        paste0('    HDTD: ', as.character(packageVersion('HDTD')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hdtd_results.csv
-    touch ${prefix}_hdtd_output.rds
-    echo "BIOC_HDTD:" > versions.yml
-    echo "    hdtd: 0.0.0" >> versions.yml
+    touch ${prefix}_mean_matrix_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_HDTD_WORKFLOW {
+workflow BIOC_HDTD_MEAN_MATRIX_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ user_data.csv ] ]
 
     main:
-    BIOC_HDTD(ch_input)
+    BIOC_HDTD_MEAN_MATRIX_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_HDTD.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HDTD.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HDTD.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HDTD.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HDTD_MEAN_MATRIX_ANALYSIS.out.tables
+    plots    = BIOC_HDTD_MEAN_MATRIX_ANALYSIS.out.plots
+    objects  = BIOC_HDTD_MEAN_MATRIX_ANALYSIS.out.objects
+    versions = BIOC_HDTD_MEAN_MATRIX_ANALYSIS.out.versions
 }

@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pathways=A list of gene sets where each element is a vector of gene identifiers ;; stats=A named numeric vector of gene-level statistics (ranks) where names match the gene identifiers in pathways ;; minSize=Minimum size of a gene set to be considered (default is 15) ;; maxSize=Maximum size of a gene set to be considered (default is 500) ;; eps=The lower bound for p-value estimation (default is 1e-10; set to 0.0 for exact/more accurate p-value estimation) ;; E=Gene expression matrix for GESECA where rows are genes and columns are samples/cells ;; center=Logical value indicating whether to center rows of the expression matrix in GESECA (default is TRUE; set to FALSE if using pre-centered or PCA-reduced matrices) ;; genes=A vector of foreground genes of interest for ORA ;; universe=A vector of background genes (universe) for ORA\n- alternatives: Standard GSEA=fgsea is a much faster alternative to standard GSEA, allowing for more permutations and finer-grained p-values ;; fora=Preferred over GSEA when only a list of differentially expressed genes (foreground) and a background universe are available rather than a fully ranked list of genes ;; geseca=Preferred over standard GSEA when there is no obvious contrast or sample annotation to rank genes (e.g., multi-conditional, single-cell, or spatial transcriptomics data)\n- when_to_use: Use standard fgsea when you have a ranked list of genes (e.g., from differential expression analysis) and want to find enriched pathways. Use fora for simple over-representation analysis of gene lists. Use geseca when analyzing gene correlation/co-regulation in expression matrices without explicit contrasts (e.g., time-course, single-cell, spatial transcriptomics).\n- pitfalls: Default eps is 1e-10, which bounds the p-values; must set eps = 0.0 for highly accurate, extremely small p-values. Gene identifier types must match exactly between the pathways list and the gene stats/expression matrix row names. When using PCA-reduced matrices in geseca, automatic centering must be disabled (center = FALSE) if centering was already performed prior to PCA.",
+  "workflows": [
+    {
+      "name": "preranked_gsea",
+      "intent": "Run fast preranked gene set enrichment analysis on a ranked list of genes.",
+      "input": [
+        "naive.vs.th1.rnk (tab-separated file containing gene IDs and ranking statistics)",
+        "mouse.reactome.gmt (GMT file containing gene sets/pathways)"
+      ],
+      "stages": "1. Load gene ranks from file ;; 2. Load pathways from GMT file ;; 3. Run fgsea with specified size limits and p-value resolution ;; 4. Collapse redundant pathways to identify independent main pathways ;; 5. Plot enrichment curves and GSEA tables ;; 6. Map gene IDs to symbols for readability ;; 7. Save results to a text file",
+      "code": "ranks <- read.table(rnk.file, header=TRUE, colClasses = c(\"character\", \"numeric\"))\nranks <- setNames(ranks$t, ranks$ID)\npathways <- gmtPathways(gmt.file)\nfgseaRes <- fgsea(pathways = examplePathways, stats = exampleRanks, minSize = 15, maxSize = 500)\nfgseaRes <- fgsea(pathways = examplePathways, stats = exampleRanks, eps = 0.0, minSize = 15, maxSize = 500)\nplotEnrichment(examplePathways[[\"5991130_Programmed_Cell_Death\"]], exampleRanks) + labs(title=\"Programmed Cell Death\")\ncollapsedPathways <- collapsePathways(fgseaRes[order(pval)][padj < 0.01], examplePathways, exampleRanks)\nmainPathways <- fgseaRes[pathway %in% collapsedPathways$mainPathways][order(-NES), pathway]\nplotGseaTable(examplePathways[mainPathways], exampleRanks, fgseaRes, gseaParam = 0.5)\nfwrite(fgseaRes, file=\"fgseaRes.txt\", sep=\"\\t\", sep2=c(\"\", \" \", \"\"))\nfgseaResMain[, leadingEdge := mapIdsList(x=org.Mm.eg.db, keys=leadingEdge, keytype=\"ENTREZID\", column=\"SYMBOL\")]"
+    },
+    {
+      "name": "over_representation_analysis",
+      "intent": "Perform hypergeometric-based over-representation analysis on a list of genes of interest.",
+      "input": [
+        "gene_list.txt (list of foreground genes of interest, e.g., top differentially expressed genes)",
+        "background_universe.txt (list of all robustly detected genes in the experiment)",
+        "mouse.reactome.gmt (GMT file containing gene sets/pathways)"
+      ],
+      "stages": "1. Define foreground and background gene sets ;; 2. Run ORA using the fora function ;; 3. Inspect and filter enriched pathways",
+      "code": "fg <-  names(head(exampleRanks[order(exampleRanks, decreasing=TRUE)],500))\nbg <- names(exampleRanks)\nforaRes <- fora(genes=fg, universe=bg, pathways=examplePathways)\nhead(foraRes)"
+    },
+    {
+      "name": "gene_set_coregulation_analysis",
+      "intent": "Identify gene sets with high gene correlation in expression matrices without explicit contrasts (e.g., time-course, single-cell, or spatial data).",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix) or seurat_object.rds (processed Seurat object containing normalized single-cell or spatial transcriptomics data)",
+        "pathways_list.rds (list of gene sets/pathways)"
+      ],
+      "stages": "1. Prepare expression matrix or perform PCA reduction on Seurat object ;; 2. Run GESECA to calculate co-regulation scores and p-values ;; 3. Plot coregulation profiles across conditions, UMAP/t-SNE reductions, or spatial coordinates ;; 4. Generate summary tables of top pathways",
+      "code": "gesecaRes <- geseca(pathways, exprs(es), minSize = 15, maxSize = 500)\nplotCoregulationProfile(pathway=pathways[[\"HALLMARK_E2F_TARGETS\"]], E=exprs(es), titles = es$title, conditions=es$`time point:ch1`)\nplotGesecaTable(gesecaRes |> head(10), pathways, E=exprs(es), titles = es$title)\nE <- t(base::scale(t(exprs(es)), scale=FALSE))\npcaRev <- prcomp(E, center=FALSE)\nEred <- pcaRev$x[, 1:10]\ngesecaResRed <- geseca(pathways, Ered, minSize = 15, maxSize = 500, center=FALSE)\nobj <- SCTransform(obj, verbose = FALSE, variable.features.n = 10000)\nobj <- RunPCA(obj, assay = \"SCT\", verbose = FALSE, rev.pca = TRUE, reduction.name = \"pca.rev\", reduction.key=\"PCR_\", npcs = 50)\nE <- obj@reductions$pca.rev@feature.loadings\ngesecaRes <- geseca(pathways, E, minSize = 5, maxSize = 500, center = FALSE, eps=1e-100)\nps <- plotCoregulationProfileReduction(pathways[topPathways], obj, title=titles, reduction=\"tsne\")\nps <- plotCoregulationProfileSpatial(pathways[topPathways], obj, title=titles, pt.size.factor=2.5)\nimagePlots <- plotCoregulationProfileImage(gsets[topPathways], object = xobj, dark.background = FALSE, title = titles, size=0.8)"
+    }
+  ]
+}

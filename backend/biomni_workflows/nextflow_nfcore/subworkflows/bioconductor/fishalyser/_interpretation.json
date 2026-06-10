@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: combinedImage=Path to the composite RGB image containing all stains ;; writedir=Output directory where results (CSV and images) will be saved ;; bgCorrMethod=List specifying background correction: list(0,'') for none, list(1, sigma) for Gaussian blur, list(2, path) for user-provided illumination image, or list(3, path, pattern, n) for multidimensional correction using an image stack ;; channelSignals=List of paths to individual probe channel images (or a single composite RGB image path) ;; channelColours=List of RGB color vectors for each channel (e.g., list(R=c(255,0,0), G=c(0,255,0))) ;; sizecell=Vector of min and max area (in pixels) for nuclei segmentation (e.g., c(1000, 20000)) ;; sizeprobe=Vector of min and max area (in pixels) for probe detection (e.g., c(5, 20)) ;; maxprobes=Maximum limit for probes per nucleus; nuclei exceeding this are ignored\n- alternatives: calculateMaxEntropy is preferred for reliable probe detection by maximizing inter-class entropy, whereas calculateThreshold (Otsu's method) is preferred for segmenting cell nuclei by minimizing intra-class variance.\n- when_to_use: Use this package for automated, high-throughput quantification of FISH probes in cell culture images, specifically when you need to segment nuclei, detect probe signals, and calculate spatial distances between probes within each nucleus.\n- pitfalls: Using composite RGB images as probe sources only works for a maximum of three probes because mixtures of red, green, and blue cannot be separated by simple color channel splitting. Ensure sufficient main memory when processing a large number of probe channels.",
+  "workflows": [
+    {
+      "name": "manual_threshold_and_cleanup",
+      "intent": "Manually compute probe/cell masks and clean up artifacts using thresholding and particle analysis to determine optimal size parameters.",
+      "input": [
+        "SampleFISHgray.jpg (Grayscale FISH image)"
+      ],
+      "stages": "1. Read image using readImage ;; 2. Calculate threshold using calculateMaxEntropy or calculateThreshold ;; 3. Apply threshold to binarize the image ;; 4. Clean up artifacts and filter by size using analyseParticles",
+      "code": "f = system.file( \"extdata\", \"SampleFISHgray.jpg\", package=\"FISHalyseR\")\nimg = readImage(f)\n\nt = calculateMaxEntropy(img)\nimg[img<t] <- 0\nimg[img>=t] <- 1\n\nfProbes1 = paste(TempDir,'/',\"exImgMaxEntropyProbes1.jpg\",sep='')\nimg = readImage(fProbes1)\n\nanaImg <- analyseParticles(img, 20, 5,0)\n\nf = system.file( \"extdata\", \"SampleFISHgray.jpg\", package=\"FISHalyseR\")\nimg = readImage(f)\n\nt = calculateThreshold(img)\nimg[img<t] <- 0\nimg[img>=t] <- 1\n\nf = paste(TempDir,'/',\"exImgOtsuCellMask.jpg\", sep='')\nimg = readImage(f)\n\nanaImg <- analyseParticles(img, 20000, 1000,0)"
+    },
+    {
+      "name": "automated_fish_quantification",
+      "intent": "Perform end-to-end automated background correction, nuclei segmentation, probe detection, and distance calculation on FISH images.",
+      "input": [
+        "SampleFISH.jpg (Composite RGB image)",
+        "SampleFISH_R.jpg (Red probe channel image)",
+        "SampleFISH_G.jpg (Green probe channel image)"
+      ],
+      "stages": "1. Define background correction method list ;; 2. Define channel signals and colors lists ;; 3. Run end-to-end pipeline using processFISH",
+      "code": "illuCorrection = system.file( \"extdata\", \"SampleFISHillu.jpg\", package=\"FISHalyseR\")\n\ncombinedImage <- system.file( \"extdata\", \"SampleFISH.jpg\", package=\"FISHalyseR\")\nred_Og   <- system.file( \"extdata\", \"SampleFISH_R.jpg\", package=\"FISHalyseR\")\ngreen_Gn <- system.file( \"extdata\", \"SampleFISH_G.jpg\", package=\"FISHalyseR\")\n\n# directory where all the files will be saved\nwritedir = paste(TempDir,sep='')\n\nbgCorrMethod = list(0,'')\n\nchannelColours = list(R=c(255,0,0),G=c(0,255,0))\nchannelSignals = list(red_Og,green_Gn)\nsizecell = c(1000,20000)\nsizeprobe= c(5,20)\n\nprocessFISH(combinedImage,writedir,bgCorrMethod,channelSignals,\n            channelColours,sizecell,sizeprobe)"
+    }
+  ]
+}

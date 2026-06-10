@@ -1,0 +1,16 @@
+{
+  "package": "damirseq",
+  "requirements": [
+    "DaMiRseq",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "cross_validation_and_independent_prediction.nf": [
+      "DaMiRseq"
+    ],
+    "main.nf": [
+      "DaMiRseq",
+      "SummarizedExperiment"
+    ]
+  }
+}

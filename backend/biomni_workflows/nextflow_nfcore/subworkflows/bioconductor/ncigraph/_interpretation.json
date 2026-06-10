@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cyList=A list of graphNEL objects representing raw pathways to be parsed ;; parseNetworks=Logical, if TRUE, parses the raw networks into gene-level networks ;; entrezOnly=Logical, if TRUE, only keeps nodes that have an Entrez Gene ID ;; propagateReg=Logical, if FALSE, prevents the propagation of regulation edges (passed to parseNCINetwork)\n- alternatives: KEGGgraph is mentioned as an alternative for importing and manipulating KEGG pathways from XML files.\n- when_to_use: Use when you need to incorporate NCI Pathway Interaction Database pathways (Nature-curated or BioCarta) as prior network structures (graphNEL objects) for downstream statistical analyses, such as identifying differentially expressed pathways.\n- pitfalls: None of the pathways imported from Reactome contain nodes associated with Entrez IDs, so parsing them with entrezOnly=TRUE will result in empty graphs. Loading networks directly from Cytoscape is slow and requires Cytoscape and specific plugins (CyREST and RCy3). Some NCI-PID networks cannot be loaded due to BioPAX parsing errors or RCy3 reading limitations.",
+  "workflows": [
+    {
+      "name": "pathway_loading_and_parsing",
+      "intent": "Load raw NCI pathways and parse them into gene-level graphNEL objects for downstream analysis and visualization.",
+      "input": [
+        "NCI.demo.cyList (a list of raw graphNEL objects representing pathways)"
+      ],
+      "stages": "1. Load the NCIgraph package and the raw pathway data. ;; 2. Parse the raw pathways to keep only Entrez-ID-associated nodes and optionally propagate regulation. ;; 3. Visualize the raw and parsed pathways using Rgraphviz.",
+      "code": "library(NCIgraph)\ndata(\"NCIgraphVignette\", package=\"NCIgraph\")\ngrList <- getNCIPathways(cyList=NCI.demo.cyList, parseNetworks=TRUE, entrezOnly=TRUE, verbose=TRUE)$pList\nlibrary('Rgraphviz')\ngraph <- NCI.demo.cyList[[1]]\ngNames <- unlist(lapply(graph@nodeData@data,FUN=function(e) e$biopax.name))\nnames(gNames) <- nodes(graph)\ngraph <- layoutGraph(graph)\nnodeRenderInfo(graph) <- list(label=gNames, cex=0.75)\nrenderGraph(graph)  \ngraph <- grList[[1]]\ngNames <- unlist(lapply(graph@nodeData@data,FUN=function(e) unique(e$biopax.xref.ENTREZGENE)))\nnames(gNames) <- nodes(graph)\ngraph <- layoutGraph(graph)\nnodeRenderInfo(graph) <- list(label=gNames, cex=0.75)\nrenderGraph(graph)"
+    }
+  ]
+}

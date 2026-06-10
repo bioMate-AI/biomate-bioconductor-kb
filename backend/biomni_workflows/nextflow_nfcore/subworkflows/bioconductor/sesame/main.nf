@@ -1,128 +1,251 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: sesame
-// Tools For analyzing Illumina Infinium DNA methylation arrays. SeSAMe provides utilities to support a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/sesame/inst/doc/KYCG.R
-// Upstream  : SummarizedExperiment, ggplot2, gprofiler2, knitr, tibble
-// Downstream: none
-//
-// Install: BiocManager::install("sesame")
+// Bioconductor workflow: sesame — sesame_differential_methylation
+// Perform differential methylation locus (DML) and region (DMR) analysis on a beta-value matrix using the sesame package, including missing value imputation, leve
+// Input: matrix.csv, coldata.csv
+// Container: 1.28.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, sesame
+// Visualizations: volcano plot
+// QC: missing-value handling
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SESAME {
+process BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sesame"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sesame:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sesame:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sesame_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sesame_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sesame_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(sesame)
-    library(KYCG_buildGeneDBs)
-    library(KYCG_getDBs)
-    library(KYCG_listDBGroups)
-    library(KYCG_plotEnrichAll)
-    library(KYCG_plotLollipop)
-    library(jsonlite)
-
-    # --- Data Initialization and Caching [Data Prep] ---
-    # Key functions: sesameDataCache, sesameDataGet
-    sesameDataCache()
-    se <- sesameDataGet("MM285.10.SE.tissue")
-
-    # --- Query Preparation and Annotation [Annotation] ---
-    # Key functions: sesameDataGet, sesameData_getTxnGRanges, sesameData_annoProbes
-    df <- SummarizedExperiment::rowData(
-        sesameDataGet('MM285.tissueSignature')
+    
+    # Print version info for reproducibility
+    tryCatch({
+      sesame_checkVersion()
+    }, error = function(e) {
+      message("Could not check sesame version: ", e\$message)
+    })
+    
+    # ==========================================
+    # STAGE 1: Load and Align Input Data
+    # ==========================================
+    message("Loading input data...")
+    
+    # Read the beta value matrix
+    matrix_df <- read.csv("matrix.csv", check.names = FALSE)
+    if (!"feature_id" %in% colnames(matrix_df)) {
+      stop("Input matrix.csv must contain a 'feature_id' column.")
+    }
+    rownames(matrix_df) <- matrix_df\$feature_id
+    matrix_df\$feature_id <- NULL
+    
+    # Read the sample metadata
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
+    if (!all(c("sample", "condition") %in% colnames(coldata_df))) {
+      stop("Input coldata.csv must contain 'sample' and 'condition' columns.")
+    }
+    rownames(coldata_df) <- coldata_df\$sample
+    
+    # Align samples between matrix and metadata
+    common_samples <- intersect(colnames(matrix_df), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+      stop("No overlapping samples found between matrix.csv and coldata.csv.")
+    }
+    message(sprintf("Aligned %d samples for analysis.", length(common_samples)))
+    
+    matrix_df <- matrix_df[, common_samples, drop = FALSE]
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    
+    # Convert matrix to numeric matrix
+    beta_matrix <- as.matrix(matrix_df)
+    class(beta_matrix) <- "numeric"
+    
+    # ==========================================
+    # STAGE 2: Preprocessing & Quality Control
+    # ==========================================
+    message("Preprocessing and imputing missing values...")
+    
+    # Impute missing beta values using mean imputation across neighbors/samples
+    if (any(is.na(beta_matrix))) {
+      message("Missing values detected. Performing imputation...")
+      beta_matrix <- imputeBetasMatrixByMean(beta_matrix)
+    }
+    
+    # Create SummarizedExperiment object
+    se <- SummarizedExperiment(
+      assays = list(beta = beta_matrix),
+      colData = coldata_df
     )
-    query <- df$Probe_ID[df$branch == "fetal_liver" & df$type == "Hypo"]
-    regs <- sesameData_getTxnGRanges("mm10", merge2gene = TRUE)
-    genes <- sesameData_annoProbes(
-        query, regs, platform = "MM285", return_ov_features = TRUE
+    
+    # Ensure condition is a factor
+    colData(se)\$condition <- factor(colData(se)\$condition)
+    
+    # Filter out probes with insufficient variation or missing levels across conditions
+    message("Checking levels and filtering probes...")
+    se_ok <- checkLevels(assay(se), colData(se)\$condition)
+    se <- se[se_ok, ]
+    message(sprintf("%d probes passed level checking.", nrow(se)))
+    
+    if (nrow(se) == 0) {
+      stop("No probes passed the level checking. Cannot proceed with DML modeling.")
+    }
+    
+    # ==========================================
+    # STAGE 3: Differential Methylation Locus (DML)
+    # ==========================================
+    message("Running DML modeling...")
+    
+    # Fit linear models for each CpG locus
+    smry <- DML(se, ~ condition)
+    
+    # Extract test statistics manually from the DMLSummary object
+    probes <- names(smry)
+    first_coefs <- smry[[1]]\$coefficients
+    coef_names <- rownames(first_coefs)
+    
+    # Identify the contrast coefficient corresponding to the condition
+    contrast_name <- coef_names[grep("condition", coef_names)][1]
+    if (is.na(contrast_name)) {
+      # Fallback to the second coefficient if naming convention differs
+      contrast_name <- coef_names[2]
+    }
+    message(sprintf("Extracting statistics for contrast: %s", contrast_name))
+    
+    est <- sapply(smry, function(x) x\$coefficients[contrast_name, "Estimate"])
+    pval <- sapply(smry, function(x) x\$coefficients[contrast_name, "Pr(>|t|)"])
+    
+    test_result <- data.frame(
+      Probe_ID = probes,
+      Estimate = est,
+      Pval = pval,
+      Pval_adj = p.adjust(pval, method = "BH"),
+      stringsAsFactors = FALSE
     )
-
-    # --- Enrichment Testing [Enrichment] ---
-    # Key functions: KYCG_getDBs, testEnrichment
-    query_pgc <- KYCG_getDBs("MM285.designGroup")[["PGCMeth"]]
-    results_pgc <- testEnrichment(query_pgc, platform = "MM285")
-
-    # --- Set Enrichment Analysis [Enrichment] ---
-    # Key functions: KYCG_getDBs, testEnrichmentSEA
-    query_tss <- KYCG_getDBs("KYCG.MM285.designGroup")[["TSS"]]
-    db_tss <- KYCG_getDBs("MM285.seqContextN", "distToTSS")
-    res_sea <- testEnrichmentSEA(query_tss, db_tss, prepPlot = TRUE)
-
-    # --- Visualization of Enrichment Results [Visualisation] ---
-    # Key functions: sesameData_getProbesByGene, KYCG_buildGeneDBs, testEnrichment, KYCG_plotLollipop
-    query_gene <- names(sesameData_getProbesByGene("Dnmt3a", "MM285"))
-    db_gene <- KYCG_buildGeneDBs(
-        query_gene, max_distance = 100000, platform = "MM285"
-    )
-    results_gene <- testEnrichment(
-        query_gene, db_gene, platform = "MM285"
-    )
-    KYCG_plotLollipop(results_gene, label = "gene_name")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sesame_results.csv", row.names = TRUE)
+    
+    # Sort by significance and save
+    test_result <- test_result[order(test_result\$Pval), ]
+    write.csv(test_result, "dml_results.csv", row.names = FALSE)
+    message("DML results saved to dml_results.csv")
+    
+    # ==========================================
+    # STAGE 4: Differentially Methylated Regions (DMR)
+    # ==========================================
+    message("Running DMR analysis...")
+    
+    dmr_result <- data.frame(Message = "DMR analysis not run or failed")
+    tryCatch({
+      # Infer platform based on probe ID prefixes
+      sample_probes <- rownames(se)
+      platform <- "EPIC" # Default fallback
+      if (any(grepl("^cg", sample_probes))) {
+        platform <- "EPIC"
+      } else if (any(grepl("^mu", sample_probes)) || any(grepl("^uk", sample_probes))) {
+        platform <- "MM285"
+      }
+      
+      message(sprintf("Using platform annotation: %s for DMR merging", platform))
+      
+      # Merge neighboring CpGs into regions
+      merged <- DMR(se, smry, contrast_name, platform = platform)
+      if (!is.null(merged) && nrow(merged) > 0) {
+        dmr_result <- as.data.frame(merged)
+        message(sprintf("Successfully identified %d DMRs.", nrow(dmr_result)))
+      } else {
+        message("No significant DMRs identified.")
+        dmr_result <- data.frame(Message = "No significant DMRs found")
+      }
+    }, error = function(e) {
+      message("DMR analysis failed: ", e\$message)
+      dmr_result <<- data.frame(Error = e\$message)
+    })
+    
+    write.csv(dmr_result, "dmr_results.csv", row.names = FALSE)
+    
+    # ==========================================
+    # STAGE 5: Visualization
+    # ==========================================
+    message("Generating diagnostic plots...")
+    
+    pdf("dml_volcano.pdf", width = 6, height = 6)
+    if (nrow(test_result) > 0) {
+      # Define colors based on significance
+      signif_cutoff <- 0.05
+      point_colors <- ifelse(test_result\$Pval_adj < signif_cutoff, "red", "black")
+      
+      plot(
+        test_result\$Estimate, 
+        -log10(test_result\$Pval),
+        xlab = paste("Estimate (", contrast_name, ")", sep = ""),
+        ylab = "-log10(P-value)",
+        main = "Volcano Plot of Differential Methylation",
+        col = point_colors,
+        pch = 20,
+        cex = 0.8
+      )
+      # Add horizontal line for significance threshold
+      if (any(test_result\$Pval_adj < signif_cutoff)) {
+        max_non_sig_pval <- max(test_result\$Pval[test_result\$Pval_adj >= signif_cutoff], na.rm = TRUE)
+        abline(h = -log10(max_non_sig_pval), col = "blue", lty = 2)
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sesame_results.csv")
+      plot(1, 1, type = "n", xlab = "", ylab = "", main = "No DML results to plot")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sesame_output.rds")
-    }
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SESAME:", paste0("    sesame: ", packageVersion("sesame"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION":',
+        paste0('    sesame: ', as.character(packageVersion('sesame')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sesame_results.csv
-    touch ${prefix}_sesame_output.rds
-    echo "BIOC_SESAME:" > versions.yml
-    echo "    sesame: 0.0.0" >> versions.yml
+    touch ${prefix}_sesame_differential_methylation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SESAME_WORKFLOW {
+workflow BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SESAME(ch_input)
+    BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION(ch_input)
 
     emit:
-    results  = BIOC_SESAME.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SESAME.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SESAME.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SESAME.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION.out.tables
+    plots    = BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION.out.plots
+    objects  = BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION.out.objects
+    versions = BIOC_SESAME_SESAME_DIFFERENTIAL_METHYLATION.out.versions
 }

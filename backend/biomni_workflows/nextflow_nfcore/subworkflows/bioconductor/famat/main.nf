@@ -1,94 +1,155 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: famat
-// Famat is made to collect data about lists of genes and metabolites provided by user, and to visualiz
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/famat/inst/doc/famat.R
-// Upstream  : mgcv
-// Downstream: none
-//
-// Install: BiocManager::install("famat")
+// Bioconductor workflow: famat — famat_analysis_and_visualization
+// Perform integrated pathway enrichment, interaction network analysis, and GO enrichment on gene and metabolite lists, and visualize the results in a Shiny app.
+// Input: genes, meta
+// Container: quay.io/biocontainers/bioconductor-famat:1.20.3--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: famat, mgcv
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run pathway enrichment analysis for KEGG, Reactome, and WikiPathways using path_enrich
+//  * 2. [Core Analysis] Extract direct interactions and calculate centrality using interactions
+//  * 3. [Core Analysis] Complete the data with GO term enrichment and pathway filtering using compl_data
+//  * 4. [Core Analysis] Launch the interactive Shiny application using rshiny
 
 nextflow.enable.dsl = 2
 
-process BIOC_FAMAT {
+process BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-famat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-famat:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-famat:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_famat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_famat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_famat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(famat)
-    library(jsonlite)
-
-    # --- compl_data [] ---
-    # Key functions: compl_data
-    data(interactions_result)
-    compl_data_result <- compl_data(interactions_result)
-    # --- path_enrich [] ---
-    # Key functions: path_enrich, interactions, compl_data, rshiny
-    data(genes)
-    data(meta)
-    listk <- path_enrich("KEGG", meta, genes)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_famat_results.csv", row.names = TRUE)
+    library(mgcv)
+    
+    # Read user input files from the working directory
+    if (file.exists("genes")) {
+      genes <- readLines("genes")
+    } else if (file.exists("genes.txt")) {
+      genes <- readLines("genes.txt")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_famat_results.csv")
+      stop("Error: Input file 'genes' or 'genes.txt' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_famat_output.rds")
+    genes <- unique(trimws(genes[genes != ""]))
+    
+    if (file.exists("meta")) {
+      meta <- readLines("meta")
+    } else if (file.exists("meta.txt")) {
+      meta <- readLines("meta.txt")
+    } else {
+      stop("Error: Input file 'meta' or 'meta.txt' not found in the working directory.")
+    }
+    meta <- unique(trimws(meta[meta != ""]))
+    
+    # Retrieve the required reference dataset without using data()
+    all_compounds_chebi <- get("all_compounds_chebi", envir = as.environment("package:famat"))
+    
+    # Stage 1: Run pathway enrichment analysis for KEGG, Reactome, and WikiPathways
+    message("Running pathway enrichment for KEGG...")
+    listk <- path_enrich("KEGG", meta, genes)
+    
+    message("Running pathway enrichment for Reactome...")
+    listr <- path_enrich("REAC", meta, genes)
+    
+    message("Running pathway enrichment for WikiPathways...")
+    listw <- path_enrich("WP", meta, genes)
+    
+    # Stage 2: Extract direct interactions and calculate centrality
+    message("Extracting interactions...")
+    interactions_result <- interactions(listk, listr, listw)
+    
+    # Stage 3: Complete the data with GO term enrichment and pathway filtering
+    message("Completing data with GO enrichment and pathway filtering...")
+    compl_data_result <- compl_data(interactions_result)
+    
+    # Save meaningful results to files
+    message("Saving results...")
+    saveRDS(listk, "path_enrich_kegg.rds")
+    saveRDS(listr, "path_enrich_reac.rds")
+    saveRDS(listw, "path_enrich_wp.rds")
+    saveRDS(interactions_result, "interactions_result.rds")
+    saveRDS(compl_data_result, "compl_data_result.rds")
+    
+    # Export data frames from compl_data_result to CSV if available
+    if (is.list(compl_data_result)) {
+      for (name in names(compl_data_result)) {
+        val <- compl_data_result[[name]]
+        if (is.data.frame(val)) {
+          write.csv(val, paste0("compl_data_", name, ".csv"), row.names = FALSE)
+        } else if (is.list(val)) {
+          for (subname in names(val)) {
+            subval <- val[[subname]]
+            if (is.data.frame(subval)) {
+              write.csv(subval, paste0("compl_data_", name, "_", subname, ".csv"), row.names = FALSE)
+            }
+          }
+        }
+      }
+    }
+    
+    # Stage 4: Launch the interactive Shiny application
+    if (interactive()) {
+      message("Launching interactive Shiny application...")
+      rshiny(compl_data_result)
+    } else {
+      message("Non-interactive execution: skipping interactive Shiny app launch.")
+      message("You can launch the app later using: famat::rshiny(readRDS('compl_data_result.rds'))")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FAMAT:", paste0("    famat: ", packageVersion("famat"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION":',
+        paste0('    famat: ', as.character(packageVersion('famat')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_famat_results.csv
-    touch ${prefix}_famat_output.rds
-    echo "BIOC_FAMAT:" > versions.yml
-    echo "    famat: 0.0.0" >> versions.yml
+    touch ${prefix}_famat_analysis_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_FAMAT_WORKFLOW {
+workflow BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ genes, meta ] ]
 
     main:
-    BIOC_FAMAT(ch_input)
+    BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_FAMAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FAMAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FAMAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FAMAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION.out.tables
+    plots    = BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION.out.plots
+    objects  = BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION.out.objects
+    versions = BIOC_FAMAT_FAMAT_ANALYSIS_AND_VISUALIZATION.out.versions
 }

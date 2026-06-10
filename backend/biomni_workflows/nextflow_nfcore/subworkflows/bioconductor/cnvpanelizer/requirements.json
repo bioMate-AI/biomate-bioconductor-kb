@@ -1,0 +1,13 @@
+{
+  "package": "cnvpanelizer",
+  "requirements": [
+    "CNVPanelizer",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CNVPanelizer",
+      "GenomicRanges"
+    ]
+  }
+}

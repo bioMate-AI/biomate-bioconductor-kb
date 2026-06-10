@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sim_geno=Genotype matrix (or BEDMatrix object) containing SNP data ;; LF=Matrix of logistic factors estimated by lfa() ;; sim_trait=Vector representing the trait of interest (quantitative or binary) ;; d=Number of logistic factors to estimate in lfa() (e.g., 3 in the example)\n- alternatives: genio::read_plink=Use to parse PLINK binary genotypes (.bed) into the required R object format ;; BEDMatrix=Use to load genotypes with reduced memory usage at a small runtime penalty\n- when_to_use: Use when conducting genetic association tests (GWAS) in populations with structure, where controlling for confounding is necessary for either binary or quantitative traits.\n- pitfalls: None explicitly mentioned, but failing to correctly estimate the number of logistic factors (d) in the lfa step may affect the test's power and control.",
+  "workflows": [
+    {
+      "name": "gcat_association_testing",
+      "intent": "Perform genotype conditional association testing on genome-wide SNP data and a trait while controlling for population structure.",
+      "input": [
+        "PLINK binary genotype files (.bed) or genotype matrix",
+        "Trait vector (quantitative or binary)"
+      ],
+      "stages": "1. Estimate logistic factors from the genotype matrix using lfa ;; 2. Run the genotype conditional association test using gcat to obtain p-values",
+      "code": "LF <- lfa (sim_geno, 3 )\ngcat_p <- gcat (sim_geno, LF, sim_trait)"
+    }
+  ]
+}

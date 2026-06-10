@@ -1,0 +1,19 @@
+{
+  "package": "netactivity",
+  "requirements": [
+    "DESeq2",
+    "NetActivity",
+    "SummarizedExperiment",
+    "ggplot2",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "NetActivity",
+      "SummarizedExperiment",
+      "ggplot2",
+      "limma"
+    ]
+  }
+}

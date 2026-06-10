@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=Matrix of gene expression data (features as rows, samples as columns) ;; X=Model matrix of the design ;; coef.h=Integer index of the coefficient(s) associated with the null hypothesis (H0) ;; batch=Factor specifying the batch structure of the samples ;; initialised.obj=An initialized random rotation object returned by initBatchRandrot or initRandrot ;; R=Number of random rotations to perform ;; statistic=A user-defined function that takes the data matrix and other parameters, performs the analysis pipeline (e.g., batch correction and model fitting), and returns a vector of test statistics ;; cormat=List of correlation matrices for sample replicates within batches, used for linear mixed models\n- alternatives: Standard parametric p-value estimation (e.g., using limma directly on batch-corrected data), which is discouraged because batch correction methods introduce dependencies among samples, leading to non-uniform (skewed) null distributions of p-values.\n- when_to_use: Use this package when you need to perform differential expression or other linear model-based analyses on high-dimensional normally distributed data (such as microarray or RNA-seq data) after applying a separate batch effect correction method (e.g., ComBat or removeBatchEffect), or when dealing with repeated measures/mixed models with batch structures.\n- pitfalls: Using scale-dependent statistics (like raw parameter estimates/coefficients) instead of scale-independent statistics (pivotal quantities like t-values) in the statistic function ;; Failing to take the absolute value of the t-statistic in the statistic function, which is required for pFdr to correctly calculate two-tailed p-values ;; Assuming independent samples across batches when there are correlations (requires specifying cormat in initBatchRandrot or using initRandrot) ;; Using too few rotations (R) when features are highly dependent, although pooling statistics in pFdr helps reduce the required R.",
+  "workflows": [
+    {
+      "name": "linear_model_batch_correction",
+      "intent": "Perform batch effect correction and linear model analysis while obtaining unskewed, rotation-based p-values and false discovery rates (FDR).",
+      "input": [
+        "edata (matrix of gene expression data with features as rows and samples as columns)",
+        "pdata (dataframe of phenotype and batch information for each sample)"
+      ],
+      "stages": "1. Create the design model matrix using model.matrix.\n2. Initialize the batch random rotation object using initBatchRandrot, specifying the null hypothesis coefficient and batch covariate.\n3. Define a custom statistic function that performs batch correction (e.g., ComBat) and extracts absolute t-statistics from a linear model fit (e.g., limma).\n4. Run the rotation and calculate statistics using rotateStat.\n5. Calculate resampling-based p-values and FDRs using pFdr.",
+      "code": "mod1 <- model.matrix(~1+phenotype, pdata)\nrr <- initBatchRandrot(Y = edata, X = mod1, coef.h = 2, batch = pdata$batch)\nstatistic <- function(Y, batch, mod){\n  Y <- sva::ComBat(dat = Y, batch = batch, mod = mod)\n  fit1 <- limma::lmFit(Y, design = mod)\n  fit1 <- limma::eBayes(fit1)\n  abs(fit1$t[,2])\n}\nrs1 <- rotateStat(initialised.obj = rr, R = 10, statistic = statistic,\n                   batch = pdata$batch, mod = mod1)\np.vals <- pFdr(rs1)\nfdr.q  <- pFdr(rs1, \"fdr.q\")\nfdr.qu <- pFdr(rs1, \"fdr.qu\")\nfdr.BH <- pFdr(rs1, \"BH\")"
+    },
+    {
+      "name": "contrast_analysis_batch_correction",
+      "intent": "Test specific contrasts in batch-corrected data using random rotations to obtain unskewed p-values.",
+      "input": [
+        "edata (matrix of gene expression data with features as rows and samples as columns)",
+        "pdata (dataframe of phenotype and batch information for each sample)"
+      ],
+      "stages": "1. Create the model matrix and define the contrast matrix using limma::makeContrasts.\n2. Transform the model matrix to include the contrast as the last coefficient using contrastModel.\n3. Initialize the batch random rotation object using initBatchRandrot.\n4. Define a custom statistic function that performs batch correction, fits the contrast, and extracts absolute t-statistics.\n5. Run the rotation using rotateStat and calculate p-values using pFdr.",
+      "code": "mod.groups <- model.matrix(~ group)\ncontrasts1 <- limma::makeContrasts(\"2vs3\" = group2 - group3,\n                                   levels = mod.groups)\nmod.cont <- contrastModel(X = mod.groups, C = contrasts1)\ninit1 <- initBatchRandrot(edata, mod.cont, batch = pdata$batch)\nstatistic <- function(Y, batch, mod, cont){\n  Y.tmp <- sva::ComBat(dat = Y, batch = batch, mod = mod)\n  fit1 <- limma::lmFit(Y.tmp, mod)\n  fit1 <- limma::contrasts.fit(fit1, cont)\n  fit1 <- limma::eBayes(fit1)\n  abs(fit1$t[,1])\n}\nres1 <- rotateStat(initialised.obj = init1, R = 20, statistic = statistic,\n                   batch = pdata$batch, mod = mod.groups, cont = contrasts1)\np.rot <- pFdr(res1)"
+    },
+    {
+      "name": "mixed_model_batch_correction",
+      "intent": "Perform random rotation for datasets with repeated measures (random effects) and batch structure using linear mixed models.",
+      "input": [
+        "edata (matrix of gene expression data with features as rows and samples as columns)",
+        "pdata (dataframe containing batch, tissue, and individual/replicate identifiers)"
+      ],
+      "stages": "1. Estimate the correlation matrix (cormat) between sample replicates within batches.\n2. Create the design model matrix.\n3. Initialize the batch random rotation object with the estimated cormat using initBatchRandrot.\n4. Define a custom statistic function that removes batch effects (e.g., removeBatchEffect) and fits linear mixed models (e.g., lme) to extract absolute t-statistics.\n5. Run the rotation using rotateStat with parallel processing and calculate p-values using pFdr.",
+      "code": "covs1 <- function(., df1, i){\n  df1$d1 <- .\n  me1 <- lme(d1 ~ tissue, data = df1[i,], random = ~1|individual)\n  getVarCov(me1, type = \"marginal\")[[1]]\n}\ncovs1 <- sapply(spl1,\n                function(samps)rowMeans(apply(edata, 1, covs1, df1, samps)))\ncov1 <- matrix(rowMeans(covs1), 2, 2)\ncormat <- cov2cor(cov1)\ncormat <-  diag(5) %x% cormat\ncormat <- list(cormat, cormat, cormat)\nmod1 <- model.matrix(~1+tissue, pdata)\nrr1 <- initBatchRandrot(Y = edata, X = mod1, coef.h = 2, batch = pdata$batch,\n                        cormat = cormat)\nstatistic <- function(Y, batch, mod, df1){\n  Y <- limma::removeBatchEffect(Y, batch = batch, design = mod)\n  apply(Y, 1, function(j){\n    df1$d1 <- j\n    me0 <- nlme::lme(d1 ~ 1, data = df1, random = ~1|individual, method = \"ML\")\n    me1 <- nlme::lme(d1 ~ tissue, data = df1, random = ~1|individual, method = \"ML\")\n    abs(coef(me1)[1,2] / (sqrt(vcov(me1)[2,2])))\n  })\n}\nrs1 <- rotateStat(initialised.obj = rr1, R = 4, statistic = statistic, \n                  batch = pdata$batch, mod = mod1, df1 = df1, parallel = TRUE)\np1 <- pFdr(rs1)"
+    }
+  ]
+}

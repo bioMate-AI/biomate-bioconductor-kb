@@ -1,0 +1,13 @@
+{
+  "package": "frma",
+  "requirements": [
+    "affy",
+    "frma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "affy",
+      "frma"
+    ]
+  }
+}

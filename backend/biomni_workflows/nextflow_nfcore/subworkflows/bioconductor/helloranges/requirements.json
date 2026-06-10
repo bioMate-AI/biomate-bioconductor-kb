@@ -1,0 +1,15 @@
+{
+  "package": "helloranges",
+  "requirements": [
+    "GenomicRanges",
+    "HelloRanges",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "HelloRanges",
+      "rtracklayer"
+    ]
+  }
+}

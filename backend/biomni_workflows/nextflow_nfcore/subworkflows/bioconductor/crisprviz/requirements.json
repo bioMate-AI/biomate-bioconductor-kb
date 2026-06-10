@@ -1,0 +1,22 @@
+{
+  "package": "crisprviz",
+  "requirements": [
+    "BSgenome",
+    "GenomicRanges",
+    "crisprDesign",
+    "crisprViz"
+  ],
+  "by_workflow": {
+    "compare_multiple_guidesets.nf": [
+      "BSgenome",
+      "crisprDesign",
+      "crisprViz"
+    ],
+    "main.nf": [
+      "BSgenome",
+      "GenomicRanges",
+      "crisprDesign",
+      "crisprViz"
+    ]
+  }
+}

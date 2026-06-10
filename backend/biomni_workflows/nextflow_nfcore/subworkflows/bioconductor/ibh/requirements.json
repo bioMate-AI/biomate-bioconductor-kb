@@ -1,0 +1,14 @@
+{
+  "package": "ibh",
+  "requirements": [
+    "ibh"
+  ],
+  "by_workflow": {
+    "clustering_evaluation.nf": [
+      "ibh"
+    ],
+    "main.nf": [
+      "ibh"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package": "methimpute",
+  "requirements": [
+    "GenomicRanges",
+    "ggplot2",
+    "methimpute"
+  ],
+  "by_workflow": {
+    "binned_methylation_calling.nf": [
+      "methimpute"
+    ],
+    "enrichment_analysis.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "methimpute"
+    ],
+    "individual_cytosines_interacting_context.nf": [
+      "methimpute"
+    ],
+    "main.nf": [
+      "methimpute"
+    ]
+  }
+}

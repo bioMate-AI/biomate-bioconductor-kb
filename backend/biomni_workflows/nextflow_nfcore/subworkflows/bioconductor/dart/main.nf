@@ -1,140 +1,201 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DART
-// Denoising Algorithm based on Relevance network Topology (DART) is an algorithm designed to evaluate 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DART/inst/doc/DART.R
-// Upstream  : Biobase, breastCancerMAINZ, breastCancerVDX
-// Downstream: none
-//
-// Install: BiocManager::install("DART")
+// Bioconductor workflow: DART — step_by_step_dart
+// Build, evaluate, and prune a relevance network step-by-step to predict signature activity scores in training and independent datasets.
+// Input: vdx.data, modelSig, mainz.data
+// Container: quay.io/biocontainers/bioconductor-dart:1.58.0--r45hdfd78af_0
+// R packages: Biobase, breastcancermainz, breastcancervdx, DART
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DART
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Build the relevance network using BuildRN
+//  * 2. [Core Analysis] Evaluate network consistency using EvalConsNet
+//  * 3. [Core Analysis] Prune inconsistent edges using PruneNet
+//  * 4. [Core Analysis] Predict signature activity scores in the training dataset using PredActScore
+//  * 5. [Core Analysis] Predict signature activity scores in an independent dataset using PredActScore
 
 nextflow.enable.dsl = 2
 
-process BIOC_DART {
+process BIOC_DART_STEP_BY_STEP_DART {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dart"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dart:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dart:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dart_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dart_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dart_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DART)
-    library(BuildRN)
-    library(DoDART)
-    library(DoDARTCLQ)
-    library(EvalConsNet)
-    library(PredActScore)
-    library(Prune)
-    library(PruneNet)
-    library(jsonlite)
-
-    # --- Relevance Network Construction [BuildRN] ---
-    # Key functions: BuildRN
-    data(dataDART, package = "dart")
-    modelSig <- dataDART$sign
-    mock_genes <- names(modelSig)
-    vdx.data <- matrix(
-        rnorm(length(mock_genes) * 10),
-        nrow = length(mock_genes),
-        dimnames = list(mock_genes, paste0("Sample", 1:10))
-    )
-    rn.o <- BuildRN(
-        vdx.data,
-        modelSig,
-        fdr = 0.000001
-    )
-
-    # --- Network Consistency Evaluation [EvalConsNet] ---
-    # Key functions: EvalConsNet
-    evalNet.o <- EvalConsNet(rn.o)
-    net_consistency <- evalNet.o$netcons["fconsE"]
-    net_pvalue <- evalNet.o$netcons["p"]
-
-    # --- Network Pruning and Denoising [PruneNet] ---
-    # Key functions: PruneNet
-    prNet.o <- PruneNet(evalNet.o)
-    pruned_adj <- prNet.o$pradjMC
-    num_edges <- sum(pruned_adj) / 2
-
-    # --- Activity Score Prediction [PredActScore] ---
-    # Key functions: PredActScore
-    pred.o <- PredActScore(prNet.o, vdx.data)
-    activity_scores <- pred.o$score
-    mainz.data <- matrix(
-        rnorm(length(mock_genes) * 5),
-        nrow = length(mock_genes),
-        dimnames = list(mock_genes, paste0("Mainz", 1:5))
-    )
-    pred.mainz.o <- PredActScore(prNet.o, mainz.data)
-
-    # --- Direct DART Execution [DoDART] ---
-    # Key functions: DoDART
-    res.vdx <- DoDART(
-        vdx.data,
-        modelSig,
-        fdr = 0.000001
-    )
-    final_scores <- res.vdx$score
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dart_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dart_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "breastcancermainz", "breastcancervdx", "DART")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dart_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        library(DART)
+        
+        # Helper function to load input files robustly
+        load_file <- function(path) {
+          if (!file.exists(path)) {
+            stop(paste("Required input file missing:", path))
+          }
+          
+          # Try RDS
+          obj <- tryCatch(readRDS(path), error = function(e) NULL)
+          if (!is.null(obj)) return(obj)
+          
+          # Try reading as a matrix/data frame (TSV)
+          obj <- tryCatch({
+            mat <- as.matrix(read.table(path, header = TRUE, row.names = 1, sep = "\t", check.names = FALSE))
+            if (ncol(mat) == 0) stop()
+            mat
+          }, error = function(e) NULL)
+          if (!is.null(obj)) return(obj)
+          
+          # Try reading as a matrix/data frame (CSV)
+          obj <- tryCatch({
+            mat <- as.matrix(read.csv(path, header = TRUE, row.names = 1, check.names = FALSE))
+            if (ncol(mat) == 0) stop()
+            mat
+          }, error = function(e) NULL)
+          if (!is.null(obj)) return(obj)
+          
+          # Try reading as a named vector (TSV)
+          obj <- tryCatch({
+            tbl <- read.table(path, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+            vec <- as.numeric(tbl[[2]])
+            names(vec) <- as.character(tbl[[1]])
+            vec
+          }, error = function(e) NULL)
+          if (!is.null(obj)) return(obj)
+          
+          # Try reading as a named vector (CSV)
+          obj <- tryCatch({
+            tbl <- read.csv(path, header = FALSE, stringsAsFactors = FALSE)
+            vec <- as.numeric(tbl[[2]])
+            names(vec) <- as.character(tbl[[1]])
+            vec
+          }, error = function(e) NULL)
+          if (!is.null(obj)) return(obj)
+          
+          stop(paste("Failed to parse file:", path))
+        }
+        
+        # Load inputs
+        vdx.data_raw <- load_file("vdx.data")
+        mainz.data_raw <- load_file("mainz.data")
+        modelSig_raw <- load_file("modelSig")
+        
+        # Format vdx.data and mainz.data as matrices
+        vdx.data <- as.matrix(vdx.data_raw)
+        mainz.data <- as.matrix(mainz.data_raw)
+        
+        # Format modelSig as a named numeric vector
+        if (is.list(modelSig_raw) && !is.data.frame(modelSig_raw)) {
+          modelSig <- unlist(modelSig_raw)
+        } else if (is.matrix(modelSig_raw) || is.data.frame(modelSig_raw)) {
+          if (ncol(modelSig_raw) == 1) {
+            modelSig <- as.numeric(modelSig_raw[, 1])
+            names(modelSig) <- rownames(modelSig_raw)
+          } else {
+            modelSig <- as.numeric(modelSig_raw[, 2])
+            names(modelSig) <- as.character(modelSig_raw[, 1])
+          }
+        } else {
+          modelSig <- as.numeric(modelSig_raw)
+          names(modelSig) <- names(modelSig_raw)
+        }
+        
+        # 1. Build the relevance network
+        rn.o <- BuildRN(vdx.data, modelSig, fdr=0.000001)
+        
+        # 2. Evaluate network consistency
+        evalNet.o <- EvalConsNet(rn.o)
+        
+        # 3. Prune inconsistent edges
+        prNet.o <- PruneNet(evalNet.o)
+        
+        # 4. Predict signature activity scores in the training dataset
+        pred.o <- PredActScore(prNet.o, vdx.data)
+        
+        # 5. Predict signature activity scores in an independent dataset
+        pred.mainz.o <- PredActScore(prNet.o, mainz.data)
+        
+        # Save outputs as RDS
+        saveRDS(rn.o, "rn.o.rds")
+        saveRDS(evalNet.o, "evalNet.o.rds")
+        saveRDS(prNet.o, "prNet.o.rds")
+        saveRDS(pred.o, "pred.o.rds")
+        saveRDS(pred.mainz.o, "pred.mainz.o.rds")
+        
+        # Save predictions as CSV
+        write.csv(data.frame(Sample = names(pred.o\$score), Score = pred.o\$score), "predictions_vdx.csv", row.names = FALSE)
+        write.csv(data.frame(Sample = names(pred.mainz.o\$score), Score = pred.mainz.o\$score), "predictions_mainz.csv", row.names = FALSE)
+        
+        # Save consistency metrics
+        write.csv(data.frame(Metric = names(evalNet.o\$netcons), Value = as.numeric(evalNet.o\$netcons)), "network_consistency.csv", row.names = FALSE)
+        
+        # Save a summary text file
+        summary_conn <- file("pipeline_summary.txt", "w")
+        cat("--- DART Pipeline Summary ---\n", file = summary_conn)
+        cat("Relevance Network Nodes:", dim(rn.o\$adj)[1], "\n", file = summary_conn)
+        cat("Relevance Network Edges:", sum(rn.o\$adj == 1)/2, "\n", file = summary_conn)
+        cat("Consistency Score (fconsE):", evalNet.o\$netcons["fconsE"], "\n", file = summary_conn)
+        cat("Consistency P-value:", evalNet.o\$netcons["Pval(consist)"], "\n", file = summary_conn)
+        cat("Pruned Network Nodes:", dim(prNet.o\$pradjMC)[1], "\n", file = summary_conn)
+        cat("Pruned Network Edges:", sum(prNet.o\$pradjMC)/2, "\n", file = summary_conn)
+        close(summary_conn)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DART:", paste0("    dart: ", packageVersion("DART"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DART_STEP_BY_STEP_DART":',
+        paste0('    DART: ', as.character(packageVersion('DART')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dart_results.csv
-    touch ${prefix}_dart_output.rds
-    echo "BIOC_DART:" > versions.yml
-    echo "    dart: 0.0.0" >> versions.yml
+    touch ${prefix}_step_by_step_dart.csv versions.yml
     """
 }
 
-
-workflow BIOC_DART_WORKFLOW {
+workflow BIOC_DART_STEP_BY_STEP_DART_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ vdx.data, modelSig, mainz.data ] ]
 
     main:
-    BIOC_DART(ch_input)
+    BIOC_DART_STEP_BY_STEP_DART(ch_input)
 
     emit:
-    results  = BIOC_DART.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DART.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DART.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DART.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DART_STEP_BY_STEP_DART.out.tables
+    plots    = BIOC_DART_STEP_BY_STEP_DART.out.plots
+    objects  = BIOC_DART_STEP_BY_STEP_DART.out.objects
+    versions = BIOC_DART_STEP_BY_STEP_DART.out.versions
 }

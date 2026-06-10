@@ -1,0 +1,21 @@
+{
+  "package": "limma",
+  "requirements": [
+    "affy",
+    "gcrma",
+    "limma"
+  ],
+  "by_workflow": {
+    "filtering_unexpressed_probes.nf": [
+      "limma"
+    ],
+    "main.nf": [
+      "limma"
+    ],
+    "single_channel_microarray_analysis.nf": [
+      "affy",
+      "gcrma",
+      "limma"
+    ]
+  }
+}

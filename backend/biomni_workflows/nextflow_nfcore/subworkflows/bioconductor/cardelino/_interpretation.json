@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Config=A variant x clone configuration matrix of binary values indicating which mutations are expected in which clones. If NULL, de-novo mode is used ;; min_iter=Minimum number of iterations for Gibbs sampling (default is higher, but can be set lower for quick illustration; convergence is checked via Geweke z-statistic) ;; max_iter=Maximum number of iterations for Gibbs sampling ;; n_clone=Number of clones to infer when Config=NULL (de-novo mode) ;; keep_base_clone=Logical, whether to keep the first clone as a base clone (no mutations) in de-novo mode (default is TRUE)\n- alternatives: Canopy=Used to infer clonal tree structure from DNA-seq data (provides the Z matrix used as Config) ;; cellsnp-lite=Used to extract variant information (alternative/total counts) from scRNA-seq reads to generate VCF files ;; MQuad=Used to call mitochondrial variations from scRNA-seq data\n- when_to_use: When you have single-cell RNA-seq data and want to assign individual cells to clones based on somatic mutations (nuclear or mitochondrial) with or without a pre-defined clonal tree.\n- pitfalls: Sparsity of somatic mutations in scRNA-seq data is very high; probabilistic clustering accounting for uncertainty is crucial ;; Ensure that the same variant IDs are used in both the scRNA-seq data and the clonal tree configuration matrix (e.g., replacing \":\" with \"_\") ;; Using low min_iter and max_iter (like 800/1200) is only for quick illustration; default or higher values should be used to ensure convergence ;; In de-novo mode (especially with mitochondrial variations), the model is prone to returning local optima; it is recommended to run it multiple times with different seeds/initializations and select the one with the highest DIC",
+  "workflows": [
+    {
+      "name": "clone_id_with_tree",
+      "intent": "Assign cells to clones using scRNA-seq variant counts and a pre-defined clonal tree configuration.",
+      "input": [
+        "cellSNP.cells.vcf.gz (VCF file containing alternative and total read counts for somatic mutations in single cells)",
+        "canopy_results.coveraged.rds (RDS file containing the inferred clonal tree structure and configuration matrix Z)"
+      ],
+      "stages": "1. Load scRNA-seq variant data using load_cellSNP_vcf ;; 2. Load clonal tree configuration and align variant IDs ;; 3. Run Bayesian clustering using clone_id with the configuration matrix ;; 4. Assign cells to clones using assign_cells_to_clones ;; 5. Visualize results using prob_heatmap, heat_matrix, and vc_heatmap",
+      "code": "library(ggplot2)\nlibrary(cardelino)\nvcf_file <- system.file(\"extdata\", \"cellSNP.cells.vcf.gz\", package = \"cardelino\")\ninput_data <- load_cellSNP_vcf(vcf_file)\nAF <- as.matrix(input_data$A / input_data$D)\np = pheatmap::pheatmap(AF, cluster_rows=FALSE, cluster_cols=FALSE, show_rownames = TRUE, show_colnames = TRUE, labels_row='77 cells', labels_col='112 SNVs', angle_col=0, angle_row=0)\ncanopy_res <- readRDS(system.file(\"extdata\", \"canopy_results.coveraged.rds\", package = \"cardelino\"))\nConfig <- canopy_res$tree$Z\nrownames(Config) <- gsub(\":\", \"_\", rownames(Config))\nplot_tree(canopy_res$tree, orient = \"v\")\nset.seed(7)\nassignments <- clone_id(input_data$A, input_data$D, Config = Config, min_iter = 800, max_iter = 1200)\nprob_heatmap(assignments$prob)\ndf <- assign_cells_to_clones(assignments$prob)\nhead(df)\ntable(df$clone)\nheat_matrix(t(assignments$Config_prob - Config)) + scale_fill_gradient2() + ggtitle('Changes of clonal Config') + labs(x='Clones', y='112 SNVs') + theme(axis.text.y = element_blank(), legend.position = \"right\")\nAF <- as.matrix(input_data$A / input_data$D)\ncardelino::vc_heatmap(AF, assignments$prob, Config, show_legend=TRUE)"
+    },
+    {
+      "name": "clone_id_denovo",
+      "intent": "Infer clonal structure and assign cells to clones de-novo without a pre-defined clonal tree, typically using mitochondrial or high-coverage variants.",
+      "input": [
+        "passed_ad.mtx (Matrix Market file containing alternative allele counts for variants across cells)",
+        "passed_dp.mtx (Matrix Market file containing total read depth/coverage for variants across cells)",
+        "passed_variant_names.txt (Text file containing variant identifiers)"
+      ],
+      "stages": "1. Read AD and DP matrices and assign variant and cell names ;; 2. Run de-novo Bayesian clustering using clone_id with Config=NULL and specifying n_clone ;; 3. Threshold the posterior configuration probability matrix ;; 4. Visualize cell assignments and clonal configurations using vc_heatmap",
+      "code": "AD_file <- system.file(\"extdata\", \"passed_ad.mtx\", package = \"cardelino\")\nDP_file <- system.file(\"extdata\", \"passed_dp.mtx\", package = \"cardelino\")\nid_file <- system.file(\"extdata\", \"passed_variant_names.txt\", package = \"cardelino\")\nAD <- Matrix::readMM(AD_file)\nDP <- Matrix::readMM(DP_file)\nvar_ids <- read.table(id_file, )\nrownames(AD) <- rownames(DP) <- var_ids[, 1]\ncolnames(AD) <- colnames(DP) <- paste0('Cell', seq(ncol(DP)))\nAF_mt <- as.matrix(AD / DP)\npheatmap::pheatmap(AF_mt)\nset.seed(7)\nassign_mtClones <- clone_id(AD, DP, Config=NULL, n_clone = 3, keep_base_clone=FALSE)\nConfig_mt <- assign_mtClones$Config_prob\nConfig_mt[Config_mt >= 0.5] = 1\nConfig_mt[Config_mt < 0.5] = 0\ncardelino::vc_heatmap(AF_mt, assign_mtClones$prob, Config_mt, show_legend=TRUE)"
+    }
+  ]
+}

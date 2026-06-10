@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies the clock type in predictAge (\"RPC\" for Robust Placental Clock, \"CPC\" for Control Placental Clock, or \"RRPC\" for Refined Robust Placental Clock) ;; threshold=The probability threshold in predictEthnicity (default 0.75) below which a sample is assigned an \"Ambiguous\" label ;; beta.m=The input DNAm beta value matrix for EpiDISH deconvolution ;; ref.m=The reference CpG methylation matrix for EpiDISH deconvolution\n- alternatives: Cell composition can be estimated using either minfi:::projectCellType (Constrained Projection) or EpiDISH (Robust Partial Correlations 'RPC', CIBERSORT 'CBS', or Constrained Projection 'CP')\n- when_to_use: Use when analyzing placental DNA methylation data (450k or 850k/EPIC arrays) to infer cell type proportions, gestational age, ancestry, or preeclampsia status\n- pitfalls: Missing CpGs can significantly reduce prediction accuracy for gestational age, ethnicity, and preeclampsia ;; For preeclampsia prediction, the input matrix must have samples as rows and CpGs as columns (transposed relative to standard Bioconductor format) and must contain the full set of CpG probes (450k or 850k) ;; It is highly recommended to normalize DNAm data using minfi::preprocessNoob and BMIQ prior to running predictions ;; Ambiguous ethnicity samples (probability < 0.75) should not be grouped together in downstream differential methylation analysis; they should either be removed or adjusted for using raw probabilities (using 2 of the 3 probabilities to avoid redundancy)",
+  "workflows": [
+    {
+      "name": "cell_composition_estimation",
+      "intent": "Estimate cell type proportions in placental villi DNAm samples using first or third trimester reference CpGs.",
+      "input": [
+        "DNAm_betas.rds (matrix of DNA methylation beta values with CpGs as rows and samples as columns)"
+      ],
+      "stages": "1. Load the appropriate trimester-specific reference CpGs (plCellCpGsThird or plCellCpGsFirst) ;; 2. Estimate cell composition using minfi's projectCellType or EpiDISH's epidish function.",
+      "code": "data(\"plBetas\")\ndata(\"plCellCpGsThird\")\nhead(plCellCpGsThird)\n\nhouseman_estimates <- minfi:::projectCellType(\n  plBetas[rownames(plCellCpGsThird), ],\n  plCellCpGsThird,\n  lessThanOne = FALSE\n)\n\nepidish_RPC <- epidish(\n  beta.m = plBetas[rownames(plCellCpGsThird), ],\n  ref.m = plCellCpGsThird,\n  method = \"RPC\"\n)\n\nepidish_CBS <- epidish(\n  beta.m = plBetas[rownames(plCellCpGsThird), ],\n  ref.m = plCellCpGsThird,\n  method = \"CBS\"\n)\n\nepidish_CP <- epidish(\n  beta.m = plBetas[rownames(plCellCpGsThird), ],\n  ref.m = plCellCpGsThird,\n  method = \"CP\"\n)"
+    },
+    {
+      "name": "gestational_age_prediction",
+      "intent": "Predict gestational age from placental DNA methylation data using three specialized placental epigenetic clocks.",
+      "input": [
+        "DNAm_betas.rds (matrix of DNA methylation beta values with CpGs as rows and samples as columns)",
+        "sample_metadata.csv (sample information data frame)"
+      ],
+      "stages": "1. Predict gestational age using predictAge with the \"RPC\", \"CPC\", and \"RRPC\" clock types ;; 2. Append the predicted values to the sample metadata.",
+      "code": "data(plBetas)\ndata(plPhenoData)\n\nplPhenoData <- plPhenoData %>%\n  mutate(\n    ga_RPC = predictAge(plBetas, type = \"RPC\"),\n    ga_CPC = predictAge(plBetas, type = \"CPC\"),\n    ga_RRPC = predictAge(plBetas, type = \"RRPC\")\n  )"
+    },
+    {
+      "name": "ethnicity_prediction",
+      "intent": "Predict donor ethnicity (African, Asian, Caucasian) from placental DNA methylation data.",
+      "input": [
+        "DNAm_betas.rds (matrix of DNA methylation beta values with CpGs as rows and samples as columns)"
+      ],
+      "stages": "1. Verify that the required ethnicity CpGs are present in the dataset ;; 2. Predict ethnicity using predictEthnicity.",
+      "code": "data(ethnicityCpGs)\nall(ethnicityCpGs %in% rownames(plBetas))\n\nresults <- predictEthnicity(plBetas)"
+    },
+    {
+      "name": "preeclampsia_prediction",
+      "intent": "Calculate the probability of early-onset preeclampsia (EOPE) from placental DNA methylation samples.",
+      "input": [
+        "DNAm_betas_normalized.rds (BMIQ-normalized matrix of DNA methylation beta values with samples as rows and CpGs as columns)"
+      ],
+      "stages": "1. Predict preeclampsia status using predictPreeclampsia on the transposed, normalized beta matrix.",
+      "code": "preds <- x_test %>% predictPreeclampsia()"
+    }
+  ]
+}

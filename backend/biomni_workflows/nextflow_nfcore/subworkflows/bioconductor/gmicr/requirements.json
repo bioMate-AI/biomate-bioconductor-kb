@@ -1,0 +1,11 @@
+{
+  "package": "gmicr",
+  "requirements": [
+    "GmicR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GmicR"
+    ]
+  }
+}

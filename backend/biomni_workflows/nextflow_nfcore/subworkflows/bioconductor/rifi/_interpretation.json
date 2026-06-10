@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: inp=SummarizedExperiment input object containing intensity measurements ;; bg=Background intensity threshold (set to 0 for RNA-seq, or a positive value like ~30 for microarrays) ;; cores=Number of CPU cores to use for parallel processing ;; dista=Distance threshold (default 300) for segmenting position-segments by regions without significant sequencing depth ;; pen=Penalty value for dynamic programming fragmentation ;; pen_out=Outlier penalty value for dynamic programming fragmentation ;; restr=Restriction parameter for fitting ;; rm_FLT=Logical, whether to remove probes/bins where all replicates are filtered (default FALSE)\n- alternatives: None mentioned. The documentation notes that standard workflows combine individual half-life values based on given genome annotation, which cannot deal with differences within a gene, whereas rifi uses an annotation-agnostic approach.\n- when_to_use: Appropriate when analyzing high-throughput rifampicin time-series data (microarray or RNA-seq) with sufficiently high time resolution to study transcription mechanics, RNA polymerase velocity, and RNA stability/half-life in bacteria.\n- pitfalls: Microarray data must be carefully checked for background; running with a low background (e.g., ~30) first to check probe fits is recommended ;; If more than 30% of fits show a misfit, check raw data and background ;; Incorrect penalties can lead to a high frequency of very long segments, mini-segments (artifacts), or extremely high values, or an absence of events/outliers ;; Input IDs must be unique strand/position combinations and must not contain \"|\", \"_\", or \",\" ;; The first column of the assay must be \"0\" (time point before rifampicin addition) and cannot contain 0 or NA.",
+  "workflows": [
+    {
+      "name": "rifi_wrapper_workflow",
+      "intent": "Run the entire rifi analysis pipeline automatically using a single wrapper function.",
+      "input": [
+        "example_input_e_coli (SummarizedExperiment object containing rifampicin time-series data)",
+        "gff_e_coli.gff3.gz (GFF3 genome annotation file)"
+      ],
+      "stages": "1. Load input data and GFF3 annotation file ;; 2. Run the wrapper function rifi_wrapper to execute preprocessing, fitting, penalty estimation, fragmentation, statistics, summary, and visualization.",
+      "code": "library(rifi)\ndata(example_input_e_coli)\nPath = gzfile(system.file(\"extdata\", \"gff_e_coli.gff3.gz\", package = \"rifi\"))\nwrapper_minimal <-\n  rifi_wrapper(\n    inp = example_input_e_coli,\n    cores = 2,\n    path = Path,\n    bg = 0,\n    restr = 0.01\n  )"
+    },
+    {
+      "name": "rifi_manual_workflow",
+      "intent": "Run the rifi analysis pipeline step-by-step to allow fine-tuning of preprocessing, fitting, penalties, fragmentation, and statistical testing.",
+      "input": [
+        "example_input_minimal (SummarizedExperiment object containing rifampicin time-series data)",
+        "gff_e_coli.gff3.gz (GFF3 genome annotation file)"
+      ],
+      "stages": "1. Check input data format ;; 2. Preprocess data (calculate means, segment positions, find PDD and TI candidates) ;; 3. Fit standard and TI models ;; 4. Perform fragmentation using dynamic programming ;; 5. Run statistical tests to identify transcription events ;; 6. Summarize results ;; 7. Visualize genome-wide fragments and events.",
+      "code": "probe <- check_input(inp = example_input_minimal, thrsh = 0)\nprobe <-\n  make_df(\n    inp = probe,\n    cores = 2,\n    bg = 0,\n    rm_FLT = TRUE\n  )\nprobe <- segment_pos(inp = probe, dista = 300)\nprobe <-\n  finding_PDD(\n    inp = probe,\n    cores = 2,\n    pen = 2,\n    pen_out = 2,\n    thrsh = 0.001\n  )\nprobe <-\n  finding_TI(\n    inp = probe,\n    cores = 2,\n    pen = 10,\n    thrsh = 0.001\n  )\npreprocess_minimal <-\n  rifi_preprocess(\n    inp = probe,\n    cores = 2,\n    bg = 0,\n    rm_FLT = TRUE,\n    thrsh_check = 10,\n    dista = 300,\n    run_PDD = TRUE\n  )\ndata(preprocess_minimal)\nsuppressWarnings(fit_minimal <- rifi_fit(\n  inp = preprocess_minimal,\n  cores = 2,\n  viz = FALSE,\n  restr = 0.2,\n  decay = seq(.08, 0.11, by = .02),\n  delay = seq(0, 10, by = .1),\n  k = seq(0.1, 1, 0.2),\n  bg = 0.2,\n  TI_k = seq(0, 1, by = 0.5),\n  TI_decay = c(0.05, 0.1, 0.2, 0.5, 0.6),\n  TI = seq(0, 1, by = 0.5),\n  TI_delay = seq(0, 2, by = 0.5),\n  TI_rest_delay = seq(0, 2, by = 0.5),\n  TI_bg = 0\n))\ndata(penalties_minimal)\nfragmentation_minimal <-\n  rifi_fragmentation(\n    inp = penalties_minimal,\n    cores = 2\n  )\ndata(fragmentation_minimal)\nPath = gzfile(system.file(\"extdata\", \"gff_e_coli.gff3.gz\", package = \"rifi\"))\nstats_minimal <- rifi_stats(inp = fragmentation_minimal, dista = 300, \n                            path = Path)\nsummary_minimal <- rifi_summary(stats_minimal)\nrifi_visualization(\n  data = stats_minimal\n  )"
+    }
+  ]
+}

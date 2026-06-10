@@ -1,0 +1,32 @@
+{
+  "package": "flowtime",
+  "requirements": [
+    "flowClust",
+    "flowCore",
+    "flowStats",
+    "flowTime",
+    "ggcyto",
+    "ggplot2",
+    "openCyto"
+  ],
+  "by_workflow": {
+    "custom_yeast_gating.nf": [
+      "flowClust",
+      "flowCore",
+      "flowStats",
+      "flowTime",
+      "ggcyto",
+      "openCyto"
+    ],
+    "main.nf": [
+      "flowCore",
+      "flowTime",
+      "ggplot2"
+    ],
+    "time_course_analysis.nf": [
+      "flowCore",
+      "flowTime",
+      "ggplot2"
+    ]
+  }
+}

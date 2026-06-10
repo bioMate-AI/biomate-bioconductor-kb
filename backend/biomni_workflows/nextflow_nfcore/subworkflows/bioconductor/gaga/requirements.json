@@ -1,0 +1,19 @@
+{
+  "package": "gaga",
+  "requirements": [
+    "Biobase",
+    "gaga"
+  ],
+  "by_workflow": {
+    "class_prediction.nf": [
+      "gaga"
+    ],
+    "main.nf": [
+      "Biobase",
+      "gaga"
+    ],
+    "sample_size_calculation.nf": [
+      "gaga"
+    ]
+  }
+}

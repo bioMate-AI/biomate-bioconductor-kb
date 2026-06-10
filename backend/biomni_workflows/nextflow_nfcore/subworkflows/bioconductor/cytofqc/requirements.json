@@ -1,0 +1,27 @@
+{
+  "package": "cytofqc",
+  "requirements": [
+    "RColorBrewer",
+    "SingleCellExperiment",
+    "cytofQC",
+    "ggplot2",
+    "gridExtra",
+    "uwot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "cytofQC",
+      "ggplot2",
+      "gridExtra"
+    ],
+    "manual_step_by_step_qc.nf": [
+      "RColorBrewer",
+      "SingleCellExperiment",
+      "cytofQC",
+      "ggplot2",
+      "gridExtra",
+      "uwot"
+    ]
+  }
+}

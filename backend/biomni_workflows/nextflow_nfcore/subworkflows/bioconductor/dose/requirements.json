@@ -1,0 +1,19 @@
+{
+  "package": "dose",
+  "requirements": [
+    "DOSE",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "gene_set_enrichment_analysis.nf": [
+      "DOSE"
+    ],
+    "main.nf": [
+      "DOSE",
+      "ggplot2"
+    ],
+    "semantic_similarity_analysis.nf": [
+      "DOSE"
+    ]
+  }
+}

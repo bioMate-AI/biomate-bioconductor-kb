@@ -4,6 +4,8 @@
 // Convert genomic coordinates (BED format) to coordinate-free YAME format and test for enrichment against a knowledgebase.
 // Input: input_cpgs.bed, cpg_nocontig.cr
 // Container: quay.io/biocontainers/bioconductor-knowyourcg:1.6.3--r45h01b2380_0
+// R packages: knowYourCG
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -35,9 +37,19 @@ process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {
     .bm_deps <- c("knowYourCG")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     library(knowYourCG)
@@ -47,12 +59,30 @@ process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {
     ref_cr <- "cpg_nocontig.cr"
     out_file <- "input_cpgs.cg"
     
-    # 1. Convert BED file to YAME-compressed binary vector using bedToCg()
-    # Wrapping in tryCatch to handle potential missing system dependencies (yame/bedtools)
+    # 1. Convert BED file to YAME-compressed binary vector ('.cg', format 'b').
+    # NOTE: the bedToCg() convenience wrapper is only available in newer knowYourCG
+    # releases; this container ships an earlier version where it does not exist.
+    # We therefore run the documented underlying pipeline directly (the same commands
+    # bedToCg() wraps), which requires the `yame` and `bedtools` shell tools:
+    #   yame unpack <ref.cr> | bedtools intersect -a - -b <input.bed> -c -sorted |
+    #     cut -f4 | yame pack -fb - > <out.cg>
+    # See the knowYourCG "Functional Analysis of DNAm Sequencing Data" vignette
+    # (INPUT FORMAT section) for the reference pipeline.
     tryCatch({
-      bedToCg(bed_file, ref_cr, out_file)
+      if (nzchar(Sys.which("yame")) && nzchar(Sys.which("bedtools"))) {
+        cmd <- sprintf(
+          "yame unpack %s | bedtools intersect -a - -b %s -c -sorted | cut -f4 | yame pack -fb - > %s",
+          shQuote(ref_cr), shQuote(bed_file), shQuote(out_file)
+        )
+        status <- system(cmd)
+        if (status != 0L) {
+          stop(sprintf("BED-to-CG conversion pipeline exited with status %d", status))
+        }
+      } else {
+        message("`yame` and/or `bedtools` not found on PATH; cannot convert BED to YAME '.cg' format.")
+      }
     }, error = function(e) {
-      message("Error running bedToCg: ", e\$message)
+      message("Error converting BED to CG: ", e\$message)
     })
     
     # Prepare the knowledgebase by downloading from Zenodo
@@ -90,10 +120,10 @@ process BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT {
       message("Pipeline completed, but no enrichment results were generated to plot or save.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT":
-        knowyourcg: \$(Rscript -e 'cat(as.character(packageVersion("knowyourcg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KNOWYOURCG_SEQUENCING_DISCRETE_ENRICHMENT":',
+        paste0('    knowYourCG: ', as.character(packageVersion('knowYourCG')))
+    ), "versions.yml")
     """
 
     stub:

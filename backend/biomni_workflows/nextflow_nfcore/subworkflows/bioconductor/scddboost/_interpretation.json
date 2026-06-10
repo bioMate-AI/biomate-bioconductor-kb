@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A matrix of normalized counts (e.g., from a SingleCellExperiment object) ;; cd=Condition labels/grouping of interest for the cells ;; bp=BiocParallel parameter (e.g., MulticoreParam(2)) for parallel computation ;; D=Distance matrix of cells (calculated via calD) or a cluster label (if cluster label is used, random must be set to FALSE in pdd) ;; K=Number of subtypes (can be determined using detK(D_c) and specified in pdd)\n- alternatives: scDD (mentioned as another method that assesses differential expression)\n- when_to_use: When analyzing single-cell RNA-seq data across two experimental conditions where gene expression distributions have high prevalence of zeros and multi-modality, and you want to identify differential distribution driven by subtype proportion changes.\n- pitfalls: Input gene set must be a matrix of normalized counts, not raw counts ;; If a cluster label is passed to D instead of a distance matrix, the random distancing mechanism must be disabled by setting random = FALSE in pdd ;; Using a simple threshold on ProbDD (e.g., ProbDD > 0.95) is a conservative local false discovery rate estimation; to gain power and control FDR at a specific level (e.g., 5%), getDD should be used instead.",
+  "workflows": [
+    {
+      "name": "differential_distribution_analysis",
+      "intent": "Identify differentially distributed genes between two conditions in single-cell RNA-seq data.",
+      "input": [
+        "normalized_counts_matrix (matrix of normalized single-cell RNA-seq counts)",
+        "condition_vector (vector of biological conditions/groupings for each cell)"
+      ],
+      "stages": "1. Calculate the cell distance matrix using calD ;; 2. (Optional) Determine the number of subtypes using detK ;; 3. Calculate the posterior probabilities of genes being differentially distributed using pdd ;; 4. Extract the estimated DD genes controlling for false discovery rate using getDD",
+      "code": "data_counts <- SummarizedExperiment::assays(sim_dat)$counts\nconditions <- SummarizedExperiment::colData(sim_dat)$conditions\nrownames(data_counts) <- seq_len(1000)\nbp <- BiocParallel::MulticoreParam(2)\nD_c <- calD(data_counts,bp)\nProbDD <- pdd(data = data_counts,cd = conditions, bp = bp, D = D_c)\nK <- detK(D_c)\nEDD <- getDD(ProbDD,0.05)"
+    }
+  ]
+}

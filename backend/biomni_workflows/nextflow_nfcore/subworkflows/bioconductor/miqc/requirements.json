@@ -1,0 +1,25 @@
+{
+  "package": "miqc",
+  "requirements": [
+    "SingleCellExperiment",
+    "flexmix",
+    "ggplot2",
+    "miQC",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "flexmix",
+      "ggplot2",
+      "miQC",
+      "scater"
+    ],
+    "one_dimensional_miqc.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "miQC",
+      "scater"
+    ]
+  }
+}

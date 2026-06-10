@@ -1,0 +1,15 @@
+{
+  "package": "aucell",
+  "requirements": [
+    "AUCell",
+    "GSEABase",
+    "Matrix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AUCell",
+      "GSEABase",
+      "Matrix"
+    ]
+  }
+}

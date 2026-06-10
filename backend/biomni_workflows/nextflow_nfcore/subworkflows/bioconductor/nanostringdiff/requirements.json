@@ -1,0 +1,17 @@
+{
+  "package": "nanostringdiff",
+  "requirements": [
+    "Biobase",
+    "NanoStringDiff"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "NanoStringDiff"
+    ],
+    "matrix_input_workflow.nf": [
+      "Biobase",
+      "NanoStringDiff"
+    ]
+  }
+}

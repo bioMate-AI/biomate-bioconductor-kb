@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: model=Growth model, either exponential (\"Exp\" or \"Bozic\") or carrying capacity/logistic-like (\"McFL\") ;; keepEvery=Frequency of keeping population data; setting to NA prunes extinct clones and only returns existing ones at the end, significantly reducing memory and time ;; onlyCancer=If TRUE, simulations that end in extinction are repeated until the stopping/detection conditions are met ;; detectionProb=Stochastic stopping mechanism where detection probability increases with population size ;; checkSizePEvery=Interval between successive checks of the exiting condition; smaller values prevent massive population overshoots in fast-growing populations ;; muEF=Mutator effects specification ;; fixation=Genotypes that must fix to stop the simulation\n- alternatives: Coalescent (backward-time) simulations=Much more efficient for simulating neutral data or simple selection scenarios ;; TTP (Java program)=Restricted to at most 4 drivers, no arbitrary CBNs/OTs/XORs, no passengers, single discrete-time model ;; FFPopSim=Another forward genetic simulator, but lacks OncoSimulR's unique order effects and \"Lego system\" for fitness specification ;; Special-purpose software=Preferable when fitness depends only on the total number of drivers and doesn't require complex epistatic/order tracking, as it runs much faster\n- when_to_use: Appropriate for simulating asexual evolution (like cancer progression or bacterial/viral evolution under therapy) where fitness is a complex function of epistatic interactions, mutation order, frequency-dependent selection, or random fitness landscapes.\n- pitfalls: Running exponential models with onlyCancer = TRUE and small initial sizes can cause many attempts due to frequent early extinctions ;; Using a large checkSizePEvery with fast-growing populations can lead to massive population overshoots and high iteration counts before the exit condition is checked ;; High mutation rates or keeping data too frequently (keepEvery = 1 instead of NA) can lead to huge memory consumption and slow execution due to tracking too many clones ;; The package fails some tests on aarch64 (arm64) platforms with macOS and is unsupported on that platform as of late 2024.",
+  "workflows": [
+    {
+      "name": "simulating_progression_with_dag_restrictions",
+      "intent": "Specify fitness restrictions using a directed acyclic graph (DAG) or poset, simulate population growth, and sample the population.",
+      "input": [
+        "data.frame (representing the DAG/poset restrictions with columns parent, child, s, sh, typeDep)"
+      ],
+      "stages": "1. Specify fitness effects using allFitnessEffects with the restriction data frame ;; 2. Simulate individual trajectories using oncoSimulIndiv ;; 3. Sample the simulated population using samplePop",
+      "code": "pancr <- allFitnessEffects(\n    data.frame(parent = c(\"Root\", rep(\"KRAS\", 4),\n                   \"SMAD4\", \"CDNK2A\",\n                   \"TP53\", \"TP53\", \"MLL3\"),\n               child = c(\"KRAS\",\"SMAD4\", \"CDNK2A\",\n                   \"TP53\", \"MLL3\",\n                   rep(\"PXDN\", 3), rep(\"TGFBR2\", 2)),\n               s = 0.1,\n               sh = -0.9,\n               typeDep = \"MN\"),\n    drvNames = c(\"KRAS\", \"SMAD4\", \"CDNK2A\", \"TP53\",\n\t             \"MLL3\", \"TGFBR2\", \"PXDN\"))\nep2 <- oncoSimulIndiv(pancr, model = \"McFL\",\n                     mu = 1e-6,\n                     sampleEvery = 0.02,\n                     keepEvery = 1,\n                     initSize = 1000,\n                     finalTime = 20000,\n                     detectionDrivers = 3,\n                     onlyCancer = FALSE)"
+    },
+    {
+      "name": "random_landscape_predictability",
+      "intent": "Generate a random fitness landscape, simulate evolution on it, and calculate evolutionary predictability statistics.",
+      "input": [
+        "integer (number of genes)",
+        "numeric (ruggedness constant c)"
+      ],
+      "stages": "1. Generate a random fitness landscape using rfitness ;; 2. Convert to fitness effects using allFitnessEffects with genotFitness ;; 3. Simulate population trajectories using oncoSimulPop with keepPhylog = TRUE ;; 4. Calculate predictability measures using LOD, POM, diversityLOD, and diversityPOM",
+      "code": "g <- 6\nc <- runif(1, 1/5, 5)\nrl <- rfitness(g, c = c, min_accessible_genotypes = g)\nsimulrl <- oncoSimulPop(10, allFitnessEffects(genotFitness = rl),\n                        keepPhylog = TRUE, keepEvery = 1,\n                        onlyCancer = TRUE,\n                        initSize = 4000,\n                        seed = NULL,\n                        mc.cores = 2)\ndiversityLOD(LOD(simulrl))\ndiversityPOM(POM(simulrl))\nsampledGenotypes(samplePop(simulrl, typeSample = \"whole\"))"
+    }
+  ]
+}

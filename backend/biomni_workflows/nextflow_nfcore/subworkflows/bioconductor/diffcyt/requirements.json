@@ -1,0 +1,17 @@
+{
+  "package": "diffcyt",
+  "requirements": [
+    "diffcyt",
+    "flowCore"
+  ],
+  "by_workflow": {
+    "diffcyt_step_by_step_pipeline.nf": [
+      "diffcyt",
+      "flowCore"
+    ],
+    "main.nf": [
+      "diffcyt",
+      "flowCore"
+    ]
+  }
+}

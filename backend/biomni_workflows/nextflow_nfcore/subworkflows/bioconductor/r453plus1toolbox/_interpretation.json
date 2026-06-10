@@ -1,0 +1,50 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dirname=Path to the Roche AVA or GS Mapper project directory ;; avaBin=Path to the AVA-CLI command interpreter binaries (e.g., doAmplicon) ;; filter=Numeric threshold (or vector of two thresholds for forward/reverse) to filter variants by minimum frequency ;; direction=Character specifying read direction (\"forward\", \"reverse\", or \"both\") for calculating variant percentages ;; minClusterSize=Minimum number of chimeric reads required to define a breakpoint cluster ;; targetRegion=An IntegerRangesList specifying the capture array target regions to filter chimeric reads ;; linkerSeq=DNAString representing the linker sequence used during sample preparation to filter out artificial chimeric reads\n- alternatives: BWA-SW is recommended as an external local alignment tool to align preprocessed reads before structural variant detection, as it reports non-overlapping local alignments.\n- when_to_use: Use this package when analyzing amplicon sequencing projects or reference mapping projects generated on Roche 454 platforms, when searching for structural variants (translocations/inversions) using chimeric reads, or when performing quality control and subsetting on binary SFF files.\n- pitfalls: The annotateVariants function is highly time-consuming for large numbers of variants (>500). It is critical to apply setVariantFilter to reduce the dataset size before running annotateVariants.",
+  "workflows": [
+    {
+      "name": "pcr_amplicon_analysis",
+      "intent": "Import, filter, annotate, visualize, and export variants from a Roche Amplicon Variant Analyzer (AVA) project.",
+      "input": [
+        "My/AVA/Project (Roche AVA project directory)",
+        "sample.csv (sample annotations)",
+        "amp.csv (amplicon annotations)",
+        "reference.csv (reference sequences)",
+        "variant.csv (detected variants)",
+        "variantHits.csv (variant hits per sample)"
+      ],
+      "stages": "1. Import the AVA project into an AVASet object.\n2. Filter variants by frequency threshold.\n3. Align reference sequences to a reference genome.\n4. Annotate variants using Ensembl via biomaRt.\n5. Generate an HTML report of variants and quality metrics.\n6. Export annotated variants to a VCF file.\n7. Plot amplicon coverage.",
+      "code": "projectDir = system.file(\"extdata\", \"AVASet\", package = \"R453Plus1Toolbox\") \navaSet = AVASet(dirname=projectDir)\navaSetFiltered1 = setVariantFilter(avaSet, filter=0.05)\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\nseqNames = names(Hsapiens)[1:24]\navaSet = alignShortReads(avaSet, bsGenome=Hsapiens, seqNames=seqNames, ensemblNotation=TRUE)\navaAnnot = annotateVariants(avaSet)\nblocks = as.character(sapply(annotatedVariants(avaAnnot), function(x) x$genes$external_gene_id))\nhtmlReport(avaSet, annot=avaAnnot, blocks=blocks, dir=\"htmlReportExampleAVA\", title=\"htmlReport Example\", minMut=3)\nava2vcf(avaSet, filename=\"variants.vcf\", annot=avaAnnot)\nplotAmpliconCoverage(avaSet, bothDirections=TRUE, type=\"amplicon\")"
+    },
+    {
+      "name": "gs_mapper_analysis",
+      "intent": "Import, filter, annotate, and report variants from a GS Reference Mapper project.",
+      "input": [
+        "mapping/454HCDiffs.txt (high-confidence differences)",
+        "mapping/454NewblerMetrics.txt (mapping metrics)"
+      ],
+      "stages": "1. Import GS Reference Mapper directories into a MapperSet object.\n2. Annotate variants using Ensembl.\n3. Generate an HTML report of variants.",
+      "code": "dir_sample01 = system.file(\"extdata\", \"MapperSet\", \"N01\", package = \"R453Plus1Toolbox\")\ndir_sample03 = system.file(\"extdata\", \"MapperSet\", \"N03\", package = \"R453Plus1Toolbox\")\ndir_sample04 = system.file(\"extdata\", \"MapperSet\", \"N04\", package = \"R453Plus1Toolbox\")\ndirs = c(dir_sample01, dir_sample03, dir_sample04)\nmapperSet = MapperSet(dirs=dirs, samplenames=c(\"N01\", \"N03\", \"N04\"))\nmapperAnnot = annotateVariants(mapperSet)\nhtmlReport(mapperSet, annot=mapperAnnot, dir=\"htmlReportExampleMapper\", title=\"htmlReport Example\", minMut=3)"
+    },
+    {
+      "name": "structural_variant_detection",
+      "intent": "Preprocess raw reads, filter chimeric alignments, and detect genomic breakpoints.",
+      "input": [
+        "1.TCA.454Reads.fna (raw reads in FASTA format)",
+        "N01.bam (aligned reads in BAM format)",
+        "CaptureArray_hg19.bed (target region BED file)"
+      ],
+      "stages": "1. Demultiplex raw reads using multiplex identifiers (MIDs).\n2. Remove sequencing linkers and filter by minimum read length.\n3. Filter chimeric reads using target regions and linker sequences.\n4. Cluster chimeric reads to detect putative breakpoints.\n5. Merge related pathogenic and reciprocal breakpoints.\n6. Visualize breakpoint regions and aligned reads.",
+      "code": "fnaFile = system.file(\"extdata\", \"SVDetection\", \"R_2009_07_30\", \"D_2009_07_31\", \"1.TCA.454Reads.fna\", package=\"R453Plus1Toolbox\")\nseqs = readDNAStringSet(fnaFile, format=\"fasta\")\nMIDSeqs = genomeSequencerMIDs(c(\"MID1\", \"MID2\", \"MID3\"))\ndmReads = demultiplexReads(seqs, MIDSeqs, numMismatches=2, trim=TRUE)\nminReadLength = 15\ngSel3 = sequenceCaptureLinkers(\"gSel3\")[[1]]\ntrimReads = lapply(dmReads, function (reads) {\nreads = reads[width(reads) >= minReadLength]\nreads = removeLinker(reads, gSel3)\nreads = reads[width(reads) >= minReadLength]\nreadsRev = reverseComplement(reads)\nreadsRev = removeLinker(readsRev, gSel3)\nreads = reverseComplement(readsRev)\nreads = reads[width(reads) >= minReadLength]\nreturn(reads)\n})\nlibrary(\"Rsamtools\")\nbamFile = system.file(\"extdata\", \"SVDetection\", \"bam\", \"N01.bam\", package=\"R453Plus1Toolbox\")\nparameters = ScanBamParam(what=scanBamWhat())\nbam = scanBam(bamFile, param=parameters)\nlibrary(\"rtracklayer\")\nbedFile = system.file(\"extdata\", \"SVDetection\", \"chip\", \"CaptureArray_hg19.bed\", package=\"R453Plus1Toolbox\")\nchip = import.ucsc(bedFile, subformat=\"bed\")\nchip = split(ranges(chip[[1]]), seqnames(chip[[1]]))\nnames(chip) = gsub(\"chr\", \"\", names(chip))\nlinker = sequenceCaptureLinkers(\"gSel3\")[[1]]\nfilterReads = filterChimericReads(bam, targetRegion=chip, linkerSeq=linker)\nbp = detectBreakpoints(filterReads, minClusterSize=1)\nmbp = mergeBreakpoints(bp)\nplotChimericReads(mbp[1], legend=TRUE)"
+    },
+    {
+      "name": "sff_manipulation",
+      "intent": "Import, subset, write, and perform quality control on Standard Flowgram Format (SFF) files.",
+      "input": [
+        "example.sff (binary SFF file)"
+      ],
+      "stages": "1. Read the binary SFF file into an SFFContainer.\n2. Subset the SFFContainer by read indices.\n3. Write the subsetted SFFContainer back to a binary SFF file.\n4. Generate quality control plots (position quality boxplot and dinucleotide odds ratio).",
+      "code": "file <- system.file(\"extdata\", \"SFF\", \"example.sff\", package=\"R453Plus1Toolbox\")\nsffContainer <- readSFF(file)\nsubSffContainer <- sffContainer[1:5]\nwriteSFF(subSffContainer, \"subSffFile.sff\")\npositionQualityBoxplot(sffContainer)\ndinucleotideOddsRatio(sffContainer)"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "package": "findips",
+  "requirements": [
+    "findIPs",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "findIPs"
+    ],
+    "survival_outcome_ip_detection.nf": [
+      "findIPs",
+      "survival"
+    ]
+  }
+}

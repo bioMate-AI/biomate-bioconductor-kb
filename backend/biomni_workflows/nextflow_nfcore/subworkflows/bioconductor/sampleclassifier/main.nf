@@ -1,118 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: sampleClassifier
-// The package is designed to classify microarray RNA-seq gene expression profiles.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/sampleClassifier/inst/doc/sampleClassifier.R
-// Upstream  : sampleClassifierData
-// Downstream: none
-//
-// Install: BiocManager::install("sampleClassifier")
+// Bioconductor workflow: sampleClassifier — microarray_classification
+// Classify microarray gene expression profiles using a reference matrix and visualize the results.
+// Input: micro_refmat, micro_testmat
+// Container: quay.io/biocontainers/bioconductor-sampleclassifier:1.30.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: sampleClassifier
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load reference and query microarray matrices
+//  * 2. [Core Analysis] Classify profiles using the Shared Marker Genes (SMG) algorithm with classifyProfile()
+//  * 3. [Visualization & Output] Visualize classification results as a heatmap using get.heatmap()
+//  * 4. [Core Analysis] Classify profiles using Support Vector Machines (SVM) with classifyProfile.svm()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SAMPLECLASSIFIER {
+process BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sampleclassifier"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sampleclassifier:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sampleclassifier:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sampleclassifier_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sampleclassifier_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sampleclassifier_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(sampleClassifier)
-    library(jsonlite)
-
-    # --- Microarray SVM Classification [] ---
-    # Key functions: classifyProfile.svm
-    res1.svm.df <- classifyProfile.svm(
-        ref_matrix = micro_refmat,
-        query_mat = micro_testmat,
-        chip1 = "hgu133plus2",
-        chip2 = "hgu133a"
-    )
-
-
-    # --- RNA-seq Profile Classification [] ---
-    # Key functions: classifyProfile.rnaseq
-    res2.list <- classifyProfile.rnaseq(
-        ref_matrix = rnaseq_refmat,
-        query_mat = rnaseq_testmat,
-        gene.ids.type = "ensembl",
-        write2File = FALSE
-    )
-
-
-    # --- RNA-seq SVM Classification [] ---
-    # Key functions: classifyProfile.rnaseq.svm
-    res2.svm.df <- classifyProfile.rnaseq.svm(
-        ref_matrix = rnaseq_refmat,
-        query_mat = rnaseq_testmat,
-        gene.ids.type = "ensembl"
-    )
-
-
-    # --- Visualization of Classification Results [] ---
-    # Key functions: get.heatmap
+    
+    # Helper function to find and read input files in various formats
+    find_and_read <- function(base_name) {
+      extensions <- c(".rds", ".csv", ".tsv", ".txt")
+      for (ext in extensions) {
+        file_path <- paste0(base_name, ext)
+        if (file.exists(file_path)) {
+          message(paste("Reading input file:", file_path))
+          if (ext == ".rds") {
+            return(readRDS(file_path))
+          } else if (ext == ".csv") {
+            return(as.matrix(read.csv(file_path, row.names = 1, check.names = FALSE)))
+          } else if (ext %in% c(".tsv", ".txt")) {
+            return(as.matrix(read.delim(file_path, row.names = 1, check.names = FALSE)))
+          }
+        }
+      }
+      stop(paste("Error: Could not find input file for", base_name, "with supported extensions (.rds, .csv, .tsv, .txt) in the working directory."))
+    }
+    
+    # 1. Load reference and query microarray matrices
+    micro_refmat <- find_and_read("micro_refmat")
+    micro_testmat <- find_and_read("micro_testmat")
+    
+    # 2. Classify profiles using the Shared Marker Genes (SMG) algorithm
+    message("Running classifyProfile (SMG)...")
+    res1.list <- classifyProfile(ref_matrix=micro_refmat, query_mat=micro_testmat,
+                                 chip1="hgu133plus2", chip2="hgu133a", write2File=FALSE)
+    
+    # Save SMG classification results
+    saveRDS(res1.list, "smg_results.rds")
+    message("SMG results saved to 'smg_results.rds'")
+    
+    # 3. Visualize classification results as a heatmap
+    message("Generating heatmap...")
+    pdf("heatmap_microarray.pdf", width = 10, height = 8)
     get.heatmap(res1.list)
-    get.heatmap(res2.list)
+    dev.off()
+    message("Heatmap saved to 'heatmap_microarray.pdf'")
+    
+    # 4. Classify profiles using Support Vector Machines (SVM)
+    message("Running classifyProfile.svm...")
+    res1.svm.df <- classifyProfile.svm(ref_matrix=micro_refmat, query_mat=micro_testmat,
+                                       chip1="hgu133plus2", chip2="hgu133a")
+    
+    # Save SVM classification results
+    write.csv(res1.svm.df, "svm_results.csv", row.names = FALSE)
+    message("SVM results saved to 'svm_results.csv'")
+    
+    message("Pipeline completed successfully.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sampleclassifier_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sampleclassifier_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sampleclassifier_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SAMPLECLASSIFIER:", paste0("    sampleclassifier: ", packageVersion("sampleClassifier"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION":',
+        paste0('    sampleClassifier: ', as.character(packageVersion('sampleClassifier')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sampleclassifier_results.csv
-    touch ${prefix}_sampleclassifier_output.rds
-    echo "BIOC_SAMPLECLASSIFIER:" > versions.yml
-    echo "    sampleclassifier: 0.0.0" >> versions.yml
+    touch ${prefix}_microarray_classification.csv versions.yml
     """
 }
 
-
-workflow BIOC_SAMPLECLASSIFIER_WORKFLOW {
+workflow BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ micro_refmat, micro_testmat ] ]
 
     main:
-    BIOC_SAMPLECLASSIFIER(ch_input)
+    BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION(ch_input)
 
     emit:
-    results  = BIOC_SAMPLECLASSIFIER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SAMPLECLASSIFIER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SAMPLECLASSIFIER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SAMPLECLASSIFIER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION.out.tables
+    plots    = BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION.out.plots
+    objects  = BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION.out.objects
+    versions = BIOC_SAMPLECLASSIFIER_MICROARRAY_CLASSIFICATION.out.versions
 }

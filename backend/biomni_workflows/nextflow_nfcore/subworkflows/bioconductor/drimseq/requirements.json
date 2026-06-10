@@ -1,0 +1,19 @@
+{
+  "package": "drimseq",
+  "requirements": [
+    "DRIMSeq",
+    "GenomicRanges",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DRIMSeq",
+      "ggplot2"
+    ],
+    "transcript_usage_qtl.nf": [
+      "DRIMSeq",
+      "GenomicRanges",
+      "ggplot2"
+    ]
+  }
+}

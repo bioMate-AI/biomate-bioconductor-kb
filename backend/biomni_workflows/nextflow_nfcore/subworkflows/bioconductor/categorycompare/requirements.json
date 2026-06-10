@@ -1,0 +1,15 @@
+{
+  "package": "categorycompare",
+  "requirements": [
+    "GO.db",
+    "categoryCompare",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GO.db",
+      "categoryCompare",
+      "org.Hs.eg.db"
+    ]
+  }
+}

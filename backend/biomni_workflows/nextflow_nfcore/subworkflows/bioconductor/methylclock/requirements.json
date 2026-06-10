@@ -1,0 +1,30 @@
+{
+  "package": "methylclock",
+  "requirements": [
+    "Biobase",
+    "ggplot2",
+    "ggpmisc",
+    "impute",
+    "methylclock",
+    "methylclockData",
+    "readr",
+    "tibble"
+  ],
+  "by_workflow": {
+    "gestational_age_estimation.nf": [
+      "ggplot2",
+      "methylclock",
+      "tibble"
+    ],
+    "main.nf": [
+      "Biobase",
+      "ggplot2",
+      "ggpmisc",
+      "impute",
+      "methylclock",
+      "methylclockData",
+      "readr",
+      "tibble"
+    ]
+  }
+}

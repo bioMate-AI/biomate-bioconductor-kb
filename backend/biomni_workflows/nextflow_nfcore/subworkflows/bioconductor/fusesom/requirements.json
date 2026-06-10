@@ -1,0 +1,16 @@
+{
+  "package": "fusesom",
+  "requirements": [
+    "FuseSOM",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FuseSOM"
+    ],
+    "sce_or_spe_input.nf": [
+      "FuseSOM",
+      "SingleCellExperiment"
+    ]
+  }
+}

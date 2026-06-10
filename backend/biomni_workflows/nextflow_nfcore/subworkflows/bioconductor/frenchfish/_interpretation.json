@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fishalyserCsvPath=Path to the CSV output file from FISHalyseR ;; nuclear_radius=The nuclear radius of the cells being analyzed, which must be adjusted depending on the cell type ;; section_height=The height of the tissue section, which must be adjusted depending on the experimental setup ;; automatic_counts=A formatted count matrix generated from FISHalyseR CSV containing spot counts and nuclear area ;; manual_counts=A matrix of manually counted spots across nuclei, where columns represent probes and no area column is included\n- alternatives: Standard spot counting approaches (which do not correct for partially represented or overlapping nuclei in solid tumor tissue sections) and manual spot counting with control probes (FrenchFISH's Poisson model allows manual counting without control probes)\n- when_to_use: When analyzing FISH probe counts from solid tumor tissue sections where partially represented or overlapping nuclei are common, and you need to correct for nuclear volume and section thickness to get accurate copy number estimates\n- pitfalls: Failing to set a seed (set.seed) before running the Poisson model, which is necessary to ensure reproducible results ;; Using the wrong input format (manual counts must not include an area column as the first column, whereas automated counts from FISHalyseR need to be converted using convertFishalyserCsvToCountMatrix) ;; Not adjusting nuclear_radius and section_height to match the specific cell type and tissue section height used in the experiment",
+  "workflows": [
+    {
+      "name": "correct_automated_counts",
+      "intent": "Correct automatically counted FISH spots from FISHalyseR CSV output using a homogenous Poisson Point Process model and nuclear volume correction.",
+      "input": [
+        "SampleFISH.jpg_data.csv (FISHalyseR CSV output containing spot counts and nuclear area)"
+      ],
+      "stages": "1. Convert FISHalyseR CSV to a formatted count matrix using convertFishalyserCsvToCountMatrix ;; 2. Set random seed for reproducibility ;; 3. Run the homogenous Poisson Point Process model with nuclear volume correction using getAutomaticCountsEstimates ;; 4. Print the corrected spot counts",
+      "code": "fishalyserCsvPath <- system.file(\"extdata\", \n                                 \"SampleFISH.jpg_data.csv\", \n                                 package=\"frenchFISH\")\nautomatic_counts <- convertFishalyserCsvToCountMatrix(fishalyserCsvPath)\nset.seed(366)\nnuclear_radius <- 40\nsection_height <- 5\ncorrected_automatic_counts <- getAutomaticCountsEstimates(automatic_counts, \n                                                          nuclear_radius, \n                                                          section_height)\nprint(corrected_automatic_counts)"
+    },
+    {
+      "name": "correct_manual_counts",
+      "intent": "Correct manually counted FISH spots across multiple probes using a Markov chain Monte Carlo Poisson model and nuclear volume correction.",
+      "input": [
+        "manual_counts (A matrix of manually counted spots where columns represent probes and rows represent nuclei, with no area column)"
+      ],
+      "stages": "1. Prepare or simulate the manual count matrix ;; 2. Run the manual counts estimation model using getManualCountsEstimates with specified nuclear radius and section height ;; 3. Print the corrected spot counts at different percentiles",
+      "code": "manual_counts <- cbind(red = round(runif(20,0,5), 0), \n                       green = round(runif(20,0,5), 0), \n                       blue = round(runif(20,0,5), 0))\nnuclear_radius <- 8\nsection_height <- 4\ncorrected_manual_counts <- getManualCountsEstimates(manual_counts, \n                                                    nuclear_radius, \n                                                    section_height)\nprint(corrected_manual_counts)"
+    }
+  ]
+}

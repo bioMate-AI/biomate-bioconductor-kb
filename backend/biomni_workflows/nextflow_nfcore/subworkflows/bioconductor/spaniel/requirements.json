@@ -1,0 +1,21 @@
+{
+  "package": "spaniel",
+  "requirements": [
+    "DropletUtils",
+    "Spaniel",
+    "ggplot2",
+    "igraph",
+    "scater",
+    "scran"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DropletUtils",
+      "Spaniel",
+      "ggplot2",
+      "igraph",
+      "scater",
+      "scran"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "seq2pathway",
+  "requirements": [
+    "seq2pathway"
+  ],
+  "by_workflow": {
+    "fishers_exact_enrichment.nf": [
+      "seq2pathway"
+    ],
+    "main.nf": [
+      "seq2pathway"
+    ],
+    "rna_seq_expression_pathway.nf": [
+      "seq2pathway"
+    ]
+  }
+}

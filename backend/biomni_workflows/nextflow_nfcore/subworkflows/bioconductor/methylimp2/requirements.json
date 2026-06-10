@@ -1,0 +1,15 @@
+{
+  "package": "methylimp2",
+  "requirements": [
+    "BiocParallel",
+    "SummarizedExperiment",
+    "methyLImp2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "SummarizedExperiment",
+      "methyLImp2"
+    ]
+  }
+}

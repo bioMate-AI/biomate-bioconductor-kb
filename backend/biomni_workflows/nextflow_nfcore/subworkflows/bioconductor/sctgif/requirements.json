@@ -1,0 +1,17 @@
+{
+  "package": "sctgif",
+  "requirements": [
+    "GSEABase",
+    "SingleCellExperiment",
+    "msigdbr",
+    "scTGIF"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "SingleCellExperiment",
+      "msigdbr",
+      "scTGIF"
+    ]
+  }
+}

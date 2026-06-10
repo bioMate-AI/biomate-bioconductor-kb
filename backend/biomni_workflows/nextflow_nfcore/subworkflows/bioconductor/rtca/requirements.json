@@ -1,0 +1,17 @@
+{
+  "package": "rtca",
+  "requirements": [
+    "Biobase",
+    "RTCA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "RTCA"
+    ],
+    "rtca_data_transformation.nf": [
+      "Biobase",
+      "RTCA"
+    ]
+  }
+}

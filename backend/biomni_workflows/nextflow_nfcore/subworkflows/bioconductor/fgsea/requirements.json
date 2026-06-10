@@ -1,0 +1,33 @@
+{
+  "package": "fgsea",
+  "requirements": [
+    "Biobase",
+    "Seurat",
+    "cowplot",
+    "data.table",
+    "fgsea",
+    "ggplot2",
+    "org.Mm.eg.db"
+  ],
+  "by_workflow": {
+    "gene_set_coregulation_analysis.nf": [
+      "Biobase",
+      "Seurat",
+      "cowplot",
+      "data.table",
+      "fgsea",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "data.table",
+      "fgsea",
+      "ggplot2",
+      "org.Mm.eg.db"
+    ],
+    "over_representation_analysis.nf": [
+      "data.table",
+      "fgsea",
+      "ggplot2"
+    ]
+  }
+}

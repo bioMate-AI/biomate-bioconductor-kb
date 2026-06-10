@@ -1,89 +1,115 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mimager
-// Easily visualize and inspect microarrays for spatial artifacts.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mimager/inst/doc/introduction.R
-// Upstream  : affyPLM, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("mimager")
+// Bioconductor workflow: mimager — raw_microarray_visualization
+// Visualize raw probe-level intensities across one or more microarray chips to inspect for spatial artifacts.
+// Input: raw_microarray_data.RData
+// Container: quay.io/biocontainers/bioconductor-mimager:1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, mimager
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the microarray data; 2. Visualize a single array or multiple arrays in a grid layout; 3. Customize probe selection and row-fi
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIMAGER {
+process BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mimager"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mimager:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mimager:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mimager_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mimager_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mimager_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(mimager)
-    library(jsonlite)
-
-    # --- Mimage analysis [] ---
-    # Key functions: mimage, fitPLM, marray, arank
-    div.colors <- scales::brewer_pal(palette = "RdBu")(9)
-    mimage(Dilution, transform = arle, legend.label = "RLE", colors = div.colors)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mimager_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mimager_results.csv")
+    library(Biobase)
+    
+    # 1. Load the microarray data
+    load("raw_microarray_data.RData")
+    
+    # Identify the loaded microarray object dynamically
+    objs <- ls()
+    objs <- objs[!objs %in% c("objs")]
+    Dilution <- NULL
+    for (o in objs) {
+      val <- get(o)
+      if (inherits(val, c("AffyBatch", "ExpressionFeatureSet", "ExonFeatureSet", "GeneFeatureSet", "SnpFeatureSet"))) {
+        Dilution <- val
+        break
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mimager_output.rds")
+    if (is.null(Dilution)) {
+      Dilution <- get(objs[1])
     }
+    
+    # 2. Visualize a single array
+    pdf("mimage_single.pdf", width = 7, height = 7)
+    mimage(Dilution, select = 1)
+    dev.off()
+    
+    # 3. Visualize multiple arrays in a grid layout
+    pdf("mimage_all.pdf", width = 10, height = 10)
+    mimage(Dilution)
+    dev.off()
+    
+    # 4. Customize probe selection and row-filling options
+    pdf("mimage_grid.pdf", width = 12, height = 4)
+    mimage(Dilution, probes = "all", empty.rows = "ignore", nrow = 1)
+    dev.off()
+    
+    # Save the processed object as RDS
+    saveRDS(Dilution, file = "processed_microarray_data.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIMAGER:", paste0("    mimager: ", packageVersion("mimager"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION":',
+        paste0('    mimager: ', as.character(packageVersion('mimager')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mimager_results.csv
-    touch ${prefix}_mimager_output.rds
-    echo "BIOC_MIMAGER:" > versions.yml
-    echo "    mimager: 0.0.0" >> versions.yml
+    touch ${prefix}_raw_microarray_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIMAGER_WORKFLOW {
+workflow BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_microarray_data.RData ] ]
 
     main:
-    BIOC_MIMAGER(ch_input)
+    BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_MIMAGER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIMAGER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIMAGER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIMAGER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION.out.tables
+    plots    = BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION.out.plots
+    objects  = BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION.out.objects
+    versions = BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION.out.versions
 }

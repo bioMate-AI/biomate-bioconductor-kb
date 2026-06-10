@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: karyoFile=path to a text file containing chromosome names and lengths to define the genome tiling ;; reps=number of subsampling repetitions for fitting the negative binomial distribution (default 100) ;; sampleSize=number of tiles to sample in each repetition (default 30000) ;; p=p-value threshold for identifying high-signal tiles (default 0.99) ;; cores=number of CPU cores to use for parallel processing (default 1) ;; maxGap=maximum gap size in base pairs to merge adjacent grey list regions (e.g., 16384)\n- alternatives: ENCODE blacklists are universal, pre-calculated signal-artefact regions independent of cell line or factor, whereas greylistchip generates cell-line or sample-specific grey lists. The greyListBS function is a one-step alternative to the step-by-step workflow when a BSgenome object is available.\n- when_to_use: Use prior to ChIP-seq peak calling to identify and remove reads in high-signal anomalous regions of input/control samples, which improves insert size estimation and reduces false-positive peak calls.\n- pitfalls: Chromosome names in the karyotype file must exactly match the chromosome names in the BAM file. Using inappropriate parameters (like very low p-values or small sample sizes) can lead to abnormally high genome coverage (e.g., 5.5% instead of the typical ~1%).",
+  "workflows": [
+    {
+      "name": "step_by_step_karyotype",
+      "intent": "Generate a grey list from a BAM file using a custom karyotype file via step-by-step execution.",
+      "input": [
+        "karyotype_chr21.txt (text file containing chromosome names and lengths)",
+        "myBamFile.bam (ChIP-seq input/control BAM file)"
+      ],
+      "stages": "1. Initialize GreyList object with karyotype file ;; 2. Count reads in genome tiles from BAM file ;; 3. Calculate read-count threshold using negative binomial fitting ;; 4. Generate grey list regions ;; 5. Export grey list to BED file",
+      "code": "library(GreyListChIP)\npath <- system.file(\"extra\", package=\"GreyListChIP\")\nfn <- file.path(path,\"karyotype_chr21.txt\")\ngl <- new(\"GreyList\",karyoFile=fn)\ngl <- countReads(gl,\"myBamFile.bam\")\ngl <- calcThreshold(gl,reps=10,sampleSize=1000,p=0.99,cores=1)\ngl <- makeGreyList(gl,maxGap=16384)\nexport(gl,con=\"myGreyList.bed\")"
+    },
+    {
+      "name": "bsgenome_one_step",
+      "intent": "Generate a grey list in a single step using a BSgenome package and a BAM file.",
+      "input": [
+        "myBamFile.bam (ChIP-seq input/control BAM file)"
+      ],
+      "stages": "1. Load BSgenome package ;; 2. Run one-step grey list generation ;; 3. Export grey list to BED file",
+      "code": "library(BSgenome.Hsapiens.UCSC.hg19)\ngl <- greyListBS(BSgenome.Hsapiens.UCSC.hg19,\"myBamFile.bam\")\nexport(gl,con=\"myGreyList.bed\")"
+    }
+  ]
+}

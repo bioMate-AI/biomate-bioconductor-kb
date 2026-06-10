@@ -1,0 +1,15 @@
+{
+  "package": "crisprbase",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "crisprBase"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "crisprBase"
+    ]
+  }
+}

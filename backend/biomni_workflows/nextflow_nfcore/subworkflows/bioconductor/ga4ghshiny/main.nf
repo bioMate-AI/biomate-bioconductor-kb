@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_GA4GHSHINY {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-ga4ghshiny"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ga4ghshiny:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ga4ghshiny:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,6 +40,15 @@ process BIOC_GA4GHSHINY {
     library(GA4GHshiny)
     library(jsonlite)
 
+    # --- Interactive Genomic Data Exploration [] ---
+    # Key functions: app
+    # Initialize the GA4GH Shiny application pointing to the 1000 Genomes Project
+    # This allows interactive exploration of genomic variants and metadata.
+    genomic_app <- GA4GHshiny::app(
+        host = "http://1kgenomes.ga4gh.org/",
+        serverName = "Hosting Thousand Genomes Project"
+    )
+
     # --- Local GA4GH Server Visualization [] ---
     # Key functions: app
     # Launch the GA4GH Shiny application connected to a local server instance.
@@ -49,7 +57,6 @@ process BIOC_GA4GHSHINY {
         host = "http://localhost:8000/",
         serverName = "Local GA4GH Server"
     )
-
 
     # --- Public Repository Querying [] ---
     # Key functions: app
@@ -60,19 +67,29 @@ process BIOC_GA4GHSHINY {
         serverName = "Global Alliance API"
     )
 
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ga4ghshiny_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_ga4ghshiny_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ga4ghshiny_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_ga4ghshiny_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ga4ghshiny_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_ga4ghshiny_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_GA4GHSHINY:", paste0("    ga4ghshiny: ", packageVersion("GA4GHshiny"))),
+        c("BIOC_GA4GHSHINY:", paste0("    ga4ghshiny: ", as.character(packageVersion("GA4GHshiny")))),
         "versions.yml"
     )
     """

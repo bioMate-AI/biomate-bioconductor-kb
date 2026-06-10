@@ -1,0 +1,21 @@
+{
+  "package": "ntw",
+  "requirements": [
+    "NTW",
+    "mvtnorm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "NTW",
+      "mvtnorm"
+    ],
+    "single_row_prediction_known_p.nf": [
+      "NTW",
+      "mvtnorm"
+    ],
+    "single_row_prediction_unknown_p.nf": [
+      "NTW",
+      "mvtnorm"
+    ]
+  }
+}

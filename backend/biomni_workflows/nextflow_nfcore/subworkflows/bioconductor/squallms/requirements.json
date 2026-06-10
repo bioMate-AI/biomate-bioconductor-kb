@@ -1,0 +1,23 @@
+{
+  "package": "squallms",
+  "requirements": [
+    "RaMS",
+    "dplyr",
+    "ggplot2",
+    "squallms",
+    "tibble",
+    "tidyr",
+    "xcms"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RaMS",
+      "dplyr",
+      "ggplot2",
+      "squallms",
+      "tibble",
+      "tidyr",
+      "xcms"
+    ]
+  }
+}

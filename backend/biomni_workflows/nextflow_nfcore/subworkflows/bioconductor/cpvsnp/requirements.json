@@ -1,0 +1,20 @@
+{
+  "package": "cpvsnp",
+  "requirements": [
+    "GSEABase",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "cpvSNP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "cpvSNP"
+    ],
+    "vegas_analysis.nf": [
+      "GSEABase",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "cpvSNP"
+    ]
+  }
+}

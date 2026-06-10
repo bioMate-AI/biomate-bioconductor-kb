@@ -1,0 +1,14 @@
+{
+  "package": "sdams",
+  "requirements": [
+    "SDAMS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SDAMS"
+    ],
+    "matrix_based_analysis.nf": [
+      "SDAMS"
+    ]
+  }
+}

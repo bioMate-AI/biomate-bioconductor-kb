@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exp=N-by-M numeric matrix of gene expression profiles (probes/genes as rows, samples as columns) ;; anno=N-by-2 character matrix mapping probe/gene IDs in exp (column 1) to gene names in network (column 2) ;; network=K-by-L (L>1) character matrix of interactions where columns 1 and 2 contain interacting gene names ;; fgIndex=numeric vector of column indices in exp representing case/treated samples (must be > 3 samples) ;; bgIndex=numeric vector of column indices in exp representing control samples (must be > 3 samples)\n- alternatives: Direct binding assays (affinity purification or chromatography) which are limited to strong physical binders; other network-based methods that require prior knowledge of specific sub-networks or very large sample sizes (N > 100) to assess topological rewiring.\n- when_to_use: When you have a small number of compound-induced gene expression signatures (at least 4 treated and 4 control samples) and a context-specific molecular interaction network, and you want to identify the drug's target proteins and downstream effectors.\n- pitfalls: The sample size for both fgIndex and bgIndex must be strictly greater than 3 (at least 4 samples per group). The gene identifiers in the network must match the annotated names in the second column of the anno matrix, and the first column of the anno matrix must match the row names of the exp matrix.",
+  "workflows": [
+    {
+      "name": "drug_moa_prediction",
+      "intent": "Predict drug mechanism of action and target genes by analyzing network dysregulation between drug-treated and control expression profiles.",
+      "input": [
+        "exp.ext (N-by-M numeric matrix of gene expression profiles)",
+        "anno.ext (N-by-2 character matrix mapping expression probe/gene IDs to network gene names)",
+        "network.ext (K-by-L character matrix of molecular interactions)"
+      ],
+      "stages": "1. Create a demand class object using demandClass() ;; 2. Run the network dysregulation analysis using runDeMAND() ;; 3. Print and inspect the predicted MoA genes and dysregulated edges using printDeMAND()",
+      "code": "library(DeMAND)\ndata(inputExample)\ndobj <- demandClass(exp=bcellExp, anno=bcellAnno, network=bcellNetwork)\nprintDeMAND(dobj)\ndobj <- runDeMAND(dobj, fgIndex=caseIndex, bgIndex=controlIndex)\nprintDeMAND(dobj)"
+    }
+  ]
+}

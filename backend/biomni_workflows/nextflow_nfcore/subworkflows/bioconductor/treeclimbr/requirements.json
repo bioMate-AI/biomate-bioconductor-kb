@@ -1,0 +1,26 @@
+{
+  "package": "treeclimbr",
+  "requirements": [
+    "TreeSummarizedExperiment",
+    "dplyr",
+    "ggplot2",
+    "ggtree",
+    "treeclimbR"
+  ],
+  "by_workflow": {
+    "differential_state_analysis.nf": [
+      "TreeSummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "ggtree",
+      "treeclimbR"
+    ],
+    "main.nf": [
+      "TreeSummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "ggtree",
+      "treeclimbR"
+    ]
+  }
+}

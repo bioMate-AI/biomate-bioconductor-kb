@@ -1,0 +1,41 @@
+{
+  "package": "milor",
+  "requirements": [
+    "BiocParallel",
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "miloR",
+    "patchwork",
+    "scater",
+    "scran"
+  ],
+  "by_workflow": {
+    "da_contrasts.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "miloR",
+      "patchwork",
+      "scater",
+      "scran"
+    ],
+    "da_glmm_random_effects.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "dplyr",
+      "ggplot2",
+      "miloR",
+      "patchwork",
+      "scater",
+      "scran"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "miloR",
+      "patchwork",
+      "scater",
+      "scran"
+    ]
+  }
+}

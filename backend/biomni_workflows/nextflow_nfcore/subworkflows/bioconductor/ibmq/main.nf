@@ -1,132 +1,178 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iBMQ
-// integrated Bayesian Modeling of eQTL data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iBMQ/inst/doc/iBMQ.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("iBMQ")
+// Bioconductor workflow: iBMQ — eqtl_mapping_ris
+// Perform eQTL mapping, cis/trans classification, and hotspot detection for Recombinant Inbred Strains (RIS) where genotypes are homozygous (coded 0/1).
+// Input: snp, gene, snppos, genepos
+// Container: quay.io/biocontainers/bioconductor-ibmq:1.50.0--r45h57f0213_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, ggplot2, iBMQ
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load genotype and expression data
+//  * 2. [Core Analysis] Run MCMC to calculate Posterior Probabilities of Association (PPA)
+//  * 3. [Core Analysis] Calculate FDR threshold
+//  * 4. [Core Analysis] Identify significant eQTLs
+//  * 5. [Input & Preparation] Load genomic positions and classify eQTLs as cis or trans
+//  * 6. [Visualization & Output] Plot genome-wide eQTL distribution
+//  * 7. [Core Analysis] Identify trans-eQTL hotspots
 
 nextflow.enable.dsl = 2
 
-process BIOC_IBMQ {
+process BIOC_IBMQ_EQTL_MAPPING_RIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ibmq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ibmq:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ibmq:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ibmq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ibmq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ibmq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+                    
+    # Load required libraries
     library(iBMQ)
-    library(jsonlite)
-
-    # --- Calculate Ppa [] ---
-    # Key functions: eqtlMcmc
-    ## #  PPA <-  eqtlMcmc(snp, gene, n.iter=100,burn.in=100,n.sweep=20,mc.cores=6, RIS=TRUE)
-    # --- Calculatethreshold [] ---
-    # Key functions: calculateThreshold
-    ## cutoff <- calculateThreshold(PPA, 0.1)
-    # --- Count Eqtl [] ---
-    # Key functions: eqtlFinder
-    ## eqtl <- eqtlFinder(PPA, cutoff)
-    # --- Class Snp Data [] ---
-    # Key functions: eqtlClassifier
-    ## eqtltype <- eqtlClassifier(eqtl, snppos, genepos,1000000)
-    # --- Ploteqtls [] ---
-    # Key functions: ggplot, aes, geom_point, facet_grid, theme_bw, theme, element_blank
-    ## library(ggplot2)
-    ## ggplot(eqtltype, aes(y=GeneStart, x=MarkerPosition)) +
-    ## geom_point(aes(y=GeneStart, x=MarkerPosition,color = PPA), size = 1.5)+
-    ## facet_grid(GeneChrm~MarkerChrm)+theme_bw(base_size = 12, base_family = "")+
-    ## theme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank())+scale_x_reverse()
-    # --- Hotpot [] ---
-    # Key functions: hotspotFinder
-    ## hotspot <- hotspotFinder(eqtltype, 10)
-    # --- Hotpot [] ---
-    # Key functions: data
-    ## data(genotype.liver)
-    # --- Hotpot [] ---
-    # Key functions: eqtlMcmc
-    ## #PPA.liver <-  eqtlMcmc(genotype.liver, phenotype.liver, n.iter=100,burn.in=100,n.sweep=20,mc.cores=6, RIS=FALSE)
-    # --- Hotpot [] ---
-    # Key functions: calculateThreshold
-    cutoff.liver <- calculateThreshold(PPA.liver, 0.2)
-    # --- Hotpot [] ---
-    # Key functions: eqtlFinder
-    eqtl.liver <- eqtlFinder(PPA.liver, cutoff.liver)
-    # --- Hotpot [] ---
-    # Key functions: eqtlClassifier
-    eqtl.type.liver <- eqtlClassifier(eqtl.liver, map.liver, probe.liver,5000000)
-    # --- Ploteqtls [] ---
-    # Key functions: ggplot, aes, geom_point, facet_grid, theme_bw, theme, element_blank
+    library(Biobase)
     library(ggplot2)
-    ggplot(eqtl.type.liver, aes(y=GeneStart, x=MarkerPosition)) +
-    geom_point(aes(y=GeneStart, x=MarkerPosition,color = PPA), size = 1.5)+
-    facet_grid(GeneChrm~MarkerChrm)+theme_bw(base_size = 12, base_family = "")+
-    theme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank())+scale_x_reverse()
-    # --- Hotpot [] ---
-    # Key functions: hotspotFinder
-    ## hotspot.liver <- hotspotFinder(eqtl.type.liver,20)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ibmq_results.csv", row.names = TRUE)
+    
+    # 1. Load genotype and expression data, and genomic positions
+    message("Loading input files...")
+    
+    # Load snp (SnpSet object)
+    if (file.exists("snp.rds")) {
+      snp <- readRDS("snp.rds")
+    } else if (file.exists("snp")) {
+      snp <- readRDS("snp")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ibmq_results.csv")
+      stop("Error: snp file (SnpSet object) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ibmq_output.rds")
+    
+    # Load gene (ExpressionSet object)
+    if (file.exists("gene.rds")) {
+      gene <- readRDS("gene.rds")
+    } else if (file.exists("gene")) {
+      gene <- readRDS("gene")
+    } else {
+      stop("Error: gene file (ExpressionSet object) not found in the working directory.")
     }
+    
+    # Load snppos (Data frame)
+    if (file.exists("snppos.csv")) {
+      snppos <- read.csv("snppos.csv", stringsAsFactors = FALSE)
+    } else if (file.exists("snppos.rds")) {
+      snppos <- readRDS("snppos.rds")
+    } else if (file.exists("snppos")) {
+      snppos <- read.csv("snppos", stringsAsFactors = FALSE)
+    } else {
+      stop("Error: snppos file not found in the working directory.")
+    }
+    
+    # Load genepos (Data frame)
+    if (file.exists("genepos.csv")) {
+      genepos <- read.csv("genepos.csv", stringsAsFactors = FALSE)
+    } else if (file.exists("genepos.rds")) {
+      genepos <- readRDS("genepos.rds")
+    } else if (file.exists("genepos")) {
+      genepos <- read.csv("genepos", stringsAsFactors = FALSE)
+    } else {
+      stop("Error: genepos file not found in the working directory.")
+    }
+    
+    # 2. Run MCMC to calculate Posterior Probabilities of Association (PPA)
+    message("Running MCMC to calculate Posterior Probabilities of Association (PPA)...")
+    PPA <-  eqtlMcmc(snp, gene, n.iter=100, burn.in=100, n.sweep=20, mc.cores=1, RIS=TRUE)
+    saveRDS(PPA, "PPA.rds")
+    
+    # 3. Calculate FDR threshold
+    message("Calculating FDR threshold...")
+    cutoff <- calculateThreshold(PPA, 0.1)
+    writeLines(as.character(cutoff), "threshold_cutoff.txt")
+    
+    # 4. Identify significant eQTLs
+    message("Identifying significant eQTLs...")
+    eqtl <- eqtlFinder(PPA, cutoff)
+    write.csv(eqtl, "significant_eqtls.csv", row.names = FALSE)
+    
+    # 5. Classify eQTLs as cis or trans
+    message("Classifying eQTLs as cis or trans...")
+    eqtltype <- eqtlClassifier(eqtl, snppos, genepos,1000000)
+    write.csv(eqtltype, "classified_eqtls.csv", row.names = FALSE)
+    
+    # 6. Plot genome-wide eQTL distribution
+    message("Plotting genome-wide eQTL distribution...")
+    p <- ggplot(eqtltype, aes(y=GeneStart, x=MarkerPosition)) +
+      geom_point(aes(y=GeneStart, x=MarkerPosition,color = PPA), size = 1.5)+
+      facet_grid(GeneChrm~MarkerChrm)+theme_bw(base_size = 12, base_family = "")+  
+      theme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank())+scale_x_reverse()
+    ggsave("genome_wide_eqtl_plot.pdf", plot = p, width = 10, height = 8)
+    
+    # 7. Identify trans-eQTL hotspots
+    message("Identifying trans-eQTL hotspots...")
+    hotspot <- hotspotFinder(eqtltype, 10)
+    saveRDS(hotspot, "hotspots.rds")
+    
+    # Write a summary of hotspots
+    if (length(hotspot) > 0) {
+      hotspot_summary <- data.frame(
+        Marker = names(hotspot),
+        NumGenes = sapply(hotspot, nrow)
+      )
+    } else {
+      hotspot_summary <- data.frame(
+        Marker = character(0),
+        NumGenes = integer(0)
+      )
+    }
+    write.csv(hotspot_summary, "hotspots_summary.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IBMQ:", paste0("    ibmq: ", packageVersion("iBMQ"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IBMQ_EQTL_MAPPING_RIS":',
+        paste0('    iBMQ: ', as.character(packageVersion('iBMQ')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ibmq_results.csv
-    touch ${prefix}_ibmq_output.rds
-    echo "BIOC_IBMQ:" > versions.yml
-    echo "    ibmq: 0.0.0" >> versions.yml
+    touch ${prefix}_eqtl_mapping_ris.csv versions.yml
     """
 }
 
-
-workflow BIOC_IBMQ_WORKFLOW {
+workflow BIOC_IBMQ_EQTL_MAPPING_RIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ snp, gene, snppos, genepos ] ]
 
     main:
-    BIOC_IBMQ(ch_input)
+    BIOC_IBMQ_EQTL_MAPPING_RIS(ch_input)
 
     emit:
-    results  = BIOC_IBMQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IBMQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IBMQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IBMQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IBMQ_EQTL_MAPPING_RIS.out.tables
+    plots    = BIOC_IBMQ_EQTL_MAPPING_RIS.out.plots
+    objects  = BIOC_IBMQ_EQTL_MAPPING_RIS.out.objects
+    versions = BIOC_IBMQ_EQTL_MAPPING_RIS.out.versions
 }

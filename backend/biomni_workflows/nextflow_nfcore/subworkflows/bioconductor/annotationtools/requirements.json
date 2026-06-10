@@ -1,0 +1,14 @@
+{
+  "package": "annotationtools",
+  "requirements": [
+    "annotationTools"
+  ],
+  "by_workflow": {
+    "cross_species_expression_integration.nf": [
+      "annotationTools"
+    ],
+    "main.nf": [
+      "annotationTools"
+    ]
+  }
+}

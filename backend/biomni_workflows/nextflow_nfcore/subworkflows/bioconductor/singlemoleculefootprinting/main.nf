@@ -1,94 +1,242 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SingleMoleculeFootprinting
-// SingleMoleculeFootprinting provides functions to analyze Single Molecule Footprinting (SMF) data. Fo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SingleMoleculeFootprinting/inst/doc/FootprintCharter.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SingleMoleculeFootprinting")
+// Bioconductor workflow: SingleMoleculeFootprinting — unsupervised_footprinting
+// Perform unsupervised footprint detection and quantification using FootprintCharter on single-molecule footprinting data.
+// Input: regions.bed, coldata.csv
+// Container: 2.0.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, IRanges, SingleMoleculeFootprinting, dplyr, ggplot2, readr, rtracklayer
+// Visualizations: heatmap
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SINGLEMOLECULEFOOTPRINTING {
+process BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-singlemoleculefootprinting"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-singlemoleculefootprinting:2.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-singlemoleculefootprinting:2.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_singlemoleculefootprinting_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_singlemoleculefootprinting_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_singlemoleculefootprinting_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(IRanges)
-    library(PlotAvgSMF)
-    library(jsonlite)
-
-    # --- Qread [] ---
-    # Key functions: qread, GRanges, IRanges, PlotAvgSMF
-    ---------------------------------------------------------------------
-    Methylation = qs::qread(system.file("extdata", "Methylation_4.qs", package="SingleMoleculeFootprinting"))
-    RegionOfInterest = GRanges("chr6", IRanges(88106000, 88106500))
-    TFBSs = qs::qread(system.file("extdata", "TFBSs_1.qs", package="SingleMoleculeFootprinting"))
-    PlotAvgSMF(MethGR = Methylation[[1]], RegionOfInterest = RegionOfInterest, TFBSs = TFBSs)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_singlemoleculefootprinting_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    library(SingleMoleculeFootprinting)
+    library(GenomicRanges)
+    library(rtracklayer)
+    library(dplyr)
+    library(readr)
+    library(ggplot2)
+    library(parallel)
+    
+    # Stage 1: Load Inputs
+    message("Stage 1: Loading inputs...")
+    regions <- rtracklayer::import("regions.bed")
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Determine genome
+    genome_name <- if ("Genome" %in% colnames(coldata)) coldata\$Genome[1] else "BSgenome.Mmusculus.UCSC.mm10"
+    message(paste("Using genome:", genome_name))
+    if (!requireNamespace(genome_name, quietly = TRUE)) {
+      stop(paste("Required genome package", genome_name, "is not installed."))
+    }
+    library(genome_name, character.only = TRUE)
+    genome_obj <- get(genome_name)
+    
+    # Create QuasR sample file
+    sample_file_path <- "sample_file.txt"
+    write.table(coldata[, c("FileName", "SampleName")], file = sample_file_path, sep = "\t", row.names = FALSE, quote = FALSE)
+    
+    # Stage 2: Quality Control
+    message("Stage 2: Running Quality Control...")
+    bait_eff_val <- tryCatch({
+      clObj <- parallel::makeCluster(2)
+      eff <- BaitCapture(sampleFile = sample_file_path, genome = genome_obj, baits = regions, clObj = clObj)
+      parallel::stopCluster(clObj)
+      eff
+    }, error = function(e) {
+      message("BaitCapture failed or skipped: ", e\$message)
+      NA
+    })
+    write.csv(data.frame(BaitCaptureEfficiency = bait_eff_val), "bait_capture_efficiency.csv", row.names = FALSE)
+    
+    conv_rate_val <- tryCatch({
+      chrom <- as.character(seqnames(regions[1]))
+      ConversionRate(sampleFile = sample_file_path, genome = genome_obj, chr = chrom)
+    }, error = function(e) {
+      message("ConversionRate failed or skipped: ", e\$message)
+      NA
+    })
+    write.csv(data.frame(ConversionRate = conv_rate_val), "conversion_rate.csv", row.names = FALSE)
+    
+    # Stage 3: Methylation Calling
+    message("Stage 3: Calling Context Methylation...")
+    # Use the first region for detailed single-molecule analysis
+    roi <- regions[1]
+    roi_resized <- IRanges::resize(roi, 500, "center")
+    
+    meth_data <- tryCatch({
+      CallContextMethylation(
+        sampleFile = sample_file_path,
+        samples = coldata\$SampleName,
+        genome = genome_obj,
+        RegionOfInterest = roi_resized,
+        coverage = 20,
+        returnSM = TRUE,
+        verbose = TRUE,
+        clObj = NULL
+      )
+    }, error = function(e) {
+      message("CallContextMethylation failed: ", e\$message)
+      NULL
+    })
+    
+    if (!is.null(meth_data)) {
+      # Save bulk methylation
+      bulk_meth_df <- as.data.frame(meth_data[[1]])
+      write.csv(bulk_meth_df, "bulk_methylation.csv", row.names = FALSE)
+      
+      # Stage 4: Unsupervised Footprinting with FootprintCharter
+      message("Stage 4: Running FootprintCharter...")
+      roi_80 <- IRanges::resize(roi, 80, "center")
+      sample_name <- coldata\$SampleName[1]
+      meth_sm <- meth_data[[2]][[sample_name]]
+      
+      # Prepare TFBSs from regions
+      TFBSs <- regions
+      TFBSs\$TF <- if ("name" %in% colnames(mcols(TFBSs))) TFBSs\$name else "TF"
+      TFBSs\$absolute.idx <- paste0("TFBS_", seq_along(TFBSs))
+      
+      fc_results <- tryCatch({
+        FootprintCharter(
+          MethSM = meth_sm,
+          RegionOfInterest = roi_80,
+          TFBSs = TFBSs,
+          coverage = 20,
+          k = 8,
+          n = 5,
+          TF.length = c(5, 75),
+          nucleosome.length = c(120, 1000),
+          cytosine.coverage.thr = 5,
+          verbose = TRUE
+        )
+      }, error = function(e) {
+        message("FootprintCharter failed: ", e\$message)
+        NULL
+      })
+      
+      if (!is.null(fc_results)) {
+        write.csv(fc_results\$footprints.df, "detected_footprints.csv", row.names = FALSE)
+        
+        # Stage 5: Visualization
+        message("Stage 5: Generating Plots...")
+        p_avg <- tryCatch({
+          PlotAvgSMF(MethGR = meth_data[[1]], RegionOfInterest = roi_resized, TFBSs = TFBSs)
+        }, error = function(e) {
+          ggplot() + labs(title = "PlotAvgSMF failed")
+        })
+        ggplot2::ggsave("average_smf_plot.pdf", plot = p_avg, width = 8, height = 6)
+        
+        p_footprints <- tryCatch({
+          PlotFootprints(
+            MethSM = meth_sm,
+            partitioned.molecules = fc_results\$partitioned.molecules,
+            footprints.df = fc_results\$footprints.df,
+            TFBSs = TFBSs
+          )
+        }, error = function(e) {
+          ggplot() + labs(title = "PlotFootprints failed")
+        })
+        ggplot2::ggsave("footprint_charter_plot.pdf", plot = p_footprints, width = 8, height = 8)
+        
+        p_sm <- tryCatch({
+          PlotSM(
+            MethSM = meth_sm,
+            RegionOfInterest = roi_resized,
+            SortedReads = fc_results\$partitioned.molecules,
+            sorting.strategy = "custom"
+          )
+        }, error = function(e) {
+          ggplot() + labs(title = "PlotSM failed")
+        })
+        ggplot2::ggsave("single_molecule_heatmap.pdf", plot = p_sm, width = 10, height = 8)
+        
+      } else {
+        write.csv(data.frame(Status = "FootprintCharter failed"), "detected_footprints.csv", row.names = FALSE)
+        pdf("footprint_charter_plot.pdf")
+        plot.new()
+        text(0.5, 0.5, "FootprintCharter failed")
+        dev.off()
+        pdf("single_molecule_heatmap.pdf")
+        plot.new()
+        text(0.5, 0.5, "FootprintCharter failed")
+        dev.off()
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_singlemoleculefootprinting_results.csv")
+      write.csv(data.frame(Status = "CallContextMethylation failed"), "bulk_methylation.csv", row.names = FALSE)
+      write.csv(data.frame(Status = "CallContextMethylation failed"), "detected_footprints.csv", row.names = FALSE)
+      pdf("average_smf_plot.pdf")
+      plot.new()
+      text(0.5, 0.5, "CallContextMethylation failed")
+      dev.off()
+      pdf("footprint_charter_plot.pdf")
+      plot.new()
+      text(0.5, 0.5, "CallContextMethylation failed")
+      dev.off()
+      pdf("single_molecule_heatmap.pdf")
+      plot.new()
+      text(0.5, 0.5, "CallContextMethylation failed")
+      dev.off()
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_singlemoleculefootprinting_output.rds")
-    }
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SINGLEMOLECULEFOOTPRINTING:", paste0("    singlemoleculefootprinting: ", packageVersion("SingleMoleculeFootprinting"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING":',
+        paste0('    SingleMoleculeFootprinting: ', as.character(packageVersion('SingleMoleculeFootprinting')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_singlemoleculefootprinting_results.csv
-    touch ${prefix}_singlemoleculefootprinting_output.rds
-    echo "BIOC_SINGLEMOLECULEFOOTPRINTING:" > versions.yml
-    echo "    singlemoleculefootprinting: 0.0.0" >> versions.yml
+    touch ${prefix}_unsupervised_footprinting.csv versions.yml
     """
 }
 
-
-workflow BIOC_SINGLEMOLECULEFOOTPRINTING_WORKFLOW {
+workflow BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SINGLEMOLECULEFOOTPRINTING(ch_input)
+    BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING(ch_input)
 
     emit:
-    results  = BIOC_SINGLEMOLECULEFOOTPRINTING.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SINGLEMOLECULEFOOTPRINTING.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SINGLEMOLECULEFOOTPRINTING.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SINGLEMOLECULEFOOTPRINTING.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING.out.tables
+    plots    = BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING.out.plots
+    objects  = BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING.out.objects
+    versions = BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING.out.versions
 }

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: diags=logical flag (e.g., TRUE) to optimize alignment speed with a potential loss of accuracy ;; gapopen=negative numeric value (e.g., -30) to modify default gap penalties, where larger negative values indicate more stringent penalties ;; quiet=logical flag (e.g., TRUE) to disable progress output to the screen ;; maxhours=numeric value (e.g., 24.0) specifying the maximum execution time in hours before the algorithm stops and returns the current alignment ;; log=character string specifying a log file path to write default settings ;; verbose=logical flag used in conjunction with log to write default settings to disk\n- alternatives: None mentioned in the documentation\n- when_to_use: When performing multiple sequence alignments of homologous, paralogous, or orthologous DNA, RNA, or amino acid sequences for downstream comparative sequence-based studies such as phylogenetic tree estimation, selection signature testing, comparative genomics, secondary structure prediction, or critical residue identification.\n- pitfalls: Setting diags = TRUE to enhance speed may result in a potential loss of alignment accuracy ;; Gap penalties specified via gapopen must be negative, with larger negative values indicating more stringent penalties.",
+  "workflows": [
+    {
+      "name": "multiple_sequence_alignment",
+      "intent": "Perform multiple sequence alignment on nucleotide or amino acid sequences.",
+      "input": [
+        "sequences.fasta (FASTA file containing unaligned nucleotide or amino acid sequences)"
+      ],
+      "stages": "1. Load the muscle package ;; 2. Read unaligned sequences from a FASTA file into an XStringSet object ;; 3. Perform multiple sequence alignment using the muscle function with optional speed, penalty, or runtime constraints.",
+      "code": "library(muscle)\naln <- muscle(umax)\nfile.path <- system.file(\"extdata\", \"someORF.fa\", package = \"Biostrings\")\norf <- readDNAStringSet(file.path, format = \"fasta\")\naln <- muscle(umax, diags = TRUE)\naln <- muscle(umax, gapopen = -30)\naln <- muscle(umax, quiet = TRUE)\naln <- muscle(umax, maxhours = 24.0)"
+    }
+  ]
+}

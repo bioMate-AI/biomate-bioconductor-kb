@@ -1,106 +1,245 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: EnhancedVolcano
-// Volcano plots represent a useful way to visualise the results of differential expression analyses. H
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.R
-// Upstream  : DESeq2, airway, grid, gridExtra, magrittr
-// Downstream: none
-//
-// Install: BiocManager::install("EnhancedVolcano")
+// Bioconductor workflow: EnhancedVolcano — enhanced_volcano_transcriptomics
+// Perform differential expression analysis on RNA-seq count data using DESeq2 and generate highly-configurable, publication-ready volcano plots using EnhancedVolc
+// Input: counts.csv, coldata.csv
+// Container: 1.28.2--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DESeq2, EnhancedVolcano, ggplot2, gridExtra
+// Visualizations: volcano plot
+// QC: low-count filtering
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ENHANCEDVOLCANO {
+process BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-enhancedvolcano"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-enhancedvolcano:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-enhancedvolcano:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(deseqdataset)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_enhancedvolcano_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_enhancedvolcano_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_enhancedvolcano_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DESeq)
-    library(DESeqDataSet)
-    library(DESeqDataSetFromMatrix)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
+    library(DESeq2)
     library(EnhancedVolcano)
-    library(jsonlite)
-
-    # --- Customized Volcano Plot with Connectors [] ---
-    # Key functions: EnhancedVolcano
-    EnhancedVolcano(
-        res,
-        lab = rownames(res),
-        x = "log2FoldChange",
-        y = "pvalue",
-        selectLab = c("VCAM1", "KCTD12", "ADAM12", "CXCL12"),
-        xlab = bquote(~Log[2]~ "fold change"),
-        pCutoff = 10e-14,
-        FCcutoff = 2.0,
-        pointSize = 4.0,
-        labSize = 6.0,
-        boxedLabels = TRUE,
-        drawConnectors = TRUE,
-        widthConnectors = 1.0,
-        colConnectors = "black"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_enhancedvolcano_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_enhancedvolcano_results.csv")
+    library(ggplot2)
+    library(gridExtra)
+    library(grid)
+    
+    # Stage 2: Load and preprocess input data
+    # Read counts and coldata from the working directory
+    counts <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
+    coldata <- read.csv("coldata.csv", row.names = "sample", check.names = FALSE)
+    
+    # Ensure sample names match between counts and coldata
+    common_samples <- intersect(colnames(counts), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("No common samples found between counts.csv and coldata.csv")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_enhancedvolcano_output.rds")
+    counts <- counts[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Ensure condition is a factor
+    coldata\$condition <- as.factor(coldata\$condition)
+    cond_levels <- levels(coldata\$condition)
+    if (length(cond_levels) < 2) {
+      stop("The 'condition' column must have at least two levels for differential analysis.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ENHANCEDVOLCANO:", paste0("    enhancedvolcano: ", packageVersion("EnhancedVolcano"))),
-        "versions.yml"
+    
+    # Stage 3: Differential Expression Analysis with DESeq2
+    dds <- DESeqDataSetFromMatrix(countData = counts, colData = coldata, design = ~ condition)
+    
+    # Filter out low-count genes to improve power
+    keep <- rowSums(counts(dds)) >= 10
+    dds <- dds[keep, ]
+    
+    # Run DESeq2 pipeline
+    dds <- DESeq(dds)
+    
+    # Extract results for the primary contrast
+    res <- results(dds, contrast = c("condition", cond_levels[2], cond_levels[1]))
+    
+    # Apply log2 fold change shrinkage for more stable estimates
+    res_shrunk <- tryCatch({
+      lfcShrink(dds, contrast = c("condition", cond_levels[2], cond_levels[1]), res = res, type = "normal")
+    }, error = function(e) {
+      warning("LFC shrinkage failed, using unshrunk results: ", e\$message)
+      res
+    })
+    
+    # Save differential expression results to CSV
+    write.csv(as.data.frame(res_shrunk), "de_results.csv", row.names = TRUE)
+    
+    # Identify top significant genes for labeling
+    top_genes <- rownames(res_shrunk)[order(res_shrunk\$pvalue, na.last = TRUE)][1:10]
+    top_genes <- top_genes[!is.na(top_genes)]
+    
+    # Stage 4: Generate EnhancedVolcano Plots
+    
+    # Plot 1: Basic Volcano Plot
+    pdf("volcano_basic.pdf", width = 8, height = 9)
+    p_basic <- EnhancedVolcano(
+      res_shrunk,
+      lab = rownames(res_shrunk),
+      x = "log2FoldChange",
+      y = "pvalue",
+      title = "Differential Expression: Basic Volcano",
+      subtitle = paste(cond_levels[2], "vs", cond_levels[1]),
+      pCutoff = 1e-5,
+      FCcutoff = 1.0,
+      pointSize = 2.0,
+      labSize = 4.0
     )
+    print(p_basic)
+    dev.off()
+    
+    # Plot 2: Advanced Volcano Plot with Boxed Labels and Connectors
+    pdf("volcano_advanced.pdf", width = 9, height = 10)
+    p_adv <- EnhancedVolcano(
+      res_shrunk,
+      lab = rownames(res_shrunk),
+      x = "log2FoldChange",
+      y = "pvalue",
+      selectLab = top_genes,
+      xlab = bquote(~Log[2]~ "fold change"),
+      ylab = bquote(~-Log[10]~ "p-value"),
+      title = "Differential Expression: Advanced Volcano",
+      subtitle = "Top 10 most significant genes highlighted",
+      pCutoff = 1e-6,
+      FCcutoff = 1.5,
+      pointSize = 3.0,
+      labSize = 5.0,
+      labCol = "black",
+      labFace = "bold",
+      boxedLabels = TRUE,
+      colAlpha = 0.8,
+      legendPosition = "right",
+      legendLabSize = 12,
+      legendIconSize = 4.0,
+      drawConnectors = TRUE,
+      widthConnectors = 0.75,
+      colConnectors = "grey30",
+      arrowheads = FALSE,
+      gridlines.major = TRUE,
+      gridlines.minor = FALSE,
+      border = "partial",
+      borderWidth = 1.5,
+      borderColour = "black"
+    )
+    print(p_adv)
+    dev.off()
+    
+    # Plot 3: Custom Color Override Volcano Plot
+    # Create custom key-value pairs for coloring based on custom thresholds
+    keyvals <- ifelse(
+      res_shrunk\$log2FoldChange < -2.0 & res_shrunk\$pvalue < 1e-5, "royalblue",
+      ifelse(res_shrunk\$log2FoldChange > 2.0 & res_shrunk\$pvalue < 1e-5, "gold", "grey60")
+    )
+    keyvals[is.na(keyvals)] <- "grey60"
+    names(keyvals)[keyvals == "gold"] <- "Upregulated (High)"
+    names(keyvals)[keyvals == "grey60"] <- "Unchanged / Low"
+    names(keyvals)[keyvals == "royalblue"] <- "Downregulated (Low)"
+    
+    pdf("volcano_custom_colors.pdf", width = 9, height = 10)
+    p_custom <- EnhancedVolcano(
+      res_shrunk,
+      lab = rownames(res_shrunk),
+      x = "log2FoldChange",
+      y = "pvalue",
+      selectLab = top_genes,
+      xlab = bquote(~Log[2]~ "fold change"),
+      title = "Custom Color Overrides",
+      subtitle = "Highlighting extreme fold changes",
+      pCutoff = 1e-5,
+      FCcutoff = 2.0,
+      pointSize = 3.5,
+      labSize = 4.5,
+      colCustom = keyvals,
+      colAlpha = 0.9,
+      legendPosition = "bottom",
+      legendLabSize = 12,
+      legendIconSize = 5.0,
+      drawConnectors = TRUE,
+      widthConnectors = 0.5,
+      colConnectors = "black"
+    )
+    print(p_custom)
+    dev.off()
+    
+    # Plot 4: Continuous Color Gradient Volcano Plot
+    pdf("volcano_continuous.pdf", width = 9, height = 10)
+    p_cont <- EnhancedVolcano(
+      res_shrunk,
+      lab = rownames(res_shrunk),
+      x = "log2FoldChange",
+      y = "pvalue",
+      pCutoff = 1e-5,
+      FCcutoff = 1.0,
+      pointSize = 2.5,
+      labSize = 4.0,
+      title = "Continuous Color Gradient",
+      subtitle = "Shading based on statistical significance",
+      colAlpha = 0.85,
+      colGradient = c("red3", "royalblue"),
+      legendPosition = "right",
+      legendLabSize = 12,
+      drawConnectors = TRUE,
+      widthConnectors = 0.5
+    )
+    print(p_cont)
+    dev.off()
+    
+    message("EnhancedVolcano pipeline completed successfully. Outputs generated.")
+
+    writeLines(c(
+        '"BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS":',
+        paste0('    EnhancedVolcano: ', as.character(packageVersion('EnhancedVolcano')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_enhancedvolcano_results.csv
-    touch ${prefix}_enhancedvolcano_output.rds
-    echo "BIOC_ENHANCEDVOLCANO:" > versions.yml
-    echo "    enhancedvolcano: 0.0.0" >> versions.yml
+    touch ${prefix}_enhanced_volcano_transcriptomics.csv versions.yml
     """
 }
 
-
-workflow BIOC_ENHANCEDVOLCANO_WORKFLOW {
+workflow BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(deseqdataset) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ENHANCEDVOLCANO(ch_input)
+    BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS(ch_input)
 
     emit:
-    results  = BIOC_ENHANCEDVOLCANO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ENHANCEDVOLCANO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ENHANCEDVOLCANO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ENHANCEDVOLCANO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS.out.tables
+    plots    = BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS.out.plots
+    objects  = BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS.out.objects
+    versions = BIOC_ENHANCEDVOLCANO_ENHANCED_VOLCANO_TRANSCRIPTOMICS.out.versions
 }

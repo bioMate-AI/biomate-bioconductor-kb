@@ -1,0 +1,11 @@
+{
+  "package": "brendadb",
+  "requirements": [
+    "brendaDb"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "brendaDb"
+    ]
+  }
+}

@@ -1,90 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: POWSC
-// Determining the sample size for adequate power to detect statistical significance is a crucial step 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/POWSC/inst/doc/POWSC.R
-// Upstream  : RColorBrewer, pheatmap
-// Downstream: none
-//
-// Install: BiocManager::install("POWSC")
+// Bioconductor workflow: POWSC — two_group_power_analysis
+// Perform power and sample size analysis for a two-group comparison (within cell type) using pilot/template scRNA-seq data
+// Input: pilot_data.rds
+// Container: quay.io/biocontainers/bioconductor-powsc:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: POWSC, SingleCellExperiment
+// Visualizations: bar plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter template data for a specific cell type
+//  * 2. [Core Analysis] Estimate parameters using Est2Phase
+//  * 3. [Core Analysis] Simulate two-group SingleCellExperiment datasets using Simulate2SCE
+//  * 4. [Core Analysis] Run differential expression analysis using runDE
+//  * 5. [Core Analysis] Evaluate discrete and continuous power using Power_Disc and Power_Cont
 
 nextflow.enable.dsl = 2
 
-process BIOC_POWSC {
+process BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-powsc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-powsc:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-powsc:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_powsc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_powsc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_powsc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(POWSC)
-    library(jsonlite)
-
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: dimnames, pheatmap
-    data("GSE67835_AB_S7_sce")
-    cell_per = c(0.2, 0.3, 0.5)
-    col = colData(sce)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_powsc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_powsc_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    suppressPackageStartupMessages({
+      library(POWSC)
+      library(MAST)
+    })
+    
+    # 1. Read the user input file
+    if (!file.exists("pilot_data.rds")) {
+      stop("Error: 'pilot_data.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_powsc_output.rds")
+    
+    es_mef_sce <- readRDS("pilot_data.rds")
+    
+    # Ensure colData has cellTypes; if not, create a dummy column
+    if (!"cellTypes" %in% colnames(colData(es_mef_sce))) {
+      colData(es_mef_sce)\$cellTypes <- "fibro"
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_POWSC:", paste0("    powsc: ", packageVersion("POWSC"))),
-        "versions.yml"
+    
+    # Determine target cell type (default to "fibro", fallback to first available)
+    target_celltype <- "fibro"
+    available_celltypes <- unique(colData(es_mef_sce)\$cellTypes)
+    if (!target_celltype %in% available_celltypes) {
+      target_celltype <- available_celltypes[1]
+    }
+    
+    # Filter template data for the specific cell type
+    sce <- es_mef_sce[, colData(es_mef_sce)\$cellTypes == target_celltype]
+    
+    # Downsample genes to 500 (or maximum available) as in the documented code
+    set.seed(12)
+    n_genes <- min(500, nrow(sce))
+    rix <- sample(1:nrow(sce), n_genes)
+    sce <- sce[rix, ]
+    
+    # 2. Estimate parameters using Est2Phase
+    est_Paras <- Est2Phase(sce)
+    
+    # 3. Simulate two-group SingleCellExperiment datasets using Simulate2SCE
+    simData <- Simulate2SCE(n=100, estParas1 = est_Paras, estParas2 = est_Paras)
+    
+    # 4. Run differential expression analysis using runDE
+    de <- runDE(simData\$sce, DE_Method = "MAST")
+    
+    # 5. Evaluate discrete and continuous power using Power_Disc and Power_Cont
+    estPower1 <- Power_Disc(de, simData = simData)
+    estPower2 <- Power_Cont(de, simData = simData)
+    
+    # Save results to RDS files
+    saveRDS(estPower1, "estPower1_discrete.rds")
+    saveRDS(estPower2, "estPower2_continuous.rds")
+    
+    # Save power tables to CSV if available
+    if (!is.null(estPower1\$power)) {
+      write.csv(as.data.frame(estPower1\$power), "power_discrete_table.csv", row.names = TRUE)
+    }
+    if (!is.null(estPower2\$power)) {
+      write.csv(as.data.frame(estPower2\$power), "power_continuous_table.csv", row.names = TRUE)
+    }
+    
+    # Save marginal power summary
+    summary_df <- data.frame(
+      Metric = c("Discrete_Marginal_Power", "Continuous_Marginal_Power"),
+      Value = c(
+        ifelse(is.null(estPower1\$power.marginal), NA, estPower1\$power.marginal),
+        ifelse(is.null(estPower2\$power.marginal), NA, estPower2\$power.marginal)
+      )
     )
+    write.csv(summary_df, "power_marginal_summary.csv", row.names = FALSE)
+    
+    # Generate diagnostic plots
+    pdf("power_analysis_plots.pdf", width = 7, height = 5)
+    if (!is.null(estPower1\$power)) {
+      tryCatch({
+        barplot(estPower1\$power, main = "Discrete Power by Stratum", 
+                xlab = "Stratum", ylab = "Power", col = "skyblue")
+      }, error = function(e) {
+        message("Could not plot discrete power: ", e\$message)
+      })
+    }
+    if (!is.null(estPower2\$power)) {
+      tryCatch({
+        barplot(estPower2\$power, main = "Continuous Power by Stratum", 
+                xlab = "Stratum", ylab = "Power", col = "coral")
+      }, error = function(e) {
+        message("Could not plot continuous power: ", e\$message)
+      })
+    }
+    dev.off()
+    
+    message("POWSC workflow completed successfully. Outputs saved to working directory.")
+
+    writeLines(c(
+        '"BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS":',
+        paste0('    POWSC: ', as.character(packageVersion('POWSC')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_powsc_results.csv
-    touch ${prefix}_powsc_output.rds
-    echo "BIOC_POWSC:" > versions.yml
-    echo "    powsc: 0.0.0" >> versions.yml
+    touch ${prefix}_two_group_power_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_POWSC_WORKFLOW {
+workflow BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pilot_data.rds ] ]
 
     main:
-    BIOC_POWSC(ch_input)
+    BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_POWSC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_POWSC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_POWSC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_POWSC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS.out.tables
+    plots    = BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS.out.plots
+    objects  = BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS.out.objects
+    versions = BIOC_POWSC_TWO_GROUP_POWER_ANALYSIS.out.versions
 }

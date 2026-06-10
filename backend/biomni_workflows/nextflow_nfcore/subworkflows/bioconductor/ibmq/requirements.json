@@ -1,0 +1,20 @@
+{
+  "package": "ibmq",
+  "requirements": [
+    "Biobase",
+    "ggplot2",
+    "iBMQ"
+  ],
+  "by_workflow": {
+    "eqtl_mapping_f2_cross.nf": [
+      "Biobase",
+      "ggplot2",
+      "iBMQ"
+    ],
+    "main.nf": [
+      "Biobase",
+      "ggplot2",
+      "iBMQ"
+    ]
+  }
+}

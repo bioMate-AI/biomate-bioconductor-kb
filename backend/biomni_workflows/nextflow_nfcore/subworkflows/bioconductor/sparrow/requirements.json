@@ -1,0 +1,19 @@
+{
+  "package": "sparrow",
+  "requirements": [
+    "ComplexHeatmap",
+    "edgeR",
+    "ggplot2",
+    "limma",
+    "sparrow"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "edgeR",
+      "ggplot2",
+      "limma",
+      "sparrow"
+    ]
+  }
+}

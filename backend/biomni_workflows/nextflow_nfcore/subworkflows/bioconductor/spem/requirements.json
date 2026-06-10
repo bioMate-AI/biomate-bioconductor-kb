@@ -1,0 +1,15 @@
+{
+  "package": "spem",
+  "requirements": [
+    "Biobase",
+    "Rsolnp",
+    "SPEM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "Rsolnp",
+      "SPEM"
+    ]
+  }
+}

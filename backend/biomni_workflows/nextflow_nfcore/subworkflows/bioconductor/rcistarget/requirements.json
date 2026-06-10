@@ -1,0 +1,11 @@
+{
+  "package": "rcistarget",
+  "requirements": [
+    "RcisTarget"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RcisTarget"
+    ]
+  }
+}

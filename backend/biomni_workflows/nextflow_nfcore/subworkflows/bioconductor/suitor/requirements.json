@@ -1,0 +1,13 @@
+{
+  "package": "suitor",
+  "requirements": [
+    "MutationalPatterns",
+    "SUITOR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MutationalPatterns",
+      "SUITOR"
+    ]
+  }
+}

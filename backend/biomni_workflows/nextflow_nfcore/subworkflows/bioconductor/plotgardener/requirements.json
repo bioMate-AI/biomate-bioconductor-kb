@@ -1,0 +1,15 @@
+{
+  "package": "plotgardener",
+  "requirements": [
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "org.Hs.eg.db",
+    "plotgardener"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "org.Hs.eg.db",
+      "plotgardener"
+    ]
+  }
+}

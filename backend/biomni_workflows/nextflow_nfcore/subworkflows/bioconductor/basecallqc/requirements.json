@@ -1,0 +1,16 @@
+{
+  "package": "basecallqc",
+  "requirements": [
+    "basecallQC",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "basecall_qc_analysis.nf": [
+      "basecallQC",
+      "htmlwidgets"
+    ],
+    "main.nf": [
+      "basecallQC"
+    ]
+  }
+}

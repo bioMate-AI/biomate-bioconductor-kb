@@ -1,0 +1,23 @@
+{
+  "package": "seqpattern",
+  "requirements": [
+    "BSgenome",
+    "Biostrings",
+    "GenomicRanges",
+    "seqPattern"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome",
+      "Biostrings",
+      "GenomicRanges",
+      "seqPattern"
+    ],
+    "motif_scanning_and_density.nf": [
+      "BSgenome",
+      "Biostrings",
+      "GenomicRanges",
+      "seqPattern"
+    ]
+  }
+}

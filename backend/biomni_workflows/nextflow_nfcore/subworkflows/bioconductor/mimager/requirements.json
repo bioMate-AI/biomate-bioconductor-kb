@@ -1,0 +1,27 @@
+{
+  "package": "mimager",
+  "requirements": [
+    "Biobase",
+    "affy",
+    "affyPLM",
+    "mimager",
+    "oligo",
+    "scales"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "mimager"
+    ],
+    "plm_spatial_artifact_visualization.nf": [
+      "affy",
+      "affyPLM",
+      "mimager",
+      "oligo"
+    ],
+    "transformed_array_visualization.nf": [
+      "mimager",
+      "scales"
+    ]
+  }
+}

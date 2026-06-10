@@ -1,0 +1,52 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - inputFilePath = Path to a FASTA file or a DNAStringSet object containing the input sequences to search for gRNAs.\n    - findgRNAs = Logical; defaults to TRUE. Set to FALSE if the input file already contains user-selected gRNAs plus PAM.\n    - BSgenomeName = A BSgenome object containing the target genome sequence used for off-target search.\n    - genomeSeqFile = Path to a custom target genome file in FASTA format (alternative to BSgenomeName; when set, annotateExon, txdb, and orgAnn are ignored).\n    - chromToSearch = Chromosome to search (e.g., \"chrX\" or \"all\"). Set to \"\" to disable off-target search and speed up analysis.\n    - max.mismatch = Maximum number of mismatches allowed in off-target search (default 3; values > 3 considerably slow down the search). Set to 0 with a specific chromosome to calculate on-target efficacy without off-target search.\n    - findOffTargetsWithBulge = Logical; set to TRUE to search for off-targets with bulges using Cas-OFFinder.\n    - annotateExon = Logical; set to TRUE to annotate if off-targets are within exons (requires txdb and orgAnn).\n    - txdb = A TxDb object containing organism-specific annotation data, required for annotateExon.\n    - orgAnn = An OrgDb object containing organism-specific annotation mapping, required for annotateExon.\n    - scoring.method = Method for off-target scoring (e.g., \"Hsu-Zhuang\" or \"CFDscore\").\n    - baseEditing = Logical; set to TRUE to design gRNAs for base editing (requires targetBase, editingWindow, and editingWindow.offtargets).\n    - primeEditing = Logical; set to TRUE to design gRNAs for prime editing (requires specific PE parameters).\n- alternatives:\n    - Cas-OFFinder (via getOfftargetWithBulge() or findOffTargetsWithBulge = TRUE) is integrated for finding off-targets with DNA/RNA bulges.\n    - GenomicFeatures and txdbmaker packages can be used to build custom TxDb objects if pre-built ones are not available.\n- when_to_use:\n    - Use when designing gRNAs for CRISPR-Cas9 or derivative systems (such as paired nickases, base editors, or prime editors) and evaluating their on-target efficacy and off-target profiles against a reference genome or custom genome.\n- pitfalls:\n    - Setting max.mismatch > 3 will significantly increase computation time.\n    - Setting chromToSearch = \"\" disables both off-target search and gRNA efficacy calculation. To calculate efficacy without off-target search, specify the target chromosome and set max.mismatch = 0.\n    - For very long sequences (>200 kb), set annotatePaired = FALSE and enable multicore processing (enable.multicore = TRUE) to avoid slow performance, and ensure repeat-masked sequences are used as input.\n    - Using the \"Root_RuleSet2_2016\" efficacy rule set requires a local Python 2.7 installation with specific packages (scikit-learn 0.16.1, pandas, numpy, scipy) configured in the system path.",
+  "workflows": [
+    {
+      "name": "standard_offtarget_analysis",
+      "intent": "Identify gRNAs in an input sequence, perform off-target analysis against a reference genome, and annotate off-targets.",
+      "input": [
+        "inputseq.fa (FASTA file containing target sequences)"
+      ],
+      "stages": "1. Load required annotation and genome packages.\n2. Run offTargetAnalysis with input sequence, BSgenome, TxDb, and OrgDb.",
+      "code": "library(CRISPRseek)\nlibrary(BSgenome.Hsapiens.UCSC.hg38)\nlibrary(TxDb.Hsapiens.UCSC.hg38.knownGene)\nlibrary(org.Hs.eg.db)\n\ninputFilePath <- system.file('extdata', 'inputseq.fa', package = 'CRISPRseek')\noutputDir <- getwd()\nres <- offTargetAnalysis(inputFilePath = inputFilePath,\n                         BSgenomeName = Hsapiens,\n                         chromToSearch= \"chrX\", \n                         \n                         # Annotation packages required for annotation.\n                         txdb = TxDb.Hsapiens.UCSC.hg38.knownGene, \n                         orgAnn = org.Hs.egSYMBOL,\n                         \n                         outputDir = outputDir,\n                         overwrite = TRUE)\nhead(res$summary[, c(\"names\", \"gRNAsPlusPAM\", \"gRNAefficacy\")])\nhead(res$offtarget[, c(\"name\", \"OffTargetSequence\", \"alignment\", \"score\", \"gRNAefficacy\")])"
+    },
+    {
+      "name": "bulge_offtarget_analysis",
+      "intent": "Search for off-targets allowing DNA and RNA bulges using Cas-OFFinder.",
+      "input": [
+        "inputseq.fa (FASTA file containing target sequences)"
+      ],
+      "stages": "1. Run offTargetAnalysis with findOffTargetsWithBulge = TRUE.\n2. Alternatively, find gRNAs first using findgRNAs and then call getOfftargetWithBulge.",
+      "code": "library(CRISPRseek)\nlibrary(BSgenome.Hsapiens.UCSC.hg38)\n\ninputFilePath <- system.file('extdata', 'inputseq.fa', package = 'CRISPRseek')\noutputDir <- getwd()\n\nif (interactive()) {\n  res <- offTargetAnalysis(inputFilePath = inputFilePath,\n                         findOffTargetsWithBulge = TRUE,\n                         BSgenomeName = Hsapiens,\n                         chromToSearch = \"chrX\",\n                         annotateExon = FALSE,\n                         outputDir = outputDir,\n                         overwrite = TRUE)\n  head(res$offtarget[, c(\"name\", \"gRNAPlusPAM_bulge\", \"OffTargetSequence_bulge\", \"n.RNABulge\", \"n.DNABulge\", \"alignment\")])\n}\n\nif (interactive()) {\n  gRNA_PAM <- findgRNAs(inputFilePath = system.file(\"extdata\",\n                                                    \"inputseq.fa\",\n                                                    package = \"CRISPRseek\"),\n                        pairOutputFile = \"testpairedgRNAs.xls\",\n                        findPairedgRNAOnly = TRUE)\n  res <- getOfftargetWithBulge(gRNA_PAM,\n                               BSgenomeName = Hsapiens, \n                               chromToSearch = \"chrX\")\n  head(res)\n}"
+    },
+    {
+      "name": "allele_specific_grna_design",
+      "intent": "Compare two sequences (differing by a SNP) to identify gRNAs that preferentially target one allele over the other.",
+      "input": [
+        "rs362331C.fa (FASTA file for allele 1)",
+        "rs362331T.fa (FASTA file for allele 2)"
+      ],
+      "stages": "1. Run compare2Sequences on the two input FASTA files.\n2. Evaluate cleavage scores and score differences to select allele-specific gRNAs.",
+      "code": "library(CRISPRseek)\n\ninputFile1Path <- system.file(\"extdata\", \"rs362331C.fa\", package=\"CRISPRseek\") \ninputFile2Path <- system.file(\"extdata\", \"rs362331T.fa\", package=\"CRISPRseek\") \noutputDir <- getwd()\n\nres <- compare2Sequences(inputFile1Path,\n                         inputFile2Path, \n                         outputDir = outputDir,\n                         overwrite = TRUE)\nhead(res[, c(\"name\", \"gRNAPlusPAM\", \"scoreForSeq1\", \"scoreForSeq2\", \"gRNAefficacy\", \"scoreDiff\")])"
+    },
+    {
+      "name": "base_editing_grna_design",
+      "intent": "Design gRNAs optimized for base editing systems (CBE or ABE).",
+      "input": [
+        "inputseq.fa (FASTA file containing target sequences)"
+      ],
+      "stages": "1. Run offTargetAnalysis with baseEditing = TRUE and specify target base and editing windows.",
+      "code": "library(CRISPRseek)\n\ninputFilePath <- system.file('extdata', 'inputseq.fa', package = 'CRISPRseek')\noutputDir <- getwd()\n\nres <- offTargetAnalysis(inputFilePath = inputFilePath,\n                         chromToSearch = \"\",\n                         baseEditing = TRUE,\n                         targetBase = \"C\",\n                         editingWindow = 4:8,\n                         editingWindow.offtargets = 4:8,\n                         outputDir = outputDir,\n                         overwrite = TRUE)\nres"
+    },
+    {
+      "name": "prime_editing_grna_design",
+      "intent": "Design gRNAs and pegRNAs for prime editing.",
+      "input": [
+        "inputseq.fa (FASTA file containing target sequences) or a DNAStringSet object"
+      ],
+      "stages": "1. Run offTargetAnalysis with primeEditing = TRUE and specify prime editing parameters (PBS length, RT template length, corrected sequence, etc.).",
+      "code": "library(CRISPRseek)\n\ninputFilePath <- DNAStringSet(\"CCAGTTTGTGGATCCTGCTCTGGTGTCCTCCACACCAGAATCAGGGATCGAAAACTCATCAGTCGATGCGAGTCATCTAAATTCCGATCAATTTCACACTTTAAACG\")\noutputDir <- getwd()\n\nres <- offTargetAnalysis(inputFilePath,\n                         chromToSearch = \"\",\n                         gRNAoutputName = \"testPEgRNAs\", # Required when inputFilePath is a DNAStringSet object.\n                         primeEditing = TRUE,\n                         targeted.seq.length.change = 0,\n                         bp.after.target.end = 15,\n                         PBS.length = 15,\n                         RT.template.length = 8:30,\n                         RT.template.pattern = \"D$\",\n                         target.start = 20,\n                         target.end = 20,\n                         corrected.seq = \"T\",\n                         findPairedgRNAOnly = TRUE,\n                         paired.orientation = \"PAMin\",\n                         outputDir = outputDir, \n                         overwrite = TRUE)\nres"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "package": "methrix",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GenomicRanges",
+    "GenomicScores",
+    "MafDb.1Kgenomes.phase3.hs37d5",
+    "bsseq",
+    "methrix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicRanges",
+      "GenomicScores",
+      "MafDb.1Kgenomes.phase3.hs37d5",
+      "bsseq",
+      "methrix"
+    ]
+  }
+}

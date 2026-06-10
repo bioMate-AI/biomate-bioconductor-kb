@@ -1,0 +1,13 @@
+{
+  "package": "repitools",
+  "requirements": [
+    "GenomicRanges",
+    "Repitools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "Repitools"
+    ]
+  }
+}

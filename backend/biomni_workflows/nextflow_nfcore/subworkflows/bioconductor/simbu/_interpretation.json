@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: scale_tpm=Logical indicating whether to scale the TPM matrix to 1e6 per cell (default TRUE) ;; filter_genes=Logical indicating whether to remove genes with zero expression across all cells ;; variance_cutoff=Numeric value to filter out genes with expression variance below this threshold ;; type_abundance_cutoff=Numeric value to remove cells belonging to cell types with abundance below this threshold ;; scenario=The simulation scenario to use (\"even\", \"random\", \"mirror_db\", \"weighted\", \"pure\", \"custom\") ;; scaling_factor=The method to model mRNA bias (\"NONE\", \"epic\", \"quantiseq\", \"custom\", \"read_number\", \"expressed_genes\", \"spike_in\", \"census\", or a custom annotation column) ;; ncells=Number of cells to include in each simulated sample ;; nsamples=Total number of simulated samples to generate ;; total_read_counts=Target sequencing depth applied to the counts matrix ;; whitelist=Vector of cell types to exclusively include in the simulation ;; blacklist=Vector of cell types to exclude from the simulation ;; balance_uniform_mirror_scenario=Numeric value to add slight variation to \"even\" or \"mirror_db\" fractions (default 0.01, set to 0 for exact fractions)\n- alternatives: sfaira database can be used as an alternative to local single-cell datasets for public data integration.\n- when_to_use: Use when you need to generate in silico gold-standard pseudo-bulk RNA-seq datasets with known, fine-grained cell-type fractions to evaluate or benchmark deconvolution algorithms, especially when testing the impact of cell-type-specific mRNA bias.\n- pitfalls: Cell-type annotation names in the dataset must match the scaling factor names 1:1 (e.g., for EPIC or quanTIseq); otherwise, they remain unscaled or get scaled incorrectly. Providing raw count data is mandatory. If using h5ad files, cells can be in obs or var layers; setting cells_in_obs incorrectly will lead to wrong matrix orientation. Census scaling factor should ideally be applied to TPM/FPKM normalized data, though it can run on raw counts.",
+  "workflows": [
+    {
+      "name": "custom_data_simulation",
+      "intent": "Simulate pseudo-bulk RNA-seq data from custom single-cell count matrices or Seurat objects with controlled cell-type fractions and mRNA bias scaling.",
+      "input": [
+        "counts_matrix (raw count matrix)",
+        "tpm_matrix (optional TPM-like matrix)",
+        "annotation_dataframe (data frame with ID and cell_type columns)",
+        "seurat_obj (optional Seurat object containing single-cell data)"
+      ],
+      "stages": "1. Create a SimBu dataset using dataset() or dataset_seurat() ;; 2. Optionally merge multiple datasets using dataset_merge() ;; 3. Simulate pseudo-bulk samples using simulate_bulk() ;; 4. Optionally merge simulations using merge_simulations() ;; 5. Plot the simulation results using plot_simulation()",
+      "code": "ds <- SimBu :: dataset ( annotation = annotation, count_matrix = counts, tpm_matrix = tpm, name = \"test_dataset\" )\nds_seurat <- SimBu::dataset_seurat( seurat_obj = seurat_obj, counts_layer = \"counts\", cell_id_col = \"ID\", cell_type_col = \"cell_type\", tpm_layer = \"data\", name = \"seurat_dataset\" )\nds_multiple <- SimBu::dataset_merge( dataset_list = list(ds_seurat, ds), name = \"ds_multiple\" )\nsimulation <- SimBu :: simulate_bulk ( data = ds, scenario = \"random\" , scaling_factor = \"NONE\" , ncells = 100 , nsamples = 10 , BPPARAM = BiocParallel :: MulticoreParam ( workers = 4 ), run_parallel = TRUE )\nutils :: head (SummarizedExperiment :: assays (simulation $ bulk)[[\"bulk_counts\"]])\nutils :: head (SummarizedExperiment :: assays (simulation $ bulk)[[\"bulk_tpm\"]])\nmerged_simulations <- SimBu :: merge_simulations ( list (simulation, simulation2))\nSimBu :: plot_simulation ( simulation = merged_simulations)"
+    },
+    {
+      "name": "sfaira_public_data_simulation",
+      "intent": "Integrate public single-cell datasets from the sfaira database to simulate pseudo-bulk RNA-seq data.",
+      "input": [
+        "None (data is downloaded automatically from sfaira based on organism and tissue queries)"
+      ],
+      "stages": "1. Set up the sfaira environment using setup_sfaira() ;; 2. Query and download datasets using dataset_sfaira_multiple() or dataset_sfaira() ;; 3. Simulate bulk data using simulate_bulk()",
+      "code": "setup_list <- SimBu :: setup_sfaira ( basedir = tempdir ())\nds_pancrease <- SimBu :: dataset_sfaira_multiple ( sfaira_setup = setup_list, organisms = \"Homo sapiens\" , tissues = \"pancreas\" , name = \"human_pancreas\" )\nall_datasets <- SimBu :: sfaira_overview ( setup_list = setup_list)\nSimBu :: dataset_sfaira ( sfaira_id = \"homosapiens_lungparenchyma_2019_10x3v2_madissoon_001_10.1186/s13059-019-1906-x\" , sfaira_setup = setup_list, name = \"dataset_by_id\" )"
+    }
+  ]
+}

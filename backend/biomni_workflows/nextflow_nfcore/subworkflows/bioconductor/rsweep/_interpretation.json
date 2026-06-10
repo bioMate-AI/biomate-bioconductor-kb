@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: path=Path to the directory containing FASTA files ;; seqtype=Type of biological sequence, e.g., 'AA' for amino acids or 'NT' for nucleotides ;; mask=Reading mask corresponding to a given k-mer (e.g., c(4)) ;; psz=Projection size, length of the output vector (e.g., 1000)\n- alternatives: Traditional alignment-based phylogenetic methods (e.g., MSA followed by tree building), which have exponential computational growth compared to SWeeP's linear growth. SWeeP (conventional, requires generating/loading an orthonormal basis via orthBase) vs SWeePlite (built-in orthonormal basis, slower but uses less RAM, optimized for larger masks/volumes).\n- when_to_use: When performing alignment-free phylogenetic studies on large volumes of biological sequence data (long sequences or large numbers of sequences) where traditional alignment methods are computationally prohibitive. It can also be used for general dimensionality reduction of RNAseq data and generic matrices.\n- pitfalls: SWeePlite is slower than SWeeP but has lower RAM usage; choosing the wrong one might lead to out-of-memory errors (SWeeP with large datasets) or unnecessarily long runtimes (SWeePlite on small datasets where RAM is not an issue). Ensure the correct sequence type (seqtype) is specified to avoid incorrect k-mer counting.",
+  "workflows": [
+    {
+      "name": "sequence_vectorization_and_phylogeny",
+      "intent": "Vectorize biological sequences from FASTA files, construct a phylogenetic tree, and evaluate taxonomic consistency.",
+      "input": [
+        "directory (containing FASTA files of biological sequences)",
+        "metadata_mitochondrial.csv (CSV file containing taxonomic metadata with columns like fileName and family)"
+      ],
+      "stages": "1. Vectorize sequences using SWeePlite ;; 2. Calculate distance matrix using dist ;; 3. Build phylogenetic tree using Neighbor-Joining (nj) ;; 4. Evaluate tree consistency using PCCI and PMPG ;; 5. Perform PCA on vectorized sequences using prcomp",
+      "code": "path = paste (system.file(\"examples/aaMitochondrial/\",package = \"rSWeeP\"),'/', sep = '')\nsw = SWeePlite(path,seqtype='AA',mask=c(4),psz=1000)\nsw$info\nlibrary(ape)\nmdist = dist(sw$proj,method='euclidean')\ntr = nj(mdist)\ntr = root(tr,outgroup='14_Rhazya_stricta')\nplot(tr)\npathmetadata <- system.file(package = \"rSWeeP\" , \"examples\" , \"metadata_mitochondrial.csv\")\nmt = read.csv(pathmetadata,header=TRUE)\ndata = data.frame(sp=mt$fileName,family=mt$family) \nPCCI(tr,data)\nPMPG(tr,data)\npca_output <- prcomp (sw$proj , scale = FALSE)\npar(mfrow=c(1,2))\nplot(pca_output$x[,1],pca_output$x[,2],xlab = 'PC-1' , ylab = 'PC-2' , pch =20 , col = mt$id)\nlegend(\"bottomright\",unique(mt$family),col=as.character(c(1:length(unique(mt$family)))),pch=20)\nplot(pca_output$x[,3],pca_output$x[,4],xlab = 'PC-3' , ylab = 'PC-4' , pch =20 , col = mt$id)"
+    }
+  ]
+}

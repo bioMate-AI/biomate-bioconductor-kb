@@ -1,0 +1,31 @@
+{
+  "package": "nucler",
+  "requirements": [
+    "Biobase",
+    "GenomicRanges",
+    "IRanges",
+    "Rsamtools",
+    "ggplot2",
+    "nucleR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "Rsamtools",
+      "nucleR"
+    ],
+    "mnase_bias_correction.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "ggplot2",
+      "nucleR"
+    ],
+    "tiling_array_nucleosome_calling.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "IRanges",
+      "nucleR"
+    ]
+  }
+}

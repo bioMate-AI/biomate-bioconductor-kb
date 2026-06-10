@@ -1,0 +1,13 @@
+{
+  "package": "microbiomedasim",
+  "requirements": [
+    "ggplot2",
+    "microbiomeDASim"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "microbiomeDASim"
+    ]
+  }
+}

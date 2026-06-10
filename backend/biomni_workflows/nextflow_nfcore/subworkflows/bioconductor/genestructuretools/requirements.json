@@ -1,0 +1,31 @@
+{
+  "package": "genestructuretools",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "GeneStructureTools",
+    "GenomicRanges",
+    "Gviz",
+    "rtracklayer",
+    "stringr"
+  ],
+  "by_workflow": {
+    "dexseq_and_gtf_reannotation.nf": [
+      "GeneStructureTools",
+      "rtracklayer"
+    ],
+    "leafcutter_analysis.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "GeneStructureTools",
+      "GenomicRanges",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "GeneStructureTools",
+      "GenomicRanges",
+      "Gviz",
+      "rtracklayer",
+      "stringr"
+    ]
+  }
+}

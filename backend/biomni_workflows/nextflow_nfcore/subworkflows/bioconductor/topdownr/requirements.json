@@ -1,0 +1,11 @@
+{
+  "package": "topdownr",
+  "requirements": [
+    "topdownr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "topdownr"
+    ]
+  }
+}

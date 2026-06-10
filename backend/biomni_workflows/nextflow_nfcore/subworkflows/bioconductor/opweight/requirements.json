@@ -1,0 +1,25 @@
+{
+  "package": "opweight",
+  "requirements": [
+    "OPWeight",
+    "cowplot",
+    "ggplot2",
+    "qvalue",
+    "tibble"
+  ],
+  "by_workflow": {
+    "decomposed_opw.nf": [
+      "OPWeight",
+      "cowplot",
+      "ggplot2",
+      "qvalue",
+      "tibble"
+    ],
+    "main.nf": [
+      "OPWeight",
+      "cowplot",
+      "ggplot2",
+      "tibble"
+    ]
+  }
+}

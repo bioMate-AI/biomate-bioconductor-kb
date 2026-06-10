@@ -1,0 +1,11 @@
+{
+  "package": "degnorm",
+  "requirements": [
+    "DegNorm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DegNorm"
+    ]
+  }
+}

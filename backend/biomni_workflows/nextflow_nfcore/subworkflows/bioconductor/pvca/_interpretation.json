@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: abatch=The first argument to pvcaBatchAssess, which is an ExpressionSet object containing the expression data and sample metadata ;; batch.factors=A character vector specifying the names of the phenoData columns (factors) to be evaluated as sources of variation ;; pct_threshold=A numeric value between 0 and 1 defining the cumulative percentage of variance threshold used to select the principal components for the mixed model\n- alternatives: None explicitly mentioned in the documentation, though it is described as a handy assessment tool before and after applying batch normalization methods.\n- when_to_use: Appropriate when you need to identify, quantify, and visualize the proportion of total variance attributable to biological factors, technical factors (batch effects), and their two-way interactions in transcriptomics datasets.\n- pitfalls: The documentation does not explicitly list pitfalls, but users must ensure that the factors specified in batch.factors exist in the input object's metadata, and that the pct_threshold is set appropriately to capture sufficient variance without over-parameterizing the downstream mixed model (which depends on lme4 and can be computationally intensive).",
+  "workflows": [
+    {
+      "name": "pvca_batch_assessment",
+      "intent": "Quantify and visualize the proportion of variance in transcriptomics data attributable to batch effects, biological factors, and their two-way interactions.",
+      "input": [
+        "ExpressionSet (R object containing the gene expression matrix and sample metadata)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Define the PCA variance threshold and the metadata factors to assess ;; 3. Run pvcaBatchAssess to perform PVCA and estimate variance components ;; 4. Plot the resulting proportions of variance as a bar chart",
+      "code": "library(golubEsets)\nlibrary(pvca)\n\ndata(Golub_Merge)\npct_threshold <- 0.6\nbatch.factors <- c(\"ALL.AML\", \"BM.PB\", \"Source\")\n\npvcaObj <- pvcaBatchAssess (Golub_Merge, batch.factors, pct_threshold) \n\nbp <- barplot(pvcaObj$dat,  xlab = \"Effects\", \n\tylab = \"Weighted average proportion variance\", \n\tylim= c(0,1.1),col = c(\"blue\"), las=2, \n\tmain=\"PVCA estimation bar chart\")\naxis(1, at = bp, labels = pvcaObj$label, xlab = \"Effects\", cex.axis = 0.5, las=2)\nvalues = pvcaObj$dat\nnew_values = round(values , 3)\ntext(bp,pvcaObj$dat,labels = new_values, pos=3, cex = 0.8)"
+    }
+  ]
+}

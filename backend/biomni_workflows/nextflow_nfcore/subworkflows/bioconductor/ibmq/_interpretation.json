@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n.iter=Number of MCMC iterations (use 100,000 for optimal analysis) ;; burn.in=Number of burn-in iterations (use 50,000 for optimal analysis) ;; n.sweep=Number of sweeps ;; mc.cores=Number of processor cores to use (requires OpenMP, Mac/Linux only) ;; RIS=Logical value; set to TRUE if using homozygous-only data like recombinant inbred strains (coded 0/1), or FALSE if using heterozygous data like F2 crosses (coded 1/2/3) ;; cutoff (in eqtlClassifier)=Distance threshold in base pairs (e.g., 1000000 or 5000000) to classify an eQTL as a cis-eQTL\n- alternatives: None mentioned\n- when_to_use: When performing genome-wide eQTL mapping to jointly model all genes and genomic markers, especially in a \"large G (genes), large S (markers), small n (individuals)\" paradigm, and when interested in identifying trans-eQTL hotspots.\n- pitfalls: Running too few MCMC iterations (e.g., 100) is only for testing and will not yield optimal results ;; Setting RIS=TRUE for datasets containing heterozygous individuals (which must be coded 1, 2, or 3 and run with RIS=FALSE) ;; Row names (individual names) and their order must match exactly between the genotype and gene expression datasets ;; Chromosome and position entries in the SNP and gene position data frames must be strictly numerical values, otherwise classification will fail or return NA.",
+  "workflows": [
+    {
+      "name": "eqtl_mapping_ris",
+      "intent": "Perform eQTL mapping, cis/trans classification, and hotspot detection for Recombinant Inbred Strains (RIS) where genotypes are homozygous (coded 0/1).",
+      "input": [
+        "snp (SnpSet object with genotypes coded 0 and 1)",
+        "gene (ExpressionSet object with normalized gene expression values)",
+        "snppos (Data frame of SNP genomic locations with columns: SNP, Chr, pos)",
+        "genepos (Data frame of gene genomic locations with columns: Gene, Chr, start, end)"
+      ],
+      "stages": "1. Load genotype and expression data ;; 2. Run MCMC to calculate Posterior Probabilities of Association (PPA) ;; 3. Calculate FDR threshold ;; 4. Identify significant eQTLs ;; 5. Load genomic positions and classify eQTLs as cis or trans ;; 6. Plot genome-wide eQTL distribution ;; 7. Identify trans-eQTL hotspots",
+      "code": "library(iBMQ)\ndata(snp)\ndata(gene)\nPPA <-  eqtlMcmc(snp, gene, n.iter=100,burn.in=100,n.sweep=20,mc.cores=6, RIS=TRUE)\ncutoff <- calculateThreshold(PPA, 0.1)\neqtl <- eqtlFinder(PPA, cutoff)\ndata(snppos)\ndata(genepos)\neqtltype <- eqtlClassifier(eqtl, snppos, genepos,1000000)\nlibrary(ggplot2)\nggplot(eqtltype, aes(y=GeneStart, x=MarkerPosition)) +\ngeom_point(aes(y=GeneStart, x=MarkerPosition,color = PPA), size = 1.5)+\nfacet_grid(GeneChrm~MarkerChrm)+theme_bw(base_size = 12, base_family = \"\")+  \ntheme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank())+scale_x_reverse()\nhotspot <- hotspotFinder(eqtltype, 10)"
+    },
+    {
+      "name": "eqtl_mapping_f2_cross",
+      "intent": "Perform eQTL mapping, cis/trans classification, and hotspot detection for F2 crosses or populations where genotypes can be heterozygous (coded 1/2/3).",
+      "input": [
+        "genotype.liver (SnpSet object with genotypes coded 1, 2, and 3)",
+        "phenotype.liver (ExpressionSet object with normalized gene expression values)",
+        "map.liver (Data frame of SNP genomic locations with columns: SNP, Chr, pos)",
+        "probe.liver (Data frame of gene genomic locations with columns: Gene, Chr, start, end)"
+      ],
+      "stages": "1. Load genotype and expression data ;; 2. Run MCMC to calculate Posterior Probabilities of Association (PPA) with RIS=FALSE ;; 3. Calculate FDR threshold ;; 4. Identify significant eQTLs ;; 5. Load genomic positions and classify eQTLs as cis or trans ;; 6. Plot genome-wide eQTL distribution ;; 7. Identify trans-eQTL hotspots",
+      "code": "library(iBMQ)\ndata(genotype.liver)\ndata(phenotype.liver)\n#PPA.liver <-  eqtlMcmc(genotype.liver, phenotype.liver, n.iter=100,burn.in=100,n.sweep=20,mc.cores=6, RIS=FALSE)\ndata(PPA.liver)\ncutoff.liver <- calculateThreshold(PPA.liver, 0.2)\neqtl.liver <- eqtlFinder(PPA.liver, cutoff.liver)\ndata(probe.liver)\ndata(map.liver)\neqtl.type.liver <- eqtlClassifier(eqtl.liver, map.liver, probe.liver,5000000)\nlibrary(ggplot2)\nggplot(eqtl.type.liver, aes(y=GeneStart, x=MarkerPosition)) +\ngeom_point(aes(y=GeneStart, x=MarkerPosition,color = PPA), size = 1.5)+\nfacet_grid(GeneChrm~MarkerChrm)+theme_bw(base_size = 12, base_family = \"\")+  \ntheme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank())+scale_x_reverse()\nhotspot.liver <- hotspotFinder(eqtl.type.liver,20)"
+    }
+  ]
+}

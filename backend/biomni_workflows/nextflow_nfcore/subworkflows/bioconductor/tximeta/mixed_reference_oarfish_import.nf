@@ -4,6 +4,8 @@
 // Import and update metadata for mixed reference transcripts (annotated + novel) quantified with oarfish.
 // Input: sgnex_h9_rep2.quant.gz, coldata, novel_gr
 // Container: quay.io/biocontainers/bioconductor-tximeta:1.28.2--r45hdfd78af_0
+// R packages: GenomicRanges, SummarizedExperiment, tximeta
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -35,9 +37,19 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
     .bm_deps <- c("GenomicRanges", "SummarizedExperiment", "tximeta")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries quietly
@@ -63,9 +75,9 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
       stop("Error: Could not find coldata file (coldata, coldata.csv, coldata.tsv, or coldata.rds) in the working directory.")
     }
     
-    if (grepl("\\.rds\$", coldata_file, ignore.case = TRUE)) {
+    if (grepl("\\\\.rds\$", coldata_file, ignore.case = TRUE)) {
       coldata <- readRDS(coldata_file)
-    } else if (grepl("\\.tsv\$", coldata_file, ignore.case = TRUE)) {
+    } else if (grepl("\\\\.tsv\$", coldata_file, ignore.case = TRUE)) {
       coldata <- read.delim(coldata_file, stringsAsFactors = FALSE)
     } else {
       coldata <- read.csv(coldata_file, stringsAsFactors = FALSE)
@@ -89,9 +101,9 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
         return(base_f)
       }
       # Fallback: search for any matching .quant.gz file in the working directory
-      gz_files <- list.files(pattern = "\\.quant\\.gz\$")
+      gz_files <- list.files(pattern = "\\\\.quant\\\\.gz\$")
       if (length(gz_files) > 0) {
-        match_idx <- grep(gsub("\\.quant\\.gz\$", "", base_f), gz_files)
+        match_idx <- grep(gsub("\\\\.quant\\\\.gz\$", "", base_f), gz_files)
         if (length(match_idx) > 0) {
           return(gz_files[match_idx[1]])
         }

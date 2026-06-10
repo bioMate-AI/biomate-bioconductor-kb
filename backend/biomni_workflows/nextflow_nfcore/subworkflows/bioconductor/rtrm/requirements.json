@@ -1,0 +1,17 @@
+{
+  "package": "rtrm",
+  "requirements": [
+    "AnnotationDbi",
+    "igraph",
+    "org.Mm.eg.db",
+    "rTRM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "igraph",
+      "org.Mm.eg.db",
+      "rTRM"
+    ]
+  }
+}

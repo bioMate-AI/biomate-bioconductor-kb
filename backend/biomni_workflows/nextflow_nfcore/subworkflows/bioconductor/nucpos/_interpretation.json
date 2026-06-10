@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: inseq=A 147-bp DNA sequence, provided either as a character string or a DNAString object ;; species=The species model to use for prediction, specified as \"sc\" (S. cerevisiae), \"sp\" (S. pombe), or \"mm\" (M. musculus)\n- alternatives: NuPoP=The parental package, which should be preferred for dHMM-based prediction or predicting nucleosome occupancy in the original way, as the dHMM-based prediction function was removed from nuCpos\n- when_to_use: When analyzing a specific 147-bp DNA sequence to predict its nucleosome positioning capability, overall histone binding affinity, or local histone binding affinity across 13 subnucleosomal segments (SHLs) using chemical-map-based models\n- pitfalls: The input sequence (inseq) must be exactly 147 bp in length ;; Using DNAString objects requires loading the Biostrings package ;; The dHMM-based prediction function is no longer available in this package and has been delegated back to NuPoP",
+  "workflows": [
+    {
+      "name": "nucleosome_affinity_prediction",
+      "intent": "Calculate whole and local histone binding affinity (HBA) scores for a 147-bp DNA sequence to predict nucleosome positioning.",
+      "input": [
+        "sequence.RData (a 147-bp DNA sequence stored as a character string)",
+        "sequence_DNAString.RData (a 147-bp DNA sequence stored as a DNAString object)"
+      ],
+      "stages": "1. Load the nuCpos package and input sequence ;; 2. Calculate the whole nucleosomal HBA score using the HBA function ;; 3. Calculate local HBA scores for 13 subnucleosomal segments using the localHBA function ;; 4. Visualize local HBA scores using a barplot",
+      "code": "library(nuCpos)\nload(system.file(\"extdata\", \"inseq.RData\", package = \"nuCpos\"))\nHBA(inseq = inseq, species = \"sc\")\nload(system.file(\"extdata\", \"INSEQ_DNAString.RData\", package = \"nuCpos\"))\nHBA(inseq = INSEQ, species = \"sc\")\nlocalHBA(inseq = inseq, species = \"sc\")\nbarplot(localHBA(inseq = inseq, species = \"sc\"), names.arg = LETTERS[1:13], xlab = \"Nucleosomal subsegments\", ylab = \"local HBA\", main = \"Local HBA scores for inseq\")"
+    }
+  ]
+}

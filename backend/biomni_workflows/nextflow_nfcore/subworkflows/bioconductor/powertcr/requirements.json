@@ -1,0 +1,20 @@
+{
+  "package": "powertcr",
+  "requirements": [
+    "magrittr",
+    "powerTCR",
+    "purrr",
+    "vegan"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "magrittr",
+      "powerTCR",
+      "purrr",
+      "vegan"
+    ],
+    "pareto_model_analysis.nf": [
+      "powerTCR"
+    ]
+  }
+}

@@ -1,96 +1,114 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BUS
-// This package can be used to compute associations among genes (gene-networks) or between genes and so
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BUS/inst/doc/bus.R
-// Upstream  : minet
-// Downstream: none
-//
-// Install: BiocManager::install("BUS")
+// Bioconductor workflow: BUS — unsupervised_gene_association
+// Compute similarity and predict interaction networks among genes (unsupervised analysis) using mutual information.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-bus:1.66.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BUS, minet
+// Visualizations: heatmap (ComplexHeatmap), heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the expression data and format it as a matrix
+//  * 2. [Core Analysis] Run the BUS wrapper function with nflag=1 (unsupervised), specifying the similarity measure, network trimming method, and signific
+//  * 3. [Core Analysis] Extract the similarity matrix, single/multiple permutation p-values, and the predicted network
 
 nextflow.enable.dsl = 2
 
-process BIOC_BUS {
+process BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bus"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bus:1.62.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bus:1.62.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bus_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bus_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bus_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BUS)
-    library(jsonlite)
-
-    # --- Bus [] ---
-    # Key functions: packageDescription
-    options(keep.source = TRUE, width = 60)
-    bus <- packageDescription("BUS")
-    # --- B U S [] ---
-    # Key functions: BUS
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BUS)
     library(minet)
-    data(copasi)
-    mat=as.matrix(copasi)[1:5,]
-    rownames(mat)<-paste("G",1:nrow(mat), sep="")
+    
+    # 1. Load the expression data and format it as a matrix
+    # Read the user-provided expression_matrix.csv
+    # We assume the first column contains gene names (row names)
+    expr_data <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    mat <- as.matrix(expr_data)
+    
+    # 2. Run the BUS wrapper function with nflag=1 (unsupervised)
+    # Keep every documented function call and its argument names EXACTLY as shown in the vignette
+    res <- BUS(EXP=mat, measure="MI", n.replica=400, net.trim="aracne", thresh=0.05, nflag=1)
+    
+    # 3. Extract the similarity matrix, single/multiple permutation p-values, and the predicted network
+    similarity_matrix <- res\$similarity
+    single_p_val <- res\$single.perm.p.value
+    multi_p_val <- res\$multi.perm.p.value
+    predicted_net <- res\$net.pred.permut
+    
+    # 4. Write named output files
+    write.csv(similarity_matrix, "similarity_matrix.csv", row.names = TRUE)
+    write.csv(single_p_val, "single_permutation_p_values.csv", row.names = TRUE)
+    write.csv(multi_p_val, "multiple_permutation_p_values.csv", row.names = TRUE)
+    write.csv(predicted_net, "predicted_network.csv", row.names = TRUE)
+    
+    # Save the complete results object
+    saveRDS(res, "bus_output.rds")
+    
+    # Generate a PDF plot of the similarity matrix heatmap
+    pdf("similarity_heatmap.pdf", width = 7, height = 7)
+    heatmap(similarity_matrix, 
+            main = "Gene Similarity Heatmap (Mutual Information)", 
+            col = heat.colors(256),
+            margins = c(10, 10))
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bus_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bus_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bus_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BUS:", paste0("    bus: ", packageVersion("BUS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION":',
+        paste0('    BUS: ', as.character(packageVersion('BUS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bus_results.csv
-    touch ${prefix}_bus_output.rds
-    echo "BIOC_BUS:" > versions.yml
-    echo "    bus: 0.0.0" >> versions.yml
+    touch ${prefix}_unsupervised_gene_association.csv versions.yml
     """
 }
 
-
-workflow BIOC_BUS_WORKFLOW {
+workflow BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_BUS(ch_input)
+    BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION(ch_input)
 
     emit:
-    results  = BIOC_BUS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BUS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BUS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BUS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION.out.tables
+    plots    = BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION.out.plots
+    objects  = BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION.out.objects
+    versions = BIOC_BUS_UNSUPERVISED_GENE_ASSOCIATION.out.versions
 }

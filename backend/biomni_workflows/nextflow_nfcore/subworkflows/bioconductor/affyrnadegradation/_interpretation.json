@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: location.type=Set to \"index\" to use the probe index within the probeset, or \"absolute\" to use actual probe locations (distances to the 3' end of the transcript) ;; location.file.dir=Required when location.type=\"absolute\"; specifies the directory containing the pre-computed or custom probe location files (with .Rd extension) ;; chip.idx=Used in GetTongs to specify the index of the microarray chip/sample to analyze\n- alternatives: The documentation mentions using vsn (Variance Stabilizing Normalization) via affy:::normalize before or after correction, and standard summarization methods like medianpolish with pmcorrect.method=\"pmonly\" via computeExprSet as part of the microarray calibration pipeline\n- when_to_use: Use when analyzing Affymetrix 3' expression microarray data where samples may have varying degrees of RNA degradation, causing probe positional bias that confounds downstream differential expression analysis\n- pitfalls: When using custom probe locations, the data frame must be named exactly probeDists and contain specific columns (Probe.Set.Name of class character, and Probe.X, Probe.Y, Probe.Distance, Target.Length of class integer) ;; The custom probe location file must be saved with a filename matching the chip type identifier from cdfName(AffyBatch) and ending in .Rd",
+  "workflows": [
+    {
+      "name": "degradation_analysis_and_correction",
+      "intent": "Assess RNA degradation, plot diagnostics, and correct probe positional bias in Affymetrix 3' expression microarrays.",
+      "input": [
+        "AmpData (raw AffyBatch object representing Affymetrix 3' expression microarray data)",
+        "probeDists (optional R data frame containing custom probe locations saved as an .Rd file)"
+      ],
+      "stages": "1. Visualize probe positional bias using a tongs plot ;; 2. Perform RNA degradation analysis and correction ;; 3. Plot probe degradation curves ;; 4. Access the RNA integrity parameter d ;; 5. (Optional) Save custom probe locations to an .Rd file ;; 6. Extract the corrected AffyBatch object",
+      "code": "tongs <- GetTongs(AmpData, chip.idx = 4) \nPlotTongs(tongs)\nrna.deg <- RNADegradation(AmpData, location.type = \"index\")\nplotDx(rna.deg)\nd(rna.deg)\nfilename = paste(cdfName(AmpData), \".Rd\", sep=\"\")\nsave(probeDists, file = filename)\nafbatch(rna.deg)"
+    },
+    {
+      "name": "integrated_calibration_pipeline",
+      "intent": "Perform probe-level normalization using VSN, correct for probe positional bias, and compute summarized expression measures.",
+      "input": [
+        "AmpData (raw AffyBatch object representing Affymetrix 3' expression microarray data)"
+      ],
+      "stages": "1. Normalize raw AffyBatch data using VSN ;; 2. Correct for probe positional bias on the normalized data ;; 3. Summarize probe intensities into expression sets using median polish",
+      "code": "library(vsn)\naffydata.vsn <- do.call(affy:::normalize, c(alist(AmpData, \"vsn\"), NULL))\naffydata.vsn <- afbatch(RNADegradation(affydata.vsn))\nexpr <- computeExprSet(affydata.vsn, summary.method=\"medianpolish\", pmcorrect.method=\"pmonly\")"
+    }
+  ]
+}

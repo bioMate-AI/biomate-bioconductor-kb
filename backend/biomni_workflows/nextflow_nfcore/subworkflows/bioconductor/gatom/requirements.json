@@ -1,0 +1,25 @@
+{
+  "package": "gatom",
+  "requirements": [
+    "data.table",
+    "fgsea",
+    "gatom",
+    "igraph",
+    "mwcsr"
+  ],
+  "by_workflow": {
+    "lipidomics_metabolite_level_active_module.nf": [
+      "data.table",
+      "gatom",
+      "igraph",
+      "mwcsr"
+    ],
+    "main.nf": [
+      "data.table",
+      "fgsea",
+      "gatom",
+      "igraph",
+      "mwcsr"
+    ]
+  }
+}

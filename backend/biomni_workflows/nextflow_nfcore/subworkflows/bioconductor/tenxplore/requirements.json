@@ -1,0 +1,13 @@
+{
+  "package": "tenxplore",
+  "requirements": [
+    "SummarizedExperiment",
+    "tenXplore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "tenXplore"
+    ]
+  }
+}

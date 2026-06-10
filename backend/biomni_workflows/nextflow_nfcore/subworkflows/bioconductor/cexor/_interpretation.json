@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bam=Vector of paths to BAM files for the replicates ;; chrN=Chromosome name to analyze (e.g., \"chr2\") ;; chrL=Chromosome length (e.g., 1e6) ;; idr=Irreproducible Discovery Rate threshold (default 0.01) ;; N=Number of top peaks to use for IDR (e.g., 3e4) ;; p=p-value threshold for peak-pair calling (default 1e-12) ;; EXT=Extension size in bp for plotting (e.g., 500)\n- alternatives: ChIP-seq peak callers (mentioned generally, but cexor is preferred for ChIP-exo data because it models strand-specificity and base-pair resolution using the Skellam distribution)\n- when_to_use: When analyzing ChIP-exo replicate datasets to identify high-resolution protein-DNA binding events and centers using strand-specific peak-pair modeling and reproducibility assessment.\n- pitfalls: Using a too-stringent p-value threshold during peak-pair calling can prevent proper IDR estimation because the noise component is excluded; peak-pair calling should be relaxed (e.g., p-value=1e-3) to allow separation into reproducible and irreproducible groups. IDR calculation results can vary depending on the choice of initial estimates for the four parameters (mu, sigma, rho, prop); trying several choices is recommended to avoid local maxima.",
+  "workflows": [
+    {
+      "name": "chip_exo_peak_calling",
+      "intent": "Call reproducible peak-pairs and identify protein-DNA binding events and centers from ChIP-exo replicate BAM files, followed by visualization.",
+      "input": [
+        "rep1.bam (ChIP-exo replicate 1 alignment file)",
+        "rep2.bam (ChIP-exo replicate 2 alignment file)",
+        "rep3.bam (ChIP-exo replicate 3 alignment file)"
+      ],
+      "stages": "1. Load the CexoR package and locate BAM files ;; 2. Call reproducible peak-pairs using the cexor function ;; 3. Extract reproducible binding events and centers ;; 4. Plot the mean profile of lambda exonuclease stop sites and reads using plotcexor",
+      "code": "library(CexoR)\nrep1 <- \"CTCF_rep1_chr2_1-1e6.bam\"\nrep2 <- \"CTCF_rep2_chr2_1-1e6.bam\"\nrep3 <- \"CTCF_rep3_chr2_1-1e6.bam\"\nr1 <- system.file(\"extdata\", rep1, package=\"CexoR\",mustWork = TRUE)\nr2 <- system.file(\"extdata\", rep2, package=\"CexoR\",mustWork = TRUE)\nr3 <- system.file(\"extdata\", rep3, package=\"CexoR\",mustWork = TRUE)\npeak_pairs <- cexor(bam=c(r1,r2,r3), chrN=\"chr2\", chrL=1e6, idr=0.01, N=3e4, p=1e-12)\npeak_pairs$bindingEvents\npeak_pairs$bindingCentres\nplotcexor(bam=c(r1,r2,r3), peaks=peak_pairs, EXT=500)"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "covrna",
+  "requirements": [
+    "Biobase",
+    "covRNA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "covRNA"
+    ]
+  }
+}

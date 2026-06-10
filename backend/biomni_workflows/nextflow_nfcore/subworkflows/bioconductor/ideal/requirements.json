@@ -1,0 +1,17 @@
+{
+  "package": "ideal",
+  "requirements": [
+    "DESeq2",
+    "ggplot2",
+    "ideal",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "ggplot2",
+      "ideal",
+      "org.Hs.eg.db"
+    ]
+  }
+}

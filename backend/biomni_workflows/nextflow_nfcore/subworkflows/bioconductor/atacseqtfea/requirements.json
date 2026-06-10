@@ -1,0 +1,28 @@
+{
+  "package": "atacseqtfea",
+  "requirements": [
+    "ATACseqQC",
+    "ATACseqTFEA",
+    "BSgenome.Drerio.UCSC.danRer10",
+    "GenomicRanges",
+    "Rsamtools",
+    "Tal1",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ATACseqQC",
+      "ATACseqTFEA",
+      "BSgenome.Drerio.UCSC.danRer10",
+      "GenomicRanges",
+      "Tal1"
+    ],
+    "step_by_step_tfea.nf": [
+      "ATACseqTFEA",
+      "GenomicRanges",
+      "Rsamtools",
+      "Tal1",
+      "ggplot2"
+    ]
+  }
+}

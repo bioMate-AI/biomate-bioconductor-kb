@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: segment_method=Method to find epitope segments (\"unique\", \"hclust\", or \"skater\") ;; segment_score_type=Type of score used for clustering (\"binary\" or \"zscore\") ;; segment_dist_method=Distance metric for clustering (\"hamming\" or \"euclidean\") ;; segment_cutoff=Cutoff method for clustering (e.g., \"silhouette\") ;; metap_method=Meta p-value combination method for epitopes/proteins (e.g., \"wmax1\", \"tippetts\", \"max\", \"cct\", \"hmp/harmonicmeanp\") ;; use=Statistical test to use for probe-level p-values (\"z\" for z-score, \"w\" for Wilcoxon test, or default t-test) ;; d_paired=Logical indicating whether to perform a paired t-test ;; one_hit_filter=Logical indicating whether to filter out probes called in only one sample without consecutive called probes\n- alternatives: pepStat=Mentioned as a package that implements smoothing to reduce high-variability in peptide array data, which HERON also supports via smoothProbeDS ;; cct/hmp=Meta p-value methods preferred over simpler methods when combining p-values that have dependencies\n- when_to_use: Use when analyzing high-density peptide binding array data (such as NimbleGen) to identify significant binding probes, consecutive epitope segments, and overall protein-level binding events.\n- pitfalls: High-variability in peptide array data can lead to noisy results (mitigated by using smoothProbeDS) ;; One-hit probes can represent false positives (mitigated by setting one_hit_filter = TRUE in makeProbeCalls or makeEpitopeCalls) ;; Choosing inappropriate meta p-value methods (epitope-level combination should require most probe p-values to be small, e.g., wmax1, whereas protein-level combination should require at least one epitope p-value to be small, e.g., tippetts)",
+  "workflows": [
+    {
+      "name": "standard_epitope_protein_binding_analysis",
+      "intent": "Identify significant binding probes, find epitope segments, and calculate epitope- and protein-level significance calls from raw sequence-level peptide array data.",
+      "input": [
+        "seq_mat (matrix or data.frame of sequence-level peptide binding intensities where rows are amino acid sequences and columns are samples)",
+        "colData (DFrame or data.frame describing experimental setup with columns SampleName, ptid, visit, and optionally condition)",
+        "probe_meta (data.frame mapping PROBE_SEQUENCE to PROBE_ID containing protein name and position)"
+      ],
+      "stages": "1. Create HERONSequenceDataSet object ;; 2. Quantile normalize sequence-level data ;; 3. Calculate probe-level p-values and convert to probe dataset ;; 4. Make probe-level calls and get K-of-N statistics ;; 5. Find epitope segments ;; 6. Calculate epitope-level p-values and add sequence annotations ;; 7. Make epitope-level calls ;; 8. Calculate protein-level p-values ;; 9. Make protein-level calls",
+      "code": "seq_mat <- assay(heffron2021_wuhan)\nsds <- HERONSequenceDataSet(seq_mat)\ncolData(sds) <- colData(heffron2021_wuhan)\nmetadata(sds)$probe_meta <- probe_meta\nseq_ds_qn <- quantileNormalize(sds)\nseq_pval_res <- calcCombPValues(seq_ds_qn)\nprobe_pval_res <- convertSequenceDSToProbeDS(seq_pval_res)\nprobe_calls_res <- makeProbeCalls(probe_pval_res)\nprobe_calls_k_of_n <- getKofN(probe_calls_res)\nepi_segments_uniq_res <- findEpitopeSegments(\n    probe_calls_res,\n    segment_method = \"unique\"\n)\nepi_padj_uniq <- calcEpitopePValues(\n    probe_calls_res,\n    epitope_ids = epi_segments_uniq_res,\n    metap_method = \"wmax1\"\n)\nepi_padj_uniq <- addSequenceAnnotations(epi_padj_uniq)\nepi_calls_uniq <- makeEpitopeCalls(epi_padj_uniq, one_hit_filter = TRUE)\nprot_padj_uniq <- calcProteinPValues(\n    epi_padj_uniq,\n    metap_method = \"tippetts\"\n)\nprot_calls_uniq <- makeProteinCalls(prot_padj_uniq)"
+    },
+    {
+      "name": "smoothed_probe_level_analysis",
+      "intent": "Reduce high-variability of peptide array data by smoothing across consecutive probes before calculating p-values and making calls.",
+      "input": [
+        "seq_ds_qn (Quantile normalized HERONSequenceDataSet object)",
+        "probe_meta (data.frame mapping PROBE_SEQUENCE to PROBE_ID)"
+      ],
+      "stages": "1. Convert sequence dataset to probe dataset ;; 2. Smooth probe-level data ;; 3. Calculate probe-level p-values on the smoothed dataset ;; 4. Make probe-level calls and get K-of-N statistics",
+      "code": "probe_ds_qn <- convertSequenceDSToProbeDS(seq_ds_qn, probe_meta )\nsmooth_ds <- smoothProbeDS(probe_ds_qn)\nprobe_sm_pval <- calcCombPValues(smooth_ds)\nprobe_sm_calls <- makeProbeCalls(probe_sm_pval)\nprobe_sm_k_of_n <- getKofN(probe_sm_calls)"
+    }
+  ]
+}

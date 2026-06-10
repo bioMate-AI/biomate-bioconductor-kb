@@ -1,0 +1,33 @@
+{
+  "package": "tricycle",
+  "requirements": [
+    "CircStats",
+    "SingleCellExperiment",
+    "cowplot",
+    "ggplot2",
+    "org.Mm.eg.db",
+    "scater",
+    "tricycle"
+  ],
+  "by_workflow": {
+    "custom_reference_projection.nf": [
+      "CircStats",
+      "SingleCellExperiment",
+      "ggplot2",
+      "tricycle"
+    ],
+    "discrete_stage_inference.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "org.Mm.eg.db",
+      "scater",
+      "tricycle"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "cowplot",
+      "ggplot2",
+      "tricycle"
+    ]
+  }
+}

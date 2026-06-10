@@ -1,0 +1,13 @@
+{
+  "package": "rcellminer",
+  "requirements": [
+    "rcellminer",
+    "rcellminerData"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rcellminer",
+      "rcellminerData"
+    ]
+  }
+}

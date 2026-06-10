@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: windows=Size of constant-sized windows (e.g., 1000bp) used to divide the genomic region ;; correctGC=Logical indicating whether to correct for GC-content (requires a reference genome) ;; k=Number of mixture components (groups) for clustering ;; EV=Logical indicating whether equal variances are assumed across groups ;; rightLimit/leftLimit=Thresholds to force outlier segmentation scores into the highest or lowest copy number groups ;; nChunkForVcf=Number of chunks to split a large VCF file into for memory-efficient reading ;; VstTest=Logical to calculate Vst statistics for population differentiation\n- alternatives: CNVrd=The predecessor package, which is used if entireGene=TRUE is set during segmentation to skip refinement\n- when_to_use: When measuring gene copy number from low- or medium-coverage whole-genome sequencing (WGS) data across multiple individuals, identifying tag SNPs/INDELs in linkage disequilibrium with CNVs, or mapping copy number polymorphic regions\n- pitfalls: Requires multiple samples to obtain reliable linkage disequilibrium (LD) results ;; For complex loci with high copy numbers, standard EM clustering might fail due to lack of clear clusters, requiring population-specific priors and Bayesian clustering ;; GC-content correction requires a matching reference genome package (e.g., BSgenome.Hsapiens.UCSC.hg19) ;; The first column of the sampleCNV data frame passed to calculateLDSNPandCNV must contain sample names that match those in the VCF file",
+  "workflows": [
+    {
+      "name": "simple_locus_cnv_and_tagging",
+      "intent": "Measure copy number at a simple locus, cluster samples into copy number groups, and identify tagging SNPs/INDELs.",
+      "input": [
+        "BamMXL (directory containing BAM files of mapped reads)",
+        "chr1.161600000.161611000.vcf.gz (gzipped VCF file containing SNPs/INDELs)",
+        "sampleCNV (data frame containing sample names, copy numbers, and population names)"
+      ],
+      "stages": "1. Define region of interest with a CNVrd2 object ;; 2. Count reads in windows with countReadInWindow ;; 3. Segment samples with segmentSamples ;; 4. Cluster segmentation scores into copy number groups with groupCNVs ;; 5. Plot copy number profiles with plotCNVrd2 ;; 6. Identify tag SNPs/INDELs with calculateLDSNPandCNV",
+      "code": "objectCNVrd2 <- new(\"CNVrd2\", windows = 1000, chr = \"chr1\",\n                    st = 161100001, en = 162100000,\n                    dirBamFile = \"BamMXL\",\n                    genes = c(161592986, 161601753),\n                    geneNames = \"3B\")\nreadCountMatrix <- countReadInWindow(Object = objectCNVrd2, correctGC = TRUE)\nresultSegment <- segmentSamples(Object = objectCNVrd2, stdCntMatrix = readCountMatrix)\nobjectCluster <- new(\"clusteringCNVs\",\n                     x = resultSegment$segmentationScores[, 1], k = 4, EV = TRUE)\ncopynumberGroups <- groupCNVs(Object = objectCluster)\ncopynumberGroups <- groupCNVs(Object = objectCluster, rightLimit = 1.5)\nplotCNVrd2(Object = objectCNVrd2, segmentObject = resultSegment, sampleName = ii)\ntagSNPandINDELofMXL <- calculateLDSNPandCNV(sampleCNV = sampleCNV,\n                                            vcfFile = vcfFile, cnvColumn = 2,\n                                            population = \"MXL\", popColumn = 3,\n                                            nChunkForVcf = 5, chr = \"1\",\n                                            st = 161600001, en = 161611000,\n                                            codeSNP= \"Three\", codeCNV = \"ThreeGroup\")"
+    },
+    {
+      "name": "complex_locus_bayesian_clustering",
+      "intent": "Measure copy number at complex/multiallelic loci across multiple populations using Bayesian clustering with population-specific priors, and identify tag SNPs.",
+      "input": [
+        "ccl3l1data (data frame containing sample names, populations, and pre-calculated segmentation scores)",
+        "chr17.34800000.34830000.vcf.gz (gzipped VCF file containing SNPs/INDELs)"
+      ],
+      "stages": "1. Obtain prior information from a single population with clear clusters using groupCNVs ;; 2. Set prior parameters (means, SDs, proportions, distances) ;; 3. Run Bayesian clustering across all populations using groupBayesianCNVs ;; 4. Identify tag SNPs across multiple populations using calculateLDSNPandCNV",
+      "code": "objectClusterEuroCCL3L1 <- new(\"clusteringCNVs\", x = yEuro, k = 5)\neuropeanCCL3L1Groups <- groupCNVs(Object = objectClusterEuroCCL3L1)\nlambda0 <- as.numeric(europeanCCL3L1Groups$m)\nsdEM <- as.numeric(europeanCCL3L1Groups$sigma)\npEM <- as.numeric(europeanCCL3L1Groups$p)\nsdEM[5] <- sdEM[4]\ngroupCCL3L1allPops <- groupBayesianCNVs(xData = xData, nGroups = nGroups,\n                                        lambda0 = lambda0,\n                                        sd0 = sdEM, alpha0 = alpha0,\n                                        distanceBetweenGroups = distanceBetweenGroups,\n                                        sdOftau = sd,\n                                        rightLimit = 4)\ntagSNPandINDELofCCL3L1 <- calculateLDSNPandCNV(sampleCNV = ccl3l1data,\n                                            vcfFile = vcfFileCCL3L1, cnvColumn = 4,\n                                            population = allPops, popColumn = 2,\n                                            nChunkForVcf = 5, chr = \"17\",\n                                            st = 34800000, en = 34830000 )"
+    },
+    {
+      "name": "polymorphic_region_detection",
+      "intent": "Identify copy number polymorphic regions and define their genomic boundaries.",
+      "input": [
+        "objectCNVrd2 (CNVrd2 object defining the genomic region)",
+        "resultSegment (segmentation results object)"
+      ],
+      "stages": "1. Identify polymorphic regions using identifyPolymorphicRegion ;; 2. Plot polymorphic regions and define boundaries using plotPolymorphicRegion",
+      "code": "fcgr3PolymorphicRegion <- identifyPolymorphicRegion(Object = objectCNVrd2,\n                                                    segmentObject = resultSegment, \n                                                    plotLegend = FALSE)\nplotPolymorphicRegion(Object = objectCNVrd2, polymorphicRegionObject = fcgr3PolymorphicRegion,\n                      xlim = c(161300000, 161800000), drawThresholds = TRUE,\n                      typePlot = \"SD\")\nplotPolymorphicRegion(Object = objectCNVrd2, polymorphicRegionObject = fcgr3PolymorphicRegion,\n                      xlim = c(161300000, 161800000), sdThreshold = 0.05, drawThresholds = TRUE,\n                      typePlot = \"SD\")"
+    }
+  ]
+}

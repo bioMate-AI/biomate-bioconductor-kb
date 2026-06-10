@@ -1,0 +1,26 @@
+{
+  "package": "sctensor",
+  "requirements": [
+    "AnnotationHub",
+    "BiocManager",
+    "Homo.sapiens",
+    "LRBaseDbi",
+    "SingleCellExperiment",
+    "scTGIF",
+    "scTensor"
+  ],
+  "by_workflow": {
+    "gene_id_conversion.nf": [
+      "BiocManager",
+      "Homo.sapiens",
+      "scTGIF",
+      "scTensor"
+    ],
+    "main.nf": [
+      "AnnotationHub",
+      "LRBaseDbi",
+      "SingleCellExperiment",
+      "scTensor"
+    ]
+  }
+}

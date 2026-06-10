@@ -1,0 +1,11 @@
+{
+  "package": "dada2",
+  "requirements": [
+    "dada2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dada2"
+    ]
+  }
+}

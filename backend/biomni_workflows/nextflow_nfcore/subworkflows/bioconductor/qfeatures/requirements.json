@@ -1,0 +1,13 @@
+{
+  "package": "qfeatures",
+  "requirements": [
+    "QFeatures",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "QFeatures",
+      "limma"
+    ]
+  }
+}

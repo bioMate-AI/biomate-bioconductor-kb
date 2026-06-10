@@ -1,0 +1,20 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bw_positive=Strand-specific positive bigWig file path for truncation or C-to-T events ;; bw_negative=Strand-specific negative bigWig file path for truncation or C-to-T events ;; sampleName=Character string defining the metadata column name for the assigned counts ;; colname_reads=Column name in the GRanges object containing the mean truncation reads ;; colname_C2T=Column name in the GRanges object containing the mean C-to-T transitions ;; normalization=Logical, whether to normalize numerical features (relative signal strength and C-to-T transitions) by the ratio of the mean between the input dataset and the training set (set to TRUE for real data, FALSE for small test datasets) ;; genome=The second argument of m6Aboost specifying the BSgenome package name (e.g., \"BSgenome.Mmusculus.UCSC.mm10\")\n- alternatives: PureCLIP is recommended for initial peak calling before running the m6Aboost workflow.\n- when_to_use: Use when you have miCLIP2 peak calling results and want to accurately filter out background signals and identify high-confidence single-nucleotide resolution m6A sites.\n- pitfalls: Ensure peaks are filtered for reproducibility (present in at least two replicates) before running the workflow ;; Always download the correct BSgenome package and GENCODE GFF3 annotation file beforehand ;; For real datasets, do not set normalization = FALSE as experimental variation in signal strength and C-to-T transitions can affect prediction accuracy.",
+  "workflows": [
+    {
+      "name": "m6a_prediction_from_miclip2",
+      "intent": "Predict m6A sites from miCLIP2 peak calling results and signal bigWig files.",
+      "input": [
+        "peak_calling_results.rds (GRanges object of peaks)",
+        "truncation_positive.bw (truncation events on positive strand)",
+        "truncation_negative.bw (truncation events on negative strand)",
+        "C2T_positive.bw (C-to-T transitions on positive strand)",
+        "C2T_negative.bw (C-to-T transitions on negative strand)",
+        "annotation.gff3 (GENCODE GFF3 annotation file)"
+      ],
+      "stages": "1. Assign truncation events to peaks using truncationAssignment ;; 2. Assign C-to-T transitions to peaks using CtoTAssignment ;; 3. Calculate mean truncation and C-to-T counts across replicates ;; 4. Extract features using preparingData with the GFF3 annotation ;; 5. Predict m6A sites using m6Aboost with a BSgenome package",
+      "code": "test <- truncationAssignment(test, \n    bw_positive=truncationBw_p,\n    bw_negative=truncationBw_n,\n    sampleName = \"WT1\")\n\ntest <- CtoTAssignment(test, \n    bw_positive=ctotBw_p,\n    bw_negative=ctotBw_n,\n    sampleName = \"CtoT_WT1\")\n\n# peak$WTmean <- (peak$WT1 + peak$WT2)/2\n\ntest <- preparingData(test, test_gff3, colname_reads=\"WTmean\", \n    colname_C2T=\"CtoTmean\")\n\nout <- m6Aboost(test, \"BSgenome.Mmusculus.UCSC.mm10\", normalization = FALSE)"
+    }
+  ]
+}

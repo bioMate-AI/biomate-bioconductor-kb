@@ -1,0 +1,13 @@
+{
+  "package": "roar",
+  "requirements": [
+    "roar",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "roar",
+      "rtracklayer"
+    ]
+  }
+}

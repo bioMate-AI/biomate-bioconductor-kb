@@ -1,0 +1,11 @@
+{
+  "package": "tracktables",
+  "requirements": [
+    "tracktables"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "tracktables"
+    ]
+  }
+}

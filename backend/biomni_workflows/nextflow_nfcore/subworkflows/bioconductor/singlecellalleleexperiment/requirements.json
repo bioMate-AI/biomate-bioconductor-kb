@@ -1,0 +1,23 @@
+{
+  "package": "singlecellalleleexperiment",
+  "requirements": [
+    "DropletUtils",
+    "SingleCellAlleleExperiment",
+    "ggplot2",
+    "patchwork",
+    "scater",
+    "scran",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DropletUtils",
+      "SingleCellAlleleExperiment",
+      "ggplot2",
+      "patchwork",
+      "scater",
+      "scran",
+      "scuttle"
+    ]
+  }
+}

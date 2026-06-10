@@ -1,0 +1,20 @@
+{
+  "package": "survclust",
+  "requirements": [
+    "BiocParallel",
+    "survClust",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "survClust",
+      "survival"
+    ],
+    "single_omic_clustering.nf": [
+      "BiocParallel",
+      "survClust",
+      "survival"
+    ]
+  }
+}

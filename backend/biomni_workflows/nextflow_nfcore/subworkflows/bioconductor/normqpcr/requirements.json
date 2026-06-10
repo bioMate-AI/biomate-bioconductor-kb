@@ -1,0 +1,21 @@
+{
+  "package": "normqpcr",
+  "requirements": [
+    "NormqPCR",
+    "ReadqPCR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "NormqPCR",
+      "ReadqPCR"
+    ],
+    "normalized_relative_quantities.nf": [
+      "NormqPCR",
+      "ReadqPCR"
+    ],
+    "qpcr_normalization.nf": [
+      "NormqPCR",
+      "ReadqPCR"
+    ]
+  }
+}

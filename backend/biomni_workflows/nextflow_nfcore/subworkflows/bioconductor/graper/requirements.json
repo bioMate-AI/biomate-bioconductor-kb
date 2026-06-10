@@ -1,0 +1,17 @@
+{
+  "package": "graper",
+  "requirements": [
+    "ggplot2",
+    "graper"
+  ],
+  "by_workflow": {
+    "logistic_regression.nf": [
+      "ggplot2",
+      "graper"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "graper"
+    ]
+  }
+}

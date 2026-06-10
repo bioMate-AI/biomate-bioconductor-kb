@@ -1,0 +1,17 @@
+{
+  "package": "scmitomut",
+  "requirements": [
+    "data.table",
+    "ggplot2",
+    "rhdf5",
+    "scMitoMut"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "data.table",
+      "ggplot2",
+      "rhdf5",
+      "scMitoMut"
+    ]
+  }
+}

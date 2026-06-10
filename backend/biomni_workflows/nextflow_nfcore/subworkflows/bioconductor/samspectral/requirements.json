@@ -1,0 +1,11 @@
+{
+  "package": "samspectral",
+  "requirements": [
+    "SamSPECTRAL"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SamSPECTRAL"
+    ]
+  }
+}

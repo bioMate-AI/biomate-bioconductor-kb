@@ -1,0 +1,23 @@
+{
+  "package": "tdbasedufeadv",
+  "requirements": [
+    "Biobase",
+    "TDbasedUFE",
+    "TDbasedUFEadv"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "TDbasedUFE",
+      "TDbasedUFEadv"
+    ],
+    "multi_omics_sharing_features.nf": [
+      "TDbasedUFE",
+      "TDbasedUFEadv"
+    ],
+    "multi_omics_sharing_samples.nf": [
+      "TDbasedUFE",
+      "TDbasedUFEadv"
+    ]
+  }
+}

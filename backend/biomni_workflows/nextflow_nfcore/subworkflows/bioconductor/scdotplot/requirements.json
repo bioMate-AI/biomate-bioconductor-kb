@@ -1,0 +1,41 @@
+{
+  "package": "scdotplot",
+  "requirements": [
+    "AnnotationDbi",
+    "Seurat",
+    "SeuratObject",
+    "SingleCellExperiment",
+    "aplot",
+    "dplyr",
+    "ggplot2",
+    "ggsci",
+    "purrr",
+    "scDotPlot",
+    "scran",
+    "scuttle",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "SingleCellExperiment",
+      "aplot",
+      "dplyr",
+      "ggplot2",
+      "ggsci",
+      "purrr",
+      "scDotPlot",
+      "scran",
+      "scuttle"
+    ],
+    "seurat_dotplot.nf": [
+      "Seurat",
+      "SeuratObject",
+      "dplyr",
+      "ggplot2",
+      "ggsci",
+      "scDotPlot",
+      "tibble"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "mobilerna",
+  "requirements": [
+    "bioseq",
+    "dplyr",
+    "mobileRNA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "bioseq",
+      "dplyr",
+      "mobileRNA"
+    ]
+  }
+}

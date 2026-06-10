@@ -1,0 +1,11 @@
+{
+  "package": "qpcrnorm",
+  "requirements": [
+    "qpcrNorm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "qpcrNorm"
+    ]
+  }
+}

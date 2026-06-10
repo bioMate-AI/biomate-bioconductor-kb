@@ -1,0 +1,29 @@
+{
+  "package": "dexseq",
+  "requirements": [
+    "DEXSeq",
+    "GenomeInfoDb",
+    "GenomicAlignments",
+    "GenomicFeatures",
+    "Rsamtools",
+    "pasillaBamSubset",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "complex_experimental_design.nf": [
+      "DEXSeq"
+    ],
+    "main.nf": [
+      "DEXSeq",
+      "GenomeInfoDb",
+      "GenomicAlignments",
+      "GenomicFeatures",
+      "Rsamtools",
+      "pasillaBamSubset",
+      "txdbmaker"
+    ],
+    "python_htseq_preprocessed_workflow.nf": [
+      "DEXSeq"
+    ]
+  }
+}

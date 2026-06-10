@@ -1,0 +1,11 @@
+{
+  "package": "rols",
+  "requirements": [
+    "rols"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rols"
+    ]
+  }
+}

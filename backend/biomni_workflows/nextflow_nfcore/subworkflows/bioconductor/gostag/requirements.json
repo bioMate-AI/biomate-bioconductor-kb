@@ -1,0 +1,11 @@
+{
+  "package": "gostag",
+  "requirements": [
+    "goSTAG"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "goSTAG"
+    ]
+  }
+}

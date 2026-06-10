@@ -1,124 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GRENITS
-// The package offers four network inference statistical models using Dynamic Bayesian Networks and Gib
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GRENITS/inst/doc/GRENITS_package.R
-// Upstream  : network
-// Downstream: none
-//
-// Install: BiocManager::install("GRENITS")
+// Bioconductor workflow: GRENITS — linear_network_inference
+// Infer a gene regulatory network from time-series expression data using a linear interaction model and Gibbs Variable Selection.
+// Input: expression_matrix.txt
+// Container: quay.io/biocontainers/bioconductor-grenits:1.62.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GRENITS
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the time-series expression data
+//  * 2. [Visualization & Output] Run the MCMC simulation using LinearNet to generate raw chain outputs
+//  * 3. [Visualization & Output] Analyze the raw MCMC output using analyse.output to generate convergence and analysis plots
+//  * 4. [Input & Preparation] Read MCMC chains using read.chain to check convergence
+//  * 5. [Input & Preparation] Load the network probability matrix and apply a threshold to predict network connections
+//  * 6. [Input & Preparation] Load the network probability list to determine interaction strengths and signs
 
 nextflow.enable.dsl = 2
 
-process BIOC_GRENITS {
+process BIOC_GRENITS_LINEAR_NETWORK_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-grenits"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-grenits:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-grenits:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_grenits_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_grenits_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_grenits_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(GRENITS)
-    library(Time)
-    library(jsonlite)
-
-    # --- Network Inference [Network Inference] ---
-    # Key functions: LinearNet
-    data(Athaliana_ODE)
-    output.folder <- file.path(tempdir(), "Example_LinearNet")
-    LinearNet(
-        output.folder = output.folder,
-        data = Athaliana_ODE
-    )
-
-    # --- Statistical Analysis [Statistical Analysis] ---
-    # Key functions: analyse.output
-    output.folder <- file.path(tempdir(), "Example_LinearNet")
+    
+    # 1. Load the time-series expression data
+    # The user input file 'expression_matrix.txt' is expected to be a tab-separated file
+    # with genes in rows and time points in columns.
+    expression_data <- as.matrix(read.table("expression_matrix.txt", header = TRUE, row.names = 1, sep = "\t"))
+    
+    # 2. Run the MCMC simulation using LinearNet to generate raw chain outputs
+    output.folder <- paste(tempdir(), "/Example_LinearNet", sep="")
+    LinearNet(output.folder, expression_data)
+    
+    # 3. Analyze the raw MCMC output using analyse.output to generate convergence and analysis plots
     analyse.output(output.folder)
+    
+    # 4. Read MCMC chains using read.chain to check convergence
+    chain1 <- read.chain(output.folder,1)
+    chain2 <- read.chain(output.folder,2)
+    gamma1 <- colMeans(chain1\$gamma)
+    gamma2 <- colMeans(chain2\$gamma)
+    
+    # Save convergence plot to a PDF file
+    pdf("convergence_plot.pdf", width = 6, height = 6)
+    plot(x = gamma1, y = gamma2, xlab = "chain1", ylab = "chain2", main = "Convergence plot for link probabilities", xlim = c(0,1), ylim = c(0,1), cex = 1.5, cex.lab = 1.6, cex.main = 1.6)
+    lines(c(0,1), c(0,1), col = "red")
+    dev.off()
+    
+    # Save raw chains as RDS objects for downstream analysis
+    saveRDS(chain1, "chain1.rds")
+    saveRDS(chain2, "chain2.rds")
+    
+    # 5. Load the network probability matrix and apply a threshold to predict network connections
+    prob.file <- paste(output.folder, "/NetworkProbability_Matrix.txt", sep = "")
+    prob.mat  <- read.table(prob.file)
+    print(prob.mat)
+    
+    inferred.net <- 1*(prob.mat > 0.8)
+    print(inferred.net)
+    
+    # Save the probability matrix and inferred network matrix to CSV files
+    write.csv(prob.mat, "network_probability_matrix.csv", row.names = TRUE)
+    write.csv(inferred.net, "inferred_network_matrix.csv", row.names = TRUE)
+    
+    # 6. Load the network probability list to determine interaction strengths and signs
+    prob.list.file <- paste(output.folder, "/NetworkProbability_List.txt", sep = "")
+    prob.list      <- read.table(prob.list.file, header = T)
+    above.08       <- (prob.list[,3] > 0.8)
+    print(prob.list[above.08,])
+    
+    # Save the full and filtered interaction lists to CSV files
+    write.csv(prob.list, "network_probability_list.csv", row.names = FALSE)
+    write.csv(prob.list[above.08,], "significant_interactions_above_0.8.csv", row.names = FALSE)
 
-    # --- Convergence Diagnostics [Convergence Diagnostics] ---
-    # Key functions: read.chain
-    output.folder <- file.path(tempdir(), "Example_LinearNet")
-    chain1 <- read.chain(output.folder, 1)
-    chain2 <- read.chain(output.folder, 2)
-    gamma1 <- colMeans(chain1$gamma)
-    gamma2 <- colMeans(chain2$gamma)
-    plot(
-        x = gamma1, y = gamma2,
-        xlab = "chain1", ylab = "chain2",
-        main = "Convergence plot for link probabilities",
-        xlim = c(0, 1), ylim = c(0, 1)
-    )
-
-    # --- Network Probability Extraction [Network Probability Extraction] ---
-    # Key functions: analyse.output
-    output.folder <- file.path(tempdir(), "Example_LinearNet")
-    prob.file <- file.path(output.folder, "NetworkProbability_Matrix.txt")
-    prob.mat <- read.table(prob.file)
-    inferred.net <- 1 * (prob.mat > 0.8)
-    prob.list.file <- file.path(output.folder, "NetworkProbability_List.txt")
-    prob.list <- read.table(prob.list.file, header = TRUE)
-    above.threshold <- prob.list[prob.list[, 3] > 0.8, ]
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_grenits_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_grenits_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_grenits_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GRENITS:", paste0("    grenits: ", packageVersion("GRENITS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GRENITS_LINEAR_NETWORK_INFERENCE":',
+        paste0('    GRENITS: ', as.character(packageVersion('GRENITS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_grenits_results.csv
-    touch ${prefix}_grenits_output.rds
-    echo "BIOC_GRENITS:" > versions.yml
-    echo "    grenits: 0.0.0" >> versions.yml
+    touch ${prefix}_linear_network_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_GRENITS_WORKFLOW {
+workflow BIOC_GRENITS_LINEAR_NETWORK_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.txt ] ]
 
     main:
-    BIOC_GRENITS(ch_input)
+    BIOC_GRENITS_LINEAR_NETWORK_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_GRENITS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GRENITS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GRENITS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GRENITS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GRENITS_LINEAR_NETWORK_INFERENCE.out.tables
+    plots    = BIOC_GRENITS_LINEAR_NETWORK_INFERENCE.out.plots
+    objects  = BIOC_GRENITS_LINEAR_NETWORK_INFERENCE.out.objects
+    versions = BIOC_GRENITS_LINEAR_NETWORK_INFERENCE.out.versions
 }

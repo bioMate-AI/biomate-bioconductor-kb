@@ -1,0 +1,13 @@
+{
+  "package": "cogps",
+  "requirements": [
+    "coGPS",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "coGPS",
+      "limma"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "adductomicsr",
+  "requirements": [
+    "adductomicsR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "adductomicsR"
+    ]
+  }
+}

@@ -1,113 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: regionalpcs
-// Functions to summarize DNA methylation data using regional principal components. Regional principal 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/regionalpcs/inst/doc/regionalpcs.R
-// Upstream  : GenomicRanges, dplyr, minfiData, tibble, tidyr
-// Downstream: none
-//
-// Install: BiocManager::install("regionalpcs")
+// Bioconductor workflow: regionalpcs — regional_pc_summarization
+// Summarize CpG-level DNA methylation data into regional principal components using genomic region annotations.
+// Input: MsetEx.sub, TxDb.Hsapiens.UCSC.hg19.knownGene
+// Container: quay.io/biocontainers/bioconductor-regionalpcs:1.8.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, GenomicFeatures, GenomicRanges, dplyr, minfi, regionalpcs, tibble, tidyr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Extract methylation values from the MethylSet object. 2. Map methylation data to genomic coordinates and convert to a GRanges obje
 
 nextflow.enable.dsl = 2
 
-process BIOC_REGIONALPCS {
+process BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-regionalpcs"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-regionalpcs:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-regionalpcs:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_regionalpcs_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_regionalpcs_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_regionalpcs_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GenomicMethylSet)
-    library(jsonlite)
-
-    # --- Genomic Positions [] ---
-    # Key functions: GenomicMethylSet, mapToGenome, object, granges
-    # Map the methylation data to genomic coordinates using the mapToGenome
-    # function. This creates a GenomicMethylSet (gset) which includes genomic
-    # position information for each probe.
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(regionalpcs)
+    library(GenomicRanges)
+    library(tidyr)
+    library(tibble)
+    library(dplyr)
+    library(minfi)
+    library(GenomicFeatures)
+    library(AnnotationDbi)
+    
+    # Helper function to robustly load input files from the working directory
+    load_input <- function(file_path) {
+      if (!file.exists(file_path)) {
+        stop(paste("Required input file missing:", file_path))
+      }
+      
+      # Attempt to read as RDS first, then fallback to loadDb if it's a TxDb SQLite database
+      obj <- tryCatch({
+        readRDS(file_path)
+      }, error = function(e) {
+        tryCatch({
+          AnnotationDbi::loadDb(file_path)
+        }, error = function(e2) {
+          stop(paste("Failed to load", file_path, "as RDS or TxDb database. Error:", e2\$message))
+        })
+      })
+      return(obj)
+    }
+    
+    # 1. Load the user-provided input files
+    MsetEx.sub <- load_input("MsetEx.sub")
+    txdb <- load_input("TxDb.Hsapiens.UCSC.hg19.knownGene")
+    
+    # 2. Extract methylation M-values from the MethylSet object
+    mvals <- getM(MsetEx.sub)
+    
+    # 3. Map methylation data to genomic coordinates and convert to a GRanges object
     gset <- mapToGenome(MsetEx.sub)
-    # Display the GenomicMethylSet object to observe the structure and initial
-    # --- Compute Regional Pcs [] ---
-    # Key functions: compute_regional_pcs
-    # Display head of region map
-    head(region_map)
-    dim(region_map)
-    # Compute regional PCs
+    cpg_gr <- granges(gset)
+    
+    # 4. Extract target genomic regions (promoters) from the transcript database
+    promoters_gr <- suppressMessages(promoters(genes(txdb), 
+                                               upstream=1000, 
+                                               downstream=0))
+    
+    # 5. Create a region map associating CpG sites with the target genomic regions
+    region_map <- regionalpcs::create_region_map(cpg_gr=cpg_gr, 
+                                                 genes_gr=promoters_gr)
+    
+    # 6. Compute regional principal components using the Gavish-Donoho (GD) method
     res <- compute_regional_pcs(meth=mvals, region_map=region_map, pc_method="gd")
-    # --- Count Pcs Regions [] ---
-    # Key functions: frame, separate
-    # Count the number of unique gene regions and PCs
-    regions <- data.frame(gene_pc = rownames(regional_pcs)) |>
-        separate(gene_pc, into = c("gene", "pc"), sep = "-")
-    head(regions)
-    # number of genes that have been summarized
-    # --- Marcenko Pasteur Method [] ---
-    # Key functions: compute_regional_pcs, frame, separate
-    # Using Marcenko-Pasteur method
+    names(res)
+    regional_pcs <- res\$regional_pcs
+    
+    # 7. Compute regional principal components using the Marcenko-Pasteur (MP) method
     mp_res <- compute_regional_pcs(mvals, region_map, pc_method = "mp")
-    # select the regional pcs
-    mp_regional_pcs <- mp_res$regional_pcs
-    # separate the genes from the pc numbers
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_regionalpcs_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_regionalpcs_results.csv")
+    mp_regional_pcs <- mp_res\$regional_pcs
+    
+    # 8. Save meaningful results to output files
+    # Save region map
+    write.csv(region_map, "region_map.csv", row.names = FALSE)
+    
+    # Save Gavish-Donoho results
+    write.csv(regional_pcs, "regional_pcs_gd.csv", row.names = TRUE)
+    saveRDS(res, "regional_pcs_gd_results.rds")
+    
+    # Save Marcenko-Pasteur results
+    write.csv(mp_regional_pcs, "regional_pcs_mp.csv", row.names = TRUE)
+    saveRDS(mp_res, "regional_pcs_mp_results.rds")
+    
+    # Generate diagnostic plots of the first two regional PCs across samples
+    pdf("regional_pcs_visualization.pdf", width = 12, height = 6)
+    par(mfrow = c(1, 2))
+    
+    if (nrow(regional_pcs) >= 2) {
+      plot(t(regional_pcs[1:2, ]), 
+           main = "GD Regional PCs (First 2 Regions)", 
+           xlab = rownames(regional_pcs)[1], 
+           ylab = rownames(regional_pcs)[2],
+           pch = 19, col = "blue")
+      text(t(regional_pcs[1:2, ]), labels = colnames(regional_pcs), pos = 3, cex = 0.8)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_regionalpcs_output.rds")
+    
+    if (nrow(mp_regional_pcs) >= 2) {
+      plot(t(mp_regional_pcs[1:2, ]), 
+           main = "MP Regional PCs (First 2 Regions)", 
+           xlab = rownames(mp_regional_pcs)[1], 
+           ylab = rownames(mp_regional_pcs)[2],
+           pch = 19, col = "darkgreen")
+      text(t(mp_regional_pcs[1:2, ]), labels = colnames(mp_regional_pcs), pos = 3, cex = 0.8)
     }
+    
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs written to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REGIONALPCS:", paste0("    regionalpcs: ", packageVersion("regionalpcs"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION":',
+        paste0('    regionalpcs: ', as.character(packageVersion('regionalpcs')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_regionalpcs_results.csv
-    touch ${prefix}_regionalpcs_output.rds
-    echo "BIOC_REGIONALPCS:" > versions.yml
-    echo "    regionalpcs: 0.0.0" >> versions.yml
+    touch ${prefix}_regional_pc_summarization.csv versions.yml
     """
 }
 
-
-workflow BIOC_REGIONALPCS_WORKFLOW {
+workflow BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ MsetEx.sub, TxDb.Hsapiens.UCSC.hg19.knownGene ] ]
 
     main:
-    BIOC_REGIONALPCS(ch_input)
+    BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION(ch_input)
 
     emit:
-    results  = BIOC_REGIONALPCS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REGIONALPCS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REGIONALPCS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REGIONALPCS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION.out.tables
+    plots    = BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION.out.plots
+    objects  = BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION.out.objects
+    versions = BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION.out.versions
 }

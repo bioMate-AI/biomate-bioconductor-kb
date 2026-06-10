@@ -1,0 +1,11 @@
+{
+  "package": "emdomics",
+  "requirements": [
+    "EMDomics"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EMDomics"
+    ]
+  }
+}

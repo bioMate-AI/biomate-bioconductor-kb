@@ -1,0 +1,17 @@
+{
+  "package": "sizepower",
+  "requirements": [
+    "sizepower"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "sizepower"
+    ],
+    "matched_pairs_design.nf": [
+      "sizepower"
+    ],
+    "multiple_treatment_or_block_design.nf": [
+      "sizepower"
+    ]
+  }
+}

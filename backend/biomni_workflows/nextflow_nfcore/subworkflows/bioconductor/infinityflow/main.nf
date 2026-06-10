@@ -1,121 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: infinityFlow
-// Pipeline to analyze and merge data files produced by BioLegend's LEGENDScreen or BD Human Cell Surfa
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/infinityFlow/inst/doc/basic_usage.R
-// Upstream  : devtools
-// Downstream: none
-//
-// Install: BiocManager::install("infinityFlow")
+// Bioconductor workflow: infinityFlow — basic_pipeline
+// Run the standard Infinity Flow pipeline using the default XGBoost regression model to predict exploratory marker expression.
+// Input: input_dir, backbone_selection_file.csv, steady_state_lung_annotation
+// Container: quay.io/biocontainers/bioconductor-infinityflow:1.20.2--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: flowCore, infinityFlow
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load package and example data
+//  * 2. [Visualization & Output] Define paths for input, output, and intermediary results
+//  * 3. [Input & Preparation] Set up target and isotype annotation vectors
+//  * 4. [Core Analysis] Run the pipeline using infinity_flow()
 
 nextflow.enable.dsl = 2
 
-process BIOC_INFINITYFLOW {
+process BIOC_INFINITYFLOW_BASIC_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-infinityflow"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-infinityflow:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-infinityflow:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_infinityflow_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_infinityflow_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_infinityflow_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(infinityFlow)
-    library(jsonlite)
-
-    # --- Annotation and Backbone Specification [] ---
-    # Key functions: steady_state_lung_backbone_specification, steady_state_lung_annotation
-    dir <- file.path(tempdir(), "infinity_flow_example")
-    backbone_spec <- steady_state_lung_backbone_specification
-    backbone_file <- file.path(dir, "backbone_selection_file.csv")
-    write.csv(backbone_spec, file = backbone_file, row.names = FALSE)
-    targets <- steady_state_lung_annotation$Infinity_target
+    library(flowCore)
+    
+    # Define paths for input, output, and intermediary results
+    path_to_fcs <- "input_dir"
+    path_to_output <- "output"
+    path_to_intermediary_results <- "tmp"
+    backbone_selection_file <- "backbone_selection_file.csv"
+    
+    # Read the annotation file from the working directory
+    annotation_file <- "steady_state_lung_annotation"
+    if (!file.exists(annotation_file) && file.exists("steady_state_lung_annotation.csv")) {
+      annotation_file <- "steady_state_lung_annotation.csv"
+    }
+    
+    steady_state_lung_annotation <- read.csv(annotation_file, row.names = 1, stringsAsFactors = FALSE)
+    
+    # Set up target and isotype annotation vectors
+    targets <- steady_state_lung_annotation\$Infinity_target
     names(targets) <- rownames(steady_state_lung_annotation)
-    isotypes <- steady_state_lung_annotation$Infinity_isotype
+    isotypes <- steady_state_lung_annotation\$Infinity_isotype
     names(isotypes) <- rownames(steady_state_lung_annotation)
-
-
-    # --- Infinity Flow Pipeline Execution [] ---
-    # Key functions: infinity_flow
-    dir <- file.path(tempdir(), "infinity_flow_example")
+    
+    # Set downsampling and core parameters
+    input_events_downsampling <- 1000
+    prediction_events_downsampling <- 500
+    cores <- 1L
+    
+    # Run the pipeline using infinity_flow()
     imputed_data <- infinity_flow(
-        path_to_fcs = file.path(dir, "fcs"),
-        path_to_output = file.path(dir, "output"),
-        path_to_intermediary_results = file.path(dir, "tmp"),
-        backbone_selection_file = file.path(dir, "backbone_selection_file.csv"),
-        annotation = targets,
-        isotype = isotypes,
-        input_events_downsampling = 1000,
-        prediction_events_downsampling = 500,
-        verbose = FALSE,
-        cores = 1L
+    	path_to_fcs = path_to_fcs,
+    	path_to_output = path_to_output,
+    	path_to_intermediary_results = path_to_intermediary_results,
+    	backbone_selection_file = backbone_selection_file,
+    	annotation = targets,
+    	isotype = isotypes,
+    	input_events_downsampling = input_events_downsampling,
+    	prediction_events_downsampling = prediction_events_downsampling,
+    	verbose = TRUE,
+    	cores = cores
     )
-
-
-    # --- Output Exploration [] ---
-    # Key functions: infinity_flow
-    output_dir <- file.path(tempdir(), "infinity_flow_example", "output")
-    raw_fcs_dir <- file.path(output_dir, "FCS", "split")
-    bgc_fcs_dir <- file.path(output_dir, "FCS_background_corrected", "split")
-    raw_fcs_files <- list.files(raw_fcs_dir, pattern = ".fcs", full.names = TRUE)
-    bgc_fcs_files <- list.files(bgc_fcs_dir, pattern = ".fcs", full.names = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_infinityflow_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_infinityflow_results.csv")
+    
+    # Save the final imputed data object
+    saveRDS(imputed_data, file = "imputed_data.rds")
+    
+    # Save background-corrected predictions as a CSV if available
+    if (!is.null(imputed_data\$bgc)) {
+      write.csv(as.data.frame(imputed_data\$bgc), file = "imputed_data_bgc.csv", row.names = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_infinityflow_output.rds")
+    
+    # Save raw predictions as a CSV if available
+    if (!is.null(imputed_data\$raw)) {
+      write.csv(as.data.frame(imputed_data\$raw), file = "imputed_data_raw.csv", row.names = TRUE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_INFINITYFLOW:", paste0("    infinityflow: ", packageVersion("infinityFlow"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_INFINITYFLOW_BASIC_PIPELINE":',
+        paste0('    infinityFlow: ', as.character(packageVersion('infinityFlow')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_infinityflow_results.csv
-    touch ${prefix}_infinityflow_output.rds
-    echo "BIOC_INFINITYFLOW:" > versions.yml
-    echo "    infinityflow: 0.0.0" >> versions.yml
+    touch ${prefix}_basic_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_INFINITYFLOW_WORKFLOW {
+workflow BIOC_INFINITYFLOW_BASIC_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input_dir, backbone_selection_file.csv, steady_state_lung_annotation ] ]
 
     main:
-    BIOC_INFINITYFLOW(ch_input)
+    BIOC_INFINITYFLOW_BASIC_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_INFINITYFLOW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_INFINITYFLOW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_INFINITYFLOW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_INFINITYFLOW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_INFINITYFLOW_BASIC_PIPELINE.out.tables
+    plots    = BIOC_INFINITYFLOW_BASIC_PIPELINE.out.plots
+    objects  = BIOC_INFINITYFLOW_BASIC_PIPELINE.out.objects
+    versions = BIOC_INFINITYFLOW_BASIC_PIPELINE.out.versions
 }

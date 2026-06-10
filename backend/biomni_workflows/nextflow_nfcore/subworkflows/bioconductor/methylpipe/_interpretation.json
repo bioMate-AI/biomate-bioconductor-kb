@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: read.context=Specifies the sequence context in which methylation information is read from aligned files (\"CpG\" or \"All\") ;; no_overlap=Logical indicating whether to avoid overlapping reads during methylation calling ;; Scorefun=Function used for smoothing methylation levels in mCsmoothing (\"sum\" or \"mean\") ;; Nbins/nbins=Number of bins to divide genomic regions into for smoothing or profiling ;; group=Vector specifying the group name for each sample in a BSdataSet (\"C\" for Control, \"E\" for Experiment) ;; mcClass/MCClass/mcCLASS=The sequence context class of interest (e.g., 'mCG', 'mCHG', 'mCHH') ;; dmrSize=Minimum number of cytosines required to define a DMR in findDMR ;; dmrBp=Maximum distance in base pairs between adjacent cytosines to be considered in the same DMR ;; type=Type of DMRs to consolidate in consolidateDMRs (\"hyper\" or \"hypo\")\n- alternatives: compEpiTools=Mentioned as a complementary package for generating/manipulating genomic regions and performing integrative heatmap visualization (heatmapdata, heatmapPlot) ;; ListerEtAlBSseq=A data package containing base-resolution Bisulfite sequencing data used for demonstration\n- when_to_use: Use this package when you have base-resolution DNA methylation data (such as WGBS or RRBS) and need to perform memory-efficient profiling, sample correlation, and DMR identification across CpG and non-CpG contexts.\n- pitfalls: BSprepare requires a local installation of the tabix software to compress and index flat files ;; To save memory, methylPipe only stores C positions with at least 1 mC read; unmethylated Cs are inferred by excluding uncovered regions (provided as a GRanges object) ;; findDMR only considers cytosine positions that are covered in all compared samples, so low-coverage regions may be excluded from DMR detection",
+  "workflows": [
+    {
+      "name": "database_preparation",
+      "intent": "Process raw aligned files to generate tabular methylation calls and prepare tabix-indexed BSdata and BSdataSet objects.",
+      "input": [
+        "test_methcall (folder containing sorted SAM files from BISMARK aligner)",
+        "H1_chr20_CG_10k.txt (tabular text file of methylation calls)"
+      ],
+      "stages": "1. Call methylation from aligned files using meth.call ;; 2. Compress and index tabular files using BSprepare ;; 3. Create BSdata objects for individual samples ;; 4. Combine multiple BSdata objects into a BSdataSet",
+      "code": "file_loc <- system.file('extdata', 'test_methcall', package='methylPipe')\nmeth.call(files_location=file_loc, output_folder=tempdir(), no_overlap=TRUE, \n          read.context=\"CpG\", Nproc=1)\n\nfile_loc <- system.file('extdata', 'H1_chr20_CG_10k.txt', package='methylPipe')\n#BSprepare(files_location=file_loc,output_folder=file_loc, tabix=\"/path-to-tabix/\")\nuncov_GR <- GRanges(Rle('chr20'), IRanges(c(14350,69251,84185), c(18349,73250,88184)))\nH1data <- system.file('extdata', 'H1_chr20_CG_10k_tabix_out.txt.gz', \n                      package='methylPipe')\nH1.db <- BSdata(file=H1data, uncov=uncov_GR, org=Hsapiens)\n\nIMR90data <- system.file('extdata', 'IMR90_chr20_CG_10k_tabix_out.txt.gz', \n                         package='methylPipe')\nIMR90.db <- BSdata(file=IMR90data, uncov=uncov_GR, org=Hsapiens)\nH1.IMR90.set <- BSdataSet(org=Hsapiens, group=c(\"C\",\"E\"), IMR90=IMR90.db, H1=H1.db)"
+    },
+    {
+      "name": "methylation_profiling_and_visualization",
+      "intent": "Profile absolute and relative DNA methylation levels across specific genomic regions of interest and visualize the profiles.",
+      "input": [
+        "H1.db (BSdata object)",
+        "IMR90.db (BSdata object)",
+        "GR_chr20.Rdata (Rdata file containing a GRanges object of genomic regions)",
+        "gec.IMR90.Rdata (Rdata file containing a pre-computed GEcollection object)"
+      ],
+      "stages": "1. Map methylation data to genomic ranges using mapBSdata2GRanges ;; 2. Profile absolute and relative methylation in bins using profileDNAmetBin to create a GEcollection ;; 3. Combine multiple GEcollection objects into a GElist ;; 4. Plot methylation profiles alongside gene annotations using plotMeth",
+      "code": "gr_file <- system.file('extdata', 'GR_chr20.Rdata', package='methylPipe')\nload(gr_file)\nresmC <- mapBSdata2GRanges(GenoRanges=GR_chr20, Sample=H1.db, context='CG')\n\ngec.H1 <- profileDNAmetBin(GenoRanges=GR_chr20, Sample=H1.db, mcCLASS='mCG', nbins=3)\nbinmC(gec.H1)[4:5,]\nbinC(gec.H1)[4:5,]\nbinrC(gec.H1)[4:5,]\n\ngec1 <- gec.H1[start(gec.H1) < 153924]\ngec2 <- gec.H1[start(gec.H1) > 153924]\n\ngecIMR_file <- system.file('extdata', 'gec.IMR90.Rdata', package='methylPipe')\nload(gecIMR_file)\ngel <- GElist(gecIMR90=gec.IMR90, gecH1=gec.H1)\n\nlibrary(TxDb.Hsapiens.UCSC.hg18.knownGene)\ntxdb <- TxDb.Hsapiens.UCSC.hg18.knownGene\ngel <- GElist(gecIMR90=gec.IMR90[1:10], gecH1=gec.H1[1:10])\nplotMeth(gel, colors=c(\"red\",\"blue\"), datatype=c(\"mC\",\"mC\"), yLim=c(.025, .025), brmeth=list(IMR90=IMR90.db, H1=H1.db),\n         mcContext=\"CG\", transcriptDB=txdb, chr=\"chr20\", start=14350, end=277370, org=Hsapiens)"
+    },
+    {
+      "name": "differential_methylation_analysis",
+      "intent": "Identify and consolidate differentially methylated regions (DMRs) between experimental groups.",
+      "input": [
+        "H1.IMR90.set (BSdataSet object containing control and experiment samples)",
+        "GR_chr20 (GRanges object defining the regions of interest)"
+      ],
+      "stages": "1. Find candidate DMRs using findDMR ;; 2. Consolidate and filter DMRs based on p-value and distance thresholds using consolidateDMRs",
+      "code": "DMRs <- findDMR(object= H1.IMR90.set, Nproc=1, ROI=GR_chr20, MCClass='mCG',\n     dmrSize=6, dmrBp=800)\n\nhyper.DMRs.conso <- consolidateDMRs(DmrGR=DMRs, pvThr=0.05, GAP=100, type=\"hyper\")"
+    }
+  ]
+}

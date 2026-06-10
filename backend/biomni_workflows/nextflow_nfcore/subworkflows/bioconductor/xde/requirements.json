@@ -1,0 +1,13 @@
+{
+  "package": "xde",
+  "requirements": [
+    "Biobase",
+    "XDE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "XDE"
+    ]
+  }
+}

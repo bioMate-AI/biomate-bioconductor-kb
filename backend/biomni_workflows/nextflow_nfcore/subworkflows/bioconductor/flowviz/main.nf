@@ -1,157 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: flowViz
-// Provides visualization tools for flow cytometry data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/flowViz/inst/doc/filters.R
-// Upstream  : flowStats
-// Downstream: flowFP, flowVS
-//
-// Install: BiocManager::install("flowViz")
+// Bioconductor workflow: flowViz — two_dimensional_scatter_plots
+// Visualize flow cytometry data in 2D scatter plots with geometric or data-driven gates.
+// Input: GvHD
+// Container: quay.io/biocontainers/bioconductor-flowviz:1.74.0--r45hdfd78af_0
+// R packages: flowCore, flowStats, flowViz
+// Bioconductor: 3.20 | R: 4.4
+// Requires: flowCore, flowStats, flowViz
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Subset the flowSet to the patient of interest
+//  * 2. [Core Analysis] Transform fluorescence channels using asinh
+//  * 3. [Input & Preparation] Define geometric gates (rectangleGate) or data-driven gates (norm2Filter, curv2Filter)
+//  * 4. [Visualization & Output] Plot using xyplot with the filter argument (smoothed, non-smoothed, hexbin, or with statistics)
 
 nextflow.enable.dsl = 2
 
-process BIOC_FLOWVIZ {
+process BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-flowviz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-flowviz:1.70.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-flowviz:1.70.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_flowviz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_flowviz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_flowviz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("flowCore", "flowStats", "flowViz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(flowCore)
     library(flowViz)
-    library(jsonlite)
+    library(flowStats)
+    
+    # Read the user input flowSet object from the working directory
+    GvHD <- readRDS("GvHD.rds")
+    
+    # Open PDF device to save the plots
+    pdf("flowViz_plots.pdf", width=10, height=8)
+    
+    # 1. Subset the flowSet to the patient of interest
+    GvHD <- GvHD[pData(GvHD)\$Patient==6]
+    
+    # 2. Transform fluorescence channels using asinh
+    tf <- transformList(from=colnames(GvHD)[3:7], tfun=asinh)
+    GvHD <- tf %on% GvHD
+    
+    # 3. Define geometric gates (rectangleGate) and plot
+    rgate <- rectangleGate("FSC-H"=c(0, 400),"SSC-H"=c(-50, 300))
+    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate))
+    
+    rgate2 <- rgate * rectangleGate("FL1-H"=c(2, 4))
+    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate2))
+    
+    # Non-smoothed scatter plots
+    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE))
+    
+    # Hexbin scatter plot for faster rendering
+    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE, xbin=128))
+    
+    # Non-smoothed plot with statistics
+    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE, stat=TRUE, pos=0.5, abs=TRUE))
+    
+    # Multiple filters in one panel
+    recGate1<-rectangleGate("FL4-H"=c(3.3,5.3),"FL2-H"=c(2.5,5))
+    recGate2<-rectangleGate("FL4-H"=c(4,6),"FL2-H"=c(6,8))
+    filters1<-filters(list(recGate1,recGate2))
+    print(xyplot(`FL2-H` ~ `FL4-H` ,data=GvHD[[1]] ,filter=filters1 ,stat=TRUE ,margin=FALSE ))
+    
+    # 4. Data-driven gates (norm2Filter)
+    n2Filter <- norm2Filter("SSC-H", "FSC-H", scale=2, filterId="Lymphocytes")
+    n2Filter.results <- filter(GvHD, n2Filter)
+    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=n2Filter.results))
+    
+    # Data-driven gates (curv2Filter)
+    c2f <- curv2Filter("FSC-H", "FL4-H", bwFac=1.8)
+    c2f.results <- filter(GvHD, c2f)
+    print(xyplot(`FL4-H` ~ `FSC-H` | Visit, data=GvHD, filter=c2f.results))
+    
+    # Close the PDF device
+    dev.off()
+    
+    # Save the filter results to RDS files
+    saveRDS(n2Filter.results, "n2Filter_results.rds")
+    saveRDS(c2f.results, "c2f_results.rds")
 
-    # --- Data Loading and Transformation [flowViz] ---
-    # Key functions: pData, transformList, %on%
-    data(GvHD, package = "flowCore")
-    GvHD_sub <- GvHD[flowCore::pData(GvHD)$Patient == 6]
-    tf <- flowCore::transformList(
-        from = colnames(GvHD_sub)[3:7],
-        tfun = asinh
-    )
-    GvHD_trans <- tf %on% GvHD_sub
-
-    # --- Bivariate Gating and Visualization [flowViz] ---
-    # Key functions: xyplot, rectangleGate
-    rgate <- flowCore::rectangleGate(
-        "FSC-H" = c(0, 400),
-        "SSC-H" = c(-50, 300)
-    )
-    rgate2 <- rgate * flowCore::rectangleGate("FL1-H" = c(2, 4))
-    xyplot(
-        `SSC-H` ~ `FSC-H` | Visit,
-        data = GvHD_trans,
-        filter = rgate2,
-        smooth = FALSE,
-        xbin = 128
-    )
-
-    # --- Statistical Gating and Plotting [flowViz] ---
-    # Key functions: xyplot, norm2Filter, filter
-    n2Filter <- flowCore::norm2Filter(
-        "SSC-H", "FSC-H",
-        scale = 2,
-        filterId = "Lymphocytes"
-    )
-    n2Filter.results <- flowCore::filter(GvHD_trans, n2Filter)
-    xyplot(
-        `SSC-H` ~ `FSC-H` | Visit,
-        data = GvHD_trans,
-        filter = n2Filter.results,
-        names = TRUE,
-        par.settings = list(
-            gate = list(fill = "black", alpha = 0.2, col = "transparent"),
-            gate.text = list(col = "darkred", alpha = 0.7, cex = 0.6)
-        )
-    )
-
-    # --- One-dimensional Density Plotting [flowViz] ---
-    # Key functions: densityplot, curv1Filter
-    rgate2 <- flowCore::rectangleGate(
-        "FSC-H" = c(0, 400),
-        "SSC-H" = c(-50, 300)
-    )
-    densityplot(
-        ~ .,
-        GvHD_trans,
-        channels = c("FSC-H", "SSC-H", "FL1-H"),
-        filter = list(flowStats::curv1Filter("FSC-H"), NULL, rgate2)
-    )
-
-    # --- Parallel Coordinates Visualization [flowViz] ---
-    # Key functions: parallel, norm2Filter, filter
-    n2Filter <- flowCore::norm2Filter(
-        "SSC-H", "FSC-H",
-        scale = 2,
-        filterId = "Lymphocytes"
-    )
-    n2Filter.results <- flowCore::filter(GvHD_trans, n2Filter)
-    parallel(
-        ~ . | Visit,
-        GvHD_trans,
-        filter = n2Filter.results,
-        alpha = 0.01
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_flowviz_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_flowviz_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_flowviz_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FLOWVIZ:", paste0("    flowviz: ", packageVersion("flowViz"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS":',
+        paste0('    flowViz: ', as.character(packageVersion('flowViz')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_flowviz_results.csv
-    touch ${prefix}_flowviz_output.rds
-    echo "BIOC_FLOWVIZ:" > versions.yml
-    echo "    flowviz: 0.0.0" >> versions.yml
+    touch ${prefix}_two_dimensional_scatter_plots.csv versions.yml
     """
 }
 
-
-workflow BIOC_FLOWVIZ_WORKFLOW {
+workflow BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GvHD ] ]
 
     main:
-    BIOC_FLOWVIZ(ch_input)
+    BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS(ch_input)
 
     emit:
-    results  = BIOC_FLOWVIZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FLOWVIZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FLOWVIZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FLOWVIZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS.out.tables
+    plots    = BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS.out.plots
+    objects  = BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS.out.objects
+    versions = BIOC_FLOWVIZ_TWO_DIMENSIONAL_SCATTER_PLOTS.out.versions
 }

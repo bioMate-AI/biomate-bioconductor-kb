@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: K=Range of clusters to fit (e.g., K=2:25) ;; model=Clustering model to use (\"kmeans\" or \"Normal\" for Gaussian mixture models, or \"Poisson\" for backwards compatibility) ;; transformation=Transformation to apply to normalized profiles (\"logclr\", \"clr\", or \"none\" for K-means; \"arcsin\", \"logit\", or \"none\" for Gaussian mixture models) ;; norm=Library size normalization method (e.g., \"TMM\") ;; meanFilterCutoff=Cutoff to filter out weakly expressed genes (e.g., 50 for K-means, 200 for Normal) ;; seed=Seed for the random number generator to ensure reproducible results ;; parallel=Logical indicating whether to use parallel execution via BiocParallel (parallel=TRUE) ;; subset=Subset of genes to analyze, which can be a vector of indices or a DESeq2/edgeR results object ;; alpha=Significance threshold for differential expression when using a DESeq2/edgeR object in subset ;; normFactors=Pre-computed normalization factors (set to \"none\" if using pre-normalized profiles)\n- alternatives: HTSCluster=Mentioned as the original implementation of the Poisson mixture model. coseq provides a wrapper for it, but the authors now recommend using either the Gaussian mixture model or the K-means approach instead.\n- when_to_use: Use this package when you want to perform co-expression clustering (unsupervised grouping) on RNA-seq count data, particularly on a subset of genes identified as differentially expressed in a prior analysis.\n- pitfalls: initialization_sensitivity=Rerunning coseq without setting a seed can lead to different cluster numbers and assignments due to random initialization. Always use the seed argument for reproducibility ;; singular_covariance_matrices=The default Gaussian mixture model (Gaussian_pk_Lk_Ck) may fail to estimate due to non-invertible covariance matrices. If this occurs, use a more restrictive model like Gaussian_pk_Lk_Bk (spherical) or Gaussian_pk_Lk_I (diagonal) ;; condition_ordering_inconsistency=Inconsistent condition ordering in plots when comparing individual samples vs collapsed replicates can occur if samples in the count matrix are not sorted alphabetically by condition. Sort the count matrix by condition before running coseq to fix this.",
+  "workflows": [
+    {
+      "name": "standard_coexpression_analysis",
+      "intent": "Perform co-expression clustering directly on a raw count matrix using K-means or Gaussian mixture models, followed by model selection, parameter extraction, and visualization.",
+      "input": [
+        "counts (matrix or data.frame of gene-level counts of dimension n x d)"
+      ],
+      "stages": "1. Run coseq with K-means and logclr transformation (or Normal model with arcsin/logit transformation) ;; 2. Compare models using compareICL or compareARI ;; 3. Summarize the selected model using summary ;; 4. Extract cluster labels using clusters and conditional probabilities using assay ;; 5. Access transformed profiles using tcounts and normalized profiles using profiles ;; 6. Plot results using plot",
+      "code": "runLogCLR <- coseq(counts, K=2:25, transformation=\"logclr\",norm=\"TMM\", \n                      meanFilterCutoff=50, model=\"kmeans\",\n                   nstart=1, iter.max=10)\nrunArcsin <- coseq(counts, K=2:20, model=\"Normal\", transformation=\"arcsin\", \n                   meanFilterCutoff=200, iter=10)\nrunLogit <- coseq(counts, K=2:20, model=\"Normal\", transformation=\"logit\", \n                  meanFilterCutoff=200, verbose=FALSE, iter=10)\ncompareICL(list(runArcsin, runLogit))\ncompareARI(runArcsin, K=8:12)\nsummary(runArcsin)\nplot(runArcsin, graphs=\"boxplots\")\nlabels <- clusters(runArcsin)\nprobapost <- assay(runArcsin)\ntcounts(runArcsin)\nprofiles(runArcsin)\nfullres <- coseqFullResults(runArcsin)"
+    },
+    {
+      "name": "deseq2_integrated_coexpression",
+      "intent": "Run co-expression analysis directly on a DESeq2 pipeline output to cluster differentially expressed genes.",
+      "input": [
+        "counts (matrix or data.frame of gene-level counts)",
+        "conds (vector of experimental conditions)"
+      ],
+      "stages": "1. Create a DESeqDataSet and run differential expression analysis using DESeq ;; 2. Run coseq directly on the DESeqDataSet object, specifying the range of clusters K and significance threshold alpha or passing a subset",
+      "code": "library(DESeq2)\ndds <- DESeqDataSetFromMatrix(counts, DataFrame(group=factor(conds)), ~group)\ndds <- DESeq(dds, test=\"LRT\", reduced = ~1)\nres <- results(dds)\nsummary(res)\nrun <- coseq(dds, K=2:15, verbose=FALSE)\nrun <- coseq(dds, K=2:15, alpha=0.05)\nrun <- coseq(dds, K=2:15, subset=results(dds, alpha=0.05))"
+    },
+    {
+      "name": "edger_integrated_coexpression",
+      "intent": "Run co-expression analysis on differentially expressed genes identified via edgeR (using either QLF or LRT tests, or multiple contrasts).",
+      "input": [
+        "counts (matrix or data.frame of gene-level counts)",
+        "conds (vector of experimental conditions)"
+      ],
+      "stages": "1. Create a DGEList, normalize, estimate dispersions, and fit GLM ;; 2. Perform QLF or LRT test ;; 3. Run coseq on the count matrix, subsetting by the edgeR test results and specifying alpha ;; 4. Alternatively, extract DE indices manually from multiple contrasts and run coseq with pre-computed normalization factors",
+      "code": "library(edgeR)\ny <- DGEList(counts=counts, group=factor(conds))\ny <- calcNormFactors(y)\ndesign <- model.matrix(~conds)\ny <- estimateDisp(y, design)\nfit <- glmQLFit(y, design)\nqlf <- glmQLFTest(fit, coef=2)\nfit <- glmFit(y,design)\nlrt <- glmLRT(fit,coef=2)\nrun <- coseq(counts, K=2:15, subset=lrt, alpha=0.1)\nrun <- coseq(counts, K=2:15, subset=qlf, alpha=0.1)\n\ny <- DGEList(counts=counts)\ny <- calcNormFactors(y)\ny <- estimateDisp(y, design)\nfit <- glmQLFit(y, design)\nqlf_1 <- glmQLFTest(fit, coef=2)\nqlf_2 <- glmQLFTest(fit, coef=3)\nde_indices <- c(unique(\n    which(topTags(qlf_1, sort.by = \"none\", n=Inf)$table$FDR < 0.05),\n    which(topTags(qlf_2, sort.by = \"none\", n=Inf)$table$FDR < 0.05)\n))\nrun <- coseq(counts, K=2:25, \n             normFactors = y$samples$norm.factors,\n             subset = de_indices)"
+    }
+  ]
+}

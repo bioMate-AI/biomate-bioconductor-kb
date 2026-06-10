@@ -1,0 +1,25 @@
+{
+  "package": "tanggle",
+  "requirements": [
+    "ape",
+    "ggplot2",
+    "ggtree",
+    "phangorn",
+    "tanggle"
+  ],
+  "by_workflow": {
+    "explicit_networks.nf": [
+      "ape",
+      "ggplot2",
+      "ggtree",
+      "phangorn",
+      "tanggle"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "ggtree",
+      "phangorn",
+      "tanggle"
+    ]
+  }
+}

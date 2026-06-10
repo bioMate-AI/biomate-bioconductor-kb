@@ -1,0 +1,11 @@
+{
+  "package": "ndexr",
+  "requirements": [
+    "ndexr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ndexr"
+    ]
+  }
+}

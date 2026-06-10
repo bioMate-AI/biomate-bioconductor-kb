@@ -1,0 +1,13 @@
+{
+  "package": "drawproteins",
+  "requirements": [
+    "drawProteins",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "drawProteins",
+      "ggplot2"
+    ]
+  }
+}

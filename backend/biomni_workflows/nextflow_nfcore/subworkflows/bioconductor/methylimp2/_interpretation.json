@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - input=A numeric data matrix (samples in rows, probes in columns) or a SummarizedExperiment object (probes in rows, samples in columns) containing missing values.\n    - type=The platform type of the methylation data, either \"450k\", \"EPIC\", or \"user\".\n    - annotation=A user-provided data frame mapping CpGs to chromosomes, required only if type is set to \"user\".\n    - BPPARAM=A BiocParallel parameter object (e.g., SnowParam(workers = N)) to control parallelization across chromosomes.\n    - minibatch_frac=A numeric value between 0 and 1 specifying the fraction of samples to use for mini-batch computation to reduce runtime on large datasets (default is 1).\n    - overwrite_res=A logical value indicating whether to overwrite the existing assay in the SummarizedExperiment object (default is TRUE) or add a new slot (FALSE).\n- alternatives:\n    - methyLImp=The original non-parallelized version of the algorithm, which is significantly slower on large datasets.\n    - General-purpose imputation methods=Often inefficient with high-dimensional genomics data and not tailored to exploit inter-sample correlation in methylation data.\n- when_to_use:\n    - Use this package when DNA methylation profiles contain missing values (NAs) due to technical issues, and downstream analysis methods require a complete dataset. Imputation should be performed early in the workflow, typically before normalization and exploratory analysis.\n- pitfalls:\n    - Input orientation mismatch: If using a numeric matrix, samples must be in rows and probes in columns. If using a SummarizedExperiment, the orientation must be reversed (probes in rows, samples in columns).\n    - Over-allocation of cores: Specifying more parallel workers (BPPARAM) than the number of chromosomes in the dataset will trigger a warning and cause the package to overwrite the setting, as extra cores are unnecessary.",
+  "workflows": [
+    {
+      "name": "methylation_imputation",
+      "intent": "Impute missing values in DNA methylation data using parallelized linear regression and optional mini-batching.",
+      "input": [
+        "beta_SE (SummarizedExperiment containing DNA methylation beta values with missing entries)"
+      ],
+      "stages": "1. Load the DNA methylation data and metadata.\n2. Run the methyLImp2 imputation algorithm, specifying the array type, parallelization settings, and mini-batch fraction.",
+      "code": "time <- system.time(beta_SE_imputed <- methyLImp2(input = beta_SE, \n                                               type = \"EPIC\", \n                                               BPPARAM = SnowParam(exportglobals = FALSE),\n                                               minibatch_frac = 0.5))"
+    }
+  ]
+}

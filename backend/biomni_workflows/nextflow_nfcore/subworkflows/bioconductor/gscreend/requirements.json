@@ -1,0 +1,13 @@
+{
+  "package": "gscreend",
+  "requirements": [
+    "SummarizedExperiment",
+    "gscreend"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "gscreend"
+    ]
+  }
+}

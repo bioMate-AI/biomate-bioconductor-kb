@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_GYPSUM {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-gypsum"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gypsum:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gypsum:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,26 +40,52 @@ process BIOC_GYPSUM {
     library(gypsum)
     library(jsonlite)
 
-    # --- File and Version Retrieval [] ---
-    # Key functions: saveFile, saveVersion, fetchLatest
-    local_file <- saveFile("test-R", "basic", "v1", "blah.txt")
-    local_dir <- saveVersion("test-R", "basic", "v1")
-    latest_ver <- fetchLatest("test-R", "basic")
+    # --- Listing Assets and Versions [] ---
+    # Key functions: listAssets, listVersions, listFiles
+    all_assets <- listAssets("test-R")
+    basic_versions <- listVersions("test-R", "basic")
+    v1_files <- listFiles(
+        project = "test-R",
+        asset = "basic",
+        version = "v1"
+    )
 
+    # --- Downloading Files and Versions [] ---
+    # Key functions: saveFile, saveVersion
+    local_file <- saveFile(
+        project = "test-R",
+        asset = "basic",
+        version = "v1",
+        path = "blah.txt"
+    )
+    local_dir <- saveVersion(
+        project = "test-R",
+        asset = "basic",
+        version = "v1"
+    )
 
-    # --- Metadata and Usage Auditing [] ---
-    # Key functions: fetchManifest, fetchSummary, fetchPermissions, fetchQuota, fetchUsage
+    # --- Fetching Metadata and Manifests [] ---
+    # Key functions: fetchManifest, fetchSummary, fetchLatest
     manifest <- fetchManifest("test-R", "basic", "v1")
     summary_info <- fetchSummary("test-R", "basic", "v1")
-    perms <- fetchPermissions("test-R")
-    quota <- fetchQuota("test-R")
-    usage <- fetchUsage("test-R")
+    latest_version <- fetchLatest("test-R", "basic")
 
+    # --- Preparing Uploads [] ---
+    # Key functions: cloneVersion, prepareDirectoryUpload
+    dest_dir <- tempfile()
+    cloneVersion(
+        project = "test-R",
+        asset = "basic",
+        version = "v1",
+        destination = dest_dir
+    )
+    write(c("Aaron", "Jayaram"), file = file.path(dest_dir, "BFFs"))
+    upload_info <- prepareDirectoryUpload(dest_dir)
 
-    # --- Metadata Validation [] ---
+    # --- Validating Metadata [] ---
     # Key functions: fetchMetadataSchema, validateMetadata
-    schema <- fetchMetadataSchema()
-    meta <- list(
+    schema_path <- fetchMetadataSchema()
+    meta_list <- list(
         title = "Fatherhood",
         description = "Luke ich bin dein Vater.",
         sources = list(list(provider = "GEO", id = "GSE12345")),
@@ -70,29 +95,37 @@ process BIOC_GYPSUM {
         maintainer_email = "vader@empire.gov",
         bioconductor_version = "3.10"
     )
-    validateMetadata(meta, schema)
+    validation_res <- validateMetadata(meta_list, schema_path)
 
+    # --- Querying Permissions and Quotas [] ---
+    # Key functions: fetchPermissions, fetchQuota, fetchUsage
+    perms <- fetchPermissions("test-R")
+    quota <- fetchQuota("test-R")
+    usage <- fetchUsage("test-R")
 
-    # --- Upload Preparation [] ---
-    # Key functions: cloneVersion, prepareDirectoryUpload
-    dest <- tempfile()
-    cloneVersion("test-R", "basic", "v1", destination = dest)
-    write(file = file.path(dest, "BFFs"), c("Aaron", "Jayaram"))
-    to_upload <- prepareDirectoryUpload(dest)
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gypsum_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_gypsum_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gypsum_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_gypsum_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gypsum_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_gypsum_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_GYPSUM:", paste0("    gypsum: ", packageVersion("gypsum"))),
+        c("BIOC_GYPSUM:", paste0("    gypsum: ", as.character(packageVersion("gypsum")))),
         "versions.yml"
     )
     """

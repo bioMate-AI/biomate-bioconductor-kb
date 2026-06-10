@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: CN=indicates genotype/platform configuration (CN=1 for SNP array or integrated data, CN=0 for NGS only/WGS) ;; mu=vector of mean values for HMM states (e.g., mu=c(-3,0,2)) ;; cap=logical, whether to cap values (e.g., cap=TRUE) ;; visual=visualization parameter (e.g., visual=1 or visual=2) ;; min_size=minimum size of CNV to output in output_list (e.g., min_size=10000) ;; optK=number of latent Poisson factors to use in CODEX normalization\n- alternatives: CODEX can be used alone for BAM normalization ;; Single-platform iCNV detection (NGS-only or SNP-only) can be used when multi-platform data is unavailable\n- when_to_use: Appropriate for copy number variation (CNV) detection from WES only, WGS only, SNP array only, or any combination of SNP and sequencing data. Highly recommended to combine platforms when both WES and SNP array are available.\n- pitfalls: False positives can be screened out post-segmentation, but CNV signals removed during normalization cannot be recovered; thus, CODEX opts for a conservative (smaller) K. SNP array LRR data can be highly noisy (showing local strip features across samples) and requires SVD normalization to remove high-dimensional noise. Input data for iCNV_detection must be in list form to accommodate sample-specific lengths (especially for BAF).",
+  "workflows": [
+    {
+      "name": "integrated_multi_platform_cnv_detection",
+      "intent": "Integrate NGS (WES/WGS) and SNP array data to detect CNVs.",
+      "input": [
+        "bamFile (NGS reads)",
+        "chr22_400_to_500.bed (exon targets)",
+        "bam_vcf.list (VCF file list for BAF)",
+        "csv.arrayicnv (SNP array intensity files containing Log R Ratio and B-allele frequency)"
+      ],
+      "stages": "1. Normalize BAM files using CODEX to get PLR (Poisson Likelihood Ratio) ;; 2. Call sequence variant BAFs from VCF using bambaf_from_vcf ;; 3. Convert SNP array intensity data using get_array_input and optionally denoise with SVD ;; 4. Run integrative CNV detection using iCNV_detection ;; 5. Format output using output_list and convert to Genome Browser format using icnv_output_to_gb ;; 6. Plot results using plotHMMscore and plotindi",
+      "code": "library(CODEX)\nlibrary(WES.1KG.WUGSC) # Load Toy data from the 1000 Genomes Project.\nlibrary(iCNV) \n# Assume your work dir set to demo\ndir <- system.file(\"extdata\", package = \"WES.1KG.WUGSC\") # 'PATH/TO/BAM'\nbamFile <- list.files(dir, pattern = '*.bam$')\nbamdir <- file.path(dir, bamFile)\nsampname <- as.matrix(read.table(file.path(dir, \"sampname\")))\nbedFile <- file.path(dir, \"chr22_400_to_500.bed\")\nchr <- 22\nbambedObj <- getbambed(bamdir = bamdir, bedFile = bedFile, \n                   sampname = sampname, projectname = \"icnv.demo.\", chr)\nbamdir <- bambedObj$bamdir; sampname <- bambedObj$sampname\nref <- bambedObj$ref; projectname <- bambedObj$projectname; chr <- bambedObj$chr\ncoverageObj <- getcoverage(bambedObj, mapqthres = 20)\nY <- coverageObj$Y; readlength <- coverageObj$readlength\ngc <- getgc(chr, ref)\nmapp <- getmapp(chr, ref)\nqcObj <- qc(Y, sampname, chr, ref, mapp, gc, cov_thresh = c(20, 4000), \n            length_thresh = c(20, 2000), mapp_thresh = 0.9, gc_thresh = c(20, 80))\nY_qc <- qcObj$Y_qc; sampname_qc <- qcObj$sampname_qc; gc_qc <- qcObj$gc_qc\nmapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat\nnormObj <- normalize(Y_qc, gc_qc, K = 1:9)\nYhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC\nRSS <- normObj$RSS; K <- normObj$K\nchoiceofK(AIC, BIC, RSS, K, filename = paste0(projectname, chr, \"_choiceofK.pdf\"))\nsave(qcObj,normObj,sampname,file=paste0(projectname,'plrObj_', chr,\".rda\"))\nload(paste0(projectname,'plrObj_',chr,\".rda\"))\noptK <- K[which.max(BIC)] # by default or customize given curves\nY_qc <- qcObj$Y_qc; sampname_qc <- qcObj$sampname_qc; gc_qc <- qcObj$gc_qc\nmapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat\nYhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC\nRSS <- normObj$RSS; K <- normObj$K\nref_qc <- qcObj$ref_qc # IRanges object for exon target\nsampname_qc <- qcObj$sampname_qc # sample names\nY_norm <- normObj$Yhat[[optK]] # normalized read count under null (no CNV)\nplr <- log(pmax(Y_qc,0.0001)/pmax(Y_norm,0.0001)) # log transformed z-scores\nngs_plr <- lapply(seq_len(ncol(plr)), function(i) plr[,i])\nngs_plr.pos <- lapply(seq_len(ncol(plr)),function(x){return(cbind(start(ref_qc),end(ref_qc)))})\nsave(sampname_qc,ngs_plr,ngs_plr.pos,file=paste0(projectname,'plrObj_',chr,'_',optK,'.rda'))\nprojectname <- \"icnv.demo.\"\ndir <- system.file(\"extdata\", package=\"iCNV\")\nbambaf_from_vcf(dir,'bam_vcf.list',chr=22,projectname) \nload(paste0(projectname,'bambaf_22.rda'))\ndir <- system.file(\"extdata\", package=\"iCNV\")#PATH/TO/FOLDER where you stored the array data\nchr <- 22\nprojectname <- \"icnv.demo.\"\npattern <- paste0('*.csv.arrayicnv$')\nget_array_input(dir,pattern,chr,projectname)\nload(paste0(projectname,'array_lrrbaf_',chr,'.rda'))\nlrr.sd <- mapply(function(x){\n  x=pmax(pmin(x,100),-100);(x-mean(x,na.rm=TRUE))/sd(x,na.rm = TRUE)\n  },snp_lrr,SIMPLIFY = TRUE)\nlrr.sd.dena <- apply(lrr.sd,2,function(x){x[is.na(x)]=mean(x,na.rm=TRUE);return(x)})\nlrr.svd <- svd (t(lrr.sd.dena))\nsave(lrr.svd,file=paste0(projectname,'array_lrrbaf_svd_',chr,'.rda'))\nplot(x=seq_len(10),y=(lrr.svd$d[1:10])^2/sum(lrr.svd$d^2),\n     xlab='rank',ylab='D square',main='Variance explained',type='l')\nprojectname <- 'icnv.demo.'\nicnv_res0 <- iCNV_detection(ngs_plr,snp_lrr,\n                         ngs_baf,snp_baf,\n                         ngs_plr.pos,snp_lrr.pos,\n                         ngs_baf.pos,snp_baf.pos,\n                         projname=projectname,CN=1,mu=c(-3,0,2),cap=TRUE,visual = 1)\nicnv.output <- output_list(icnv_res0,sampname_qc,CN=1)\nhead(icnv.output)\nplotHMMscore(icnv_res0,title=projectname)\nicnv.output <- output_list(icnv_res=icnv_res0,sampleid=sampname_qc, CN=0, min_size=10000)\ngb_input <- icnv_output_to_gb(22,icnv.output)\nwrite.table(gb_input,file=paste0(projectname,'icnv_res_gb_chr',chr,'.tab'),\n            quote=FALSE,col.names=FALSE,row.names=FALSE)\nI <- 24 # ploting out the 24th individual\nplotindi(ngs_plr,snp_lrr,\n         ngs_baf,snp_baf,\n         ngs_plr.pos,snp_lrr.pos,\n         ngs_baf.pos,snp_baf.pos,\n         icnv_res0,I)"
+    },
+    {
+      "name": "ngs_only_cnv_detection",
+      "intent": "Detect CNVs using only NGS data (WES or WGS).",
+      "input": [
+        "ngs_plr (List of PLR vectors)",
+        "ngs_plr.pos (List of exon start/end matrices)",
+        "ngs_baf (List of variant BAF vectors)",
+        "ngs_baf.pos (List of variant BAF positions)"
+      ],
+      "stages": "1. Run NGS-only CNV detection using iCNV_detection with CN=0 ;; 2. Format output using output_list ;; 3. Plot results using plotHMMscore",
+      "code": "projectname <- 'icnv.demo.ngs.'\nicnv_res0_ngs <- iCNV_detection(ngs_plr=ngs_plr, ngs_baf = ngs_baf, \n                             ngs_plr.pos = ngs_plr.pos,ngs_baf.pos = ngs_baf.pos,\n                             projname=projectname,CN=0,mu=c(-3,0,2),cap=TRUE,visual = 2)\nicnv.output <- output_list(icnv_res0_ngs,sampname_qc,CN=0)\nhead(icnv.output)\nplotHMMscore(icnv_res0_ngs,title=projectname)"
+    },
+    {
+      "name": "snp_array_only_cnv_detection",
+      "intent": "Detect CNVs using only SNP array data.",
+      "input": [
+        "snp_lrr (List of normalized LRR vectors)",
+        "snp_lrr.pos (List of SNP positions)",
+        "snp_baf (List of SNP BAF vectors)",
+        "snp_baf.pos (List of SNP BAF positions)"
+      ],
+      "stages": "1. Run SNP array-only CNV detection using iCNV_detection with CN=1 ;; 2. Format output using output_list ;; 3. Plot results using plotHMMscore",
+      "code": "projectname <- 'icnv.demo.snp'\nicnv_res0_snp <- iCNV_detection(snp_lrr=snp_lrr, snp_baf = snp_baf, \n                             snp_lrr.pos = snp_lrr.pos,snp_baf.pos = snp_baf.pos,\n                             projname=projectname,CN=1,mu=c(-3,0,2),cap=TRUE,visual = 2)\nicnv.output <- output_list(icnv_res0_snp,sampname_qc,CN=1)\nhead(icnv.output)\nplotHMMscore(icnv_res0_snp,title=projectname)"
+    }
+  ]
+}

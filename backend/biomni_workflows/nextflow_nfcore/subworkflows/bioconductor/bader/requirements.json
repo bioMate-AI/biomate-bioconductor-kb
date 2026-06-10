@@ -1,0 +1,11 @@
+{
+  "package": "bader",
+  "requirements": [
+    "BADER"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BADER"
+    ]
+  }
+}

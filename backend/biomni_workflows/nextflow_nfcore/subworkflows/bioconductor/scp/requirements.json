@@ -1,0 +1,17 @@
+{
+  "package": "scp",
+  "requirements": [
+    "MsCoreUtils",
+    "QFeatures",
+    "ggplot2",
+    "scp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MsCoreUtils",
+      "QFeatures",
+      "ggplot2",
+      "scp"
+    ]
+  }
+}

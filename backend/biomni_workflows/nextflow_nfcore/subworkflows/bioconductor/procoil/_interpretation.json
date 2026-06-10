@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: PrOCoilModel=The default prediction model optimized for overall classification accuracy ;; PrOCoilModelBA=An alternative prediction model optimized for balanced accuracy (equal weight to sensitivity and specificity) ;; seq=The amino acid sequence(s) to be analyzed, supplied as a character vector, AAString, or AAStringSet ;; reg=The heptad register annotation of the same length as the sequence, using 'a'-'g' for coiled coil positions and '-' for non-coiled coil positions\n- alternatives: PrOCoil Web Interface=Preferred for beginners, supports direct upload and preprocessing of PairCoil2 and Marcoil outputs ;; PairCoil2 / Marcoil=Used to predict the coiled coil segments and heptad registers themselves from raw sequences before running procoil\n- when_to_use: Appropriate when analyzing structurally unresolved protein sequences containing suspected coiled coil regions to determine their oligomerization state (dimer vs. trimer) and to identify specific residues driving this behavior.\n- pitfalls: Sequence and heptad register annotations must be of exactly equal length ;; Profile values are context-dependent due to pairwise interactions and cannot be interpreted as general rules for isolated residues ;; Objects saved with procoil versions prior to 2.0.0 are incompatible with version 2.0.0 or newer ;; The R package cannot directly parse raw PairCoil2 or Marcoil output files without manual formatting or web-based preprocessing",
+  "workflows": [
+    {
+      "name": "coiled_coil_prediction",
+      "intent": "Predict the oligomerization state (dimer vs. trimer) of a single coiled coil sequence and visualize its residue-level contribution profile.",
+      "input": [
+        "sequence.fasta (amino acid sequence of the coiled coil region)",
+        "register.txt (aligned heptad register annotation of the same length)"
+      ],
+      "stages": "1. Run prediction using predict() with the default model, sequence, and register ;; 2. Display the prediction score and classification ;; 3. Plot the contribution profile using plot()",
+      "code": "GCN4wt <- predict(PrOCoilModel,\n                  \"MKQLEDKVEELLSKNYHLENEVARLKKLV\",\n                  \"abcdefgabcdefgabcdefgabcdefga\")\nGCN4wt\nplot(GCN4wt)"
+    },
+    {
+      "name": "comparative_mutation_analysis",
+      "intent": "Compare the oligomerization profiles of wild-type and mutant coiled coil sequences to analyze the impact of mutations.",
+      "input": [
+        "mutant_sequences.fasta (multiple aligned amino acid sequences)",
+        "registers.txt (corresponding aligned heptad register annotations)"
+      ],
+      "stages": "1. Run prediction on multiple sequences simultaneously using predict() ;; 2. Plot comparative profiles of selected sequences using plot() ;; 3. Generate a hierarchical clustering heatmap of the profiles using heatmap()",
+      "code": "GCN4mSeq <- c(\"GCN4wt\"        =\"MKQLEDKVEELLSKNYHLENEVARLKKLV\",\n              \"GCN4_N16Y_L19T\"=\"MKQLEDKVEELLSKYYHTENEVARLKKLV\",\n              \"GCN4_E22R_K27E\"=\"MKQLEDKVEELLSKNYHLENRVARLEKLV\",\n              \"GCN4_V23K_K27E\"=\"MKQLEDKVEELLSKNYHLENEKARLEKLV\")\nGCN4mReg <- rep(\"abcdefgabcdefgabcdefgabcdefga\", 4)\n\nGCN4mut <- predict(PrOCoilModel, GCN4mSeq, GCN4mReg)\nGCN4mut\nplot(GCN4mut[c(1, 2)])\nheatmap(GCN4mut)"
+    }
+  ]
+}

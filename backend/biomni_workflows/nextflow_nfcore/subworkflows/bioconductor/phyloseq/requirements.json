@@ -1,0 +1,19 @@
+{
+  "package": "phyloseq",
+  "requirements": [
+    "DESeq2",
+    "ggplot2",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "differential_abundance_deseq2.nf": [
+      "DESeq2",
+      "ggplot2",
+      "phyloseq"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "phyloseq"
+    ]
+  }
+}

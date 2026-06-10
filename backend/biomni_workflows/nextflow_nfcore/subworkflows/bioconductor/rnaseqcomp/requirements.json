@@ -1,0 +1,11 @@
+{
+  "package": "rnaseqcomp",
+  "requirements": [
+    "rnaseqcomp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rnaseqcomp"
+    ]
+  }
+}

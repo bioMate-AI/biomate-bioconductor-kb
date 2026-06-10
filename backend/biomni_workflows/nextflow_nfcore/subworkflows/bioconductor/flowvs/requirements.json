@@ -1,0 +1,11 @@
+{
+  "package": "flowvs",
+  "requirements": [
+    "flowVS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowVS"
+    ]
+  }
+}

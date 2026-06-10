@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: GTF.File=Path to input GTF file ;; GFF.File=Path to write the flattened GFF file (optional) ;; paired.Reads=Logical indicating if BAM files contain paired-end reads (default is FALSE) ;; combine.Exons=Logical indicating whether to combine co-expressed exons into super-exons to increase power and speed (default is FALSE) ;; plot.Results=Logical indicating whether to automatically plot significant results (default is FALSE) ;; FDR.cutoff=FDR threshold for plotting significant genes (default is 0.05, range 0.01 to 0.2) ;; plot.Type=Format of the output plots (e.g., \"PNG\")\n- alternatives: rtracklayerGTFtoGFF can be used as an alternative to GFF_convert if GTF files are imported via rtracklayer::import()\n- when_to_use: Use this package when you have RNA-seq BAM files from exactly two biological conditions (with at least two replicates per condition) and want to identify and visualize differentially spliced genes.\n- pitfalls: ExCluster does not support Windows operating systems because it depends on Rsubread ;; Mixed sample types (e.g., combining single-end and paired-end BAMs in one run) are not supported ;; The order of sampleNames must precisely match the order of bamFiles and condNums ;; Setting combine.Exons=TRUE may miss aberrant splicing events; use FALSE if aberrant splicing is suspected ;; plotExonlog2FC does not accept GRanges objects and must be run on the raw ExCluster results data frame",
+  "workflows": [
+    {
+      "name": "differential_splicing_analysis",
+      "intent": "Perform a complete differential splicing analysis from GTF and BAM files, identify differentially spliced genes, plot exon log2 fold changes, and format results as a GRanges object.",
+      "input": [
+        "GTF_file (GTF genome annotation file)",
+        "bamFiles (aligned RNA-seq BAM files)"
+      ],
+      "stages": "1. Convert GTF to flattened GFF format using GFF_convert ;; 2. Count and normalize reads per exon bin from BAM files using processCounts ;; 3. Run the core differential splicing analysis using ExCluster ;; 4. Plot exon log2 fold changes for significant genes using plotExonlog2FC ;; 5. Convert results to a GRanges object using GRangesFromExClustResults",
+      "code": "library(ExCluster)\nGTF_file <- system.file(\"extdata\",\"sub_gen.v23.gtf\", package = \"ExCluster\")\nGFF <- GFF_convert(GTF.File=GTF_file)\nExClust_Path <- system.file(package=\"ExCluster\")\nbamFiles <- list.files(ExClust_Path,recursive=TRUE,pattern=\"*.bam\",full.names=TRUE)\nsampleNames <- c(\"iPSC_cond1_rep1\",\"iPSC_cond1_rep2\",\"iPSC_cond2_rep1\",\"iPSC_cond2_rep2\")\nnormCounts <- processCounts(bam.Files=bamFiles, sample.Names=sampleNames, annot.GFF=GFF, paired.Reads=TRUE)\ncondNums <- c(1,1,2,2)\nExClust_Results <- ExCluster(exon.Counts=normCounts,cond.Nums=condNums,annot.GFF=GFF, combine.Exons=FALSE)\noutDir <- paste(tempdir(),\"/Images/\",sep=\"\")\nplotExonlog2FC(results.Data=ExClust_Results, out.Dir=outDir, plot.Type=\"PNG\")\nGRanges.ExClustResults <- GRangesFromExClustResults(results.ExClust=ExClust_Results)"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "package": "qubic",
+  "requirements": [
+    "QUBIC",
+    "RColorBrewer"
+  ],
+  "by_workflow": {
+    "bicluster_expanding.nf": [
+      "QUBIC"
+    ],
+    "main.nf": [
+      "QUBIC",
+      "RColorBrewer"
+    ],
+    "query_based_biclustering.nf": [
+      "QUBIC"
+    ]
+  }
+}

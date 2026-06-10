@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: geneSet=A data frame or list mapping genes to genomic features ;; ESet=An ExpressionSet containing the first genomic feature (e.g., gene expression) and phenotypic data ;; MSet=An ExpressionSet containing the second genomic feature (e.g., DNA methylation) and phenotypic data ;; promise.pattern=A data frame defining the desired association pattern with columns for coefficients, statistical functions, and endpoint variables ;; strat.var=A variable for stratification, set to NULL if no stratification is needed ;; prlbl=A character vector of labels for the phenotypic endpoints ;; EMlbl=A character vector of length 2 labeling the two genomic data forms ;; nbperm=A logical value indicating whether to use fast permutation based on a negative binomial distribution ;; max.ntail=The number of tail permutations for adaptive permutation testing ;; nperms=The number of permutations to perform ;; seed=An integer seed for reproducibility\n- alternatives: PROMISE is the predecessor package, which is suitable when analyzing only a single form of genomic data against multiple endpoints, whereas CCPROMISE should be preferred when integrating two distinct forms of genomic data (e.g., expression and methylation).\n- when_to_use: Use this package when you have two high-dimensional genomic datasets (such as transcriptomics and methylomics) collected on the same set of subjects, and you want to identify features that jointly associate with multiple clinical or phenotypic endpoints according to a predefined biological hypothesis.\n- pitfalls: The subject IDs and their order must be identical between ESet and MSet. Within each ExpressionSet, the array IDs in the phenoData must match the column names of the exprs matrix. The association pattern definition (promise.pattern) must be carefully constructed using prior biological knowledge to ensure meaningful statistical projection.",
+  "workflows": [
+    {
+      "name": "gene_level_ccpromise",
+      "intent": "Perform CCPROMISE analysis at the gene level to integrate two genomic datasets with multiple phenotypic endpoints.",
+      "input": [
+        "exmplGeneSet (gene set mapping data frame)",
+        "exmplESet (ExpressionSet containing expression data and phenotype endpoints)",
+        "exmplMSet (ExpressionSet containing methylation data and phenotype endpoints)",
+        "exmplPat (data frame defining the association pattern)"
+      ],
+      "stages": "1. Load the CCPROMISE package and example datasets ;; 2. Run the CCPROMISE function at the gene level with fast negative binomial permutation ;; 3. Inspect the gene-level PROMISE results",
+      "code": "library(CCPROMISE)\ndata(exmplESet)\ndata(exmplMSet)\ndata(exmplGeneSet)\ndata(exmplPat)\ntest1 <- CCPROMISE(geneSet=exmplGeneSet, \n              ESet=exmplESet, \n              MSet=exmplMSet, \n              promise.pattern=exmplPat,                                            \n              strat.var=NULL,\n              prlbl=c('LC50', 'MRD22', 'EFS', 'PR3'), \n              EMlbl=c(\"Expr\", \"Methyl\"), \n              nbperm=TRUE,\n              max.ntail=10,\n              nperms=100,\n              seed=13)\nhead(test1$PRres)"
+    },
+    {
+      "name": "probe_pair_level_ccpromise",
+      "intent": "Perform CCPROMISE analysis at the probe pair level to evaluate associations and correlations between individual probe pairs across two genomic datasets.",
+      "input": [
+        "exmplGeneSet (gene set mapping data frame)",
+        "exmplESet (ExpressionSet containing expression data and phenotype endpoints)",
+        "exmplMSet (ExpressionSet containing methylation data and phenotype endpoints)",
+        "exmplPat (data frame defining the association pattern)"
+      ],
+      "stages": "1. Load the CCPROMISE package and example datasets ;; 2. Run the PrbPROMISE function at the probe pair level with fast negative binomial permutation ;; 3. Inspect the probe-pair-level correlation results ;; 4. Inspect the probe-pair-level PROMISE results",
+      "code": "library(CCPROMISE)\ndata(exmplESet)\ndata(exmplMSet)\ndata(exmplGeneSet)\ndata(exmplPat)\ntest2 <- PrbPROMISE(geneSet=exmplGeneSet, \n              ESet=exmplESet, \n              MSet=exmplMSet, \n              promise.pattern=exmplPat,\n              strat.var=NULL,\n              prlbl=c('LC50', 'MRD22', 'EFS', 'PR3'), \n              EMlbl=c(\"Expr\", \"Methyl\"),\n              nbperm=TRUE,\n              max.ntail=10,\n              nperms=100,\n              seed=13)\nhead(test2$CORres)\nhead(test2$PRres)"
+    }
+  ]
+}

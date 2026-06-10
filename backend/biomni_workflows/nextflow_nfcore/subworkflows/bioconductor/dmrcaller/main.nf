@@ -1,51 +1,93 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DMRcaller
-// Uses Bisulfite sequencing data in two conditions and identifies differentially methylated regions be
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DMRcaller/inst/doc/DMRcaller.R
-// Upstream  : betareg
-// Downstream: none
-//
-// Install: BiocManager::install("DMRcaller")
+// Bioconductor workflow: DMRcaller — bisulfite_seq_dmr_analysis
+// Identify differentially methylated regions (DMRs) from Bismark CX report files.
+// Input: cond1.CX_report, cond2.CX_report, genes.gff
+// Container: quay.io/biocontainers/bioconductor-dmrcaller:1.42.0--r45ha27e39d_0
+// R packages: GenomicRanges, betareg, DMRcaller, rtracklayer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DMRcaller, GenomicRanges, rtracklayer
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Read Bismark CX report files using readBismark
+//  * 2. [Core Analysis] Pool replicates if necessary using poolMethylationDatasets or poolTwoMethylationDatasets
+//  * 3. [Core Analysis] Compute DMRs using computeDMRs
+//  * 4. [Core Analysis] Filter DMRs in predefined regions (e.g., genes) using filterDMRs
+//  * 5. [Core Analysis] Merge adjacent DMRs iteratively using mergeDMRsIteratively
+//  * 6. [Core Analysis] Analyze reads inside regions for other contexts using analyseReadsInsideRegionsForCondition
 
 nextflow.enable.dsl = 2
 
-process BIOC_DMRCALLER {
+process BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dmrcaller"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dmrcaller:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dmrcaller:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dmrcaller_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dmrcaller_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dmrcaller_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "betareg", "DMRcaller", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(DMRcaller)
-    library(GRanges)
-    library(GRangesList)
-    library(jsonlite)
-
-    # --- De Novo DMR Detection [] ---
-    # Key functions: computeDMRs
-    chr_local <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(5E5,6E5))
+    library(GenomicRanges)
+    library(rtracklayer)
+    
+    # 1. Read Bismark CX report files using readBismark
+    methylationDataWT <- readBismark("cond1.CX_report")
+    methylationDataMet13 <- readBismark("cond2.CX_report")
+    methylationDataList <- GRangesList("WT" = methylationDataWT,
+                                       "met1-3" = methylationDataMet13)
+    
+    # 2. Pooling
+    methylationDataAll <- poolMethylationDatasets(methylationDataList)
+    saveRDS(methylationDataAll, "methylationDataAll.rds")
+    
+    # Define chr_local dynamically from the input data to cover the entire range
+    chr_local <- range(methylationDataWT)
+    strand(chr_local) <- "*"
+    chr_local <- reduce(chr_local)
+    
+    # Read gene annotation from GFF
+    genes_all <- import("genes.gff")
+    genes <- genes_all[genes_all\$type == "gene"]
+    if (length(genes) == 0) {
+      genes <- genes_all
+    }
+    
+    # 3. Compute DMRs
     DMRsNoiseFilterCG <- computeDMRs(methylationDataList[["WT"]],
                           methylationDataList[["met1-3"]],
                           regions = chr_local,
@@ -61,28 +103,16 @@ process BIOC_DMRCALLER {
                           minSize = 50,
                           minReadsPerCytosine = 4,
                           cores = 1)
-    DMRsNeighbourhoodCG <- computeDMRs(methylationDataList[["WT"]],
-                                       methylationDataList[["met1-3"]],
-                                       regions = chr_local,
-                                       context = "CG",
-                                       method = "neighbourhood",
-                                       test = "score",
-                                       pValueThreshold = 0.01,
-                                       minCytosinesCount = 4,
-                                       minProportionDifference = 0.4,
-                                       minGap = 200,
-                                       minSize = 1,
-                                       minReadsPerCytosine = 4,
-                                       cores = 1)
-
-
-    # --- Targeted DMR Filtering and Annotation [] ---
-    # Key functions: filterDMRs
-    data(GEs)
-    genes <- GEs[which(GEs$type == "gene")]
+    
+    # 4. Filter DMRs
+    overlapping_genes <- genes[overlapsAny(genes, chr_local)]
+    if (length(overlapping_genes) == 0) {
+      overlapping_genes <- genes
+    }
+    
     DMRsGenesCG <- filterDMRs(methylationDataList[["WT"]],
                               methylationDataList[["met1-3"]],
-                              potentialDMRs = genes[overlapsAny(genes, chr_local)],
+                              potentialDMRs = overlapping_genes,
                               context = "CG",
                               test = "score",
                               pValueThreshold = 0.01,
@@ -90,10 +120,8 @@ process BIOC_DMRCALLER {
                               minProportionDifference = 0.4,
                               minReadsPerCytosine = 3,
                               cores = 1)
-
-
-    # --- DMR Merging and Downstream Analysis [] ---
-    # Key functions: mergeDMRsIteratively, analyseReadsInsideRegionsForCondition
+    
+    # 5. Merge DMRs
     DMRsNoiseFilterCGMerged <- mergeDMRsIteratively(DMRsNoiseFilterCG,
                                                     minGap = 200,
                                                     respectSigns = TRUE,
@@ -104,49 +132,49 @@ process BIOC_DMRCALLER {
                                                     minReadsPerCytosine = 4,
                                                     pValueThreshold = 0.01,
                                                     test="score")
+    
+    # 6. Extract reads inside regions
     DMRsNoiseFilterCGreadsCHH <- analyseReadsInsideRegionsForCondition(
                                   DMRsNoiseFilterCGMerged,
                                   methylationDataList[["WT"]], context = "CHH",
                                   label = "WT")
+    
+    # Save outputs to files
+    write.csv(as.data.frame(DMRsNoiseFilterCG), "DMRs_NoiseFilter_CG.csv", row.names = FALSE)
+    saveRDS(DMRsNoiseFilterCG, "DMRs_NoiseFilter_CG.rds")
+    
+    write.csv(as.data.frame(DMRsGenesCG), "DMRs_Genes_CG.csv", row.names = FALSE)
+    saveRDS(DMRsGenesCG, "DMRs_Genes_CG.rds")
+    
+    write.csv(as.data.frame(DMRsNoiseFilterCGMerged), "DMRs_NoiseFilter_CG_Merged.csv", row.names = FALSE)
+    saveRDS(DMRsNoiseFilterCGMerged, "DMRs_NoiseFilter_CG_Merged.rds")
+    
+    write.csv(as.data.frame(DMRsNoiseFilterCGreadsCHH), "DMRs_NoiseFilter_CG_reads_CHH.csv", row.names = FALSE)
+    saveRDS(DMRsNoiseFilterCGreadsCHH, "DMRs_NoiseFilter_CG_reads_CHH.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dmrcaller_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dmrcaller_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dmrcaller_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DMRCALLER:", paste0("    dmrcaller: ", packageVersion("DMRcaller"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS":',
+        paste0('    DMRcaller: ', as.character(packageVersion('DMRcaller')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dmrcaller_results.csv
-    touch ${prefix}_dmrcaller_output.rds
-    echo "BIOC_DMRCALLER:" > versions.yml
-    echo "    dmrcaller: 0.0.0" >> versions.yml
+    touch ${prefix}_bisulfite_seq_dmr_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DMRCALLER_WORKFLOW {
+workflow BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cond1.CX_report, cond2.CX_report, genes.gff ] ]
 
     main:
-    BIOC_DMRCALLER(ch_input)
+    BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DMRCALLER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DMRCALLER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DMRCALLER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DMRCALLER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS.out.tables
+    plots    = BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS.out.plots
+    objects  = BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS.out.objects
+    versions = BIOC_DMRCALLER_BISULFITE_SEQ_DMR_ANALYSIS.out.versions
 }

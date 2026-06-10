@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=Expression matrix where rows are genes and columns are samples ;; allgenes=Vector of gene symbols/IDs corresponding to the rows of the expression matrix ;; gs=List of pathways, where each element is a vector of gene symbols/IDs ;; pathwaynames=Vector of names for the pathways in gs ;; normals=Logical vector indicating which columns in the expression matrix represent normal/control samples ;; attempts=Number of attempts for the algorithm's optimization (e.g., 100) ;; min_exp=Minimum expression threshold for filtering genes ;; min_std=Minimum standard deviation threshold for filtering genes\n- alternatives: None mentioned in the documentation\n- when_to_use: Use when you have transcriptomic expression data for tumor and normal samples and want to calculate personalized, context-specific pathway deregulation scores for each tumor sample without needing explicit pathway structure/topology.\n- pitfalls: Normal samples must be supplied because the algorithm learns the pathway's normal flow from them; without sufficient or representative normal samples, the deregulation scores cannot be accurately determined.",
+  "workflows": [
+    {
+      "name": "pathway_deregulation_analysis",
+      "intent": "Quantify pathway deregulation scores for tumor samples using expression data and pathway gene sets.",
+      "input": [
+        "expression_matrix.csv (gene expression matrix with genes as rows and samples as columns)",
+        "gene_identifiers.txt (list of gene identifiers corresponding to the matrix rows)",
+        "pathway_database.rds (list of pathways with their constituent gene identifiers)",
+        "sample_annotations.csv (metadata indicating which samples are normal controls)"
+      ],
+      "stages": "1. Load the pathifier library and input datasets ;; 2. Calculate pathway deregulation scores using quantify_pathways_deregulation ;; 3. Compare scores between normal and tumor samples using boxplots ;; 4. Identify highly deregulated samples by filtering based on score thresholds",
+      "code": "library(pathifier)\ndata(Sheffer)\ndata(KEGG)\nPDS<-quantify_pathways_deregulation(sheffer$data, sheffer$allgenes,\n  kegg$gs, kegg$pathwaynames, sheffer$normals, attempts = 100,\n  min_exp=sheffer$minexp, min_std=sheffer$minstd)\nx<-NULL\nx$normals<-PDS$scores$MISMATCH_REPAIR[sheffer$normals]\nx$tumors<-PDS$scores$MISMATCH_REPAIR[!sheffer$normals]\nboxplot(x)\nboxplot(x,ylab=\"score\")\nas.character(sheffer$samples[PDS$scores$REGULATION_OF_AUTOPHAGY>0.8])"
+    }
+  ]
+}

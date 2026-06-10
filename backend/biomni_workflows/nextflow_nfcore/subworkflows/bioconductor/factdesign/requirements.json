@@ -1,0 +1,13 @@
+{
+  "package": "factdesign",
+  "requirements": [
+    "Biobase",
+    "factDesign"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "factDesign"
+    ]
+  }
+}

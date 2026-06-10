@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxlen=Maximum bin size for dynamic profile construction, must be set as (2^n)*minlen ;; minlen=Minimum bin size for dynamic profile construction ;; ntagcut=Tag count threshold for triggering bin size change, adjust higher (e.g., 20 or 30) for deeply sequenced data ;; gap=Maximum genomic distance between adjacent bins to consider them connected in the Ising model ;; burnin=Number of MCMC burn-in iterations ;; sampling=Number of MCMC sampling iterations ;; normsd=Standard deviation of the proposal distribution for MCMC, adjust if chains do not mix well ;; winsize=Window size for high-order Ising model in iSeq2 (winsize=2 for second-order, winsize=1 for standard) ;; k=Fixed interaction parameter in iSeq2, increase to force phase transition in noisy data ;; cutoff=Threshold value for calling peaks ;; method=Method for peak calling, either \"ppcut\" (posterior probability cutoff) or \"fdrcut\" (FDR cutoff)\n- alternatives: bedtools (external command-line tool recommended by the docs to convert BAM files to BED format before importing into R) ;; snow and snowfall (R packages recommended for parallelizing the analysis across multiple chromosomes)\n- when_to_use: Use this package when you want to perform peak calling on ChIP-seq data (with or without controls/replicates) using a robust Bayesian spatial model that accounts for spatial correlation of adjacent genomic bins.\n- pitfalls: Input format limitation (iSeq does not read BAM/SAM files directly; users must convert them to BED or data frames of tag positions first) ;; Tag position adjustment (always use tag middle positions, e.g., by adding 12 bp to the 5' start position of 25 bp reads, rather than raw start positions) ;; MCMC convergence (if parameter trace plots show a continuous trend, increase burnin and sampling iterations) ;; Noisy data failure (iSeq1 may fail on very noisy data where the model cannot reach the super-paramagnetic phase; in such cases, use iSeq2 with a manually specified, higher interaction parameter k) ;; False positives on empty chromosomes (if all bins are in the non-enriched state, posterior probabilities may still fluctuate; check if lambda1 is close to the prior mean a1/b1 to confirm lack of true enrichment)",
+  "workflows": [
+    {
+      "name": "iseq1_standard_ising",
+      "intent": "Build dynamic signal profiles and identify enriched genomic regions using a fully Bayesian standard 1D hidden Ising model (iSeq1).",
+      "input": [
+        "chip_tags.txt (Data frame of ChIP-seq tag positions with columns: chr, position, strand)",
+        "control_tags.txt (Data frame of control/mock-seq tag positions with columns: chr, position, strand)"
+      ],
+      "stages": "1. Adjust tag start positions to middle positions ;; 2. Build dynamic signal profiles using mergetag ;; 3. Fit the standard hidden Ising model using iSeq1 ;; 4. Call enriched regions using peakreg with posterior probability or FDR cutoffs ;; 5. Format output as a BED file",
+      "code": "chip = rbind(nrsf$chipFC1592,nrsf$chipFC1862,nrsf$chipFC2002)\nmock = rbind(nrsf$mockFC1592,nrsf$mockFC1862,nrsf$mockFC2002)\nchip[,2] = chip[,2]+12\nmock[,2] = mock[,2]+12\ntagct = mergetag(chip=chip,control=mock,maxlen=80,minlen=10,ntagcut=10)\ntagct22 = tagct[tagct[,1]==\"chr22\",]\nset.seed(777)\nres1 = iSeq1(Y=tagct22[,1:4],gap=200,burnin=200,sampling=1000,ctcut=0.95,\n     a0=1,b0=1,a1=5,b1=1,k0=3,mink=0,maxk=10,normsd=0.1,verbose=FALSE)\nreg1 = peakreg(chrpos=tagct22[,1:3],count=(tagct22[,5:6]-tagct22[,7:8]),pp=res1$pp,\n     cutoff=0.5,method=\"ppcut\",maxgap=200)\nreg2 = peakreg(tagct22[,1:3],tagct22[,5:6]-tagct22[,7:8],res1$pp,0.05,\n     method=\"fdrcut\",maxgap=200)\nbed = data.frame(chr=reg2[,1],gstart=reg2[,6]-100,gend=reg2[,6]+100)"
+    },
+    {
+      "name": "iseq2_high_order_ising",
+      "intent": "Build dynamic signal profiles and identify enriched genomic regions using a high-order hidden Ising model with a fixed interaction parameter (iSeq2), suitable for noisy data.",
+      "input": [
+        "chip_tags.txt (Data frame of ChIP-seq tag positions with columns: chr, position, strand)",
+        "control_tags.txt (Data frame of control/mock-seq tag positions with columns: chr, position, strand)"
+      ],
+      "stages": "1. Adjust tag start positions to middle positions ;; 2. Build dynamic signal profiles using mergetag ;; 3. Fit the high-order hidden Ising model using iSeq2 ;; 4. Call enriched regions using peakreg with a posterior probability cutoff",
+      "code": "chip = rbind(nrsf$chipFC1592,nrsf$chipFC1862,nrsf$chipFC2002)\nmock = rbind(nrsf$mockFC1592,nrsf$mockFC1862,nrsf$mockFC2002)\nchip[,2] = chip[,2]+12\nmock[,2] = mock[,2]+12\ntagct = mergetag(chip=chip,control=mock,maxlen=80,minlen=10,ntagcut=10)\ntagct22 = tagct[tagct[,1]==\"chr22\",]\nres2 = iSeq2(Y=tagct22[,1:4],gap=200, burnin=100,sampling=500,winsize=2,\n     ctcut=0.95,a0=1,b0=1,a1=5,b1=1,k=1.0,verbose=FALSE)\nreg2 = peakreg(tagct22[,1:3],tagct22[,5:6],res2$pp,0.5,method=\"ppcut\",maxgap=200)"
+    }
+  ]
+}

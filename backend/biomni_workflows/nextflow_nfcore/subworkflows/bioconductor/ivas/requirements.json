@@ -1,0 +1,13 @@
+{
+  "package": "ivas",
+  "requirements": [
+    "GenomicFeatures",
+    "IVAS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "IVAS"
+    ]
+  }
+}

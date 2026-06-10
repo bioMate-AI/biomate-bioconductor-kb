@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pheno=Numeric vector of the phenotype of interest ;; geno=Matrix or data frame of genotype data (typically coded as 0, 1, 2) ;; covar=Optional matrix or data frame of covariates to control for confounding ;; n_mcmc=Number of MCMC iterations for the simulation ;; burn_in=Number of initial MCMC iterations to discard\n- alternatives: PLINK or gaston=for frequentist GWAS analysis when computational speed is a priority over Bayesian posterior probabilities ;; GWASpoly=for polyploid GWAS analysis\n- when_to_use: When performing association mapping where Bayesian estimation of effect sizes, posterior probabilities of association, or credible intervals are desired over simple p-values.\n- pitfalls: MCMC-based estimation (MCMC_GWAS) can be computationally expensive and slow for very large-scale GWAS datasets (millions of SNPs), where approximation methods like BIC_GWAS or MAP_GWAS should be preferred. Ensure that missing genotype values are properly imputed or handled before running the analysis.",
+  "workflows": [
+    {
+      "name": "bayesian_gwas_analysis",
+      "intent": "Perform Bayesian genome-wide association analysis to identify SNPs associated with a phenotype using MCMC, MAP, or BIC methods.",
+      "input": [
+        "genotypes.csv (matrix of SNP genotypes coded as 0/1/2)",
+        "phenotypes.csv (vector of phenotype values for the same individuals)",
+        "covariates.csv (optional matrix of covariates like age, sex, or principal components)"
+      ],
+      "stages": "1. Load genotype, phenotype, and covariate data ;; 2. Run Bayesian GWAS using BIC_GWAS for fast approximation ;; 3. Run Bayesian GWAS using MAP_GWAS for maximum a posteriori estimation ;; 4. Run Bayesian GWAS using MCMC_GWAS for full posterior inference",
+      "code": "library(GWAS.BAYES)\ngeno <- read.csv(\"genotypes.csv\", row.names = 1)\npheno <- read.csv(\"phenotypes.csv\")[, 1]\ncovar <- read.csv(\"covariates.csv\")\nbic_results <- BIC_GWAS(pheno = pheno, geno = geno, covar = covar)\nmap_results <- MAP_GWAS(pheno = pheno, geno = geno, covar = covar)\nmcmc_results <- MCMC_GWAS(pheno = pheno, geno = geno, covar = covar, n_mcmc = 10000, burn_in = 2000)"
+    }
+  ]
+}

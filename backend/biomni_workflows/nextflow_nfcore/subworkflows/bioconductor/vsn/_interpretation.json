@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: strata=vsn2 parameter to choose different offset and scaling factors for different groups (strata) of rows (e.g., print-tip groups or PCR plates) ;; calib=vsn2 parameter to control calibration; set to \"none\" to apply global variance stabilization without column- or row-specific calibration ;; backgroundsubtract=justvsn parameter for RGList objects; if TRUE, subtracts local background estimates in the Rb and Gb slots ;; lts.quantile=vsn2 parameter controlling the robustness (fraction of data used for least trimmed sum of squares regression, default 0.9, allows 10% outliers) ;; reference=vsn2 parameter to normalize new test arrays against an existing reference vsn fit object\n- alternatives: rma=from the affy package, used for Affymetrix genechip preprocessing; vsnrma is a wrapper combining VSN and RMA summarisation, which controls variance at low intensities more strongly than rma ;; normalizeQuantiles=from the limma package, can be used for quantile normalization prior to running VSN with calib=\"none\" ;; loess=non-linear regression on A-values to force the center of the M distribution to 0; VSN with strata is preferred if the bias is not strongly confounded with A\n- when_to_use: Appropriate for preprocessing microarray intensity data (two-color cDNA arrays, single-color arrays, Affymetrix genechips) or similar high-throughput intensity data to stabilize variance (making variance independent of the mean) and calibrate systematic experimental factors.\n- pitfalls: Numerical instability/convergence errors (e.g., \"L-BFGS-B needs finite values of 'fn'\") can occur due to preprocessing bugs, poor data quality, incompatible measurements, or unsuitable noise characteristics ;; Subtracting local background estimates can increase random noise if there is no actual local spatial gradient or variability ;; VSN only addresses variance dependence on mean intensity; other determinants of variance (technical, sample-inherent, gene-inherent) require other models ;; VSN cannot simultaneously calibrate and transform data from different manufacturing batches (batch effects).",
+  "workflows": [
+    {
+      "name": "standard_microarray_normalization",
+      "intent": "Calibrate and variance-stabilize microarray intensity data from ExpressionSet or matrix objects.",
+      "input": [
+        "kidney (ExpressionSet containing unnormalised microarray data)",
+        "lymphoma (ExpressionSet containing multi-array single-colour data)"
+      ],
+      "stages": "1. Run one-step normalization with justvsn\n2. Alternatively, run two-step normalization by fitting parameters with vsn2 and applying them with predict\n3. Assess variance stabilization using meanSdPlot\n4. Perform spike-in normalization or normalization without calibration if required",
+      "code": "xnorm = justvsn(kidney)\nM = exprs(xnorm)[,1] - exprs(xnorm)[,2]\nfit = vsn2(kidney)\nynorm = predict(fit, kidney)\nmeanSdPlot(xnorm, ranks = TRUE)\nmeanSdPlot(xnorm, ranks = FALSE)\nspfit = vsn2(kidney[spikeins,], lts.quantile=1)\nnkid = predict(spfit, newdata=kidney)\nlym_qvsn = vsn2(lym_q, calib=\"none\")"
+    },
+    {
+      "name": "affymetrix_genechip_normalization",
+      "intent": "Preprocess Affymetrix genechip data using the RMA method with VSN background correction, normalization, and transformation.",
+      "input": [
+        "Dilution (AffyBatch object containing raw Affymetrix intensity data)"
+      ],
+      "stages": "1. Run vsnrma to perform background correction, between-array normalization, transformation, and summarization.",
+      "code": "d_vsn = vsnrma(Dilution)"
+    },
+    {
+      "name": "rglist_normalization",
+      "intent": "Normalize and transform two-color microarray data stored in an RGList object.",
+      "input": [
+        "lymRG (RGList object containing red and green intensities)",
+        "lymRGwbg (RGList object containing red and green intensities with background estimates)"
+      ],
+      "stages": "1. Run justvsn on the RGList object (optionally with background subtraction or strata).",
+      "code": "lymNCS = justvsn(lymRG)\nlymESwbg = justvsn(lymRGwbg[, 1:3], backgroundsubtract=TRUE)\nEconStr = justvsn(lymRG[, 1], strata = arrayGeometry$pin)"
+    },
+    {
+      "name": "reference_normalization",
+      "intent": "Normalize new test arrays against an existing reference dataset without changing the reference parameters.",
+      "input": [
+        "lymphoma (ExpressionSet containing reference and new test arrays)"
+      ],
+      "stages": "1. Fit the VSN model on the reference arrays using vsn2.\n2. Fit the VSN model on the new arrays using vsn2 with the reference parameter.",
+      "code": "ref = vsn2(lymphoma[, ismp[1:7]])\nf8 = vsn2(lymphoma[, ismp[8]], reference = ref)\nfall = vsn2(lymphoma[, ismp])"
+    }
+  ]
+}

@@ -1,99 +1,101 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MAGeCKFlute
-// CRISPR (clustered regularly interspaced short palindrome repeats) coupled with nuclease Cas9 (CRISPR
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MAGeCKFlute/inst/doc/MAGeCKFlute.R
-// Upstream  : clusterProfiler, enrichplot, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("MAGeCKFlute")
+// Bioconductor workflow: MAGeCKFlute — mageck_rra_analysis
+// Perform downstream quality control, visualization, and functional enrichment analysis on CRISPR screen results processed via the MAGeCK RRA (Robust Rank Aggrega
+// Input: gene_summary.txt, sgrna_summary.txt
+// Container: quay.io/biocontainers/bioconductor-mageckflute:2.9.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MAGeCKFlute
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Read the RRA gene and sgRNA summary files
+//  * 2. [Core Analysis] Run the FluteRRA pipeline to perform quality control, identify positively and negatively selected genes, and execute pathway enric
 
 nextflow.enable.dsl = 2
 
-process BIOC_MAGECKFLUTE {
+process BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mageckflute"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mageckflute:2.9.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mageckflute:2.9.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mageckflute_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mageckflute_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mageckflute_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BarView)
-    library(ConsistencyView)
-    library(DensityView)
-    library(EnrichedView)
-    library(FluteMLE)
-    library(FluteRRA)
-    library(HeatmapView)
-    library(MAView)
-    library(MapRatesView)
-    library(RankView)
-    library(jsonlite)
-
-    # --- FluteRRA analysis [] ---
-    # Key functions: FluteRRA, FluteMLE, BarView, MapRatesView, RankView, EnrichedView, HeatmapView, DensityView
-    gdata_cc$Entrez = TransGeneID(gdata_cc$Gene, "symbol", "entrez", organism = "mmu")
-    genedata = gdata_cc[, c("Entrez", "Control","Treatment")]
-    arrangePathview(genedata, pathways = "mmu04630", organism = "mmu", sub = NULL)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mageckflute_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mageckflute_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
+    library(MAGeCKFlute)
+    
+    # Step 1: Read the RRA gene and sgRNA summary files from the working directory
+    # These files must exist in the working directory as specified by the user input.
+    gene_file <- "gene_summary.txt"
+    sgrna_file <- "sgrna_summary.txt"
+    
+    if (!file.exists(gene_file)) {
+      stop(paste("Required input file missing:", gene_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mageckflute_output.rds")
+    if (!file.exists(sgrna_file)) {
+      stop(paste("Required input file missing:", sgrna_file))
     }
+    
+    gdata <- read.delim(gene_file, check.names = FALSE)
+    sdata <- read.delim(sgrna_file, check.names = FALSE)
+    
+    # Step 2: Run the FluteRRA pipeline
+    # This performs quality control, identifies positively and negatively selected genes,
+    # and executes pathway enrichment analysis.
+    rra_results <- FluteRRA(gdata, sdata, proj = "RRA_Project", organism = "hsa", outdir = "./")
+    
+    # Step 3: Save the returned results object for downstream inspection
+    saveRDS(rra_results, file = "RRA_Project_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MAGECKFLUTE:", paste0("    mageckflute: ", packageVersion("MAGeCKFlute"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS":',
+        paste0('    MAGeCKFlute: ', as.character(packageVersion('MAGeCKFlute')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mageckflute_results.csv
-    touch ${prefix}_mageckflute_output.rds
-    echo "BIOC_MAGECKFLUTE:" > versions.yml
-    echo "    mageckflute: 0.0.0" >> versions.yml
+    touch ${prefix}_mageck_rra_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MAGECKFLUTE_WORKFLOW {
+workflow BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_summary.txt, sgrna_summary.txt ] ]
 
     main:
-    BIOC_MAGECKFLUTE(ch_input)
+    BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MAGECKFLUTE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MAGECKFLUTE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MAGECKFLUTE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MAGECKFLUTE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS.out.tables
+    plots    = BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS.out.plots
+    objects  = BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS.out.objects
+    versions = BIOC_MAGECKFLUTE_MAGECK_RRA_ANALYSIS.out.versions
 }

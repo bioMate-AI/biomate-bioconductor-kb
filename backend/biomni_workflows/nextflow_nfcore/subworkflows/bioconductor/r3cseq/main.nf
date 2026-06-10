@@ -1,136 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: r3Cseq
-// This package is used for the analysis of long-range chromatin interactions from 3C-seq assay.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/r3Cseq/inst/doc/r3Cseq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("r3Cseq")
+// Bioconductor workflow: r3Cseq — three_c_seq_analysis_with_control
+// Identify long-range chromatin interactions from 3C-seq data using an experimental sample and a control sample.
+// Input: experiment.bam, control.bam
+// Container: quay.io/biocontainers/bioconductor-r3cseq:1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicAlignments, r3Cseq
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize the r3Cseq object with viewpoint and restriction enzyme details
+//  * 2. [Input & Preparation] Load raw reads into the object
+//  * 3. [Core Analysis] Count reads per restriction fragment using getReadCountPerRestrictionFragment
+//  * 4. [Input & Preparation] Normalize read counts using calculateRPM
+//  * 5. [Core Analysis] Identify significant interaction regions using getInteractions
+//  * 6. [Core Analysis] Extract interaction regions using expInteractionRegions and contrInteractionRegions
+//  * 7. [Visualization & Output] Visualize interactions using plotting functions
+//  * 8. [Core Analysis] Associate interaction signals with Refseq genes using getExpInteractionsInRefseq
+//  * 9. [Visualization & Output] Export results using export3Cseq2bedGraph or generate3CseqReport
 
 nextflow.enable.dsl = 2
 
-process BIOC_R3CSEQ {
+process BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-r3cseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-r3cseq:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-r3cseq:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_r3cseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_r3cseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_r3cseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(r3Cseq)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    data(Myb_prom_FL)
-    data(Myb_prom_FB)
-    # --- Exprawdata [] ---
-    # Key functions: expRawData, contrRawData
+    library(GenomicAlignments)
+    
+    # Read user input BAM files
+    message("Reading experiment.bam...")
+    exp.GRanges <- granges(readGAlignments("experiment.bam"))
+    
+    message("Reading control.bam...")
+    contr.GRanges <- granges(readGAlignments("control.bam"))
+    
+    # Initialize r3Cseq object
+    my3Cseq.obj<-new("r3Cseq",organismName='mm9',isControlInvolved=TRUE,
+    viewpoint_chromosome='chr10',viewpoint_primer_forward='TCTTTGTTTGATGGCATCTGTT',
+    viewpoint_primer_reverse='AAAGGGGAGGAGAAGGAGGT',expLabel="Myb_prom_FL",
+    contrLabel="MYb_prom_FB",restrictionEnzyme='HindIII')
+    
+    # Assign raw data
     expRawData(my3Cseq.obj)<-exp.GRanges
-    contrRawData(my3Cseq.obj)<-contr.GRanges
-    # --- Getreadcountperrestrictionfragment [] ---
-    # Key functions: getReadCountPerRestrictionFragment
+    contrRawData(my3Cseq.obj)<-contr.GRanges	
+    
+    # Print object summary
+    print(my3Cseq.obj)
+    
+    # Count reads per restriction fragment
     getReadCountPerRestrictionFragment(my3Cseq.obj)
-    # --- Calculaterpm [] ---
-    # Key functions: calculateRPM
-    calculateRPM(my3Cseq.obj)
-    # --- Getinteractions [] ---
-    # Key functions: getInteractions
-    getInteractions(my3Cseq.obj,fdr=0.05)
-    # --- Expinteractionregions [] ---
-    # Key functions: expInteractionRegions
+    
+    # Normalize read counts
+    calculateRPM(my3Cseq.obj)	
+    
+    # Identify significant interactions
+    getInteractions(my3Cseq.obj,fdr=0.05)	
+    
+    # Extract interaction regions
     fetal.liver.interactions<-expInteractionRegions(my3Cseq.obj)
-    fetal.liver.interactions
-    # --- Contrinteractionregions [] ---
-    # Key functions: contrInteractionRegions
+    print(fetal.liver.interactions)
+    
     fetal.brain.interactions<-contrInteractionRegions(my3Cseq.obj)
-    fetal.brain.interactions
-    # --- Getviewpoint [] ---
-    # Key functions: getViewpoint
+    print(fetal.brain.interactions)
+    
+    # Get viewpoint
     viewpoint<-getViewpoint(my3Cseq.obj)
-    viewpoint
-    # --- Plotoverviewinteractions [] ---
-    # Key functions: plotOverviewInteractions
-    plotOverviewInteractions(my3Cseq.obj)
-    # --- Plotinteractionsnearviewpoint [] ---
-    # Key functions: plotInteractionsNearViewpoint
-    plotInteractionsNearViewpoint(my3Cseq.obj)
-    # --- Plotinteractionsperchromosome [] ---
-    # Key functions: plotInteractionsPerChromosome
-    plotInteractionsPerChromosome(my3Cseq.obj,"chr10")
-    # --- Plotdomainogramnearviewpoint [] ---
-    # Key functions: plotDomainogramNearViewpoint
-    #plotDomainogramNearViewpoint(my3Cseq.obj)
-    # --- Getexpinteractionsinrefseq [] ---
-    # Key functions: getExpInteractionsInRefseq
+    print(viewpoint)
+    
+    # Plotting and saving visualizations to PDF
+    pdf("r3Cseq_plots.pdf", width = 10, height = 8)
+    plotOverviewInteractions(my3Cseq.obj)	
+    plotInteractionsNearViewpoint(my3Cseq.obj)	
+    plotInteractionsPerChromosome(my3Cseq.obj,"chr10")	
+    dev.off()
+    
+    # Associate interaction signals with Refseq genes
     detected_genes<-getExpInteractionsInRefseq(my3Cseq.obj)
-    head(detected_genes)
-    # --- export3 Cseq2bed Graph [] ---
-    # Key functions: export3Cseq2bedGraph
-    #export3Cseq2bedGraph(my3Cseq.obj)
-    # --- generate3 Cseq Report [] ---
-    # Key functions: generate3CseqReport
-    #generate3CseqReport(my3Cseq.obj)
+    print(head(detected_genes))
+    
+    # Export results to bedGraph
+    export3Cseq2bedGraph(my3Cseq.obj)	
+    
+    # Generate report (wrapped in tryCatch in case of missing LaTeX dependencies)
+    tryCatch({
+      generate3CseqReport(my3Cseq.obj)
+    }, error = function(e) {
+      message("Skipping PDF report generation: ", e\$message)
+    })
+    
+    # Save outputs to files
+    write.csv(as.data.frame(fetal.liver.interactions), "fetal_liver_interactions.csv", row.names = FALSE)
+    write.csv(as.data.frame(fetal.brain.interactions), "fetal_brain_interactions.csv", row.names = FALSE)
+    write.csv(detected_genes, "detected_genes.csv", row.names = FALSE)
+    saveRDS(my3Cseq.obj, "my3Cseq_object.rds")
+    
+    message("Pipeline completed successfully.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_r3cseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_r3cseq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_r3cseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_R3CSEQ:", paste0("    r3cseq: ", packageVersion("r3Cseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL":',
+        paste0('    r3Cseq: ', as.character(packageVersion('r3Cseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_r3cseq_results.csv
-    touch ${prefix}_r3cseq_output.rds
-    echo "BIOC_R3CSEQ:" > versions.yml
-    echo "    r3cseq: 0.0.0" >> versions.yml
+    touch ${prefix}_three_c_seq_analysis_with_control.csv versions.yml
     """
 }
 
-
-workflow BIOC_R3CSEQ_WORKFLOW {
+workflow BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ experiment.bam, control.bam ] ]
 
     main:
-    BIOC_R3CSEQ(ch_input)
+    BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL(ch_input)
 
     emit:
-    results  = BIOC_R3CSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_R3CSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_R3CSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_R3CSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL.out.tables
+    plots    = BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL.out.plots
+    objects  = BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL.out.objects
+    versions = BIOC_R3CSEQ_THREE_C_SEQ_ANALYSIS_WITH_CONTROL.out.versions
 }

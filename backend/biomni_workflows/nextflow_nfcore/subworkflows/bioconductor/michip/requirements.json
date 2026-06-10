@@ -1,0 +1,16 @@
+{
+  "package": "michip",
+  "requirements": [
+    "Biobase",
+    "MiChip"
+  ],
+  "by_workflow": {
+    "automated_pipeline.nf": [
+      "Biobase",
+      "MiChip"
+    ],
+    "main.nf": [
+      "MiChip"
+    ]
+  }
+}

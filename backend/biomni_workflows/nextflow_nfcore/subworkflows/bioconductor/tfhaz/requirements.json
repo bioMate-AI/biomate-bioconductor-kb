@@ -1,0 +1,13 @@
+{
+  "package": "tfhaz",
+  "requirements": [
+    "GenomicRanges",
+    "TFHAZ"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "TFHAZ"
+    ]
+  }
+}

@@ -4,6 +4,8 @@
 // Read, QC, filter, and normalize GeoMx protein data.
 // Input: DCCFiles, PKCFiles, SampleAnnotationFile
 // Container: quay.io/biocontainers/bioconductor-geomxtools:3.14.0--r45hdfd78af_0
+// R packages: Biobase, GeomxTools, NanoStringNCTools
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -35,9 +37,19 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     .bm_deps <- c("Biobase", "GeomxTools", "NanoStringNCTools")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required Bioconductor and CRAN libraries
@@ -50,16 +62,16 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     # ==========================================
     
     # Locate DCC files in the working directory
-    DCCFiles <- list.files(pattern = "\\.dcc\$", ignore.case = TRUE, full.names = TRUE)
+    DCCFiles <- list.files(pattern = "\\\\.dcc\$", ignore.case = TRUE, full.names = TRUE)
     if (length(DCCFiles) == 0) {
       stop("Error: No DCC files found in the working directory.")
     }
     
     # Locate PKC files in the working directory
-    PKCFiles <- list.files(pattern = "\\.pkc\$", ignore.case = TRUE, full.names = TRUE)
+    PKCFiles <- list.files(pattern = "\\\\.pkc\$", ignore.case = TRUE, full.names = TRUE)
     if (length(PKCFiles) == 0) {
       # Check if there is a zipped archive of PKCs and extract it
-      zipFiles <- list.files(pattern = "pkcs\\.zip|.*pkc.*\\.zip", ignore.case = TRUE, full.names = TRUE)
+      zipFiles <- list.files(pattern = "pkcs\\\\.zip|.*pkc.*\\\\.zip", ignore.case = TRUE, full.names = TRUE)
       if (length(zipFiles) > 0) {
         message("Extracting PKC files from zip archive...")
         PKCFiles <- unzip(zipFiles[1])
@@ -69,9 +81,9 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     }
     
     # Locate SampleAnnotationFile (Excel spreadsheet)
-    SampleAnnotationFile <- list.files(pattern = "annotation.*\\.xlsx\$|annotation.*\\.xls\$", ignore.case = TRUE, full.names = TRUE)[1]
+    SampleAnnotationFile <- list.files(pattern = "annotation.*\\\\.xlsx\$|annotation.*\\\\.xls\$", ignore.case = TRUE, full.names = TRUE)[1]
     if (is.na(SampleAnnotationFile)) {
-      SampleAnnotationFile <- list.files(pattern = "\\.xlsx\$|\\.xls\$", ignore.case = TRUE, full.names = TRUE)[1]
+      SampleAnnotationFile <- list.files(pattern = "\\\\.xlsx\$|\\\\.xls\$", ignore.case = TRUE, full.names = TRUE)[1]
     }
     if (is.na(SampleAnnotationFile)) {
       stop("Error: No Excel sample annotation file (.xlsx or .xls) found in the working directory.")

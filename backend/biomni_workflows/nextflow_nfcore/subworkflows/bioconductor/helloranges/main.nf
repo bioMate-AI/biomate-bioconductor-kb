@@ -1,108 +1,197 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HelloRanges
-// Translates bedtools command-line invocations to R code calling functions from the Bioconductor *Rang
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HelloRanges/inst/doc/tutorial.R
-// Upstream  : HelloRangesData, parallel
-// Downstream: none
-//
-// Install: BiocManager::install("HelloRanges")
+// Bioconductor workflow: HelloRanges — helloranges_genomic_intervals_analysis
+// Perform a comprehensive genomic interval analysis including merging, coverage calculation, complement (gaps) identification, and Jaccard similarity comparison u
+// Input: regions.bed, coldata.csv
+// Container: 1.36.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, HelloRanges, rtracklayer
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_HELLORANGES {
+process BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-helloranges"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-helloranges:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-helloranges:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_helloranges_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_helloranges_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_helloranges_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(HelloRanges)
-    library(R_bedtools_intersect)
-    library(jsonlite)
-
-    # --- Computing Genomic Complement [] ---
-    # Key functions: bedtools_complement
-    complement_code <- bedtools_complement(
-        "-i exons.bed -g hg19.genome"
-    )
-    complement_ranges <- eval(complement_code)
-
-
-    # --- Calculating Genome Coverage [] ---
-    # Key functions: bedtools_genomecov
-    cov_code <- bedtools_genomecov(
-        "-i exons.bed -g hg19.genome"
-    )
-    cov_results <- eval(cov_code)
-
-
-    # --- Intersecting Genomic Intervals [] ---
-    # Key functions: bedtools_intersect
-    intersect_code <- bedtools_intersect(
-        "-a peaks.bed -b exons.bed -u"
-    )
-    intersect_ranges <- eval(intersect_code)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_helloranges_results.csv", row.names = TRUE)
+    library(rtracklayer)
+    library(GenomicRanges)
+    
+    # ==========================================
+    # Stage 1: Import and Preprocess Input Data
+    # ==========================================
+    message("Stage 1: Importing regions.bed...")
+    gr <- rtracklayer::import("regions.bed")
+    
+    # Ensure seqinfo has valid chromosome lengths for downstream genome-wide operations
+    si <- seqinfo(gr)
+    if (any(is.na(seqlengths(si)))) {
+        message("Warning: Missing chromosome lengths. Estimating from interval coordinates...")
+        # Calculate max end coordinate per chromosome as a fallback
+        max_ends <- tapply(end(gr), seqnames(gr), max)
+        # Assign estimated lengths with a buffer
+        seqlengths(si)[names(max_ends)] <- max_ends + 100000
+        seqinfo(gr) <- si
+    }
+    
+    # Write a temporary genome file required by some HelloRanges/bedtools commands
+    genome_df <- data.frame(chr = names(seqlengths(si)), len = seqlengths(si))
+    genome_file <- "temp.genome"
+    write.table(genome_df, file = genome_file, sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
+    
+    # ==========================================
+    # Stage 2: Merge Overlapping Intervals
+    # ==========================================
+    message("Stage 2: Merging overlapping intervals...")
+    merged_gr <- tryCatch({
+        do_bedtools_merge("regions.bed")
+    }, error = function(e) {
+        message("Error in merging: ", e\$message)
+        # Fallback to standard reduce
+        reduce(gr, ignore.strand = TRUE)
+    })
+    
+    # Export merged intervals
+    rtracklayer::export(merged_gr, "merged_regions.bed", format = "bed")
+    
+    # ==========================================
+    # Stage 3: Compute Genomic Coverage
+    # ==========================================
+    message("Stage 3: Computing genomic coverage...")
+    cov_gr <- tryCatch({
+        do_bedtools_genomecov("regions.bed", g = genome_file, bg = TRUE)
+    }, error = function(e) {
+        message("Error in genomecov: ", e\$message)
+        # Fallback using standard coverage
+        cov <- coverage(gr)
+        as(cov, "GRanges")
+    })
+    
+    # Export coverage as BedGraph
+    rtracklayer::export(cov_gr, "genomic_coverage.bedgraph", format = "bedGraph")
+    
+    # Plot coverage distribution
+    pdf("coverage_distribution.pdf", width = 7, height = 5)
+    if (length(cov_gr) > 0 && "score" %in% colnames(mcols(cov_gr))) {
+        hist(cov_gr\$score, breaks = 50, col = "skyblue", main = "Genomic Coverage Distribution",
+             xlab = "Coverage Score", ylab = "Frequency")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_helloranges_results.csv")
+        plot.new()
+        text(0.5, 0.5, "No coverage data to plot")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_helloranges_output.rds")
+    dev.off()
+    
+    # ==========================================
+    # Stage 4: Identify Genomic Gaps (Complement)
+    # ==========================================
+    message("Stage 4: Finding genomic gaps (complement)...")
+    gaps_gr <- tryCatch({
+        do_bedtools_complement("regions.bed", g = genome_file)
+    }, error = function(e) {
+        message("Error in complement: ", e\$message)
+        # Fallback using setdiff
+        setdiff(as(seqinfo(gr), "GRanges"), unstrand(gr))
+    })
+    
+    # Export gaps
+    rtracklayer::export(gaps_gr, "genomic_gaps.bed", format = "bed")
+    
+    # ==========================================
+    # Stage 5: Split Comparison & Jaccard Similarity
+    # ==========================================
+    message("Stage 5: Calculating Jaccard similarity between split sets...")
+    
+    # Split the GRanges into two subsets (e.g., by strand or index)
+    if (any(strand(gr) == "+") && any(strand(gr) == "-")) {
+        gr_a <- gr[strand(gr) == "+" | strand(gr) == "*"]
+        gr_b <- gr[strand(gr) == "-"]
+    } else {
+        # Fallback: split by odd/even indices if unstranded
+        gr_a <- gr[seq_along(gr) %% 2 == 1]
+        gr_b <- gr[seq_along(gr) %% 2 == 0]
     }
+    
+    jaccard_df <- tryCatch({
+        # Compute Jaccard statistic using HelloRanges
+        do_bedtools_jaccard(gr_a, gr_b)
+    }, error = function(e) {
+        message("Error in Jaccard calculation: ", e\$message)
+        # Fallback manual calculation
+        intersection_width <- sum(width(intersect(gr_a, gr_b, ignore.strand = TRUE)))
+        union_width <- sum(width(union(gr_a, gr_b, ignore.strand = TRUE)))
+        data.frame(
+            intersection = intersection_width,
+            union = union_width,
+            jaccard = if (union_width > 0) intersection_width / union_width else 0,
+            n_intersections = length(intersect(gr_a, gr_b, ignore.strand = TRUE))
+        )
+    })
+    
+    # Write Jaccard results
+    write.csv(as.data.frame(jaccard_df), "jaccard_similarity.csv", row.names = FALSE)
+    
+    # Clean up temporary files
+    if (file.exists(genome_file)) {
+        file.remove(genome_file)
+    }
+    
+    message("Analysis pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HELLORANGES:", paste0("    helloranges: ", packageVersion("HelloRanges"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS":',
+        paste0('    HelloRanges: ', as.character(packageVersion('HelloRanges')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_helloranges_results.csv
-    touch ${prefix}_helloranges_output.rds
-    echo "BIOC_HELLORANGES:" > versions.yml
-    echo "    helloranges: 0.0.0" >> versions.yml
+    touch ${prefix}_helloranges_genomic_intervals_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_HELLORANGES_WORKFLOW {
+workflow BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_HELLORANGES(ch_input)
+    BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_HELLORANGES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HELLORANGES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HELLORANGES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HELLORANGES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS.out.tables
+    plots    = BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS.out.plots
+    objects  = BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS.out.objects
+    versions = BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS.out.versions
 }

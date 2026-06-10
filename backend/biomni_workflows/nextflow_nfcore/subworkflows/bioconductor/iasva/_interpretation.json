@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: summ_exp=A SummarizedExperiment object containing the expression/read count matrix ;; mod[, -1]=Model matrix of known factors (covariates) to adjust for, excluding the intercept ;; num.sv=The number of surrogate variables to estimate ;; permute=Logical indicating whether to use permutation to determine the number of significant SVs ;; iasva.sv=Matrix of detected surrogate variables used to find marker genes or study R-squared thresholds\n- alternatives: tSNE on all genes=Mentioned as failing to detect rare outlier cells compared to running tSNE on marker genes identified by IA-SVA ;; fast_iasva=A faster implementation of IA-SVA recommended for particularly large datasets\n- when_to_use: Use when analyzing bulk or single-cell RNA-Seq data with suspected hidden heterogeneity (e.g., cell subtypes, batch effects, or unmeasured technical/biological variation) that may be correlated with known factors like library size or patient ID.\n- pitfalls: Failing to account for geometric library size (or proportion of expressed genes), which explains a large portion of scRNA-Seq variability and correlates highly with PC1 ;; The choice of R-squared threshold in find_markers greatly influences the number of marker genes identified and the quality of downstream clustering; users should use study_R2 to tune this parameter.",
+  "workflows": [
+    {
+      "name": "hidden_heterogeneity_detection",
+      "intent": "Detect hidden sources of variation in single-cell or bulk RNA-Seq data, identify marker genes associated with these sources, and optimize parameters.",
+      "input": [
+        "counts (matrix of read counts where genes are rows, samples are columns)",
+        "anns (matrix or data frame of sample annotations/metadata)"
+      ],
+      "stages": "1. Calculate geometric library size as a known covariate ;; 2. Construct the model matrix of known factors ;; 3. Create a SummarizedExperiment object from the counts ;; 4. Run IA-SVA (using iasva or fast_iasva) to detect surrogate variables ;; 5. Find marker genes associated with the detected surrogate variables using find_markers ;; 6. Tune the R-squared threshold using study_R2",
+      "code": "geo_lib_size <- colSums(log(counts + 1))\nlcounts <- log(counts + 1)\npc1 <- irlba(lcounts - rowMeans(lcounts), 1)$v[, 1]\ncor(geo_lib_size, pc1)\npatient_id <- anns$Patient_ID\nmod <- model.matrix(~patient_id + geo_lib_size)\nsumm_exp <- SummarizedExperiment(assays = counts)\niasva.res<- iasva(summ_exp, mod[, -1],verbose = FALSE, \n                  permute = FALSE, num.sv = 5)\niasva.sv <- iasva.res$sv\ncor(geo_lib_size, iasva.sv[, 1])\nmarker.counts <- find_markers(summ_exp, as.matrix(iasva.sv[,1]))\niasva.res <- fast_iasva(summ_exp, mod[, -1], num.sv = 5)\nstudy_res <- study_R2(summ_exp, iasva.sv)"
+    }
+  ]
+}

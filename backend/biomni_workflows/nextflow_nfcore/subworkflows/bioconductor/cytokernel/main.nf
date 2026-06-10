@@ -1,102 +1,162 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cytoKernel
-// cytoKernel implements a kernel-based score test to identify differentially expressed features in hig
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cytoKernel/inst/doc/cytoKernel.R
-// Upstream  : ComplexHeatmap
-// Downstream: none
-//
-// Install: BiocManager::install("cytoKernel")
+// Bioconductor workflow: cytoKernel — differential_expression_analysis
+// Identify differentially expressed features in high-dimensional biological data using a kernel-based score test, filter the dataset, and visualize the top result
+// Input: expression_matrix.csv, group_labels.csv
+// Container: quay.io/biocontainers/bioconductor-cytokernel:1.16.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ComplexHeatmap, SummarizedExperiment, cytoKernel
+// Visualizations: heatmap (ComplexHeatmap), heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the kernel-based score test using CytoK()
+//  * 2. [Core Analysis] Extract all features, ordered features, and percentage of DE features using CytoKFeatures(), CytoKFeaturesOrdered(), and CytoKDEfe
+//  * 3. [Core Analysis] Filter the original dataset to retain only differentially expressed features using CytoKDEData()
+//  * 4. [Visualization & Output] Visualize the top differentially expressed features using plotCytoK() and ComplexHeatmap
 
 nextflow.enable.dsl = 2
 
-process BIOC_CYTOKERNEL {
+process BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cytokernel"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cytokernel:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cytokernel:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cytokernel_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cytokernel_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cytokernel_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(cytoKernel)
-    library(CytoK)
-    library(CytoKDEData)
-    library(CytoKDEfeatures)
-    library(jsonlite)
-
-    # --- Feature Filtering and Extraction [] ---
-    # Key functions: CytoKDEfeatures, CytoKDEData
+    library(ComplexHeatmap)
+    
+    # 1. Read User Input Files
+    # Read expression matrix (features on rows, samples on columns)
+    expr_mat <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+    
+    # Read group labels (binary categorical vector: 0 and 1)
+    group_data <- read.csv("group_labels.csv", header = FALSE)
+    if (!is.numeric(group_data[1, 1])) {
+      group_data <- read.csv("group_labels.csv", header = TRUE)
+    }
+    group_factor_vector <- as.numeric(group_data[[1]])
+    
+    # Construct SummarizedExperiment object
+    # The package expects a 'cluster' column in rowData for feature identification
+    row_data <- data.frame(cluster = rownames(expr_mat), row.names = rownames(expr_mat))
+    cyto_data <- SummarizedExperiment(
+      assays = list(exprs = expr_mat),
+      rowData = row_data
+    )
+    
+    # 2. Run the kernel-based score test using CytoK()
+    CytoK_output <- CytoK(
+      cyto_data,
+      group_factor = group_factor_vector,
+      lowerRho = 2,
+      upperRho = 12,
+      gridRho = 4,
+      alpha = 0.05,
+      featureVars = NULL
+    )
+    
+    # Print output summary to console
+    print(CytoK_output)
+    
+    # 3. Extract features, ordered features, and percentage of DE features
+    features_df <- CytoKFeatures(CytoK_output)
+    features_ordered_df <- CytoKFeaturesOrdered(CytoK_output)
     de_percent <- CytoKDEfeatures(CytoK_output)
+    
+    # Print heads to console
+    print(head(features_df))
+    print(head(features_ordered_df))
+    print(de_percent)
+    
+    # Write extracted features to output files
+    write.csv(features_df, "cytoK_features.csv", row.names = TRUE)
+    write.csv(features_ordered_df, "cytoK_features_ordered.csv", row.names = TRUE)
+    write(de_percent, "cytoK_de_percent.txt")
+    
+    # 4. Filter the original dataset to retain only differentially expressed features
     CytoKDEData_HD <- CytoKDEData(CytoK_output, by = "features")
-
-
-    # --- Visualisation of Differential Features [] ---
-    # Key functions: plotCytoK, CytoKFeaturesOrdered
+    print(CytoKDEData_HD)
+    
+    # Save filtered dataset
+    saveRDS(CytoKDEData_HD, "cytoK_de_data.rds")
+    write.csv(as.data.frame(assay(CytoKDEData_HD)), "cytoK_de_expression.csv", row.names = TRUE)
+    
+    # 5. Visualize the top differentially expressed features
+    topK <- min(10, nrow(features_ordered_df))
+    
     heatmap1 <- plotCytoK(
-        CytoK_output,
-        group_factor = rep(c(0, 1), c(4, 4)),
-        topK = 10, featureVars = NULL
+      CytoK_output,
+      group_factor = group_factor_vector,
+      topK = topK,
+      featureVars = NULL
     )
+    
     featureOrderedExtracted <- CytoKFeaturesOrdered(CytoK_output)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cytokernel_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cytokernel_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cytokernel_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CYTOKERNEL:", paste0("    cytokernel: ", packageVersion("cytoKernel"))),
-        "versions.yml"
+    rowmeta_cluster <- featureOrderedExtracted\$cluster
+    rowmeta_clusterTopK <- rowmeta_cluster[seq_len(topK)]
+    
+    heatmap2 <- Heatmap(
+      rowmeta_clusterTopK,
+      name = "cluster"
     )
+    
+    # Save combined heatmap to PDF
+    pdf("de_heatmap.pdf", width = 10, height = 8)
+    draw(heatmap2 + heatmap1)
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS":',
+        paste0('    cytoKernel: ', as.character(packageVersion('cytoKernel')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cytokernel_results.csv
-    touch ${prefix}_cytokernel_output.rds
-    echo "BIOC_CYTOKERNEL:" > versions.yml
-    echo "    cytokernel: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_expression_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CYTOKERNEL_WORKFLOW {
+workflow BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, group_labels.csv ] ]
 
     main:
-    BIOC_CYTOKERNEL(ch_input)
+    BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CYTOKERNEL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CYTOKERNEL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CYTOKERNEL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CYTOKERNEL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.tables
+    plots    = BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.plots
+    objects  = BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.objects
+    versions = BIOC_CYTOKERNEL_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.versions
 }

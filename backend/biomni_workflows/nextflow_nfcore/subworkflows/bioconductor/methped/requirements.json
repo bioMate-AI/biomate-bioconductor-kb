@@ -1,0 +1,13 @@
+{
+  "package": "methped",
+  "requirements": [
+    "MethPed",
+    "impute"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MethPed",
+      "impute"
+    ]
+  }
+}

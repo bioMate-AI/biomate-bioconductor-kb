@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cogdata=Data frame containing orthologous groups (OGs) mapping genes to species ;; phyloTree=Phylogenetic tree object of class 'phylo' ;; spid=Character string specifying the NCBI taxonomy ID of the reference species (e.g., \"9606\" for Homo sapiens) ;; nPermutations=Number of permutations for permutation analysis in groot (use 1000 for real analyses) ;; what=Character string specifying the type of results to retrieve (e.g., \"results\") ;; idkey=Character string specifying the gene identifier type (e.g., \"ENTREZ\") to match network nodes\n- alternatives: Orthology data can be sourced from alternative databases such as STRING, OMA Browser, or OrthoDB instead of the default demo dataset.\n- when_to_use: Use when you want to determine the evolutionary root of genes along a species lineage, estimate the evolutionary plasticity index of gene families, or map evolutionary origins onto biological networks (PPI or regulatory networks).\n- pitfalls: Ensure gene identifiers in the network match those in the orthology database (cogdata). Set nPermutations to at least 1000 for final analyses as 100 is only for quick testing. Filter out genes rooted at the maximum root (base of the tree) if they cannot be resolved from earlier ancestors. Small regulons (<15 targets) are automatically discarded during network conversion.",
+  "workflows": [
+    {
+      "name": "evolutionary_plasticity_analysis",
+      "intent": "Calculate the diversity, abundance, and evolutionary plasticity index (EPI) of orthologous groups.",
+      "input": [
+        "cogdata (data frame mapping genes to orthologous groups and species)",
+        "sspids (vector of species IDs)",
+        "cogids (vector of orthologous group IDs)"
+      ],
+      "stages": "1. Preprocess orthology data using gplast.preprocess ;; 2. Run plasticity analysis using gplast ;; 3. Retrieve results using gplast.get",
+      "code": "ogp <- gplast.preprocess(cogdata=cogdata, sspids=sspids, cogids=cogids, verbose=FALSE)\nogp <- gplast(ogp, verbose=FALSE)\nres <- gplast.get(ogp, what=\"results\")\nhead(res)"
+    },
+    {
+      "name": "evolutionary_rooting_analysis",
+      "intent": "Determine the evolutionary root of genes in a given species tree using the Bridge algorithm.",
+      "input": [
+        "cogdata (data frame mapping genes to orthologous groups and species)",
+        "phyloTree (phylogenetic tree object of class 'phylo')",
+        "spid (NCBI taxonomy ID of the reference species)"
+      ],
+      "stages": "1. Preprocess rooting data using groot.preprocess ;; 2. Run rooting analysis using groot ;; 3. Retrieve results using groot.get ;; 4. Plot rooting results using groot.plot",
+      "code": "ogr <- groot.preprocess(cogdata=cogdata, phyloTree=phyloTree, spid=\"9606\", verbose=FALSE)\nset.seed(1)\nogr <- groot(ogr, nPermutations=100, verbose=FALSE)\nres <- groot.get(ogr, what=\"results\")\nhead(res)\ngroot.plot(ogr, whichOG=\"NOG40170\")\ngroot.plot(ogr, plot.lcas = TRUE)"
+    },
+    {
+      "name": "network_rooting_mapping",
+      "intent": "Map inferred evolutionary roots to a protein-protein interaction (PPI) or transcriptional regulatory network represented as an igraph object.",
+      "input": [
+        "ogr (processed OGR object containing rooting results)",
+        "cogdata (data frame mapping genes to orthologous groups and species)",
+        "ppi.gs (igraph network object)"
+      ],
+      "stages": "1. Map rooting annotations to the igraph object using ogr2igraph ;; 2. Set aesthetic attributes (like node colors based on roots) using att.setv",
+      "code": "g <- ogr2igraph(ogr, cogdata, ppi.gs, idkey = \"ENTREZ\")\npal <- brewer.pal(9, \"RdYlBu\")\ncolor_col <- colorRampPalette(pal)(25)\ng <- att.setv(g=g, from=\"Root\", to=\"nodeColor\", cols=color_col, na.col=\"grey80\", breaks=seq(1,25))\ng <- att.setv(g = g, from = \"SYMBOL\", to = \"nodeAlias\")"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "package": "gwascat",
+  "requirements": [
+    "GenomeInfoDb",
+    "Gviz",
+    "S4Vectors",
+    "ggbio",
+    "gwascat",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomeInfoDb",
+      "S4Vectors",
+      "gwascat"
+    ],
+    "visualize_gwas_catalog_data.nf": [
+      "GenomeInfoDb",
+      "Gviz",
+      "S4Vectors",
+      "ggbio",
+      "gwascat",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "isomirs",
+  "requirements": [
+    "DESeq2",
+    "SummarizedExperiment",
+    "isomiRs"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "SummarizedExperiment",
+      "isomiRs"
+    ]
+  }
+}

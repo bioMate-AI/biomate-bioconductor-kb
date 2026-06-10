@@ -1,154 +1,211 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GenomicInteractions
-// Utilities for handling genomic interaction data such as ChIA-PET or Hi-C, annotating genomic feature
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GenomicInteractions/inst/doc/chiapet_vignette.R
-// Upstream  : GenomicFeatures, GenomicRanges, Gviz, InteractionSet, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("GenomicInteractions")
+// Bioconductor workflow: GenomicInteractions — chiapet_analysis_and_feature_summarization
+// Load ChIA-PET interaction data, annotate anchors with gene features (promoters, terminators, gene bodies), and summarize interactions per feature.
+// Input: chiapet.data, hg19.refseq.transcripts
+// Container: quay.io/biocontainers/bioconductor-genomicinteractions:1.44.0--r45hdfd78af_0
+// R packages: GenomicFeatures, GenomicInteractions, GenomicRanges, Gviz, InteractionSet, knitr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENOMICINTERACTIONS {
+process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genomicinteractions"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomicinteractions:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomicinteractions:1.40.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-genomicinteractions:1.44.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genomicinteractions_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genomicinteractions_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genomicinteractions_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicFeatures", "GenomicInteractions", "GenomicRanges", "Gviz", "InteractionSet", "knitr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(GenomicInteractions)
-    library(jsonlite)
-
-
-    # --- Load Data [] ---
-    # Key functions: makeGenomicInteractionsFromFile, chiapet.tool, k562, name, description, interactionCounts
-    chiapet.data = system.file("extdata/k562.rep1.cluster.pet3+.txt", 
-                               package="GenomicInteractions")
-
-    k562.rep1 = makeGenomicInteractionsFromFile(chiapet.data, 
-                                    type="chiapet.tool", 
-                                    experiment_name="k562", 
-                                    description="k562 pol2 8wg16")
-    name(k562.rep1)
-    description(k562.rep1) = "PolII-8wg16 Chia-PET for K562"
-    head(interactionCounts(k562.rep1))
-    head((k562.rep1)$fdr)
-    hist(-log10(k562.rep1$p.value))
-
-    # --- Anchor Access [] ---
-    # Key functions: anchorOne, anchorTwo, is.trans, calculateDistances, midpoint
-    anchorOne(k562.rep1)
-    anchorTwo(k562.rep1)
-    sprintf("Percentage of trans-chromosomal interactions %.2f", 
-            100*sum(is.trans(k562.rep1))/length(k562.rep1))
-    head(calculateDistances(k562.rep1, method="midpoint"))
-
-    # --- Subsetting [] ---
-    # Key functions: sample, is.cis, calculateDistances, midpoint, as.vector, seqnames, anchorOne, anchorTwo
-    k562.rep1[1:10] # first interactions in the dataset
-    k562.rep1[sample(length(k562.rep1), 100)] # 100 interactions subsample
-    k562.cis = k562.rep1[is.cis(k562.rep1)]
-    head(calculateDistances(k562.cis, method="midpoint"))
-    k562.short = k562.cis[calculateDistances(k562.cis) < 1e6] # subset shorter interactions
-    hist(calculateDistances(k562.short))
-    chrom = c("chr17", "chr18")
-    sub = as.vector(seqnames(anchorOne(k562.rep1)) %in% chrom & seqnames(anchorTwo(k562.rep1)) %in% chrom)
+    library(InteractionSet)
+    library(GenomicRanges)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Load ChIA-PET data using makeGenomicInteractionsFromFile
+    # -----------------------------------------------------------------------------
+    chiapet.data <- "chiapet.data"
+    if (!file.exists(chiapet.data)) {
+      stop("Required input file 'chiapet.data' not found in the working directory.")
+    }
+    
+    k562.rep1 = makeGenomicInteractionsFromFile (chiapet.data, type= "chiapet.tool" , experiment_name= "k562" , description= "k562 pol2 8wg16" )
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Access and edit metadata (name, description)
+    # -----------------------------------------------------------------------------
+    name (k562.rep1)
+    description (k562.rep1) = "PolII-8wg16 Chia-PET for K562"
+    head ( interactionCounts (k562.rep1))
+    head ((k562.rep1) \$ fdr)
+    
+    # Save p-value histogram
+    pdf("pvalue_histogram.pdf")
+    hist ( - log10 (k562.rep1 \$ p.value))
+    dev.off()
+    
+    anchorOne (k562.rep1)
+    anchorTwo (k562.rep1)
+    sprintf ( "Percentage of trans-chromosomal interactions %.2f" , 100 * sum ( is.trans (k562.rep1)) / length (k562.rep1))
+    head ( calculateDistances (k562.rep1, method= "midpoint" ))
+    
+    # Subsetting examples
+    k562.rep1[ 1 : 10 ]
+    k562.rep1[ sample ( length (k562.rep1), min(100, length(k562.rep1)) )]
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Filter for cis-interactions using is.cis and calculate distances
+    # -----------------------------------------------------------------------------
+    k562.cis = k562.rep1[ is.cis (k562.rep1)]
+    head ( calculateDistances (k562.cis, method= "midpoint" ))
+    k562.short = k562.cis[ calculateDistances (k562.cis) < 1e6 ]
+    
+    # Save distances histogram
+    pdf("distances_histogram.pdf")
+    hist ( calculateDistances (k562.short))
+    dev.off()
+    
+    chrom = c ( "chr17" , "chr18" )
+    sub = as.vector ( seqnames ( anchorOne (k562.rep1)) %in% chrom & seqnames ( anchorTwo (k562.rep1)) %in% chrom)
     k562.rep1 = k562.rep1[sub]
-
-    # --- Load Trascripts [] ---
-    # Key functions: hg19.refseq.transcripts, promoters, unlist, strand, ifelse, relist, subsetByFeatures
-    data("hg19.refseq.transcripts")
-    refseq.transcripts = hg19.refseq.transcripts
-    refseq.promoters = promoters(refseq.transcripts, upstream=2500, downstream=2500)
-    # unlist object so "strand" is one vector
-    refseq.transcripts.ul = unlist(refseq.transcripts) 
-    # terminators can be called as promoters with the strand reversed
-    strand(refseq.transcripts.ul) = ifelse(strand(refseq.transcripts.ul) == "+", "-", "+") 
-    refseq.terminators.ul = promoters(refseq.transcripts.ul, upstream=1000, downstream=1000) 
-    # change back to original strand
-    strand(refseq.terminators.ul) = ifelse(strand(refseq.terminators.ul) == "+", "-", "+") 
-    # `relist' maintains the original names and structure of the list
-    refseq.terminators = relist(refseq.terminators.ul, refseq.transcripts)
-    subsetByFeatures(k562.rep1, unlist(refseq.promoters))
-
-    # --- Annotation [] ---
-    # Key functions: annotateInteractions, annotationFeatures, anchorOne, anchorTwo, promoter, categoriseInteractions
-    annotation.features = list(promoter=refseq.promoters, 
-                               terminator=refseq.terminators, 
-                               gene.body=refseq.transcripts)
-    annotateInteractions(k562.rep1, annotation.features)
-    annotationFeatures(k562.rep1)
-    p.one = anchorOne(k562.rep1)$node.class == "promoter"
-    p.two = anchorTwo(k562.rep1)$node.class == "promoter"
-    k562.rep1[p.one|p.two]
-    categoriseInteractions(k562.rep1)
-
-    # --- Is Interaction Type [] ---
-    # Key functions: isInteractionType, terminator, gene.body, plotInteractionAnnotations, promoter
-    k562.rep1[isInteractionType(k562.rep1, "terminator", "gene.body")]
-    plotInteractionAnnotations(k562.rep1, other=5)
-    plotInteractionAnnotations(k562.rep1, other=5, viewpoints="promoter")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomicinteractions_results.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Define annotation features and annotate interactions
+    # -----------------------------------------------------------------------------
+    # Load hg19.refseq.transcripts from working directory
+    if (file.exists("hg19.refseq.transcripts")) {
+      refseq.transcripts <- tryCatch({
+        readRDS("hg19.refseq.transcripts")
+      }, error = function(e) {
+        env <- new.env()
+        load("hg19.refseq.transcripts", envir = env)
+        objs <- ls(env)
+        env[[objs[1]]]
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomicinteractions_results.csv")
+      stop("Required input file 'hg19.refseq.transcripts' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomicinteractions_output.rds")
-    }
+    
+    refseq.promoters = promoters (refseq.transcripts, upstream= 2500 , downstream= 2500 )
+    refseq.transcripts.ul = unlist (refseq.transcripts)
+    strand (refseq.transcripts.ul) = ifelse ( strand (refseq.transcripts.ul) == "+" , "-" , "+" )
+    refseq.terminators.ul = promoters (refseq.transcripts.ul, upstream= 1000 , downstream= 1000 )
+    strand (refseq.terminators.ul) = ifelse ( strand (refseq.terminators.ul) == "+" , "-" , "+" )
+    refseq.terminators = relist (refseq.terminators.ul, refseq.transcripts)
+    
+    subsetByFeatures (k562.rep1, unlist (refseq.promoters))
+    
+    annotation.features = list ( promoter= refseq.promoters, terminator= refseq.terminators, gene.body= refseq.transcripts)
+    annotateInteractions (k562.rep1, annotation.features)
+    annotationFeatures (k562.rep1)
+    
+    p.one = anchorOne (k562.rep1) \$ node.class == "promoter"
+    p.two = anchorTwo (k562.rep1) \$ node.class == "promoter"
+    k562.rep1[p.one | p.two]
+    
+    # -----------------------------------------------------------------------------
+    # Stage 5: Categorize interactions and subset by interaction types
+    # -----------------------------------------------------------------------------
+    cat_ints = categoriseInteractions (k562.rep1)
+    write.csv(cat_ints, "categorised_interactions.csv", row.names=FALSE)
+    
+    k562.rep1[ isInteractionType (k562.rep1, "terminator" , "gene.body" )]
+    k562.rep1[ is.pp (k562.rep1)]
+    k562.rep1[ is.dd (k562.rep1)]
+    k562.rep1[ is.pt (k562.rep1)]
+    
+    # -----------------------------------------------------------------------------
+    # Stage 6: Plot interaction annotations using plotInteractionAnnotations
+    # -----------------------------------------------------------------------------
+    pdf("interaction_annotations.pdf")
+    plotInteractionAnnotations (k562.rep1, other= 5 )
+    dev.off()
+    
+    pdf("interaction_annotations_promoter.pdf")
+    plotInteractionAnnotations (k562.rep1, other= 5 , viewpoints= "promoter" )
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 7: Summarize interactions over specific features using summariseByFeatures
+    # -----------------------------------------------------------------------------
+    k562.rep1.promoter.annotation = summariseByFeatures (k562.rep1, refseq.promoters, "promoter" , distance.method= "midpoint" , annotate.self= TRUE )
+    colnames (k562.rep1.promoter.annotation)
+    write.csv(k562.rep1.promoter.annotation, "k562_rep1_promoter_annotation.csv", row.names=FALSE)
+    
+    i = order (k562.rep1.promoter.annotation \$ numberOfPromoterPromoterInteractions, decreasing= TRUE )[ 1 : 10 ]
+    top_pp = k562.rep1.promoter.annotation[i, ]
+    write.csv(top_pp, "top_promoter_promoter_interactions.csv", row.names=FALSE)
+    
+    i = order (k562.rep1.promoter.annotation \$ numberOfUniquePromoterDistalInteractions, decreasing= TRUE )[ 1 : 10 ]
+    top_pd = k562.rep1.promoter.annotation[i, ]
+    write.csv(top_pd, "top_promoter_distal_interactions.csv", row.names=FALSE)
+    
+    total = sum (k562.rep1.promoter.annotation \$ numberOfPromoterTerminatorInteractions > 0 )
+    pt_pct_str = sprintf ( "%.2f%% of promoters have P-T interactions" , 100 * total / nrow (k562.rep1.promoter.annotation))
+    writeLines(pt_pct_str, "promoter_terminator_percentage.txt")
+    
+    # Save the final annotated GenomicInteractions object
+    saveRDS(k562.rep1, "k562_rep1_annotated.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENOMICINTERACTIONS:", paste0("    genomicinteractions: ", packageVersion("GenomicInteractions"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION":
+        GenomicInteractions: \$(Rscript -e 'cat(as.character(packageVersion("GenomicInteractions")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genomicinteractions_results.csv
-    touch ${prefix}_genomicinteractions_output.rds
-    echo "BIOC_GENOMICINTERACTIONS:" > versions.yml
-    echo "    genomicinteractions: 0.0.0" >> versions.yml
+    touch ${prefix}_chiapet_analysis_and_feature_summarization.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENOMICINTERACTIONS_WORKFLOW {
+workflow BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ chiapet.data, hg19.refseq.transcripts ] ]
 
     main:
-    BIOC_GENOMICINTERACTIONS(ch_input)
+    BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION(ch_input)
 
     emit:
-    results  = BIOC_GENOMICINTERACTIONS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENOMICINTERACTIONS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENOMICINTERACTIONS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENOMICINTERACTIONS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION.out.tables
+    plots    = BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION.out.plots
+    objects  = BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION.out.objects
+    versions = BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION.out.versions
 }

@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: use_cache=logical indicating whether to cache downloaded KEGG files ;; directory=character path to local directory containing pre-downloaded KGML XML files ;; how=character (\"any\" or \"all\") specifying how to match query IDs in highlight_set_nodes() ;; layout=character layout style for ggraph (e.g., \"manual\" to use KEGG coordinates, or \"nicely\" for igraph layouts)\n- alternatives: pathview=preferred for rendering user-defined values directly onto static KEGG maps ;; KEGGlincs=preferred for overlaying LINCS data and exporting to Cytoscape ;; graphite=preferred for converting pathways to graphNEL format for topological analysis ;; KEGGgraph=preferred for basic parsing of KEGG pathways into R-analyzable graph formats\n- when_to_use: when you want to perform tidy graph manipulations on KEGG pathways using tidygraph and dplyr ;; when you need highly customizable, grammar-of-graphics-based visualizations of KEGG pathways, modules, or networks ;; when you want to overlay custom omics data (e.g., expression levels, centrality metrics) onto KEGG pathway topologies\n- pitfalls: default graphics_name values in KGML files are often truncated, requiring convert_id() for clean gene symbols ;; when using non-manual layouts (e.g., \"nicely\"), node coordinates x and y must be set to NULL to prevent ggraph from using the default KEGG coordinates ;; ensure the correct organism prefix (e.g., \"hsa\" for Homo sapiens) is specified when converting IDs",
+  "workflows": [
+    {
+      "name": "kegg_pathway_analysis_and_visualization",
+      "intent": "Parse a KEGG pathway, calculate network centralities, convert gene identifiers, highlight specific nodes, and visualize the pathway using ggraph.",
+      "input": [
+        "hsa04110 (KEGG Pathway ID)"
+      ],
+      "stages": "1. Retrieve and parse the KEGG pathway into a tbl_graph object ;; 2. Calculate node centrality metrics ;; 3. Convert gene identifiers to official symbols ;; 4. Highlight specific nodes of interest ;; 5. Visualize the pathway using manual coordinates, custom layouts, or raw map overlays",
+      "code": "graph <- ggkegg::pathway(\"hsa04110\", use_cache=TRUE)\ngraph |> \n    mutate(degree=centrality_degree(mode=\"all\"),\n        betweenness=centrality_betweenness()) |> \n    activate(nodes) |>\n    filter(type==\"gene\") |>\n    arrange(desc(degree)) |>\n    as_tibble() |>\n    relocate(degree, betweenness)\ngraph <- graph |> mutate(showname=strsplit(graphics_name, \",\") |>\n                    vapply(\"[\", 1, FUN.VALUE=\"a\"))\n\nggraph(graph, layout=\"manual\", x=x, y=y)+\n    geom_edge_parallel(aes(color=subtype_name),\n        arrow=arrow(length=unit(1,\"mm\"), type=\"closed\"),\n        end_cap=circle(1,\"cm\"),\n        start_cap=circle(1,\"cm\"))+\n    geom_node_rect(aes(fill=I(bgcolor),\n                      filter=type == \"gene\"),\n                  color=\"black\")+\n    geom_node_text(aes(label=showname,\n                      filter=type == \"gene\"),\n                  size=2)+\n    theme_void()\ngraph |> mutate(x=NULL, y=NULL) |>\nggraph(layout=\"nicely\")+\n    geom_edge_parallel(aes(color=subtype_name),\n        arrow=arrow(length=unit(1,\"mm\"), type=\"closed\"),\n        end_cap=circle(0.1,\"cm\"),\n        start_cap=circle(0.1,\"cm\"))+\n    geom_node_point(aes(filter=type == \"gene\"),\n                  color=\"black\")+\n    geom_node_point(aes(filter=type == \"group\"),\n                  color=\"tomato\")+\n    geom_node_text(aes(label=showname,\n                      filter=type == \"gene\"),\n                  size=3, repel=TRUE, bg.colour=\"white\")+\n    scale_edge_color_viridis(discrete=TRUE)+\n    theme_void()\ngraph |>\n    activate(nodes) |>\n    mutate(hsa=convert_id(\"hsa\")) |>\n    filter(type == \"gene\") |>\n    as_tibble() |>\n    relocate(hsa)\ngraph |>\n    activate(nodes) |>\n    mutate(highlight=highlight_set_nodes(\"hsa:7157\")) |>\n    ggraph(layout=\"manual\", x=x, y=y)+\n    geom_node_rect(aes(fill=I(bgcolor),\n                      filter=type == \"gene\"), color=\"black\")+\n    geom_node_rect(aes(fill=\"tomato\", filter=highlight), color=\"black\")+\n    geom_node_text(aes(label=showname,\n                      filter=type == \"gene\"), size=2)+\n    geom_edge_parallel(aes(color=subtype_name),\n                   arrow=arrow(length=unit(1,\"mm\"),\n                               type=\"closed\"),\n                   end_cap=circle(1,\"cm\"),\n                   start_cap=circle(1,\"cm\"))+\n    theme_void()\ngraph |>\n    mutate(degree=centrality_degree(mode=\"all\")) |>\n    ggraph(graph, layout=\"manual\", x=x, y=y)+\n        geom_node_rect(aes(fill=degree,\n                      filter=type == \"gene\"))+\n        overlay_raw_map()+\n        scale_fill_viridis_c()+\n        theme_void()"
+    },
+    {
+      "name": "kegg_module_visualization",
+      "intent": "Parse a KEGG module and visualize it using text-based or network-based representations.",
+      "input": [
+        "M00002 (KEGG Module ID)"
+      ],
+      "stages": "1. Retrieve and parse the KEGG module ;; 2. Generate a text-based module visualization ;; 3. Generate a network-based module block visualization",
+      "code": "mod <- module(\"M00002\", use_cache=TRUE)\nmod |>\n    module_text() |> ## return data.frame\n    plot_module_text()\nmod |>\n    obtain_sequential_module_definition() |> ## return tbl_graph\n    plot_module_blocks()"
+    },
+    {
+      "name": "quick_wrapper_visualization",
+      "intent": "Quickly generate a ggraph visualization of a KEGG pathway, module, or network using the wrapper function.",
+      "input": [
+        "bpsp00270 (KEGG Pathway ID)",
+        "N00002 (KEGG Network ID)"
+      ],
+      "stages": "1. Call the ggkegg wrapper function to automatically generate and return a ggraph plot object",
+      "code": "ggkegg(\"bpsp00270\") |> class() ## Returns ggraph\nggkegg(\"N00002\") ## Returns the KEGG NETWORK plot"
+    }
+  ]
+}

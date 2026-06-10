@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gene_set=Character vector or data frame column containing the input gene identifiers ;; i_species=Input species (e.g., \"h_sapiens\", \"m_musculus\", \"r_norvegicus\", \"d_rerio\", \"d_melangoaster\", \"c_elegans\") ;; o_species=Output species for ortholog mapping and comparison ;; input_id=Identifier type of the input gene set (\"Ensembl_id\", \"Entrez_id\", \"Symbol\") ;; output_ids=Identifier type for output (must include \"Ensembl_id\" if using getGEx) ;; map_species=Species to map and compare (must include all species specified in o_species) ;; map_tissues=Tissues to map, retrieved using getTissues() ;; mapping_tool=Tool for ID mapping (\"annotationDBI\" or \"biomaRt\") ;; ortholog_database=Database for ortholog mapping (\"NCBIOrtho\" or \"HomoloGene\") ;; metric_type=Metric to calculate (\"CV_Tissue\", \"CV_Species\", \"DS_Gene\", \"DS_Gene_all\", \"DS_Tissue\", \"DS_Tissue_all\")\n- alternatives: mapping_tool can be set to \"annotationDBI\" (default) or \"biomaRt\" ;; ortholog_database can be set to \"HomoloGene\" (default) or \"NCBIOrtho\"\n- when_to_use: Use when comparing gene expression variability (Coefficient of Variation) and diversity/specificity (Shannon Entropy) of a specific gene set across multiple tissues and/or species using normal wild-type RNA-Seq data.\n- pitfalls: Any species planned for comparison must be specified in both map_species AND o_species ;; The getGEx function requires that \"Ensembl_id\" is included as an output_id ;; Expression values plotted via plotSpeciesGEx are not meant to be compared across species directly; use CV or DS metrics instead.",
+  "workflows": [
+    {
+      "name": "cross_species_expression_and_variability",
+      "intent": "Convert gene identifiers, retrieve Bgee expression data, and calculate/visualize the Coefficient of Variation (CV) across species or tissues.",
+      "input": [
+        "gene_set (character vector of gene symbols or IDs)",
+        "map_tissues (character vector of shared tissues, e.g., from getTissues())"
+      ],
+      "stages": "1. Retrieve shared tissues using getTissues ;; 2. Initialize the CoSIAn object with the gene set, species, tissues, and CV metric type ;; 3. Convert gene identifiers using getConversion ;; 4. Retrieve gene expression data using getGEx ;; 5. Plot gene expression across species using plotSpeciesGEx ;; 6. Calculate CV metrics using getGExMetrics ;; 7. Plot CV metrics using plotCVGEx",
+      "code": "CoSIA::getTissues(c(\"m_musculus\", \"r_norvegicus\"))\n\nCoSIAn_Obj <- CoSIA::CoSIAn(\n    gene_set = unique(monogenic_kid_sample$Gene),\n    i_species = \"h_sapiens\",\n    o_species = c(\n        \"h_sapiens\",\n        \"r_norvegicus\"\n    ),\n    input_id = \"Symbol\",\n    output_ids = \"Ensembl_id\",\n    map_species = c(\n        \"h_sapiens\",\n        \"r_norvegicus\"\n    ),\n    map_tissues = c(\n        \"adult mammalian kidney\",\n        \"heart\"\n    ),\n    mapping_tool = \"annotationDBI\",\n    ortholog_database = \"HomoloGene\",\n    metric_type = \"CV_Species\"\n)\n\nCoSIAn_Obj_convert <- CoSIA::getConversion(CoSIAn_Obj)\n\nhead(CoSIA::viewCoSIAn(CoSIAn_Obj_convert, \"converted_id\"))\n\nCoSIAn_Obj_gex <- CoSIA::getGEx(CoSIAn_Obj_convert)\n\nhead(CoSIA::viewCoSIAn(CoSIAn_Obj_gex, \"gex\"), 5)\n\nCoSIAn_Obj_gexplot <- CoSIA::plotSpeciesGEx(CoSIAn_Obj_gex, \"adult mammalian kidney\", \"ENSG00000136463\")\n\nCoSIAn_Obj_gexplot\n\nCoSIAn_Obj_CV <- CoSIA::getGExMetrics(CoSIAn_Obj_convert)\n\nCoSIAn_Obj_CVplot <- CoSIA::plotCVGEx(CoSIAn_Obj_CV)\n\nCoSIAn_Obj_CVplot"
+    },
+    {
+      "name": "cross_species_diversity_and_specificity",
+      "intent": "Calculate and visualize Shannon entropy-based diversity and specificity (DS) across tissues or genes.",
+      "input": [
+        "gene_set (character vector of gene symbols or IDs)",
+        "map_tissues (character vector of shared tissues, e.g., from getTissues())"
+      ],
+      "stages": "1. Initialize the CoSIAn object with the gene set, species, tissues, and DS metric type ;; 2. Convert gene identifiers using getConversion ;; 3. Calculate DS metrics using getGExMetrics ;; 4. Plot DS metrics using plotDSGEx",
+      "code": "CoSIAn_Obj_DS <- CoSIA::CoSIAn(\n    gene_set = unique(monogenic_kid_sample$Gene),\n    i_species = \"h_sapiens\",\n    o_species = c(\"h_sapiens\", \"r_norvegicus\"),\n    input_id = \"Symbol\",\n    output_ids = \"Ensembl_id\",\n    map_species = c(\"h_sapiens\", \"r_norvegicus\"),\n    map_tissues = c(\"adult mammalian kidney\", \"heart\"),\n    mapping_tool = \"annotationDBI\",\n    ortholog_database = \"HomoloGene\",\n    metric_type = \"DS_Tissue\"\n)\n\nCoSIAn_Obj_DS <- CoSIA::getConversion(CoSIAn_Obj_DS)\n\nCoSIAn_Obj_DS <- CoSIA::getGExMetrics(CoSIAn_Obj_DS)\n\nCoSIAn_Obj_DSplot <- CoSIA::plotDSGEx(CoSIAn_Obj_DS)\n\nCoSIAn_Obj_DSplot"
+    }
+  ]
+}

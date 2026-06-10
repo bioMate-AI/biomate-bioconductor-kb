@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: model_name=The name of the machine learning model to use (e.g., \"Prosit_2019_intensity\", \"ms2pip_HCD2021\") ;; server_url=The URL of the Koina server instance (e.g., \"koina.wilhelmlab.org\") ;; peptide_sequences=Character vector of peptide sequences in the input data frame ;; collision_energies=Numeric vector of collision energies in the input data frame ;; precursor_charges=Integer vector of precursor charges in the input data frame\n- alternatives: predictWithKoinaModel=An alternative functional (pass-by-value) interface to the R6 class method prosit2019$predict() ;; OrgMassSpecR::SpectrumSimilarity=Used to compare and calculate similarity scores between predicted spectra from different models\n- when_to_use: When predicting peptide fragment intensities, retention times, or other properties using deep learning models (like Prosit or MS2PIP) without hosting the models locally or having specialized GPU hardware.\n- pitfalls: Input data frame column names must match exactly what the model expects (e.g., peptide_sequences, collision_energies, precursor_charges) ;; Output structure and columns vary depending on the chosen model ;; Internet connectivity is required to communicate with the remote Koina server, though packages like httptest can be used to cache responses for testing.",
+  "workflows": [
+    {
+      "name": "peptide_fragment_intensity_prediction",
+      "intent": "Predict peptide fragment ion intensities and m/z values using a remote Koina model.",
+      "input": [
+        "peptide_data.csv (Data frame containing peptide sequences, collision energies, and precursor charges)"
+      ],
+      "stages": "1. Initialize the Koina client with a specific model and server using koinar::Koina() ;; 2. Prepare the input data frame with peptide sequences, collision energies, and precursor charges ;; 3. Fetch predictions using the $predict() method or koinar::predictWithKoinaModel()",
+      "code": "prosit2019 <- koinar::Koina(\n  model_name = \"Prosit_2019_intensity\",\n  server_url = \"koina.wilhelmlab.org\"\n)\ninput <- data.frame(\n  peptide_sequences = c(\"LGGNEQVTR\", \"GAGSSEPVTGLDAK\"),\n  collision_energies = c(25, 25),\n  precursor_charges = c(1, 2)\n)\nprediction_results <- prosit2019$predict(input)\nprediction_results <- koinar::predictWithKoinaModel(prosit2019, input)"
+    },
+    {
+      "name": "spectral_similarity_comparison",
+      "intent": "Compare peptide fragment ion intensity predictions between two different models (e.g., Prosit and MS2PIP).",
+      "input": [
+        "peptide_data.csv (Data frame containing peptide sequences, collision energies, and precursor charges)"
+      ],
+      "stages": "1. Initialize Koina clients for both models using koinar::Koina() ;; 2. Predict fragment intensities for both models using $predict() ;; 3. Compare the predicted spectra using OrgMassSpecR::SpectrumSimilarity()",
+      "code": "input <- data.frame(\n  peptide_sequences = c(\n    \"LGGNEQVTR\", \"YILAGVENSK\", \"GTFIIDPGGVIR\", \"GTFIIDPAAVIR\",\n    \"GAGSSEPVTGLDAK\", \"TPVISGGPYEYR\", \"VEATFGVDESNAK\",\n    \"TPVITGAPYEYR\", \"DGLDAASYYAPVR\", \"ADVTPADFSEWSK\",\n    \"LFLQFGAQGSPFLK\"\n  ),\n  collision_energies = 35,\n  precursor_charges = 2\n)\nprosit2019 <- koinar::Koina(\n  model_name = \"Prosit_2019_intensity\",\n  server_url = \"koina.wilhelmlab.org\"\n)\npred_prosit <- prosit2019$predict((input))\npred_prosit$model <- \"Prosit_2019_intensity\"\n\nms2pip <- koinar::Koina(\n  model_name = \"ms2pip_HCD2021\",\n  server_url = \"koina.wilhelmlab.org\"\n)\n\npred_ms2pip <- ms2pip$predict(input)\npred_ms2pip$model <- \"ms2pip_HCD2021\"\n\npeptide_sequence <- \"ADVTPADFSEWSK\"\n\nsim <- OrgMassSpecR::SpectrumSimilarity(pred_prosit[pred_prosit$peptide_sequences == peptide_sequence, c(\"mz\", \"intensities\")],\n  pred_ms2pip[pred_ms2pip$peptide_sequences == peptide_sequence, c(\"mz\", \"intensities\")],\n  top.lab = \"Prosit\",\n  bottom.lab = \"MS2PIP\",\n  b = 25\n)\ntitle(main = paste(peptide_sequence, \"| Spectrum similarity\", round(sim, 3)))"
+    }
+  ]
+}

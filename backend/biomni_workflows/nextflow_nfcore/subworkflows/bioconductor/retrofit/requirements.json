@@ -1,0 +1,16 @@
+{
+  "package": "retrofit",
+  "requirements": [
+    "corrplot",
+    "retrofit"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "corrplot",
+      "retrofit"
+    ],
+    "one_step_deconvolution_and_annotation.nf": [
+      "retrofit"
+    ]
+  }
+}

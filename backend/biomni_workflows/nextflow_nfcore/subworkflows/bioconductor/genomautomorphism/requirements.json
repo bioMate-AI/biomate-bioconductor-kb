@@ -1,0 +1,13 @@
+{
+  "package": "genomautomorphism",
+  "requirements": [
+    "Biostrings",
+    "GenomAutomorphism"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomAutomorphism"
+    ]
+  }
+}

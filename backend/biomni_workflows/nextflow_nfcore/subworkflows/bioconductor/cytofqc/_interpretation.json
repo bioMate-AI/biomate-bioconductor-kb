@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: beads=Vector of bead channel names in readCytof ;; dna=Vector of DNA channel names in readCytof ;; event_length=Name of the event length channel in readCytof ;; viability=Name of the viability/live-dead channel in readCytof ;; gaussian=Vector of Gaussian parameter names (Center, Offset, Width, Residual) in readCytof ;; model=Model type in labelQC (e.g., \"rf\", \"gbm\", default is SVM) ;; loss=Loss function in labelQC (e.g., \"class\") ;; type=Event type in scores(), probs(), or svmLabel() (e.g., 'bead', 'debris', 'doublet', 'dead') ;; n=Number of data points to train the SVM in svmLabel\n- alternatives: CATALYST performs bead normalization and can remove identified beads, but does not clean out debris, doublets, or dead cells. Other Bioconductor packages assume CyTOF data has been cleaned prior to use.\n- when_to_use: When you have raw CyTOF data (FCS files) and need to clean out beads, debris, doublets, and dead cells using a statistical learning approach before downstream analysis.\n- pitfalls: Once an event is classified (e.g., as a bead), it cannot be classified as a different event type later in the sequential labeling process. If there are fewer than 2000 events with a -1 or 1 initial classification assignment, a warning is given and a smaller dataset is used to train the model. If fewer than 100 points are classified as dead cells by the initialDead function, a classification model for viability cannot be built and a warning is produced.",
+  "workflows": [
+    {
+      "name": "all_in_one_qc_labeling",
+      "intent": "Automatically label CyTOF events using the all-in-one labelQC function.",
+      "input": [
+        "raw_cytof.fcs (Raw CyTOF FCS data file)"
+      ],
+      "stages": "1. Read FCS data and define QC channels using readCytof ;; 2. Run the all-in-one labeling using labelQC ;; 3. Retrieve labels, scores, and probabilities using label, scores, and probs ;; 4. Visualize the scores using cytofHist",
+      "code": "f <- system.file(\"extdata\", \"raw_cytof.fcs\", package = \"cytofQC\")\nx <- readCytof(f, \n                 beads = c(\"Bead\"),\n                 dna = c(\"DNA1\", \"DNA2\"),\n                 event_length = \"Event_length\",\n                 viability = \"Live_Dead\",\n                 gaussian = c(\"Center\", \"Offset\", \"Width\", \"Residual\"))\nx <- labelQC(x)\ntable(label(x))\nhead(scores(x))\nhead(initial(x))\nhead(probs(x))\nbead <- cytofHist(scores(x, type = 'bead'), label(x), title = \"Bead score\")\ndebris <- cytofHist(scores(x, type = 'debris'), label(x), title = \"Debris score\")\ndoublet <- cytofHist(scores(x, type = 'doublet'), label(x), title = \"Doublet score\")\ngrid.arrange(bead, debris, doublet, ncol = 1)"
+    },
+    {
+      "name": "step_by_step_qc_modeling",
+      "intent": "Manually run step-by-step initial classification and SVM labeling for each event type (beads, debris, doublets, dead cells).",
+      "input": [
+        "raw_cytof.fcs (Raw CyTOF FCS data file)"
+      ],
+      "stages": "1. Read FCS data and define QC channels using readCytof ;; 2. Initialize and label beads using initialBead and svmLabel ;; 3. Initialize and label debris using initialDebris and svmLabel ;; 4. Initialize and label doublets using initialDoublet and svmLabel ;; 5. Initialize and label dead cells using initialDead and svmLabel",
+      "code": "f <- system.file(\"extdata\", \"raw_cytof.fcs\", package = \"cytofQC\")\nx <- readCytof(f, \n                 beads = c(\"Bead\"),\n                 dna = c(\"DNA1\", \"DNA2\"),\n                 event_length = \"Event_length\",\n                 viability = \"Live_Dead\",\n                 gaussian = c(\"Center\", \"Offset\", \"Width\", \"Residual\"))\n\nx <- initialBead(x)\nx <- svmLabel(x, type = \"bead\", n = 500)\nx <- initialDebris(x)\nx <- svmLabel(x, type = \"debris\", n = 500)\nx <- initialDoublet(x)\nx <- svmLabel(x, type = \"doublet\", n = 500)\nx <- initialDead(x)\nx <- svmLabel(x, type = \"dead\", n = 500)"
+    }
+  ]
+}

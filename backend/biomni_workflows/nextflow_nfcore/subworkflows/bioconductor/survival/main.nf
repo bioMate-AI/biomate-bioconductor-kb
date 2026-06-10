@@ -1,204 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: survival (CRAN 3.5-8)
-// Kaplan-Meier survival curves, log-rank tests, and Cox
-// proportional hazards regression for time-to-event analysis.
-//
-// Source : https://cran.r-project.org/package=survival
-// Upstream  : broom, dplyr
-// Downstream: survminer, ggsurvfit, rms
-//
-// Install: install.packages("survival")
-// Reference: Therneau TM (2024). A Package for Survival Analysis in R.
+// Bioconductor workflow: survival — kaplan_meier_survival_curves
+// Estimate and plot non-parametric survival curves using the Kaplan-Meier method to compare survival times between groups.
+// Input: patient_clinical_data.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: survival
+// Visualizations: survival plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define the survival outcome using Surv()
+//  * 2. [Core Analysis] Fit the Kaplan-Meier survival curve using survfit()
+//  * 3. [Visualization & Output] Summarize survival probabilities and median survival times using summary()
+//  * 4. [Visualization & Output] Plot the survival curves using plot()
 
 nextflow.enable.dsl = 2
 
-// [Survival Analysis]
-process CRAN_SURVIVAL_KAPLANMEIER {
+process BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES {
     tag "${meta.id}"
-    label 'process_low'
+    label 'process_medium'
 
-    conda "r-survival r-broom"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-survival:3.5_8--r44_0' :
-        'quay.io/biocontainers/r-survival:3.5_8--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(clinical_csv)
-    val time_col
-    val event_col
-    val group_col
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_km_fit.rds")         , emit: km_fit
-    tuple val(meta), path("${meta.id}_km_summary.csv")     , emit: km_summary
-    tuple val(meta), path("${meta.id}_logrank_pvalue.txt") , emit: logrank_pval
-    path "versions.yml"                                    , emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+    # Load required library
     library(survival)
-
-    data <- read.csv("${clinical_csv}", stringsAsFactors=FALSE)
-
-    # Build survival object
-    surv_obj <- Surv(time  = data[["${time_col}"]],
-                     event = as.integer(data[["${event_col}"]] == 1))
-
-    # Kaplan-Meier fit
-    km_formula <- as.formula(paste0("surv_obj ~ data[['", "${group_col}", "']]"))
-    km_fit     <- survfit(km_formula)
-    saveRDS(km_fit, "${prefix}_km_fit.rds")
-
-    # Summary table
-    km_tbl <- summary(km_fit)\$table
-    write.csv(as.data.frame(km_tbl), "${prefix}_km_summary.csv")
-
-    # Log-rank test p-value
-    lr_test <- survdiff(km_formula)
-    pval    <- 1 - pchisq(lr_test\$chisq, df = length(lr_test\$n) - 1)
-    writeLines(as.character(pval), "${prefix}_logrank_pvalue.txt")
-
-    # versions.yml
-    writeLines(
-        c("CRAN_SURVIVAL_KAPLANMEIER:",
-          paste0("    survival: ", packageVersion("survival"))),
-        "versions.yml"
+    
+    # 1. Read the user input file
+    lung <- read.csv("patient_clinical_data.csv", stringsAsFactors = FALSE)
+    
+    # Standardize column names to match the documented code's variables: time, status, sex
+    colnames(lung) <- tolower(colnames(lung))
+    
+    # Map 'time' column
+    if (!"time" %in% colnames(lung)) {
+      time_col <- grep("time|month|day|year|duration", colnames(lung), value = TRUE)[1]
+      if (!is.na(time_col)) {
+        colnames(lung)[colnames(lung) == time_col] <- "time"
+      }
+    }
+    
+    # Map 'status' column
+    if (!"status" %in% colnames(lung)) {
+      status_col <- grep("status|event|cens", colnames(lung), value = TRUE)[1]
+      if (!is.na(status_col)) {
+        colnames(lung)[colnames(lung) == status_col] <- "status"
+      }
+    }
+    
+    # Map 'sex' column
+    if (!"sex" %in% colnames(lung)) {
+      sex_col <- grep("sex|gender|group|tx|treatment", colnames(lung), value = TRUE)[1]
+      if (!is.na(sex_col)) {
+        colnames(lung)[colnames(lung) == sex_col] <- "sex"
+      } else {
+        lung\$sex <- "All"
+      }
+    }
+    
+    # Ensure status and time are numeric
+    if (is.character(lung\$status) || is.factor(lung\$status)) {
+      num_status <- suppressWarnings(as.numeric(as.character(lung\$status)))
+      if (!any(is.na(num_status) & !is.na(lung\$status))) {
+        lung\$status <- num_status
+      } else {
+        status_lower <- tolower(trimws(as.character(lung\$status)))
+        new_status <- rep(NA, length(status_lower))
+        
+        # Explicitly map known terms to 0 (censored) and 1 (event)
+        new_status[status_lower %in% c("alive", "censored", "stable", "disease free", "false", "no", "0")] <- 0
+        new_status[status_lower %in% c("dead", "death", "event", "progression", "relapse", "recurrence", "deceased", "true", "yes", "1")] <- 1
+        
+        unmapped <- is.na(new_status) & !is.na(status_lower)
+        if (any(unmapped)) {
+          new_status[unmapped] <- as.numeric(as.factor(status_lower[unmapped])) - 1
+        }
+        lung\$status <- new_status
+      }
+    } else {
+      lung\$status <- as.numeric(lung\$status)
+    }
+    lung\$time <- as.numeric(lung\$time)
+    
+    # 2. Fit the Kaplan-Meier survival curve using survfit()
+    # Exact documented call: fit <- survfit(Surv(time, status) ~ sex, data = lung)
+    fit <- survfit(Surv(time, status) ~ sex, data = lung)
+    
+    # 3. Summarize survival probabilities and median survival times using summary()
+    # Exact documented call: summary(fit)
+    # Capture the console output to a text file
+    sink("survival_summary.txt")
+    print(summary(fit))
+    sink()
+    
+    # Also save a structured CSV of the summary for downstream analysis
+    fit_summary <- summary(fit)
+    summary_df <- data.frame(
+      time = fit_summary\$time,
+      n.risk = fit_summary\$n.risk,
+      n.event = fit_summary\$n.event,
+      survival = fit_summary\$surv,
+      std.err = fit_summary\$std.err,
+      lower = fit_summary\$lower,
+      upper = fit_summary\$upper
     )
+    
+    if (!is.null(fit_summary\$strata)) {
+      summary_df\$strata <- fit_summary\$strata
+      summary_df <- summary_df[, c("strata", "time", "n.risk", "n.event", "survival", "std.err", "lower", "upper")]
+    }
+    
+    write.csv(summary_df, "survival_summary_table.csv", row.names = FALSE)
+    
+    # 4. Plot the survival curves using plot()
+    # Exact documented call: plot(fit)
+    # Wrap in a pdf device to save the plot
+    pdf("kaplan_meier_curves.pdf", width = 8, height = 6)
+    plot(fit)
+    dev.off()
+    
+    # Save the fit object as RDS
+    saveRDS(fit, "kaplan_meier_fit.rds")
+
+    writeLines(c(
+        '"BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES":',
+        paste0('    survival: ', as.character(packageVersion('survival')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_km_fit.rds
-    touch ${prefix}_km_summary.csv
-    echo "0.05" > ${prefix}_logrank_pvalue.txt
-    echo "CRAN_SURVIVAL_KAPLANMEIER:" > versions.yml
-    echo "    survival: 0.0.0" >> versions.yml
+    touch ${prefix}_kaplan_meier_survival_curves.csv versions.yml
     """
 }
 
-// [Survival Analysis]
-process CRAN_SURVIVAL_COX {
-    tag "${meta.id}"
-    label 'process_low'
-
-    conda "r-survival r-broom"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-survival:3.5_8--r44_0' :
-        'quay.io/biocontainers/r-survival:3.5_8--r44_0'}"
-
-    input:
-    tuple val(meta), path(clinical_csv)
-    val time_col
-    val event_col
-    val covariates     // comma-separated column names e.g. "age,stage,treatment"
-
-    output:
-    tuple val(meta), path("${meta.id}_cox_results.csv") , emit: cox_results
-    tuple val(meta), path("${meta.id}_cox_model.rds")   , emit: cox_model
-    path "versions.yml"                                 , emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    def args   = task.ext.args   ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    """
-    #!/usr/bin/env Rscript
-    library(survival)
-    suppressPackageStartupMessages(library(broom))
-
-    data     <- read.csv("${clinical_csv}", stringsAsFactors=FALSE)
-    cov_list <- trimws(strsplit("${covariates}", ",")[[1]])
-
-    # Build Cox formula
-    cox_formula <- as.formula(paste0(
-        "Surv(", "${time_col}", ", ", "${event_col}", " == 1) ~ ",
-        paste(cov_list, collapse = " + ")
-    ))
-
-    cox_fit <- coxph(cox_formula, data = data)
-    saveRDS(cox_fit, "${prefix}_cox_model.rds")
-
-    # Export hazard ratios with 95% CI
-    results <- broom::tidy(cox_fit, exponentiate = TRUE, conf.int = TRUE)
-    write.csv(results, "${prefix}_cox_results.csv", row.names = FALSE)
-
-    # versions.yml
-    writeLines(
-        c("CRAN_SURVIVAL_COX:",
-          paste0("    survival: ", packageVersion("survival")),
-          paste0("    broom: ",    packageVersion("broom"))),
-        "versions.yml"
-    )
-    """
-
-    stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    """
-    touch ${prefix}_cox_model.rds
-    echo "term,estimate,std.error,statistic,p.value,conf.low,conf.high" > ${prefix}_cox_results.csv
-    echo "CRAN_SURVIVAL_COX:" > versions.yml
-    echo "    survival: 0.0.0" >> versions.yml
-    echo "    broom: 0.0.0" >> versions.yml
-    """
-}
-
-// ─── Standalone entry workflow ───────────────────────────────────────────────
-
-workflow {
-    ch_input = Channel.of(
-        [[id: 'test'],
-         file(params.clinical_csv ?: 'NO_FILE')]
-    )
-
-    SURVIVAL_ANALYSIS(
-        ch_input,
-        params.time_col   ?: 'time',
-        params.event_col  ?: 'event',
-        params.group_col  ?: 'treatment',
-        params.covariates ?: 'age'
-    )
-
-    SURVIVAL_ANALYSIS.out.km_fit.view { meta, f ->
-        "KM fit written: ${f}"
-    }
-    SURVIVAL_ANALYSIS.out.cox_results.view { meta, f ->
-        "Cox results written: ${f}"
-    }
-}
-
-workflow SURVIVAL_ANALYSIS {
+workflow BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES_WORKFLOW {
     take:
-    clinical_data  // channel: [ val(meta), path(clinical_csv) ]
-    time_col       // val: column name for follow-up time
-    event_col      // val: column name for event indicator (0=censored, 1=event)
-    group_col      // val: column name for grouping variable (KM)
-    covariates     // val: comma-separated covariates for Cox model
+    ch_input  // channel: [ val(meta), [ patient_clinical_data.csv ] ]
 
     main:
-    ch_versions = Channel.empty()
-
-    CRAN_SURVIVAL_KAPLANMEIER(clinical_data, time_col, event_col, group_col)
-    ch_versions = ch_versions.mix(CRAN_SURVIVAL_KAPLANMEIER.out.versions)
-
-    CRAN_SURVIVAL_COX(clinical_data, time_col, event_col, covariates)
-    ch_versions = ch_versions.mix(CRAN_SURVIVAL_COX.out.versions)
+    BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES(ch_input)
 
     emit:
-    km_fit       = CRAN_SURVIVAL_KAPLANMEIER.out.km_fit      // [ meta, km_fit.rds ]
-    km_summary   = CRAN_SURVIVAL_KAPLANMEIER.out.km_summary  // [ meta, km_summary.csv ]
-    logrank_pval = CRAN_SURVIVAL_KAPLANMEIER.out.logrank_pval // [ meta, logrank_pvalue.txt ]
-    cox_results  = CRAN_SURVIVAL_COX.out.cox_results          // [ meta, cox_results.csv ]
-    cox_model    = CRAN_SURVIVAL_COX.out.cox_model            // [ meta, cox_model.rds ]
-    versions     = ch_versions
+    tables   = BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES.out.tables
+    plots    = BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES.out.plots
+    objects  = BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES.out.objects
+    versions = BIOC_SURVIVAL_KAPLAN_MEIER_SURVIVAL_CURVES.out.versions
 }

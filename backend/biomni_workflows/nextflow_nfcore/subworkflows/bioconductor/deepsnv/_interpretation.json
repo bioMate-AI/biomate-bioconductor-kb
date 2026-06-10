@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: test=Path to the test BAM file ;; control=Path to the matched control BAM file ;; regions=GRanges or data.frame specifying genomic regions to analyze ;; q=Minimum base quality threshold for filtering reads ;; rho=Dispersion parameter for the beta-binomial model (e.g., 1e-4) ;; model=Model type for bbb, either \"OR\" or \"AND\" ;; alternative=Alternative hypothesis for estimateDispersion (\"two.sided\", \"greater\", \"less\") ;; combine.method=Method to combine p-values from forward and reverse strands (e.g., \"fisher\")\n- alternatives: ShearwaterML (betabinLRT) vs original Shearwater (bbb). ShearwaterML is preferred when standard multiple testing correction (FDR control) is desired, as it yields p-values instead of Bayes factors. Original Shearwater (bbb) is preferred when incorporating prior information (e.g., COSMIC priors) to compute posterior probabilities.\n- when_to_use: Use when calling low-frequency subclonal somatic mutations (SNVs) from deep sequencing data, either by comparing a single test sample to a matched control, or by analyzing a cohort of multiple samples to estimate background error rates.\n- pitfalls: Analyzing raw, unnormalized data can lead to inflated p-values and false positives due to systematic sequencing biases; use normalize() to correct for this. Choosing an inappropriate dispersion parameter rho can bias variant calling; use estimateDispersion() to estimate it from the data.",
+  "workflows": [
+    {
+      "name": "pairwise_deepsnv",
+      "intent": "Call subclonal single nucleotide variants by comparing a single test BAM file to a matched control BAM file.",
+      "input": [
+        "test.bam (alignment file for the test/tumor sample)",
+        "control.bam (alignment file for the matched control/normal sample)"
+      ],
+      "stages": "1. Define genomic regions of interest ;; 2. Run deepSNV to compare test and control BAM files ;; 3. Normalize the data to correct for systematic biases ;; 4. Estimate dispersion using a beta-binomial model ;; 5. Summarize significant SNVs",
+      "code": "regions <- data.frame(chr=\"B.FR.83.HXB2_LAI_IIIB_BRU_K034\", start = 2074, stop=3585)\n# HIVmix <- deepSNV(test = \"http://www.bsse.ethz.ch/cbg/software/deepSNV/data/test.bam\", control = \"http://www.bsse.ethz.ch/cbg/software/deepSNV/data/control.bam\", regions=regions, q=10)\ndata(HIVmix)\nshow(HIVmix)\ncontrol(HIVmix)[100:110,]\ntest(HIVmix)[100:110,]\nplot(HIVmix)\nSNVs <- summary(HIVmix, sig.level=0.05, adjust.method=\"BH\")\ndata(phiX, package=\"deepSNV\")\nphiN <- normalize(phiX, round=TRUE)\ndata(\"RCC\", package=\"deepSNV\")\nRCC.bb = estimateDispersion(RCC, alternative=\"two.sided\")\ntab <- summary(RCC.bb, adjust.method=\"bonferroni\")[,1:6]"
+    },
+    {
+      "name": "shearwater_ml",
+      "intent": "Call subclonal mutations across multiple BAM files using the Shearwater ML maximum-likelihood algorithm and output a VCF file.",
+      "input": [
+        "files (vector of paths to BAM files)"
+      ],
+      "stages": "1. Define genomic regions of interest ;; 2. Load count data from BAM files ;; 3. Compute p-values using the beta-binomial Likelihood Ratio Test ;; 4. Adjust p-values for multiple testing ;; 5. Convert results to VCF format",
+      "code": "regions <- GRanges(\"B.FR.83.HXB2_LAI_IIIB_BRU_K034\", IRanges(start = 3120, end=3140))\nfiles <- c(system.file(\"extdata\", \"test.bam\", package=\"deepSNV\"), system.file(\"extdata\", \"control.bam\", package=\"deepSNV\"))\ncounts <- loadAllData(files, regions, q=30)\npvals <- betabinLRT(counts, rho=1e-4, maxtruncate = 1)$pvals\nqvals <- p.adjust(pvals, method=\"BH\")\ndim(qvals) = dim(pvals)\nvcfML = qvals2Vcf(qvals, counts, regions, samples = files, mvcf = TRUE)"
+    },
+    {
+      "name": "shearwater_bayes_factor",
+      "intent": "Call subclonal mutations across multiple BAM files using the original Shearwater Bayes factor algorithm and output a VCF file.",
+      "input": [
+        "files (vector of paths to BAM files)"
+      ],
+      "stages": "1. Define genomic regions of interest ;; 2. Load count data from BAM files ;; 3. Compute Bayes factors ;; 4. Convert Bayes factors to VCF format",
+      "code": "regions <- GRanges(\"B.FR.83.HXB2_LAI_IIIB_BRU_K034\", IRanges(start = 3120, end=3140))\nfiles <- c(system.file(\"extdata\", \"test.bam\", package=\"deepSNV\"), system.file(\"extdata\", \"control.bam\", package=\"deepSNV\"))\ncounts <- loadAllData(files, regions, q=10)\nbf <- bbb(counts, model = \"OR\", rho=1e-4)\nvcf <- bf2Vcf(bf, counts, regions, cutoff = 0.5, samples = files, prior = 0.5, mvcf = TRUE)"
+    }
+  ]
+}

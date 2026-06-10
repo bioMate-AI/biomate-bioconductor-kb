@@ -1,0 +1,47 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: weightCol=Column name in peak file used to weight coverage or tag matrix calculations (e.g., \"V5\") ;; TxDb=Transcript database object (e.g., TxDb.Hsapiens.UCSC.hg19.knownGene or EnsDb) containing genomic features ;; tssRegion=A numeric vector defining the TSS flanking region, default is c(-3000, 3000) ;; annoDb=Optional annotation database (e.g., \"org.Hs.eg.db\") to add extra gene metadata (SYMBOL, GENENAME, etc.) ;; upstream/downstream=Flanking distances for promoter/body regions; can be absolute base pairs or relative (rel(0.2)) ;; by=Feature type to align peaks to (e.g., \"gene\", \"5UTR\", \"3UTR\") ;; type=Region type to profile (e.g., \"start_site\", \"body\", \"end_site\") ;; nbin=Number of bins for the binning method to scale regions of different lengths and speed up calculations ;; nShuffle=Number of shuffles for background null distribution in overlap enrichment testing (recommended >= 1000)\n- alternatives: EnsDb (from ensembldb package) can be used as an alternative to TxDb for peak annotation, provided chromosome naming styles are matched ;; DOSE, ReactomePA, and clusterProfiler are used for downstream functional enrichment analysis of annotated genes ;; deeptools is mentioned as the conceptual source of the binning method\n- when_to_use: Use when you have genomic coordinates of ChIP-seq peaks (e.g., BED files from MACS2) and want to identify nearest genes, assign genomic features (promoter, exon, intron, etc.), visualize binding profiles around TSS/gene bodies, or compare multiple ChIP-seq datasets\n- pitfalls: Gene body regions shorter than the specified nbin value will be filtered out during profiling, which triggers a warning message ;; When using Ensembl-based EnsDb annotation databases, chromosome naming styles must be matched (e.g., converting Ensembl style to UCSC style using seqlevelsStyle(edb) <- \"UCSC\") ;; Low nShuffle values (e.g., 50) are only for quick demonstration; robust statistical testing of peak overlaps requires nShuffle of 1000 or more",
+  "workflows": [
+    {
+      "name": "peak_profiling_and_visualization",
+      "intent": "Profile and visualize ChIP peak binding distributions around TSS or gene body regions using heatmaps and average profiles.",
+      "input": [
+        "files[[4]] (BED file of ChIP-seq peaks)",
+        "txdb (TxDb object containing transcript-related features)"
+      ],
+      "stages": "1. Read peak file using readPeakFile ;; 2. Plot peak coverage over chromosomes using covplot ;; 3. Retrieve tag matrix around genomic regions using getTagMatrix ;; 4. Generate heatmaps of peak binding using tagHeatmap, peakHeatmap, or peak_Profile_Heatmap ;; 5. Plot average profiles of peak binding using plotAvgProf, plotAvgProf2, or plotPeakProf2",
+      "code": "files <- getSampleFiles()\npeak <- readPeakFile(files[[4]])\ncovplot(peak, weightCol=\"V5\")\ncovplot(peak, weightCol=\"V5\", chrs=c(\"chr17\", \"chr18\"), xlim=c(4.5e7, 5e7))\ndata(\"tagMatrixList\")\ntagMatrix <- tagMatrixList[[4]]\ntagHeatmap(tagMatrix)\npeakHeatmap(peak = files[[4]], TxDb = txdb, upstream = rel(0.2), downstream = rel(0.2), by = \"gene\", type = \"body\", nbin = 800)\nplotAvgProf(tagMatrix, xlim=c(-3000, 3000), xlab=\"Genomic Region (5'->3')\", ylab = \"Read Count Frequency\")\nplotPeakProf2(peak = peak, upstream = rel(0.2), downstream = rel(0.2), conf = 0.95, by = \"gene\", type = \"body\", nbin = 800, TxDb = txdb, weightCol = \"V5\",ignore_strand = F)"
+    },
+    {
+      "name": "peak_annotation_and_enrichment",
+      "intent": "Annotate peaks with genomic features and nearest genes, visualize annotation distributions, and perform functional enrichment analysis.",
+      "input": [
+        "files[[4]] (BED file of ChIP-seq peaks)",
+        "txdb (TxDb object containing transcript-related features)"
+      ],
+      "stages": "1. Annotate peaks with genomic features and nearest genes using annotatePeak ;; 2. Visualize genomic annotations using plotAnnoPie, plotAnnoBar, vennpie, or upsetplot ;; 3. Visualize distance to TSS using plotDistToTSS ;; 4. Link genomic regions to genes using seq2gene ;; 5. Perform pathway enrichment using enrichPathway",
+      "code": "peakAnno <- annotatePeak(files[[4]], tssRegion=c(-3000, 3000), TxDb=txdb, annoDb=\"org.Hs.eg.db\")\nplotAnnoPie(peakAnno)\nplotAnnoBar(peakAnno)\nvennpie(peakAnno)\nplotDistToTSS(peakAnno, title=\"Distribution of transcription factor-binding loci\\nrelative to TSS\")\nlibrary(ReactomePA)\npathway1 <- enrichPathway(as.data.frame(peakAnno)$geneId)\nhead(pathway1, 2)\ngene <- seq2gene(peak, tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)\npathway2 <- enrichPathway(gene)\nhead(pathway2, 2)\ndotplot(pathway2)"
+    },
+    {
+      "name": "multi_dataset_comparison",
+      "intent": "Compare genomic annotations, TSS distance distributions, and binding profiles across multiple ChIP-seq datasets.",
+      "input": [
+        "files (named list of BED files)",
+        "txdb (TxDb object containing transcript-related features)"
+      ],
+      "stages": "1. Plot comparative average profiles using plotAvgProf or plotPeakProf2 ;; 2. Plot comparative heatmaps using tagHeatmap ;; 3. Annotate multiple peak files using lapply and annotatePeak ;; 4. Compare genomic annotations using plotAnnoBar ;; 5. Compare TSS distance distributions using plotDistToTSS ;; 6. Compare functional profiles using compareCluster ;; 7. Visualize overlap of annotated genes using vennplot",
+      "code": "data(\"tagMatrixList\")\nplotAvgProf(tagMatrixList, xlim=c(-3000, 3000))\ntagHeatmap(tagMatrixList)\npeakAnnoList <- lapply(files, annotatePeak, TxDb=txdb, tssRegion=c(-3000, 3000), verbose=FALSE)\nplotAnnoBar(peakAnnoList)\nplotDistToTSS(peakAnnoList)\ngenes = lapply(peakAnnoList, function(i) as.data.frame(i)$geneId)\nnames(genes) = sub(\"_\", \"\\n\", names(genes))\ncompKEGG <- compareCluster(geneCluster   = genes, fun           = \"enrichKEGG\", pvalueCutoff  = 0.05, pAdjustMethod = \"BH\")\ndotplot(compKEGG, showCategory = 15, title = \"KEGG Pathway Enrichment Analysis\")\nvennplot(genes)"
+    },
+    {
+      "name": "overlap_testing_and_geo_mining",
+      "intent": "Test the statistical significance of overlap between ChIP-seq datasets and mine public GEO datasets for co-regulation.",
+      "input": [
+        "files[[5]] (query BED file)",
+        "files[1:4] (target BED files)",
+        "txdb (TxDb object containing transcript-related features)"
+      ],
+      "stages": "1. Shuffle genomic coordinates using shuffle ;; 2. Test overlap significance using enrichPeakOverlap ;; 3. Query GEO species and genomes using getGEOspecies and getGEOgenomeVersion ;; 4. Retrieve GEO metadata using getGEOInfo",
+      "code": "p <- GRanges(seqnames=c(\"chr1\", \"chr3\"), ranges=IRanges(start=c(1, 100), end=c(50, 130)))\nshuffle(p, TxDb=txdb)\nenrichPeakOverlap(queryPeak     = files[[5]], targetPeak    = unlist(files[1:4]), TxDb          = txdb, pAdjustMethod = \"BH\", nShuffle      = 50, chainFile     = NULL, verbose       = FALSE)\ngetGEOspecies()\ngetGEOgenomeVersion()\nhg19 <- getGEOInfo(genome=\"hg19\", simplify=TRUE)\nhead(hg19)"
+    }
+  ]
+}

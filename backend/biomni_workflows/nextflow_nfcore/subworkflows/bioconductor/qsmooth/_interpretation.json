@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=A data frame or matrix with observations (e.g., genes/probes) on the rows and samples on the columns ;; group_factor=A continuous or categorical covariate representing group-level biological variation (e.g., tissue type) ;; batch=Optional batch covariate (multiple batches are not allowed); if provided, ComBat from sva is run prior to qsmooth ;; norm_factors=Optional scaling normalization factors (default is NULL) ;; window=Window size for the running median, defined as a fraction of the number of rows (default is 0.05) ;; gc=For qsmoothGC, a vector of GC-content values for each feature ;; nGroups=For qsmoothGC, the number of groups within which qsmooth normalization is adopted ;; round=For qsmoothGC, a logical defining whether the normalized data should be rounded\n- alternatives: Standard quantile normalization (forces identical distributions across all samples, assuming only technical variation differs) ;; Quantile normalization within groups (assumes distributions should only be identical within biological groups) ;; quantro package (used to test for global differences between groups of distributions to decide if standard quantile normalization is appropriate)\n- when_to_use: Use when there are global differences in distributions between biological conditions (e.g., different tissues, normal vs. tumor, or developmental stages with global transcriptional changes) where standard quantile normalization would incorrectly remove biological variation.\n- pitfalls: Applying standard quantile normalization when global biological differences exist, which artificially removes biological variation and induces false differences ;; Providing multiple batches to the batch parameter, as multiple batches are not allowed ;; Failing to filter out low-count features or spike-ins before running qsmooth, which can distort the quantile distribution estimation.",
+  "workflows": [
+    {
+      "name": "smooth_quantile_normalization",
+      "intent": "Perform smooth quantile normalization on high-throughput expression data using biological group covariates, and visualize the calculated weights.",
+      "input": [
+        "counts1 (matrix or data frame of raw expression counts with genes in rows and samples in columns)",
+        "pd1$organ (factor or vector representing the biological group for each sample)"
+      ],
+      "stages": "1. Run qsmooth to compute weights and normalize the data.\n2. Extract the normalized expression matrix using qsmoothData.\n3. Plot the computed weights across quantiles using qsmoothPlotWeights.",
+      "code": "library(qsmooth)\nqs_norm_e1 <- qsmooth(object = counts1, group_factor = pd1$organ)\nqsmoothData(qs_norm_e1)\nqsmoothPlotWeights(qs_norm_e1)"
+    },
+    {
+      "name": "gc_content_aware_smooth_quantile_normalization",
+      "intent": "Perform smooth quantile normalization while accounting for sample-specific GC-content technical variability.",
+      "input": [
+        "counts1 (matrix or data frame of raw expression counts with genes in rows and samples in columns)",
+        "gcContent (numeric vector of GC-content values corresponding to the rows of the expression matrix)",
+        "pd1$organ (factor or vector representing the biological group for each sample)"
+      ],
+      "stages": "1. Align the GC-content vector with the expression matrix rows and filter out missing values.\n2. Run qsmoothGC to perform GC-content-aware smooth quantile normalization.\n3. Extract the normalized expression matrix using qsmoothData.",
+      "code": "library(qsmooth)\ndata(gc, package=\"qsmooth\")\ngcContent <- gc[rownames(counts1),2]\nkeep <- names(gcContent)[!is.na(gcContent)]\nqs_norm_gc <- qsmoothGC(object = counts1[keep,], gc=gcContent[keep], group_factor = pd1$organ)\nqsmoothData(qs_norm_gc)"
+    }
+  ]
+}

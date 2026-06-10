@@ -1,0 +1,11 @@
+{
+  "package": "pepxmltab",
+  "requirements": [
+    "pepXMLTab"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "pepXMLTab"
+    ]
+  }
+}

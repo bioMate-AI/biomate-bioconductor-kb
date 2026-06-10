@@ -1,0 +1,15 @@
+{
+  "package": "shiny_gosling",
+  "requirements": [
+    "htmlwidgets",
+    "shiny.gosling",
+    "shiny_gosling"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "htmlwidgets",
+      "shiny.gosling",
+      "shiny_gosling"
+    ]
+  }
+}

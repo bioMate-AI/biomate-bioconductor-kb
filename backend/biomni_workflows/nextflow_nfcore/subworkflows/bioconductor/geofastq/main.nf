@@ -1,96 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GEOfastq
-// GEOfastq is used to download fastq files from the European Nucleotide Archive (ENA) starting with an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GEOfastq/inst/doc/GEOfastq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GEOfastq")
+// Bioconductor workflow: GEOfastq — geo_fastq_download
+// Crawl GEO and ENA metadata using accession numbers provided in sample metadata, and download the corresponding FASTQ files.
+// Input: counts.csv, coldata.csv
+// Container: 1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GEOfastq
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GEOFASTQ {
+process BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-geofastq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-geofastq:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-geofastq:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_geofastq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_geofastq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_geofastq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(GEOfastq)
-    library(jsonlite)
-
-    # --- Crawl Gse [] ---
-    # Key functions: crawl_gse
-    ---------------------------------------------------------------------
-    gse_name <- 'GSE133758'
-    gse_text <- crawl_gse(gse_name)
-    # --- Extract Gsms [] ---
-    # Key functions: extract_gsms, crawl_gsms
-    ---------------------------------------------------------------------
-    gsm_names <- extract_gsms(gse_text)
-    gsm_name <- gsm_names[182]
-    srp_meta <- crawl_gsms(gsm_name)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_geofastq_results.csv", row.names = TRUE)
+    
+    # Define parameters
+    dest_dir <- "fastq_downloads"
+    if (!dir.exists(dest_dir)) {
+        dir.create(dest_dir, recursive = TRUE)
+    }
+    
+    # Stage 1: Read input metadata
+    message("Reading input metadata...")
+    coldata_path <- "coldata.csv"
+    if (!file.exists(coldata_path)) {
+        stop("Required input file 'coldata.csv' not found in the working directory.")
+    }
+    coldata <- read.csv(coldata_path, stringsAsFactors = FALSE)
+    
+    # Stage 2: Extract GEO Accessions dynamically from input
+    message("Searching for GEO accessions in coldata.csv...")
+    # Search all columns for GSM (sample) or GSE (series) patterns to avoid hardcoding
+    all_values <- as.character(unlist(coldata))
+    gsm_ids <- unique(grep("^GSM\\\\d+\$", all_values, value = TRUE))
+    gse_ids <- unique(grep("^GSE\\\\d+\$", all_values, value = TRUE))
+    
+    srp_meta <- NULL
+    
+    if (length(gsm_ids) > 0) {
+        message(sprintf("Found %d GSM accession(s): %s", length(gsm_ids), paste(gsm_ids, collapse = ", ")))
+        tryCatch({
+            srp_meta <- crawl_gsms(gsm_ids)
+        }, error = function(e) {
+            message("Error crawling GSMs: ", e\$message)
+        })
+    } else if (length(gse_ids) > 0) {
+        message(sprintf("Found GSE accession: %s", gse_ids[1]))
+        tryCatch({
+            gse_text <- crawl_gse(gse_ids[1])
+            gsm_names <- extract_gsms(gse_text)
+            message(sprintf("Extracted %d GSMs from GSE.", length(gsm_names)))
+            srp_meta <- crawl_gsms(gsm_names)
+        }, error = function(e) {
+            message("Error crawling GSE: ", e\$message)
+        })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_geofastq_results.csv")
+        message("No GSM or GSE accessions found in coldata.csv. Creating empty metadata template.")
+        srp_meta <- data.frame(
+            run = character(),
+            gsm_name = character(),
+            ebi_dir = character(),
+            stringsAsFactors = FALSE
+        )
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_geofastq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GEOFASTQ:", paste0("    geofastq: ", packageVersion("GEOfastq"))),
-        "versions.yml"
+    
+    # Stage 3: Download FASTQ files from ENA
+    download_results <- data.frame(
+        run = character(),
+        gsm_name = character(),
+        file_path = character(),
+        status = character(),
+        stringsAsFactors = FALSE
     )
+    
+    if (!is.null(srp_meta) && nrow(srp_meta) > 0) {
+        message("Crawled metadata successfully. Proceeding to download FASTQs...")
+        
+        # Ensure required download directory column exists
+        if (!"ebi_dir" %in% colnames(srp_meta) && "run" %in% colnames(srp_meta)) {
+            srp_meta\$ebi_dir <- sapply(srp_meta\$run, get_dldir)
+        }
+        
+        # Download FASTQs with error handling for network robustness
+        tryCatch({
+            res <- get_fastqs(srp_meta, dest_dir)
+            
+            download_results <- data.frame(
+                run = srp_meta\$run,
+                gsm_name = srp_meta\$gsm_name,
+                file_path = file.path(dest_dir, paste0(srp_meta\$run, ".fastq.gz")),
+                status = "Success",
+                stringsAsFactors = FALSE
+            )
+        }, error = function(e) {
+            message("Error downloading FASTQs: ", e\$message)
+            download_results <- data.frame(
+                run = srp_meta\$run,
+                gsm_name = srp_meta\$gsm_name,
+                file_path = NA,
+                status = paste("Failed:", e\$message),
+                stringsAsFactors = FALSE
+            )
+        })
+    } else {
+        message("No metadata available to download.")
+    }
+    
+    # Stage 4: Write Outputs
+    message("Writing outputs...")
+    write.csv(srp_meta, "geo_metadata.csv", row.names = FALSE)
+    write.csv(download_results, "download_status.csv", row.names = FALSE)
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD":',
+        paste0('    GEOfastq: ', as.character(packageVersion('GEOfastq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_geofastq_results.csv
-    touch ${prefix}_geofastq_output.rds
-    echo "BIOC_GEOFASTQ:" > versions.yml
-    echo "    geofastq: 0.0.0" >> versions.yml
+    touch ${prefix}_geo_fastq_download.csv versions.yml
     """
 }
 
-
-workflow BIOC_GEOFASTQ_WORKFLOW {
+workflow BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GEOFASTQ(ch_input)
+    BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD(ch_input)
 
     emit:
-    results  = BIOC_GEOFASTQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GEOFASTQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GEOFASTQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GEOFASTQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD.out.tables
+    plots    = BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD.out.plots
+    objects  = BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD.out.objects
+    versions = BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD.out.versions
 }

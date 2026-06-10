@@ -1,0 +1,22 @@
+{
+  "package": "regionreport",
+  "requirements": [
+    "GenomeInfoDb",
+    "GenomicRanges",
+    "derfinder",
+    "regionReport"
+  ],
+  "by_workflow": {
+    "derfinder_base_level_report.nf": [
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "derfinder",
+      "regionReport"
+    ],
+    "main.nf": [
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "regionReport"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "package": "pcan",
+  "requirements": [
+    "BiocParallel",
+    "PCAN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "PCAN"
+    ],
+    "network_consensus.nf": [
+      "PCAN"
+    ],
+    "pathway_consensus.nf": [
+      "PCAN"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: model_type=Specifies the mixture model type in mixtureModel(), which can be \"linear\" (default), \"spline\", \"polynomial\", or \"one_dimensional\" ;; posterior_cutoff=The posterior probability threshold (default 0.75) above which a cell is considered compromised and removed ;; keep_all_below_boundary=Boolean (default TRUE) in plotFiltering() and filterCells() that keeps all cells below the intact cell line, preventing low-mitochondrial cells from being incorrectly excluded ;; enforce_left_cutoff=Boolean (default TRUE) in plotFiltering() and filterCells() that prevents a U-shaped boundary by discarding all cells with both lower complexity and higher mitochondrial percentage than the lowest-mito cell marked for removal\n- alternatives: Standard arbitrary mitochondrial percentage thresholds, or identifying outliers using median absolute deviation (MAD) (recommended when the two-distribution assumption is not met)\n- when_to_use: When performing quality control on single-cell RNA-seq datasets (especially from tissues like archived tumors where standard arbitrary mitochondrial thresholds are too stringent) and there is a non-trivial number of compromised cells, characterized by a triangular shape in a plot of mitochondrial percentage vs. detected genes\n- pitfalls: Running miQC on datasets without a significant number of compromised cells (where the two-distribution assumption is violated), which causes mixtureModel() to throw a warning and fail to filter cells ;; excluding low-mitochondrial cells near the x-intercept of the compromised line (resolved by setting keep_all_below_boundary = TRUE) ;; U-shaped decision boundaries keeping worse cells while discarding better ones (resolved by setting enforce_left_cutoff = TRUE)",
+  "workflows": [
+    {
+      "name": "standard_2d_miqc",
+      "intent": "Perform quality control filtering on single-cell RNA-seq data by jointly modeling mitochondrial read percentage and the number of detected genes using a 2D mixture model.",
+      "input": [
+        "sce (a SingleCellExperiment object containing raw count data)"
+      ],
+      "stages": "1. Identify mitochondrial genes and calculate per-cell QC metrics using scater::addPerCellQC ;; 2. Plot QC metrics to visually inspect the dataset using plotMetrics ;; 3. Fit a 2D mixture model (linear, spline, or polynomial) using mixtureModel ;; 4. Inspect model parameters and posterior probabilities using parameters and posterior ;; 5. Visualize the fitted model and filtering boundary using plotModel and plotFiltering ;; 6. Filter out compromised cells from the SingleCellExperiment object using filterCells",
+      "code": "mt_genes <- grepl(\"^mt-\",  rownames(sce))\nfeature_ctrls <- list(mito = rownames(sce)[mt_genes])\nsce <- addPerCellQC(sce, subsets = feature_ctrls)\nplotMetrics(sce)\nmodel <- mixtureModel(sce)\nparameters(model)\nhead(posterior(model))\nplotModel(sce, model)\nplotFiltering(sce, model)\nsce <- filterCells(sce, model)\n\n# Alternative non-linear models\nmodel2 <- mixtureModel(sce, model_type = \"spline\")\nplotModel(sce, model2)\nplotFiltering(sce, model2)\n\nmodel3 <- mixtureModel(sce, model_type = \"polynomial\")\nplotModel(sce, model3)\nplotFiltering(sce, model3)\n\n# Adjusting filtering parameters for cancer datasets\nplotFiltering(sce, model, posterior_cutoff = 0.6, enforce_left_cutoff = TRUE, keep_all_below_boundary = TRUE)"
+    },
+    {
+      "name": "one_dimensional_miqc",
+      "intent": "Perform quality control filtering based solely on mitochondrial percentage using a 1D Gaussian mixture model to calculate a single threshold.",
+      "input": [
+        "sce (a SingleCellExperiment object containing raw count data)"
+      ],
+      "stages": "1. Identify mitochondrial genes and calculate per-cell QC metrics using scater::addPerCellQC ;; 2. Fit a 1D mixture model using mixtureModel with model_type = \"one_dimensional\" ;; 3. Visualize the model and filtering using plotModel and plotFiltering ;; 4. Calculate the single mitochondrial percentage cutoff using get1DCutoff",
+      "code": "mt_genes <- grepl(\"^mt-\",  rownames(sce))\nfeature_ctrls <- list(mito = rownames(sce)[mt_genes])\nsce <- addPerCellQC(sce, subsets = feature_ctrls)\nmodel4 <- mixtureModel(sce, model_type = \"one_dimensional\")\nplotModel(sce, model4)\nplotFiltering(sce, model4)\nget1DCutoff(sce, model4)"
+    }
+  ]
+}

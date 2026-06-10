@@ -1,0 +1,38 @@
+{
+  "package": "ucell",
+  "requirements": [
+    "BiocParallel",
+    "Matrix",
+    "Seurat",
+    "SingleCellExperiment",
+    "UCell",
+    "ggplot2",
+    "patchwork",
+    "reshape2",
+    "scater",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "Matrix",
+      "UCell",
+      "ggplot2",
+      "reshape2"
+    ],
+    "seurat_workflow.nf": [
+      "BiocParallel",
+      "Seurat",
+      "UCell",
+      "ggplot2"
+    ],
+    "single_cell_experiment_workflow.nf": [
+      "SingleCellExperiment",
+      "UCell",
+      "ggplot2",
+      "patchwork",
+      "scater",
+      "scuttle"
+    ]
+  }
+}

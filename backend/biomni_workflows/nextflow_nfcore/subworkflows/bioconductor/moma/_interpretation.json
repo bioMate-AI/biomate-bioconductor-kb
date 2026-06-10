@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: example.gbm.mae=A MultiAssayExperiment object (or named list of matrices) containing \"viper\", \"cnv\", \"mut\", and optionally \"fusion\" assays ;; gbm.pathways=A named list of lists containing \"cindy\" and \"preppi\" pathway/modulator interaction data ;; output.folder=Directory path where results will be saved when calling the saveData method\n- alternatives: VIPER=Used prior to MOMA to infer protein activity from gene expression signatures, which is a prerequisite input to MOMA\n- when_to_use: When analyzing cancer genomics and proteomics data to identify master regulator proteins that act as downstream checkpoints for upstream genomic alterations (mutations, copy number variants, fusions)\n- pitfalls: CINDy pathway values are context-specific and must be calculated for the specific tissue/expression set of interest, unlike PrePPI values which are context-independent ;; The input assays in the MultiAssayExperiment must be named exactly \"viper\", \"cnv\", \"mut\", and \"fusion\" (optional)",
+  "workflows": [
+    {
+      "name": "moma_multi_omic_pipeline",
+      "intent": "Infer candidate master regulator proteins and genomic driver connections from multi-omics data and pathway networks.",
+      "input": [
+        "example.gbm.mae (MultiAssayExperiment containing viper, cnv, and mut matrices)",
+        "gbm.pathways (named list containing cindy and preppi pathway lists)"
+      ],
+      "stages": "1. Initialize the MOMA object using MomaConstructor ;; 2. Run the DIGGIT inference algorithm using runDIGGIT ;; 3. Infer robust computational predictions using makeInteractions ;; 4. Rank candidate Master Regulators using Rank ;; 5. Cluster samples based on protein ranks using Cluster and assign the optimal cluster solution ;; 6. Perform genomic saturation analysis using saturationCalculation ;; 7. Generate saturation and oncoprint plots using makeSaturationPlots ;; 8. Save results using saveData",
+      "code": "library(MOMA)\nmomaObj <- MomaConstructor(example.gbm.mae, gbm.pathways)\nmomaObj$runDIGGIT()\nmomaObj$makeInteractions()\nmomaObj$Rank()\nmomaObj$Cluster()\nmomaObj$sample.clustering <- momaObj$clustering.results$`3clusters`$clustering\nmomaObj$saturationCalculation()\ncluster1.checkpoint <- momaObj$checkpoints[[1]]\nprint (cluster1.checkpoint[1:5])\nplots <- makeSaturationPlots(momaObj)\nlibrary(ggplot2)\nlibrary(grid)\ngrid.draw(plots$oncoprint.plots[[3]])\nplots$curve.plots[[3]] +\n  ggtitle(\"Genomic Saturation Curve for GBM Subtype 3\")\nmomaObj$saveData(output.folder = \"outputs\", \"hypotheses\", \"checkpoints\")"
+    }
+  ]
+}

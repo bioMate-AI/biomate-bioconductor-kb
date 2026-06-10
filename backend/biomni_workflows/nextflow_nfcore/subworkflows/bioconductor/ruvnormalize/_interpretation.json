@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - Y=Gene expression matrix where rows represent samples and columns represent genes (should be centered before running RUV).\n  - cIdx=An integer vector containing the indices of the negative control genes in Y.\n  - scIdx=A matrix representing replicate samples, where each row contains the row indices of replicates in Y, padded with -1.\n  - k=The number of unwanted variation factors to estimate (rank reduction parameter).\n  - nu.coeff=The shrinkage parameter; setting it to 0 performs no shrinkage, while positive values (e.g., 1e-3) enable shrinkage.\n  - paramXb=A list of parameters for the sparse dictionary learning method (spams package) used in iterative RUV, including K (rank of X), lambda (regularization parameter), and optimization flags.\n  - Wmethod=The method used to estimate the unwanted variation matrix W ('rep' for replicate-based or 'svd' for SVD-based).\n- alternatives:\n  - ComBat / Linear Regression: Preferred when both the factor of interest and the unwanted variation factors are fully observed.\n  - SVA (Surrogate Variable Analysis) / RUV-2: Preferred when the factor of interest is observed but the unwanted variation factors are hidden.\n  - Standard SVD / PCA: Used for unsupervised batch removal but can inadvertently remove the unobserved biological signal of interest if it is correlated with batch effects.\n- when_to_use: Use this package when you need to normalize gene expression data (e.g., microarray) for unsupervised downstream analyses (like clustering or PCA) and you do not have a predefined factor of interest, but you do have negative control genes and/or replicate samples.\n- pitfalls:\n  - Failing to center the gene expression matrix Y before running RUV can lead to incorrect estimation of unwanted variation.\n  - Modifying advanced parameters in `paramXb` (such as `D`, `batch`, `iter`, `mode`) without a deep understanding of sparse dictionary learning can cause optimization failure.\n  - Iterative methods require the external `spams` package to be installed and loaded.",
+  "workflows": [
+    {
+      "name": "naive_ruv2",
+      "intent": "Remove unwanted variation from gene expression data using negative control genes with or without shrinkage.",
+      "input": [
+        "expression_matrix.csv (matrix of gene expression values with samples as rows and genes as columns)",
+        "negative_controls.txt (list of indices or names of negative control genes)"
+      ],
+      "stages": "1. Center the gene expression matrix.\n2. Identify the indices of negative control genes.\n3. Run naive RUV-2 without shrinkage (rank reduction) or with shrinkage.\n4. Visualize the corrected data using SVD/PCA plotting.",
+      "code": "Y <- scale(Y, scale=FALSE)\ncIdx <- which(featureData(gender)$isNegativeControl)\nk <- 20\nnu <- 0\nnsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=k)\nk <- m\nnu.coeff <- 1e-3\nnY <- naiveRandRUV(Y, cIdx, nu.coeff=nu.coeff, k=k)\nsvdRes2 <- svdPlot(nY[, ssd[1:nKeep], drop=FALSE], \n                     annot=annot, \n                     labels=lab.and.region, \n                     svdRes=NULL, \n                     plAnnots=plAnnots,                     \n                     kColors=gender.col, file=NULL)"
+    },
+    {
+      "name": "replicate_ruv",
+      "intent": "Remove unwanted variation from gene expression data using both negative control genes and replicate samples.",
+      "input": [
+        "expression_matrix.csv (matrix of gene expression values with samples as rows and genes as columns)",
+        "negative_controls.txt (list of indices or names of negative control genes)",
+        "replicates_mapping.csv (matrix mapping replicate samples to each other, padded with -1)"
+      ],
+      "stages": "1. Center the gene expression matrix.\n2. Identify negative control genes and construct the replicate index matrix.\n3. Run replicate-based RUV correction using `naiveReplicateRUV`.\n4. Visualize the corrected data using SVD/PCA plotting.",
+      "code": "Y <- scale(Y, scale=FALSE)\ncIdx <- which(featureData(gender)$isNegativeControl)\nsRes <- naiveReplicateRUV(Y, cIdx, scIdx, k=20)\nsvdResRep <- svdPlot(sRes$cY[, ssd[1:nKeep], drop=FALSE], \n                     annot=annot, \n                     labels=lab.and.region, \n                     svdRes=NULL, \n                     plAnnots=plAnnots,                     \n                     kColors=gender.col, file=NULL)"
+    },
+    {
+      "name": "iterative_ruv",
+      "intent": "Iteratively estimate and remove unwanted variation and the factor of interest using sparse dictionary learning.",
+      "input": [
+        "expression_matrix.csv (matrix of gene expression values with samples as rows and genes as columns)",
+        "negative_controls.txt (list of indices or names of negative control genes)",
+        "replicates_mapping.csv (matrix mapping replicate samples to each other, padded with -1)"
+      ],
+      "stages": "1. Center the gene expression matrix and identify negative control genes.\n2. Define the sparse dictionary learning parameters in `paramXb`.\n3. Run iterative RUV using either replicate-based (`Wmethod='rep'`) or SVD-based (`Wmethod='svd'`) estimation.",
+      "code": "cEps <- 1e-6\nmaxIter <- 30\np <- 20\n\nparamXb <- list()\nparamXb$K <- p\nparamXb$D <- matrix(c(0.),nrow = 0,ncol=0)\nparamXb$batch <- TRUE\nparamXb$iter <- 1\n\nparamXb$mode <- 'PENALTY'\nparamXb$lambda <- 0.25 \n\niRes <- iterativeRUV(Y, cIdx, scIdx, paramXb, k=20, nu.coeff=0,\ncEps, maxIter,\nWmethod='rep', wUpdate=11)\n\nparamXb <- list()\nparamXb$K <- p\nparamXb$D <- matrix(c(0.),nrow = 0,ncol=0)\nparamXb$batch <- TRUE\nparamXb$iter <- 1\nparamXb$mode <- 'PENALTY'\nparamXb$lambda <- 6e-2\nparamXb$lambda2 <- 0\n\niRes <- iterativeRUV(Y, cIdx, scIdx=NULL, paramXb, k=nrow(Y), nu.coeff=1e-3/2,\ncEps, maxIter,\nWmethod='svd', wUpdate=11)"
+    }
+  ]
+}

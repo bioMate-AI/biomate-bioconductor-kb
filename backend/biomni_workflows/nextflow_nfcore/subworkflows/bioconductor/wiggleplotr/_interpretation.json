@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exons=A list of GRanges objects containing start and end coordinates of exons for each transcript ;; cdss=An optional list of GRanges objects containing start and end coordinates of coding sequences ;; annotations=An optional data frame with transcript_id, gene_name, and strand columns ;; track_data=A data frame containing sample metadata, including sample_id, scaling_factor, bigWig (path to BigWig files), track_id, and colour_group ;; rescale_introns=Logical; if TRUE, rescales introns to a fixed length (default 50 bp) to focus on exons ;; mean_only=Logical; if TRUE, plots the mean coverage per group; if FALSE, overlays individual samples ;; coverage_ranges_pq=Optional path to a Parquet file containing coverage data to reduce I/O demands ;; coverage_type=Character; set to \"line\" to overlay multiple conditions on a single track ;; connect_exons=Logical; set to FALSE to plot non-transcript genomic annotations (e.g., peaks) ;; transcript_label=Logical; set to FALSE to hide transcript labels\n- alternatives: coverage_ranges_pq=Use Parquet files instead of BigWig files to substantially reduce I/O demands when working with a large number of samples ;; plotTranscriptsFromEnsembldb/plotCoverageFromEnsembldb=Use when you want to extract annotations automatically from an Ensembl database (EnsDb) ;; plotTranscriptsFromUCSC/plotCoverageFromUCSC=Use when you want to extract annotations automatically from a UCSC database (TxDb)\n- when_to_use: Use when you need to visualize RNA-seq, ATAC-seq, ChIP-seq, or DNase-seq read coverage across exons or genomic regions, especially when genes have long introns that make exons hard to see on a standard genomic scale.\n- pitfalls: Legends cannot be automatically added to read coverage plots because wiggleplotr uses cowplot::plot_grid to align the coverage and annotation plots, which does not support legends.",
+  "workflows": [
+    {
+      "name": "transcript_annotation_plotting",
+      "intent": "Plot transcript structures (exons, introns, and coding sequences) from manual GRanges or database objects.",
+      "input": [
+        "exons_list (GRangesList of exon coordinates)",
+        "cds_list (GRangesList of CDS coordinates, optional)",
+        "metadata_df (data frame of transcript metadata, optional)",
+        "EnsDb_object (Ensembldb database object, optional)",
+        "TxDb_object (UCSC TxDb database object, optional)"
+      ],
+      "stages": "1. Load transcript annotations (exons, CDS, and metadata) or database objects ;; 2. Plot transcript structures using plotTranscripts, plotTranscriptsFromEnsembldb, or plotTranscriptsFromUCSC, optionally setting rescale_introns = TRUE to shorten introns.",
+      "code": "plotTranscripts(ncoa7_exons, ncoa7_cdss, ncoa7_metadata, rescale_introns = FALSE)\nplotTranscripts(ncoa7_exons, ncoa7_cdss, ncoa7_metadata, rescale_introns = TRUE)\nplotTranscripts(ncoa7_exons, rescale_introns = TRUE)\nlibrary(\"ensembldb\")\nlibrary(\"EnsDb.Hsapiens.v86\")\nplotTranscriptsFromEnsembldb(EnsDb.Hsapiens.v86, gene_names = \"NCOA7\", \n                             transcript_ids = c(\"ENST00000438495\", \"ENST00000392477\"))\nrequire(\"org.Hs.eg.db\")\nrequire(\"TxDb.Hsapiens.UCSC.hg38.knownGene\")\nplotTranscriptsFromUCSC(orgdb = org.Hs.eg.db, txdb = TxDb.Hsapiens.UCSC.hg38.knownGene, \n                        gene_names = \"NCOA7\", transcript_ids = c(\"ENST00000438495.6\", \"ENST00000368357.7\"))"
+    },
+    {
+      "name": "read_coverage_plotting",
+      "intent": "Plot sequencing read coverage from BigWig or Parquet files across transcript structures.",
+      "input": [
+        "bigwig_files (BigWig files containing read coverage) or parquet_file (Parquet file containing coverage ranges)",
+        "sample_metadata (data frame containing sample IDs and conditions)",
+        "exons_list (GRangesList of exon coordinates)"
+      ],
+      "stages": "1. Create a sample metadata data frame containing sample IDs, conditions, scaling factors, and paths to BigWig files ;; 2. Add track_id and colour_group columns to define plotting tracks and colors ;; 3. Plot read coverage alongside transcript annotations using plotCoverage, optionally specifying Parquet input, overlaying individual samples, or using line plots.",
+      "code": "sample_data = dplyr::tibble(\n  sample_id = c(\"aipt_A\", \"aipt_C\", \"bima_A\", \"bima_C\"), \n  condition = factor(c(\"Naive\", \"LPS\", \"Naive\", \"LPS\"), levels = c(\"Naive\", \"LPS\")), \n  scaling_factor = 1)\nsample_data = sample_data %>%\n  dplyr::mutate(bigWig = system.file(\"extdata\", paste0(sample_id, \".str2.bw\"), \n                                     package = \"wiggleplotr\"))\ntrack_data = dplyr::mutate(sample_data, track_id = condition, colour_group = condition)\nselected_transcripts = c(\"ENST00000438495\", \"ENST00000392477\") #Plot only two transcripts of the gens\nplotCoverage(ncoa7_exons[selected_transcripts], ncoa7_cdss[selected_transcripts], \n             ncoa7_metadata, track_data,\n             heights = c(2,1), fill_palette = getGenotypePalette())\nplotCoverage(ncoa7_exons[selected_transcripts], ncoa7_cdss[selected_transcripts], \n             ncoa7_metadata, track_data,\n             heights = c(2,1), fill_palette = getGenotypePalette(), mean_only = FALSE, alpha = 0.5)\nrequire(\"arrow\")\nparquet_path = system.file(\"extdata\", \"example_coverage.parquet\", package = \"wiggleplotr\")\nplotCoverage(ncoa7_exons[selected_transcripts], ncoa7_cdss[selected_transcripts], \n             ncoa7_metadata, track_data,\n             heights = c(2,1), fill_palette = getGenotypePalette(), \n             coverage_ranges_pq = parquet_path, rescale_introns = T)\ntrack_data = dplyr::mutate(sample_data, track_id = \"RNA-seq\", colour_group = condition)\nplotCoverage(ncoa7_exons[selected_transcripts], ncoa7_cdss[selected_transcripts], \n            ncoa7_metadata, track_data,\n             heights = c(2,1), fill_palette = getGenotypePalette(), coverage_type = \"line\")"
+    }
+  ]
+}

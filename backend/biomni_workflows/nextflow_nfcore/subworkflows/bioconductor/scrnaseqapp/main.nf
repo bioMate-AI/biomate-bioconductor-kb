@@ -1,105 +1,173 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scRNAseqApp
-// The scRNAseqApp is a Shiny app package designed for interactive visualization of single-cell data. I
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scRNAseqApp/inst/doc/scRNAseqApp.R
-// Upstream  : Seurat
-// Downstream: none
-//
-// Install: BiocManager::install("scRNAseqApp")
+// Bioconductor workflow: scRNAseqApp — scrnaseq_app_deployment
+// Prepare and deploy a single-cell RNA-seq dataset for interactive visualization using scRNAseqApp.
+// Input: counts.csv, coldata.csv
+// Container: 1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Seurat, scRNAseqApp
+// QC: count normalization, highly-variable feature selection
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCRNASEQAPP {
+process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scrnaseqapp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scrnaseqapp:1.6.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-scrnaseqapp:1.6.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scrnaseqapp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scrnaseqapp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scrnaseqapp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(scRNAseqApp)
-    library(jsonlite)
-
-    # --- Dataset Configuration and Creation [] ---
-    # Key functions: createAppConfig, createDataSet
-    appconf <- createAppConfig(
-        title = "pbmc_small_test",
-        destinationFolder = "pbmc_small_test",
-        species = "Homo sapiens",
-        doi = "10.1038/nbt.3192",
-        datatype = "scRNAseq",
-        abstract = "Put the description of the data here."
-    )
-    createDataSet(
-        appconf,
-        pbmc_small,
-        datafolder = file.path(publish_folder, "data")
-    )
-
-
-    # --- Application Launching [] ---
-    # Key functions: scRNAseqApp
-    scRNAseqApp(app_path = publish_folder)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scrnaseqapp_results.csv", row.names = TRUE)
+    library(Seurat)
+    
+    # Stage 1: Read and preprocess input files
+    message("Reading input files...")
+    counts_data <- read.csv("counts.csv", check.names = FALSE)
+    if ("gene_id" %in% colnames(counts_data)) {
+      rownames(counts_data) <- counts_data\$gene_id
+      counts_matrix <- as.matrix(counts_data[, colnames(counts_data) != "gene_id"])
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scrnaseqapp_results.csv")
+      rownames(counts_data) <- counts_data[, 1]
+      counts_matrix <- as.matrix(counts_data[, -1])
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scrnaseqapp_output.rds")
+    
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    if ("sample" %in% colnames(coldata)) {
+      rownames(coldata) <- coldata\$sample
+    } else {
+      rownames(coldata) <- coldata[, 1]
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCRNASEQAPP:", paste0("    scrnaseqapp: ", packageVersion("scRNAseqApp"))),
-        "versions.yml"
+    
+    # Align samples between counts and metadata
+    common_samples <- intersect(colnames(counts_matrix), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("Error: No common samples found between counts.csv and coldata.csv!")
+    }
+    counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Ensure counts are numeric/integer
+    counts_matrix <- apply(counts_matrix, 2, as.integer)
+    rownames(counts_matrix) <- rownames(counts_data)
+    
+    # Stage 2: Create and process Seurat object
+    message("Creating Seurat object...")
+    seurat_obj <- CreateSeuratObject(counts = counts_matrix, meta.data = coldata)
+    
+    # Standard Seurat processing pipeline to generate required dimensional reductions
+    seurat_obj <- NormalizeData(seurat_obj, normalization.method = "LogNormalize", scale.factor = 10000, verbose = FALSE)
+    seurat_obj <- FindVariableFeatures(seurat_obj, selection.method = "vst", nfeatures = min(200, nrow(seurat_obj)), verbose = FALSE)
+    seurat_obj <- ScaleData(seurat_obj, verbose = FALSE)
+    
+    # Determine appropriate number of PCs
+    npcs <- min(50, ncol(seurat_obj) - 1, nrow(seurat_obj) - 1)
+    if (npcs < 2) npcs <- 2
+    seurat_obj <- RunPCA(seurat_obj, npcs = npcs, verbose = FALSE)
+    
+    # Run t-SNE safely based on cell count
+    perplexity <- min(30, floor((ncol(seurat_obj) - 1) / 3))
+    if (perplexity < 1) perplexity <- 1
+    seurat_obj <- RunTSNE(seurat_obj, dims = 1:min(10, npcs), perplexity = perplexity, check_duplicates = FALSE, verbose = FALSE)
+    
+    # Stage 3: Initialize scRNAseqApp database
+    message("Initializing scRNAseqApp database...")
+    publish_folder <- "scRNAseq_shiny_app"
+    if (!dir.exists(publish_folder)) {
+      dir.create(publish_folder, recursive = TRUE)
+    }
+    scInit(app_path = publish_folder)
+    
+    # Stage 4: Create App Configuration and Dataset
+    message("Creating app configuration...")
+    appconf <- createAppConfig(
+      title = "scRNAseq_User_Dataset",
+      destinationFolder = "user_dataset",
+      species = "Homo sapiens",
+      doi = "N/A",
+      datatype = "scRNAseq",
+      abstract = "Interactive visualization of user-provided single-cell RNA-seq dataset."
     )
+    
+    message("Creating dataset files for the Shiny app...")
+    createDataSet(
+      appconf,
+      seurat_obj,
+      datafolder = file.path(publish_folder, "data")
+    )
+    
+    # Stage 5: Verify and write outputs
+    message("Verifying output files...")
+    created_files <- list.files(file.path(publish_folder, "data", "user_dataset"), recursive = TRUE)
+    
+    # Write a summary of the deployment
+    summary_df <- data.frame(
+      Parameter = c("AppPath", "DatasetName", "NumCells", "NumGenes", "FilesCreated"),
+      Value = c(
+        publish_folder,
+        "user_dataset",
+        ncol(seurat_obj),
+        nrow(seurat_obj),
+        length(created_files)
+      )
+    )
+    write.csv(summary_df, "app_deployment_summary.csv", row.names = FALSE)
+    
+    # Save a list of the created files
+    write.csv(data.frame(File = created_files), "app_created_files.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT":',
+        paste0('    scRNAseqApp: ', as.character(packageVersion('scRNAseqApp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scrnaseqapp_results.csv
-    touch ${prefix}_scrnaseqapp_output.rds
-    echo "BIOC_SCRNASEQAPP:" > versions.yml
-    echo "    scrnaseqapp: 0.0.0" >> versions.yml
+    touch ${prefix}_scrnaseq_app_deployment.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCRNASEQAPP_WORKFLOW {
+workflow BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SCRNASEQAPP(ch_input)
+    BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT(ch_input)
 
     emit:
-    results  = BIOC_SCRNASEQAPP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCRNASEQAPP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCRNASEQAPP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCRNASEQAPP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT.out.tables
+    plots    = BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT.out.plots
+    objects  = BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT.out.objects
+    versions = BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT.out.versions
 }

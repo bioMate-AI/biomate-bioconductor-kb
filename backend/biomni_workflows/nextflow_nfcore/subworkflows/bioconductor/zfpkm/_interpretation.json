@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: zFPKM threshold=The reference recommends using zFPKM > -3 to select expressed/active genes. ;; input data=Works on gene-level FPKM or TPM data.\n- alternatives: None mentioned, but the algorithm is based on the publication by Hart et al., 2013.\n- when_to_use: Use when you have gene-level RNA-seq FPKM or TPM data and want a principled, validated threshold to identify detectably expressed (active) genes for downstream analysis.\n- pitfalls: Does not appear to calibrate well for transcript-level data; it should only be used for gene-level data.",
+  "workflows": [
+    {
+      "name": "zfpkm_active_gene_filtering",
+      "intent": "Perform zFPKM transformation on gene-level RNA-seq FPKM data, visualize the distribution fit, and filter for active genes.",
+      "input": [
+        "SummarizedExperiment object containing FPKM and raw count assays, along with sample metadata."
+      ],
+      "stages": "1. Compute zFPKM scores using zFPKM() ;; 2. Plot the Gaussian fit using zFPKMPlot() ;; 3. Filter for active genes with median zFPKM > -3 within treatment groups.",
+      "code": "assay(se, \"zfpkm\") <- zFPKM(se)\nzFPKMPlot(se)\nactiveGenes <- assay(se, \"zfpkm\") %>%\n  mutate(gene=rownames(assay(se, \"zfpkm\"))) %>%\n  gather(sample_id, zfpkm, -gene) %>%\n  left_join(select(as.data.frame(colData(se)), sample_id, condition), by=\"sample_id\") %>%\n  group_by(gene, condition) %>%\n  summarize(median_zfpkm=median(zfpkm)) %>%\n  ungroup() %>%\n  mutate(active=(median_zfpkm > -3)) %>%\n  filter(active) %>%\n  select(gene) %>%\n  distinct()"
+    }
+  ]
+}

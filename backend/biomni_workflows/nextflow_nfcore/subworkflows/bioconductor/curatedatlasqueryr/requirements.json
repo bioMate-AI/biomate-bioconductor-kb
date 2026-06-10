@@ -1,0 +1,19 @@
+{
+  "package": "curatedatlasqueryr",
+  "requirements": [
+    "CuratedAtlasQueryR",
+    "SummarizedExperiment",
+    "dplyr",
+    "ggplot2",
+    "stringr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CuratedAtlasQueryR",
+      "SummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "stringr"
+    ]
+  }
+}

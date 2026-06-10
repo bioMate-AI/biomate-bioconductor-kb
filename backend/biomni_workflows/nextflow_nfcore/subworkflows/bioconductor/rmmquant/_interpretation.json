@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - gtfFile=Path to the annotation file in GTF (or GFF) format.\n    - genomicRanges=A GenomicRanges or GenomicRangesList object containing the genomic features to quantify instead of a GTF file.\n    - readsFiles=Path(s) to the input SAM or BAM alignment files.\n    - sampleNames=Character vector specifying the names of the samples; if omitted, names are inferred from the alignment file names.\n    - strands=Specifies the library type (e.g., 'F' for forward single-end, 'R' for reverse single-end, 'FR' for forward-reverse paired-end, 'U' for unknown). Recycled if only one value is provided.\n    - formats=Specifies the format of the reads files (usually inferred from file names).\n    - overlap=Controls read-to-feature mapping strategy (negative value for inclusion, positive integer for minimum overlapping nucleotides, float between 0 and 1 for percentage of read length).\n    - nOverlapDiff=Integer threshold for assigning multi-mapping reads based on the difference in overlapping nucleotides between features.\n    - pcOverlapDiff=Float threshold for assigning multi-mapping reads based on the ratio of overlapping nucleotides between features.\n    - countThreshold=Integer threshold; genes with maximum counts below this value are discarded.\n    - mergeThreshold=Float threshold in (0, 1) to merge reads from a weakly-mapped gene to a multi-gene feature.\n    - printGeneName=Logical; if TRUE, row names of the count table will be gene names instead of gene IDs.\n    - sorts=Logical; indicates whether the BAM files should be sorted (default is TRUE, set to FALSE if already sorted).\n- alternatives:\n    - featureCounts (Rsubread), HTSeq-count, or countOverlaps (GenomicRanges). Prefer Rmmquant when you need to explicitly and statistically handle multi-mapping reads and overlapping genes.\n- when_to_use:\n    - Use this workflow when performing gene expression quantification from RNA-Seq alignments (BAM/SAM) where multi-mapping reads or overlapping genes are expected to influence quantification accuracy.\n- pitfalls:\n    - Ensure that the upstream aligner sets the 'NH' flag (number of hits) correctly in the BAM/SAM files, as Rmmquant relies on it.\n    - If a read maps to multiple genes, Rmmquant creates a combined feature name (e.g., 'gene_B--gene_C'), which may require custom handling in downstream analyses.\n    - If installation fails with a C++11 standard compiler error, set Sys.setenv(\"PKG_CXXFLAGS\"=\"-std=c++11\") before installing.",
+  "workflows": [
+    {
+      "name": "file_based_quantification",
+      "intent": "Quantify gene expression directly from GTF annotation and BAM alignment files.",
+      "input": [
+        "test.gtf (genomic annotation file)",
+        "test.bam (sequencing alignment file)"
+      ],
+      "stages": "1. Locate input files ;; 2. Run quantification using RmmquantRun ;; 3. Extract count matrix ;; 4. Extract mapping statistics",
+      "code": "dir <- system.file(\"extdata\", package=\"Rmmquant\", mustWork = TRUE)\ngtfFile <- file.path(dir, \"test.gtf\")\nbamFile <- file.path(dir, \"test.bam\")\noutput <- RmmquantRun(gtfFile, bamFile)\nassays(output)$counts\ncolData(output)"
+    },
+    {
+      "name": "genomicranges_quantification_with_deseq2",
+      "intent": "Quantify gene expression using GenomicRanges annotation and perform downstream differential expression analysis with DESeq2.",
+      "input": [
+        "bamFiles (list of BAM alignment files)",
+        "TxDb.Mmusculus.UCSC.mm9.knownGene (transcript database)",
+        "org.Mm.eg.db (organism annotation database)"
+      ],
+      "stages": "1. Extract genomic ranges from TxDb ;; 2. Map Entrez IDs to Ensembl IDs ;; 3. Run quantification using RmmquantRun ;; 4. Construct DESeqDataSet and run DESeq2 differential expression analysis",
+      "code": "bamFiles    <- getBamFileList()\nsampleNames <- names(bamFiles)\ngr <- genes(TxDb.Mmusculus.UCSC.mm9.knownGene, filter=list(tx_chrom=\"chr19\"))\nensemblIds <- sapply(as.list(org.Mm.egENSEMBL[mappedkeys(org.Mm.egENSEMBL)])\n                     [mcols(gr)$gene_id], `[[`, 1)\ngr         <- gr[! is.na(names(ensemblIds)), ]\nnames(gr)  <- unlist(ensemblIds)\noutput   <- RmmquantRun(genomicRanges=gr, readsFiles=bamFiles,\n                        sampleNames=sampleNames, sorts=FALSE)\ncoldata <- data.frame(condition=factor(c(rep(\"control\", 3), rep(\"KO\", 3)),\n                                       levels=c(\"control\", \"KO\")),\n                      row.names=sampleNames)\ndds      <- DESeqDataSetFromMatrix(countData=assays(output)$counts,\n                                   colData  =coldata,\n                                   design   =~ condition)\ndds      <- DESeq(dds)\nres      <- lfcShrink(dds, coef=2)\nres$padj <- ifelse(is.na(res$padj), 1, res$padj)\nres[res$padj < 0.05, ]"
+    }
+  ]
+}

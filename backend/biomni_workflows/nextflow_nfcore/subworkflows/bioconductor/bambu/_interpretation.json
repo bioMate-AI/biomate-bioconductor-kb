@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: reads=A path to a BAM file, a vector of paths, or a BamFileList object containing aligned long reads ;; annotations=A reference annotation object prepared with prepareAnnotations(), a path to a GTF file, or a TxDb object (can be NULL for de-novo discovery) ;; genome=A path to a reference genome FASTA file or a BSgenome object ;; ncore=Integer specifying the number of cores to use for parallel processing ;; quant=Logical; if FALSE, skips transcript quantification and only performs discovery ;; discovery=Logical; if FALSE, skips transcript discovery and only performs quantification ;; NDR=Novel Discovery Rate threshold (0 to 1) to control the sensitivity/precision trade-off of novel transcript discovery ;; opt.discovery=A list of advanced discovery options, such as fitReadClassModel=FALSE to use a pre-trained model, returnModel=TRUE to return the trained model, or min.txScore.singleExon=0 to include single-exon transcripts ;; rcOutDir=Directory path to save intermediate read class files (rcFiles) ;; trackReads=Logical; if TRUE, tracks individual read-to-transcript assignments\n- alternatives: None mentioned for the core long-read transcript discovery and quantification task, though DESeq2 and DEXSeq are recommended for downstream differential expression and transcript usage analyses.\n- when_to_use: Use when analyzing long-read RNA-Seq data to discover novel isoforms/transcripts and accurately estimate transcript- and gene-level expression across one or multiple samples.\n- pitfalls: Mismatched annotations can cause errors; always use the exact same reference annotations that were used for genome alignment. Single-exon transcripts are omitted by default due to high false-positive rates; users must manually adjust min.txScore.singleExon to include them. Bambu requires at least 1000 detected transcripts to train a sample-specific model; if this threshold is not met or annotations are poor, users must disable sample-specific training (fitReadClassModel = FALSE) to use the pre-trained model. In de-novo mode (no annotations), bambu cannot calibrate the NDR output, so a manual NDR threshold must be supplied.",
+  "workflows": [
+    {
+      "name": "transcript_discovery_and_quantification",
+      "intent": "Perform transcript discovery and expression quantification from long-read RNA-Seq alignments and reference annotations, then export and visualize the results.",
+      "input": [
+        "test.bam (aligned long reads)",
+        "Homo_sapiens.GRCh38.91_chr9_1_1000000.gtf (reference annotations)",
+        "Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa (reference genome sequence)"
+      ],
+      "stages": "1. Prepare reference annotations using prepareAnnotations.\n2. Run bambu to perform transcript discovery and quantification.\n3. Convert transcript expression estimates to gene expression estimates using transcriptToGeneExpression.\n4. Export the extended annotations and expression estimates using writeBambuOutput and writeToGTF.\n5. Visualize sample correlations and annotations using plotBambu.",
+      "code": "library(bambu)\ntest.bam <- system.file(\"extdata\",\n    \"SGNex_A549_directRNA_replicate5_run1_chr9_1_1000000.bam\",\n    package = \"bambu\")\nfa.file <- system.file(\"extdata\",\n    \"Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa\",\n    package = \"bambu\")\ngtf.file <- system.file(\"extdata\", \"Homo_sapiens.GRCh38.91_chr9_1_1000000.gtf\",\n    package = \"bambu\")\nbambuAnnotations <- prepareAnnotations(gtf.file)\nse <- bambu(reads = test.bam, annotations = bambuAnnotations,\n    genome = fa.file)\nse.multiSample <- bambu(reads = bamFiles,  annotations = HsChr22BambuAnnotation,\n    genome = genomeSequence)\nseGene.multiSample <- transcriptToGeneExpression(se.multiSample)\nsave.dir <- tempdir()\nwriteBambuOutput(se.multiSample, path = save.dir, prefix = \"NanoporeRNASeq_\")\nsave.file <- tempfile(fileext = \".gtf\")\nwriteToGTF(rowRanges(se.multiSample), file = save.file)\nplotBambu(se.multiSample, type = \"heatmap\")\nplotBambu(se.multiSample, type = \"pca\")\nplotBambu(se.multiSample, type = \"annotation\", gene_id = \"ENSG00000099968\")"
+    },
+    {
+      "name": "model_training_and_denovo_discovery",
+      "intent": "Train a custom transcript discovery model on an annotated dataset and apply it to another sample (such as a poorly annotated or de-novo species) for transcript discovery.",
+      "input": [
+        "sample1.bam (aligned reads for annotated training sample)",
+        "annotations (reference annotations for training sample)",
+        "fa.file (genome sequence for training sample)",
+        "sample2.bam (aligned reads for target sample)",
+        "fa.file2 (genome sequence for target sample)"
+      ],
+      "stages": "1. Train the model on the annotated sample using bambu with returnModel = TRUE, or train using trainBambu on an RDS rcFile.\n2. Run bambu on the target sample with annotations = NULL, providing the trained model via opt.discovery.",
+      "code": "se = bambu(reads = sample1.bam, annotations = annotations, genome = fa.file, discovery = FALSE, quant = FALSE, opt.discovery = list(returnModel = TRUE))\nnewDefaultModel = metadata(se[[1]])$model\nrcFile <- readRDS(pathToRcFile)\nnewDefaultModel = trainBambu(rcFile)\nse <- bambu(reads = sample2.bam, annotations = NULL, genome = fa.file2, opt.discovery = list(defaultModels = newDefaultModel, fitReadClassModel = FALSE))"
+    }
+  ]
+}

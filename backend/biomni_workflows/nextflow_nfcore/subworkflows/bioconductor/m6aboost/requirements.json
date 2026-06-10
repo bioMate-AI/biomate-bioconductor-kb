@@ -1,0 +1,15 @@
+{
+  "package": "m6aboost",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "GenomicRanges",
+    "m6Aboost"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "GenomicRanges",
+      "m6Aboost"
+    ]
+  }
+}

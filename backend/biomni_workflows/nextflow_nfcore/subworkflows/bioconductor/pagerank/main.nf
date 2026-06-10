@@ -1,140 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pageRank
-// Implemented temporal PageRank analysis as defined by Rozenshtein and Gionis. Implemented multiplex P
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pageRank/inst/doc/introduction.R
-// Upstream  : GenomicFeatures, GenomicRanges, JASPAR2018, TFBSTools, annotate
-// Downstream: none
-//
-// Install: BiocManager::install("pageRank")
+// Bioconductor workflow: pageRank — temporal_pagerank
+// Calculate temporal PageRank on two temporally adjacent graphs to identify gained and lost interactions.
+// Input: graph1.RData, graph2.RData
+// Container: quay.io/biocontainers/bioconductor-pagerank:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: igraph, pageRank
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load or create two igraph objects
+//  * 2. [Core Analysis] Assign vertex names to both graphs
+//  * 3. [Core Analysis] Calculate temporal PageRank using diff_graph
 
 nextflow.enable.dsl = 2
 
-process BIOC_PAGERANK {
+process BIOC_PAGERANK_TEMPORAL_PAGERANK {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pagerank"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pagerank:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pagerank:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pagerank_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pagerank_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pagerank_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(P_graph)
-    library(V)
-    library(jsonlite)
-
-    # --- Tpr [] ---
-    # Key functions: game, V, diff_graph
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(pageRank)
-    set.seed(1)
-    graph1 <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)
-    igraph::V(graph1)$name <- 1:100
-    #the 1st graph with name as vertex attributes
-    # --- Mpr [] ---
-    # Key functions: game, V, page_rank, multiplex_page_rank
-    set.seed(1)
-    graph1 <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)
-    igraph::V(graph1)$name <- 1:100
-    igraph::V(graph1)$pagerank <- igraph::page_rank(graph1)$vector
-    #the base graph with pagerank and name as vertex attributes.
-    # --- Clean Graph [] ---
-    # Key functions: game, V, page_rank, clean_graph
-    set.seed(1)
-    graph <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)
-    igraph::V(graph)$name <- 1:100
-    igraph::V(graph)$pagerank <- igraph::page_rank(graph)$vector
-    #the graph to be cleaned, with pagerank and name as vertex attributes.
-    # --- Adjust Graph [] ---
-    # Key functions: game, V, page_rank, adjust_graph
-    set.seed(1)
-    graph <- igraph::erdos.renyi.game(100, 0.01, directed = TRUE)
-    igraph::V(graph)$name <- 1:100
-    igraph::V(graph)$pagerank <- igraph::page_rank(graph, damping=0.85)$vector
-    #the graph to be adjusted, with pagerank and name as vertex attributes.
-    # --- Aracne Network [] ---
-    # Key functions: aracne_network
-    library(bcellViper)
-    data(bcellViper)
-    head(aracne_network(regulon[1:10]))
-    # --- Accessibility Network [] ---
-    # Key functions: frame, promoters, genes, getSYMBOL, na
-    table <- data.frame(Chr=c("chr1", "chr1"), Start=c(713689, 856337), End=c(714685, 862152),
-                        row.names=c("A", "B"), stringsAsFactors=FALSE)
-    regulators=c("FOXF2", "MZF1")
-    #peaks and regulators to be analyzed
-    library(GenomicRanges)
-    # --- Conformation Network [] ---
-    # Key functions: frame, promoters, genes, getSYMBOL, na, getMatrixSet
-    table <- data.frame(Chr1=c("chr1", "chr1"), Position1=c(569265, 713603), Strand1=c("+", "+"),
-                        Chr2=c("chr4", "chr1"), Position2=c(206628, 715110), Strand2=c("+", "-"),
-                        row.names=c("A", "B"), stringsAsFactors=FALSE)
-    regulators=c("FOXF2", "MZF1")
-    #peaks and regulators to be analyzed
-    # --- P Graph [] ---
-    # Key functions: exprs, call, frame, P_graph
-    dset <- exprs(dset)
-    net <- do.call(rbind, lapply(1:10, function(i, regulon){
-      data.frame(reg=rep(names(regulon)[i], 10),
-                 target=names(regulon[[i]][[1]])[1:10],
-                 stringsAsFactors = FALSE)}, regulon=regulon))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pagerank_results.csv", row.names = TRUE)
+    library(igraph)
+    
+    # Function to robustly load an igraph object from RData
+    load_igraph <- function(file_path) {
+      env <- new.env()
+      load(file_path, envir = env)
+      objs <- as.list(env)
+      igraph_objs <- objs[sapply(objs, igraph::is.igraph)]
+      if (length(igraph_objs) > 0) {
+        return(igraph_objs[[1]])
+      } else if (length(objs) > 0) {
+        return(objs[[1]])
+      } else {
+        stop(paste("No objects found in", file_path))
+      }
+    }
+    
+    # 1. Load two igraph objects from the declared user input files
+    if (!file.exists("graph1.RData") || !file.exists("graph2.RData")) {
+      stop("Required input files 'graph1.RData' and/or 'graph2.RData' are missing in the working directory.")
+    }
+    
+    graph1 <- load_igraph("graph1.RData")
+    graph2 <- load_igraph("graph2.RData")
+    
+    # 2. Assign vertex names to both graphs (ensuring they are character vectors)
+    if (is.null(igraph::V(graph1)\$name)) {
+      igraph::V(graph1)\$name <- as.character(seq_len(igraph::vcount(graph1)))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pagerank_results.csv")
+      igraph::V(graph1)\$name <- as.character(igraph::V(graph1)\$name)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pagerank_output.rds")
+    
+    if (is.null(igraph::V(graph2)\$name)) {
+      igraph::V(graph2)\$name <- as.character(seq_len(igraph::vcount(graph2)))
+    } else {
+      igraph::V(graph2)\$name <- as.character(igraph::V(graph2)\$name)
     }
+    
+    # 3. Calculate temporal PageRank using diff_graph
+    res_graph <- diff_graph(graph1, graph2)
+    
+    # 4. Write named output files for the meaningful results
+    # Save the resulting igraph object
+    saveRDS(res_graph, "temporal_pagerank_graph.rds")
+    
+    # Export vertex attributes (PageRank scores)
+    if (!is.null(igraph::V(res_graph)\$name)) {
+      v_df <- data.frame(
+        name = igraph::V(res_graph)\$name,
+        pagerank = if (!is.null(igraph::V(res_graph)\$pagerank)) igraph::V(res_graph)\$pagerank else NA,
+        stringsAsFactors = FALSE
+      )
+      write.csv(v_df, "temporal_pagerank_vertices.csv", row.names = FALSE)
+    }
+    
+    # Export edge attributes (gained/lost interactions indicated by 'moi')
+    edges_df <- igraph::as_data_frame(res_graph, what = "edges")
+    write.csv(edges_df, "temporal_pagerank_edges.csv", row.names = FALSE)
+    
+    cat("Temporal PageRank pipeline completed successfully. Outputs saved to 'temporal_pagerank_graph.rds', 'temporal_pagerank_vertices.csv', and 'temporal_pagerank_edges.csv'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PAGERANK:", paste0("    pagerank: ", packageVersion("pageRank"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PAGERANK_TEMPORAL_PAGERANK":',
+        paste0('    pageRank: ', as.character(packageVersion('pageRank')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pagerank_results.csv
-    touch ${prefix}_pagerank_output.rds
-    echo "BIOC_PAGERANK:" > versions.yml
-    echo "    pagerank: 0.0.0" >> versions.yml
+    touch ${prefix}_temporal_pagerank.csv versions.yml
     """
 }
 
-
-workflow BIOC_PAGERANK_WORKFLOW {
+workflow BIOC_PAGERANK_TEMPORAL_PAGERANK_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ graph1.RData, graph2.RData ] ]
 
     main:
-    BIOC_PAGERANK(ch_input)
+    BIOC_PAGERANK_TEMPORAL_PAGERANK(ch_input)
 
     emit:
-    results  = BIOC_PAGERANK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PAGERANK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PAGERANK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PAGERANK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PAGERANK_TEMPORAL_PAGERANK.out.tables
+    plots    = BIOC_PAGERANK_TEMPORAL_PAGERANK.out.plots
+    objects  = BIOC_PAGERANK_TEMPORAL_PAGERANK.out.objects
+    versions = BIOC_PAGERANK_TEMPORAL_PAGERANK.out.versions
 }

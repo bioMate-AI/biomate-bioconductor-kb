@@ -1,0 +1,32 @@
+{
+  "package": "ace",
+  "requirements": [
+    "ACE",
+    "Biobase",
+    "QDNAseq",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "batch_post_analysis.nf": [
+      "ACE",
+      "Biobase",
+      "QDNAseq",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "ACE",
+      "Biobase",
+      "QDNAseq",
+      "ggplot2"
+    ],
+    "single_sample_refinement.nf": [
+      "ACE",
+      "Biobase",
+      "QDNAseq",
+      "ggplot2"
+    ],
+    "variant_and_segment_annotation.nf": [
+      "ACE"
+    ]
+  }
+}

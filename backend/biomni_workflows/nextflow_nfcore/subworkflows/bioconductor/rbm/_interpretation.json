@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: aData=The input data in matrix format with rows denoting features and columns denoting samples ;; vec_trt=A vector for group notation where \"1\" denotes the treatment group and \"0\" denotes the control group ;; repetition=The number of resamples (permutations or bootstraps) to perform ;; alpha=The significance level ;; aContrast=A contrast vector for pairwise comparisons in RBM_F (e.g., c(\"X1-X0\", \"X2-X1\", \"X2-X0\"))\n- alternatives: lmFit and eBayes functions from the limma package, which are used internally by RBM to compute the initial moderated t-statistics\n- when_to_use: Use this package when analyzing differential expression in two-color microarrays, RNA-Seq, or DNA methylation datasets where a resampling-based empirical Bayes approach (permutation or bootstrap) is preferred over standard parametric assumptions to control false positives\n- pitfalls: Ensure that the group notation vector matches the columns of the input data matrix. For RBM_F, users must prepend an extra \"X\" before the group labels in the contrast vector (e.g., \"X1-X0\" to compare group 1 and group 0). The package outputs raw permutation and bootstrap p-values, which should be post-processed using p.adjust for multiple testing correction.",
+  "workflows": [
+    {
+      "name": "two_group_comparison",
+      "intent": "Identify differentially expressed or methylated features between two groups using resampling-based moderated t-statistics.",
+      "input": [
+        "ovarian_cancer_methylation.csv (DNA methylation profile matrix with features as rows and samples as columns)",
+        "label.csv (vector of group assignments, e.g., 0 for control and 1 for treatment)"
+      ],
+      "stages": "1. Load the RBM package and the input dataset ;; 2. Extract the data matrix and define the group label vector ;; 3. Run RBM_T to compute moderated t-statistics, permutation p-values, and bootstrap p-values ;; 4. Adjust the resulting p-values using the Benjamini-Hochberg method ;; 5. Identify and print significant features based on adjusted p-values",
+      "code": "library(RBM)\ndata(ovarian_cancer_methylation)\nsummary(ovarian_cancer_methylation)\novarian_cancer_data <- ovarian_cancer_methylation[, -1]\nlabel <- c(1, 1, 0, 0, 1, 1, 0, 0)\ndiff_results <- RBM_T(aData=ovarian_cancer_data, vec_trt=label, repetition=100, alpha=0.05)\nsummary(diff_results)\nsum(diff_results$ordfit_pvalue<=0.05)\nsum(diff_results$permutation_p<=0.05)\nsum(diff_results$bootstrap_p<=0.05)\n\nordfit_adjp <- p.adjust(diff_results$ordfit_pvalue, \"BH\")\nsum(ordfit_adjp<=0.05)\nperm_adjp <- p.adjust(diff_results$permutation_p, \"BH\")\nsum(perm_adjp<=0.05)\nboot_adjp <- p.adjust(diff_results$bootstrap_p, \"BH\")\nsum(boot_adjp<=0.05)\n\ndiff_list_perm <- which(perm_adjp<=0.05)\ndiff_list_boot <- which(boot_adjp<=0.05)\nsig_results_perm <- cbind(ovarian_cancer_methylation[diff_list_perm, ], diff_results$ordfit_t[diff_list_perm], diff_results$permutation_p[diff_list_perm])\nprint(sig_results_perm)\nsig_results_boot <- cbind(ovarian_cancer_methylation[diff_list_boot, ], diff_results$ordfit_t[diff_list_boot], diff_results$bootstrap_p[diff_list_boot])\nprint(sig_results_boot)"
+    },
+    {
+      "name": "multi_group_comparison",
+      "intent": "Identify differentially expressed or methylated features across multiple groups using pairwise contrasts and resampling-based F-tests.",
+      "input": [
+        "normdata_F.csv (matrix of normalized expression values with features as rows and samples as columns)",
+        "mydesign_F.csv (vector of group assignments, e.g., 0, 1, 2)"
+      ],
+      "stages": "1. Load the RBM package and prepare the input data matrix, multi-group design vector, and contrast vector ;; 2. Run RBM_F to compute moderated statistics, permutation p-values, and bootstrap p-values for the specified contrasts ;; 3. Adjust the resulting p-values for each contrast using the Benjamini-Hochberg method ;; 4. Identify significant features for each pairwise contrast",
+      "code": "library(RBM)\nnormdata_F <- matrix(rnorm(1000*9,0,2), 1000, 9)\nmydesign_F <- c(0, 0, 0, 1, 1, 1, 2, 2, 2)\naContrast <- c(\"X1-X0\", \"X2-X1\", \"X2-X0\")\n\nmyresult_F <- RBM_F(normdata_F, mydesign_F, aContrast, 100, 0.05)\nsummary(myresult_F)\nsum(myresult_F$permutation_p[, 1]<=0.05)\nsum(myresult_F$permutation_p[, 2]<=0.05)\nsum(myresult_F$permutation_p[, 3]<=0.05)\n\nwhich(myresult_F$permutation_p[, 1]<=0.05)\nwhich(myresult_F$permutation_p[, 2]<=0.05)\nwhich(myresult_F$permutation_p[, 3]<=0.05)\n    \ncon1_adjp <- p.adjust(myresult_F$permutation_p[, 1], \"BH\")\nsum(con1_adjp<=0.05/3)\n  \ncon2_adjp <- p.adjust(myresult_F$permutation_p[, 2], \"BH\")\nsum(con2_adjp<=0.05/3)\n\ncon3_adjp <- p.adjust(myresult_F$permutation_p[, 3], \"BH\")\nsum(con3_adjp<=0.05/3)\n\nwhich(con2_adjp<=0.05/3)\n\nwhich(con3_adjp<=0.05/3)"
+    }
+  ]
+}

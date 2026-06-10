@@ -1,0 +1,15 @@
+{
+  "package": "stjoincount",
+  "requirements": [
+    "ggplot2",
+    "pheatmap",
+    "stJoincount"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "pheatmap",
+      "stJoincount"
+    ]
+  }
+}

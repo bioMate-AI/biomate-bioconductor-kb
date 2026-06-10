@@ -1,0 +1,13 @@
+{
+  "package": "batchqc",
+  "requirements": [
+    "BatchQC",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BatchQC",
+      "SummarizedExperiment"
+    ]
+  }
+}

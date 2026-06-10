@@ -1,0 +1,21 @@
+{
+  "package": "olin",
+  "requirements": [
+    "OLIN",
+    "marray"
+  ],
+  "by_workflow": {
+    "between_array_scaling.nf": [
+      "OLIN",
+      "marray"
+    ],
+    "main.nf": [
+      "OLIN",
+      "marray"
+    ],
+    "statistical_bias_assessment.nf": [
+      "OLIN",
+      "marray"
+    ]
+  }
+}

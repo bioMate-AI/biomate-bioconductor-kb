@@ -1,90 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cytoviewer
-// This R package supports interactive visualization of multi-channel images and segmentation masks gen
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cytoviewer/inst/doc/cytoviewer.R
-// Upstream  : cytomapper
-// Downstream: none
-//
-// Install: BiocManager::install("cytoviewer")
+// Bioconductor workflow: cytoviewer — cytoviewer_interactive_pipeline
+// Build an interactive multi-channel visualization and cell-level analysis pipeline using cytoviewer from a raw microscopy image.
+// Input: image.tif
+// Container: 1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: EBImage, S4Vectors, SingleCellExperiment, SummarizedExperiment, cytomapper, cytoviewer
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CYTOVIEWER {
+process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cytoviewer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cytoviewer:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cytoviewer:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cytoviewer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cytoviewer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cytoviewer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
     library(cytoviewer)
-    library(jsonlite)
-
-    # --- Cytoviewer analysis [] ---
-    # Key functions: install_github, cytoviewer, runApp, loadImages, mcols, channelNames, measureObjects
     library(cytomapper)
-    data_path <- system.file("extdata", package = "cytomapper")
-    cur_images <- loadImages(data_path, pattern = "_imc.tiff")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cytoviewer_results.csv", row.names = TRUE)
+    library(EBImage)
+    library(S4Vectors)
+    
+    # Stage 2: Read input image from the working directory
+    message("Reading input image...")
+    img_raw <- EBImage::readImage("image.tif")
+    
+    # Stage 3: Preprocess and construct CytoImageList for images
+    message("Preparing image CytoImageList...")
+    img_list <- list(sample_image = img_raw)
+    img_cil <- cytomapper::CytoImageList(img_list)
+    
+    # Assign channel names based on image dimensions
+    img_dim <- dim(img_raw)
+    if (length(img_dim) == 2) {
+      channelNames(img_cil) <- "Channel1"
+    } else if (length(img_dim) == 3) {
+      channelNames(img_cil) <- paste0("Channel", seq_len(img_dim[3]))
+    }
+    
+    # Stage 4: Generate a segmentation mask from the image
+    message("Generating segmentation mask...")
+    if (length(img_dim) == 3) {
+      # Use the first channel for segmentation
+      img_for_seg <- img_raw[,,1]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cytoviewer_results.csv")
+      img_for_seg <- img_raw
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cytoviewer_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CYTOVIEWER:", paste0("    cytoviewer: ", packageVersion("cytoviewer"))),
-        "versions.yml"
+    
+    # Apply Otsu's thresholding to identify foreground objects (cells)
+    thr <- EBImage::otsu(img_for_seg)
+    binary_mask <- img_for_seg > thr
+    labeled_mask <- EBImage::bwlabel(binary_mask)
+    
+    # Save the segmentation mask to disk
+    EBImage::writeImage(labeled_mask, "segmentation_mask.tiff")
+    
+    # Wrap the mask in a CytoImageList
+    mask_cil <- cytomapper::CytoImageList(list(sample_image = labeled_mask))
+    
+    # Stage 5: Link images and masks using metadata
+    message("Linking image and mask metadata...")
+    S4Vectors::mcols(img_cil)\$ImageNb <- "Image1"
+    S4Vectors::mcols(mask_cil)\$ImageNb <- "Image1"
+    
+    # Stage 6: Measure cell-specific features to generate a SingleCellExperiment
+    message("Measuring object features...")
+    sce <- cytomapper::measureObjects(
+      image = img_cil, 
+      mask = mask_cil, 
+      img_id = "ImageNb"
     )
+    
+    # Export cell measurements to CSV
+    measurements_df <- as.data.frame(SummarizedExperiment::colData(sce))
+    write.csv(measurements_df, "cell_measurements.csv", row.names = FALSE)
+    
+    # Stage 7: Build and serialize the cytoviewer Shiny application
+    message("Building cytoviewer application...")
+    app <- cytoviewer(
+      image = img_cil,
+      mask = mask_cil,
+      object = sce,
+      img_id = "ImageNb",
+      cell_id = "object_id"
+    )
+    
+    # Save the app object for deployment or future interactive sessions
+    saveRDS(app, "cytoviewer_app.rds")
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE":',
+        paste0('    cytoviewer: ', as.character(packageVersion('cytoviewer')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cytoviewer_results.csv
-    touch ${prefix}_cytoviewer_output.rds
-    echo "BIOC_CYTOVIEWER:" > versions.yml
-    echo "    cytoviewer: 0.0.0" >> versions.yml
+    touch ${prefix}_cytoviewer_interactive_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_CYTOVIEWER_WORKFLOW {
+workflow BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_CYTOVIEWER(ch_input)
+    BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_CYTOVIEWER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CYTOVIEWER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CYTOVIEWER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CYTOVIEWER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE.out.tables
+    plots    = BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE.out.plots
+    objects  = BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE.out.objects
+    versions = BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE.out.versions
 }

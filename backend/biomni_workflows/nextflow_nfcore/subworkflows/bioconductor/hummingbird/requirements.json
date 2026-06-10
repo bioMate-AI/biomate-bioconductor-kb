@@ -1,0 +1,15 @@
+{
+  "package": "hummingbird",
+  "requirements": [
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "hummingbird"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "hummingbird"
+    ]
+  }
+}

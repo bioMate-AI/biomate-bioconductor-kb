@@ -1,0 +1,13 @@
+{
+  "package": "rbiopaxparser",
+  "requirements": [
+    "Rgraphviz",
+    "rBiopaxParser"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rgraphviz",
+      "rBiopaxParser"
+    ]
+  }
+}

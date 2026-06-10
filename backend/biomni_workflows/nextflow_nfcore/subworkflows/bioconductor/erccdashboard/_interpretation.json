@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datType=\"count\" or \"array\" depending on whether the input is RNA-Seq integer counts or microarray fluorescent intensities ;; isNorm=Logical flag indicating if input expression measures are already normalized (default is FALSE) ;; exTable=The expression measure table where the first column is \"Feature\" and replicate columns must follow the 'Sample_Rep' format with exactly one underscore ;; filenameRoot=User-defined prefix for output files (e.g., \"RatTox\") ;; sample1Name/sample2Name=Names of the two compared samples; Sample 1 is spiked with ERCC Mix 1, and Sample 2 is spiked with ERCC Mix 2 ;; erccmix=Name of the ERCC mixture design (default is \"RatioPair\") ;; erccdilution=Dilution factor of the pure Ambion ERCC mixes prior to spiking ;; spikeVol=Volume (in microliters) of diluted spike-in mixture added to the total RNA ;; totalRNAmass=Mass (in micrograms) of total RNA spiked ;; choseFDR=False Discovery Rate threshold for differential expression testing (default is 0.05) ;; userMixFile=CSV file path for alternative spike-in mixture designs\n- alternatives: For RNA-Seq count data, the default DE testing is done with QuasiSeq (or edgeR if using the step-by-step pipeline). If users prefer other tools like DESeq or have non-integer data (e.g., FPKM from Cufflinks), they must perform DE testing externally and provide a \"filenameRoot.All.Pvals.csv\" file in the working directory. For microarray data, limma is used for DE testing.\n- when_to_use: Use this package when you have differential gene expression experiments (RNA-Seq or microarray) that include ERCC spike-in controls and you want to assess technical performance metrics such as dynamic range, LODR, and AUC.\n- pitfalls: Replicate column names in exTable must strictly follow the 'Sample_Rep' format with exactly one underscore (e.g., MET_1, CTL_1). If isNorm = TRUE for RNA-Seq, the pipeline cannot perform DE testing automatically; you must manually place a correctly formatted \"filenameRoot.All.Pvals.csv\" file in the working directory. For microarray data, input data should be unlog-transformed, unnormalized fluorescent signals if isNorm = FALSE. If only a single ERCC mixture is spiked (no ratio mixtures), only a limited subset of functions (initDat, est_r_m, dynRangePlot) can be used, and ERCCMixes must be set to \"Single\".",
+  "workflows": [
+    {
+      "name": "rnaseq_count_analysis",
+      "intent": "Analyze unnormalized RNA-Seq count data with ERCC spike-ins to evaluate technical performance.",
+      "input": [
+        "MET.CTL.countDat (RNA-Seq count table with 'Sample_Rep' column names)",
+        "MET.CTL.totalReads (optional vector of total reads per replicate)"
+      ],
+      "stages": "1. Load the input count data and optional normalization factors. 2. Run the complete analysis pipeline using runDashboard with datType=\"count\". 3. Summarize the results and visualize diagnostic plots (dynamic range, ROC, LODR, and MA plots).",
+      "code": "data(SEQC.Example)\nexDat <- runDashboard(datType=\"count\", isNorm = FALSE,\n                       exTable=MET.CTL.countDat,\n                       filenameRoot=\"RatTox\", sample1Name=\"MET\",\n                       sample2Name=\"CTL\", erccmix=\"RatioPair\",\n                       erccdilution=1/100, spikeVol=1,\n                       totalRNAmass=0.500, choseFDR=0.1)\nsummary(exDat)\nexDat$Figures$dynRangePlot\ngrid.arrange(exDat$Figures$rocPlot)\ngrid.arrange(exDat$Figures$lodrERCCPlot)\ngrid.arrange(exDat$Figures$maPlot)"
+    },
+    {
+      "name": "microarray_analysis",
+      "intent": "Analyze unnormalized microarray fluorescent intensity data with ERCC spike-ins.",
+      "input": [
+        "UHRR.HBRR.arrayDat (unnormalized microarray fluorescent intensity table with 'Sample_Rep' column names)"
+      ],
+      "stages": "1. Load the input microarray data. 2. Run the complete analysis pipeline using runDashboard with datType=\"array\". 3. Summarize and visualize the results.",
+      "code": "data(SEQC.Example)\nexDat <- runDashboard(datType=\"array\", isNorm = FALSE,\n                       exTable=UHRR.HBRR.arrayDat,\n                       filenameRoot = \"Lab13.array\",\n                       sample1Name = \"UHRR\",\n                       sample2Name=\"HBRR\",\n                       erccmix = \"RatioPair\",\n                       erccdilution = 1,\n                       spikeVol = 50,\n                       totalRNAmass = 2.5*10^(3),\n                       choseFDR=0.01)"
+    }
+  ]
+}

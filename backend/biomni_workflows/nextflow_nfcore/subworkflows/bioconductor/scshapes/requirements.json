@@ -1,0 +1,13 @@
+{
+  "package": "scshapes",
+  "requirements": [
+    "BiocParallel",
+    "scShapes"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "scShapes"
+    ]
+  }
+}

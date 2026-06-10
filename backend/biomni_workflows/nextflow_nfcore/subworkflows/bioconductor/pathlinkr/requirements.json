@@ -1,0 +1,23 @@
+{
+  "package": "pathlinkr",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "pathlinkR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "pathlinkR"
+    ],
+    "pathway_similarity_network.nf": [
+      "dplyr",
+      "ggplot2",
+      "pathlinkR"
+    ],
+    "ppi_network_analysis.nf": [
+      "dplyr",
+      "pathlinkR"
+    ]
+  }
+}

@@ -1,100 +1,300 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TFARM
-// It searches for relevant associations of transcription factors with a transcription factor target, i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TFARM/inst/doc/TFARM.R
-// Upstream  : plyr
-// Downstream: none
-//
-// Install: BiocManager::install("TFARM")
+// Bioconductor workflow: TFARM — tf_association_rule_mining
+// Extract association rules for a target transcription factor, compute the Importance Index for candidate co-regulators (individually and in pairs), and visualize
+// Input: matrix_of_presences.RData
+// Container: quay.io/biocontainers/bioconductor-tfarm:1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, TFARM, plyr
+// Visualizations: PCA plot, heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the genomic regions dataset (GRanges object)
+//  * 2. [Core Analysis] Generate association rules for a target transcription factor using rulesGen
+//  * 3. [Core Analysis] Identify candidate co-regulators (present/absent TFs in rules) using presAbs
+//  * 4. [Core Analysis] Extract rules containing a specific TF using rulesTF
+//  * 5. [Core Analysis] Generate corresponding rules without the specific TF using rulesTF0
+//  * 6. [Core Analysis] Compute the Importance Index distribution for the TF using IComp
+//  * 7. [Core Analysis] Perform Principal Component Analysis (PCA) on the variations of support and confidence using IPCA
+//  * 8. [Visualization & Output] Visualize the Importance Index distributions using distribViz
+//  * 9. [Core Analysis] Compute pair-wise Importance Indices for combinations of TFs
+//  * 10. [Visualization & Output] Visualize pair-wise importances using a heatmap with heatI
 
 nextflow.enable.dsl = 2
 
-process BIOC_TFARM {
+process BIOC_TFARM_TF_ASSOCIATION_RULE_MINING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tfarm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tfarm:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tfarm:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tfarm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tfarm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tfarm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(IComp)
-    library(jsonlite)
-
-    # --- I Comp [] ---
-    # Key functions: IComp
-    imp_FOSL2 <- IComp('FOSL2=1', r_FOSL2, r_noFOSL2, figures=TRUE)
-    names(imp_FOSL2)
-    head(imp_FOSL2$delta)
-    # --- distrib Viz [] ---
-    # Key functions: distribViz, combn
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(GenomicRanges)
+    library(TFARM)
+    library(plyr)
+    
+    # ==========================================
+    # 1. Load the genomic regions dataset
+    # ==========================================
+    # Read the user input file from the working directory
+    env <- new.env()
+    load("matrix_of_presences.RData", envir = env)
+    # Retrieve the GRanges object dynamically
+    MCF7_chr1 <- env[[ls(env)[1]]]
+    
+    # Print basic info
+    length(MCF7_chr1)
+    print(MCF7_chr1)
+    
+    # ==========================================
+    # 2. Generate association rules for a target TF
+    # ==========================================
+    c_names <- names(mcols(MCF7_chr1))
+    target_TF <- paste0(c_names[length(c_names)], "=1")
+    
+    r_target <- rulesGen(MCF7_chr1, target_TF, 0.005, 0.62, TRUE)
+    dim(r_target)
+    head(r_target)
+    write.csv(r_target, "r_target.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 3. Identify candidate co-regulators
+    # ==========================================
+    c <- names(mcols(MCF7_chr1))
+    lc <- length(c)
+    
+    names(presAbs(c, r_target, TRUE))
+    
+    p_TFs <- presAbs(c, r_target, TRUE)\$pres
+    print(p_TFs)
+    
+    a <- presAbs(c[1:lc], r_target, TRUE)\$abs
+    print(a)
+    
+    # Dynamically select TFs for downstream analysis to avoid hardcoding
+    spec_TF1 <- if (length(p_TFs) >= 1) p_TFs[1] else paste0(c[1], "=1")
+    spec_TF2 <- if (length(p_TFs) >= 2) p_TFs[2] else paste0(c[2], "=1")
+    spec_TF3 <- if (length(p_TFs) >= 3) p_TFs[3] else paste0(c[3], "=1")
+    
+    # ==========================================
+    # 4. Extract rules containing a specific TF
+    # ==========================================
+    r_spec1 <- rulesTF(TFi  = spec_TF1, rules =  r_target, verbose = TRUE)
+    head(r_spec1)
+    dim(r_spec1)[1]
+    write.csv(r_spec1, "r_spec1.csv", row.names = FALSE)
+    
+    r_spec2 <- rulesTF(TFi = spec_TF2, rules = r_target, verbose = TRUE)
+    
+    # ==========================================
+    # 5. Generate corresponding rules without the specific TF
+    # ==========================================
+    r_nospec1 <- rulesTF0(spec_TF1, r_spec1, r_target, MCF7_chr1, target_TF)
+    
+    row.names(r_spec1) <- match(r_spec1\$lhs, r_target\$lhs)
+    row.names(r_nospec1) <- match(r_spec1\$lhs, r_target\$lhs)
+    head(r_nospec1)
+    write.csv(r_nospec1, "r_nospec1.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 6. Compute the Importance Index distribution
+    # ==========================================
+    pdf("spec1_importance_plots.pdf", width = 12, height = 5)
+    imp_spec1 <- IComp(spec_TF1, r_spec1, r_nospec1, figures=TRUE)
+    dev.off()
+    
+    names(imp_spec1)
+    print(imp_spec1\$imp)
+    head(imp_spec1\$delta)
+    head(imp_spec1\$rwi)
+    head(imp_spec1\$rwo)
+    saveRDS(imp_spec1, "imp_spec1.rds")
+    
+    # Initialize lists for the loop
+    DELTA_mean_supp <- vector("list", length(p_TFs))
+    DELTA_mean_conf <- vector("list", length(p_TFs))
+    IMP_Z <- vector("list", length(p_TFs))
+    
+    all <- lapply(p_TFs, function(pi) {
+        A <- rulesTF(pi, r_target, FALSE)
+        B <- rulesTF0(pi, A, r_target, MCF7_chr1, target_TF)
+        IComp(pi, A, B, figures=FALSE)
+    })
+    
+    for (i in 1:length(p_TFs)) {
+        IMP_Z[[i]] <- all[[i]]\$imp
+        DELTA_mean_supp[[i]] <- apply(all[[i]]\$delta[1], 2, mean)
+        DELTA_mean_conf[[i]] <- apply(all[[i]]\$delta[2], 2, mean)
+    }
+    
+    IMP <- data.frame(
+        TF = p_TFs,
+        imp = sapply(IMP_Z, mean),
+        sd = sapply(IMP_Z, sd),
+        delta_support = as.numeric(DELTA_mean_supp),
+        delta_confidence = as.numeric(DELTA_mean_conf),
+        nrules = sapply(IMP_Z, length),
+        stringsAsFactors=FALSE
+    )
+    
+    IMP.ord <- arrange(IMP, desc(imp))
+    print(IMP.ord)
+    write.csv(IMP.ord, "IMP_ordered.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 7. Perform Principal Component Analysis (PCA)
+    # ==========================================
+    colnames(IMP)
+    TF_Imp <- data.frame(IMP\$TF, IMP\$imp, IMP\$nrules)
+    
+    # Construct DELTA matrix from the delta outputs of all TFs
+    DELTA <- do.call(rbind, lapply(all, function(x) x\$delta))
+    
+    pdf("pca_plots.pdf", width = 9, height = 7.5)
+    i.pc <- IPCA(DELTA, TF_Imp)
+    dev.off()
+    
+    names(i.pc)
+    print(i.pc\$summary)
+    head(i.pc\$loadings)
+    head(i.pc\$scores)
+    
+    saveRDS(i.pc, "pca_results.rds")
+    sink("pca_summary.txt")
+    print(i.pc\$summary)
+    cat("\nLoadings:\n")
+    print(i.pc\$loadings)
+    sink()
+    
+    # ==========================================
+    # 8. Visualize the Importance Index distributions
+    # ==========================================
+    pdf("distribViz_plot.pdf", width = 10, height = 6)
     distribViz(IMP_Z, p_TFs)
-    ZNF217_index <- which(p_TFs == 'ZNF217=1')
-    transcription factors (present in at least one association rules)
-    # --- arrange [] ---
-    # Key functions: arrange
+    dev.off()
+    
+    # Robust extraction of spec_TF3 outlier rules
+    tryCatch({
+        spec3_index <- which(p_TFs == spec_TF3)
+        if (length(spec3_index) > 0) {
+            o <- IMP_Z[[spec3_index]] > 0
+            if (any(o)) {
+                rule_o <- all[[spec3_index]]\$rwi[o,]
+                if (nrow(rule_o) >= 6) {
+                    print(rule_o[6,])
+                } else {
+                    print(head(rule_o))
+                }
+                
+                all_outliers <- all[[spec3_index]]\$rwo[o,]
+                if (nrow(all_outliers) >= 6) {
+                    print(all_outliers[6,])
+                } else {
+                    print(head(all_outliers))
+                }
+            }
+        }
+    }, error = function(e) {
+        message("Outlier analysis skipped: ", e\$message)
+    })
+    
+    # ==========================================
+    # 9. Compute pair-wise Importance Indices
+    # ==========================================
+    couples_0 <- combn(p_TFs, 2)
+    couples <- paste(couples_0[1,], couples_0[2,], sep=',')
+    head(couples)
+    
+    IMP_c <- lapply(couples, function(ci) {
+        A_c <- rulesTF(ci, r_target, FALSE)
+        if (all(!is.na(A_c[[1]][1]))){
+            B_c <- rulesTF0(ci, A_c, r_target, MCF7_chr1, target_TF)
+            IComp(ci, A_c, B_c, figures=FALSE)\$imp
+        }
+    })
+    
+    I_c <- matrix(0, length(couples), 2)
+    I_c <- data.frame(I_c)
+    I_c[,1] <- paste(couples)
+    
+    null.indexes <- vapply(IMP_c, is.null, logical(1))
+    IMP_c <- IMP_c[!null.indexes]
+    I_c <- I_c[!null.indexes,]
+    
+    if (nrow(I_c) > 0) {
+        I_c[,2] <- vapply(IMP_c, mean, numeric(1))
+        colnames(I_c) <- colnames(IMP[,1:2])
+        I_c <- I_c[!is.na(I_c[,2]),]
+        I_c_ord <- arrange(I_c, desc(imp))
+    } else {
+        I_c_ord <- data.frame(TF = character(), imp = numeric())
+    }
+    
+    head(I_c_ord)
+    write.csv(I_c_ord, "I_c_ordered.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 10. Visualize pair-wise importances (Heatmap)
+    # ==========================================
     I_c_2 <- arrange(rbind(IMP[,1:2], I_c_ord), desc(imp))
     p_TFs <- sub("=1", "", p_TFs)
-    I_c_2$TF <-sub("=1", "",I_c_2$TF)
+    I_c_2\$TF <- sub("=1", "", I_c_2\$TF)
+    
+    pdf("heatmap_plot.pdf", width = 15, height = 15)
+    i.heat <- heatI(p_TFs, I_c_2)
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tfarm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tfarm_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tfarm_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TFARM:", paste0("    tfarm: ", packageVersion("TFARM"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TFARM_TF_ASSOCIATION_RULE_MINING":',
+        paste0('    TFARM: ', as.character(packageVersion('TFARM')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tfarm_results.csv
-    touch ${prefix}_tfarm_output.rds
-    echo "BIOC_TFARM:" > versions.yml
-    echo "    tfarm: 0.0.0" >> versions.yml
+    touch ${prefix}_tf_association_rule_mining.csv versions.yml
     """
 }
 
-
-workflow BIOC_TFARM_WORKFLOW {
+workflow BIOC_TFARM_TF_ASSOCIATION_RULE_MINING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ matrix_of_presences.RData ] ]
 
     main:
-    BIOC_TFARM(ch_input)
+    BIOC_TFARM_TF_ASSOCIATION_RULE_MINING(ch_input)
 
     emit:
-    results  = BIOC_TFARM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TFARM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TFARM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TFARM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TFARM_TF_ASSOCIATION_RULE_MINING.out.tables
+    plots    = BIOC_TFARM_TF_ASSOCIATION_RULE_MINING.out.plots
+    objects  = BIOC_TFARM_TF_ASSOCIATION_RULE_MINING.out.objects
+    versions = BIOC_TFARM_TF_ASSOCIATION_RULE_MINING.out.versions
 }

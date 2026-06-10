@@ -1,0 +1,15 @@
+{
+  "package": "netpathminer",
+  "requirements": [
+    "NetPathMiner",
+    "igraph",
+    "rBiopaxParser"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "NetPathMiner",
+      "igraph",
+      "rBiopaxParser"
+    ]
+  }
+}

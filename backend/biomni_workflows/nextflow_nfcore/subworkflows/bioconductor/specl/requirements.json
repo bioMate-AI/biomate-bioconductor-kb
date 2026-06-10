@@ -1,0 +1,17 @@
+{
+  "package": "specl",
+  "requirements": [
+    "seqinr",
+    "specL"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "seqinr",
+      "specL"
+    ],
+    "swath_library_generation_no_irt.nf": [
+      "seqinr",
+      "specL"
+    ]
+  }
+}

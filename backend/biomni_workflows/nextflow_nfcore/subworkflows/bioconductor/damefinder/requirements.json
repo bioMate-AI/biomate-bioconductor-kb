@@ -1,0 +1,21 @@
+{
+  "package": "damefinder",
+  "requirements": [
+    "Biostrings",
+    "DAMEfinder",
+    "GenomicRanges",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DAMEfinder",
+      "GenomicRanges",
+      "SummarizedExperiment"
+    ],
+    "methyl_circle_visualization.nf": [
+      "Biostrings",
+      "DAMEfinder",
+      "GenomicRanges"
+    ]
+  }
+}

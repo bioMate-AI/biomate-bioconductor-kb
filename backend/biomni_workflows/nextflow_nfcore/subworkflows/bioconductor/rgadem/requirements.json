@@ -1,0 +1,15 @@
+{
+  "package": "rgadem",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "rGADEM",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "rGADEM",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "feast",
+  "requirements": [
+    "FEAST",
+    "ggplot2",
+    "ggpubr"
+  ],
+  "by_workflow": {
+    "fast_feature_selection.nf": [
+      "FEAST"
+    ],
+    "main.nf": [
+      "FEAST"
+    ],
+    "model_selection_and_visualization.nf": [
+      "FEAST",
+      "ggplot2",
+      "ggpubr"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "eudysbiome",
+  "requirements": [
+    "eudysbiome"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "eudysbiome"
+    ]
+  }
+}

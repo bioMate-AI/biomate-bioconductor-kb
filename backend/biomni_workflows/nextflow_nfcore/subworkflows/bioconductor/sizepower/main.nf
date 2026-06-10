@@ -1,94 +1,187 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: sizepower
-// This package has been prepared to assist users in computing either a sample size or power value for 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/sizepower/inst/doc/sizepower.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("sizepower")
+// Bioconductor workflow: sizepower — completely_randomized_design
+// Calculate sample size and power for a completely randomized treatment-control design.
+// Input: pilot_parameters.txt
+// Container: quay.io/biocontainers/bioconductor-sizepower:1.80.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: sizepower
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate required sample size using sampleSize.randomized
+//  * 2. [Core Analysis] Calculate exact power for a given sample size using power.randomized
 
 nextflow.enable.dsl = 2
 
-process BIOC_SIZEPOWER {
+process BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sizepower"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sizepower:1.76.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sizepower:1.76.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sizepower_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sizepower_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sizepower_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
+    if (!requireNamespace("sizepower", quietly = TRUE)) {
+      stop("The 'sizepower' package is required but not installed.")
+    }
     library(sizepower)
-    library(jsonlite)
-
-    # --- Randomized [] ---
-    # Key functions: randomized
-    sampleSize.randomized(ER0=1, G0=2000, power=0.9, absMu1=1, sigmad=0.566)
-    # --- Matched [] ---
-    # Key functions: matched
-    sampleSize.matched(ER0=1, G0=2000, power=0.9, absMu1=1, sigmad=0.495)
-    # --- Multi [] ---
-    # Key functions: multi
-    power.multi(ER0=1, G0=2000, numTrt=5, absMu1=1, sigma=0.4, n=6)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sizepower_results.csv", row.names = TRUE)
+    
+    # Read input parameters
+    input_file <- "pilot_parameters.txt"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file", input_file, "not found in the working directory."))
+    }
+    
+    # Parse parameters robustly (supports both key-value and standard table formats)
+    lines <- readLines(input_file)
+    lines <- trimws(lines)
+    lines <- lines[lines != "" & !startsWith(lines, "#")]
+    
+    if (any(grepl("=", lines))) {
+      # Key-value format (e.g., G0=2000)
+      params <- list()
+      for (line in lines) {
+        parts <- strsplit(line, "=")[[1]]
+        if (length(parts) == 2) {
+          params[[trimws(parts[1])]] <- as.numeric(trimws(parts[2]))
+        }
+      }
+      G0_val <- params\$G0
+      ER0_val <- params\$ER0
+      power_val <- params\$power
+      absMu1_val <- params\$absMu1
+      sigmad_val <- params\$sigmad
+      n_val <- params\$n
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sizepower_results.csv")
+      # Table format with headers
+      params <- read.table(input_file, header=TRUE, stringsAsFactors=FALSE)
+      G0_val <- params\$G0[1]
+      ER0_val <- params\$ER0[1]
+      power_val <- params\$power[1]
+      absMu1_val <- params\$absMu1[1]
+      sigmad_val <- params\$sigmad[1]
+      n_val <- params\$n[1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sizepower_output.rds")
+    
+    # Validate parameters
+    if (any(is.na(c(G0_val, ER0_val, power_val, absMu1_val, sigmad_val, n_val)))) {
+      stop("One or more required parameters (G0, ER0, power, absMu1, sigmad, n) are missing or invalid in pilot_parameters.txt.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SIZEPOWER:", paste0("    sizepower: ", packageVersion("sizepower"))),
-        "versions.yml"
+    
+    # 1. Calculate required sample size using sampleSize.randomized
+    size_res <- sampleSize.randomized(
+      ER0 = ER0_val,
+      G0 = G0_val,
+      power = power_val,
+      absMu1 = absMu1_val,
+      sigmad = sigmad_val
     )
+    
+    # 2. Calculate exact power for a given sample size using power.randomized
+    power_res <- power.randomized(
+      ER0 = ER0_val,
+      G0 = G0_val,
+      absMu1 = absMu1_val,
+      sigmad = sigmad_val,
+      n = n_val
+    )
+    
+    # Save results to CSV
+    size_df <- data.frame(
+      Parameter = c("Required_n", "Statistical_Distance_d"),
+      Value = c(size_res\$n, size_res\$d)
+    )
+    write.csv(size_df, "sample_size_result.csv", row.names = FALSE)
+    
+    power_df <- data.frame(
+      Parameter = c("Calculated_Power", "Non_Centrality_Psi1"),
+      Value = c(power_res\$power, power_res\$psi1)
+    )
+    write.csv(power_df, "power_result.csv", row.names = FALSE)
+    
+    # Save RDS object
+    results_list <- list(
+      inputs = list(G0=G0_val, ER0=ER0_val, target_power=power_val, absMu1=absMu1_val, sigmad=sigmad_val, n_input=n_val),
+      sample_size_calculation = size_res,
+      power_calculation = power_res
+    )
+    saveRDS(results_list, "sizepower_results.rds")
+    
+    # Generate PDF plot
+    pdf("power_vs_samplesize_plot.pdf", width=7, height=5)
+    n_range <- seq(max(2, n_val - 5), n_val + 10)
+    powers <- sapply(n_range, function(ni) {
+      res <- power.randomized(
+        ER0 = ER0_val,
+        G0 = G0_val,
+        absMu1 = absMu1_val,
+        sigmad = sigmad_val,
+        n = ni
+      )
+      res\$power
+    })
+    plot(n_range, powers, type="b", pch=19, col="blue",
+         xlab="Sample Size per Group (n)", ylab="Power",
+         main="Power vs Sample Size (Completely Randomized Design)")
+    abline(h=power_val, col="red", lty=2)
+    abline(v=size_res\$n, col="green", lty=2)
+    legend("bottomright", legend=c("Power Curve", paste("Target Power (", power_val, ")", sep=""), paste("Required n (", size_res\$n, ")", sep="")),
+           col=c("blue", "red", "green"), lty=c(1, 2, 2), pch=c(19, NA, NA))
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs written to sample_size_result.csv, power_result.csv, sizepower_results.rds, and power_vs_samplesize_plot.pdf\n")
+
+    writeLines(c(
+        '"BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN":',
+        paste0('    sizepower: ', as.character(packageVersion('sizepower')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sizepower_results.csv
-    touch ${prefix}_sizepower_output.rds
-    echo "BIOC_SIZEPOWER:" > versions.yml
-    echo "    sizepower: 0.0.0" >> versions.yml
+    touch ${prefix}_completely_randomized_design.csv versions.yml
     """
 }
 
-
-workflow BIOC_SIZEPOWER_WORKFLOW {
+workflow BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pilot_parameters.txt ] ]
 
     main:
-    BIOC_SIZEPOWER(ch_input)
+    BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN(ch_input)
 
     emit:
-    results  = BIOC_SIZEPOWER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SIZEPOWER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SIZEPOWER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SIZEPOWER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN.out.tables
+    plots    = BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN.out.plots
+    objects  = BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN.out.objects
+    versions = BIOC_SIZEPOWER_COMPLETELY_RANDOMIZED_DESIGN.out.versions
 }

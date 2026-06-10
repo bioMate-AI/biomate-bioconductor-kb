@@ -4,6 +4,8 @@
 // Generate pairwise whole-genome net alignments (.net.axt files) from 2bit or fasta files using LASTZ and Kent utilities.
 // Input: assemblyTarget.2bit, assemblyQuery.2bit
 // Container: quay.io/biocontainers/bioconductor-cner:1.46.0--r45h01b2380_0
+// R packages: biomaRt, CNEr, GenomeInfoDb, Gviz, rtracklayer
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("biomart", "cner", "genomeinfodb", "gviz", "rtracklayer")
+    .bm_deps <- c("biomaRt", "CNEr", "GenomeInfoDb", "Gviz", "rtracklayer")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -73,19 +85,19 @@ process BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT {
     saveRDS(chains, file=file.path(axtDir, "chains.rds"))
     
     # 4. Sort and combine chains
-    allChain <- chainMergeSort(chains, assemblyTarget, assemblyQuery, allChain=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case=TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case=TRUE), ".all.chain")), removeChains=FALSE, binary="chainMergeSort")
+    allChain <- chainMergeSort(chains, assemblyTarget, assemblyQuery, allChain=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case=TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case=TRUE), ".all.chain")), removeChains=FALSE, binary="chainMergeSort")
     saveRDS(allChain, file=file.path(axtDir, "allChain.rds"))
     
     # 5. Filter chains
-    allPreChain <- chainPreNet(allChain, assemblyTarget, assemblyQuery, allPreChain=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".all.pre.chain")), removeAllChain=FALSE, binary="chainPreNet")
+    allPreChain <- chainPreNet(allChain, assemblyTarget, assemblyQuery, allPreChain=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".all.pre.chain")), removeAllChain=FALSE, binary="chainPreNet")
     saveRDS(allPreChain, file=file.path(axtDir, "allPreChain.rds"))
     
     # 6. Net chains and add synteny information
-    netSyntenicFile <- chainNetSyntenic(allPreChain, assemblyTarget, assemblyQuery, netSyntenicFile=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".noClass.net")), binaryChainNet="chainNet", binaryNetSyntenic="netSyntenic")
+    netSyntenicFile <- chainNetSyntenic(allPreChain, assemblyTarget, assemblyQuery, netSyntenicFile=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".noClass.net")), binaryChainNet="chainNet", binaryNetSyntenic="netSyntenic")
     saveRDS(netSyntenicFile, file=file.path(axtDir, "netSyntenicFile.rds"))
     
     # 7. Create net.axt files
-    netToAxt(netSyntenicFile, allPreChain, assemblyTarget, assemblyQuery, axtFile=file.path(axtDir, paste0(sub("\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".net.axt")), removeFiles=FALSE, binaryNetToAxt="netToAxt", binaryAxtSort="axtSort")
+    netToAxt(netSyntenicFile, allPreChain, assemblyTarget, assemblyQuery, axtFile=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".net.axt")), removeFiles=FALSE, binaryNetToAxt="netToAxt", binaryAxtSort="axtSort")
 
     cat <<-END_VERSIONS > versions.yml
     "BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT":

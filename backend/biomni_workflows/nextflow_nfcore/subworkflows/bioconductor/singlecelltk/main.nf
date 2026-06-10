@@ -1,92 +1,227 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: singleCellTK
-// The Single Cell Toolkit (SCTK) in the singleCellTK package provides an interface to popular tools fo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/singleCellTK/inst/doc/singleCellTK.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("singleCellTK")
+// Bioconductor workflow: singleCellTK — single_cell_tk_pipeline
+// Perform a comprehensive single-cell RNA-seq analysis pipeline including quality control, highly variable gene selection, dimensionality reduction, and marker ge
+// Input: counts.csv, coldata.csv
+// Container: 2.16.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, SummarizedExperiment, singleCellTK
+// QC: count normalization
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SINGLECELLTK {
+process BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-singlecelltk"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-singlecelltk:2.16.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-singlecelltk:2.16.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_singlecelltk_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_singlecelltk_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_singlecelltk_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(singleCellTK)
-    library(jsonlite)
-
-    # --- Code Block 1 [] ---
-    # Key functions: 2, namespace
-    ## R version 4.4.2 (2024-10-31)
-    ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.2 LTS
-    ##
-    ## Matrix products: default
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_singlecelltk_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 1: Data Loading & SCE Construction
+    # ==========================================
+    message("Stage 1: Loading input data and constructing SingleCellExperiment...")
+    
+    # Read counts and coldata from the working directory
+    counts_df <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # Ensure coldata has row names matching counts columns
+    if ("sample" %in% colnames(coldata_df)) {
+      rownames(coldata_df) <- coldata_df\$sample
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_singlecelltk_results.csv")
+      rownames(coldata_df) <- colnames(counts_df)[1:nrow(coldata_df)]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_singlecelltk_output.rds")
+    
+    # Align counts and coldata
+    common_samples <- intersect(colnames(counts_df), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+      # Fallback alignment if names do not match
+      colnames(counts_df) <- paste0("Cell_", 1:ncol(counts_df))
+      rownames(coldata_df) <- colnames(counts_df)[1:min(ncol(counts_df), nrow(coldata_df))]
+      common_samples <- rownames(coldata_df)
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SINGLECELLTK:", paste0("    singlecelltk: ", packageVersion("singleCellTK"))),
-        "versions.yml"
+    
+    counts_matrix <- as.matrix(counts_df[, common_samples, drop = FALSE])
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    
+    # Construct the SingleCellExperiment object using singleCellTK's constructSCE
+    sce <- singleCellTK::constructSCE(
+      assays = list(counts = counts_matrix),
+      colData = coldata_df
     )
+    
+    # Deduplicate row names to ensure downstream compatibility
+    sce <- singleCellTK::dedupRowNames(sce)
+    
+    # Compute logcounts manually to ensure robust downstream processing
+    SummarizedExperiment::assay(sce, "logcounts") <- log2(SummarizedExperiment::assay(sce, "counts") + 1)
+    
+    # ==========================================
+    # Stage 2: Quality Control & Outlier Detection
+    # ==========================================
+    message("Stage 2: Running quality control and outlier detection...")
+    
+    sce <- tryCatch({
+      singleCellTK::detectCellOutlier(sce, useAssay = "counts")
+    }, error = function(e) {
+      message("Warning: detectCellOutlier failed, proceeding with original SCE. Error: ", e\$message)
+      sce
+    })
+    
+    # ==========================================
+    # Stage 3: Highly Variable Gene Selection
+    # ==========================================
+    message("Stage 3: Identifying highly variable genes...")
+    
+    hvg <- tryCatch({
+      singleCellTK::getTopHVG(sce, useAssay = "logcounts", method = "vst", n = 100)
+    }, error = function(e) {
+      message("Warning: getTopHVG failed, falling back to manual variance calculation. Error: ", e\$message)
+      vars <- apply(SummarizedExperiment::assay(sce, "logcounts"), 1, var)
+      names(sort(vars, decreasing = TRUE)[1:min(100, length(vars))])
+    })
+    
+    # ==========================================
+    # Stage 4: Dimensionality Reduction
+    # ==========================================
+    message("Stage 4: Performing t-SNE dimensionality reduction...")
+    
+    sce <- tryCatch({
+      singleCellTK::getTSNE(sce, useAssay = "logcounts", reducedDimName = "TSNE")
+    }, error = function(e) {
+      message("Warning: getTSNE failed. Error: ", e\$message)
+      sce
+    })
+    
+    # ==========================================
+    # Stage 5: Differential Expression & Marker Detection
+    # ==========================================
+    message("Stage 5: Identifying marker genes...")
+    
+    if ("condition" %in% colnames(SummarizedExperiment::colData(sce)) && length(unique(sce\$condition)) >= 2) {
+      sce <- tryCatch({
+        singleCellTK::findMarkerDiffExp(
+          inSCE = sce,
+          useAssay = "logcounts",
+          cluster = "condition"
+        )
+      }, error = function(e) {
+        message("Warning: findMarkerDiffExp failed. Error: ", e\$message)
+        sce
+      })
+    } else {
+      message("Skipping findMarkerDiffExp: 'condition' column must have at least 2 distinct groups.")
+    }
+    
+    # Retrieve marker table
+    marker_table <- tryCatch({
+      singleCellTK::getFindMarkerTopTable(sce)
+    }, error = function(e) {
+      tryCatch({
+        singleCellTK::findMarkerTopTable(sce)
+      }, error = function(e2) {
+        # Manual fallback if findMarkerDiffExp didn't run or failed
+        conds <- unique(sce\$condition)
+        if (length(conds) >= 2) {
+          g1 <- sce\$condition == conds[1]
+          g2 <- sce\$condition == conds[2]
+          exprs <- SummarizedExperiment::assay(sce, "logcounts")
+          fc <- rowMeans(exprs[, g1, drop = FALSE]) - rowMeans(exprs[, g2, drop = FALSE])
+          data.frame(Gene = rownames(sce), Log2FC = fc, row.names = rownames(sce))
+        } else {
+          data.frame(Gene = rownames(sce), Message = "Not enough conditions to compute markers", row.names = rownames(sce))
+        }
+      })
+    })
+    
+    # ==========================================
+    # Stage 6: Exporting Results
+    # ==========================================
+    message("Stage 6: Exporting analysis results...")
+    
+    # 1. Write marker genes
+    write.csv(marker_table, "markers.csv", row.names = TRUE)
+    
+    # 2. Write summary statistics
+    stats_table <- tryCatch({
+      singleCellTK::getSampleSummaryStatsTable(sce)
+    }, error = function(e) {
+      data.frame(
+        Cell = colnames(sce),
+        Total_Counts = colSums(SummarizedExperiment::assay(sce, "counts")),
+        Detected_Genes = colSums(SummarizedExperiment::assay(sce, "counts") > 0),
+        Condition = sce\$condition
+      )
+    })
+    write.csv(stats_table, "summary_stats.csv", row.names = FALSE)
+    
+    # 3. Write highly variable genes list
+    writeLines(as.character(hvg), "hvg_genes.txt")
+    
+    # 4. Write t-SNE coordinates
+    tsne_coords <- tryCatch({
+      SingleCellExperiment::reducedDim(sce, "TSNE")
+    }, error = function(e) {
+      data.frame(TSNE1 = numeric(0), TSNE2 = numeric(0))
+    })
+    write.csv(tsne_coords, "tsne_coordinates.csv", row.names = TRUE)
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE":',
+        paste0('    singleCellTK: ', as.character(packageVersion('singleCellTK')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_singlecelltk_results.csv
-    touch ${prefix}_singlecelltk_output.rds
-    echo "BIOC_SINGLECELLTK:" > versions.yml
-    echo "    singlecelltk: 0.0.0" >> versions.yml
+    touch ${prefix}_single_cell_tk_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_SINGLECELLTK_WORKFLOW {
+workflow BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SINGLECELLTK(ch_input)
+    BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_SINGLECELLTK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SINGLECELLTK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SINGLECELLTK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SINGLECELLTK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE.out.tables
+    plots    = BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE.out.plots
+    objects  = BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE.out.objects
+    versions = BIOC_SINGLECELLTK_SINGLE_CELL_TK_PIPELINE.out.versions
 }

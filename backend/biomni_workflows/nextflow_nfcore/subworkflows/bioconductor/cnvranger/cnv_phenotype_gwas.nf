@@ -1,0 +1,199 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: CNVRanger — cnv_phenotype_gwas
+// Run a probe-level or segment-level genome-wide association study (GWAS) linking CNVs to quantitative phenotypes.
+// Input: CNVOut.txt, Pheno.txt, MapPenn.txt
+// Container: quay.io/biocontainers/bioconductor-cnvranger:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNVRanger, GenomicRanges, RaggedExperiment, SNPRelate, gdsfmt
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Read CNV calls and represent them as a GRangesList; 2. Combine CNV calls and phenotype data into a RaggedExperiment; 3. Set up the
+
+nextflow.enable.dsl = 2
+
+process BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        library(CNVRanger)
+        library(GenomicRanges)
+        library(RaggedExperiment)
+        library(SNPRelate)
+        library(gdsfmt)
+        
+        # Define data directory as current working directory
+        data.dir <- "."
+        
+        # 1. Read CNV calls and represent them as a GRangesList
+        cnv.loc <- file.path(data.dir, "CNVOut.txt") 
+        cnv.df <- read.delim(cnv.loc, as.is=TRUE) 
+        cnv.calls <- GenomicRanges::makeGRangesListFromDataFrame(cnv.df, split.field="sample.id", keep.extra.columns=TRUE)
+        
+        # 2. Combine CNV calls and phenotype data into a RaggedExperiment
+        phen.loc <- file.path(data.dir, "Pheno.txt")
+        colData <- read.delim(phen.loc, as.is=TRUE)
+        
+        # Ensure colData rows match the order of the split GRangesList elements
+        rownames(colData) <- as.character(colData[, 1])
+        colData <- colData[names(cnv.calls), , drop=FALSE]
+        
+        mcols(cnv.calls) <- colData
+        re <- RaggedExperiment::RaggedExperiment(cnv.calls)
+        
+        # 3. Set up the GWAS directory and files using setupCnvGWAS
+        map.loc <- file.path(data.dir, "MapPenn.txt")
+        if (file.exists(map.loc)) {
+            phen.info <- setupCnvGWAS("example", cnv.out.loc=re, map.loc=map.loc)
+        } else {
+            phen.info <- setupCnvGWAS("example", cnv.out.loc=re)
+        }
+        all.paths <- phen.info\$all.paths
+        
+        # 4. Define chromosome mapping for non-integer chromosome names dynamically
+        all.chrs <- unique(as.character(cnv.df[, 1]))
+        suppressWarnings(int.chrs <- as.integer(all.chrs))
+        non.int.chrs <- all.chrs[is.na(int.chrs)]
+        
+        if (length(non.int.chrs) > 0) {
+            max.int <- max(c(0, int.chrs), na.rm=TRUE)
+            chr.code.name <- data.frame(V1 = seq(max.int + 1, length.out = length(non.int.chrs)), V2 = non.int.chrs)
+        } else {
+            chr.code.name <- NULL
+        }
+        
+        # 5. Run cnvGWAS to identify significant CNV segments
+        if (is.null(chr.code.name)) {
+            segs.pvalue.gr <- cnvGWAS(phen.info, method.m.test="none")
+        } else {
+            segs.pvalue.gr <- cnvGWAS(phen.info, chr.code.name=chr.code.name, method.m.test="none")
+        }
+        
+        # 6. Plot results using plotManhattan
+        order.chrs <- as.character(all.chrs)
+        chr.size.file <- file.path(data.dir, "chr_sizes.txt")
+        
+        # Dynamically estimate chromosome sizes if the file does not exist
+        if (!file.exists(chr.size.file)) {
+            map.df <- NULL
+            if (file.exists(map.loc)) {
+                try({ map.df <- read.delim(map.loc, as.is=TRUE) }, silent=TRUE)
+            }
+            
+            chr.sizes <- sapply(order.chrs, function(chr) {
+                max_pos <- 0
+                if (!is.null(map.df) && ncol(map.df) >= 3) {
+                    pos <- map.df[, 3][as.character(map.df[, 2]) == as.character(chr)]
+                    if (length(pos) > 0) max_pos <- max(max_pos, max(as.numeric(pos), na.rm=TRUE))
+                }
+                if (!is.null(cnv.df) && ncol(cnv.df) >= 3) {
+                    pos_start <- cnv.df[, 2][as.character(cnv.df[, 1]) == as.character(chr)]
+                    pos_end <- cnv.df[, 3][as.character(cnv.df[, 1]) == as.character(chr)]
+                    if (length(pos_start) > 0) max_pos <- max(max_pos, max(as.numeric(pos_start), na.rm=TRUE))
+                    if (length(pos_end) > 0) max_pos <- max(max_pos, max(as.numeric(pos_end), na.rm=TRUE))
+                }
+                if (max_pos > 0) {
+                    return(as.integer(max_pos + 1000000))
+                } else {
+                    return(150000000)
+                }
+            })
+            write(chr.sizes, file=chr.size.file, ncolumns=1)
+        }
+        
+        chr.sizes <- scan(chr.size.file, quiet=TRUE)
+        chr.size.order <- data.frame(chr=order.chrs, sizes=chr.sizes, stringsAsFactors=FALSE)
+        
+        # Save Manhattan plot to PDF
+        pdf("manhattan_plot.pdf", width=10, height=6)
+        plotManhattan(all.paths, segs.pvalue.gr, chr.size.order, plot.pdf=FALSE)
+        dev.off()
+        
+        # 7. Save primary outputs (GDS is automatically generated by cnvGWAS)
+        saveRDS(segs.pvalue.gr, "segs_pvalue_gr.rds")
+        write.csv(as.data.frame(segs.pvalue.gr), "segs_pvalue_results.csv", row.names=FALSE)
+        
+        # Optional: Run GWAS using relative signal intensities (LRR) if LRR files are present
+        tryCatch({
+            files <- list.files(data.dir, pattern = "\\\\.cnv.txt.adjusted\$")
+            if (length(files) > 0) {
+                samples <- sub(".cnv.txt.adjusted\$", "", files)
+                samples <- sub("^GT","", samples)
+                sample.files <- data.frame(file.names=files, sample.names=samples)
+                importLrrBaf(all.paths, data.dir, sample.files, verbose=FALSE)
+                cnv.gds <- file.path(all.paths[1], "CNV.gds")
+                genofile <- SNPRelate::snpgdsOpen(cnv.gds, allow.fork=TRUE, readonly=FALSE)
+                gdsfmt::closefn.gds(genofile)
+                
+                if (is.null(chr.code.name)) {
+                    segs.pvalue.gr.lrr <- cnvGWAS(phen.info, produce.gds=FALSE, run.lrr=TRUE)
+                } else {
+                    segs.pvalue.gr.lrr <- cnvGWAS(phen.info, chr.code.name=chr.code.name, produce.gds=FALSE, run.lrr=TRUE)
+                }
+                
+                saveRDS(segs.pvalue.gr.lrr, "segs_pvalue_lrr.rds")
+                write.csv(as.data.frame(segs.pvalue.gr.lrr), "segs_pvalue_lrr_results.csv", row.names=FALSE)
+            } else {
+                message("No .cnv.txt.adjusted files found. Skipping LRR-based GWAS.")
+            }
+        }, error = function(e) {
+            message("LRR analysis skipped or failed: ", e\$message)
+        })
+
+    writeLines(c(
+        '"BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS":',
+        paste0('    CNVRanger: ', as.character(packageVersion('CNVRanger')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_cnv_phenotype_gwas.csv versions.yml
+    """
+}
+
+workflow BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ CNVOut.txt, Pheno.txt, MapPenn.txt ] ]
+
+    main:
+    BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS(ch_input)
+
+    emit:
+    tables   = BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS.out.tables
+    plots    = BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS.out.plots
+    objects  = BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS.out.objects
+    versions = BIOC_CNVRANGER_CNV_PHENOTYPE_GWAS.out.versions
+}

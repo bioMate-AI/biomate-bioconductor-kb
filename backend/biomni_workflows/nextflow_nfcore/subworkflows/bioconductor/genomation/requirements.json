@@ -1,0 +1,22 @@
+{
+  "package": "genomation",
+  "requirements": [
+    "GenomicAlignments",
+    "GenomicRanges",
+    "Rsamtools",
+    "genomation"
+  ],
+  "by_workflow": {
+    "feature_combination_analysis.nf": [
+      "GenomicRanges",
+      "Rsamtools",
+      "genomation"
+    ],
+    "main.nf": [
+      "GenomicAlignments",
+      "GenomicRanges",
+      "Rsamtools",
+      "genomation"
+    ]
+  }
+}

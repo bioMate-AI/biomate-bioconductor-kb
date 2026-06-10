@@ -1,94 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RNAAgeCalc
-// It has been shown that both DNA methylation and RNA transcription are linked to chronological age an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RNAAgeCalc/inst/doc/RNAAge-vignette.R
-// Upstream  : SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("RNAAgeCalc")
+// Bioconductor workflow: RNAAgeCalc — predict_age_dataframe
+// Calculate transcriptional age and age acceleration residuals from a gene expression data frame or matrix and visualize the results.
+// Input: fpkm, chronage
+// Container: quay.io/biocontainers/bioconductor-rnaagecalc:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RNAAgeCalc
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the package and expression data. 2. Define chronological age data frame. 3. Predict age using predict_age. 4. Visualize resul
 
 nextflow.enable.dsl = 2
 
-process BIOC_RNAAGECALC {
+process BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rnaagecalc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rnaagecalc:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rnaagecalc:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rnaagecalc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rnaagecalc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rnaagecalc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RNAAgeCalc)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # 1. Load the package and expression data
+        library(RNAAgeCalc)
+        
+        # Helper function to robustly read the fpkm input file
+        read_fpkm <- function() {
+          files <- c("fpkm", "fpkm.csv", "fpkm.tsv", "fpkm.txt")
+          for (f in files) {
+            if (file.exists(f)) {
+              expr <- tryCatch({
+                read.csv(f, row.names = 1, check.names = FALSE)
+              }, error = function(e) {
+                read.table(f, header = TRUE, row.names = 1, check.names = FALSE)
+              })
+              return(as.matrix(expr))
+            }
+          }
+          stop("Required input file 'fpkm' (or with .csv/.tsv/.txt extension) not found in the working directory.")
+        }
+        
+        fpkm <- read_fpkm()
+        
+        # 2. Define chronological age data frame
+        # Helper function to robustly read the chronage input file
+        read_chronage <- function() {
+          files <- c("chronage", "chronage.csv", "chronage.tsv", "chronage.txt")
+          for (f in files) {
+            if (file.exists(f)) {
+              df <- tryCatch({
+                read.csv(f, check.names = FALSE)
+              }, error = function(e) {
+                read.table(f, header = TRUE, check.names = FALSE)
+              })
+              return(df)
+            }
+          }
+          stop("Required input file 'chronage' (or with .csv/.tsv/.txt extension) not found in the working directory.")
+        }
+        
+        chronage <- read_chronage()
+        
+        # 3. Predict age using predict_age
+        res <- predict_age(exprdata = fpkm, exprtype = "FPKM", 
+                          chronage = chronage)
+        
+        # Save the prediction results
+        write.csv(res, "rna_age_results.csv", row.names = TRUE)
+        saveRDS(res, "rna_age_results.rds")
+        
+        # 4. Visualize results using makeplot
+        pdf("rna_age_plot.pdf", width = 7, height = 7)
+        print(makeplot(res))
+        dev.off()
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(fpkmExample)
-    head(fpkm)
-    # --- Makeplot [] ---
-    # Key functions: makeplot
-    ---------------------------------------------------------------------
-    makeplot(res2)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rnaagecalc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rnaagecalc_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rnaagecalc_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RNAAGECALC:", paste0("    rnaagecalc: ", packageVersion("RNAAgeCalc"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME":',
+        paste0('    RNAAgeCalc: ', as.character(packageVersion('RNAAgeCalc')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rnaagecalc_results.csv
-    touch ${prefix}_rnaagecalc_output.rds
-    echo "BIOC_RNAAGECALC:" > versions.yml
-    echo "    rnaagecalc: 0.0.0" >> versions.yml
+    touch ${prefix}_predict_age_dataframe.csv versions.yml
     """
 }
 
-
-workflow BIOC_RNAAGECALC_WORKFLOW {
+workflow BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ fpkm, chronage ] ]
 
     main:
-    BIOC_RNAAGECALC(ch_input)
+    BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME(ch_input)
 
     emit:
-    results  = BIOC_RNAAGECALC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RNAAGECALC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RNAAGECALC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RNAAGECALC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME.out.tables
+    plots    = BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME.out.plots
+    objects  = BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME.out.objects
+    versions = BIOC_RNAAGECALC_PREDICT_AGE_DATAFRAME.out.versions
 }

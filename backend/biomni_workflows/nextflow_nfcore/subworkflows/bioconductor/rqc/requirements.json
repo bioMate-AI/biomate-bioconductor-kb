@@ -1,0 +1,16 @@
+{
+  "package": "rqc",
+  "requirements": [
+    "Rqc",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "advanced_qc_analysis.nf": [
+      "Rqc"
+    ],
+    "main.nf": [
+      "Rqc",
+      "ggplot2"
+    ]
+  }
+}

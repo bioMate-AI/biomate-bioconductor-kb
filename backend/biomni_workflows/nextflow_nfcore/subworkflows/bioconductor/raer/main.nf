@@ -1,158 +1,161 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: raer
-// Toolkit for identification and statistical testing of RNA editing signals from within R. Provides su
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/raer/inst/doc/raer.R
-// Upstream  : AnnotationHub, ComplexHeatmap, SingleCellExperiment, raerdata, scater
-// Downstream: none
-//
-// Install: BiocManager::install("raer")
+// Bioconductor workflow: raer — single_cell_editing
+// Quantify RNA editing sites in single-cell RNA-seq data (droplet or Smart-seq2) and calculate editing frequencies.
+// Input: bamfile.bam, editing_sites.gr
+// Container: quay.io/biocontainers/bioconductor-raer:1.8.0--r45h01b2380_2
+// R packages: GenomicRanges, Rsamtools, AnnotationHub, ComplexHeatmap, raer, raerdata, scater, SingleCellExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, Rsamtools, SingleCellExperiment, raer
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Format editing sites with REF and ALT metadata columns
+//  * 2. [Core Analysis] Configure filtering parameters using FilterParam()
+//  * 3. [Core Analysis] Quantify reference and alternate alleles per cell using pileup_cells()
+//  * 4. [Core Analysis] Calculate editing frequencies using calc_edit_frequency()
 
 nextflow.enable.dsl = 2
 
-process BIOC_RAER {
+process BIOC_RAER_SINGLE_CELL_EDITING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-raer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-raer:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-raer:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_raer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_raer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_raer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "Rsamtools", "AnnotationHub", "ComplexHeatmap", "raer", "raerdata", "scater", "SingleCellExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+                    
+    # Load required libraries
     library(raer)
-    library(FilterParam)
-    library(jsonlite)
-
-    # --- Single-Cell Editing Frequency Calculation [] ---
-    # Key functions: calc_edit_frequency
-    e_sce <- e_sce[rowSums(assays(e_sce)$nAlt > 0) >= 5, ]
-    e_sce <- calc_edit_frequency(
-        e_sce,
+    library(GenomicRanges)
+    library(Rsamtools)
+    
+    # Define input file paths
+    bam_input <- "bamfile.bam"
+    sites_input <- "editing_sites.gr"
+    
+    # Verify input files exist
+    if (!file.exists(bam_input)) {
+        stop(paste("Required input BAM file missing:", bam_input))
+    }
+    if (!file.exists(sites_input)) {
+        stop(paste("Required input GRanges RDS file missing:", sites_input))
+    }
+    
+    # 1. Read user input files
+    message("Reading input editing sites...")
+    editing_sites <- readRDS(sites_input)
+    
+    # 2. Format editing sites with REF and ALT metadata columns
+    editing_sites\$REF <- Rle("A")
+    editing_sites\$ALT <- Rle("G")
+    
+    # 3. Configure filtering parameters using FilterParam()
+    params <- FilterParam(
+        min_mapq = 255, # required alignment MAPQ score
+        library_type = "fr-second-strand", # library type
+        min_variant_reads = 1
+    )
+    
+    # Create output directory for pileup results
+    outdir <- "sc_edits_output"
+    if (!dir.create(outdir, showWarnings = FALSE, recursive = TRUE)) {
+        message("Output directory already exists or could not be created explicitly.")
+    }
+    
+    # Extract cell barcodes from BAM file
+    message("Extracting cell barcodes from BAM file...")
+    sbp <- ScanBamParam(tag = "CB", what = character(0))
+    bam_data <- scanBam(bam_input, param = sbp)
+    cbs <- unique(bam_data[[1]]\$tag\$CB)
+    cbs <- cbs[!is.na(cbs)]
+    
+    # 4. Quantify reference and alternate alleles per cell using pileup_cells()
+    message("Running pileup_cells...")
+    e_sce <- pileup_cells(
+        bamfile = bam_input,
+        sites = editing_sites,
+        cell_barcodes = cbs,
+        output_directory = outdir,
+        cb_tag = "CB",
+        umi_tag = "UB",
+        param = params
+    )
+    
+    # Filter to find sites with an editing event in at least 5 cells
+    message("Filtering editing sites...")
+    e_sce <- e_sce[rowSums(assays(e_sce)\$nAlt > 0) >= 5, ]
+    
+    # 5. Calculate editing frequencies using calc_edit_frequency()
+    message("Calculating editing frequencies...")
+    e_sce <- calc_edit_frequency(e_sce,
         edit_from = "Ref",
         edit_to = "Alt",
         replace_na = FALSE
     )
-    altExp(sce) <- e_sce[, colnames(sce)]
+    
+    # 6. Write named output files for the meaningful results
+    message("Writing output files...")
+    saveRDS(e_sce, file = "sc_editing_results.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to 'sc_edits_output/' and current working directory.")
 
-
-    # --- Bulk RNA-Seq Editing Pileup [] ---
-    # Key functions: FilterParam, pileup_sites
-    fp <- FilterParam(
-        only_keep_variants = TRUE,
-        trim_5p = 5,
-        trim_3p = 5,
-        min_base_quality = 30,
-        min_mapq = 255,
-        library_type = "fr-first-strand",
-        min_splice_overhang = 10
-    )
-    rse <- pileup_sites(
-        bam_files,
-        fasta = fafn,
-        sites = chr_18_editing_sites,
-        chroms = "chr18",
-        param = fp
-    )
-
-
-    # --- Bulk Editing Frequency and Filtering [] ---
-    # Key functions: calc_edit_frequency
-    rse <- calc_edit_frequency(
-        rse,
-        edit_from = "A",
-        edit_to = "G",
-        drop = TRUE
-    )
-    has_editing <- rowSums(assay(rse, "edit_freq") > 0) >= 1
-    has_depth <- rowSums(assay(rse, "depth") >= 5) == ncol(rse)
-    rse <- rse[has_editing & has_depth, ]
-
-
-    # --- Differential Editing Analysis [] ---
-    # Key functions: make_de_object, find_de_sites
-    deobj <- make_de_object(
-        rse,
-        min_prop = 0.05,
-        min_samples = 3
-    )
-    deobj$sample <- factor(deobj$sample)
-    de_results <- find_de_sites(
-        deobj,
-        test = "DESeq2",
-        sample_col = "sample",
-        condition_col = "genotype",
-        condition_control = "Wildtype",
-        condition_treatment = "ADAR1KO"
-    )
-
-
-    # --- SNP Annotation and Overlap [] ---
-    # Key functions: get_overlapping_snps
-    seqlevelsStyle(alus) <- "NCBI"
-    genome(alus) <- "GRCh38.p2"
-    alu_snps <- get_overlapping_snps(
-        alus,
-        SNPlocs.Hsapiens.dbSNP144.GRCh38
-    )
-    seqlevelsStyle(alu_snps) <- "UCSC"
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_raer_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_raer_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_raer_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RAER:", paste0("    raer: ", packageVersion("raer"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RAER_SINGLE_CELL_EDITING":',
+        paste0('    raer: ', as.character(packageVersion('raer')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_raer_results.csv
-    touch ${prefix}_raer_output.rds
-    echo "BIOC_RAER:" > versions.yml
-    echo "    raer: 0.0.0" >> versions.yml
+    touch ${prefix}_single_cell_editing.csv versions.yml
     """
 }
 
-
-workflow BIOC_RAER_WORKFLOW {
+workflow BIOC_RAER_SINGLE_CELL_EDITING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bamfile.bam, editing_sites.gr ] ]
 
     main:
-    BIOC_RAER(ch_input)
+    BIOC_RAER_SINGLE_CELL_EDITING(ch_input)
 
     emit:
-    results  = BIOC_RAER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RAER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RAER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RAER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RAER_SINGLE_CELL_EDITING.out.tables
+    plots    = BIOC_RAER_SINGLE_CELL_EDITING.out.plots
+    objects  = BIOC_RAER_SINGLE_CELL_EDITING.out.objects
+    versions = BIOC_RAER_SINGLE_CELL_EDITING.out.versions
 }

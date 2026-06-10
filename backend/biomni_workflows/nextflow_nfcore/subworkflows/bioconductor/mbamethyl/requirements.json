@@ -1,0 +1,11 @@
+{
+  "package": "mbamethyl",
+  "requirements": [
+    "MBAmethyl"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MBAmethyl"
+    ]
+  }
+}

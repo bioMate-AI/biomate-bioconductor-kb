@@ -1,114 +1,164 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DMRcate
-// De novo identification and extraction of differentially methylated regions (DMRs) from the human gen
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DMRcate/inst/doc/EPICv1_and_450K.R
-// Upstream  : BiocManager, ExperimentHub
-// Downstream: methylationArrayAnalysis
-//
-// Install: BiocManager::install("DMRcate")
+// Bioconductor workflow: DMRcate — array_dmr_analysis
+// Identify and plot differentially methylated regions from Illumina Infinium array data (such as EPICv2 or EPICv1).
+// Input: ALLMs, design
+// Container: quay.io/biocontainers/bioconductor-dmrcate:3.6.0--r45hdfd78af_0
+// R packages: biocmanager, DMRcate, ExperimentHub
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DMRcate
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Filter out SNP-proximal and cross-hybridising probes using rmSNPandCH. 2. Annotate CpGs and model differential methylation using c
 
 nextflow.enable.dsl = 2
 
-process BIOC_DMRCATE {
+process BIOC_DMRCATE_ARRAY_DMR_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dmrcate"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dmrcate:3.2.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-dmrcate:3.2.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dmrcate_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dmrcate_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dmrcate_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biocmanager", "DMRcate", "ExperimentHub")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(DMRcate)
-    library(ExperimentHub)
-    library(jsonlite)
-
-    # --- Probe Filtering and Normalisation [] ---
-    # Key functions: rmSNPandCH, ilogit2
-    tcellms.noSNPs <- rmSNPandCH(tcellms, dist=2, mafcut=0.05)
-    tcell$Replicate[tcell$Replicate==""] <- tcell$Sample_Name[tcell$Replicate==""]
-    tcellms.noSNPs <- limma::avearrays(tcellms.noSNPs, tcell$Replicate)
-    tcell <- tcell[,!duplicated(tcell$Replicate)]
-    tcell <- tcell[rownames(tcellms.noSNPs),]
-    colnames(tcellms.noSNPs) <- colnames(tcell)
-    assays(tcell)[["M"]] <- tcellms.noSNPs
-    assays(tcell)[["Beta"]] <- ilogit2(tcellms.noSNPs)
-
-
-    # --- CpG Annotation and DMR Detection [] ---
-    # Key functions: cpg.annotate, dmrcate, extractRanges
-    type <- factor(tcell$CellType)
-    design <- model.matrix(~type) 
-    myannotation <- cpg.annotate("array", tcell, arraytype = "EPICv1",
-                                 analysis.type="differential", design=design, coef=2)
-    dmrcoutput <- dmrcate(myannotation, lambda=1000, C=2)
-    results.ranges <- extractRanges(dmrcoutput, genome = "hg19")
-
-
-    # --- Visualisation of Genomic Regions [] ---
-    # Key functions: DMR.plot
-    groups <- c(CD8T="magenta", CD4T="forestgreen")
-    cols <- groups[as.character(type)]
-    DMR.plot(ranges=results.ranges, dmr=1, CpGs=myannotation, what="Beta", 
-             arraytype = "EPICv1", phen.col=cols, genome="hg19")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dmrcate_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 1. READ USER INPUT FILES
+    # ==========================================
+    # Read ALLMs (matrix of M-values or Beta-values)
+    if (file.exists("ALLMs.rds")) {
+      ALLMs <- readRDS("ALLMs.rds")
+    } else if (file.exists("ALLMs.csv")) {
+      ALLMs <- as.matrix(read.csv("ALLMs.csv", row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dmrcate_results.csv")
+      stop("Error: ALLMs file (ALLMs.rds or ALLMs.csv) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dmrcate_output.rds")
+    
+    # Read design matrix
+    if (file.exists("design.rds")) {
+      design <- readRDS("design.rds")
+    } else if (file.exists("design.csv")) {
+      design <- as.matrix(read.csv("design.csv", row.names = 1, check.names = FALSE))
+    } else {
+      stop("Error: design file (design.rds or design.csv) not found in the working directory.")
     }
+    
+    # ==========================================
+    # 2. EXECUTE WORKFLOW
+    # ==========================================
+    
+    # Stage 1: Filter out SNP-proximal and cross-hybridising probes
+    ALLMs.noSNPs <- rmSNPandCH(ALLMs, rmcrosshyb = FALSE)
+    
+    # Stage 2: Annotate CpGs and model differential methylation
+    myannotation <- cpg.annotate("array", object=ALLMs.noSNPs, what = "M", 
+                                 arraytype = "EPICv2", epicv2Filter = "mean", 
+                                 epicv2Remap = TRUE,  analysis.type="differential", 
+                                 design=design, coef=2, fdr=0.001)
+    
+    # Stage 3: Call DMRs
+    dmrcoutput <- dmrcate(myannotation, lambda=1000, C=2)
+    
+    # Stage 4: Extract genomic coordinates of the identified DMRs
+    results.ranges <- extractRanges(dmrcoutput, genome = "hg38")
+    
+    # ==========================================
+    # 3. WRITE OUTPUTS & PLOT
+    # ==========================================
+    
+    # Save the genomic ranges of identified DMRs
+    saveRDS(results.ranges, "results_ranges.rds")
+    write.csv(as.data.frame(results.ranges), "results_ranges.csv", row.names = FALSE)
+    
+    # Dynamically define colors for plotting based on the design matrix
+    if (ncol(design) >= 2) {
+      group_vals <- design[, 2]
+      unique_vals <- unique(group_vals)
+      color_palette <- c("forestgreen", "orange", "blue", "purple", "red", "magenta", "cyan", "brown")
+      val_to_col <- setNames(color_palette[1:min(length(unique_vals), length(color_palette))], unique_vals)
+      cols <- val_to_col[as.character(group_vals)]
+      names(cols) <- rownames(design)
+    } else {
+      cols <- rep("forestgreen", ncol(ALLMs.noSNPs))
+      names(cols) <- colnames(ALLMs.noSNPs)
+    }
+    
+    # Stage 5: Plot specific DMRs
+    pdf("dmr_plot.pdf", width = 10, height = 8)
+    tryCatch({
+      DMR.plot(ranges=results.ranges, dmr=3, CpGs=myannotation, 
+               what = "Beta", arraytype = "EPICv2", phen.col=cols, genome = "hg38")
+    }, error = function(e) {
+      warning("DMR.plot failed for dmr=3 (possibly fewer than 3 DMRs found). Attempting to plot dmr=1...")
+      if (length(results.ranges) >= 1) {
+        DMR.plot(ranges=results.ranges, dmr=1, CpGs=myannotation, 
+                 what = "Beta", arraytype = "EPICv2", phen.col=cols, genome = "hg38")
+      } else {
+        message("No DMRs found to plot.")
+      }
+    })
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DMRCATE:", paste0("    dmrcate: ", packageVersion("DMRcate"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DMRCATE_ARRAY_DMR_ANALYSIS":',
+        paste0('    DMRcate: ', as.character(packageVersion('DMRcate')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dmrcate_results.csv
-    touch ${prefix}_dmrcate_output.rds
-    echo "BIOC_DMRCATE:" > versions.yml
-    echo "    dmrcate: 0.0.0" >> versions.yml
+    touch ${prefix}_array_dmr_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DMRCATE_WORKFLOW {
+workflow BIOC_DMRCATE_ARRAY_DMR_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ALLMs, design ] ]
 
     main:
-    BIOC_DMRCATE(ch_input)
+    BIOC_DMRCATE_ARRAY_DMR_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DMRCATE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DMRCATE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DMRCATE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DMRCATE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DMRCATE_ARRAY_DMR_ANALYSIS.out.tables
+    plots    = BIOC_DMRCATE_ARRAY_DMR_ANALYSIS.out.plots
+    objects  = BIOC_DMRCATE_ARRAY_DMR_ANALYSIS.out.objects
+    versions = BIOC_DMRCATE_ARRAY_DMR_ANALYSIS.out.versions
 }

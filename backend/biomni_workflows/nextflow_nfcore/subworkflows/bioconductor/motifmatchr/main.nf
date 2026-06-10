@@ -1,161 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: motifmatchr
-// Quickly find motif matches for many motifs and many sequences. Wraps C++ code from the MOODS motif c
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/motifmatchr/inst/doc/motifmatchr.R
-// Upstream  : BSgenome, Biostrings, GenomicRanges, SummarizedExperiment, TFBSTools
-// Downstream: none
-//
-// Install: BiocManager::install("motifmatchr")
+// Bioconductor workflow: motifmatchr — motif_matching_genomic_ranges
+// Find motif matches, scores, and genomic positions within a set of genomic ranges (peaks).
+// Input: peaks, example_motifs
+// Container: quay.io/biocontainers/bioconductor-motifmatchr:1.32.0--r45ha27e39d_0
+// R packages: BSgenome.Hsapiens.UCSC.hg19, Biostrings, BSgenome, GenomicRanges, motifmatchr, SummarizedExperiment, TFBSTools
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome, BSgenome.Hsapiens.UCSC.hg19, GenomicRanges, SummarizedExperiment, motifmatchr
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the motifmatchr, GenomicRanges, SummarizedExperiment, and BSgenome libraries
+//  * 2. [Input & Preparation] Load example motifs and define genomic ranges (peaks)
+//  * 3. [Core Analysis] Find motif matches using matchMotifs with default settings
+//  * 4. [Core Analysis] Extract the boolean matches matrix using motifMatches
+//  * 5. [Core Analysis] Find motif matches and extract scores and counts using out = "scores"
+//  * 6. [Core Analysis] Find exact genomic positions of motif matches using out = "positions"
 
 nextflow.enable.dsl = 2
 
-process BIOC_MOTIFMATCHR {
+process BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-motifmatchr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-motifmatchr:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-motifmatchr:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_motifmatchr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_motifmatchr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_motifmatchr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "Biostrings", "BSgenome", "GenomicRanges", "motifmatchr", "SummarizedExperiment", "TFBSTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the motifmatchr, GenomicRanges, SummarizedExperiment, and BSgenome libraries
     library(motifmatchr)
-    library(Date)
-    library(SummarizedExperiment)
-    library(jsonlite)
+    library(GenomicRanges)
+    library(BSgenome)
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    
+    # 2. Load example motifs and define genomic ranges (peaks) from user input files
+    # The pipeline reads exactly these files from the working directory
+    peaks <- readRDS("peaks.rds")
+    example_motifs <- readRDS("example_motifs.rds")
+    
+    # 3. Find motif matches using matchMotifs with default settings
+    motif_ix <- matchMotifs(example_motifs, peaks, genome = "hg19") 
+    
+    # 4. Extract the boolean matches matrix using motifMatches
+    matches_matrix <- motifMatches(motif_ix)
+    print(matches_matrix)
+    
+    # Save default match results
+    saveRDS(motif_ix, "motif_ix.rds")
+    write.csv(as.matrix(matches_matrix), "motif_matches.csv", row.names = TRUE)
+    
+    # 5. Find motif matches and extract scores and counts using out = "scores"
+    motif_ix_scores <- matchMotifs(example_motifs, peaks, 
+                                    genome = "hg19", out = "scores")
+    print(head(motifMatches(motif_ix_scores)))
+    print(head(motifScores(motif_ix_scores)))
+    print(head(motifCounts(motif_ix_scores)))
+    
+    # Save scores and counts results
+    saveRDS(motif_ix_scores, "motif_ix_scores.rds")
+    write.csv(as.matrix(motifMatches(motif_ix_scores)), "motif_matches_from_scores.csv", row.names = TRUE)
+    write.csv(as.matrix(motifScores(motif_ix_scores)), "motif_scores.csv", row.names = TRUE)
+    write.csv(as.matrix(motifCounts(motif_ix_scores)), "motif_counts.csv", row.names = TRUE)
+    
+    # 6. Find exact genomic positions of motif matches using out = "positions"
+    motif_pos <- matchMotifs(example_motifs, peaks, genome = "hg19", 
+                              out = "positions") 
+    print(motif_pos)
+    
+    # Save positions results
+    saveRDS(motif_pos, "motif_positions.rds")
+    
+    # Export positions as a flat table for downstream convenience
+    motif_pos_df <- as.data.frame(motif_pos)
+    write.csv(motif_pos_df, "motif_positions.csv", row.names = FALSE)
 
-    # --- Motif Matching with SummarizedExperiment [] ---
-    # Key functions: matchMotifs, motifMatches
-    data(example_motifs, package = "motifmatchr")
-    peaks <- GenomicRanges::GRanges(
-        seqnames = c("chr1", "chr2", "chr2"),
-        ranges = IRanges::IRanges(
-            start = c(76585873, 42772928, 100183786),
-            width = 500
-        )
-    )
-    se <- SummarizedExperiment::SummarizedExperiment(
-        assays = list(counts = matrix(1, ncol = 4, nrow = 3)),
-        rowRanges = peaks
-    )
-    motif_ix_se <- matchMotifs(example_motifs, se, genome = "hg19")
-    matches_se <- motifMatches(motif_ix_se)
-
-
-    # --- Motif Matching with Custom Background Frequencies [] ---
-    # Key functions: matchMotifs
-    data(example_motifs, package = "motifmatchr")
-    peaks <- GenomicRanges::GRanges(
-        seqnames = c("chr1", "chr2", "chr2"),
-        ranges = IRanges::IRanges(
-            start = c(76585873, 42772928, 100183786),
-            width = 500
-        )
-    )
-    bg_custom <- c("A" = 0.2, "C" = 0.3, "G" = 0.3, "T" = 0.2)
-    motif_ix_bg <- matchMotifs(
-        example_motifs,
-        peaks,
-        genome = "hg19",
-        bg = bg_custom
-    )
-
-
-    # --- Extracting Motif Scores and Counts [] ---
-    # Key functions: matchMotifs, motifMatches, motifScores, motifCounts
-    data(example_motifs, package = "motifmatchr")
-    peaks <- GenomicRanges::GRanges(
-        seqnames = c("chr1", "chr2", "chr2"),
-        ranges = IRanges::IRanges(
-            start = c(76585873, 42772928, 100183786),
-            width = 500
-        )
-    )
-    motif_ix_scores <- matchMotifs(
-        example_motifs,
-        peaks,
-        genome = "hg19",
-        out = "scores"
-    )
-    m_matches <- motifMatches(motif_ix_scores)
-    m_scores <- motifScores(motif_ix_scores)
-    m_counts <- motifCounts(motif_ix_scores)
-
-
-    # --- Extracting Genomic Positions of Motif Matches [] ---
-    # Key functions: matchMotifs
-    data(example_motifs, package = "motifmatchr")
-    peaks <- GenomicRanges::GRanges(
-        seqnames = c("chr1", "chr2", "chr2"),
-        ranges = IRanges::IRanges(
-            start = c(76585873, 42772928, 100183786),
-            width = 500
-        )
-    )
-    motif_pos <- matchMotifs(
-        example_motifs,
-        peaks,
-        genome = "hg19",
-        out = "positions"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_motifmatchr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_motifmatchr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_motifmatchr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MOTIFMATCHR:", paste0("    motifmatchr: ", packageVersion("motifmatchr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES":',
+        paste0('    motifmatchr: ', as.character(packageVersion('motifmatchr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_motifmatchr_results.csv
-    touch ${prefix}_motifmatchr_output.rds
-    echo "BIOC_MOTIFMATCHR:" > versions.yml
-    echo "    motifmatchr: 0.0.0" >> versions.yml
+    touch ${prefix}_motif_matching_genomic_ranges.csv versions.yml
     """
 }
 
-
-workflow BIOC_MOTIFMATCHR_WORKFLOW {
+workflow BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peaks, example_motifs ] ]
 
     main:
-    BIOC_MOTIFMATCHR(ch_input)
+    BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES(ch_input)
 
     emit:
-    results  = BIOC_MOTIFMATCHR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MOTIFMATCHR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MOTIFMATCHR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MOTIFMATCHR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES.out.tables
+    plots    = BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES.out.plots
+    objects  = BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES.out.objects
+    versions = BIOC_MOTIFMATCHR_MOTIF_MATCHING_GENOMIC_RANGES.out.versions
 }

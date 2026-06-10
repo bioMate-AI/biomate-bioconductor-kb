@@ -1,0 +1,15 @@
+{
+  "package": "hicdoc",
+  "requirements": [
+    "GenomicRanges",
+    "HiCDOC",
+    "InteractionSet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "HiCDOC",
+      "InteractionSet"
+    ]
+  }
+}

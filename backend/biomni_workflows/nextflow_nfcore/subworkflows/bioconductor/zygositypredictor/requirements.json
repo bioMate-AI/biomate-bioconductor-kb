@@ -1,0 +1,22 @@
+{
+  "package": "zygositypredictor",
+  "requirements": [
+    "GenomicRanges",
+    "ZygosityPredictor",
+    "dplyr",
+    "stringr"
+  ],
+  "by_workflow": {
+    "gene_zygosity_prediction.nf": [
+      "GenomicRanges",
+      "ZygosityPredictor",
+      "dplyr"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "ZygosityPredictor",
+      "dplyr",
+      "stringr"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "discordant",
+  "requirements": [
+    "discordant"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "discordant"
+    ]
+  }
+}

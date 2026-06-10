@@ -1,0 +1,14 @@
+{
+  "package": "massspecwavelet",
+  "requirements": [
+    "MassSpecWavelet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MassSpecWavelet"
+    ],
+    "one_step_peak_detection.nf": [
+      "MassSpecWavelet"
+    ]
+  }
+}

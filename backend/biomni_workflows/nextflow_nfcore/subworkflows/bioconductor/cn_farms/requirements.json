@@ -1,0 +1,13 @@
+{
+  "package": "cn_farms",
+  "requirements": [
+    "cn.farms",
+    "cn_farms"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cn.farms",
+      "cn_farms"
+    ]
+  }
+}

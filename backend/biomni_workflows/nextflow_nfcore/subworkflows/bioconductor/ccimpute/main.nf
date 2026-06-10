@@ -1,90 +1,182 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ccImpute
-// Dropout events make the lowly expressed genes indistinguishable from true zero expression and differ
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ccImpute/inst/doc/ccImpute.R
-// Upstream  : BiocParallel, RhpcBLASctl, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("ccImpute")
+// Bioconductor workflow: ccImpute — standard_imputation
+// Perform dropout imputation on a log-normalized SingleCellExperiment object using the high-level ccImpute wrapper.
+// Input: sce
+// Container: quay.io/biocontainers/bioconductor-ccimpute:1.12.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, BiocParallel, ccImpute, mclust, rhpcblasctl, scRNAseq, scater, sessioninfo
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, SingleCellExperiment, ccImpute, mclust, scRNAseq, scater
+// Visualizations: PCA plot
+// QC: low-count filtering, missing-value handling, cell QC metrics, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load required libraries
+//  * 2. [Core Analysis] Filter bad cells and remove unexpressed genes
+//  * 3. [Core Analysis] Recreate SingleCellExperiment and log-normalize counts
+//  * 4. [Core Analysis] Run ccImpute with parallel processing parameters to generate the imputed assay
 
 nextflow.enable.dsl = 2
 
-process BIOC_CCIMPUTE {
+process BIOC_CCIMPUTE_STANDARD_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ccimpute"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ccimpute:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ccimpute:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ccimpute_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ccimpute_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ccimpute_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "BiocParallel", "ccImpute", "mclust", "rhpcblasctl", "scRNAseq", "scater", "sessioninfo")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load required libraries
+    library(scRNAseq)
+    library(scater)
     library(ccImpute)
-    library(jsonlite)
-
-    # --- session_info [] ---
-    # Key functions: session_info
-    library("sessioninfo")
-    options(width = 120)
-    session_info()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ccimpute_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ccimpute_results.csv")
+    library(stats)
+    library(mclust)
+    library(BiocParallel)
+    
+    # Load user input
+    sce <- readRDS("sce.rds")
+    
+    # 2. Remove unexpressed genes
+    # Extract labels robustly
+    labels <- colData(sce)\$"Level 1"
+    if (is.null(labels)) {
+      if ("cell_id" %in% colnames(colData(sce))) {
+        labels <- colData(sce)\$cell_id
+      } else if (ncol(colData(sce)) > 0) {
+        labels <- colData(sce)[, 1]
+      } else {
+        labels <- rep("CellType", ncol(sce))
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ccimpute_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CCIMPUTE:", paste0("    ccimpute: ", packageVersion("ccImpute"))),
-        "versions.yml"
+    labels <- as.character(labels)
+    
+    # Extract X (CPM or counts) robustly
+    X <- tryCatch({
+      cpm(sce)
+    }, error = function(e) {
+      if ("counts" %in% assayNames(sce)) {
+        scater::calculateCPM(sce)
+      } else if ("logcounts" %in% assayNames(sce)) {
+        exp(as.matrix(logcounts(sce))) - 1
+      } else {
+        as.matrix(counts(sce))
+      }
+    })
+    
+    # Remove genes that are not expressed in any cells:
+    keep_genes <- rowSums(X) > 0
+    X <- X[keep_genes, , drop = FALSE]
+    sce <- sce[keep_genes, ]
+    
+    # 3. Update the SingleCellExperiment and add log-transformed data:
+    colData(sce)\$cell_id <- labels
+    assay(sce, "normcounts") <- as.matrix(X)
+    logcounts(sce) <- log(assay(sce, "normcounts") + 1)
+    
+    # Compute PCA and ARI before imputation (as documented)
+    set.seed(0)
+    reducedDims(sce) <- list(PCA = prcomp(t(logcounts(sce)))\$x)
+    k <- length(unique(colData(sce)\$cell_id))
+    set.seed(0)
+    assgmts <- kmeans(reducedDim(sce, "PCA"), centers = k, iter.max = 1e+09,
+                      nstart = 1000)\$cluster
+    ari_before <- adjustedRandIndex(assgmts, colData(sce)\$cell_id)
+    
+    # 4. Run ccImpute with parallel processing parameters to generate the imputed assay
+    BPPARAM = MulticoreParam(2)
+    sce <- ccImpute(sce, BPPARAM = BPPARAM)
+    
+    # Compute PCA and ARI after imputation (as documented)
+    reducedDim(sce, "PCA_imputed") <- prcomp(t(assay(sce, "imputed")))\$x
+    assgmts_imputed <- kmeans(reducedDim(sce, "PCA_imputed"), centers = k, 
+                              iter.max = 1e+09, nstart = 1000)\$cluster
+    ari_after <- adjustedRandIndex(assgmts_imputed, colData(sce)\$cell_id)
+    
+    # Save outputs
+    # 1. Imputed SingleCellExperiment object
+    saveRDS(sce, "sce_imputed.rds")
+    
+    # 2. Imputed expression matrix
+    write.csv(as.matrix(assay(sce, "imputed")), "imputed_counts.csv", row.names = TRUE)
+    
+    # 3. ARI results
+    ari_df <- data.frame(
+      Stage = c("Before Imputation", "After Imputation"),
+      ARI = c(ari_before, ari_after)
     )
+    write.csv(ari_df, "ari_results.csv", row.names = FALSE)
+    
+    # 4. PCA plots
+    pdf("pca_plots.pdf", width = 10, height = 5)
+    par(mfrow = c(1, 2))
+    pca_before <- reducedDim(sce, "PCA")
+    plot(pca_before[, 1], pca_before[, 2], col = as.factor(colData(sce)\$cell_id),
+         pch = 20, main = paste("Before Imputation (ARI =", round(ari_before, 3), ")"),
+         xlab = "PC1", ylab = "PC2")
+    pca_after <- reducedDim(sce, "PCA_imputed")
+    plot(pca_after[, 1], pca_after[, 2], col = as.factor(colData(sce)\$cell_id),
+         pch = 20, main = paste("After Imputation (ARI =", round(ari_after, 3), ")"),
+         xlab = "PC1", ylab = "PC2")
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_CCIMPUTE_STANDARD_IMPUTATION":',
+        paste0('    ccImpute: ', as.character(packageVersion('ccImpute')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ccimpute_results.csv
-    touch ${prefix}_ccimpute_output.rds
-    echo "BIOC_CCIMPUTE:" > versions.yml
-    echo "    ccimpute: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_imputation.csv versions.yml
     """
 }
 
-
-workflow BIOC_CCIMPUTE_WORKFLOW {
+workflow BIOC_CCIMPUTE_STANDARD_IMPUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce ] ]
 
     main:
-    BIOC_CCIMPUTE(ch_input)
+    BIOC_CCIMPUTE_STANDARD_IMPUTATION(ch_input)
 
     emit:
-    results  = BIOC_CCIMPUTE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CCIMPUTE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CCIMPUTE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CCIMPUTE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CCIMPUTE_STANDARD_IMPUTATION.out.tables
+    plots    = BIOC_CCIMPUTE_STANDARD_IMPUTATION.out.plots
+    objects  = BIOC_CCIMPUTE_STANDARD_IMPUTATION.out.objects
+    versions = BIOC_CCIMPUTE_STANDARD_IMPUTATION.out.versions
 }

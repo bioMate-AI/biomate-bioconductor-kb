@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sampleSheet=Path to a CSV/XLSX file or a data frame containing sample metadata and peak/BAM file paths ;; blacklist=Used in dba.blacklist() to filter out problematic regions (e.g., DBA_BLACKLIST_HG19) ;; greylist=Used in dba.blacklist() to filter out custom control-specific anomalous regions ;; normalize=Normalization method in dba.normalize() (e.g., DBA_NORM_LIB, DBA_NORM_NATIVE, DBA_NORM_RLE, DBA_NORM_TMM, \"loess\") ;; library=Library size calculation method in dba.normalize() (e.g., DBA_LIBSIZE_FULL, DBA_LIBSIZE_PEAKREADS, DBA_LIBSIZE_BACKGROUND) ;; background=Logical or background bin size parameter in dba.normalize() to enable background normalization ;; offsets=Logical in dba.normalize() to use non-linear loess offsets ;; design=Formula or logical in dba.contrast() to specify the model design (e.g., \"~Tissue + Condition\") ;; contrast=Vector or list in dba.contrast() to specify the comparison groups ;; method=Analysis method in dba.analyze() (e.g., DBA_DESeq2, DBA_EDGER, DBA_ALL_METHODS) ;; bRetrieve=Logical in dba.normalize() or dba.peakset() to retrieve underlying data instead of the DBA object\n- alternatives: edgeR (selected via method=DBA_EDGER) can be used as an alternative to the default DESeq2 engine for differential analysis. profileplyr is mentioned as an external package for advanced profile plotting (dba.plotProfile), though it may be disabled depending on the Bioconductor release.\n- when_to_use: Use this package when you have ChIP-seq, ATAC-seq, or histone mark data with peak calls (from MACS or other peak callers) and aligned reads (BAM files) across multiple conditions/replicates, and you want to find genomic regions with statistically significant differences in binding affinity.\n- pitfalls: Running dba.analyze() directly without checking normalization or design can lead to suboptimal or incorrect analyses. Failing to apply blacklists/greylists can result in false positives from anomalous genomic regions. Using default library-size normalization when there are global binding changes (e.g., spike-ins or parallel factors are needed instead). dba.plotProfile() is disabled in some releases due to profileplyr dependency issues.",
+  "workflows": [
+    {
+      "name": "standard_differential_binding",
+      "intent": "Perform a standard differential binding analysis comparing two groups using a single-factor design.",
+      "input": [
+        "tamoxifen.csv (sample sheet metadata)",
+        "reads/Chr18_BT474_ER_1.bam (aligned BAM files for ChIP and control reads)",
+        "peaks/BT474_ER_1.bed.gz (peak caller output files)"
+      ],
+      "stages": "1. Load peaksets; 2. Apply blacklist/greylist; 3. Count reads; 4. Normalize; 5. Establish contrast; 6. Run differential analysis; 7. Retrieve report.",
+      "code": "tamoxifen <- dba(sampleSheet=\"tamoxifen.csv\") %>%\n  dba.blacklist() %>%\n  dba.count()     %>%\n  dba.normalize() %>%\n  dba.contrast()  %>%\n  dba.analyze()\ntamoxifen.DB <- dba.report(tamoxifen)"
+    },
+    {
+      "name": "multi_factor_analysis",
+      "intent": "Perform differential binding analysis using a multi-factor design to control for batch effects or other covariates.",
+      "input": [
+        "tamoxifen.csv (sample sheet metadata with multiple factors)",
+        "reads/Chr18_BT474_ER_1.bam (aligned BAM files)",
+        "peaks/BT474_ER_1.bed.gz (peak caller output files)"
+      ],
+      "stages": "1. Establish multi-factor design and contrast; 2. Run differential analysis; 3. Retrieve multi-factor report.",
+      "code": "tamoxifen <- dba.contrast(tamoxifen,design=\"~Tissue + Condition\")\ntamoxifen <- dba.analyze(tamoxifen)\nmultifactor.DB <- dba.report(tamoxifen)"
+    },
+    {
+      "name": "consensus_peakset_generation",
+      "intent": "Derive consensus peaksets based on overlap rates across replicates or conditions for occupancy-based analysis.",
+      "input": [
+        "tamoxifen.csv (sample sheet metadata)",
+        "peaks/BT474_ER_1.bed.gz (peak caller output files)"
+      ],
+      "stages": "1. Load peaksets; 2. Derive consensus peaksets based on overlap threshold; 3. Filter and retrieve consensus peaks.",
+      "code": "tamoxifen_consensus <- dba.peakset(tamoxifen, \n                                   consensus=c(DBA_TISSUE,DBA_CONDITION),\n                                   minOverlap=0.66)\ntamoxifen_consensus <- dba(tamoxifen_consensus,\n                           mask=tamoxifen_consensus$masks$Consensus,\n                           minOverlap=1)\nconsensus_peaks <- dba.peakset(tamoxifen_consensus, bRetrieve=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "package": "inspect",
+  "requirements": [
+    "INSPEcT"
+  ],
+  "by_workflow": {
+    "inspect_total_rna_steady_state.nf": [
+      "INSPEcT"
+    ],
+    "main.nf": [
+      "INSPEcT"
+    ]
+  }
+}

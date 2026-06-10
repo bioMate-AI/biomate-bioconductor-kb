@@ -1,115 +1,123 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: dagLogo
-// Visualize significant conserved amino acid sequence pattern in groups based on probability theory.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/dagLogo/inst/doc/dagLogo.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("dagLogo")
+// Bioconductor workflow: dagLogo — biomart_peptide_analysis
+// Fetch peptide sequences from BioMart using gene identifiers and anchoring positions, build a background model, perform differential amino acid usage (DAU) testi
+// Input: peptides4dagLogo.csv
+// Container: quay.io/biocontainers/bioconductor-daglogo:1.48.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: UniProt.ws, biomaRt, dagLogo
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Clean input peptides using cleanPeptides
+//  * 2. [Input & Preparation] Fetch sequences from BioMart using fetchSequence
+//  * 3. [Input & Preparation] Prepare a proteome background using prepareProteome
+//  * 4. [Input & Preparation] Build a background model using buildBackgroundModel
+//  * 5. [Core Analysis] Test for differential amino acid usage (DAU) using testDAU
+//  * 6. [Visualization & Output] Visualize results using dagHeatmap and dagLogo
 
 nextflow.enable.dsl = 2
 
-process BIOC_DAGLOGO {
+process BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-daglogo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-daglogo:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-daglogo:1.44.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_daglogo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_daglogo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_daglogo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(dagLogo)
-    library(jsonlite)
-
-    # --- Background Model Construction [] ---
-    # Key functions: buildBackgroundModel
-    bg_fisher <- buildBackgroundModel(seq, background = "wholeProteome",
-                                      proteome = proteome, testType = "fisher")
-    bg_ztest <- buildBackgroundModel(seq, background = "wholeProteome",
+    library(biomaRt)
+    library(UniProt.ws)
+    
+    # 1. Read the input file from the working directory
+    dat <- read.csv("peptides4dagLogo.csv")
+    
+    # 2. Clean input peptides using cleanPeptides
+    dat <- unique(cleanPeptides(dat, anchors = c("s", "t")))
+    
+    # 3. Fetch sequences from BioMart using fetchSequence
+    mart <- useMart("ensembl", "hsapiens_gene_ensembl")
+    seq <- fetchSequence(toupper(as.character(dat\$symbol)), 
+                         type="hgnc_symbol",
+                         anchorAA=as.character(dat\$anchor),
+                         anchorPos=as.character(dat\$peptides), 
+                         mart=mart, 
+                         upstreamOffset=7, 
+                         downstreamOffset=7)
+    
+    # 4. Prepare a proteome background using prepareProteome
+    proteome <- prepareProteome("UniProt", species = "Homo sapiens")
+    
+    # 5. Build a background model using buildBackgroundModel
+    bg_ztest <- buildBackgroundModel(seq, background = "wholeProteome", 
                                      proteome = proteome, testType = "ztest")
-
-
-    # --- Differential Amino Acid Usage Testing [] ---
-    # Key functions: testDAU, addScheme
+    
+    # 6. Test for differential amino acid usage (DAU) using testDAU
     t0 <- testDAU(seq, dagBackground = bg_ztest)
-    t1 <- testDAU(dagPeptides = seq, dagBackground = bg_ztest,
-                  groupingScheme = "chemistry_property_Mahler_group")
-    color <- c(LVIMC = "#33FF00", AGSTP = "#CCFF00",
-               FYW = '#00FF66', EDNQKRH = "#FF0066")
-    symbol <- c(LVIMC = "L", AGSTP = "A", FYW = "F", EDNQKRH = "E")
-    group <- list(LVIMC = c("L", "V", "I", "M", "C"),
-                  AGSTP = c("A", "G", "S", "T", "P"),
-                  FYW = c("F", "Y", "W"),
-                  EDNQKRH = c("E", "D", "N", "Q", "K", "R", "H"))
-    addScheme(color = color, symbol = symbol, group = group)
-    t5 <- testDAU(dagPeptides = seq, dagBackground = bg_ztest,
-                  groupingScheme = "custom_group")
-
-
-    # --- Heatmap Visualisation [] ---
-    # Key functions: dagHeatmap
+    
+    # 7. Save the meaningful results to files
+    saveRDS(t0, file = "dau_test_results.rds")
+    
+    # 8. Visualize results using dagHeatmap and dagLogo, saving to PDF
+    pdf("dag_heatmap.pdf", width = 8, height = 6)
     dagHeatmap(t0)
-    dagHeatmap(t1)
-    dagHeatmap(t5)
+    dev.off()
+    
+    pdf("dag_logo.pdf", width = 8, height = 6)
+    dagLogo(t0)
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_daglogo_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_daglogo_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_daglogo_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DAGLOGO:", paste0("    daglogo: ", packageVersion("dagLogo"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS":',
+        paste0('    dagLogo: ', as.character(packageVersion('dagLogo')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_daglogo_results.csv
-    touch ${prefix}_daglogo_output.rds
-    echo "BIOC_DAGLOGO:" > versions.yml
-    echo "    daglogo: 0.0.0" >> versions.yml
+    touch ${prefix}_biomart_peptide_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DAGLOGO_WORKFLOW {
+workflow BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peptides4dagLogo.csv ] ]
 
     main:
-    BIOC_DAGLOGO(ch_input)
+    BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DAGLOGO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DAGLOGO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DAGLOGO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DAGLOGO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS.out.tables
+    plots    = BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS.out.plots
+    objects  = BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS.out.objects
+    versions = BIOC_DAGLOGO_BIOMART_PEPTIDE_ANALYSIS.out.versions
 }

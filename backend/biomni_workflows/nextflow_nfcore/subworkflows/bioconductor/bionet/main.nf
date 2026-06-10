@@ -1,153 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BioNet
-// This package provides functions for the integrated analysis of protein-protein interaction networks 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BioNet/inst/doc/Tutorial.R
-// Upstream  : ALL, DLBCL, genefilter, impute, limma
-// Downstream: none
-//
-// Install: BiocManager::install("BioNet")
+// Bioconductor workflow: BioNet — heuristic_module_detection
+// Identify active functional modules from aggregated p-values and a PPI network using a fast heuristic approach without requiring CPLEX.
+// Input: pvals_matrix.txt, ppi_network.sif
+// Container: quay.io/biocontainers/bioconductor-bionet:1.70.0--r45hdfd78af_0
+// R packages: ALL, BioNet, dlbcl, genefilter, graph, impute, limma
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BioNet, graph
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Aggregate multiple p-values using aggrPvals
+//  * 2. [Core Analysis] Extract a subnetwork of the PPI network using subNetwork and remove self-loops with rmSelfLoops
+//  * 3. [Core Analysis] Fit a Beta-uniform mixture (BUM) model to the aggregated p-values using fitBumModel
+//  * 4. [Core Analysis] Score the nodes of the subnetwork using scoreNodes with a specified FDR
+//  * 5. [Core Analysis] Run the fast heuristic module detection using runFastHeinz
+//  * 6. [Visualization & Output] Plot the resulting module using plotModule
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIONET {
+process BIOC_BIONET_HEURISTIC_MODULE_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bionet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bionet:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bionet:1.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bionet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bionet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bionet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ALL", "BioNet", "dlbcl", "genefilter", "graph", "impute", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BioNet)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    library(BioNet)
-    library(DLBCL)
-    data(dataLym)
-    data(interactome)
-    # --- Subnetwork [] ---
-    # Key functions: subNetwork, rmSelfLoops
-    subnet <- subNetwork(dataLym$label, interactome)
+    library(graph)
+    
+    # ==========================================
+    # 1. READ USER INPUT FILES
+    # ==========================================
+    
+    # Read the PPI network from SIF format
+    interactome <- loadNetwork.sif("ppi_network.sif")
+    
+    # Read the p-values and differential expression matrix
+    pvals_df <- read.table("pvals_matrix.txt", header=TRUE, sep="\t", row.names=1, check.names=FALSE)
+    
+    # Extract differential expression if present, and isolate p-values
+    if ("diff" %in% colnames(pvals_df)) {
+      logFC <- pvals_df\$diff
+      pvals <- as.matrix(pvals_df[, colnames(pvals_df) != "diff", drop=FALSE])
+    } else {
+      logFC <- rep(0, nrow(pvals_df))
+      pvals <- as.matrix(pvals_df)
+    }
+    names(logFC) <- rownames(pvals_df)
+    
+    # ==========================================
+    # 2. RUN DOCUMENTED WORKFLOW
+    # ==========================================
+    
+    pval <- aggrPvals(pvals, order=2, plot=FALSE)
+    subnet <- subNetwork(rownames(pvals_df), interactome)
     subnet <- rmSelfLoops(subnet)
-    subnet
-    # --- Fitbummodel [] ---
-    # Key functions: fitBumModel, scoreNodes
     fb <- fitBumModel(pval, plot=FALSE)
     scores <- scoreNodes(subnet, fb, fdr=0.001)
-    # --- Runfastheinz [] ---
-    # Key functions: runFastHeinz
     module <- runFastHeinz(subnet, scores)
-    logFC <- dataLym$diff
-    names(logFC) <- dataLym$label
-    # --- Plotmodule [] ---
-    # Key functions: plotModule
+    
+    # Save the plot to a PDF file
+    pdf("heuristic_module_plot.pdf", width=10, height=10)
     plotModule(module, scores=scores, diff.expr=logFC)
-    # --- Data [] ---
-    # Key functions: data
-    library(BioNet)
-    library(DLBCL)
-    data(exprLym)
-    data(interactome)
-    # --- Subnetwork [] ---
-    # Key functions: subNetwork, featureNames
-    network <- subNetwork(featureNames(exprLym), interactome)
-    network
-    # --- Largestcomp [] ---
-    # Key functions: largestComp
-    network <- largestComp(network)
-    network
-    # --- Knn [] ---
-    # Key functions: knn, exprs, rowttests
-    library(genefilter)
-    library(impute)
-    expressions <- impute.knn(exprs(exprLym))$data
-    t.test <- rowttests(expressions, fac=exprLym$Subgroup)
-    # --- Xtable [] ---
-    # Key functions: xtable
-    library(xtable)
-    top.table <- xtable(t.test[1:10,], display=c("s", "f", "f", "f"))
-    print(top.table, floating=FALSE)
-    # --- Data [] ---
-    # Key functions: data, cbind
-    data(dataLym)
-    ttest.pval <- t.test[, "p.value"]
-    surv.pval <- dataLym$s.pval
-    names(surv.pval) <- dataLym$label
-    pvals <- cbind(ttest.pval, surv.pval)
-    # --- Aggrpvals [] ---
-    # Key functions: aggrPvals
-    pval <- aggrPvals(pvals, order=2, plot=FALSE)
-    # --- Fitbummodel [] ---
-    # Key functions: fitBumModel
-    fb <- fitBumModel(pval, plot=FALSE)
-    fb
-    # --- Plotllsurface [] ---
-    # Key functions: plotLLSurface
-    plotLLSurface(pval, fb)
-    # --- Scorenodes [] ---
-    # Key functions: scoreNodes
-    scores <- scoreNodes(network=network, fb=fb, fdr=0.001)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bionet_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bionet_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bionet_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIONET:", paste0("    bionet: ", packageVersion("BioNet"))),
-        "versions.yml"
+    dev.off()
+    
+    # ==========================================
+    # 3. WRITE OUTPUT FILES
+    # ==========================================
+    
+    # Save the identified module as an RDS object
+    saveRDS(module, "heuristic_module.rds")
+    
+    # Save the module in XGMML format for Cytoscape visualization
+    saveNetwork(module, file="heuristic_module", type="XGMML")
+    
+    # Save the node scores and differential expression values of the module
+    module_nodes <- nodes(module)
+    module_results <- data.frame(
+      Node = module_nodes,
+      Score = scores[module_nodes],
+      DiffExpr = logFC[module_nodes],
+      stringsAsFactors = FALSE
     )
+    write.csv(module_results, "heuristic_module_nodes.csv", row.names=FALSE)
+    
+    # Save BUM model summary
+    sink("bum_model_summary.txt")
+    print(fb)
+    sink()
+
+    writeLines(c(
+        '"BIOC_BIONET_HEURISTIC_MODULE_DETECTION":',
+        paste0('    BioNet: ', as.character(packageVersion('BioNet')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bionet_results.csv
-    touch ${prefix}_bionet_output.rds
-    echo "BIOC_BIONET:" > versions.yml
-    echo "    bionet: 0.0.0" >> versions.yml
+    touch ${prefix}_heuristic_module_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIONET_WORKFLOW {
+workflow BIOC_BIONET_HEURISTIC_MODULE_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pvals_matrix.txt, ppi_network.sif ] ]
 
     main:
-    BIOC_BIONET(ch_input)
+    BIOC_BIONET_HEURISTIC_MODULE_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_BIONET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIONET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIONET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIONET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIONET_HEURISTIC_MODULE_DETECTION.out.tables
+    plots    = BIOC_BIONET_HEURISTIC_MODULE_DETECTION.out.plots
+    objects  = BIOC_BIONET_HEURISTIC_MODULE_DETECTION.out.objects
+    versions = BIOC_BIONET_HEURISTIC_MODULE_DETECTION.out.versions
 }

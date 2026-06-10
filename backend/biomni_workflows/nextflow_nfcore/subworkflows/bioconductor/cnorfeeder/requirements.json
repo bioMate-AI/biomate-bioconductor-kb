@@ -1,0 +1,19 @@
+{
+  "package": "cnorfeeder",
+  "requirements": [
+    "CNORfeeder",
+    "CNORode",
+    "CellNOptR"
+  ],
+  "by_workflow": {
+    "dynamic_feeder_ode.nf": [
+      "CNORfeeder",
+      "CNORode",
+      "CellNOptR"
+    ],
+    "main.nf": [
+      "CNORfeeder",
+      "CellNOptR"
+    ]
+  }
+}

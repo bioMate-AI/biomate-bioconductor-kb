@@ -1,0 +1,53 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: raw.dat=A probes by arrays matrix of unnormalized, probe-level data (required) ;; bio.var=A model matrix of the biological variable of interest (required) ;; adj.var=A model matrix of the probe-specific adjustment variables ;; int.var=A data frame of the intensity-dependent adjustment variables, one effect per column ;; rm.adj=Controls whether probe-specific adjustment variables should be removed from the normalized data (set to FALSE for subsequent formal statistical inference/hypothesis testing; set to TRUE for clustering or network analysis) ;; verbose=If TRUE, prints the iteration number and displays diagnostic plots at each iteration ;; diagnose=If TRUE, displays diagnostic plots for each iteration ;; num.iter=The number of snm model fitting iterations to perform\n- alternatives: SVA (Surrogate Variable Analysis) via the sva package is recommended if diagnostic plots show a dominant first principal component in the residual matrix, indicating missing study-specific variables.\n- when_to_use: Use when normalizing high-throughput genomic data (specifically transcriptomic microarrays) where the study design contains known biological variables of interest and systematic adjustment variables (e.g., batch, age, dye, or array effects) that must be controlled.\n- pitfalls: Specifying an incorrect or poorly behaved study-specific model can lead to biased downstream inference. Setting rm.adj=TRUE when performing subsequent hypothesis testing is a mistake. Non-convergence of the estimated proportion of true null probes (iter.pi0s) suggests a problem with the data, the assumed model, or both.",
+  "workflows": [
+    {
+      "name": "single_channel_normalization",
+      "intent": "Normalize single-channel microarray data (e.g., Affymetrix) by modeling biological variables, probe-specific adjustment variables (e.g., batch, age), and intensity-dependent array effects.",
+      "input": [
+        "raw.data (matrix of raw probe intensities)",
+        "bio.var (model matrix of biological variables)",
+        "adj.var (model matrix of probe-specific adjustment variables)",
+        "int.var (data frame of intensity-dependent array effects)"
+      ],
+      "stages": "1. Run the snm function with raw data and design matrices ;; 2. Perform diagnostic checks on the output (e.g., Kolmogorov-Smirnov test on null p-values or plotting the snm object)",
+      "code": "snm.obj1 <- snm(singleChannel$raw.data,\n\t\t\t\tsingleChannel$bio.var,\n\t\t\t\tsingleChannel$adj.var,\n\t\t\t        singleChannel$int.var)\nks.test(snm.obj1$pval[singleChannel$true.nulls],\"punif\")\nplot(snm.obj1)"
+    },
+    {
+      "name": "double_channel_normalization",
+      "intent": "Normalize two-color microarray data (e.g., Agilent dye-swap) by modeling biological variables, probe-specific adjustment variables, and intensity-dependent array and dye effects.",
+      "input": [
+        "raw.data (matrix of raw probe intensities)",
+        "bio.var (model matrix of biological variables)",
+        "adj.var (model matrix of probe-specific adjustment variables)",
+        "int.var (data frame containing both intensity-dependent array and dye effects)"
+      ],
+      "stages": "1. Run the snm function with raw data and design matrices ;; 2. Perform diagnostic checks on the output null p-values",
+      "code": "snm.obj2 <- snm(doubleChannel$raw.data,\n                            doubleChannel$bio.var,\n                            doubleChannel$adj.var,\n                            doubleChannel$int.var)\nks.test(snm.obj2$pval[doubleChannel$true.nulls],\"punif\")"
+    },
+    {
+      "name": "reference_design_normalization",
+      "intent": "Normalize two-color microarray data utilizing a reference design, either on raw channels or after subtracting the reference channel from the experimental channel.",
+      "input": [
+        "raw.data (matrix of raw probe intensities)",
+        "bio.var (model matrix of biological variables)",
+        "adj.var (model matrix of probe-specific adjustment variables)",
+        "int.var (data frame of intensity-dependent array and dye effects)"
+      ],
+      "stages": "1. Run the snm function on raw channels ;; 2. Alternatively, subtract the reference channel from the experimental channel, adjust the covariate matrices, and run snm on the subtracted data",
+      "code": "snm.obj3 <- snm(refChannel$raw.data, refChannel$bio.var,\n                            refChannel$adj.var, refChannel$int.var)\nks.test(snm.obj3$pval[refChannel$true.nulls],\"punif\")\n\nrefChannel$raw.data = refChannel$raw.data[,1:20]-refChannel$raw.data[,21:40]\nrefChannel$bio.var = refChannel$bio.var[1:20,-3]\nrefChannel$int.var = data.frame(refChannel$int.var[1:20,1])\n\nsnm.obj4 <- snm(refChannel$raw.data,refChannel$bio.var,\n                            refChannel$adj.var, refChannel$int.var)\nks.test(snm.obj4$pval[refChannel$true.nulls],\"punif\")"
+    },
+    {
+      "name": "preprocessed_normalization",
+      "intent": "Normalize preprocessed microarray data (e.g., RMA processed) where intensity-dependent effects have already been removed, but probe-specific adjustment variables still need to be accounted for.",
+      "input": [
+        "raw.data (matrix of preprocessed probe intensities)",
+        "bio.var (model matrix of biological variables)",
+        "adj.var (model matrix of probe-specific adjustment variables)"
+      ],
+      "stages": "1. Run the snm function with rm.adj=TRUE to remove probe-specific adjustment variables from the preprocessed data without fitting intensity-dependent effects",
+      "code": "snm.obj5 <- snm(preProcessed$raw.data,\n                            preProcessed$bio.var,\n                            preProcessed$adj.var, rm.adj=TRUE)\nks.test(snm.obj5$pval[preProcessed$true.nulls],\"punif\")"
+    }
+  ]
+}

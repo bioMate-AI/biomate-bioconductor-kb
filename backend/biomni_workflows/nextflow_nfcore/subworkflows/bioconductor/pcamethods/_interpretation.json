@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Specifies the PCA algorithm to use (\"svd\", \"ppca\", \"bpca\", \"svdImpute\", \"nipals\", \"nlpca\", \"robustPca\") ;; nPcs=Number of principal components to calculate ;; center=Logical indicating whether to mean-center the data (often set to FALSE if data is pre-scaled/centered using prep()) ;; scale=Scaling method in prep() (\"none\", \"uv\", \"pareto\") ;; maxSteps=Maximum number of iterations for non-linear PCA (\"nlpca\") ;; fold=Number of folds for cross-validation in Q2()\n- alternatives: Standard R prcomp or svd (susceptible to outliers and cannot handle missing values natively) ;; robustPca / robustSvd (preferred when data contains extreme outliers) ;; ppca or bpca (preferred when data contains missing values, with bpca often being more stable than ppca)\n- when_to_use: When performing PCA on high-dimensional biological data (e.g., metabolomics, microarrays) that contains missing values (NAs) or extreme outliers, or when missing value imputation is required prior to downstream analysis.\n- pitfalls: Standard SVD is highly susceptible to outliers; a single outlier can distort the leading PC. ;; PPCA can be unstable and fail to converge or misestimate values in rare cases (a workaround is shown using a loop to re-run Q2 if values exceed 1). ;; Mean-centering should be done before creating or handling artificial outliers to avoid shifting the original means. ;; Setting obvious outliers to NA and then using an incomplete-data PCA method (like PPCA) is recommended if missingness is < 10%.",
+  "workflows": [
+    {
+      "name": "pca_and_imputation",
+      "intent": "Perform PCA on a matrix containing missing values and impute the missing values to obtain a complete dataset.",
+      "input": [
+        "metaboliteData (matrix containing missing values represented as NA)"
+      ],
+      "stages": "1. Run PCA using a method that handles missing values (e.g., PPCA) ;; 2. Impute missing values using completeObs",
+      "code": "library(pcaMethods)\ndata(metaboliteData)\nmD <- metaboliteData\npc <- pca(mD, nPcs=3, method=\"ppca\")\nimputed <- completeObs(pc)"
+    },
+    {
+      "name": "robust_pca_outliers",
+      "intent": "Perform PCA on data containing extreme outliers using robust SVD or by setting outliers to NA and running PPCA.",
+      "input": [
+        "metaboliteDataComplete (complete matrix to which outliers are artificially introduced)"
+      ],
+      "stages": "1. Pre-center the data ;; 2. Run standard SVD PCA, robust PCA, and PPCA (with outliers set to NA) for comparison ;; 3. Extract loadings to evaluate robustness",
+      "code": "library(pcaMethods)\ndata(metaboliteDataComplete)\nmdc          <- scale(metaboliteDataComplete, center=TRUE, scale=FALSE)\ncond         <- runif(length(mdc)) < 0.05\nmdcOut       <- mdc\nmdcOut[cond] <- 10\nresSvd       <- pca(mdc, method=\"svd\", nPcs=5, center=FALSE)\nresSvdOut    <- pca(mdcOut, method=\"svd\", nPcs=5, center=FALSE)\nresRobSvd    <- pca(mdcOut, method=\"robustPca\", nPcs=5, center=FALSE)\nmdcNa        <- mdc\nmdcNa[cond]  <- NA\nresPPCA      <- pca(mdcNa, method=\"ppca\", nPcs=5, center=FALSE)"
+    },
+    {
+      "name": "expressionset_pca_imputation",
+      "intent": "Perform PCA and impute missing values directly on a Bioconductor ExpressionSet object.",
+      "input": [
+        "sample.ExpressionSet (ExpressionSet object containing gene expression data)"
+      ],
+      "stages": "1. Introduce missing values to the ExpressionSet ;; 2. Run PCA on the ExpressionSet ;; 3. Convert the PCA result back to an imputed ExpressionSet using asExprSet",
+      "code": "library(pcaMethods)\nlibrary(Biobase)\ndata(sample.ExpressionSet)\nexSet <- sample.ExpressionSet\nexSetNa <- exSet\nexprs(exSetNa)[sample(13000, 200)] <- NA\nlost <- is.na(exprs(exSetNa))\npc <- pca(exSetNa, nPcs=2, method=\"ppca\")\nimpExSet <- asExprSet(pc, exSetNa)"
+    },
+    {
+      "name": "pca_diagnostics_validation",
+      "intent": "Evaluate PCA model quality using Q2 cross-validation and estimate the optimal number of PCs.",
+      "input": [
+        "metaboliteData (incomplete matrix)",
+        "metaboliteDataComplete (complete matrix used as reference for validation)"
+      ],
+      "stages": "1. Preprocess and center the data ;; 2. Run PCA using PPCA and SVD-Impute ;; 3. Calculate Q2 cross-validation scores ;; 4. Estimate the optimal number of PCs using kEstimate",
+      "code": "library(pcaMethods)\ndata(metaboliteData)\ndata(metaboliteDataComplete)\nmd  <- prep(metaboliteData, scale=\"none\", center=TRUE)\nmdC  <- prep(metaboliteDataComplete, scale=\"none\", center=TRUE)\nresPPCA  <- pca(md, method=\"ppca\", center=FALSE, nPcs=5)\nresSVDI  <- pca(md, method=\"svdImpute\", center=FALSE, nPcs=5)\nq2SVDI <- Q2(resSVDI, mdC, fold=10)\nq2PPCA <- Q2(resPPCA, mdC, fold=10)\nwhile( sum((abs(q2PPCA)) > 1) >= 1 ) {\n    q2PPCA <- Q2(resPPCA, mdC, fold=10)\n}\nerrEsti <- kEstimate(md, method = \"ppca\", evalPcs=1:5, nruncv=1, em=\"nrmsep\")"
+    }
+  ]
+}

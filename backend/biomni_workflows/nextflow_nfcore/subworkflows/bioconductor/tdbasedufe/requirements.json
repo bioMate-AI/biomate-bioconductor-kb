@@ -1,0 +1,16 @@
+{
+  "package": "tdbasedufe",
+  "requirements": [
+    "TDbasedUFE",
+    "rTensor"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TDbasedUFE",
+      "rTensor"
+    ],
+    "multiomics_integration.nf": [
+      "TDbasedUFE"
+    ]
+  }
+}

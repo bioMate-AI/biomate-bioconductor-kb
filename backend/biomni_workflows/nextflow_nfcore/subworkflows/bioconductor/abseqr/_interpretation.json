@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dataPath=The directory path containing the abseqPy output (specifically containing the auxiliary directory) ;; compare=A vector of comma-separated strings specifying which samples to compare (e.g., c(\"PCR1, PCR2\")) ;; report=Integer (0 to 3) controlling output: 0 for S4 objects only, 1 for static PNGs, 2 for static PNGs + HTML, 3 for static PNGs + interactive HTML (default) ;; BPPARAM=A BiocParallel parameter object to customize parallelization (e.g., SerialParam() or MulticoreParam()) ;; outputDir=The output directory path where the compiled comparative report will be saved when using the report() function\n- alternatives: VDJTools=Mentioned as the inspiration for the V-J association chord diagrams and the log-scaled clonotype frequency scatter plots ;; abseqPy=The prerequisite Python package used to process raw FASTA/FASTQ files into the CSV/HDF files that abseqR visualizes\n- when_to_use: Appropriate for downstream analysis of Rep-Seq antibody library datasets to evaluate sequence quality, germline abundance, V-J association, productivity (frameshifts, stop codons), and diversity (rarefaction, spectratypes, duplication levels)\n- pitfalls: pandoc=Requires pandoc version 1.19.2.1 or higher to render HTML reports; if not detected, HTML reports will not be generated ;; sample_names=When combining samples from different directories using the + operator, all sample names must be unique ;; venn_diagrams=Venn diagrams for overlapping clones will not be plotted if there are more than 5 samples compared ;; parallelization=BiocParallel performance and compatibility may vary across operating systems (e.g., SerialParam is recommended on Darwin/macOS as an interim solution)",
+  "workflows": [
+    {
+      "name": "basic_and_comparative_report",
+      "intent": "Generate individual and comparative quality, abundance, productivity, and diversity reports from a single directory of abseqPy outputs.",
+      "input": [
+        "dataPath (directory containing the \"auxiliary\" folder with abseqPy output files for each sample)"
+      ],
+      "stages": "1. Configure parallelization parameters based on the operating system.\n2. Run abseqReport to generate static/interactive plots and HTML reports for individual samples and specified comparative groups.",
+      "code": "if (Sys.info()[\"sysname\"] == \"Darwin\") {\n    BPPARAM <- BiocParallel::SerialParam()\n} else {\n    BPPARAM <- BiocParallel::bpparam()\n}\nsamples <- abseqReport(dataPath,\n                       compare = c(\"PCR1, PCR2, PCR3\"),\n                       report = 1,\n                       BPPARAM = BPPARAM)"
+    },
+    {
+      "name": "custom_downstream_comparison",
+      "intent": "Combine and compare specific samples from different runs or subsets using the S4 plus operator and generate a refined comparative report.",
+      "input": [
+        "samples (named list of AbSeqRep S4 objects loaded from previous abseqReport runs or lazy-loaded with report = 0)"
+      ],
+      "stages": "1. Combine individual sample objects using the + operator (or Reduce).\n2. Run the report function on the combined object to generate a standalone comparative HTML report in a specified output directory.",
+      "code": "pcr1.pcr3 <- samples[[\"PCR1\"]] + samples[[\"PCR3\"]]\nrefinedComparison <- report(pcr1.pcr3,\n                            outputDir = file.path(sandboxDirectory,\n                                                  \"refined_comparison\"),\n                            report = 1)"
+    },
+    {
+      "name": "multi_directory_comparison",
+      "intent": "Compare all samples across two entirely different abseqPy output directories.",
+      "input": [
+        "SRR_CTRL (directory containing control sample outputs)",
+        "SRR_EXP (directory containing experimental sample outputs)"
+      ],
+      "stages": "1. Load S4 objects from the first abseqPy directory.\n2. Load S4 objects from the second abseqPy directory.\n3. Combine all loaded samples using Reduce and the + operator.\n4. Generate a comparative report for the combined collection of samples.",
+      "code": "SRRControl <- abseqReport(\"SRR_CTRL\")\nSRRExp <- abseqReport(\"SRR_EXP\")\nall.samples <- Reduce(\"+\", c(SRRControl, SRRExp))\nreport(all.samples, outputDir = \"SRRControl_vs_SRRExp\")"
+    }
+  ]
+}

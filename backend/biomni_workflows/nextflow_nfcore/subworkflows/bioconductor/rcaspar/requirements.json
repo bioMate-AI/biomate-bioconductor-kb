@@ -1,0 +1,14 @@
+{
+  "package": "rcaspar",
+  "requirements": [
+    "RCASPAR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RCASPAR"
+    ],
+    "survival_prediction_with_cross_validation.nf": [
+      "RCASPAR"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "biocroxytest",
+  "requirements": [
+    "biocroxytest",
+    "roxygen2",
+    "testthat"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biocroxytest",
+      "roxygen2",
+      "testthat"
+    ]
+  }
+}

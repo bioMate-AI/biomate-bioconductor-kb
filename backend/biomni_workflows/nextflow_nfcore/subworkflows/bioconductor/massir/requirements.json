@@ -1,0 +1,16 @@
+{
+  "package": "massir",
+  "requirements": [
+    "Biobase",
+    "massiR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "massiR"
+    ],
+    "microarray_expressionset_workflow.nf": [
+      "Biobase",
+      "massiR"
+    ]
+  }
+}

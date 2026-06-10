@@ -1,126 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: edgeR
-// Differential expression analysis of RNA-seq expression profiles with biological replication. Impleme
-//
-// Source : https://bioconductor.org/packages/3.20/workflows/vignettes/RNAseq123/inst/doc/limmaWorkflow.html
-// Upstream  : none
-// Downstream: ASpli, IntEREst, methylMnM, miloR, octad
-//
-// Install: BiocManager::install("edgeR")
+// Bioconductor workflow: edgeR — quasi_likelihood_pipeline
+// Perform differential expression analysis using the robust quasi-likelihood F-test framework.
+// Input: TableOfCounts.txt
+// Container: quay.io/biocontainers/bioconductor-edger:4.8.2--r45h01b2380_0
+// R packages: edgeR
+// Bioconductor: 3.20 | R: 4.4
+// Requires: edgeR
+// Visualizations: mean-difference plot
+// QC: filter low-expression genes
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read count data and define groups
+//  * 2. [Input & Preparation] Create DGEList object
+//  * 3. [Core Analysis] Filter lowly expressed genes
+//  * 4. [Core Analysis] Normalize library sizes
+//  * 5. [Input & Preparation] Define design matrix
+//  * 6. [Core Analysis] Fit QL GLM model
+//  * 7. [Core Analysis] Perform quasi-likelihood F-test
+//  * 8. [Core Analysis] Extract top differentially expressed genes
 
 nextflow.enable.dsl = 2
 
-process BIOC_EDGER {
+process BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-edger"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-edger:4.4.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-edger:4.4.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_edger_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_edger_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_edger_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("edgeR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(edgeR)
-    library(jsonlite)
+    
+    # 1. Read count data and define groups
+    x <- read.delim("TableOfCounts.txt", row.names="Symbol")
+    group <- factor(c(1, 1, 2, 2))
+    
+    # 2. Create DGEList object
+    y <- DGEList(counts=x, group=group)
+    
+    # 3. Filter lowly expressed genes
+    keep <- filterByExpr(y)
+    y <- y[keep, , keep.lib.sizes=FALSE]
+    
+    # 4. Normalize library sizes
+    y <- normLibSizes(y)
+    
+    # 5. Define design matrix
+    design <- model.matrix(~group)
+    
+    # 6. Fit QL GLM model
+    fit <- glmQLFit(y, design)
+    
+    # 7. Perform quasi-likelihood F-test
+    qlf <- glmQLFTest(fit, coef=2)
+    
+    # 8. Extract top differentially expressed genes
+    top_tags_all <- topTags(qlf, n=Inf)
+    
+    # Print the default top tags to console as in the documented code
+    print(topTags(qlf))
+    
+    # Write outputs to files
+    # Save the complete table of differential expression results
+    write.csv(as.data.frame(top_tags_all), file="differential_expression_results.csv", row.names=TRUE)
+    
+    # Save the QL F-test object as an RDS file for downstream analysis
+    saveRDS(qlf, file="qlf_results.rds")
+    
+    # Generate and save a Mean-Difference (MD) plot
+    pdf("md_plot.pdf", width=7, height=7)
+    plotMD(qlf)
+    dev.off()
 
-    # --- Normalization and MDS Plotting [] ---
-    # Key functions: calcNormFactors, cpm, plotMDS
-    x <- calcNormFactors(x, method = "TMM")
-    lcpm <- cpm(x, log = TRUE)
-    plotMDS(
-        lcpm,
-        labels = x$samples$group,
-        col = as.numeric(x$samples$group)
-    )
-
-
-    # --- Differential Expression Analysis [] ---
-    # Key functions: voom, lmFit, contrasts.fit, eBayes, decideTests
-    design <- model.matrix(~0 + group + lane, data = x$samples)
-    colnames(design) <- gsub("group", "", colnames(design))
-    contr.matrix <- makeContrasts(
-        BasalvsLP = Basal - LP,
-        BasalvsML = Basal - ML,
-        levels = colnames(design)
-    )
-    v <- voom(x, design, plot = FALSE)
-    vfit <- lmFit(v, design)
-    vfit <- contrasts.fit(vfit, contrasts = contr.matrix)
-    efit <- eBayes(vfit)
-    dt <- decideTests(efit)
-
-
-    # --- Visualization and Gene Set Testing [] ---
-    # Key functions: plotMD, camera, barcodeplot
-    plotMD(efit, column = 1, status = dt[, 1])
-    idx <- ids2indices(Mm.c2, id = rownames(v))
-    cam.BasalvsLP <- camera(
-        v,
-        idx,
-        design,
-        contrast = contr.matrix[, 1]
-    )
-    barcodeplot(
-        efit$t[, 1],
-        index = idx$LIM_MAMMARY_LUMINAL_MATURE_UP
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_edger_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_edger_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_edger_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_EDGER:", paste0("    edger: ", packageVersion("edgeR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE":',
+        paste0('    edgeR: ', as.character(packageVersion('edgeR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_edger_results.csv
-    touch ${prefix}_edger_output.rds
-    echo "BIOC_EDGER:" > versions.yml
-    echo "    edger: 0.0.0" >> versions.yml
+    touch ${prefix}_quasi_likelihood_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_EDGER_WORKFLOW {
+workflow BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ TableOfCounts.txt ] ]
 
     main:
-    BIOC_EDGER(ch_input)
+    BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_EDGER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_EDGER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_EDGER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_EDGER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE.out.tables
+    plots    = BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE.out.plots
+    objects  = BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE.out.objects
+    versions = BIOC_EDGER_QUASI_LIKELIHOOD_PIPELINE.out.versions
 }

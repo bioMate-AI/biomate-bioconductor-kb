@@ -1,0 +1,11 @@
+{
+  "package": "probamr",
+  "requirements": [
+    "proBAMr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "proBAMr"
+    ]
+  }
+}

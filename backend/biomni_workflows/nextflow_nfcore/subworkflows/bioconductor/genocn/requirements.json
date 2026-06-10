@@ -1,0 +1,11 @@
+{
+  "package": "genocn",
+  "requirements": [
+    "genoCN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "genoCN"
+    ]
+  }
+}

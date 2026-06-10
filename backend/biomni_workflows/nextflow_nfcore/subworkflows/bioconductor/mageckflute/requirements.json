@@ -1,0 +1,14 @@
+{
+  "package": "mageckflute",
+  "requirements": [
+    "MAGeCKFlute"
+  ],
+  "by_workflow": {
+    "mageck_mle_analysis.nf": [
+      "MAGeCKFlute"
+    ],
+    "main.nf": [
+      "MAGeCKFlute"
+    ]
+  }
+}

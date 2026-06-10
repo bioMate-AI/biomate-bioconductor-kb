@@ -1,0 +1,13 @@
+{
+  "package": "synmut",
+  "requirements": [
+    "Biostrings",
+    "SynMut"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "SynMut"
+    ]
+  }
+}

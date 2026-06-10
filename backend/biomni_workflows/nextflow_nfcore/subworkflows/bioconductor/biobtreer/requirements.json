@@ -1,0 +1,11 @@
+{
+  "package": "biobtreer",
+  "requirements": [
+    "biobtreeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biobtreeR"
+    ]
+  }
+}

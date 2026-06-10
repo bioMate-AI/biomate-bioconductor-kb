@@ -1,0 +1,22 @@
+{
+  "package": "heatmaps",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "heatmaps",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "heatmaps",
+      "rtracklayer"
+    ],
+    "sequence_feature_heatmaps.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "heatmaps",
+      "rtracklayer"
+    ]
+  }
+}

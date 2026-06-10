@@ -1,0 +1,14 @@
+{
+  "package": "scthi",
+  "requirements": [
+    "scTHI"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "scTHI"
+    ],
+    "tme_classification.nf": [
+      "scTHI"
+    ]
+  }
+}

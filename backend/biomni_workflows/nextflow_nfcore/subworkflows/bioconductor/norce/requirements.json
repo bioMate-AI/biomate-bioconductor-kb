@@ -1,0 +1,23 @@
+{
+  "package": "norce",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "NoRCE",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "biotype_filtering_and_extraction.nf": [
+      "NoRCE"
+    ],
+    "main.nf": [
+      "NoRCE",
+      "rtracklayer"
+    ],
+    "mirna_enrichment_with_targets_and_coexpression.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "NoRCE"
+    ]
+  }
+}

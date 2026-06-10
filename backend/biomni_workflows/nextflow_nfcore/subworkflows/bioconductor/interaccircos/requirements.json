@@ -1,0 +1,17 @@
+{
+  "package": "interaccircos",
+  "requirements": [
+    "htmlwidgets",
+    "interacCircos"
+  ],
+  "by_workflow": {
+    "interactive_circos_snp_background.nf": [
+      "htmlwidgets",
+      "interacCircos"
+    ],
+    "main.nf": [
+      "htmlwidgets",
+      "interacCircos"
+    ]
+  }
+}

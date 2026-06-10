@@ -1,22 +1,12 @@
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("DECIPHER", "Biostrings")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
 library(DECIPHER)
 library(Biostrings)
 
-# 1. Create seqs_path (FASTA file of training sequences)
 seqs <- DNAStringSet(c(
-  "Root;Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus" = "ATGCGTACGTTAGC",
-  "Root;Bacteria;Proteobacteria;Gammaproteobacteria;Enterobacteriales;Enterobacteriaceae;Escherichia" = "ATGCGCACGTTAGC"
+  "Root;Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus" = "ATGCGTACGTTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGC",
+  "Root;Bacteria;Proteobacteria;Gammaproteobacteria;Enterobacteriales;Enterobacteriaceae;Escherichia" = "ATGCGCACGTTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGC"
 ))
 writeXStringSet(seqs, "seqs_path")
 
-# 2. Create rank_path (taxid text file containing taxonomic ranks)
 taxid_lines <- c(
   "0*Root*-1*0*rootrank",
   "1*Bacteria*0*1*domain",
@@ -33,10 +23,5 @@ taxid_lines <- c(
 )
 writeLines(taxid_lines, "rank_path")
 
-# 3. Create fas (FASTA file of query sequences to classify)
-fas_in <- system.file("extdata", "Bacteria_175seqs.fas", package="DECIPHER")
-if (file.exists(fas_in)) {
-  file.copy(fas_in, "fas")
-} else {
-  writeXStringSet(seqs, "fas")
-}
+fas_file <- system.file("extdata", "Bacteria_175seqs.fas", package="DECIPHER")
+file.copy(fas_file, "fas")

@@ -1,0 +1,23 @@
+{
+  "package": "vidger",
+  "requirements": [
+    "DESeq2",
+    "edgeR",
+    "ggplot2",
+    "vidger"
+  ],
+  "by_workflow": {
+    "deseq2_dge_visualization.nf": [
+      "DESeq2",
+      "vidger"
+    ],
+    "edger_dge_visualization.nf": [
+      "edgeR",
+      "ggplot2",
+      "vidger"
+    ],
+    "main.nf": [
+      "vidger"
+    ]
+  }
+}

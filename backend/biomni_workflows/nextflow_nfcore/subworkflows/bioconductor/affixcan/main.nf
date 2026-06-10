@@ -1,147 +1,160 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: AffiXcan
-// Impute a GReX (Genetically Regulated Expression) for a set of genes in a sample of individuals, usin
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/AffiXcan/inst/doc/AffiXcan.html
-// Upstream  : MultiAssayExperiment, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("AffiXcan")
+// Bioconductor workflow: AffiXcan — grex_training_and_imputation
+// Train GReX models using expression and TBA data, then impute GReX values on a test dataset.
+// Input: exprMatrix, training.tba.toydata.rds, regionAssoc, trainingCovariates, testing.tba.toydata.rds
+// Container: quay.io/biocontainers/bioconductor-affixcan:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AffiXcan, MultiAssayExperiment, SummarizedExperiment
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Train the GReX models using affiXcanTrain()
+//  * 2. [Core Analysis] Impute GReX values on the test dataset using affiXcanImpute()
+//  * 3. [Visualization & Output] Extract the imputed GReX matrix from the resulting SummarizedExperiment
 
 nextflow.enable.dsl = 2
 
-process BIOC_AFFIXCAN {
+process BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-affixcan"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-affixcan:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-affixcan:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_affixcan_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_affixcan_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_affixcan_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Expression)
-    library(Validation)
-    library(jsonlite)
-
-    # --- Code Block 1 [] ---
-    # Key functions: assays
-    suppressMessages(library(MultiAssayExperiment))
-    tba <- readRDS(system.file("extdata","training.tba.toydata.rds",
-        package="AffiXcan")) ## This is a MultiAssayExperiment object
-    names(assays(tba))
-    # --- Code Block 3 [] ---
-    # Key functions: assays
-    suppressMessages(library(SummarizedExperiment))
-    load("../data/exprMatrix.RData")
-    assays(exprMatrix)$values[,1:5]
-    # --- Code Block 4 [] ---
-    # Key functions: affiXcanTrain
-    suppressMessages(library("AffiXcan"))
-    trainingTbaPaths <- system.file("extdata","training.tba.toydata.rds",
-        package="AffiXcan")
-    data(exprMatrix)
-    data(regionAssoc)
-    # --- Code Block 7 [] ---
-    # Key functions: affiXcanImpute
-    testingTbaPaths <- system.file("extdata","testing.tba.toydata.rds",
-        package="AffiXcan")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(MultiAssayExperiment)
+    library(AffiXcan)
+    
+    # Helper function to robustly read user input files from the working directory
+    read_input <- function(name) {
+      # Try various extensions in case the user provided them
+      for (ext in c("", ".rds", ".RDS", ".RData", ".rdata", ".csv", ".tsv")) {
+        file_path <- paste0(name, ext)
+        if (file.exists(file_path)) {
+          if (grepl("\\\\.rds\$", tolower(file_path))) {
+            return(readRDS(file_path))
+          } else if (grepl("\\\\.rdata\$", tolower(file_path))) {
+            env <- new.env()
+            load(file_path, envir = env)
+            return(get(ls(env)[1], envir = env))
+          } else if (grepl("\\\\.csv\$", tolower(file_path))) {
+            return(read.csv(file_path, header = TRUE, stringsAsFactors = FALSE))
+          } else if (grepl("\\\\.tsv\$", tolower(file_path))) {
+            return(read.delim(file_path, header = TRUE, stringsAsFactors = FALSE))
+          } else {
+            # No extension or unknown, try reading as RDS first, then RData, then table
+            res <- tryCatch({
+              readRDS(file_path)
+            }, error = function(e) {
+              tryCatch({
+                env <- new.env()
+                load(file_path, envir = env)
+                get(ls(env)[1], envir = env)
+              }, error = function(e2) {
+                read.table(file_path, header = TRUE, stringsAsFactors = FALSE)
+              })
+            })
+            return(res)
+          }
+        }
+      }
+      stop(paste("Required input file not found:", name))
+    }
+    
+    # 1. Read User Inputs
+    exprMatrix <- read_input("exprMatrix")
+    regionAssoc <- read_input("regionAssoc")
+    trainingCovariates <- read_input("trainingCovariates")
+    
+    trainingTbaPaths <- "training.tba.toydata.rds"
+    testingTbaPaths <- "testing.tba.toydata.rds"
+    
+    # Verify that the TBA paths exist
+    if (!file.exists(trainingTbaPaths)) {
+      stop(paste("Required TBA file not found:", trainingTbaPaths))
+    }
+    if (!file.exists(testingTbaPaths)) {
+      stop(paste("Required TBA file not found:", testingTbaPaths))
+    }
+    
+    # 2. Train GReX Models
+    assay <- "values"
+    
+    training <- affiXcanTrain(exprMatrix=exprMatrix, assay=assay,
+        tbaPaths=trainingTbaPaths, regionAssoc=regionAssoc, cov=trainingCovariates,
+        varExplained=80, scale=TRUE)
+    
+    # Save trained model object
+    saveRDS(training, "affiXcan_training_model.rds")
+    
+    # 3. Impute GReX Values
     exprmatrix <- affiXcanImpute(tbaPaths=testingTbaPaths,
         affiXcanTraining=training, scale=TRUE)
-    # --- Code Block 8 [] ---
-    # Key functions: Expression
-    ##
-    ## AffiXcan: Imputing Genetically Regulated Expression (GReX)
-    ##  --> Computing Principal Components
-    ##  --> Imputing GReX values
-    ##  Done
-    # --- Code Block 9 [] ---
-    # Key functions: assays, frame
-    grexMatrix <- assays(exprmatrix)$GReX
-    as.data.frame(grexMatrix)[,1:5]
-    # --- Code Block 10 [] ---
-    # Key functions: affiXcanTrain
-    trainingTbaPaths <- system.file("extdata","training.tba.toydata.rds",
-    package="AffiXcan")
-    data(exprMatrix)
-    data(regionAssoc)
-    data(trainingCovariates)
-    # --- Code Block 11 [] ---
-    # Key functions: Validation
-    ##
-    ## AffiXcan: Performing Training With 5 Fold Cross-Validation ( 1 / 5 )
-    ##  --> Performing Principal Components Analysis
-    # --- Code Block 13 [] ---
-    # Key functions: Validation
-    ##  --> Imputing GReX Values
-    ##  --> Computing Cross-Validated R^2
-    ##  Done
-    ##
-    ## AffiXcan: Performing Training With 5 Fold Cross-Validation ( 2 / 5 )
-    # --- Code Block 15 [] ---
-    # Key functions: Validation
-    ##  --> Imputing GReX Values
-    ##  --> Computing Cross-Validated R^2
-    ##  Done
-    ##
-    ## AffiXcan: Performing Training With 5 Fold Cross-Validation ( 3 / 5 )
+    
+    # Save imputed SummarizedExperiment object
+    saveRDS(exprmatrix, "imputed_grex_se.rds")
+    
+    # 4. Extract and Save Imputed GReX Matrix
+    grexMatrix <- assays(exprmatrix)\$GReX
+    write.csv(as.data.frame(grexMatrix), "imputed_grex_matrix.csv", row.names = TRUE)
+    
+    # 5. Generate Diagnostic Plot
+    pdf("imputed_grex_distribution.pdf")
+    hist(grexMatrix, main="Distribution of Imputed GReX Values", xlab="GReX", col="skyblue", border="white")
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_affixcan_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_affixcan_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_affixcan_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AFFIXCAN:", paste0("    affixcan: ", packageVersion("AffiXcan"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION":',
+        paste0('    AffiXcan: ', as.character(packageVersion('AffiXcan')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_affixcan_results.csv
-    touch ${prefix}_affixcan_output.rds
-    echo "BIOC_AFFIXCAN:" > versions.yml
-    echo "    affixcan: 0.0.0" >> versions.yml
+    touch ${prefix}_grex_training_and_imputation.csv versions.yml
     """
 }
 
-
-workflow BIOC_AFFIXCAN_WORKFLOW {
+workflow BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprMatrix, training.tba.toydata.rds, regionAssoc, trainingCovariates, testing.tba.toydata.rds ] ]
 
     main:
-    BIOC_AFFIXCAN(ch_input)
+    BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION(ch_input)
 
     emit:
-    results  = BIOC_AFFIXCAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AFFIXCAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AFFIXCAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AFFIXCAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION.out.tables
+    plots    = BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION.out.plots
+    objects  = BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION.out.objects
+    versions = BIOC_AFFIXCAN_GREX_TRAINING_AND_IMPUTATION.out.versions
 }

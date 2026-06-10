@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mae=A MultiAssayExperiment object containing matched multi-omic assays and clinical data ;; omics_data=A named list of matrix objects of matched multi-omic data from a set of individuals, used as an alternative to mae ;; colData=A data frame containing clinical/phenotypic data, required if omics_data is a list of matrices ;; pathway_name=A recognized pathway name from MSigDB (e.g., from the built-in msigdb data frame) or a vector of gene symbols ;; base_ids=Sample names for individuals to be used as the reference population for MFA ;; supp_ids=Sample names for supplementary individuals to be projected onto the reference consensus (must not overlap with base_ids) ;; impute=Logical; if TRUE, missing values are imputed via a preliminary MFA using the missMDA package instead of the default mean imputation ;; gene_map=A 2-column data frame mapping biological entities (like miRNAs) to gene symbols (defaults to the built-in mirtarbase data frame) ;; full_results=Logical; if FALSE, returns space-saving concise output instead of full MFA numerical results ;; verbose=Logical; controls progress messages\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you have matched multi-omic data (e.g., RNA-seq, methylation, copy number alterations, miRNA-seq) for a cohort of individuals and want to quantify and visualize individualized, pathway-specific deviations from the cohort average.\n- pitfalls: Input data must be normalized, batch-corrected, and log-transformed (if appropriate) prior to running padma ;; padma currently only handles continuous data; it cannot handle non-continuous data like binary somatic mutation calls or categorical data ;; All datasets must have the same number of individuals and be sorted in the same order ;; There must be no overlap between sample IDs provided in base_ids and supp_ids ;; Genes with very small variance (< 10e-5) or all missing values across samples are automatically removed.",
+  "workflows": [
+    {
+      "name": "standard_pathway_deviation_analysis",
+      "intent": "Calculate individualized pathway-centric deviation scores and gene-level contributions from multi-omic data, and visualize the results.",
+      "input": [
+        "mae (MultiAssayExperiment containing matched, normalized, and batch-corrected multi-omic assays like RNA-seq, methylation, CNA, miRNA-seq, and clinical data)"
+      ],
+      "stages": "1. Format multi-omic data as a MultiAssayExperiment or a list of matrices with matched individuals.\n2. Retrieve the target pathway name or gene list (e.g., from msigdb).\n3. Run the padma analysis to compute deviation scores.\n4. Extract pathway deviation scores and gene-specific deviation scores using assay and pathway_gene_deviation.\n5. Visualize individual factor maps, partial factor maps, and omics contributions using factorMap and omicsContrib.",
+      "code": "library(MultiAssayExperiment)\n\nLUAD_subset <- padma::LUAD_subset\nomics_data <- \n  list(rnaseq = as.matrix(LUAD_subset$rnaseq),\n       methyl = as.matrix(LUAD_subset$methyl),\n       mirna = as.matrix(LUAD_subset$mirna),\n       cna = as.matrix(LUAD_subset$cna))\npheno_data <- \n  data.frame(LUAD_subset$clinical, \n             row.names = LUAD_subset$clinical$bcr_patient_barcode)\n\nmae <-\n  suppressMessages(\n    MultiAssayExperiment::MultiAssayExperiment(\n      experiments = omics_data, \n      colData = pheno_data))\n\nD4GDI <- msigdb[grep(\"D4GDI\", msigdb$geneset), \"geneset\"]\nrun_padma <- \n  padma(mae, pathway_name = D4GDI, verbose = FALSE)\n\nassay(run_padma)\n\nfactorMap(run_padma, dim_x = 1, dim_y = 2)\n\nfactorMap(run_padma,\n           partial_id = \"TCGA-78-7536\",\n           dim_x = 1, dim_y = 2)\n\nomicsContrib(run_padma, max_dim = 10)"
+    },
+    {
+      "name": "reference_based_pathway_deviation_projection",
+      "intent": "Perform Multiple Factor Analysis on a reference population and project supplementary individuals onto the reference consensus to calculate their pathway deviation scores.",
+      "input": [
+        "mae (MultiAssayExperiment containing matched multi-omic assays and clinical data)"
+      ],
+      "stages": "1. Format multi-omic data as a MultiAssayExperiment.\n2. Define reference (base_ids) and supplementary (supp_ids) individual IDs.\n3. Run padma with base_ids and supp_ids specified.",
+      "code": "run_padma_supp <- \n  padma(mae, pathway_name = D4GDI, verbose = FALSE,\n        base_ids = sampleMap(mae)$primary[1:10],\n        supp_ids = sampleMap(mae)$primary[15:20])"
+    }
+  ]
+}

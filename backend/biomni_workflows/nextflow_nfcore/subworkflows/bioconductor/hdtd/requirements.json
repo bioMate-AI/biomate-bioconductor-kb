@@ -1,0 +1,14 @@
+{
+  "package": "hdtd",
+  "requirements": [
+    "HDTD"
+  ],
+  "by_workflow": {
+    "covariance_structure_analysis.nf": [
+      "HDTD"
+    ],
+    "main.nf": [
+      "HDTD"
+    ]
+  }
+}

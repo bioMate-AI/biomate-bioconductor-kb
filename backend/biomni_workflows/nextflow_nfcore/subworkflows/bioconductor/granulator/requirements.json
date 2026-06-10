@@ -1,0 +1,15 @@
+{
+  "package": "granulator",
+  "requirements": [
+    "ggplot2",
+    "granulator",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "granulator",
+      "tidyr"
+    ]
+  }
+}

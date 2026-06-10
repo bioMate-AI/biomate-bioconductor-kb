@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: con=An open R connection to a FASTA file, used in read.FASTA.entry, countskip.FASTA.entries, and read.n.FASTA.entries.split ;; n=Number of FASTA entries to read, returned by countskip.FASTA.entries ;; targets=A named character vector of target sequences to match against probes ;; chip_type=The chip type string (e.g., \"HG-U133A\") passed to matchAffyProbes ;; nrow.chip=The number of rows on the chip, required by buildCdfEnv.biostrings and wrapCdfEnvAffy ;; ncol.chip=The number of columns on the chip, required by buildCdfEnv.biostrings and wrapCdfEnvAffy ;; envName=Slot in CdfEnvAffy to store the name of the environment\n- alternatives: biomaRt can be used to retrieve up-to-date sequences online instead of reading local FASTA files; makecdfenv is the standard package for creating CDF environments, but altcdfenvs should be preferred when custom probe-to-target remapping or subsetting is required.\n- when_to_use: Use when analyzing Affymetrix microarray data where the official probe-to-gene mappings are outdated, or when you want to group probes based on custom transcript/sequence definitions (e.g., specific gene families or specific species in a multi-species chip).\n- pitfalls: Failing to specify the correct chip dimensions (nrow.chip and ncol.chip) when building or wrapping CDF environments; not validating the newly created CDF environment against the AffyBatch object using validAffyBatch before downstream analysis; forgetting to extract the environment from the CdfEnvAffy object using @envir before assigning it to abatch@cdfName.",
+  "workflows": [
+    {
+      "name": "create_alternative_cdf_from_fasta",
+      "intent": "Read custom target sequences from a FASTA file, match them against Affymetrix probe sequences, build a new alternative CDF environment, and prepare it for use with an AffyBatch.",
+      "input": [
+        "sample.fasta (FASTA file containing target sequences)",
+        "hgu133aprobe (Affymetrix probe package)",
+        "abatch (AffyBatch object to be remapped)"
+      ],
+      "stages": "1. Count FASTA entries using countskip.FASTA.entries ;; 2. Read FASTA entries using read.n.FASTA.entries.split ;; 3. Match probes to target sequences using matchAffyProbes ;; 4. Build the alternative CDF environment using buildCdfEnv.biostrings ;; 5. Validate and assign the new CDF environment to an AffyBatch object",
+      "code": "con <- file(fasta.filename, open=\"r\")\nn <- countskip.FASTA.entries(con)\nclose(con)\ncon <- file(fasta.filename, open=\"r\")\nmy.entries <- read.n.FASTA.entries.split(con, n)\nclose(con)\ntargets <- my.entries$sequences\nnames(targets) <-  sub(\">.+\\\\|(Hs\\\\#|NM_)([^[:blank:]\\\\|]+).+\", \n                       \"\\\\1\\\\2\", my.entries$headers)\nm <- matchAffyProbes(hgu133aprobe, targets, \"HG-U133A\")\nalt.cdf <- \n  buildCdfEnv.biostrings(m, nrow.chip = 712, ncol.chip = 712)\nvalidAffyBatch(abatch, alt.cdf)\nalt.cdfenv <- alt.cdf@envir\nabatch@cdfName <- \"alt.cdfenv\""
+    },
+    {
+      "name": "subset_and_modify_cdf_env",
+      "intent": "Wrap an existing CDF environment package into a CdfEnvAffy object, subset it to keep only specific probe sets of interest, and rename the environment.",
+      "input": [
+        "plasmodiumanophelescdf (existing CDF package/environment)",
+        "Plasmodium-Probeset-IDs.txt (text file containing probe set IDs of interest)"
+      ],
+      "stages": "1. Wrap the existing CDF environment using wrapCdfEnvAffy ;; 2. Retrieve gene/probe set names using geneNames ;; 3. Subset the CDF environment using standard [ indexing ;; 4. Modify the environment name slot @envName",
+      "code": "planocdf <- wrapCdfEnvAffy(plasmodiumanophelescdf, 712, 712, \"plasmodiumanophelescdf\")\nids <- geneNames(planocdf)\nids.pf <- ids[grep(\"^Pf\", ids)]\nplcdf <- planocdf[ids.pf]\nplcdf@envName <- \"Plasmodium ids only\""
+    }
+  ]
+}

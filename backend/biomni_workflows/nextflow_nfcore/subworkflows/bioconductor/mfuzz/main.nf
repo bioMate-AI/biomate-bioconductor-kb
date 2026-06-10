@@ -1,113 +1,138 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Mfuzz
-// The Mfuzz package implements noise-robust soft clustering of omics time-series data, including trans
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Mfuzz/inst/doc/Mfuzz.R
-// Upstream  : none
-// Downstream: cycle, MultiRNAflow
-//
-// Install: BiocManager::install("Mfuzz")
+// Bioconductor workflow: Mfuzz — soft_clustering_pipeline
+// Pre-process time-series omics data, estimate the optimal fuzzifier parameter, perform fuzzy c-means clustering, and visualize the resulting soft clusters.
+// Input: yeast.txt, yeast
+// Container: quay.io/biocontainers/bioconductor-mfuzz:2.70.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, Mfuzz
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter genes/proteins with excessive missing values using filter.NA
+//  * 2. [Core Analysis] Impute remaining missing values using fill.NA
+//  * 3. [Core Analysis] Filter low-variation genes using filter.std
+//  * 4. [Core Analysis] Standardise expression profiles using standardise
+//  * 5. [Core Analysis] Estimate the fuzzifier parameter m using mestimate
+//  * 6. [Core Analysis] Run fuzzy c-means clustering using mfuzz
+//  * 7. [Visualization & Output] Plot the soft clusters using mfuzz.plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_MFUZZ {
+process BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mfuzz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mfuzz:2.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mfuzz:2.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mfuzz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mfuzz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mfuzz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(Mfuzz)
-    library(jsonlite)
-
-    # --- Std [] ---
-    # Key functions: std
-    ##   tmp <- filter.std(yeast.f,min.std=0)
-    # --- Standardise [] ---
-    # Key functions: standardise
-    yeast.s <- standardise(yeast.f)
-    # --- Mfuzz [] ---
-    # Key functions: mfuzz
-    ##  cl <- mfuzz(yeast.s,c=16,m=1.25)
-    ##  mfuzz.plot(yeast.s,cl=cl,mfrow=c(4,4),time.labels=seq(0,160,10))
-    # --- Mestimate [] ---
-    # Key functions: mestimate
-    ## m1 <- mestimate(yeast.s)
-    ## m1 # 1.15
-    # --- Mfuzz [] ---
-    # Key functions: mfuzz
-    ##    cl2 <- mfuzz(yeast.s,c=16,m=1.35)
-    ##    mfuzz.plot(yeast.s,cl=cl2,mfrow=c(4,4),time.labels=seq(0,160,10))
-    # --- Overlap [] ---
-    # Key functions: overlap
-    ## O <- overlap(cl)
-    ## Ptmp <- overlap.plot(cl,over=O,thres=0.05)
-    # --- Mfuzz [] ---
-    # Key functions: mfuzz, overlap
-    ## cl3 <- mfuzz(yeast.s,c=10,m=1.25)
-    ## mfuzz.plot(yeast.s,cl=cl3,mfrow=c(3,4))
-    ## O3 <- overlap(cl3)
-    ## overlap.plot(cl3,over=O3,P=Ptmp,thres=0.05)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mfuzz_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mfuzz_results.csv")
+    library(Biobase)
+    
+    # Read input files from the working directory
+    yeast <- NULL
+    
+    if (file.exists("yeast") && !dir.exists("yeast")) {
+      # Try reading as RDS
+      yeast <- tryCatch({
+        readRDS("yeast")
+      }, error = function(e) {
+        # Try loading as RData
+        env <- new.env()
+        tryCatch({
+          load("yeast", envir = env)
+          for (nm in ls(env)) {
+            if (inherits(env[[nm]], "ExpressionSet")) {
+              return(env[[nm]])
+            }
+          }
+        }, error = function(e2) NULL)
+        return(NULL)
+      })
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mfuzz_output.rds")
+    
+    if (is.null(yeast)) {
+      if (file.exists("yeast.txt")) {
+        yeast <- table2eset("yeast.txt")
+      } else {
+        stop("Error: Neither 'yeast' (ExpressionSet file) nor 'yeast.txt' (tab-delimited text) was found in the working directory.")
+      }
     }
+    
+    # Execute the documented workflow exactly as specified
+    yeast.r <- filter.NA(yeast, thres=0.25)
+    yeast.f <- fill.NA(yeast.r,mode="mean")
+    tmp <- filter.std(yeast.f,min.std=0)  
+    yeast.s <- standardise(tmp)
+    
+    m1 <- mestimate(yeast.s)
+    print(m1)
+    
+    cl <- mfuzz(yeast.s,c=16,m=m1)
+    
+    # Plotting to PDF
+    pdf("mfuzz_plots.pdf", width=12, height=12)
+    mfuzz.plot(yeast.s,cl=cl,mfrow=c(4,4))
+    dev.off()
+    
+    # Save meaningful results
+    saveRDS(cl, "mfuzz_clustering.rds")
+    saveRDS(yeast.s, "yeast_standardised.rds")
+    writeLines(as.character(m1), "estimated_fuzzifier.txt")
+    write.csv(cl\$membership, "cluster_membership.csv", row.names=TRUE)
+    write.csv(cl\$centers, "cluster_centers.csv", row.names=TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MFUZZ:", paste0("    mfuzz: ", packageVersion("Mfuzz"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE":',
+        paste0('    Mfuzz: ', as.character(packageVersion('Mfuzz')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mfuzz_results.csv
-    touch ${prefix}_mfuzz_output.rds
-    echo "BIOC_MFUZZ:" > versions.yml
-    echo "    mfuzz: 0.0.0" >> versions.yml
+    touch ${prefix}_soft_clustering_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_MFUZZ_WORKFLOW {
+workflow BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ yeast.txt, yeast ] ]
 
     main:
-    BIOC_MFUZZ(ch_input)
+    BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_MFUZZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MFUZZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MFUZZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MFUZZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE.out.tables
+    plots    = BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE.out.plots
+    objects  = BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE.out.objects
+    versions = BIOC_MFUZZ_SOFT_CLUSTERING_PIPELINE.out.versions
 }

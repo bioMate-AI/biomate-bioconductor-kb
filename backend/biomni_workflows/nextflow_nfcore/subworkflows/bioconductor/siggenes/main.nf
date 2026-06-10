@@ -1,134 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: siggenes
-// Identification of differentially expressed genes and estimation of the False Discovery Rate (FDR) us
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/siggenes/inst/doc/siggenes.R
-// Upstream  : genefilter
-// Downstream: KCsmart
-//
-// Install: BiocManager::install("siggenes")
+// Bioconductor workflow: siggenes — sam_analysis_and_visualization
+// Perform Significance Analysis of Microarrays (SAM) to identify differentially expressed genes and visualize the results via SAM and Delta plots.
+// Input: golub, golub.cl
+// Container: quay.io/biocontainers/bioconductor-siggenes:1.84.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: multtest, siggenes
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the dataset and class labels
+//  * 2. [Core Analysis] Run Significance Analysis of Microarrays (SAM) using sam()
+//  * 3. [Visualization & Output] Generate a SAM plot for a specific delta value using sam.plot2() or plot()
+//  * 4. [Visualization & Output] Generate Delta plots for a range of delta values using delta.plot() or plot()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SIGGENES {
+process BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-siggenes"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-siggenes:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-siggenes:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_siggenes_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_siggenes_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_siggenes_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(siggenes)
-    library(jsonlite)
-
-    # --- Significance Analysis of Microarrays ---
-    # Key functions: sam, wilc.stat
-    data(golub)
-    sam.out <- sam(
-        golub,
-        golub.cl,
-        rand = 123,
-        gene.names = golub.gnames[, 3]
-    )
-    sam.out2 <- sam(
-        golub,
-        golub.cl,
-        method = wilc.stat,
-        rand = 123
-    )
-
-    # --- Delta Parameter Selection ---
-    # Key functions: findDelta
-    delta.fdr <- findDelta(sam.out, fdr = 0.05)
-    delta.genes <- findDelta(sam.out, genes = 200)
-    optimal.delta <- delta.fdr[1, "delta"]
-
-    # --- Identification of Significant Genes ---
-    # Key functions: summary, list.siggenes
-    sum.sam.out <- summary(sam.out, delta = 3.3)
-    sig.genes.list <- list.siggenes(sam.out, delta = 3.3)
-    sig.rows <- sum.sam.out@row.sig.genes
-    fdr.matrix <- sum.sam.out@mat.fdr
-
-    # --- Empirical Bayes Parameter Optimization ---
-    # Key functions: find.a0, ebam
-    find.out <- find.a0(
-        golub,
-        golub.cl,
-        rand = 123
-    )
-    ebam.out.opt <- ebam(find.out)
-    ebam.out.specific <- ebam(find.out, which.a0 = 2)
-
-    # --- Empirical Bayes Analysis of Microarrays ---
-    # Key functions: ebam, summary
-    ebam.out <- ebam(
-        golub,
-        golub.cl,
-        a0 = 0,
-        rand = 123
-    )
-    ebam.sum <- summary(ebam.out, delta = 0.9)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_siggenes_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_siggenes_results.csv")
+    library(multtest)
+    
+    # Helper functions to read user input files robustly from the working directory
+    read_matrix <- function(filepath) {
+      if (grepl("\\\\.rds\$", filepath, ignore.case = TRUE)) {
+        return(as.matrix(readRDS(filepath)))
+      }
+      mat <- tryCatch({
+        df <- read.table(filepath, header = TRUE, row.names = 1, check.names = FALSE)
+        as.matrix(df)
+      }, error = function(e) {
+        tryCatch({
+          df <- read.table(filepath, header = TRUE, check.names = FALSE)
+          as.matrix(df)
+        }, error = function(e2) {
+          df <- read.csv(filepath, header = TRUE, row.names = 1, check.names = FALSE)
+          as.matrix(df)
+        })
+      })
+      return(mat)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_siggenes_output.rds")
+    
+    read_vector <- function(filepath) {
+      if (grepl("\\\\.rds\$", filepath, ignore.case = TRUE)) {
+        return(as.vector(readRDS(filepath)))
+      }
+      vec <- tryCatch({
+        scan(filepath, quiet = TRUE)
+      }, error = function(e) {
+        df <- read.table(filepath, header = FALSE)
+        as.vector(unlist(df))
+      })
+      return(vec)
     }
+    
+    find_and_read <- function(base_name, is_matrix) {
+      extensions <- c("", ".rds", ".csv", ".tsv", ".txt")
+      for (ext in extensions) {
+        filepath <- paste0(base_name, ext)
+        if (file.exists(filepath)) {
+          if (is_matrix) {
+            return(read_matrix(filepath))
+          } else {
+            return(read_vector(filepath))
+          }
+        }
+      }
+      stop(paste("Error: Could not find file for", base_name))
+    }
+    
+    # 1. Load the dataset and class labels
+    golub <- find_and_read("golub", is_matrix = TRUE)
+    golub.cl <- find_and_read("golub.cl", is_matrix = FALSE)
+    
+    # 2. Run Significance Analysis of Microarrays (SAM) using sam()
+    sam.out<-sam(golub,golub.cl,B=100,rand=123)
+    
+    # Save the SAM results object and summary text
+    saveRDS(sam.out, "sam_results.rds")
+    
+    sink("sam_summary.txt")
+    print(sam.out)
+    cat("\nSummary at Delta = 2:\n")
+    summary(sam.out, 2)
+    sink()
+    
+    # 3 & 4. Generate SAM and Delta plots and save them to a PDF file
+    pdf("sam_analysis_plots.pdf", width = 8, height = 8)
+    
+    sam.plot2(sam.out,2)
+    plot(sam.out,2)
+    delta.plot(sam.out)
+    plot(sam.out)
+    plot(sam.out,seq(0.2,2,0.2))
+    
+    dev.off()
+    
+    message("SAM analysis completed successfully. Outputs saved to 'sam_results.rds', 'sam_summary.txt', and 'sam_analysis_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SIGGENES:", paste0("    siggenes: ", packageVersion("siggenes"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION":',
+        paste0('    siggenes: ', as.character(packageVersion('siggenes')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_siggenes_results.csv
-    touch ${prefix}_siggenes_output.rds
-    echo "BIOC_SIGGENES:" > versions.yml
-    echo "    siggenes: 0.0.0" >> versions.yml
+    touch ${prefix}_sam_analysis_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_SIGGENES_WORKFLOW {
+workflow BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ golub, golub.cl ] ]
 
     main:
-    BIOC_SIGGENES(ch_input)
+    BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_SIGGENES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SIGGENES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SIGGENES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SIGGENES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION.out.tables
+    plots    = BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION.out.plots
+    objects  = BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION.out.objects
+    versions = BIOC_SIGGENES_SAM_ANALYSIS_AND_VISUALIZATION.out.versions
 }

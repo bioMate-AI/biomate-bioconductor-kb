@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprMatr=Matrix of gene expression data where rows are genes and columns are samples ;; regulators=Vector of candidate regulators (indices or names) or a list specifying candidate regulators for each target gene ;; targets=Vector of target genes to restrict the analysis ;; treeMethod=Tree-based method to use, either \"RF\" (Random Forest, default) or \"ET\" (Extra-Trees) ;; K=Number of candidate regulators randomly selected at each node (\"sqrt\", \"all\", or an integer) ;; nTrees=Number of trees grown per ensemble (default is 1000) ;; nCores=Number of cores to use for parallel execution ;; returnMatrix=Logical indicating whether to return a weight matrix (default TRUE) or a list (required FALSE when regulators is a list) ;; reportMax=Maximum number of top-ranked links to report in getLinkList ;; threshold=Weight threshold to filter links in getLinkList\n- alternatives: treeMethod=\"RF\" (Random Forest, default) vs treeMethod=\"ET\" (Extra-Trees, which is faster and can be more randomized)\n- when_to_use: When you want to infer directed gene regulatory networks and rank regulatory links from steady-state transcriptomics/gene expression data (microarray, RNA-seq, etc.).\n- pitfalls: The weights of the links returned by GENIE3 do not have statistical meaning and only provide a ranking, meaning there is no standard threshold value. Normalization, filtering, and log-transformation of the input expression matrix will affect the results. set.seed ensures reproducibility, but results may differ between nCores=1 and nCores>1. The ranking of links varies slightly between runs due to the intrinsic randomness of the tree methods; increase nTrees to reduce this variance.",
+  "workflows": [
+    {
+      "name": "standard_network_inference",
+      "intent": "Infer a gene regulatory network from a gene expression matrix using default or customized tree-based parameters and extract ranked regulatory links.",
+      "input": [
+        "exprMatr (matrix of gene expression data where rows are genes and columns are samples)"
+      ],
+      "stages": "1. Prepare the gene expression matrix ;; 2. Run GENIE3 to compute regulatory link weights (optionally customizing tree method, parameters, or parallelization) ;; 3. Extract and filter the ranked list of regulatory links.",
+      "code": "exprMatr <- matrix(sample(1:10, 100, replace=TRUE), nrow=20)\nrownames(exprMatr) <- paste(\"Gene\", 1:20, sep=\"\")\ncolnames(exprMatr) <- paste(\"Sample\", 1:5, sep=\"\")\nlibrary(GENIE3)\nset.seed(123) # For reproducibility of results\nweightMat <- GENIE3(exprMatr)\nweightMat <- GENIE3(exprMatr, treeMethod=\"ET\", K=7, nTrees=50)\nweightMat <- GENIE3(exprMatr, nCores=4, verbose=TRUE)\nlinkList <- getLinkList(weightMat)\nlinkList <- getLinkList(weightMat, reportMax=5)\nlinkList <- getLinkList(weightMat, threshold=0.1)"
+    },
+    {
+      "name": "targeted_network_inference",
+      "intent": "Infer a gene regulatory network while restricting the candidate regulators to a specific subset of genes or defining target-specific regulator sets.",
+      "input": [
+        "exprMatr (matrix of gene expression data where rows are genes and columns are samples)",
+        "regulators (vector of candidate regulator gene names/indices or a list mapping target genes to their potential regulators)"
+      ],
+      "stages": "1. Prepare the gene expression matrix and define the candidate regulators ;; 2. Run GENIE3 with the restricted regulator set (globally or per-target) ;; 3. Extract the resulting regulatory links.",
+      "code": "exprMatr <- matrix(sample(1:10, 100, replace=TRUE), nrow=20)\nrownames(exprMatr) <- paste(\"Gene\", 1:20, sep=\"\")\ncolnames(exprMatr) <- paste(\"Sample\", 1:5, sep=\"\")\nlibrary(GENIE3)\nregulators <- c(\"Gene2\", \"Gene4\", \"Gene7\")\nweightMat <- GENIE3(exprMatr, regulators=regulators)\nregulatorsList <- list(\"Gene1\"=rownames(exprMatr)[1:10],\n                       \"Gene2\"=rownames(exprMatr)[10:20],\n                       \"Gene20\"=rownames(exprMatr)[15:20])\nset.seed(123)\nweightList <- GENIE3(exprMatr, nCores=1, targets=names(regulatorsList), regulators=regulatorsList, returnMatrix=FALSE)"
+    }
+  ]
+}

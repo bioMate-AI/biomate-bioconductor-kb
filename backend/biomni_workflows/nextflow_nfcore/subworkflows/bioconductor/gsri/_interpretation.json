@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: test=The statistical test function used to calculate p-values (defaults to t-test; rowF can be used for F-tests, or custom functions can be provided) ;; nBoot=The number of bootstrap samples used to estimate the GSRI distribution (defaults to 100) ;; alpha=The significance level for the GSRI quantile calculation, defining the confidence level (defaults to 0.05 for the 5% quantile) ;; grenander=Logical indicating whether to use the modified Grenander estimator (TRUE) or the classical ECDF (FALSE) for cumulative density estimation ;; weight=A numeric vector of weights for each gene in the gene set to incorporate prior information or certainty ;; name=An optional character string to assign a custom name to the gene set analysis\n- alternatives: limma=Mentioned as an alternative statistical framework that can be wrapped in a custom test function to increase statistical power for small sample sizes ;; GSEABase=Used for defining, importing, and manipulating GeneSet and GeneSetCollection objects before passing them to GSRI\n- when_to_use: Use this package when you want to estimate the proportion and number of regulated genes in specific gene sets without choosing arbitrary p-value thresholds, or when you need to rank gene sets based on their degree of regulation while accounting for estimation variability.\n- pitfalls: Including control probes (such as Affymetrix AFFX controls) that do not contain relevant biological information can bias the estimation, so they should be filtered out beforehand ;; Using standard t-tests on very small sample sizes may lack power, in which case a moderated test like limma should be integrated ;; Misinterpreting the GSRI value as the expected number of regulated genes, whereas it is actually a conservative 5% quantile estimate designed to reduce variability for ranking.",
+  "workflows": [
+    {
+      "name": "single_gene_set_analysis",
+      "intent": "Estimate the number of regulated genes and calculate the GSRI for a single gene set using standard or custom statistical tests.",
+      "input": [
+        "expression_data.RData (an ExpressionSet or matrix of expression intensities)",
+        "phenotypes.csv (phenotypic metadata containing group/class factors)"
+      ],
+      "stages": "1. Load the expression data and phenotype information. 2. Define or import a single gene set of interest, optionally filtering out control probes. 3. Run the GSRI analysis using gsri(), optionally specifying a custom test function (like rowF or a custom limma wrapper) and parameters like nBoot or alpha. 4. Plot the empirical cumulative p-value distribution and GSRI fit using plot().",
+      "code": "library(Biobase)\ndata(sample.ExpressionSet)\neset <- sample.ExpressionSet\nexprs <- exprs(eset)\nphenotypes <- pData(phenoData(eset))\nlibrary(GSRI)\ngAllProbes <- gsri(eset, phenotypes$type)\nlibrary(GSEABase)\ngs <- GeneSet(eset, setName=\"allGenes\")\nind <- grep(\"^AFFX\", geneIds(gs), invert=TRUE)\ngsAllGenes <- gs[ind]\ngAllGenesType <- gsri(eset, phenotypes$type, gsAllGenes, name=\"allGenesType\")\ngAllGenesSex <- gsri(exprs, phenotypes$sex, gsAllGenes, name=\"allGenesSex\")\ngsChr17 <- getBroadSets(system.file(\"extdata\", \"c1chr17.xml\", package=\"GSRI\"))\ngChr17 <- gsri(eset, phenotypes$type, gsChr17)\nphenotypes$class <- cut(phenotypes$score, seq(0, 1, length.out=4), label=c(\"low\", \"medium\", \"high\"))\ng3 <- gsri(eset, phenotypes$class, gsChr17, test=rowF)\ng3arg2 <- gsri(eset, phenotypes$class, gsChr17, test=rowF, name=\"chr17_2\", nBoot=50, alpha=0.1, grenander=FALSE)\nlibrary(limma)\nlimmaTest <- function(exprs, groups, id, index, testArgs) {\n    design <- cbind(offset=1, diff=groups)\n    fit <- lmFit(exprs[ ,index], design)\n    fit <- eBayes(fit)\n    pval <- fit$p.value[id,\"diff\"]\n    return(pval)\n}\ng3Limma <- gsri(eset, phenotypes$type, gsChr17, test=limmaTest)\nplot(g3)"
+    },
+    {
+      "name": "multiple_gene_sets_analysis",
+      "intent": "Perform GSRI analysis across multiple gene sets, sort the results, export them to a file, and generate customized plots.",
+      "input": [
+        "expression_data.RData (an ExpressionSet or matrix of expression intensities)",
+        "phenotypes.csv (phenotypic metadata containing group/class factors)",
+        "gene_sets.gmt (GMT file containing multiple gene sets)"
+      ],
+      "stages": "1. Load expression data and phenotype information. 2. Import multiple gene sets from a GMT file using getGmt(). 3. Run the GSRI analysis across all gene sets using gsri(). 4. Sort the results based on the estimated number or fraction of regulated genes using sortGsri(). 5. Display a summary of the sorted results using summary(). 6. Export the results to a file using export(). 7. Generate customized plots of the results using plot().",
+      "code": "library(Biobase)\ndata(sample.ExpressionSet)\neset <- sample.ExpressionSet\nphenotypes <- pData(phenoData(eset))\nlibrary(GSRI)\nlibrary(GSEABase)\ngmt <- getGmt(system.file(\"extdata\", \"c1c10.gmt\", package=\"GSRI\"))\ngCol5 <- gsri(eset, phenotypes$type, gmt)\ngCol5Sort <- sortGsri(gCol5, c(\"nRegGenes\", \"pRegGenes\"))\nsummary(gCol5Sort)\nexportFile <- tempfile()\nexport(gCol5Sort, exportFile)\nplot(gCol5, 5, ecdf=list(type=\"o\"), plot=list(xlab=\"p\", main=\"GSRI results: chr9\"), reg=list(col=\"lightblue\", lty=1, lwd=1.5), gsri=list(col=\"darkblue\"))"
+    },
+    {
+      "name": "weighted_gene_set_analysis",
+      "intent": "Incorporate gene-specific weights (e.g., based on annotation confidence or evidence) into the GSRI estimation process.",
+      "input": [
+        "expression_data.RData (an ExpressionSet or matrix of expression intensities)",
+        "phenotypes.csv (phenotypic metadata containing group/class factors)",
+        "gene_weights.csv (a mapping of genes to weights or evidence codes)"
+      ],
+      "stages": "1. Load expression data and phenotype information. 2. Define a numeric vector of weights corresponding to the genes in the expression dataset. 3. Run the GSRI analysis with the weight parameter specified, either for all probes or for a specific collection of gene sets.",
+      "code": "library(Biobase)\ndata(sample.ExpressionSet)\neset <- sample.ExpressionSet\nexprs <- exprs(eset)\nphenotypes <- pData(phenoData(eset))\nlibrary(GSRI)\nlibrary(hgu95av2.db)\ngNames <- rownames(exprs(eset))\nind <- Lkeys(hgu95av2GO) %in% gNames\nevidence <- factor(toTable(hgu95av2GO)[ind,\"Evidence\"])\nl <- lapply(gNames, function(name, names, evidence) evidence[names %in% name], gNames, evidence)\nexpInd <- sapply(l, function(l) any(l %in% \"EXP\"))\ngoWeight <- rep(0.5, length.out=length(expInd))\ngoWeight[expInd] <- 1\ngCol5go <- gsri(eset, phenotypes$type, weight=goWeight)\nlibrary(GSEABase)\ngmt <- getGmt(system.file(\"extdata\", \"c1c10.gmt\", package=\"GSRI\"))\ngCol5go2 <- gsri(eset, phenotypes$type, gmt, weight=goWeight)"
+    }
+  ]
+}

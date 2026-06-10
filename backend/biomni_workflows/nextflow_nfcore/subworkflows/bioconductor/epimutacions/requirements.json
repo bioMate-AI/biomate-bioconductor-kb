@@ -1,0 +1,17 @@
+{
+  "package": "epimutacions",
+  "requirements": [
+    "epimutacions",
+    "minfi"
+  ],
+  "by_workflow": {
+    "leave_one_out_epimutation_analysis.nf": [
+      "epimutacions",
+      "minfi"
+    ],
+    "main.nf": [
+      "epimutacions",
+      "minfi"
+    ]
+  }
+}

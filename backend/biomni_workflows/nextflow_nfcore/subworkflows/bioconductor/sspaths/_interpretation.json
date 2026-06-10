@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: unidirectional=TRUE ;; positive_val=1\n- alternatives: msigdbr (mentioned for fetching alternative gene sets for different pathways of interest instead of the built-in hypoxia genes)\n- when_to_use: When estimating pathway deviation scores for individual samples (e.g., single patients or cell lines) by training a discriminative gene weighting model on a reference cohort.\n- pitfalls: The normalization step in get_gene_weights scales across all genes in the SummarizedExperiment assay. For stability, the assay must contain at least 500 genes that are consistently expressed across all samples in addition to the pathway genes. The reference cohort must have a binary classification column Y and a sample_id column in its colData.",
+  "workflows": [
+    {
+      "name": "single_sample_pathway_scoring",
+      "intent": "Learn gene weightings for a specific pathway from a reference cohort and apply them to score new samples.",
+      "input": [
+        "reference_expression.csv (reference cohort gene expression matrix)",
+        "reference_metadata.csv (reference cohort sample metadata with binary class labels)",
+        "new_expression.csv (new samples gene expression matrix)",
+        "new_metadata.csv (new samples metadata with sample IDs)"
+      ],
+      "stages": "1. Format reference expression and metadata into a SummarizedExperiment object ;; 2. Retrieve or define pathway gene IDs ;; 3. Define the binary classification target variable Y in the reference metadata ;; 4. Learn gene weights and sample scores using get_gene_weights ;; 5. Evaluate classification accuracy using get_classification_accuracy ;; 6. Format new sample expression and metadata into a SummarizedExperiment object ;; 7. Apply learned gene weights to score new samples using get_new_samp_score",
+      "code": "library(\"ROCR\")\nlibrary(\"ggplot2\")\nlibrary(\"ssPATHS\")\n\ndata(tcga_expr_df)\n\ntcga_se <- SummarizedExperiment(t(tcga_expr_df[ , -(1:4)]),\n                                colData=tcga_expr_df[ , 2:4])\ncolnames(tcga_se) <- tcga_expr_df$tcga_id\ncolData(tcga_se)$sample_id <- tcga_expr_df$tcga_id\n\nhypoxia_gene_ids <- get_hypoxia_genes()\nhypoxia_gene_ids <- intersect(hypoxia_gene_ids, rownames(tcga_se))\n\ncolData(tcga_se)$Y <- ifelse(colData(tcga_se)$is_normal, 0, 1)\n\nres <- get_gene_weights(tcga_se, hypoxia_gene_ids, unidirectional=TRUE)\ngene_weights <- res[[1]]\nsample_scores <- res[[2]]\n\ntraining_res <- get_classification_accuracy(sample_scores, positive_val=1)\n\nplot(training_res[[4]], col=\"blue\", ylim=c(0, 1))\nroc_text <- paste(\"AUC:\", round(training_res$auc_roc,3))\n\nlegend(0.1,0.8, roc_text,\n       border=\"white\",cex=1,box.col = \"white\")\n\nplot(training_res[[3]], col=\"orange\", ylim=c(0, 1))\npr_text <- paste(\"AUC:\", round(training_res$auc_pr,3))\nlegend(0.1,0.8, pr_text,\n       border=\"white\",cex=1,box.col = \"white\")\n\ndata(new_samp_df)\nnew_samp_se <- SummarizedExperiment(t(new_samp_df[ , -(1)]),\n                                    colData=new_samp_df[ , 1, drop=FALSE])\ncolnames(colData(new_samp_se)) <- \"sample_id\"\n\nnew_score_df <- get_new_samp_score(gene_weights, new_samp_se)\nnew_score_df"
+    }
+  ]
+}

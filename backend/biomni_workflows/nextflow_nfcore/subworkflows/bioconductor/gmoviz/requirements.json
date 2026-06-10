@@ -1,0 +1,35 @@
+{
+  "package": "gmoviz",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "circlize",
+    "gmoviz",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "feature_diagram_plasmid_map.nf": [
+      "GenomicRanges",
+      "gmoviz",
+      "rtracklayer"
+    ],
+    "incremental_track_plotting.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "gmoviz"
+    ],
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "circlize",
+      "gmoviz"
+    ],
+    "multiple_insertion_diagram.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "gmoviz"
+    ]
+  }
+}

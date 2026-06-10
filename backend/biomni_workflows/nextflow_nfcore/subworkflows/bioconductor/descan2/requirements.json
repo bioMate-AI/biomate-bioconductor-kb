@@ -1,0 +1,25 @@
+{
+  "package": "descan2",
+  "requirements": [
+    "BiocParallel",
+    "DEScan2",
+    "EDASeq",
+    "RColorBrewer",
+    "RUVSeq",
+    "SummarizedExperiment",
+    "edgeR",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "DEScan2",
+      "EDASeq",
+      "RColorBrewer",
+      "RUVSeq",
+      "SummarizedExperiment",
+      "edgeR",
+      "limma"
+    ]
+  }
+}

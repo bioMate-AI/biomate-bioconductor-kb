@@ -1,0 +1,16 @@
+{
+  "package": "coverageview",
+  "requirements": [
+    "CoverageView",
+    "Rsamtools"
+  ],
+  "by_workflow": {
+    "interval_coverage_analysis.nf": [
+      "CoverageView",
+      "Rsamtools"
+    ],
+    "main.nf": [
+      "CoverageView"
+    ]
+  }
+}

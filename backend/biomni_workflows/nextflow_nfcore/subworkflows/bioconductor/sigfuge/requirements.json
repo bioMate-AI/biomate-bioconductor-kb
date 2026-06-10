@@ -1,0 +1,13 @@
+{
+  "package": "sigfuge",
+  "requirements": [
+    "SigFuge",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SigFuge",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sce=A SingleCellExperiment object to be converted to GDS format ;; cnt=A dense or sparse matrix of count data to be converted to GDS format ;; fn=Path to the GDS file to be loaded as a SingleCellExperiment object ;; logcnt=A DelayedMatrix of log-transformed counts used for summarization\n- alternatives: HDF5 & TileDB=Alternative file-based representations; GDS is preferred because it supports direct storage of sparse matrices without converting them to multiple vectors ;; scater::runPCA()=Standard PCA method; scRunPCA() is preferred for large-scale datasets because it performs SVD on the covariance matrix to reduce memory usage, avoiding beachmat's memory-intensive file-backed matrix realization\n- when_to_use: When analyzing large-scale single-cell omics datasets (e.g., hundreds of thousands or millions of cells) where in-memory processing would cause out-of-memory errors\n- pitfalls: Using standard scater::runPCA() on large GDS-backed datasets can trigger high memory usage due to in-memory realization; use scRunPCA() instead ;; Forgetting to close an opened GDS file using scClose() after calling scOpen() ;; Converting matrices without row or column names will trigger warnings and auto-generate placeholder names",
+  "workflows": [
+    {
+      "name": "gds_single_cell_analysis",
+      "intent": "Convert single-cell data to GDS format, load it as a GDS-backed SingleCellExperiment, and perform memory-efficient downstream analysis.",
+      "input": [
+        "example.rds (SingleCellExperiment object containing single-cell expression data)",
+        "example.gds (Genomic Data Structure file containing single-cell expression data)"
+      ],
+      "stages": "1. Convert SingleCellExperiment or matrix to GDS format using scConvGDS() ;; 2. Load GDS file as a SingleCellExperiment using scExperiment() ;; 3. Normalize counts using logNormCounts() ;; 4. Calculate row and column summarizations using colMeans(), rowMeans(), and scRowMeanVar() ;; 5. Perform memory-efficient PCA using scRunPCA() ;; 6. Perform UMAP dimensionality reduction using runUMAP()",
+      "code": "suppressPackageStartupMessages(library(SCArray))\nsuppressPackageStartupMessages(library(SingleCellExperiment))\nfn <- system.file(\"extdata\", \"example.rds\", package=\"SCArray\")\nsce <- readRDS(fn)\nscConvGDS(sce, \"test.gds\")\n(f <- scOpen(\"test.gds\"))\nscClose(f)\nlibrary(Matrix)\ncnt <- matrix(0, nrow=4, ncol=8)\nset.seed(100); cnt[sample.int(length(cnt), 8)] <- rpois(8, 4)\n(cnt <- as(cnt, \"sparseMatrix\"))\nscConvGDS(cnt, \"test.gds\")\n(fn <- system.file(\"extdata\", \"example.gds\", package=\"SCArray\"))\nsce <- scExperiment(fn)\ncnt <- assays(sce)$counts\nlogcnt <- log2(cnt + 1)\nsuppressPackageStartupMessages(library(scuttle))\nsce <- logNormCounts(sce)\ncol_mean <- colMeans(logcnt)\nrow_mean <- rowMeans(logcnt)\nmvar <- scRowMeanVar(logcnt)\nsce <- scRunPCA(sce)\nplotReducedDim(sce, dimred=\"PCA\")\nsuppressPackageStartupMessages(library(scater))\nsce <- runUMAP(sce)\nplotReducedDim(sce, dimred=\"UMAP\")"
+    }
+  ]
+}

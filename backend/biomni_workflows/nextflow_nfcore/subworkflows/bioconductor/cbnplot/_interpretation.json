@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: results=Enrichment analysis result object (e.g., from clusterProfiler or ReactomePA) ;; exp=Normalized expression data matrix or data frame with genes as rows and samples as columns ;; pathNum=The pathway index number in the enrichment results to plot ;; expRow=The type of gene identifier used in the expression matrix row names (e.g., \"ENTREZID\") ;; returnNet=Logical indicating whether to return the underlying network structure and strength data frame ;; nCategory=Number of top pathways to include in the pathway-level network ;; glowEdgeNum=Edge index to highlight with a glowing effect in custom plots ;; hub=Hub node index to highlight in custom plots ;; fontFamily=Font family for text labels (e.g., \"serif\", \"sans\")\n- alternatives: None mentioned; the package builds upon and integrates bnlearn, clusterProfiler, ReactomePA, graphite, and depmap.\n- when_to_use: Use when you have performed pathway enrichment analysis and want to explore the conditional dependencies and network structures among genes within an enriched pathway, or among multiple enriched pathways, using matching sample-level expression data.\n- pitfalls: The pathway number (pathNum) must correspond to a valid index in the enrichment results. The gene identifier type in the expression matrix rows (expRow) must match the format used in the enrichment results (e.g., \"ENTREZID\").",
+  "workflows": [
+    {
+      "name": "gene_level_bayesian_network",
+      "intent": "Infer and plot a Bayesian network of genes within a specific enriched pathway using expression data.",
+      "input": [
+        "enrichResult.rds (enrichment analysis results from clusterProfiler or ReactomePA)",
+        "expression_matrix.csv (normalized gene expression data with genes as rows and samples as columns)"
+      ],
+      "stages": "1. Visualize the gene-level Bayesian network for a specific pathway using bngeneplot. ;; 2. Extract the underlying network structure, strength, and direction by setting returnNet=TRUE. ;; 3. Convert the averaged network to an igraph object for centrality analysis. ;; 4. Customize the gene network visualization using bngeneplotCustom.",
+      "code": "bngeneplot(results = pway,exp = counts, pathNum = 1, expRow=\"ENTREZID\")\nret <- bngeneplot(results = pway,exp = counts, pathNum = 1, returnNet=TRUE, , expRow=\"ENTREZID\")\nhead(ret$str)\ng <- bnlearn::as.igraph(ret$av)\nigraph::evcent(g)$vector\nbngeneplotCustom(results = pway, exp = counts, expRow=\"ENTREZID\",\n                 pathNum=1, fontFamily=\"sans\", glowEdgeNum=NULL, hub=1)"
+    },
+    {
+      "name": "pathway_level_bayesian_network",
+      "intent": "Infer and plot a Bayesian network showing relationships between multiple enriched pathways.",
+      "input": [
+        "enrichResult.rds (enrichment analysis results from clusterProfiler or ReactomePA)",
+        "expression_matrix.csv (normalized gene expression data with genes as rows and samples as columns)"
+      ],
+      "stages": "1. Visualize relationships between top enriched pathways using bnpathplot. ;; 2. Customize the pathway network visualization using bnpathplotCustom.",
+      "code": "bnpathplot(results = pway,exp = counts, nCategory=5, shadowText = TRUE, expRow=\"ENTREZID\")\nbnpathplotCustom(results = pway, exp = counts, expRow=\"ENTREZID\",\n                 fontFamily=\"serif\", glowEdgeNum=1, hub=1)"
+    }
+  ]
+}

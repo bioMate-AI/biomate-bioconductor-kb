@@ -1,0 +1,16 @@
+{
+  "package": "mirit",
+  "requirements": [
+    "MIRit",
+    "ggpubr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MIRit",
+      "ggpubr"
+    ],
+    "unpaired_integration_workflow.nf": [
+      "MIRit"
+    ]
+  }
+}

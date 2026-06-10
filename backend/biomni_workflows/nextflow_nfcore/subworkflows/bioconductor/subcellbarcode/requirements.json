@@ -1,0 +1,19 @@
+{
+  "package": "subcellbarcode",
+  "requirements": [
+    "SubCellBarCode",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "differential_localization.nf": [
+      "SubCellBarCode",
+      "htmlwidgets"
+    ],
+    "exon_centric_classification.nf": [
+      "SubCellBarCode"
+    ],
+    "main.nf": [
+      "SubCellBarCode"
+    ]
+  }
+}

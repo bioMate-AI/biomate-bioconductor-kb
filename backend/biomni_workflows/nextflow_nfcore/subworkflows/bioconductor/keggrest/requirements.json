@@ -1,0 +1,19 @@
+{
+  "package": "keggrest",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "KEGGREST",
+    "png",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "KEGGREST",
+      "png",
+      "rtracklayer"
+    ]
+  }
+}

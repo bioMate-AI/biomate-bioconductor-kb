@@ -1,0 +1,21 @@
+{
+  "package": "opencyto",
+  "requirements": [
+    "data.table",
+    "flowWorkspace",
+    "ggcyto",
+    "openCyto"
+  ],
+  "by_workflow": {
+    "interactive_gating.nf": [
+      "flowWorkspace",
+      "openCyto"
+    ],
+    "main.nf": [
+      "data.table",
+      "flowWorkspace",
+      "ggcyto",
+      "openCyto"
+    ]
+  }
+}

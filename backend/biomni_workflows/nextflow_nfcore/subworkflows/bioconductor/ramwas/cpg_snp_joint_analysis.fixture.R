@@ -1,54 +1,77 @@
-# [biomate-fx-name] write targets matched to the workflow's declared input filenames
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("ramwas", "filematrix")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
 library(ramwas)
 library(filematrix)
 
-nsamples <- 20
-ncpgs <- 1000
-nsnps <- 500
+# 1. Reproduce the vignette's data-preparation code
+dr = paste0(tempdir(), "/simulated_project")
+dir.create(dr, showWarnings = FALSE, recursive = TRUE)
 
-# 1. covariates
-covariates <- data.frame(
-    sample = paste0("Sample_", 1:nsamples),
-    age = runif(nsamples, 20, 80),
-    sex = sample(c("M", "F"), nsamples, replace = TRUE)
+ramwas0createArtificialData(
+  dir = dr,
+  nsamples = 20,
+  nreads = 100e3,
+  ncpgs = 25e3,
+  threads = 2
 )
-write.table(covariates, "covariates.rds", sep = "\t", row.names = FALSE, quote = FALSE)
-write.table(covariates, "covariates.rds", sep = "\t", row.names = FALSE, quote = FALSE)
 
-# 2. CpG_chromosome_names.txt
-chr_names <- c("chr1", "chr2")
-writeLines(chr_names, "CpG_chromosome_names.txt")
+param = ramwasParameters(
+  dirproject = dr,
+  dirbam = "bams",
+  filebamlist = "bam_list.txt",
+  filecpgset = "Simulated_chromosome.rds",
+  cputhreads = 2,
+  scoretag = "MAPQ",
+  minscore = 4,
+  minfragmentsize = 50,
+  maxfragmentsize = 250,
+  minavgcpgcoverage = 0.3,
+  minnonzerosamples = 0.3,
+  filecovariates = "covariates.txt",
+  modelcovariates = NULL,
+  modeloutcome = "age",
+  modelPCs = 0,
+  toppvthreshold = 1e-5
+)
 
-# 3. CpG_locations (filematrix)
-cpg_locs <- matrix(0L, nrow = ncpgs, ncol = 2)
-cpg_locs[,1] <- sample(1:2, ncpgs, replace = TRUE)
-cpg_locs[,2] <- sort(sample(1:100000, ncpgs))
+# Run the pipeline steps to generate the normalized coverage matrix and CpG locations
+ramwas1scanBams(param)
+ramwas2collectqc(param)
+ramwas3normalizedCoverage(param)
 
-unlink(c("CpG_locations.bmat", "CpG_locations.desc.txt"))
-fm_cpg <- fm.create("CpG_locations", nrow = ncpgs, ncol = 2, type = "integer")
-fm_cpg[,] <- cpg_locs
-close(fm_cpg)
+pfull = parameterPreprocess(param)
+cov_dir = pfull$dircoveragenorm
 
-# 4. Coverage (filematrix)
-cov_mat <- matrix(runif(nsamples * ncpgs, 0, 100), nrow = nsamples, ncol = ncpgs)
-unlink(c("Coverage.bmat", "Coverage.desc.txt", "Coverage.rownames.txt"))
-fm_cov <- fm.create("Coverage", nrow = nsamples, ncol = ncpgs, type = "double")
-fm_cov[,] <- cov_mat
-rownames(fm_cov) <- covariates$sample
-close(fm_cov)
+# 2. Serialize objects to EACH declared input file in the working directory
 
-# 5. SNPs (filematrix)
-snp_mat <- matrix(sample(0:2, nsamples * nsnps, replace = TRUE), nrow = nsamples, ncol = nsnps)
-unlink(c("SNPs.bmat", "SNPs.desc.txt", "SNPs.rownames.txt"))
-fm_snp <- fm.create("SNPs", nrow = nsamples, ncol = nsnps, type = "integer")
-fm_snp[,] <- snp_mat
-rownames(fm_snp) <- covariates$sample
-close(fm_snp)
+# Copy Coverage filematrix
+for (f in list.files(cov_dir, pattern="^Coverage\\.", full.names=TRUE)) {
+  file.copy(f, basename(f), overwrite = TRUE)
+}
+
+# Copy CpG_locations filematrix
+for (f in list.files(cov_dir, pattern="^CpG_locations\\.", full.names=TRUE)) {
+  file.copy(f, basename(f), overwrite = TRUE)
+}
+
+# Copy CpG_chromosome_names.txt (part of the CpG_locations filematrix structure)
+if (file.exists(file.path(cov_dir, "CpG_chromosome_names.txt"))) {
+  file.copy(file.path(cov_dir, "CpG_chromosome_names.txt"), "CpG_chromosome_names.txt", overwrite = TRUE)
+}
+
+# Copy covariates
+file.copy(file.path(dr, "covariates.txt"), "covariates.txt", overwrite = TRUE)
+
+# Create SNPs filematrix matching Coverage dimensions
+cov_fm = fm.open("Coverage", readonly=TRUE)
+n_samples = nrow(cov_fm)
+n_cpgs = ncol(cov_fm)
+close(cov_fm)
+
+# Clean up any existing SNPs filematrix to avoid append issues
+for (f in list.files(".", pattern="^SNPs\\.")) {
+  file.remove(f)
+}
+
+# Generate synthetic genotype dosages (0, 1, 2) matching the coverage matrix dimensions
+snp_fm = fm.create("SNPs", nrow=n_samples, ncol=n_cpgs, type="integer")
+snp_fm[,] = matrix(sample(0:2, n_samples * n_cpgs, replace=TRUE), nrow=n_samples, ncol=n_cpgs)
+close(snp_fm)

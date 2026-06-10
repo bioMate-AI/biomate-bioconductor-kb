@@ -1,0 +1,16 @@
+{
+  "package": "rtopper",
+  "requirements": [
+    "RTopper",
+    "limma"
+  ],
+  "by_workflow": {
+    "gse_then_integration.nf": [
+      "RTopper",
+      "limma"
+    ],
+    "main.nf": [
+      "RTopper"
+    ]
+  }
+}

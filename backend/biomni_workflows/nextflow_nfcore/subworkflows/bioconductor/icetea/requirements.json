@@ -1,0 +1,23 @@
+{
+  "package": "icetea",
+  "requirements": [
+    "GenomeInfoDb",
+    "Rsubread",
+    "TxDb.Dmelanogaster.UCSC.dm6.ensGene",
+    "icetea",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomeInfoDb",
+      "Rsubread",
+      "TxDb.Dmelanogaster.UCSC.dm6.ensGene",
+      "icetea",
+      "rtracklayer"
+    ],
+    "tss_analysis_from_bams.nf": [
+      "icetea",
+      "rtracklayer"
+    ]
+  }
+}

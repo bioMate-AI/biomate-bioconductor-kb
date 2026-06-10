@@ -1,0 +1,11 @@
+{
+  "package": "imman",
+  "requirements": [
+    "IMMAN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IMMAN"
+    ]
+  }
+}

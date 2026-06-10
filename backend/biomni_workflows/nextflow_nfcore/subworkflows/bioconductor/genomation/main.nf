@@ -1,171 +1,194 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: genomation
-// A package for summary and annotation of genomic intervals. Users can visualize and quantify genomic 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/genomation/inst/doc/GenomationManual.R
-// Upstream  : AnnotationHub, GenomicRanges, genomationData, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("genomation")
+// Bioconductor workflow: genomation — genomic_signal_extraction_and_visualization
+// Extract genomic signal (e.g., CAGE, ChIP-seq) over windows of interest (e.g., promoters, exons) and visualize via heatmaps or meta-plots.
+// Input: aligned_reads.bam, genomic_features.gtf
+// Container: quay.io/biocontainers/bioconductor-genomation:1.42.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicAlignments, GenomicRanges, Rsamtools, genomation
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read genomic annotations using gffToGRanges
+//  * 2. [Input & Preparation] Build score matrices over windows using ScoreMatrix (equal width) or ScoreMatrixBin (unequal width)
+//  * 3. [Core Analysis] Combine multiple targets into a ScoreMatrixList
+//  * 4. [Core Analysis] Scale matrices using scaleScoreMatrix or scaleScoreMatrixList
+//  * 5. [Visualization & Output] Visualize using heatMatrix, plotMeta, or multiHeatMatrix
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENOMATION {
+process BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genomation"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomation:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomation:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genomation_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genomation_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genomation_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+                        
+    # Load required libraries
     library(genomation)
-    library(jsonlite)
-
-
-    # --- Setup2 [] ---
-    # Key functions: set, getwd, list.files, read.table
-    library(knitr)
-    opts_chunk$set(root.dir=getwd(),fig.align='center',
-                   fig.path='Figures', 
-                   dev='png',
-                   fig.show='hold', 
-                   cache=FALSE)
-    library(genomation)
-    library(genomationData)
     library(GenomicRanges)
-    set.seed=10
-    list.files(system.file('extdata',package='genomationData'))
-    sampleInfo = read.table(system.file('extdata/SamplesInfo.txt',
-                                        package='genomationData'),header=TRUE, sep='\t')
-    sampleInfo[1:5,1:5]
-
-    # --- Read Generic1 [] ---
-    # Key functions: readGeneric, genomation
-    library(genomation)
-    tab.file1=system.file("extdata/tab1.bed", package = "genomation")
-    readGeneric(tab.file1, header=TRUE)
-    readGeneric(tab.file1, header=TRUE, keep.all.metadata=TRUE)
-
-    readGeneric(tab.file1, header=TRUE, meta.col = list(CpGnum=4))
-    readGeneric(tab.file1, header=TRUE, keep.all.metadata=TRUE)
-
-    # --- Read Generic4 [] ---
-    # Key functions: readGeneric, genomation, gffToGRanges, readFeatureFlank
-    tab.file2=system.file("extdata/tab2.bed", package = "genomation")
-    readGeneric(tab.file2, chr=3, start=2, end=1)
-    gff.file=system.file("extdata/chr21.refseq.hg19.gtf", package = "genomation")
+    library(Rsamtools)
+    library(GenomicAlignments)
+    
+    # Define input files
+    bam.file = "aligned_reads.bam"
+    gff.file = "genomic_features.gtf"
+    
+    # Ensure BAM index exists
+    if (!file.exists(paste0(bam.file, ".bai"))) {
+      Rsamtools::indexBam(bam.file)
+    }
+    
+    # 1. Read genomic annotations and alignments
+    # Read BAM file as the primary genomic signal (cage)
+    cage = bam.file
+    
+    # Read GTF file
     gff = gffToGRanges(gff.file)
-    head(gff)
-    # reading genes stored as a BED files
-    cpgi.file = system.file("extdata/chr21.CpGi.hg19.bed", package = "genomation")
-    cpgi.flanks = readFeatureFlank(cpgi.file)
-    head(cpgi.flanks$flanks)
-
-    # --- Score Matrix Example [] ---
-    # Key functions: ScoreMatrix, ScoreMatrixList, read.table, list.files, match, basename, readBroadPeak
-    data(cage)
-    data(promoters)
+    
+    # Extract exons
+    exons = gffToGRanges(gff.file, filter='exon')
+    
+    # Extract promoters (using transcripts/mRNA if available, otherwise exons)
+    transcripts_for_prom = gff[gff\$type %in% c("transcript", "mRNA")]
+    if (length(transcripts_for_prom) == 0) {
+      transcripts_for_prom = exons
+    }
+    promoters = GenomicRanges::promoters(transcripts_for_prom, upstream=1000, downstream=1000)
+    promoters = unique(promoters)
+    
+    # Align seqlevels to avoid out-of-bounds or mismatch errors
+    bam_seqlevels = names(Rsamtools::scanBamHeader(cage)[[1]]\$targets)
+    common_seqlevels = intersect(bam_seqlevels, seqlevelsInUse(promoters))
+    promoters = keepSeqlevels(promoters, common_seqlevels, pruning.mode="coarse")
+    exons = keepSeqlevels(exons, common_seqlevels, pruning.mode="coarse")
+    
+    # Define a second target feature (cpgi) from a subset of exons to avoid external dependencies
+    cpgi = exons
+    if (length(cpgi) > 100) {
+      cpgi = cpgi[seq(1, length(cpgi), by=5)]
+    }
+    
+    # 2. Build score matrices over windows
+    # Equal width windows using ScoreMatrix
     sm = ScoreMatrix(target=cage, windows=promoters)
     sm
-    data(promoters)
-    data(cpgi)
-    data(cage)
-
-    cage$tpm = NULL
-    targets = list(cage=cage, cpgi=cpgi)
-    sm = ScoreMatrixList(targets=targets, windows=promoters, bin.num=50)
+    
+    # Unequal width windows (exons) using ScoreMatrixBin
+    sm = ScoreMatrixBin(target=cage, windows=exons, bin.num=50)
     sm
-    library(genomationData)
-    genomationDataPath = system.file('extdata',package='genomationData')
-    sampleInfo = read.table(file.path(genomationDataPath, 'SamplesInfo.txt'), 
-                            header=TRUE, sep='\t', stringsAsFactors=FALSE)
+    
+    # Grouped unequal width windows (transcripts) using ScoreMatrixBin
+    transcripts = split(exons, exons\$transcript_id)
+    sm = ScoreMatrixBin(target=cage, windows=transcripts, bin.num=10)
+    sm
+    
+    # 3. Combine multiple targets into a ScoreMatrixList
+    # ScoreMatrixList requires all targets to be of the same type.
+    # Convert BAM file to GRanges to match the cpgi GRanges object.
+    cage_gr = as(GenomicAlignments::readGAlignments(bam.file), "GRanges")
+    targets = list(cage=cage_gr, cpgi=cpgi)
+    sml_base = ScoreMatrixList(targets=targets, windows=promoters, bin.num=50)
+    sml_base
+    
+    # 4. Visualization and advanced analysis
+    # Open PDF device for plots
+    pdf("genomation_visualization_plots.pdf", width=10, height=8)
+    
+    # Heatmap and Meta-plot of the ScoreMatrixList
+    multiHeatMatrix(sml_base, xcoords=c(-1000, 1000))
+    plotMeta(sml_base, xcoords=c(-1000, 1000))
+    
+    # Strand-aware ScoreMatrix and grouping by overlap
+    sm_strand = ScoreMatrix(target=cage, windows=promoters, strand.aware=TRUE)
+    
+    # Filter promoters to match the windows kept by ScoreMatrix to avoid out-of-bounds errors
+    valid_promoters = promoters[as.numeric(rownames(sm_strand))]
+    cpg.ind = which(countOverlaps(valid_promoters, cpgi)>0)
+    nocpg.ind = which(countOverlaps(valid_promoters, cpgi)==0)
+    
+    # Heatmap with grouping (split the ScoreMatrix prior to plotting)
+    heatMatrix(sm_strand[cpg.ind, ], xcoords=c(-1000, 1000))
+    heatMatrix(sm_strand[nocpg.ind, ], xcoords=c(-1000, 1000))
+    
+    # Scaling the ScoreMatrix
+    sm.scaled = scaleScoreMatrix(sm_strand)
+    heatMatrix(sm.scaled[cpg.ind, ], xcoords=c(-1000, 1000))
+    heatMatrix(sm.scaled[nocpg.ind, ], xcoords=c(-1000, 1000))
+    
+    # Strand-aware ScoreMatrixList and multi-heatmap visualization
+    sml = ScoreMatrixList(targets=targets, windows=promoters, bin.num=50, strand.aware=TRUE)
+    multiHeatMatrix(sml, xcoords=c(-1000, 1000))
+    
+    # Multi-heatmap with k-means clustering (wrapped in tryCatch for robustness)
+    tryCatch({
+      multiHeatMatrix(sml, xcoords=c(-1000, 1000), clustfun=function(x) kmeans(x, centers=2)\$cluster)
+    }, error = function(e) {
+      warning("K-means clustering failed: ", e\$message)
+    })
+    
+    dev.off()
+    
+    # 5. Save meaningful outputs
+    saveRDS(sml_base, "score_matrix_list.rds")
+    saveRDS(sml, "score_matrix_list_strand_aware.rds")
+    
+    # Export a summary table of the scaled score matrix
+    sm_matrix = as(sm.scaled, "matrix")
+    write.csv(head(sm_matrix, 100), "scaled_score_matrix_head.csv", row.names=TRUE)
+    
+    message("Pipeline completed successfully. Outputs saved to 'genomation_visualization_plots.pdf', 'score_matrix_list.rds', and 'scaled_score_matrix_head.csv'.")
 
-    peak.files=list.files(genomationDataPath, full.names=TRUE, pattern='broadPeak')
-    names(peak.files) = sampleInfo$sampleName[match(basename(peak.files),sampleInfo$fileName)]
-
-
-    # --- Read All Peaks Annotation [] ---
-    # Key functions: annotateWithFeature, readTranscriptFeatures, genomation, annotateWithGeneParts
-    data(cpgi)
-    peak.annot = annotateWithFeature(ctcf.peaks, cpgi, intersect.chr=TRUE)
-    peak.annot
-    bed.file=system.file("extdata/chr21.refseq.hg19.bed", package = "genomation")
-    gene.parts = readTranscriptFeatures(bed.file)
-    ctcf.annot=annotateWithGeneParts(ctcf.peaks, gene.parts, intersect.chr=TRUE)
-    ctcf.annot
-
-    # --- Annotate Target List [] ---
-    # Key functions: GRangesList, annotateWithGeneParts, list.files, readBroadPeak, seqnames, resize
-    peaks = GRangesList(lapply(peak.files, readGeneric))
-    names(peaks) = names(peak.files)
-    annot.list = annotateWithGeneParts(peaks, gene.parts, intersect.chr=TRUE)
-    genomationDataPath = system.file('extdata',package='genomationData')
-    bam.files = list.files(genomationDataPath, full.names=TRUE, pattern='bam$')
-    bam.files = bam.files[!grepl('Cage', bam.files)]
-    ctcf.peaks = readBroadPeak(file.path(genomationDataPath, 
-                                         'wgEncodeBroadHistoneH1hescCtcfStdPk.broadPeak.gz'))
-    ctcf.peaks = ctcf.peaks[seqnames(ctcf.peaks) == 'chr21']
-    ctcf.peaks = ctcf.peaks[order(-ctcf.peaks$signalValue)]
-    ctcf.peaks = resize(ctcf.peaks, width=1000, fix='center')
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomation_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomation_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomation_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENOMATION:", paste0("    genomation: ", packageVersion("genomation"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION":',
+        paste0('    genomation: ', as.character(packageVersion('genomation')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genomation_results.csv
-    touch ${prefix}_genomation_output.rds
-    echo "BIOC_GENOMATION:" > versions.yml
-    echo "    genomation: 0.0.0" >> versions.yml
+    touch ${prefix}_genomic_signal_extraction_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENOMATION_WORKFLOW {
+workflow BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ aligned_reads.bam, genomic_features.gtf ] ]
 
     main:
-    BIOC_GENOMATION(ch_input)
+    BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_GENOMATION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENOMATION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENOMATION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENOMATION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION.out.tables
+    plots    = BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION.out.plots
+    objects  = BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION.out.objects
+    versions = BIOC_GENOMATION_GENOMIC_SIGNAL_EXTRACTION_AND_VISUALIZATION.out.versions
 }

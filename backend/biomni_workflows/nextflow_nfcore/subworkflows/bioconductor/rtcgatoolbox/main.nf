@@ -1,117 +1,189 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RTCGAToolbox
-// Managing data from large scale projects such as The Cancer Genome Atlas (TCGA) for further analysis 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RTCGAToolbox/inst/doc/RTCGAToolbox-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("RTCGAToolbox")
+// Bioconductor workflow: RTCGAToolbox — rtcgatoolbox_tcga_integration
+// Query TCGA Firehose metadata, download clinical data for comparison, and integrate local transcriptomic counts into a standard Bioconductor SummarizedExperiment
+// Input: counts.csv, coldata.csv
+// Container: 2.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RTCGAToolbox, S4Vectors, SummarizedExperiment
+// Visualizations: bar plot, box plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RTCGATOOLBOX {
+process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rtcgatoolbox"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rtcgatoolbox:2.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rtcgatoolbox:2.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rtcgatoolbox_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rtcgatoolbox_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rtcgatoolbox_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(RTCGAToolbox)
-    library(jsonlite)
-
-    # --- Getfirehosedatasets [] ---
-    # Key functions: getFirehoseDatasets
-    ---------------------------------------------------------------------
-    library(RTCGAToolbox)
-    # Valid aliases
-    getFirehoseDatasets()
-    # --- Getfirehoserunningdates [] ---
-    # Key functions: getFirehoseRunningDates
-    ---------------------------------------------------------------------
-    # Valid stddata runs
-    getFirehoseRunningDates(last = 3)
-    # --- Dates [] ---
-    # Key functions: dates, getFirehoseAnalyzeDates
-    ---------------------------------------------------------------------
-    # Valid analysis running dates (will return 3 recent date)
-    getFirehoseAnalyzeDates(last=3)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(accmini)
-    accmini
-    # --- Biocextract [] ---
-    # Key functions: biocExtract
-    ---------------------------------------------------------------------
-    biocExtract(accmini, "RNASeq2Gene")
-    biocExtract(accmini, "CNASNP")
-    # --- Head [] ---
-    # Key functions: getData
-    ---------------------------------------------------------------------
-    head(getData(accmini, "clinical"))
-    getData(accmini, "RNASeq2GeneNorm")
-    getData(accmini, "GISTIC", "AllByGene")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rtcgatoolbox_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rtcgatoolbox_results.csv")
+    library(S4Vectors)
+    
+    # ==========================================
+    # STAGE 1: Read Local Input Data
+    # ==========================================
+    message("Reading local input files...")
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    if ("gene_id" %in% colnames(counts_df)) {
+        rownames(counts_df) <- counts_df\$gene_id
+        counts_df\$gene_id <- NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rtcgatoolbox_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RTCGATOOLBOX:", paste0("    rtcgatoolbox: ", packageVersion("RTCGAToolbox"))),
-        "versions.yml"
+    counts_matrix <- as.matrix(counts_df)
+    
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # ==========================================
+    # STAGE 2: Query Firehose Metadata
+    # ==========================================
+    message("Querying Firehose metadata...")
+    datasets <- getFirehoseDatasets()
+    run_dates <- getFirehoseRunningDates(last = 3)
+    analyze_dates <- getFirehoseAnalyzeDates(last = 3)
+    
+    # Save Firehose metadata summary
+    metadata_summary <- data.frame(
+        Metric = c("Total_Available_Datasets", "Latest_Run_Date", "Latest_Analyze_Date"),
+        Value = c(length(datasets), run_dates[1], analyze_dates[1])
     )
+    write.csv(metadata_summary, "firehose_metadata.csv", row.names = FALSE)
+    
+    # ==========================================
+    # STAGE 3: Download and Extract TCGA Data
+    # ==========================================
+    message("Downloading TCGA clinical data for comparison...")
+    # We attempt to download clinical data for the Adrenocortical Carcinoma (ACC) cohort
+    tcga_data <- tryCatch({
+        getFirehoseData(
+            dataset = "ACC",
+            runDate = run_dates[1],
+            forceDownload = TRUE,
+            clinical = TRUE,
+            Mutation = FALSE,
+            RNASeq2Gene = FALSE
+        )
+    }, error = function(e) {
+        warning("Firehose download failed or timed out: ", e\$message)
+        NULL
+    })
+    
+    # Extract and save TCGA clinical data if available
+    if (!is.null(tcga_data) && !isEmpty(tcga_data)) {
+        message("Extracting TCGA clinical data...")
+        tcga_clinical <- getData(tcga_data, "clinical")
+        write.csv(tcga_clinical, "tcga_acc_clinical.csv", row.names = TRUE)
+    } else {
+        message("Using fallback empty clinical table due to download failure.")
+        fallback_df <- data.frame(
+            Sample_ID = character(0),
+            Survival_Days = numeric(0),
+            Status = character(0)
+        )
+        write.csv(fallback_df, "tcga_acc_clinical.csv", row.names = FALSE)
+    }
+    
+    # ==========================================
+    # STAGE 4: Build SummarizedExperiment & Analyze
+    # ==========================================
+    message("Integrating local data into SummarizedExperiment...")
+    # Align coldata with counts columns
+    common_samples <- intersect(colnames(counts_matrix), coldata_df\$sample)
+    
+    if (length(common_samples) > 0) {
+        counts_subset <- counts_matrix[, common_samples, drop = FALSE]
+        coldata_subset <- coldata_df[match(common_samples, coldata_df\$sample), , drop = FALSE]
+        rownames(coldata_subset) <- coldata_subset\$sample
+        
+        local_se <- SummarizedExperiment(
+            assays = list(counts = counts_subset),
+            colData = DataFrame(coldata_subset)
+        )
+    } else {
+        # Fallback if sample names do not match perfectly
+        rownames(coldata_df) <- coldata_df\$sample
+        local_se <- SummarizedExperiment(
+            assays = list(counts = counts_matrix),
+            colData = DataFrame(coldata_df)
+        )
+    }
+    
+    # Calculate library sizes as a basic QC metric
+    lib_sizes <- colSums(assay(local_se, "counts"))
+    colData(local_se)\$library_size <- lib_sizes
+    
+    # Save local sample summary
+    local_summary <- as.data.frame(colData(local_se))
+    write.csv(local_summary, "local_sample_summary.csv", row.names = TRUE)
+    
+    # ==========================================
+    # STAGE 5: Visualization
+    # ==========================================
+    message("Generating diagnostic plots...")
+    pdf("library_sizes.pdf", width = 7, height = 5)
+    if ("condition" %in% colnames(colData(local_se))) {
+        boxplot(library_size ~ condition, data = as.data.frame(colData(local_se)),
+                main = "Library Sizes by Experimental Condition",
+                ylab = "Total Counts", xlab = "Condition",
+                col = c("#4DAF4A", "#377EB8"))
+    } else {
+        barplot(lib_sizes, main = "Library Sizes per Sample", 
+                ylab = "Total Counts", las = 2, col = "skyblue")
+    }
+    dev.off()
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION":',
+        paste0('    RTCGAToolbox: ', as.character(packageVersion('RTCGAToolbox')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rtcgatoolbox_results.csv
-    touch ${prefix}_rtcgatoolbox_output.rds
-    echo "BIOC_RTCGATOOLBOX:" > versions.yml
-    echo "    rtcgatoolbox: 0.0.0" >> versions.yml
+    touch ${prefix}_rtcgatoolbox_tcga_integration.csv versions.yml
     """
 }
 
-
-workflow BIOC_RTCGATOOLBOX_WORKFLOW {
+workflow BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_RTCGATOOLBOX(ch_input)
+    BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION(ch_input)
 
     emit:
-    results  = BIOC_RTCGATOOLBOX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RTCGATOOLBOX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RTCGATOOLBOX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RTCGATOOLBOX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION.out.tables
+    plots    = BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION.out.plots
+    objects  = BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION.out.objects
+    versions = BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION.out.versions
 }

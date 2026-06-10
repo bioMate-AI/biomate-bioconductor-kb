@@ -1,0 +1,33 @@
+{
+  "package": "aggregatebiovar",
+  "requirements": [
+    "DESeq2",
+    "RColorBrewer",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "aggregateBioVar",
+    "cowplot",
+    "dplyr",
+    "ggplot2",
+    "ggtext",
+    "magrittr",
+    "pheatmap",
+    "viridis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "RColorBrewer",
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "aggregateBioVar",
+      "cowplot",
+      "dplyr",
+      "ggplot2",
+      "ggtext",
+      "magrittr",
+      "pheatmap",
+      "viridis"
+    ]
+  }
+}

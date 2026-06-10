@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=An N x D matrix where N is the number of samples and D is the number of features (e.g., genes) ;; dim/dims=Target dimensionality (integer for LLE, vector of integers for Isomap) ;; k=Number of nearest neighbors to consider for local properties (LLE) or neighborhood graph (Isomap) ;; plotResiduals=Logical (for Isomap), if TRUE, plots residual variance to help estimate intrinsic dimension ;; mod=Logical (for Isomap), if TRUE, uses a modified Isomap respecting nearest and farthest neighbors ;; labels=Vector of class labels for plotting (plotDR) or cluster validation (DBIndex)\n- alternatives: Isomap vs LLE: Isomap preserves global properties (geodesic distances), whereas LLE preserves local properties (representing samples as linear combinations of neighbors). Feature extraction vs feature selection: This package uses feature extraction (combining all features) rather than feature selection.\n- when_to_use: When analyzing high-dimensional transcriptomics data (e.g., microarray or RNA-seq expression matrices) where nonlinear relationships or submanifolds are suspected, and low-dimensional visualization or cluster validation is needed.\n- pitfalls: Requires the rgl package for 3D plotting; without it, only 2D plots are available. Requires the MASS package for gene expression data simulation. Input data must be formatted as an N x D matrix (samples as rows, features as columns), which is the transpose of standard Bioconductor expression matrices (which are usually features as rows, samples as columns).",
+  "workflows": [
+    {
+      "name": "nonlinear_dimension_reduction",
+      "intent": "Perform nonlinear dimension reduction using Isomap and LLE on transcriptomics data, estimate intrinsic dimensionality, validate clusters using the Davies-Bouldin Index, and visualize the results.",
+      "input": [
+        "expression_matrix.csv (high-dimensional gene expression matrix with genes as rows and samples as columns)",
+        "sample_metadata.csv (sample annotations containing class labels)"
+      ],
+      "stages": "1. Transpose the expression matrix to format it as N x D (samples x features) ;; 2. Estimate the intrinsic dimension of the dataset using Isomap with residual variance plotting ;; 3. Perform Isomap dimension reduction to 2 dimensions ;; 4. Perform LLE dimension reduction to 2 dimensions ;; 5. Validate the quality of the resulting clusters using the Davies-Bouldin Index ;; 6. Visualize the low-dimensional embeddings using plotDR",
+      "code": "library(golubEsets)\ndata(Golub_Merge)\ngolubExprs = t(exprs(Golub_Merge))\nlabels = pData(Golub_Merge)$ALL.AML\ndim(golubExprs)\nshow(labels)\nIsomap(data=golubExprs, dims=1:10, plotResiduals=TRUE, k=5)\ngolubIsomap = Isomap(data=golubExprs, dims=2, k=5)\ngolubLLE = LLE(data=golubExprs, dim=2, k=5)\nDBIndex(data=golubIsomap$dim2, labels=labels)\nDBIndex(data=golubLLE, labels=labels)\nplotDR(data=golubIsomap$dim2, labels=labels, axesLabels=c(\"\", \"\"), legend=TRUE)\ntitle(main=\"Isomap\")\nplotDR(data=golubLLE, labels=labels, axesLabels=c(\"\", \"\"), legend=TRUE)\ntitle(main=\"LLE\")"
+    }
+  ]
+}

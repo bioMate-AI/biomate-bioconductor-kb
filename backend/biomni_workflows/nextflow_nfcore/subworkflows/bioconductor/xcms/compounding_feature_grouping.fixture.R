@@ -1,35 +1,31 @@
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("xcms", "MsExperiment", "faahKO")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
+library(MSnbase)
 library(xcms)
-library(MsExperiment)
 library(faahKO)
+library(Biobase)
 
-# Locate the CDF files shipped with the faahKO package (offline data)
-cdfpath <- system.file("cdf", package = "faahKO")
-cdffiles <- list.files(cdfpath, recursive = TRUE, full.names = TRUE)[1:2]
+# The vignette uses MsDataHub which downloads from Zenodo.
+# To ensure the script runs fully offline, we use the faahKO package 
+# (present in the vignette's sessionInfo) which ships with local CDF files.
+mzML_files <- list.files(system.file("cdf", "KO", package = "faahKO"), 
+                         full.names = TRUE)[1:2]
 
-# Create a data.frame describing the experimental setup
-pd <- data.frame(
-    filename = basename(cdffiles),
-    sample_group = c("KO", "KO"),
-    stringsAsFactors = FALSE
-)
+# Create a data.frame assigning samples to sample groups
+grp <- c("KO", "KO")
+pd <- data.frame(filename = basename(mzML_files), sample_group = grp)
 
-# Read the data into an MsExperiment object
-raw_data <- readMsExperiment(spectraFiles = cdffiles, sampleData = pd)
+# Load the data
+ham_raw <- readMSData(files = mzML_files, 
+                      pdata = AnnotatedDataFrame(pd), 
+                      mode = "onDisk")
 
-# Define parameters for peak detection
-# Using CentWaveParam as it is appropriate for the LC-MS data in faahKO
-cwp <- CentWaveParam(peakwidth = c(20, 50), noise = 1000)
+# Since faahKO is LC-MS data (unlike the direct injection data in the vignette),
+# we use CentWaveParam instead of MSWParam for peak detection.
+cwp <- CentWaveParam(snthresh = 10, noise = 1000, ppm = 25, peakwidth = c(20, 50))
+ham_prep <- findChromPeaks(ham_raw, param = cwp)
 
-# Perform peak detection to generate the preprocessed XcmsExperiment object
-xmse <- findChromPeaks(raw_data, param = cwp)
+# Correspondence (grouping) using PeakDensityParam for LC-MS
+pdp <- PeakDensityParam(sampleGroups = ham_prep$sample_group)
+ham_prep <- groupChromPeaks(ham_prep, param = pdp)
 
-# Save the preprocessed XcmsExperiment object to the required input file
-saveRDS(xmse, "xmse.rds")
+# Save the preprocessed XCMSnExp object to the expected input file
+saveRDS(ham_prep, "xmse.rds")

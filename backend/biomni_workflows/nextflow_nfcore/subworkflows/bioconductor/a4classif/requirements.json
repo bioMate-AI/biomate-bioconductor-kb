@@ -1,0 +1,13 @@
+{
+  "package": "a4classif",
+  "requirements": [
+    "Biobase",
+    "a4Classif"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "a4Classif"
+    ]
+  }
+}

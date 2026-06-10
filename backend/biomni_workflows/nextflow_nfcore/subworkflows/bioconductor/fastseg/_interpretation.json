@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: segMedianT=threshold parameter for segmentation (e.g., segMedianT=0.2) ;; plot.type=type of plot in segPlot (e.g., \"w\" for whole genome, \"s\" for single chromosome/sample-wise)\n- alternatives: DNAcopy (Olshen et al., 2004) which implements Circular Binary Segmentation (CBS). fastseg is considerably faster and more flexible, making it preferable for large datasets (like NGS or high-density microarrays).\n- when_to_use: Appropriate for detecting copy number segments from DNA microarrays or NGS data, identifying transcripts from RNA tiling microarrays, or general segmentation of numeric vectors and matrices.\n- pitfalls: Segmentation quality depends strongly on parameter settings (e.g., segMedianT). Missing values (NA) in the input data may need to be imputed (e.g., using the median) prior to running fastseg.",
+  "workflows": [
+    {
+      "name": "genomic_ranges_segmentation",
+      "intent": "Segment genomic data represented as a GRanges object to identify copy number segments and plot the results.",
+      "input": [
+        "gr (GRanges object containing genomic coordinates and sample intensity/log-ratio data in metadata columns)"
+      ],
+      "stages": "1. Load GenomicRanges and fastseg packages ;; 2. Run segmentation using fastseg ;; 3. Plot the segmentation results using segPlot",
+      "code": "library(fastseg)\nlibrary(\"GenomicRanges\")\n\n## with both individuals\ngr <- GRanges(seqnames=chrom,\n        ranges=IRanges(maploc, end=maploc))\nmcols(gr) <- data\ncolnames(mcols(gr)) <- samplenames\nres <- fastseg(gr)\nhead(res)\n\n## with one individual\ngr2 <- gr\ndata2 <- as.matrix(data[, 1])\ncolnames(data2) <- \"sample1\"\nmcols(gr2) <- data2\nres <- fastseg(gr2)\nhead(res)\n\n## with both individuals\ngr <- GRanges(seqnames=chrom,\n        ranges=IRanges(maploc, end=maploc))\nmcols(gr) <- data\ncolnames(mcols(gr)) <- samplenames\nres <- fastseg(gr,segMedianT=0.2)\n\nsegPlot(gr,res, plot.type=\"w\")\nsegPlot(gr, res, plot.type=\"s\")"
+    },
+    {
+      "name": "expressionset_segmentation",
+      "intent": "Segment microarray expression data represented as an ExpressionSet object.",
+      "input": [
+        "eSet (ExpressionSet object containing intensity data and feature annotations for chromosomes and positions)"
+      ],
+      "stages": "1. Load Biobase and fastseg packages ;; 2. Construct or load the ExpressionSet object ;; 3. Run segmentation using fastseg",
+      "code": "library(fastseg)\nlibrary(\"Biobase\")\neSet <- Biobase::ExpressionSet()\nassayData(eSet) <- list(intensity=data)\n\nfeatureData(eSet) <- AnnotatedDataFrame(\n        data=data.frame(\n                chrom = paste(\"chr\",chrom,sep=\"\"),\n                start = maploc, \n                end   = maploc,stringsAsFactors=FALSE))\nphenoData(eSet) <- AnnotatedDataFrame(\n        data=data.frame(samples=samplenames))\nsampleNames(eSet) <- samplenames\nres <- fastseg(eSet)\nhead(res)"
+    },
+    {
+      "name": "vector_matrix_segmentation",
+      "intent": "Segment raw numeric vectors or matrices without genomic coordinate metadata.",
+      "input": [
+        "data2 (numeric vector or matrix of intensity values)"
+      ],
+      "stages": "1. Load fastseg package ;; 2. Run segmentation on a vector or matrix using fastseg",
+      "code": "library(fastseg)\ndata2 <- data[, 1]\nres <- fastseg(data2)\nhead(res)\n\ndata2 <- data[1:400, ]\nres <- fastseg(data2)\nhead(res)"
+    }
+  ]
+}

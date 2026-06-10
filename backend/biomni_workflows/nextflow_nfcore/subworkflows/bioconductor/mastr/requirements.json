@@ -1,0 +1,33 @@
+{
+  "package": "mastr",
+  "requirements": [
+    "Biobase",
+    "GSEABase",
+    "edgeR",
+    "ggplot2",
+    "limma",
+    "mastR",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEABase",
+      "edgeR",
+      "ggplot2",
+      "limma",
+      "mastR",
+      "org.Hs.eg.db"
+    ],
+    "multi_dataset_signature_aggregation.nf": [
+      "Biobase",
+      "GSEABase",
+      "edgeR",
+      "mastR"
+    ],
+    "single_cell_pseudo_bulk_signature.nf": [
+      "edgeR",
+      "mastR"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "velociraptor",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggplot2",
+    "scater",
+    "scran",
+    "scuttle",
+    "velociraptor"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scater",
+      "scran",
+      "scuttle",
+      "velociraptor"
+    ]
+  }
+}

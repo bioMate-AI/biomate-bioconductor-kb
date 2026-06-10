@@ -1,0 +1,11 @@
+{
+  "package": "clomial",
+  "requirements": [
+    "Clomial"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Clomial"
+    ]
+  }
+}

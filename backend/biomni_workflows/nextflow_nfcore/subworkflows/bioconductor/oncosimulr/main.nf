@@ -1,103 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: OncoSimulR
-// Functions for forward population genetic simulation in asexual populations, with special focus on ca
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/OncoSimulR/inst/doc/OncoSimulR.R
-// Upstream  : Oncotree, devtools, graph, igraph, parallel
-// Downstream: none
-//
-// Install: BiocManager::install("OncoSimulR")
+// Bioconductor workflow: OncoSimulR — simulating_progression_with_dag_restrictions
+// Specify fitness restrictions using a directed acyclic graph (DAG) or poset, simulate population growth, and sample the population.
+// Input: data.frame
+// Container: quay.io/biocontainers/bioconductor-oncosimulr:4.12.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: OncoSimulR
+// Visualizations: trajectory plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Specify fitness effects using allFitnessEffects with the restriction data frame
+//  * 2. [Core Analysis] Simulate individual trajectories using oncoSimulIndiv
+//  * 3. [Core Analysis] Sample the simulated population using samplePop
 
 nextflow.enable.dsl = 2
 
-process BIOC_ONCOSIMULR {
+process BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-oncosimulr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-oncosimulr:4.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-oncosimulr:4.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_oncosimulr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_oncosimulr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_oncosimulr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(OncoSimulR)
-    library(RNGkind)
-    library(jsonlite)
-
-    # --- Fitness and Mutator Effects Modeling [] ---
-    # Key functions: allFitnessEffects, allMutatorEffects, evalAllGenotypesFitAndMut
-    od <- allFitnessEffects(
-        epistasis = c("u" = 0.2, "u:i" = -Inf, "u:v" = -Inf,
-                      "i" = -0.02, "v:-i" = -Inf, "v:i" = 0.6))
-    odm <- allMutatorEffects(noIntGenes = c("i" = 50))
-    eval_res <- evalAllGenotypesFitAndMut(od, odm, addwt = TRUE)
-
-
-    # --- Fitness Landscape Evolution [] ---
-    # Key functions: rfitness, allFitnessEffects, oncoSimulPop, LOD, diversityLOD
-    rl <- rfitness(5, c = 1.5, min_accessible_genotypes = 5)
-    afe <- allFitnessEffects(genotFitness = rl)
-    simulrl <- oncoSimulPop(5, afe, keepPhylog = TRUE, keepEvery = 1,
-                            onlyCancer = TRUE, initSize = 1000,
-                            seed = NULL, mc.cores = 1)
-    div_lod <- diversityLOD(LOD(simulrl))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_oncosimulr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_oncosimulr_results.csv")
+    
+    # 1. Read the user-provided DAG/poset restrictions from the working directory
+    # The file must be named "dag_restrictions.csv" and contain columns: parent, child, s, sh, typeDep
+    input_file <- "dag_restrictions.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file", input_file, "not found in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_oncosimulr_output.rds")
-    }
+    
+    dag_df <- read.csv(input_file, stringsAsFactors = FALSE)
+    
+    # Dynamically extract driver names (all unique genes excluding "Root")
+    all_genes <- unique(c(dag_df\$parent, dag_df\$child))
+    drv_names <- all_genes[all_genes != "Root"]
+    
+    # Stage 1: Specify fitness effects using allFitnessEffects with the restriction data frame
+    pancr <- allFitnessEffects(
+        dag_df,
+        drvNames = drv_names)
+    
+    # Stage 2: Simulate individual trajectories using oncoSimulIndiv
+    # Keeping the exact documented function call and arguments
+    ep2 <- oncoSimulIndiv(pancr, model = "McFL",
+                         mu = 1e-6,
+                         sampleEvery = 0.02,
+                         keepEvery = 1,
+                         initSize = 1000,
+                         finalTime = 20000,
+                         detectionDrivers = 3,
+                         onlyCancer = FALSE)
+    
+    # Stage 3: Sample the simulated population using samplePop
+    sampled_pop <- samplePop(ep2)
+    
+    # Write meaningful output files
+    # 1. Save the simulation object as an RDS file
+    saveRDS(ep2, file = "simulation_results.rds")
+    
+    # 2. Save the sampled population matrix as a CSV
+    write.csv(as.data.frame(sampled_pop), file = "sampled_population.csv", row.names = TRUE)
+    
+    # 3. Save the DAG structure plot as a PDF
+    pdf("dag_structure_plot.pdf")
+    tryCatch({
+      plot(pancr)
+    }, error = function(e) {
+      warning("Could not plot DAG structure: ", e\$message)
+    })
+    dev.off()
+    
+    # 4. Save the simulation trajectory plot as a PDF
+    pdf("simulation_trajectory_plot.pdf")
+    tryCatch({
+      plot(ep2, show = "genotypes")
+    }, error = function(e) {
+      warning("Could not plot simulation trajectory: ", e\$message)
+    })
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ONCOSIMULR:", paste0("    oncosimulr: ", packageVersion("OncoSimulR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS":',
+        paste0('    OncoSimulR: ', as.character(packageVersion('OncoSimulR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_oncosimulr_results.csv
-    touch ${prefix}_oncosimulr_output.rds
-    echo "BIOC_ONCOSIMULR:" > versions.yml
-    echo "    oncosimulr: 0.0.0" >> versions.yml
+    touch ${prefix}_simulating_progression_with_dag_restrictions.csv versions.yml
     """
 }
 
-
-workflow BIOC_ONCOSIMULR_WORKFLOW {
+workflow BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data.frame ] ]
 
     main:
-    BIOC_ONCOSIMULR(ch_input)
+    BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS(ch_input)
 
     emit:
-    results  = BIOC_ONCOSIMULR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ONCOSIMULR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ONCOSIMULR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ONCOSIMULR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS.out.tables
+    plots    = BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS.out.plots
+    objects  = BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS.out.objects
+    versions = BIOC_ONCOSIMULR_SIMULATING_PROGRESSION_WITH_DAG_RESTRICTIONS.out.versions
 }

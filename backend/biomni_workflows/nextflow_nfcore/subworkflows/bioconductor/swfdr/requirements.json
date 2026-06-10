@@ -1,0 +1,20 @@
+{
+  "package": "swfdr",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "reshape2",
+    "swfdr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "reshape2",
+      "swfdr"
+    ],
+    "science_wise_fdr_estimation.nf": [
+      "dplyr",
+      "swfdr"
+    ]
+  }
+}

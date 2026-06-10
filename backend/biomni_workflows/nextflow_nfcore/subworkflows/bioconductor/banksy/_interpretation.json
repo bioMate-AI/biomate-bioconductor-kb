@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - lambda=Mixing parameter in [0,1] determining spatial information weight. Use lambda=0.2 for cell-typing and lambda=0.8 for domain/zone-finding (except Visium v1/v2 where lambda=0.2 is recommended for domain finding) ;;\n    - k_geom=Number of spatial neighbors. Use k_geom=18 (or c(18, 18) if compute_agf=TRUE) for Visium v1/v2, k_geom=30 for STARmap PLUS, and custom values like c(15, 30) for multi-scale neighborhood analysis ;;\n    - compute_agf=Logical; if TRUE, computes both the weighted neighborhood mean (H_0) and the azimuthal Gabor filter (H_1) to estimate gene expression gradients ;;\n    - group=Grouping variable in colData (e.g., \"sample_id\") used during multi-sample runBanksyPCA to z-scale features separately per sample ;;\n    - resolution=Resolution parameter for clustering (e.g., Leiden) ;;\n    - k_neighbors=Number of nearest neighbors used to construct the shared nearest neighbors graph in clusterBanksy\n- alternatives:\n    - scrapper::computeRnaQcMetrics=Preferred over deprecated scuttle::perCellQCMetrics for quality control ;;\n    - scrapper::centerSizeFactors=Preferred over deprecated scuttle::librarySizeFactors for normalization ;;\n    - scrapper::normalizeCounts=Preferred over deprecated scuttle::normalizeCounts for log-normalization ;;\n    - harmony::RunHarmony=Used on the BANKSY PCA embedding to integrate multiple spatial datasets and correct for batch effects\n- when_to_use: Use when performing spatially-informed cell-typing or spatial domain segmentation on spatial transcriptomics datasets (e.g., 10x Visium, STARmap PLUS, VeraFISH).\n- pitfalls:\n    - Using default domain segmentation parameters (lambda=0.8, k_geom=30) on Visium v1/v2 datasets instead of the recommended lambda=0.2 and k_geom=18 ;;\n    - Forgetting to stagger spatial coordinates when merging multiple samples, which can lead to spatial coordinate overlap ;;\n    - Relying on deprecated scuttle functions (perCellQCMetrics, librarySizeFactors, normalizeCounts) instead of their scrapper equivalents",
+  "workflows": [
+    {
+      "name": "single_sample_spatial_clustering",
+      "intent": "Perform spatially-informed cell-typing or domain segmentation on a single spatial transcriptomics sample.",
+      "input": [
+        "gcm_path (processed expression CSV)",
+        "mdata_path (spatial coordinates and metadata CSV)"
+      ],
+      "stages": "1. Load and preprocess data into a SpatialExperiment object ;; 2. Compute neighborhood feature matrices ;; 3. Run PCA on the BANKSY matrix ;; 4. Cluster the BANKSY embedding ;; 5. Relabel clusters to minimize differences ;; 6. Compare cluster outputs using Adjusted Rand Index (ARI)",
+      "code": "se <- SpatialExperiment(\n    assay = list(processedExp = gcm),\n    spatialCoords = locs,\n    colData = mdata\n)\nse <- Banksy::computeBanksy(se, assay_name = aname, k_geom = k_geom)\nse <- Banksy::runBanksyPCA(se, lambda = lambda, npcs = npcs)\nse <- Banksy::clusterBanksy(se, lambda = lambda, npcs = npcs, resolution = 0.8)\nse <- connectClusters(se)\ncompareClusters(se, func = \"ARI\")"
+    },
+    {
+      "name": "multi_sample_joint_clustering",
+      "intent": "Jointly cluster multiple spatial transcriptomics samples with optional spatial label smoothing.",
+      "input": [
+        "spe_list (list of SpatialExperiment objects, one per sample)"
+      ],
+      "stages": "1. Compute BANKSY neighborhood feature matrices for each sample separately ;; 2. Merge samples into a joint object ;; 3. Run joint PCA with sample grouping ;; 4. Run joint UMAP ;; 5. Cluster the joint embedding ;; 6. Connect clusters across runs ;; 7. Split the joint object back into individual samples ;; 8. Smooth cluster labels per sample ;; 9. Compare clusters using Adjusted Rand Index (ARI)",
+      "code": "spe_list <- lapply(spe_list, computeBanksy, assay_name = aname, compute_agf = compute_agf, k_geom = k_geom)\nspe_joint <- do.call(cbind, spe_list)\nspe_joint <- runBanksyPCA(spe_joint, use_agf = use_agf, lambda = lambda, group = \"sample_id\", seed = 1000)\nspe_joint <- runBanksyUMAP(spe_joint, use_agf = use_agf, lambda = lambda, seed = 1000)\nspe_joint <- clusterBanksy(spe_joint, use_agf = use_agf, lambda = lambda, resolution = res, seed = 1000)\nspe_joint <- connectClusters(spe_joint)\nspe_list <- lapply(sample_names, function(x) spe_joint[, spe_joint$sample_id == x])\nspe_list <- lapply(spe_list, smoothLabels, cluster_names = cnm, k = 6L, verbose = FALSE)\ncompareClusters(spe_list$sample_151673, func = 'ARI')"
+    },
+    {
+      "name": "spatial_integration_with_harmony",
+      "intent": "Integrate multiple spatial transcriptomics datasets using Harmony on the BANKSY embedding to correct for batch effects.",
+      "input": [
+        "spe (SpatialExperiment object containing multiple samples with staggered coordinates)"
+      ],
+      "stages": "1. Compute BANKSY neighborhood matrices ;; 2. Run PCA on the BANKSY matrix ;; 3. Run Harmony on the BANKSY PCA embedding ;; 4. Run UMAP on the Harmony-corrected embedding ;; 5. Cluster the Harmony-corrected embedding ;; 6. Connect clusters to reference annotations",
+      "code": "spe <- computeBanksy(spe, assay_name = aname, compute_agf = compute_agf, k_geom = k_geom)\nspe <- runBanksyPCA(spe, use_agf = use_agf, lambda = lambda, npcs = npcs, seed = SEED)\nharmony_embedding <- harmony::RunHarmony(\n    data_mat = reducedDim(spe, \"PCA_M1_lam0.2\"),\n    meta_data = colData(spe),\n    vars_use = c(\"sample_id\", \"subject_id\"),\n    max_iter = 20,\n    verbose = FALSE\n)\nreducedDim(spe, \"Harmony_BANKSY\") <- harmony_embedding\nspe <- runBanksyUMAP(spe, use_agf = TRUE, lambda = lambda, npcs = npcs)\nspe <- runBanksyUMAP(spe, dimred = \"Harmony_BANKSY\")\nspe <- clusterBanksy(spe, dimred = \"Harmony_BANKSY\", resolution = 0.55, seed = SEED)\nspe <- connectClusters(spe, map_to = \"clust_annotation\")"
+    }
+  ]
+}

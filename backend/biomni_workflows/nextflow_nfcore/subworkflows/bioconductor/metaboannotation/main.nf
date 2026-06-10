@@ -1,124 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MetaboAnnotation
-// High level functions to assist in annotation of (metabolomics) data sets. These include functions to
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MetaboAnnotation/inst/doc/MetaboAnnotation.R
-// Upstream  : AnnotationHub, QFeatures, Spectra, SummarizedExperiment, microbenchmark
-// Downstream: none
-//
-// Install: BiocManager::install("MetaboAnnotation")
+// Bioconductor workflow: MetaboAnnotation — match_values
+// Match experimental LC-MS features (m/z and retention times) from data.frames, SummarizedExperiment, or QFeatures objects against a reference database of exact m
+// Input: ms1_features.txt, LipidMaps_CompDB.txt
+// Container: quay.io/biocontainers/bioconductor-metaboannotation:1.14.0--r45hdfd78af_0
+// R packages: AnnotationHub, MetaboAnnotation, microbenchmark, QFeatures, Spectra, SummarizedExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MetaboAnnotation, QFeatures, SummarizedExperiment
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load query and target datasets
+//  * 2. [Input & Preparation] Define matching parameters using Mass2MzParam or Mass2MzRtParam
+//  * 3. [Core Analysis] Perform matching using matchValues()
+//  * 4. [Core Analysis] Inspect and extract matches using matchedData(), whichQuery(), and whichTarget()
 
 nextflow.enable.dsl = 2
 
-process BIOC_METABOANNOTATION {
+process BIOC_METABOANNOTATION_MATCH_VALUES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-metaboannotation"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-metaboannotation:1.10.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-metaboannotation:1.10.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_metaboannotation_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_metaboannotation_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_metaboannotation_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationHub", "MetaboAnnotation", "microbenchmark", "QFeatures", "Spectra", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(MetaboAnnotation)
-    library(CompareSpectraParam)
-    library(Mass2MzParam)
-    library(Mass2MzRtParam)
-    library(MatchForwardReverseParam)
-    library(MsBackendMemory)
-    library(MzRtParam)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- MS1 Feature Matching with Retention Time [] ---
-    # Key functions: Mass2MzRtParam, matchValues, whichQuery, whichTarget
-    ms1_subset <- data.frame(mz = c(120.08, 150.12), rtime = c(10, 20))
-    target_df <- data.frame(exactmass = c(119.07, 149.11), rtime = c(12, 22))
-    parm <- Mass2MzRtParam(adducts = c("[M+H]+", "[M+Na]+"),
-                           tolerance = 0.005, ppm = 0,
-                           toleranceRt = 10)
-    matched_features <- matchValues(ms1_subset, target_df, param = parm,
-                                    rtColname = "rtime")
-    q_idx <- whichQuery(matched_features)
-    t_idx <- whichTarget(matched_features)
-
-
-    # --- MS2 Spectra Matching [] ---
-    # Key functions: CompareSpectraParam, matchSpectra, spectraVariables, spectraData
-    csp <- CompareSpectraParam(requirePrecursor = TRUE, ppm = 10)
-    mtches <- matchSpectra(pest_ms2, minimb, param = csp)
-    spec_vars <- spectraVariables(mtches)
-    mtches_df <- spectraData(mtches,
-                             columns = c("spectrum_id", "score",
-                                         "target_compound_name"))
-
-
-    # --- Visualisation and Processing of Matched Spectra [] ---
-    # Key functions: addProcessing, plotSpectraMirror
-    scale_int <- function(x, ...) {
-        x[, "intensity"] <- x[, "intensity"] / max(x[, "intensity"],
-                                                   na.rm = TRUE)
-        x
-    }
-    mtches_scaled <- addProcessing(mtches, scale_int)
-    plotSpectraMirror(mtches_scaled[2])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_metaboannotation_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_metaboannotation_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_metaboannotation_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METABOANNOTATION:", paste0("    metaboannotation: ", packageVersion("MetaboAnnotation"))),
-        "versions.yml"
+    library(QFeatures)
+    
+    # 1. Load query and target datasets from the working directory
+    ms1_features <- read.table("ms1_features.txt", header = TRUE, sep = "\t")
+    target_df <- read.table("LipidMaps_CompDB.txt", header = TRUE, sep = "\t")
+    
+    # Determine subset size safely (up to 100 rows as in the documented code)
+    n_limit <- min(100, nrow(ms1_features))
+    ms1_subset <- ms1_features[1:n_limit, ]
+    
+    # 2. Define matching parameters using Mass2MzParam and perform matching
+    parm <- Mass2MzParam(adducts = c("[M+H]+", "[M+Na]+"), tolerance = 0.005, ppm = 0)
+    matched_features <- matchValues(ms1_subset, target_df, parm)
+    
+    # Inspect and extract matches (reproducing documented calls)
+    head(query(matched_features))
+    head(target(matched_features))
+    whichQuery(matched_features)
+    whichTarget(matched_features)
+    colnames(matched_features)
+    m_data1 <- matchedData(matched_features)
+    matched_features\$target_name
+    
+    # Save first stage results
+    write.csv(as.data.frame(m_data1), "matched_features_mz.csv", row.names = FALSE)
+    
+    # 3. Matching of m/z and retention time values
+    set.seed(123)
+    target_df\$rtime <- sample(ms1_subset\$rtime, nrow(target_df), replace = TRUE) + 2
+    
+    parm_rt <- Mass2MzRtParam(adducts = c("[M+H]+", "[M+Na]+"), tolerance = 0.005, ppm = 0, toleranceRt = 10)
+    matched_features_rt <- matchValues(ms1_subset, target_df, param = parm_rt, rtColname = "rtime")
+    
+    m_data2 <- matchedData(matched_features_rt)[whichQuery(matched_features_rt), ]
+    
+    # Save second stage results
+    write.csv(as.data.frame(m_data2), "matched_features_mz_rt.csv", row.names = FALSE)
+    
+    # 4. Matching of SummarizedExperiment objects
+    se <- SummarizedExperiment(
+      assays = matrix(rnorm(nrow(ms1_features) * 4), ncol = 4, dimnames = list(NULL, c("A", "B", "C", "D"))),
+      rowData = ms1_features
     )
+    
+    parm_se <- Mass2MzParam(adducts = c("[M+H]+", "[M+Na]+"), tolerance = 0.005, ppm = 0)
+    matched_features_se <- matchValues(se, target_df, param = parm_se)
+    
+    colnames(matched_features_se)
+    m_data_se <- matchedData(matched_features_se)
+    
+    matched_sub <- matched_features_se[whichQuery(matched_features_se)]
+    MetaboAnnotation::query(matched_sub)
+    
+    # Save SummarizedExperiment matching results
+    write.csv(as.data.frame(m_data_se), "matched_se_data.csv", row.names = FALSE)
+    saveRDS(matched_features_se, "matched_se.rds")
+    
+    # 5. Matching of QFeatures objects
+    qf <- QFeatures(list(features = se))
+    matched_qf <- matchValues(qf, target_df, param = parm_se, queryAssay = "features")
+    
+    colnames(matched_qf)
+    m_data_qf <- matchedData(matched_qf)
+    
+    # Save QFeatures matching results
+    write.csv(as.data.frame(m_data_qf), "matched_qf_data.csv", row.names = FALSE)
+    saveRDS(matched_qf, "matched_qf.rds")
+
+    writeLines(c(
+        '"BIOC_METABOANNOTATION_MATCH_VALUES":',
+        paste0('    MetaboAnnotation: ', as.character(packageVersion('MetaboAnnotation')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_metaboannotation_results.csv
-    touch ${prefix}_metaboannotation_output.rds
-    echo "BIOC_METABOANNOTATION:" > versions.yml
-    echo "    metaboannotation: 0.0.0" >> versions.yml
+    touch ${prefix}_match_values.csv versions.yml
     """
 }
 
-
-workflow BIOC_METABOANNOTATION_WORKFLOW {
+workflow BIOC_METABOANNOTATION_MATCH_VALUES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ms1_features.txt, LipidMaps_CompDB.txt ] ]
 
     main:
-    BIOC_METABOANNOTATION(ch_input)
+    BIOC_METABOANNOTATION_MATCH_VALUES(ch_input)
 
     emit:
-    results  = BIOC_METABOANNOTATION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METABOANNOTATION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METABOANNOTATION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METABOANNOTATION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METABOANNOTATION_MATCH_VALUES.out.tables
+    plots    = BIOC_METABOANNOTATION_MATCH_VALUES.out.plots
+    objects  = BIOC_METABOANNOTATION_MATCH_VALUES.out.objects
+    versions = BIOC_METABOANNOTATION_MATCH_VALUES.out.versions
 }

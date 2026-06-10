@@ -1,135 +1,205 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: EMDomics
-// The EMDomics algorithm is used to perform a supervised multi-class analysis to measure the magnitude
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/EMDomics/inst/doc/EMDomics.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("EMDomics")
+// Bioconductor workflow: EMDomics — emdomics_distribution_analysis
+// Perform supervised multi-class or two-class distribution analysis on transcriptomics data using Earth Mover's Distance (EMD), Kolmogorov-Smirnov (KS), and Crame
+// Input: counts.csv, coldata.csv
+// Container: 2.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: EMDomics
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_EMDOMICS {
+process BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-emdomics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-emdomics:2.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-emdomics:2.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_emdomics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_emdomics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_emdomics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(EMDomics)
-    library(jsonlite)
-
-    # --- Rnorm [] ---
-    # Key functions: rnorm
-    ---------------------------------------------------------------------
-    exp_data <- rnorm(100)
-    names(exp_data) <- paste("sample", 1:100)
-    groupA.labels <- rep("A",50)
-    groupB.labels <- rep("B",20)
-    # --- Frame [] ---
-    # Key functions: frame, ggplot, aes, geom_density
-    ---------------------------------------------------------------------
-    library(ggplot2)
-    df <- as.data.frame(exp_data)
-    df$group[1:50] <- "A"
-    df$group[51:70] <- "B"
-    # --- Calculate Emd Gene [] ---
-    # Key functions: calculate_emd_gene
-    ---------------------------------------------------------------------
-    library(EMDomics)
-    calculate_emd_gene(exp_data, labels, names(exp_data))
-    # --- Sample [] ---
-    # Key functions: sample
-    ---------------------------------------------------------------------
-    exp_data2 <- exp_data
-    mod_vec <- sample(c(2,-2), 50, replace=TRUE)
-    exp_data2[1:50] <- exp_data2[1:50] + mod_vec
-    # --- Frame [] ---
-    # Key functions: frame, ggplot, aes, geom_density, calculate_emd_gene
-    ---------------------------------------------------------------------
-    df <- as.data.frame(exp_data2)
-    df$group[1:50] <- "A"
-    df$group[51:70] <- "B"
-    df$group[71:100] <- "C"
-    # --- Matrix [] ---
-    # Key functions: rnorm
-    ---------------------------------------------------------------------
-    data <- matrix(rnorm(10000), nrow=100, ncol=100)
-    rownames(data) <- paste("gene", 1:100, sep="")
-    colnames(data) <- paste("sample", 1:100, sep="")
-    groupA.labels <- rep("A",50)
-    # --- Order [] ---
-    # Key functions: plot_emd_density
-    ---------------------------------------------------------------------
-    emd3 <- emd[(order(emd[,"emd"])),]
-    smallest_gene <- rownames(emd3)[1]
-    biggest_gene <- rownames(emd3)[nrow(emd3)]
-    plot_emd_density(results, smallest_gene)
-    # --- Plot Emdnull [] ---
-    # Key functions: plot_emdnull
-    ---------------------------------------------------------------------
-    plot_emdnull(results)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_emdomics_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    
+    # Read expression data
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' or 'coldata.csv' are missing.")
+    }
+    
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    if ("gene_id" %in% colnames(counts_df)) {
+      rownames(counts_df) <- counts_df\$gene_id
+      counts_df\$gene_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_emdomics_results.csv")
+      rownames(counts_df) <- counts_df[, 1]
+      counts_df <- counts_df[, -1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_emdomics_output.rds")
+    expr_matrix <- as.matrix(counts_df)
+    
+    # Read sample metadata
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    if (!all(c("sample", "condition") %in% colnames(coldata))) {
+      stop("coldata.csv must contain 'sample' and 'condition' columns.")
     }
+    
+    # Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(expr_matrix), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching sample names found between counts.csv and coldata.csv.")
+    }
+    
+    expr_matrix <- expr_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # Create named vector of group labels
+    labels <- coldata\$condition
+    names(labels) <- coldata\$sample
+    
+    # Filter out genes with zero or extremely low variance to avoid calculation errors
+    gene_vars <- apply(expr_matrix, 1, var, na.rm = TRUE)
+    expr_matrix <- expr_matrix[gene_vars > 1e-5 & !is.na(gene_vars), , drop = FALSE]
+    
+    if (nrow(expr_matrix) == 0) {
+      stop("No genes passed the variance filtering step.")
+    }
+    
+    # If data appears to be raw counts (large integer values), perform CPM and log2 transformation
+    if (max(expr_matrix, na.rm = TRUE) > 100) {
+      message("Detected raw counts. Performing CPM normalization and log2 transformation...")
+      col_sums <- colSums(expr_matrix, na.rm = TRUE)
+      col_sums[col_sums == 0] <- 1
+      expr_matrix <- t(t(expr_matrix) / col_sums) * 1e6
+      expr_matrix <- log2(expr_matrix + 1)
+    }
+    
+    # ==========================================
+    # Stage 2: Run Distributional Analyses
+    # ==========================================
+    
+    # Define number of permutations (using 50 for a balance of speed and accuracy)
+    n_permutations <- 50
+    
+    message("Running Earth Mover's Distance (EMD) analysis...")
+    results_emd <- calculate_emd(expr_matrix, labels, nperm = n_permutations, parallel = FALSE)
+    
+    message("Running Kolmogorov-Smirnov (KS) analysis...")
+    results_ks <- calculate_ks(expr_matrix, labels, nperm = n_permutations, parallel = FALSE)
+    
+    message("Running Cramer von Mises (CVM) analysis...")
+    results_cvm <- calculate_cvm(expr_matrix, labels, nperm = n_permutations, parallel = FALSE)
+    
+    # ==========================================
+    # Stage 3: Export Tabular Results
+    # ==========================================
+    
+    # 1. EMD Results
+    emd_tab <- results_emd\$emd
+    write.csv(emd_tab, "emd_results.csv", row.names = TRUE)
+    
+    # 2. Pairwise EMD Results (only applicable for multi-class analyses)
+    if (!is.null(results_emd\$pairwise.emd.table)) {
+      write.csv(results_emd\$pairwise.emd.table, "pairwise_emd_results.csv", row.names = TRUE)
+    } else {
+      write.csv(data.frame(Message = "Pairwise comparison not applicable for 2-class analysis"), 
+                "pairwise_emd_results.csv", row.names = FALSE)
+    }
+    
+    # 3. KS Results
+    ks_tab <- results_ks\$ks
+    write.csv(ks_tab, "ks_results.csv", row.names = TRUE)
+    
+    # 4. CVM Results
+    cvm_tab <- results_cvm\$cvm
+    write.csv(cvm_tab, "cvm_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 4: Generate Diagnostic Visualizations
+    # ==========================================
+    
+    pdf("emdomics_plots.pdf", width = 8, height = 6)
+    
+    # --- EMD Plots ---
+    # Find top significant gene by EMD q-value
+    top_gene_emd <- rownames(emd_tab)[order(emd_tab[, "q-value"], -emd_tab[, "emd"])][1]
+    if (!is.na(top_gene_emd)) {
+      plot_emd_density(results_emd, top_gene_emd)
+    }
+    plot_emdperms(results_emd)
+    plot_emdnull(results_emd)
+    
+    # --- KS Plots ---
+    top_gene_ks <- rownames(ks_tab)[order(ks_tab[, "q-value"], -ks_tab[, "ks"])][1]
+    if (!is.na(top_gene_ks)) {
+      plot_ks_density(results_ks, top_gene_ks)
+    }
+    plot_ksperms(results_ks)
+    plot_ksnull(results_ks)
+    
+    # --- CVM Plots ---
+    top_gene_cvm <- rownames(cvm_tab)[order(cvm_tab[, "q-value"], -cvm_tab[, "cvm"])][1]
+    if (!is.na(top_gene_cvm)) {
+      plot_cvm_density(results_cvm, top_gene_cvm)
+    }
+    plot_cvmperms(results_cvm)
+    plot_cvmnull(results_cvm)
+    
+    dev.off()
+    
+    message("EMDomics pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_EMDOMICS:", paste0("    emdomics: ", packageVersion("EMDomics"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS":',
+        paste0('    EMDomics: ', as.character(packageVersion('EMDomics')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_emdomics_results.csv
-    touch ${prefix}_emdomics_output.rds
-    echo "BIOC_EMDOMICS:" > versions.yml
-    echo "    emdomics: 0.0.0" >> versions.yml
+    touch ${prefix}_emdomics_distribution_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_EMDOMICS_WORKFLOW {
+workflow BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_EMDOMICS(ch_input)
+    BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_EMDOMICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_EMDOMICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_EMDOMICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_EMDOMICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS.out.tables
+    plots    = BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS.out.plots
+    objects  = BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS.out.objects
+    versions = BIOC_EMDOMICS_EMDOMICS_DISTRIBUTION_ANALYSIS.out.versions
 }

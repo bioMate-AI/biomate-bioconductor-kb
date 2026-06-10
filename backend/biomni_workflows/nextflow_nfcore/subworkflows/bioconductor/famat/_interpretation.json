@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: database=The first argument of path_enrich, specifying the pathway database to use (\"KEGG\", \"REAC\", or \"WP\") ;; meta=A vector of metabolite IDs, which must be KEGG compound IDs ;; genes=A vector of gene IDs, which must be gene symbols\n- alternatives: The documentation mentions using gprofiler2 for gene pathway enrichment, MPINet for metabolite pathway enrichment, clusterProfiler for GO term enrichment, and PaxtoolsR/graphite for direct interaction extraction.\n- when_to_use: Use when you have a list of gene symbols and KEGG compound IDs from a multi-omics study and want to perform integrated pathway enrichment, network interaction analysis, and interactive visualization.\n- pitfalls: Metabolite IDs must be KEGG compound IDs and gene IDs must be gene symbols ;; The interactions function strictly requires results from path_enrich run on all three databases (\"KEGG\", \"REAC\", and \"WP\") ;; Some user elements may not be present in the enriched pathways and will be filtered out of the main visualization (though they are listed in a separate tab).",
+  "workflows": [
+    {
+      "name": "famat_analysis_and_visualization",
+      "intent": "Perform integrated pathway enrichment, interaction network analysis, and GO enrichment on gene and metabolite lists, and visualize the results in a Shiny app.",
+      "input": [
+        "genes (vector of gene symbols)",
+        "meta (vector of KEGG compound IDs)"
+      ],
+      "stages": "1. Run pathway enrichment analysis for KEGG, Reactome, and WikiPathways using path_enrich ;; 2. Extract direct interactions and calculate centrality using interactions ;; 3. Complete the data with GO term enrichment and pathway filtering using compl_data ;; 4. Launch the interactive Shiny application using rshiny",
+      "code": "data(genes)\ndata(meta)\ndata(all_compounds_chebi)\n\nlistk <- path_enrich(\"KEGG\", meta, genes)\nlistr <- path_enrich(\"REAC\", meta, genes)\nlistw <- path_enrich(\"WP\", meta, genes)\n\ninteractions_result <- interactions(listk, listr, listw)\n\ncompl_data_result <- compl_data(interactions_result)\n\nrshiny(compl_data_result)"
+    }
+  ]
+}

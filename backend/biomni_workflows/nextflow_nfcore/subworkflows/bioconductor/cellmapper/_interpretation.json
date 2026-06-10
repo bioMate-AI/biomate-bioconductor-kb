@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: query.genes = Character vector of one or more cell type-specific marker genes (must use the same ID type as the dataset, e.g., Entrez or probeset IDs) ;; alpha = SVD-based pre-processing filter strength, ranging from 1 (no filter) to 0 (strong filter), default is 0.5 ;; query-driven weight = Logical indicating whether to apply a query-driven weight filter, default is TRUE.\n- alternatives: None mentioned.\n- when_to_use: When identifying genes specifically expressed in a cell type of interest using large, heterogeneous microarray datasets (ideally >500 samples), even if the cell type has not been isolated.\n- pitfalls: Using poor quality query genes (a single highly specific marker is better than multiple markers of questionable specificity) ;; Query genes must be strictly specific to the cell type within the context of the dataset (e.g., brain-specific for brain datasets, organism-wide specific for general datasets) ;; Running CMprep on large datasets (>1000 arrays) is computationally expensive and can take over an hour.",
+  "workflows": [
+    {
+      "name": "preprocessed_data_search",
+      "intent": "Predict cell type-specific gene expression using pre-processed datasets from CellMapperData.",
+      "input": [
+        "query (Entrez ID of the marker gene)",
+        "CellMapperData object (pre-processed dataset from ExperimentHub)"
+      ],
+      "stages": "1. Load pre-processed data from ExperimentHub ;; 2. Define query gene(s) ;; 3. Run co-expression search using CMsearch ;; 4. Inspect top results.",
+      "code": "library(\"ExperimentHub\")\nhub <- ExperimentHub()\nBrainAtlas <- hub[[\"EH170\"]]\nlibrary(CellMapper)\nquery <- \"2571\"\nGABAergic <- CMsearch(BrainAtlas, query.genes = query)\nhead(GABAergic)\n\nEngreitz <- hub[[\"EH171\"]]\nLukk <- hub[[\"EH172\"]]\nZhengBradley <- hub[[\"EH173\"]]\nquery2 <- \"3856\"\nSimpleEpithelia <- CMsearch(list(Engreitz, Lukk, ZhengBradley), query.genes = query2)\nhead(SimpleEpithelia)"
+    },
+    {
+      "name": "custom_data_search",
+      "intent": "Prepare custom microarray expression data and predict cell type-specific gene expression.",
+      "input": [
+        "ALL (ExpressionSet object or matrix of expression data with genes as rows and samples as columns)",
+        "query.genes (Affymetrix probeset ID or gene identifier matching the dataset)"
+      ],
+      "stages": "1. Load custom expression dataset ;; 2. Pre-process the dataset using CMprep ;; 3. Define query gene(s) ;; 4. Run co-expression search using CMsearch.",
+      "code": "library(ALL)\ndata(ALL)\nprepped.data <- CMprep(ALL)\nout <- CMsearch(prepped.data, query.genes = \"1000_at\")\nhead(out)"
+    }
+  ]
+}

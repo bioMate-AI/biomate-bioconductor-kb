@@ -1,0 +1,17 @@
+{
+  "package": "screenr",
+  "requirements": [
+    "ScreenR",
+    "dplyr",
+    "ggplot2",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ScreenR",
+      "dplyr",
+      "ggplot2",
+      "tidyr"
+    ]
+  }
+}

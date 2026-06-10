@@ -1,0 +1,17 @@
+{
+  "package": "twilight",
+  "requirements": [
+    "twilight"
+  ],
+  "by_workflow": {
+    "correlation_analysis.nf": [
+      "twilight"
+    ],
+    "main.nf": [
+      "twilight"
+    ],
+    "permutation_filtering.nf": [
+      "twilight"
+    ]
+  }
+}

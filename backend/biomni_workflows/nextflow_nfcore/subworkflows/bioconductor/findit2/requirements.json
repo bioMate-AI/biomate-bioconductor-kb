@@ -1,0 +1,41 @@
+{
+  "package": "findit2",
+  "requirements": [
+    "BiocGenerics",
+    "FindIT2",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "TxDb.Athaliana.BioMart.plantsmart28",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "influential_tf_target_identification.nf": [
+      "BiocGenerics",
+      "FindIT2",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "TxDb.Athaliana.BioMart.plantsmart28",
+      "dplyr",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "BiocGenerics",
+      "FindIT2",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "TxDb.Athaliana.BioMart.plantsmart28",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "pwmenrich",
+  "requirements": [
+    "Biostrings",
+    "IRanges",
+    "PWMEnrich",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "IRanges",
+      "PWMEnrich",
+      "S4Vectors"
+    ]
+  }
+}

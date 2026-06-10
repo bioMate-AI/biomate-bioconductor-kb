@@ -1,103 +1,153 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scTGIF
-// scTGIF connects the cells and the related gene functions without cell type label.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scTGIF/inst/doc/scTGIF.R
-// Upstream  : GSEABase, SingleCellExperiment, msigdbr
-// Downstream: none
-//
-// Install: BiocManager::install("scTGIF")
+// Bioconductor workflow: scTGIF — sctgif_analysis
+// Perform joint NMF on single-cell RNA-Seq data and gene sets to generate attention maps and functional annotations, followed by an HTML report.
+// Input: DistalLungEpithelium, pca.DistalLungEpithelium, msigdbr
+// Container: quay.io/biocontainers/bioconductor-sctgif:1.24.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSEABase, SingleCellExperiment, msigdbr, scTGIF
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load and prepare the gene set collection
+//  * 2. [Input & Preparation] Create a SingleCellExperiment object with the expression matrix and 2D coordinates
+//  * 3. [Core Analysis] Normalize the expression data and register it in the normcounts slot
+//  * 4. [Core Analysis] Initialize parameters using settingTGIF
+//  * 5. [Core Analysis] Perform joint NMF using calcTGIF
+//  * 6. [Visualization & Output] Generate an HTML report using reportTGIF
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCTGIF {
+process BIOC_SCTGIF_SCTGIF_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sctgif"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sctgif:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sctgif:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sctgif_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sctgif_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sctgif_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(scTGIF)
-    library(GeneSet)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Calculate TGIF Scores [] ---
-    # Key functions: calcTGIF
-    sce <- calcTGIF(
-        sce,
-        ndim = 3
-    )
-
-
-    # --- Generate HTML Report [] ---
-    # Key functions: reportTGIF
-    reportTGIF(
-        sce,
-        html.open = FALSE,
-        title = "scTGIF Report for DistalLungEpithelium dataset",
-        author = "Koki Tsuyuzaki"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sctgif_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sctgif_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library("scTGIF")
+    library("SingleCellExperiment")
+    library("GSEABase")
+    library("msigdbr")
+    
+    # Helper function to read input files robustly from the working directory
+    read_input <- function(base_name) {
+      extensions <- c(".rds", ".csv", ".tsv", ".txt", "")
+      for (ext in extensions) {
+        file_path <- paste0(base_name, ext)
+        if (file.exists(file_path)) {
+          if (ext == ".rds" || (ext == "" && grepl("\\\\.rds\$", file_path, ignore.case=TRUE))) {
+            return(readRDS(file_path))
+          } else if (ext == ".csv" || (ext == "" && grepl("\\\\.csv\$", file_path, ignore.case=TRUE))) {
+            return(read.csv(file_path, row.names=1, check.names=FALSE))
+          } else if (ext == ".tsv" || ext == ".txt" || (ext == "" && grepl("\\\\.(tsv|txt)\$", file_path, ignore.case=TRUE))) {
+            return(read.delim(file_path, row.names=1, check.names=FALSE))
+          } else {
+            res <- try(readRDS(file_path), silent=TRUE)
+            if (!inherits(res, "try-error")) return(res)
+            res <- try(read.csv(file_path, row.names=1, check.names=FALSE), silent=TRUE)
+            if (!inherits(res, "try-error")) return(res)
+          }
+        }
+      }
+      stop(paste("Error: Could not find or read file for", base_name))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sctgif_output.rds")
+    
+    # 1. Load and prepare the gene set collection
+    m_df <- read_input("msigdbr")
+    m_df <- as.data.frame(m_df)
+    
+    hallmark = unique(m_df\$gs_name)
+    gsc <- lapply(hallmark, function(h){
+        target = which(m_df\$gs_name == h)
+        geneIds = unique(as.character(m_df\$entrez_gene[target]))
+        GeneSet(setName=h, geneIds)
+    })
+    gmt = GeneSetCollection(gsc)
+    
+    # 2. Create a SingleCellExperiment object with the expression matrix and 2D coordinates
+    DistalLungEpithelium <- read_input("DistalLungEpithelium")
+    pca.DistalLungEpithelium <- read_input("pca.DistalLungEpithelium")
+    
+    # Ensure correct matrix formats
+    DistalLungEpithelium <- as.matrix(DistalLungEpithelium)
+    pca.DistalLungEpithelium <- as.matrix(pca.DistalLungEpithelium)
+    
+    sce <- SingleCellExperiment(assays = list(counts = DistalLungEpithelium))
+    reducedDims(sce) <- SimpleList(PCA=pca.DistalLungEpithelium)
+    
+    # 3. Normalize the expression data and register it in the normcounts slot
+    CPMED <- function(input){
+        libsize <- colSums(input)
+        median(libsize) * t(t(input) / libsize)
     }
+    normcounts(sce) <- log10(CPMED(counts(sce)) + 1)
+    
+    # 4. Initialize parameters using settingTGIF
+    settingTGIF(sce, gmt, reducedDimNames="PCA", assayNames="normcounts")
+    
+    # 5. Perform joint NMF using calcTGIF
+    calcTGIF(sce, ndim=3)
+    
+    # 6. Generate an HTML report using reportTGIF
+    reportTGIF(sce,
+        html.open=FALSE,
+        title="scTGIF Report for DistalLungEpithelium dataset",
+        author="User")
+    
+    # Save the final SingleCellExperiment object with results
+    saveRDS(sce, "scTGIF_output_sce.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCTGIF:", paste0("    sctgif: ", packageVersion("scTGIF"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCTGIF_SCTGIF_ANALYSIS":',
+        paste0('    scTGIF: ', as.character(packageVersion('scTGIF')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sctgif_results.csv
-    touch ${prefix}_sctgif_output.rds
-    echo "BIOC_SCTGIF:" > versions.yml
-    echo "    sctgif: 0.0.0" >> versions.yml
+    touch ${prefix}_sctgif_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCTGIF_WORKFLOW {
+workflow BIOC_SCTGIF_SCTGIF_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ DistalLungEpithelium, pca.DistalLungEpithelium, msigdbr ] ]
 
     main:
-    BIOC_SCTGIF(ch_input)
+    BIOC_SCTGIF_SCTGIF_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCTGIF.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCTGIF.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCTGIF.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCTGIF.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCTGIF_SCTGIF_ANALYSIS.out.tables
+    plots    = BIOC_SCTGIF_SCTGIF_ANALYSIS.out.plots
+    objects  = BIOC_SCTGIF_SCTGIF_ANALYSIS.out.objects
+    versions = BIOC_SCTGIF_SCTGIF_ANALYSIS.out.versions
 }

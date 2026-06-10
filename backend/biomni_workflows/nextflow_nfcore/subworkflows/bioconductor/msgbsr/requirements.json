@@ -1,0 +1,17 @@
+{
+  "package": "msgbsr",
+  "requirements": [
+    "BSgenome.Rnorvegicus.UCSC.rn6",
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "msgbsR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Rnorvegicus.UCSC.rn6",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "msgbsR"
+    ]
+  }
+}

@@ -4,6 +4,8 @@
 // Directly adjust for known batch effects in continuous high-throughput data (e.g., microarrays) using an empirical Bayesian framework.
 // Input: expression_matrix.csv, phenotype_data.csv
 // Container: quay.io/biocontainers/bioconductor-sva:3.58.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: sva
 // QC: batch-effect correction
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -39,9 +41,12 @@ process BIOC_SVA_COMBAT_KNOWN_BATCHES {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         
         # Load required libraries

@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <method=Character string specifying the algorithm to use for reference gene selection (\"geNorm\" or \"NormFinder\") in selectHKs ;; log=Logical indicating whether the input data is already on a log scale (typically FALSE for raw Cq values) ;; paired=Logical; if FALSE, standard deviation is calculated using an un-paired formula in deltaDeltaCq ;; hkgs/hkg=Character vector specifying the reference gene(s) to use for normalization ;; newVal/newNA/cutOff=Parameters used to define thresholds and replacement values for undetermined or high Cq values>\n- alternatives: <geNorm (Vandesompele et al., 2002) vs NormFinder (Andersen et al., 2004). Use geNorm for pairwise variation and stepwise elimination based on ratio stability; use NormFinder for model-based variance estimation taking group/classification structure into account. ReadqPCR package is used to read raw qPCR data (e.g., read.qPCR, read.taqman) before passing to NormqPCR.>\n- when_to_use: <When analyzing RT-qPCR data and needing to identify the most stable reference genes from a set of candidates, or when normalizing target gene expression using single or multiple reference genes via delta Cq, delta-delta Cq, or NRQ methods.>\n- pitfalls: <Using paired=FALSE in deltaDeltaCq when housekeeper and target genes are run on the same sample (e.g., TaqMan cards), as this can artificially inflate variance. Failing to filter out or correctly handle undetermined values (NAs) before downstream variation calculations, which can lead to inaccurate estimates. The two most stable control genes in geNorm cannot be ranked against each other because the computation is based on gene ratios. ComputeNRQs is noted as \"still experimental\" in the documentation.>",
+  "workflows": [
+    {
+      "name": "reference_gene_selection",
+      "intent": "Select and rank the most stable reference/housekeeping genes from candidate genes using geNorm or NormFinder.",
+      "input": [
+        "qPCR.techReps.txt (raw qPCR data with technical replicates)",
+        "example.txt (TaqMan qPCR data)"
+      ],
+      "stages": "1. Read raw qPCR data using ReadqPCR package ;; 2. Combine technical replicates ;; 3. Handle undetermined values and NAs ;; 4. Rank reference genes using geNorm or NormFinder via selectHKs or stabMeasureRho.",
+      "code": "library(ReadqPCR) # load the ReadqPCR library\nlibrary(NormqPCR)\npath <- system.file(\"exData\", package = \"NormqPCR\")\nqPCR.example.techReps <- file.path(path, \"qPCR.techReps.txt\")\nqPCRBatch.qPCR.techReps <- read.qPCR(qPCR.example.techReps)\ncombinedTechReps <- combineTechReps(qPCRBatch.qPCR.techReps)\n\ntaqman.example <- file.path(path, \"/example.txt\")\nqPCRBatch.taqman <- read.taqman(taqman.example)\nqPCRBatch.taqman.replaced <- replaceAboveCutOff(qPCRBatch.taqman, newVal = NA, cutOff = 35)\nqPCRBatch.taqman.replaced <- replaceNAs(qPCRBatch.taqman, newNA = 40)\n\na <- c(0,0,1,1,0,0,1,1) # one for each sample type, with 1 representing\nb <- c(1,1,0,0,1,1,0,0) # position of sample type in samplenames vector \ncontM <- cbind(a,b)\ncolnames(contM) <- c(\"case\",\"control\") # set the names of each sample type\nrownames(contM) <- sampleNames(qPCRBatch.taqman) # set row names\nsMaxM <- t(as.matrix(c(3,3))) # now make the contrast matrix\ncolnames(sMaxM) <- c(\"case\",\"control\") # make sure these line up with samples\n\nqPCRBatch.taqman.replaced <- makeAllNewVal(qPCRBatch.taqman, contM, sMaxM, newVal=NA)\n\ndata(geNorm)\ntissue <- as.factor(c(rep(\"BM\", 9),  rep(\"FIB\", 20), rep(\"LEU\", 13), rep(\"NB\", 34), rep(\"POOL\", 9)))\nres.BM <- selectHKs(geNorm.qPCRBatch[,tissue == \"BM\"], method = \"geNorm\", Symbols = featureNames(geNorm.qPCRBatch), minNrHK = 2, log = FALSE)\n\ndata(Colon)\nClass <- pData(Colon)[,\"Classification\"]\nres.Colon <- stabMeasureRho(Colon, group = Class, log = FALSE)\n\nselectHKs(Colon, group = Class, log = FALSE, trace = TRUE, Symbols = featureNames(Colon), minNrHKs = 12, method = \"NormFinder\")$ranking"
+    },
+    {
+      "name": "delta_delta_cq_normalization",
+      "intent": "Normalize qPCR data and calculate relative gene expression between two groups using the 2^-ddCq method with single or multiple housekeeping genes.",
+      "input": [
+        "example.txt (TaqMan qPCR data)"
+      ],
+      "stages": "1. Read raw qPCR data ;; 2. Construct contrast matrix to define case and control groups ;; 3. Perform delta-delta Cq normalization using single or multiple housekeeping genes.",
+      "code": "path <- system.file(\"exData\", package = \"NormqPCR\")\ntaqman.example <- file.path(path, \"example.txt\")\nqPCRBatch.taqman <- read.taqman(taqman.example)\n\ncontM <- cbind(c(0,0,1,1,0,0,1,1),c(1,1,0,0,1,1,0,0))\ncolnames(contM) <- c(\"interestingPhenotype\",\"wildTypePhenotype\")\nrownames(contM) <- sampleNames(qPCRBatch.taqman)\n\nhkg <- \"Actb-Rn00667869_m1\"\nddCq.taqman <- deltaDeltaCq(qPCRBatch = qPCRBatch.taqman, maxNACase=1, maxNAControl=1, hkg=hkg, contrastM=contM, case=\"interestingPhenotype\", control=\"wildTypePhenotype\", statCalc=\"geom\", hkgCalc=\"arith\")\n\nddCqAvg.taqman <- deltaDeltaCq(qPCRBatch = qPCRBatch.taqman, maxNACase=1, maxNAControl=1, hkg=hkg, contrastM=contM, case=\"interestingPhenotype\", control=\"wildTypePhenotype\", paired=FALSE, statCalc=\"geom\", hkgCalc=\"arith\")\n\nhkgs<-c(\"Actb-Rn00667869_m1\", \"B2m-Rn00560865_m1\", \"Gapdh-Rn99999916_s1\")\nddCq.gM.taqman <- deltaDeltaCq(qPCRBatch = qPCRBatch.taqman, maxNACase=1, maxNAControl=1, hkgs=hkgs, contrastM=contM, case=\"interestingPhenotype\", control=\"wildTypePhenotype\", statCalc=\"arith\", hkgCalc=\"arith\")"
+    },
+    {
+      "name": "compute_nrqs",
+      "intent": "Compute normalized relative quantities (NRQs) taking amplification efficiencies and their standard errors into account.",
+      "input": [
+        "qPCR.example.txt (raw qPCR data)",
+        "Efficiencies.txt (tab-delimited file containing amplification efficiencies and their standard deviations)"
+      ],
+      "stages": "1. Read raw qPCR data ;; 2. Combine technical replicates and compute standard deviations ;; 3. Load and assign amplification efficiencies and their standard errors ;; 4. Compute NRQs using specified housekeeping genes.",
+      "code": "path <- system.file(\"exData\", package = \"ReadqPCR\")\nqPCR.example <- file.path(path, \"qPCR.example.txt\")\nCq.data <- read.qPCR(qPCR.example)\n\nCq.data1 <- combineTechRepsWithSD(Cq.data)\n\nEffs <- file.path(path, \"Efficiencies.txt\")\nCq.effs <- read.table(file = Effs, row.names = 1, header = TRUE)\nrownames(Cq.effs) <- featureNames(Cq.data1)\neffs(Cq.data1) <- as.matrix(Cq.effs[,\"efficiency\",drop = FALSE])\nse.effs(Cq.data1) <- as.matrix(Cq.effs[,\"SD.efficiency\",drop = FALSE])\n\nres <- ComputeNRQs(Cq.data1, hkgs = c(\"gene_az\", \"gene_gx\"))\nexprs(res)\nse.exprs(res)"
+    }
+  ]
+}

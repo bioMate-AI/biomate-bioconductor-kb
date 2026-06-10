@@ -1,129 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rrvgo
-// Reduce and visualize lists of Gene Ontology terms by identifying redudance based on semantic similar
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rrvgo/inst/doc/rrvgo.R
-// Upstream  : knitr
-// Downstream: none
-//
-// Install: BiocManager::install("rrvgo")
+// Bioconductor workflow: rrvgo — reduce_and_visualize_go_redundancy
+// Reduce redundancy in a list of enriched Gene Ontology (GO) terms using semantic similarity and visualize the grouped terms.
+// Input: go_analysis.txt
+// Container: quay.io/biocontainers/bioconductor-rrvgo:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: org.Hs.eg.db, rrvgo
+// Visualizations: heatmap, scatter plot, enrichment plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate the semantic similarity matrix using calculateSimMatrix
+//  * 2. [Core Analysis] Transform q-values to scores and reduce the similarity matrix using reduceSimMatrix
+//  * 3. [Visualization & Output] Visualize the reduced terms using heatmapPlot, scatterPlot, treemapPlot, and wordcloudPlot
 
 nextflow.enable.dsl = 2
 
-process BIOC_RRVGO {
+process BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rrvgo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rrvgo:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rrvgo:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rrvgo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rrvgo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rrvgo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(rrvgo)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(rrvgo)
+        library(org.Hs.eg.db)
+        
+        # Read the user input file from the working directory
+        # The file must be tab-delimited and contain 'ID' (GO term IDs) and 'qvalue' columns
+        go_analysis <- read.delim("go_analysis.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+        
+        # 1. Calculate the semantic similarity matrix
+        simMatrix <- calculateSimMatrix(go_analysis\$ID,
+                                        orgdb="org.Hs.eg.db",
+                                        ont="BP",
+                                        method="Rel")
+        
+        # 2. Transform q-values to scores and reduce the similarity matrix
+        scores <- setNames(-log10(go_analysis\$qvalue), go_analysis\$ID)
+        reducedTerms <- reduceSimMatrix(simMatrix,
+                                        scores,
+                                        threshold=0.7,
+                                        orgdb="org.Hs.eg.db")
+        
+        # Save tabular results and RDS objects
+        write.csv(reducedTerms, "reduced_terms.csv", row.names = FALSE)
+        saveRDS(simMatrix, "similarity_matrix.rds")
+        saveRDS(reducedTerms, "reduced_terms.rds")
+        
+        # 3. Visualize the reduced terms and save plots to PDF files
+        
+        # Heatmap Plot
+        pdf("heatmap.pdf", width = 10, height = 8)
+        heatmapPlot(simMatrix,
+                    reducedTerms,
+                    annotateParent=TRUE,
+                    annotationLabel="parentTerm",
+                    fontsize=6)
+        dev.off()
+        
+        # Scatter Plot
+        pdf("scatterplot.pdf", width = 8, height = 8)
+        print(scatterPlot(simMatrix, reducedTerms))
+        dev.off()
+        
+        # Treemap Plot
+        pdf("treemap.pdf", width = 8, height = 8)
+        treemapPlot(reducedTerms)
+        dev.off()
+        
+        # Wordcloud Plot
+        pdf("wordcloud.pdf", width = 8, height = 8)
+        wordcloudPlot(reducedTerms, min.freq=1, colors="black")
+        dev.off()
 
-    # --- Redundant Term Reduction [] ---
-    # Key functions: calculateSimMatrix, reduceSimMatrix
-    go_analysis <- read.delim(
-        system.file("extdata/example.txt", package="rrvgo")
-    )
-    simMatrix <- calculateSimMatrix(
-        go_analysis$ID,
-        orgdb="org.Hs.eg.db",
-        ont="BP",
-        method="Rel"
-    )
-    scores <- setNames(-log10(go_analysis$qvalue), go_analysis$ID)
-    reducedTerms <- reduceSimMatrix(
-        simMatrix,
-        scores,
-        threshold=0.7,
-        orgdb="org.Hs.eg.db"
-    )
-
-
-    # --- Visualisation of Reduced Terms [] ---
-    # Key functions: calculateSimMatrix, reduceSimMatrix, heatmapPlot, scatterPlot, wordcloudPlot
-    go_analysis <- read.delim(
-        system.file("extdata/example.txt", package="rrvgo")
-    )
-    simMatrix <- calculateSimMatrix(
-        go_analysis$ID,
-        orgdb="org.Hs.eg.db",
-        ont="BP",
-        method="Rel"
-    )
-    scores <- setNames(-log10(go_analysis$qvalue), go_analysis$ID)
-    reducedTerms <- reduceSimMatrix(
-        simMatrix,
-        scores,
-        threshold=0.7,
-        orgdb="org.Hs.eg.db"
-    )
-    heatmapPlot(
-        simMatrix, reducedTerms,
-        annotateParent=TRUE, annotationLabel="parentTerm", fontsize=6
-    )
-    scatterPlot(simMatrix, reducedTerms)
-    wordcloudPlot(reducedTerms, min.freq=1, colors="black")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rrvgo_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rrvgo_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rrvgo_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RRVGO:", paste0("    rrvgo: ", packageVersion("rrvgo"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY":',
+        paste0('    rrvgo: ', as.character(packageVersion('rrvgo')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rrvgo_results.csv
-    touch ${prefix}_rrvgo_output.rds
-    echo "BIOC_RRVGO:" > versions.yml
-    echo "    rrvgo: 0.0.0" >> versions.yml
+    touch ${prefix}_reduce_and_visualize_go_redundancy.csv versions.yml
     """
 }
 
-
-workflow BIOC_RRVGO_WORKFLOW {
+workflow BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ go_analysis.txt ] ]
 
     main:
-    BIOC_RRVGO(ch_input)
+    BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY(ch_input)
 
     emit:
-    results  = BIOC_RRVGO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RRVGO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RRVGO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RRVGO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY.out.tables
+    plots    = BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY.out.plots
+    objects  = BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY.out.objects
+    versions = BIOC_RRVGO_REDUCE_AND_VISUALIZE_GO_REDUNDANCY.out.versions
 }

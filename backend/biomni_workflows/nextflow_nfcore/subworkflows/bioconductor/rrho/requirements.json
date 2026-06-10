@@ -1,0 +1,17 @@
+{
+  "package": "rrho",
+  "requirements": [
+    "RRHO",
+    "lattice"
+  ],
+  "by_workflow": {
+    "compare_three_lists.nf": [
+      "RRHO",
+      "lattice"
+    ],
+    "main.nf": [
+      "RRHO",
+      "lattice"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tube.set=list of flowFrame objects representing the tubes ;; control.tubes=integer vector specifying the indices of negative control tubes ;; bin.pars=integer vector of column indices for shared markers used to bin cells ;; measure.pars=list of integer vectors specifying the column indices of tube-specific markers to measure ;; expr.method=character string specifying the expression calculation method, either 'medianFIDist' or 'propPos' ;; scale.expr=logical indicating whether to scale the resulting expression values to the interval [0, 1]\n- alternatives: None mentioned; uses flowFP internally for fingerprinting and binning.\n- when_to_use: Use when analyzing multitube flow cytometry panels where each tube contains a subset of specific markers alongside a shared set of reference/binning markers, allowing integration into a single unified matrix.\n- pitfalls: Technical variation across tubes can distort binning; quantile normalization (quantileNormalise) should be performed and checked using checkQNorm to identify problematic tubes (e.g., outliers like tube 4 in the vignette).",
+  "workflows": [
+    {
+      "name": "multitube_flow_integration",
+      "intent": "Integrate multitube flow cytometry data with shared markers into a single expression matrix using quantile normalization and binning.",
+      "input": [
+        "fs1 (flowSet object containing flowFrames for each tube)"
+      ],
+      "stages": "1. Create a FlowSample object defining binning and measurement parameters ;; 2. Perform quantile normalization on the binning markers across tubes ;; 3. Verify normalization quality using standard deviation of bin densities ;; 4. Run flowBin to combine tubes into an expression matrix using 'medianFIDist' or 'propPos' methods ;; 5. Visualize the integrated expression matrix using a heatmap",
+      "code": "library(flowBin)\nlibrary(flowFP)\ndata(fs1)\naml.sample <- new('FlowSample',\n\t\t\t\t  \t\t\tname='Example flowSample', \n                            tube.set=as.list(fs1@frames), \n                            control.tubes=c(1), \n                            bin.pars=c(1,2,5), \n                            measure.pars=list(c(3,4,6,7)))\nnormed.sample <- quantileNormalise(aml.sample)\nqnorm.check <- checkQNorm(aml.sample, normed.sample, do.plot=F)\ntube.combined <- flowBin(tube.list=aml.sample@tube.set, \nbin.pars=aml.sample@bin.pars, \ncontrol.tubes=aml.sample@control.tubes, \nexpr.method='medianFIDist', \nscale.expr=T)\nheatmap(tube.combined, scale='none')\ntube.propPos <- flowBin(tube.list=aml.sample@tube.set, \nbin.pars=aml.sample@bin.pars, \ncontrol.tubes=aml.sample@control.tubes, \nexpr.method='propPos', \nscale.expr=T)\nheatmap(tube.propPos, scale='none')"
+    }
+  ]
+}

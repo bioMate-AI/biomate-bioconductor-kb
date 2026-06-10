@@ -1,0 +1,15 @@
+{
+  "package": "plasmut",
+  "requirements": [
+    "magrittr",
+    "plasmut",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "magrittr",
+      "plasmut",
+      "tidyverse"
+    ]
+  }
+}

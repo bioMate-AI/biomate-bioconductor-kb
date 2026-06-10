@@ -1,0 +1,18 @@
+{
+  "package": "grmetrics",
+  "requirements": [
+    "GRmetrics",
+    "ggplot2",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "gr_metrics_case_c.nf": [
+      "GRmetrics",
+      "ggplot2",
+      "htmlwidgets"
+    ],
+    "main.nf": [
+      "GRmetrics"
+    ]
+  }
+}

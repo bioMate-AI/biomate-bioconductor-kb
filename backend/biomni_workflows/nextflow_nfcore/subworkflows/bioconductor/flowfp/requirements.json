@@ -1,0 +1,17 @@
+{
+  "package": "flowfp",
+  "requirements": [
+    "flowCore",
+    "flowFP"
+  ],
+  "by_workflow": {
+    "gating_quality_control.nf": [
+      "flowCore",
+      "flowFP"
+    ],
+    "main.nf": [
+      "flowCore",
+      "flowFP"
+    ]
+  }
+}

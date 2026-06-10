@@ -1,0 +1,17 @@
+{
+  "package": "mfuzz",
+  "requirements": [
+    "Biobase",
+    "Mfuzz"
+  ],
+  "by_workflow": {
+    "global_cluster_structure_analysis.nf": [
+      "Biobase",
+      "Mfuzz"
+    ],
+    "main.nf": [
+      "Biobase",
+      "Mfuzz"
+    ]
+  }
+}

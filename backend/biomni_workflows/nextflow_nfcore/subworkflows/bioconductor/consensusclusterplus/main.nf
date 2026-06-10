@@ -1,176 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ConsensusClusterPlus 1.70.0
-// Consensus clustering for unsupervised molecular subtype
-// discovery in genomic data (Monti et al., 2003).
-//
-// Source : https://bioconductor.org/packages/ConsensusClusterPlus
-// Reference: Monti S et al. (2003) J Classification 20:107-136.
-//            DOI: 10.1023/A:1023949509487
-// Upstream  : (none — base R only)
-// Downstream: survival, survminer (downstream survival analysis)
-//
-// Install: BiocManager::install("ConsensusClusterPlus")
+// Bioconductor workflow: ConsensusClusterPlus — standard_consensus_clustering
+// Perform consensus clustering on a gene expression matrix to identify stable sample clusters and calculate cluster/item consensus.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-consensusclusterplus:1.74.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ConsensusClusterPlus
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter features by variability using median absolute deviation (mad)
+//  * 2. [Core Analysis] Median-center the features using sweep
+//  * 3. [Core Analysis] Run consensus clustering using ConsensusClusterPlus
+//  * 4. [Core Analysis] Calculate cluster and item consensus using calcICL
 
 nextflow.enable.dsl = 2
 
-process BIOC_CONSENSUSCLUSTERPLUS {
+process BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-consensusclusterplus"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-consensusclusterplus:1.70.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-consensusclusterplus:1.70.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(expr_matrix_rds)   // RDS file: numeric matrix (genes x samples)
-    val max_k                                  // maximum number of clusters to test (default: 8)
-    val n_reps                                 // bootstrap resampling iterations   (default: 500)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cluster_assignments.csv"), emit: assignments
-    tuple val(meta), path("${meta.id}_icl_scores.csv")         , emit: icl_scores
-    tuple val(meta), path("${meta.id}_consensus_plots.pdf")    , emit: plots, optional: true
-    tuple val(meta), path("${meta.id}_optimal_k.txt")          , emit: optimal_k
-    path "versions.yml"                                        , emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def maxK   = max_k  ?: 8
-    def reps   = n_reps ?: 500
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Check for required input file
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Error: 'expression_matrix.csv' not found in the working directory.")
+    }
+    
+    # 1. Read the user input expression matrix
+    # Expecting a CSV with gene/feature IDs in the first column and sample IDs as headers
+    d = as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+    
+    # 2. Filter features by variability using median absolute deviation (mad)
+    mads = apply(d, 1, mad)
+    # Handle cases where the input matrix has fewer than 5000 features
+    n_features = min(5000, nrow(d))
+    d = d[rev(order(mads))[1:n_features], ]
+    
+    # 3. Median-center the features using sweep
+    d = sweep(d, 1, apply(d, 1, median, na.rm = TRUE))
+    
+    # 4. Run consensus clustering using ConsensusClusterPlus
     library(ConsensusClusterPlus)
-
-    # Load expression matrix
-    d <- readRDS("${expr_matrix_rds}")
-    if (!is.matrix(d)) d <- as.matrix(d)
-
-    # Median-center genes (rows) — standard pre-processing step
-    d <- sweep(d, 1, apply(d, 1, median, na.rm = TRUE))
-
-    # Run consensus clustering
-    result <- ConsensusClusterPlus(
-        d,
-        maxK       = ${maxK},
-        reps       = ${reps},
-        pItem      = 0.8,
-        pFeature   = 1,
-        clusterAlg = "km",
-        distance   = "pearson",
-        seed       = 42,
-        plot       = "pdf",
-        title      = "${prefix}_consensus_plots"
+    
+    # Define output directory for plots and tables
+    title = "consensus_clustering_plots"
+    if (!dir.exists(title)) {
+      dir.create(title, recursive = TRUE)
+    }
+    
+    results = ConsensusClusterPlus(
+      d,
+      maxK = 6,
+      reps = 50,
+      pItem = 0.8,
+      pFeature = 1,
+      title = title,
+      clusterAlg = "hc",
+      distance = "pearson",
+      seed = 1262118388.71279,
+      plot = "png"
     )
+    
+    # 5. Calculate cluster and item consensus using calcICL
+    icl = calcICL(results, title = title, plot = "png")
+    
+    # 6. Save meaningful results to output files
+    # Save R objects for downstream analysis
+    saveRDS(results, file = "consensus_results.rds")
+    saveRDS(icl, file = "consensus_icl.rds")
+    
+    # Save cluster consensus and item consensus tables
+    write.csv(icl[["clusterConsensus"]], file = "cluster_consensus.csv", row.names = FALSE)
+    write.csv(icl[["itemConsensus"]], file = "item_consensus.csv", row.names = FALSE)
+    
+    # Save sample cluster assignments for each evaluated K
+    for (k in 2:6) {
+      if (!is.null(results[[k]])) {
+        class_assignment = results[[k]][["consensusClass"]]
+        class_df = data.frame(
+          Sample = names(class_assignment),
+          Cluster = class_assignment,
+          stringsAsFactors = FALSE
+        )
+        write.csv(class_df, file = paste0("consensus_class_k", k, ".csv"), row.names = FALSE)
+      }
+    }
 
-    # Calculate ICL (item and cluster consensus)
-    icl <- calcICL(result)
-
-    # Select optimal k by minimum PAC score (proportion of ambiguous clusterings)
-    # PAC = fraction of consensus values in (0.1, 0.9) — lower is better
-    pac_scores <- sapply(2:${maxK}, function(k) {
-        cc  <- result[[k]][["consensusMatrix"]]
-        pac <- cc[upper.tri(cc)]
-        mean(pac > 0.1 & pac < 0.9)
-    })
-    best_k <- which.min(pac_scores) + 1
-    writeLines(as.character(best_k), "${prefix}_optimal_k.txt")
-
-    # Extract cluster assignments for optimal k
-    assignments <- data.frame(
-        sample  = names(result[[best_k]][["consensusClass"]]),
-        cluster = result[[best_k]][["consensusClass"]],
-        stringsAsFactors = FALSE
-    )
-    write.csv(assignments, "${prefix}_cluster_assignments.csv", row.names = FALSE)
-
-    # ICL scores table
-    icl_df <- as.data.frame(icl[["clusterConsensus"]])
-    write.csv(icl_df, "${prefix}_icl_scores.csv", row.names = FALSE)
-
-    # versions.yml
-    writeLines(
-        c("BIOC_CONSENSUSCLUSTERPLUS:",
-          paste0("    consensusclusterplus: ", packageVersion("ConsensusClusterPlus"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING":',
+        paste0('    ConsensusClusterPlus: ', as.character(packageVersion('ConsensusClusterPlus')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    echo "sample,cluster" > ${prefix}_cluster_assignments.csv
-    echo "k,clusterConsensus" > ${prefix}_icl_scores.csv
-    echo "4" > ${prefix}_optimal_k.txt
-    echo "BIOC_CONSENSUSCLUSTERPLUS:" > versions.yml
-    echo "    consensusclusterplus: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_consensus_clustering.csv versions.yml
     """
 }
 
-
-// ─── Standalone entry workflow ───────────────────────────────────────────────
-
-workflow {
-    ch_input = Channel.of(
-        [[id: 'test'],
-         file(params.expr_matrix_rds ?: 'NO_FILE')]
-    )
-
-    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW(
-        ch_input,
-        params.max_k  ?: 8,
-        params.n_reps ?: 500
-    )
-
-    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.assignments.view { meta, f ->
-        "Cluster assignments written: ${f}"
-    }
-    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.optimal_k.view { meta, f ->
-        "Optimal k written: ${f}"
-    }
-}
-
-workflow BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW {
+workflow BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(expr_matrix.rds) ]
-    max_k     // val: maximum clusters to test (default 8)
-    n_reps    // val: bootstrap resampling iterations (default 500)
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    ch_versions = Channel.empty()
-
-    BIOC_CONSENSUSCLUSTERPLUS(ch_input, max_k, n_reps)
-    ch_versions = ch_versions.mix(BIOC_CONSENSUSCLUSTERPLUS.out.versions)
+    BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING(ch_input)
 
     emit:
-    assignments = BIOC_CONSENSUSCLUSTERPLUS.out.assignments  // [ meta, cluster_assignments.csv ]
-    icl_scores  = BIOC_CONSENSUSCLUSTERPLUS.out.icl_scores   // [ meta, icl_scores.csv ]
-    plots       = BIOC_CONSENSUSCLUSTERPLUS.out.plots         // [ meta, consensus_plots.pdf ] (optional)
-    optimal_k   = BIOC_CONSENSUSCLUSTERPLUS.out.optimal_k    // [ meta, optimal_k.txt ]
-    versions    = ch_versions
-}
-
-
-// Convenience alias for patient stratification context
-workflow PATIENT_STRATIFICATION {
-    take:
-    expr_matrix  // channel: [ val(meta), path(expr_matrix.rds) ]
-    max_k        // val: maximum clusters to test (default 8)
-    n_reps       // val: bootstrap resampling iterations (default 500)
-
-    main:
-    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW(expr_matrix, max_k, n_reps)
-
-    emit:
-    assignments = BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.assignments
-    icl_scores  = BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.icl_scores
-    plots       = BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.plots
-    optimal_k   = BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.optimal_k
-    versions    = BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.versions
+    tables   = BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING.out.tables
+    plots    = BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING.out.plots
+    objects  = BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING.out.objects
+    versions = BIOC_CONSENSUSCLUSTERPLUS_STANDARD_CONSENSUS_CLUSTERING.out.versions
 }

@@ -1,0 +1,15 @@
+{
+  "package": "spasim",
+  "requirements": [
+    "EBImage",
+    "SingleCellExperiment",
+    "spaSim"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "SingleCellExperiment",
+      "spaSim"
+    ]
+  }
+}

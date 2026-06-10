@@ -1,0 +1,11 @@
+{
+  "package": "dfp",
+  "requirements": [
+    "DFP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DFP"
+    ]
+  }
+}

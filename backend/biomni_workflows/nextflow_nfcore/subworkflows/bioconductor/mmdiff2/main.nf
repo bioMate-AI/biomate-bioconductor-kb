@@ -1,130 +1,188 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MMDiff2
-// This package detects statistically significant differences between read enrichment profiles in diffe
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MMDiff2/inst/doc/MMDiff2.R
-// Upstream  : MMDiffBamSubset, MotifDb
-// Downstream: none
-//
-// Install: BiocManager::install("MMDiff2")
+// Bioconductor workflow: MMDiff2 — chipseq_shape_diff_analysis
+// Detect statistically significant differences in ChIP-Seq read enrichment profiles (peak shapes) between different conditions.
+// Input: sampleSheet.csv, peaks.GRanges, sorted_indexed.bam
+// Container: quay.io/biocontainers/bioconductor-mmdiff2:1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Mmusculus.UCSC.mm9, GenomicRanges, MMDiff2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize metadata and DBAmmd object (DBAmmd)
+//  * 2. [Core Analysis] Set regions of interest (setRegions)
+//  * 3. [Core Analysis] Retrieve peak reads from BAM files (getPeakReads)
+//  * 4. [Core Analysis] Estimate fragment centers (estimateFragmentCenters)
+//  * 5. [Core Analysis] Compute peak histograms (compHists)
+//  * 6. [Core Analysis] Compute pairwise distances between samples (compDists)
+//  * 7. [Core Analysis] Set experimental contrast (setContrast)
+//  * 8. [Core Analysis] Compute p-values for differential shape testing (compPvals)
+//  * 9. [Visualization & Output] Report and visualize results (reportResults, plotDists, plotPeak, plotDISTS4Peak, runShinyMMDiff2)
 
 nextflow.enable.dsl = 2
 
-process BIOC_MMDIFF2 {
+process BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mmdiff2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mmdiff2:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mmdiff2:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mmdiff2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mmdiff2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mmdiff2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(MMDiff2)
-    library(DBAmmd)
-    library(Samples)
-    library(jsonlite)
-
-    # --- Data Initialization and Peak Loading ---
-    # Key functions: DBAmmd, setRegions, getPeakReads
-    ExperimentData <- list(genome = 'BSgenome.Mmusculus.UCSC.mm9',
-                           dataDir = system.file("extdata",
-                                                 package="MMDiffBamSubset"),
-                           sampleSheet="Cfp1.csv")
+    library(GenomicRanges)
+    library(BSgenome.Mmusculus.UCSC.mm9)
+    
+    # 1. Initialize metadata and DBAmmd object
+    # We read from the current working directory where the user's files are located.
+    ExperimentData <- list(
+      genome = 'BSgenome.Mmusculus.UCSC.mm9',
+      dataDir = '.',
+      sampleSheet = 'sampleSheet.csv'
+    )
     MetaData <- list('ExpData' = ExperimentData)
     MMD <- DBAmmd(MetaData)
-    data('Cfp1-Peaks')
+    
+    # 2. Set regions of interest
+    # Read the GenomicRanges object from the user-provided 'peaks.GRanges' RDS file
+    Peaks <- readRDS("peaks.GRanges")
     MMD <- setRegions(MMD, Peaks)
+    
+    # 3. Retrieve peak reads from BAM files
     MMD <- getPeakReads(MMD)
-
-    # --- Fragment Center Estimation and Histogram Computation ---
-    # Key functions: estimateFragmentCenters, compHists
+    
+    # 4. Estimate fragment centers
     MMD <- estimateFragmentCenters(MMD)
-    MMD <- compHists(MMD, bin.length=20, whichPos="Center")
-
-    # --- Distance Computation and Contrast Setup ---
-    # Key functions: compDists, Samples, setContrast
+    
+    # 5. Compute peak histograms
+    MMD <- compHists(MMD, bin.length = 20, whichPos = "Center")
+    
+    # 6. Compute pairwise distances between samples
     MMD <- compDists(MMD, dist.method = "MMD", run.parallel = FALSE)
-    group1 <- Samples(MMD)$Condition == '1'
-    names(group1) <- Samples(MMD)$SampleID
-    group2 <- Samples(MMD)$Condition == '2'
-    names(group2) <- Samples(MMD)$SampleID
-    contrast <- list(group1=group1, group2=group2,
-                     name1='WT,REsc', name2='Null')
-    MMD <- setContrast(MMD, contrast=contrast)
-
-    # --- Differential Testing and Results Reporting ---
-    # Key functions: compPvals, reportResults
-    MMD <- compPvals(MMD, dist.method='MMD')
+    
+    # 7. Set experimental contrast
+    MMD <- setContrast(MMD, contrast = 'byCondition')
+    
+    # 8. Compute p-values for differential shape testing
+    MMD <- compPvals(MMD, dist.method = 'MMD')
+    
+    # 9. Report and visualize results
+    # Save tabular results
     res <- reportResults(MMD)
-
-    # --- Visualization of Peaks and Distances ---
-    # Key functions: plotDists, plotDISTS4Peak
+    write.csv(as.data.frame(res), file = "MMDiff2_results.csv", row.names = TRUE)
+    
+    # Save plots to a PDF file
+    pdf("MMDiff2_plots.pdf", width = 8, height = 6)
+    
+    # Plot distances summary
+    tryCatch({
+      plotDists(
+        MMD,
+        dist.method = 'MMD',
+        whichContrast = 1,
+        diff.method = 'MMD.locfit',
+        bUsePval = FALSE,
+        th = 0.1,
+        title = NULL,
+        what = 3,
+        xlim = NULL,
+        ylim = NULL,
+        Peak.IDs = NULL,
+        withLegend = TRUE
+      )
+    }, error = function(e) {
+      warning("Could not plot distances: ", e\$message)
+    })
+    
+    # Plot specific peak details if peaks are reported
     Peak.ids <- names(res)
-    plotDists(MMD, dist.method='MMD', whichContrast=1,
-              diff.method='MMD.locfit', bUsePval=FALSE, th=0.1)
     if (length(Peak.ids) > 0) {
-        plotDISTS4Peak(MMD, Peak.id=Peak.ids[1], dist.method='MMD',
-                       whichContrast=1, Zoom=TRUE)
+      tryCatch({
+        plotPeak(
+          MMD,
+          Peak.id = Peak.ids[1],
+          NormMethod = NULL,
+          plot.input = FALSE,
+          whichPos = "Center",
+          whichContrast = 1
+        )
+      }, error = function(e) {
+        warning("Could not plot peak: ", e\$message)
+      })
+      
+      tryCatch({
+        plotDISTS4Peak(
+          MMD,
+          Peak.id = Peak.ids[1],
+          dist.method = 'MMD',
+          whichContrast = 1,
+          Zoom = TRUE
+        )
+      }, error = function(e) {
+        warning("Could not plot distances for peak: ", e\$message)
+      })
+    }
+    
+    dev.off()
+    
+    # Save the final DBAmmd object
+    saveRDS(MMD, file = "MMD_object.rds")
+    
+    # Run Shiny app only if in an interactive session
+    if (interactive()) {
+      runShinyMMDiff2(MMD)
     }
 
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mmdiff2_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mmdiff2_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mmdiff2_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MMDIFF2:", paste0("    mmdiff2: ", packageVersion("MMDiff2"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS":',
+        paste0('    MMDiff2: ', as.character(packageVersion('MMDiff2')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mmdiff2_results.csv
-    touch ${prefix}_mmdiff2_output.rds
-    echo "BIOC_MMDIFF2:" > versions.yml
-    echo "    mmdiff2: 0.0.0" >> versions.yml
+    touch ${prefix}_chipseq_shape_diff_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MMDIFF2_WORKFLOW {
+workflow BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sampleSheet.csv, peaks.GRanges, sorted_indexed.bam ] ]
 
     main:
-    BIOC_MMDIFF2(ch_input)
+    BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MMDIFF2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MMDIFF2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MMDIFF2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MMDIFF2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS.out.tables
+    plots    = BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS.out.plots
+    objects  = BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS.out.objects
+    versions = BIOC_MMDIFF2_CHIPSEQ_SHAPE_DIFF_ANALYSIS.out.versions
 }

@@ -1,0 +1,16 @@
+{
+  "package": "rarevariantvis",
+  "requirements": [
+    "DataRareVariantVis",
+    "RareVariantVis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DataRareVariantVis",
+      "RareVariantVis"
+    ],
+    "multiple_sample_visualization.nf": [
+      "RareVariantVis"
+    ]
+  }
+}

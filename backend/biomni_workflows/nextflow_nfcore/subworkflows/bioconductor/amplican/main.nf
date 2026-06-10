@@ -1,90 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: amplican
-// `amplican` performs alignment of the amplicon reads, normalizes gathered data, calculates multiple s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/amplican/inst/doc/amplicanOverview.R
-// Upstream  : ggplot2, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("amplican")
+// Bioconductor workflow: amplican — amplican_standard_pipeline
+// Align amplicon reads, normalize editing events against controls, and generate comprehensive HTML reports.
+// Input: config.csv, fastq_folder
+// Container: quay.io/biocontainers/bioconductor-amplican:1.32.1--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: amplican
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Define paths to the configuration file and fastq folder. 2. Run the complete amplican pipeline to perform alignment, filtering, no
 
 nextflow.enable.dsl = 2
 
-process BIOC_AMPLICAN {
+process BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-amplican"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-amplican:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-amplican:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_amplican_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_amplican_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_amplican_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(amplican)
-    library(jsonlite)
-
-    # --- tempdir [] ---
-    # Key functions: tempdir, amplicanPipeline
-    config <- system.file("extdata", "config.csv", package = "amplican")
-    fastq_folder <- system.file("extdata", package = "amplican")
-    results_folder <- tempdir()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_amplican_results.csv", row.names = TRUE)
+    
+    # 1. Define paths to the configuration file and fastq folder from user input
+    config <- "config.csv"
+    fastq_folder <- "fastq_folder"
+    results_folder <- "results_output"
+    
+    # Ensure output directory exists
+    if (!dir.exists(results_folder)) {
+      dir.create(results_folder, recursive = TRUE)
+    }
+    
+    # 2. Run the complete amplican pipeline to perform alignment, filtering, normalization, and report generation
+    amplicanPipeline(config, fastq_folder, results_folder)
+    
+    # 3. Load alignment results and look up specific alignments in human-readable format
+    # Dynamically locate the generated RDS alignment file to adapt the system.file call
+    rds_files <- list.files(file.path(results_folder, "alignments", "temp"), pattern = "\\\\.rds\$", full.names = TRUE)
+    if (length(rds_files) > 0) {
+      aln <- rds_files[1]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_amplican_results.csv")
+      stop("No alignment RDS files found in the results folder.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_amplican_output.rds")
+    
+    aln <- readRDS(aln)
+    
+    # Write the lookup alignment output to a text file
+    output_txt <- "alignment_lookup.txt"
+    sink(output_txt)
+    tryCatch({
+      # Exact documented function call
+      amplican::lookupAlignment(aln, ID = "ID_1")
+    }, error = function(e) {
+      # Fallback to the first ID in the user's config if "ID_1" does not exist
+      config_df <- read.csv(config)
+      if (nrow(config_df) > 0) {
+        amplican::lookupAlignment(aln, ID = as.character(config_df\$ID[1]))
+      } else {
+        stop("Config file is empty.")
+      }
+    })
+    sink()
+    
+    # Copy key summary files to the working directory as named outputs
+    summary_source <- file.path(results_folder, "config_summary.csv")
+    if (file.exists(summary_source)) {
+      file.copy(summary_source, "amplican_config_summary.csv", overwrite = TRUE)
+    }
+    
+    barcode_summary_source <- file.path(results_folder, "barcode_reads_filters.csv")
+    if (file.exists(barcode_summary_source)) {
+      file.copy(barcode_summary_source, "amplican_barcode_reads_filters.csv", overwrite = TRUE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AMPLICAN:", paste0("    amplican: ", packageVersion("amplican"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE":',
+        paste0('    amplican: ', as.character(packageVersion('amplican')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_amplican_results.csv
-    touch ${prefix}_amplican_output.rds
-    echo "BIOC_AMPLICAN:" > versions.yml
-    echo "    amplican: 0.0.0" >> versions.yml
+    touch ${prefix}_amplican_standard_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_AMPLICAN_WORKFLOW {
+workflow BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ config.csv, fastq_folder ] ]
 
     main:
-    BIOC_AMPLICAN(ch_input)
+    BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_AMPLICAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AMPLICAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AMPLICAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AMPLICAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE.out.tables
+    plots    = BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE.out.plots
+    objects  = BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE.out.objects
+    versions = BIOC_AMPLICAN_AMPLICAN_STANDARD_PIPELINE.out.versions
 }

@@ -1,0 +1,16 @@
+{
+  "package": "peca",
+  "requirements": [
+    "PECA",
+    "affy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PECA"
+    ],
+    "peca_microarray_affy.nf": [
+      "PECA",
+      "affy"
+    ]
+  }
+}

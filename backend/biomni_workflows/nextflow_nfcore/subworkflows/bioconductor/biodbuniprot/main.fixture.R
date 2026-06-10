@@ -1,0 +1,1 @@
+write.csv(data.frame(id = c("P01116", "P01308", "Q9Y261")), "input.csv", row.names = FALSE)

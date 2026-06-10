@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gdata=Data frame or file path containing gene summary results from MAGeCK ;; sdata=Data frame or file path containing sgRNA summary results from MAGeCK ;; ctrlname=The column name or prefix representing control samples in MLE analysis ;; treatname=The column name or prefix representing treatment samples in MLE analysis ;; organism=The organism of interest, typically \"hsa\" (human) or \"mmu\" (mouse) ;; proj=A character string used as a prefix for output files and directories\n- alternatives: MAGeCK (command-line tool used for primary mapping and statistical testing, whereas MAGeCKFlute is preferred for downstream visualization and biological interpretation) ;; clusterProfiler (used for general enrichment, but MAGeCKFlute is preferred for integrated, automated CRISPR-specific workflows)\n- when_to_use: Use this package when you have completed a CRISPR/Cas9 screen, processed the raw sequencing reads using MAGeCK (either RRA or MLE algorithms), and want to perform quality control, visualize hits, and run functional enrichment analyses (GO, KEGG, etc.) in a single pipeline.\n- pitfalls: Mismatching gene identifiers (e.g., using Ensembl IDs when the package expects official Gene Symbols) ;; Incorrectly specifying control and treatment group names in MLE analysis, which can invert the direction of beta scores ;; Missing dependent annotation packages (such as org.Hs.eg.db or org.Mm.eg.db) required for enrichment analysis.",
+  "workflows": [
+    {
+      "name": "mageck_rra_analysis",
+      "intent": "Perform downstream quality control, visualization, and functional enrichment analysis on CRISPR screen results processed via the MAGeCK RRA (Robust Rank Aggregation) algorithm.",
+      "input": [
+        "gene_summary.txt (MAGeCK RRA gene summary file containing p-values and FDR)",
+        "sgrna_summary.txt (MAGeCK RRA sgRNA summary file containing individual sgRNA read counts and log fold changes)"
+      ],
+      "stages": "1. Read the RRA gene and sgRNA summary files ;; 2. Run the FluteRRA pipeline to perform quality control, identify positively and negatively selected genes, and execute pathway enrichment analysis.",
+      "code": "library(MAGeCKFlute)\ngdata <- read.delim(\"gene_summary.txt\", check.names = FALSE)\nsdata <- read.delim(\"sgrna_summary.txt\", check.names = FALSE)\nFluteRRA(gdata, sdata, proj = \"RRA_Project\", organism = \"hsa\", outdir = \"./\")"
+    },
+    {
+      "name": "mageck_mle_analysis",
+      "intent": "Perform downstream quality control, visualization, and functional enrichment analysis on CRISPR screen results processed via the MAGeCK MLE (Maximum Likelihood Estimation) algorithm.",
+      "input": [
+        "gene_summary.txt (MAGeCK MLE gene summary file containing beta scores for multiple conditions)"
+      ],
+      "stages": "1. Read the MLE gene summary file containing beta scores ;; 2. Run the FluteMLE pipeline to identify essential genes across conditions and perform pathway enrichment analysis.",
+      "code": "library(MAGeCKFlute)\nmle_data <- read.delim(\"gene_summary.txt\", check.names = FALSE)\nFluteMLE(mle_data, treatname = \"Treatment\", ctrlname = \"Control\", proj = \"MLE_Project\", organism = \"hsa\", outdir = \"./\")"
+    }
+  ]
+}

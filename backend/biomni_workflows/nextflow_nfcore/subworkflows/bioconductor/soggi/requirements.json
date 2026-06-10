@@ -1,0 +1,19 @@
+{
+  "package": "soggi",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "ggplot2",
+    "rtracklayer",
+    "soGGi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "ggplot2",
+      "rtracklayer",
+      "soGGi"
+    ]
+  }
+}

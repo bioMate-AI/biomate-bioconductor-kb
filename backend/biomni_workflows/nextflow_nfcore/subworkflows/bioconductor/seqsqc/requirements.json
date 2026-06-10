@@ -1,0 +1,16 @@
+{
+  "package": "seqsqc",
+  "requirements": [
+    "SeqSQC",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SeqSQC"
+    ],
+    "step_by_step_qc.nf": [
+      "SeqSQC",
+      "htmlwidgets"
+    ]
+  }
+}

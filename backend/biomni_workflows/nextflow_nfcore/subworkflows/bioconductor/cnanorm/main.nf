@@ -1,155 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNAnorm
-// Performs ratio, GC content correction and normalization of data obtained using low coverage (one rea
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNAnorm/inst/doc/CNAnorm.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CNAnorm")
+// Bioconductor workflow: CNAnorm — standard_cnanorm_workflow
+// Perform basic copy number profiling and normalization without estimating absolute ploidy or tumor content, suitable for heterogeneous or polyclonal tumors.
+// Input: LS041
+// Container: quay.io/biocontainers/bioconductor-cnanorm:1.56.0--r45h63f16b7_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNAnorm
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert dataframe to CNAnorm object
+//  * 2. [Core Analysis] Perform GC content normalization
+//  * 3. [Core Analysis] Smooth the ratio signal
+//  * 4. [Core Analysis] Find the representative peak closest to the median ratio
+//  * 5. [Visualization & Output] Plot the peak distribution
+//  * 6. [Core Analysis] Validate and segment the data
+//  * 7. [Core Analysis] Perform discrete normalization
+//  * 8. [Visualization & Output] Plot the normalized genome profile
+//  * 9. [Visualization & Output] Export results to a table
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNANORM {
+process BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cnanorm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cnanorm:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cnanorm:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cnanorm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cnanorm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cnanorm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CNAnormWorkflow)
-    library(jsonlite)
-
-    # --- Cnanorm.Snw:31 35 [] ---
-    # Key functions: data
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(CNAnorm)
-    data(LS041)
-    # show the data
-    LS041[1:5,]
-    # --- Cnanorm.Snw:50 53 [] ---
-    # Key functions: dataFrame2object
-    # set a seed for reproducible comparison
+    
+    # 1. Read the user input file 'LS041' from the working directory
+    # Handle multiple potential extensions or formats robustly.
+    input_file <- "LS041"
+    if (file.exists(input_file)) {
+      LS041 <- read.table(input_file, header = TRUE, stringsAsFactors = FALSE)
+    } else if (file.exists("LS041.csv")) {
+      LS041 <- read.csv("LS041.csv", stringsAsFactors = FALSE)
+    } else if (file.exists("LS041.tsv")) {
+      LS041 <- read.delim("LS041.tsv", stringsAsFactors = FALSE)
+    } else if (file.exists("LS041.txt")) {
+      LS041 <- read.table("LS041.txt", header = TRUE, stringsAsFactors = FALSE)
+    } else {
+      stop("Error: Input file 'LS041' (or LS041.csv/tsv/txt) not found in the working directory.")
+    }
+    
+    # Set seed for reproducibility
     set.seed(31)
+    
+    # Convert dataframe to CNAnorm object
     CN <- dataFrame2object(LS041)
-    # --- Cnanorm.Snw:67 69 [] ---
-    # Key functions: gcNorm
+    
+    # Define chromosomes to exclude
     toSkip <- c("chrY", "chrM")
+    
+    # 2. Perform GC content normalization
     CN <- gcNorm(CN, exclude=toSkip)
-    # --- Cnanorm.Snw:78 79 [] ---
-    # Key functions: addSmooth
+    
+    # 3. Smooth the ratio signal
     CN <- addSmooth(CN, lambda=7)
-    # --- Cnanorm.Snw:84 85 [] ---
-    # Key functions: peakPloidy
+    
+    # 4. Find the representative peak closest to the median ratio
     CN <- peakPloidy(CN, exclude=toSkip, method='closest')
-    # --- Cnanorm.Snw:110 113 [] ---
-    # Key functions: validation, addDNACopy, discreteNorm
+    
+    # Open PDF device to save plots
+    pdf("CNAnorm_plots.pdf", width = 10, height = 7)
+    
+    # 5. Plot the peak distribution
+    plotPeaks(CN)
+    
+    # 6. Validate and segment the data
     CN <- validation(CN)
     CN <- addDNACopy(CN)
+    
+    # 7. Perform discrete normalization
     CN <- discreteNorm(CN)
-    # --- Cnanorm.Snw:119 124 [] ---
-    # Key functions: CNAnormWorkflow
-    # re-set seed for reproducible results
+    
+    # Run the workflow function for comparison/validation as in the documented code
     set.seed(31)
-    CNauto <- CNAnormWorkflow(LS041, gc.do=TRUE, gc.exclude=toSkip,
-        peak.exclude=toSkip)
-    identical(CN, CNauto)
-    # --- Cnanorm.Snw:131 132 [] ---
-    # Key functions: plotGenome
+    CNauto <- CNAnormWorkflow(LS041, gc.do=TRUE, gc.exclude=toSkip, peak.exclude=toSkip)
+    message("Is step-by-step identical to workflow? ", identical(CN, CNauto))
+    
+    # 8. Plot the normalized genome profile
     plotGenome(CN, superimpose='DNACopy', show.centromeres=FALSE)
-    # --- Cnanorm.Snw:141 144 [] ---
-    # Key functions: chrs, plotGenome
+    
+    # Plot subset of chromosomes
     toPlot <- c('chr10', 'chr11', 'chr12')
     subSet <- chrs(CN) %in% toPlot
     plotGenome(CN[subSet], superimpose='DNACopy')
-    # --- Cnanorm.Snw:153 160 [] ---
-    # Key functions: plotGenome
-    data(gPar)
-    gPar$genome$colors$gain.dot <- 'darkorange'
-    gPar$genome$colors$grid <- NULL
-    gPar$genome$cex$gain.dot <- .4
-    gPar$genome$cex$loss.dot <- .4
-    # --- Cnanorm.Snw:165 166 [] ---
-    # Key functions: exportTable
+    
+    # Close PDF device
+    dev.off()
+    
+    # 9. Export results to a table
     exportTable(CN, file = "CNAnorm_table.tab", show = 'center')
-    # --- Cnanorm.Snw:181 183 [] ---
-    # Key functions: peakPloidy, plotPeaks
-    CN <- peakPloidy(CN, exclude=toSkip, method='density')
-    plotPeaks(CN)
-    # --- Cnanorm.Snw:203 210 [] ---
-    # Key functions: validation, addDNACopy, discreteNorm, plotGenome
-    CN <- validation(CN)
-    data(hg19_hs_ideogr)
-    CN <- addDNACopy(CN, DNAcopy.weight='poisson',
-        DNAcopy.segment=list(alpha=0.001), independent.arms=TRUE,
-        ideograms=hg19_hs_ideogr)
-    # --- Cnanorm.Snw:225 227 [] ---
-    # Key functions: validation, ploidy, plotPeaks
-    CN <- validation(CN, ploidy = (sugg.ploidy(CN) - 1))
-    plotPeaks(CN, show='validated')
-    # --- Cnanorm.Snw:235 237 [] ---
-    # Key functions: discreteNorm, plotGenome
-    CN <- discreteNorm(CN)
-    plotGenome(CN, superimpose='DNACopy')
+    
+    # Save the final CNAnorm object as RDS
+    saveRDS(CN, file = "CNAnorm_object.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cnanorm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cnanorm_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cnanorm_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNANORM:", paste0("    cnanorm: ", packageVersion("CNAnorm"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW":',
+        paste0('    CNAnorm: ', as.character(packageVersion('CNAnorm')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cnanorm_results.csv
-    touch ${prefix}_cnanorm_output.rds
-    echo "BIOC_CNANORM:" > versions.yml
-    echo "    cnanorm: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_cnanorm_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNANORM_WORKFLOW {
+workflow BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ LS041 ] ]
 
     main:
-    BIOC_CNANORM(ch_input)
+    BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_CNANORM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNANORM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNANORM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNANORM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW.out.tables
+    plots    = BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW.out.plots
+    objects  = BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW.out.objects
+    versions = BIOC_CNANORM_STANDARD_CNANORM_WORKFLOW.out.versions
 }

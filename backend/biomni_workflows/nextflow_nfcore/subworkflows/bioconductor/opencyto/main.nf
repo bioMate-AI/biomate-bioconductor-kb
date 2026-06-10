@@ -4,6 +4,8 @@
 // Perform automated hierarchical gating on raw FCS files using a predefined CSV gating template.
 // Input: fcsFiles, gtFile
 // Container: quay.io/biocontainers/bioconductor-opencyto:2.22.0--r45ha27e39d_0
+// R packages: CytoML, flowCore, flowWorkspace, flowworkspacedata, ggcyto, openCyto
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("cytoml", "flowCore", "flowworkspace", "flowworkspacedata", "ggcyto", "opencyto")
+    .bm_deps <- c("CytoML", "flowCore", "flowWorkspace", "flowworkspacedata", "ggcyto", "openCyto")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -50,7 +62,7 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     flowDataPath <- "."
     fcsFiles <- list.files(pattern = "CytoTrol", flowDataPath, full = TRUE)
     if (length(fcsFiles) == 0) {
-      fcsFiles <- list.files(pattern = "\\.fcs\$", path = flowDataPath, full = TRUE, ignore.case = TRUE)
+      fcsFiles <- list.files(pattern = "\\\\.fcs\$", path = flowDataPath, full = TRUE, ignore.case = TRUE)
     }
     if (length(fcsFiles) == 0) {
       stop("No FCS files found in the working directory.")
@@ -98,7 +110,7 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     gs <- transform(gs, trans)
     
     # 4. Load the gating template from the CSV file.
-    gtFile <- list.files(pattern = "\\.csv\$", full.names = TRUE)[1]
+    gtFile <- list.files(pattern = "\\\\.csv\$", full.names = TRUE)[1]
     if (is.na(gtFile)) {
       stop("No CSV gating template found in the working directory.")
     }

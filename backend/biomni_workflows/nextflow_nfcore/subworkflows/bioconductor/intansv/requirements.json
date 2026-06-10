@@ -1,0 +1,13 @@
+{
+  "package": "intansv",
+  "requirements": [
+    "intansv",
+    "plyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "intansv",
+      "plyr"
+    ]
+  }
+}

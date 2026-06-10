@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tr=A phylogenetic tree object (e.g., of class phylo) ;; td=A matrix or data frame of trait data representing coordinates in the morphospace (typically 2 columns for 2D space) ;; trait=The name of the trait column in the attached data frame to be mapped to the heatmap in geom_tsheatmap ;; resolution=The resolution of the grid for the heatmap in geom_tsheatmap ;; bin=The number of bins used for the heatmap in geom_tsheatmap\n- alternatives: phytools=Provides phylomorphospace and phylomorphospace3d functions, but ggtreeSpace is preferred for 2D plots requiring ggplot2-style layer-by-layer annotations and integration with other spatial layers (like maps or histological images)\n- when_to_use: Use when you want to visualize evolutionary trajectories of species in a 2D trait space, analyze patterns of convergence/divergence, or overlay additional trait dimensions (like heatmaps) onto a phylomorphospace\n- pitfalls: Ensure that the trait data matches the tree tips and nodes correctly; when using geom_tsheatmap, non-finite values outside the scale range may be removed (resulting in warnings from stat_contour_filled)",
+  "workflows": [
+    {
+      "name": "basic_phylomorphospace",
+      "intent": "Create a basic 2D phylomorphospace plot or add it as a graphic layer to a ggplot object",
+      "input": [
+        "tree_file.nwk (phylogenetic tree)",
+        "trait_data.csv (continuous trait measurements for morphospace coordinates)"
+      ],
+      "stages": "1. Load the phylogenetic tree and trait data ;; 2. Generate the phylomorphospace plot using ggtreespace or add it as a layer using geom_treespace ;; 3. Add tip annotations using geom_tippoint",
+      "code": "tr <- rtree(15)\ntd <- fastBM(tr, nsim = 2)\nggtreespace(tr, td) +\n    geom_tippoint()\n\ntr1 <- rtree(15)\ntd1 <- fastBM(tr1, nsim = 2)\nggplot() +\n    geom_treespace(tr1, td1)"
+    },
+    {
+      "name": "annotated_phylomorphospace_heatmap",
+      "intent": "Create an advanced phylomorphospace visualization annotated with a continuous trait heatmap",
+      "input": [
+        "tree_file.nwk (phylogenetic tree)",
+        "trait_coords.csv (2D coordinates for morphospace)",
+        "additional_traits.csv (additional trait values for heatmap mapping)"
+      ],
+      "stages": "1. Load the tree and trait data ;; 2. Initialize the base phylomorphospace plot ;; 3. Attach additional trait data using the %<+% operator ;; 4. Add a heatmap layer using geom_tsheatmap and customize the color scale and theme",
+      "code": "tr <- rtree(15)\ntd <- fastBM(tr, nsim = 2, bounds = c(0, Inf))\ncol <- colorRampPalette(c(\n    \"#FFFFCC\", \"#FFEDA0\", \"#FED976\", \"#FEB24C\",\n    \"#FD8D3C\", \"#FC4E2A\", \"#E31A1C\", \"#B10026\"\n))(24)\ntdex <- data.frame(\n    z = fastBM(tr, nsim = 1, bounds = c(0, Inf)),\n    node = 1:15\n)\np <- ggtreespace(tr, td)\np %<+% tdex +\n    geom_tippoint() +\n    geom_tsheatmap(\n        trait = \"z\", alpha = 0.7,\n        resolution = 0.01, bin = 24\n    ) +\n    scale_fill_manual(\n        values = col,\n        guide = guide_colorsteps(show.limits = TRUE)\n    ) +\n    theme_treespace2() +\n    theme(\n        legend.key.height = unit(1, \"null\"),\n        legend.justification.top = \"right\"\n    )"
+    }
+  ]
+}

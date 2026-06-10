@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: threshold=Determines the probe variation threshold in massi_select based on CV quantiles (1=All probes, 2=Upper 75%, 3=Upper 50%, 4=Upper 25%). Default is 3.\n- alternatives: Using biomaRt to download genomic regions and Entrez gene IDs for probes and filtering for chromosome Y to obtain custom probe lists, which is recommended over manufacturer annotations because Ensembl maps probe sequences to reference genomes and allows removing ambiguous/non-specific probes.\n- when_to_use: When analyzing public microarray datasets that lack associated sample sex information, or when needing to perform a sanity check to confirm sex information in gene expression datasets.\n- pitfalls: The method is >97% accurate for datasets with 6 or more samples and with at least 15% of either males or females; outside this range, performance may be affected. A dip statistic < 0.08 from massi_dip suggests a potential sex bias (e.g., too few males or females) that could affect clustering accuracy, though it should be interpreted with caution. Low variance probes on the Y chromosome can be uninformative and should be filtered out using massi_select with an appropriate threshold.",
+  "workflows": [
+    {
+      "name": "microarray_dataframe_workflow",
+      "intent": "Predict sample sex from a normalized microarray expression data.frame using Y chromosome probes.",
+      "input": [
+        "expression_data.csv (normalized and log-transformed probe values with samples as columns and probes as rows)",
+        "y_probes.csv (Y chromosome probe identifiers as row names)"
+      ],
+      "stages": "1. Extract Y chromosome probe data and calculate CV using massi_y ;; 2. Plot probe variation using massi_y_plot ;; 3. Select informative probes using massi_select ;; 4. Predict sample sex using massi_cluster ;; 5. Plot clustering results using massi_cluster_plot ;; 6. Check for sex bias using massi_dip",
+      "code": "massi.y.out <- massi_y(massi.test.dataset, massi.test.probes)\nmassi_y_plot(massi.y.out)\nmassi.select.out <- \n  massi_select(massi.test.dataset, massi.test.probes, threshold=4)\nresults <- massi_cluster(massi.select.out)\nsample.results <- data.frame(results[[2]])\nmassi_cluster_plot(massi.select.out, results)\ndip.result <- massi_dip(massi.select.out)"
+    },
+    {
+      "name": "microarray_expressionset_workflow",
+      "intent": "Predict sample sex from an ExpressionSet object and append the predicted sex back to the ExpressionSet phenoData.",
+      "input": [
+        "expression_set.RData (ExpressionSet object containing normalized microarray data)",
+        "y_probes.csv (Y chromosome probe identifiers as row names)"
+      ],
+      "stages": "1. Select Y chromosome probes from the ExpressionSet using massi_select ;; 2. Predict sample sex using massi_cluster ;; 3. Extract predicted sex results ;; 4. Match sample order and add results to the ExpressionSet phenoData",
+      "code": "eset.select.out <- \n  massi_select(massi.eset, massi.test.probes)\n\neset.results <- \n  massi_cluster(eset.select.out)\n\neset.sample.results <- \n  data.frame(eset.results[[2]])\n\nsexData <- \n  data.frame(eset.sample.results[c(\"ID\", \"sex\")])\n\neset.names <- \n  colnames(exprs(massi.eset))\n\nsexData <- sexData[match(eset.names, sexData$ID),]\n\npData <- new(\"AnnotatedDataFrame\", data = sexData)\n\nphenoData(massi.eset) <- pData"
+    }
+  ]
+}

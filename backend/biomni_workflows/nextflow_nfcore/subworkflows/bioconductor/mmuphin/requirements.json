@@ -1,0 +1,36 @@
+{
+  "package": "mmuphin",
+  "requirements": [
+    "MMUPHin",
+    "dplyr",
+    "ggplot2",
+    "magrittr",
+    "vegan"
+  ],
+  "by_workflow": {
+    "continuous_structure_discovery.nf": [
+      "MMUPHin",
+      "dplyr",
+      "ggplot2",
+      "magrittr",
+      "vegan"
+    ],
+    "differential_abundance_testing.nf": [
+      "MMUPHin",
+      "dplyr",
+      "ggplot2",
+      "magrittr"
+    ],
+    "discrete_structure_discovery.nf": [
+      "MMUPHin",
+      "dplyr",
+      "ggplot2",
+      "magrittr",
+      "vegan"
+    ],
+    "main.nf": [
+      "MMUPHin",
+      "vegan"
+    ]
+  }
+}

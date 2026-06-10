@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: hlaSetKernelTarget=Selects target CPU intrinsics (e.g., \"sse4\", \"avx\", \"avx2\", \"avx512f\", \"avx512bw\", \"max\", \"auto.avx2\") to optimize algorithm efficiency ;; nclassifier=The number of individual classifiers to build in the ensemble (typically 100) ;; cl=The number of threads or a cluster object for parallel computing ;; type=The type of prediction output, such as \"response+prob\" to return both best-guess genotypes and posterior probabilities ;; model=The genetic model used in association tests (\"dominant\", \"additive\", \"recessive\", \"genotype\") ;; prob.threshold=The posterior probability threshold below which imputed genotypes are excluded from association testing ;; rm.unused.snp=Logical indicating whether to remove unused SNPs from the model object before publishing ;; anonymize=Logical indicating whether to remove individual training genotypes and sample IDs to protect confidentiality\n- alternatives: Sequence-based typing (SBT) is mentioned as the gold standard for classical HLA genotyping, but it is noted as time-consuming and cost-prohibitive compared to HIBAG's imputation approach.\n- when_to_use: Use HIBAG when you have GWAS SNP data (specifically flanking the MHC region on chromosome 6) and want to impute classical HLA alleles (e.g., HLA-A, HLA-B, HLA-C, HLA-DRB1, HLA-DQA1, HLA-DQB1) either using pre-fit published models or by training a custom model on a reference panel.\n- pitfalls: AVX512 CPU throttling can occur when using AVX512 intrinsics, so hlaSetKernelTarget(\"auto.avx2\") is recommended if throttling is observed ;; A very low matching proportion indicates that the test SNP profile is underrepresented in the training set, which may affect imputation reliability ;; Array-based platforms may have ambiguous strands, requiring careful matching of SNPs between the model and test data ;; Releasing raw trained models can leak confidential individual genotypes; always use hlaPublish with anonymize=TRUE to strip sensitive training data.",
+  "workflows": [
+    {
+      "name": "hla_imputation_prefit",
+      "intent": "Impute classical HLA alleles from user-provided PLINK SNP data using pre-fit published HIBAG models.",
+      "input": [
+        "ModelList.RData (Pre-fit HIBAG model list)",
+        ".bed (PLINK binary genotype file)",
+        ".fam (PLINK sample information file)",
+        ".bim (PLINK SNP information file)"
+      ],
+      "stages": "1. Load the pre-fit model list and extract the model for the target HLA locus ;; 2. Import the user's PLINK BED files into HIBAG genotype format ;; 3. Predict HLA genotypes and posterior probabilities using the model",
+      "code": "filename <- system.file ( \"extdata\" , \"ModelList.RData\" , package= \"HIBAG\" )\nmodel.list <- get ( load (filename))\nhla.id <- \"A\"\nmodel <- hlaModelFromObj (model.list[[hla.id]])\nsummary (model)\nplot (model)\nhead (model $ snp.id)\nhead (model $ snp.position)\nyourgeno <- hlaBED2Geno ( bed.fn= \".bed\" , fam.fn= \".fam\" , bim.fn= \".bim\" )\nsummary (yourgeno)\npred.guess <- hlaPredict (model, yourgeno, type= \"response+prob\" )\nsummary (pred.guess)\npred.guess $ value\npred.guess $ postprob"
+    },
+    {
+      "name": "custom_model_training_validation",
+      "intent": "Train a custom HIBAG model using a reference panel of known HLA and SNP genotypes, validate its accuracy, and export a clean model for release.",
+      "input": [
+        "HLA_Type_Table (Reference HLA genotypes)",
+        "HapMap_CEU_Geno (Reference SNP genotypes)"
+      ],
+      "stages": "1. Format reference HLA alleles ;; 2. Define flanking SNP regions and subset genotypes ;; 3. Split reference data into training and validation sets ;; 4. Train the HIBAG model (sequentially or in parallel) ;; 5. Predict HLA alleles on validation data ;; 6. Evaluate accuracy and generate diagnostic plots/reports ;; 7. Publish and anonymize the model for public release",
+      "code": "hla.id <- \"A\"\ntrain.HLA <- hlaAllele (HLA_Type_Table $ sample.id, H1 = HLA_Type_Table[, paste (hla.id, \".1\" , sep= \"\" )], H2 = HLA_Type_Table[, paste (hla.id, \".2\" , sep= \"\" )], locus= hla.id, assembly= \"hg19\" )\nregion <- 500\ntrain.geno <- hlaGenoSubsetFlank (HapMap_CEU_Geno, hla.id, region * 1000 , assembly= \"hg19\" )\nsummary (train.geno)\nset.seed ( 100 )\nmodel <- hlaAttrBagging (train.HLA, train.geno, nclassifier= 100 )\nsummary (model)\ncl <- 2\nset.seed ( 1000 )\nhlaParallelAttrBagging (cl, train.HLA, train.geno, nclassifier= 100 , auto.save= \"AutoSaveModel.RData\" )\nmodel.obj <- get ( load ( \"AutoSaveModel.RData\" ))\nmodel <- hlaModelFromObj (model.obj)\nsummary (model)\npred.guess <- hlaPredict (model, yourgeno, type= \"response+prob\" , cl= cl)\nhlatab <- hlaSplitAllele (hla, train.prop= 0.5 )\nsnpid <- hlaFlankingSNP (HapMap_CEU_Geno $ snp.id, HapMap_CEU_Geno $ snp.position, hla.id, region * 1000 , assembly= \"hg19\" )\ntrain.geno <- hlaGenoSubset (HapMap_CEU_Geno, snp.sel = match (snpid, HapMap_CEU_Geno $ snp.id), samp.sel = match (hlatab $ training $ value $ sample.id, HapMap_CEU_Geno $ sample.id))\ntest.geno <- hlaGenoSubset (HapMap_CEU_Geno, samp.sel= match ( hlatab $ validation $ value $ sample.id, HapMap_CEU_Geno $ sample.id))\nmodel <- hlaAttrBagging (hlatab $ training, train.geno, nclassifier= 100 )\npred <- hlaPredict (model, test.geno)\ncomp <- hlaCompareAllele (hlatab $ validation, pred, allele.limit= model, call.threshold= 0 )\ncomp $ overall\nd <- hlaDistance (model)\np <- hclust ( as.dist (d))\nplot (p, xlab= \"HLA alleles\" )\nhlaReportPlot (pred, model= model, fig= \"matching\" )\nhlaReportPlot (pred, hlatab $ validation, fig= \"call.rate\" )\nhlaReportPlot (pred, hlatab $ validation, fig= \"call.threshold\" )\nhlaReport (comp, type= \"txt\" )\nhlaReport (comp, type= \"markdown\" )\nhlaReport (comp, type= \"tex\" , header= FALSE )\nmobj <- hlaPublish (model, platform = \"Illumina 1M Duo\" , information = \"Training set -- HapMap Phase II\" , warning = NULL , rm.unused.snp= TRUE , anonymize= TRUE )\nsave (mobj, file= \"Your_HIBAG_Model.RData\" )"
+    },
+    {
+      "name": "hla_association_testing",
+      "intent": "Perform association tests between imputed HLA alleles (or translated amino acid sequences) and clinical phenotypes.",
+      "input": [
+        "case_control.txt (Phenotype and covariate data file)",
+        "Imputed HLA genotypes (from hlaPredict or hlaAllele)"
+      ],
+      "stages": "1. Load phenotype and covariate data ;; 2. Format HLA alleles into a HIBAG allele object ;; 3. Run association tests using dominant, additive, or recessive models ;; 4. Convert HLA alleles to amino acid sequences ;; 5. Run amino acid-level association tests",
+      "code": "dat <- read.table (fn, header= TRUE , stringsAsFactors= FALSE )\nhead (dat)\nhla <- hlaAllele (dat $ sample.id, H1= dat $ A, H2= dat $ A .1 , locus= \"A\" , assembly= \"hg19\" , prob= dat $ prob)\nsummary (hla)\nhlaAssocTest (hla, disease ~ h, data= dat)\nprint ( hlaAssocTest (hla, disease ~ h, data= dat, verbose= FALSE ))\nhlaAssocTest (hla, disease ~ h, data= dat, prob.threshold= 0.5 )\nhlaAssocTest (hla, disease ~ h, data= dat, showOR= TRUE )\nhlaAssocTest (hla, disease ~ h, data= dat, model= \"additive\" )\nhlaAssocTest (hla, trait ~ h, data= dat)\naa <- hlaConvSequence (hla, code= \"P.code.merge\" )\nhead ( c (aa $ value $ allele1, aa $ value $ allele2))\nsummary (aa)\nhlaAssocTest (aa, disease ~ h, data= dat, model= \"dominant\" )\nhlaAssocTest (aa, disease ~ h, data= dat, model= \"dominant\" , prob.threshold= 0.5 )\nhlaAssocTest (aa, disease ~ h, data= dat, model= \"recessive\" )"
+    }
+  ]
+}

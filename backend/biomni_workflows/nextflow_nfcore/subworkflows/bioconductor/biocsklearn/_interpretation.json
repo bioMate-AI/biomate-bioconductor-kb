@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: batch_size=25L ;; controls memory consumption during incremental PCA by specifying the size of data chunks processed at one time. ;; obj=ipc ;; passes the existing PCA state/object to skPartialPCA_step for iterative updates. ;; convert=FALSE ;; used in reticulate::import to prevent automatic conversion of Python objects to R, allowing direct handling by Python functions. ;; delay_load=TRUE ;; delays loading of Python modules until they are explicitly called.\n- alternatives: prcomp ;; R's native principal components analysis, which is preferred for standard in-memory datasets where Python/reticulate overhead is unnecessary.\n- when_to_use: Use when performing dimensionality reduction (PCA) on very large, out-of-memory datasets that require incremental chunking, or when wanting to leverage scikit-learn's machine learning algorithms directly within a Bioconductor-compatible workflow.\n- pitfalls: Running skIncrPCA without proper basilisk cover can be problematic and fail due to environment/dependency issues; manual incremental PCA requires careful tracking of the state object (obj) across steps; automatic conversion of numpy arrays to R objects can cause overhead, so convert=FALSE is recommended for direct python handling.",
+  "workflows": [
+    {
+      "name": "standard_pca",
+      "intent": "Perform standard principal component analysis on an in-memory data matrix using scikit-learn.",
+      "input": [
+        "data.matrix (numeric matrix of features and samples)"
+      ],
+      "stages": "1. Run PCA using skPCA ;; 2. Extract transformed coordinates using getTransformed.",
+      "code": "ppca = skPCA ( data.matrix (iris[, 1 : 4 ]))\ntx = getTransformed (ppca)\ndim (tx)\nhead (tx)"
+    },
+    {
+      "name": "incremental_pca",
+      "intent": "Perform memory-bounded incremental principal component analysis on large datasets.",
+      "input": [
+        "irismat (numpy array or matrix representation of data)"
+      ],
+      "stages": "1. Run incremental PCA with a specified batch size using skIncrPCA ;; 2. Extract transformed coordinates using getTransformed.",
+      "code": "ippcab = skIncrPCA (irismat, batch_size= 25L)\nround ( cor ( getTransformed (ippcab), fullpc), 3 )"
+    },
+    {
+      "name": "manual_incremental_pca",
+      "intent": "Perform manual incremental PCA step-by-step on data chunks or streams.",
+      "input": [
+        "irismat (numpy array or matrix representation of data)"
+      ],
+      "stages": "1. Define slicer utility ;; 2. Initialize and update PCA state iteratively using skPartialPCA_step ;; 3. Transform a subset of data using the final PCA object.",
+      "code": "ta = np $ take\nipc = skPartialPCA_step ( ta (irismat, 0 : 49 ,0L))\nipc = skPartialPCA_step ( ta (irismat, 50 : 99 ,0L), obj= ipc)\nipc = skPartialPCA_step ( ta (irismat, 100 : 149 ,0L), obj= ipc)\nipc $ transform ( ta (irismat, 0 : 5 ,0L))"
+    }
+  ]
+}

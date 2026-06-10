@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: expressionset=The input microarray data container (e.g., AffyBatch, ExpressionSet, NChannelSet) ;; outdir=Character string specifying the output directory for the HTML report ;; force=Logical; if TRUE, overwrites the output directory if it already exists ;; do.logtransform=Logical; if TRUE, applies a logarithmic transformation to the intensities (necessary for raw data like AffyBatch before preprocessing) ;; intgroup=Character vector specifying names of columns in the phenoData slot to color-code plots and heatmaps by experimental factors\n- alternatives: rma() from the affy package for preprocessing Affymetrix data before running quality metrics ;; justvsn() from the vsn package for variance stabilization normalization of two-color arrays ;; ArrayExpress package to download datasets directly from the EBI ArrayExpress database instead of local files\n- when_to_use: When assessing the quality of a raw microarray dataset to identify experimental/technical issues, or when assessing a normalized/preprocessed microarray dataset to decide whether to exclude specific outlier arrays before downstream differential expression analysis.\n- pitfalls: Forgetting to set do.logtransform = TRUE when analyzing raw, non-log-transformed data (like raw AffyBatch), which can distort intensity-based metrics ;; Failing to provide X and Y coordinates in the featureData slot when spatial layout plots are desired for non-Affymetrix/non-BeadLevelList platforms ;; Including too much or too little metadata in the phenoData slot, which can make the interactive report table cluttered or uninformative.",
+  "workflows": [
+    {
+      "name": "standard_qc_report",
+      "intent": "Generate a standard, comprehensive HTML quality report from a microarray data container.",
+      "input": [
+        "MLL.A (AffyBatch object containing raw Affymetrix data)",
+        "CCl4 (NChannelSet object containing raw two-color microarray data)"
+      ],
+      "stages": "1. Load raw data ;; 2. Run arrayQualityMetrics on raw data with log transformation ;; 3. Preprocess data (using rma or justvsn) ;; 4. Run arrayQualityMetrics on preprocessed data ;; 5. Add experimental factors or spatial coordinates to metadata ;; 6. Run arrayQualityMetrics with metadata factors",
+      "code": "library(\"ALLMLL\")\ndata(\"MLL.A\")\nlibrary(\"arrayQualityMetrics\")\narrayQualityMetrics(expressionset = MLL.A[, 1:5],\n                    outdir = \"Report_for_MLL_A\",\n                    force = TRUE,\n                    do.logtransform = TRUE)\nnMLL = rma(MLL.A)\narrayQualityMetrics(expressionset = nMLL,\n                    outdir = \"Report_for_nMLL\",\n                    force = TRUE)\nlibrary(\"vsn\")\nlibrary(\"CCl4\")\ndata(\"CCl4\")\nnCCl4 = justvsn(CCl4, subsample = 15000)\narrayQualityMetrics(expressionset = nCCl4,\n                    outdir = \"Report_for_nCCl4\",\n                    force = TRUE)\npData(nMLL)$condition = rep(letters[1:4], times = 5)\npData(nMLL)$batch = rep(paste(1:4), each = 5)\narrayQualityMetrics(expressionset = nMLL,\n                    outdir = \"Report_for_nMLL_with_factors\",\n                    force = TRUE,\n                    intgroup = c(\"condition\", \"batch\"))\nfeatureData(nCCl4)$X = featureData(nCCl4)$Row\nfeatureData(nCCl4)$Y = featureData(nCCl4)$Column\nfeatureData(nCCl4)$hasTarget = (regexpr(\"^NM\", featureData(nCCl4)$Name) > 0)\npd = pData(CCl4)\nrownames(pd) = NULL\nRIN = with(pd, ifelse( Cy3==\"CCl4\", RIN.Cy3, RIN.Cy5))\nfRIN = factor(RIN)\nlevels(fRIN) = c(\"poor\", \"medium\", \"good\")\npData(nCCl4)$\"RNA-integrity\" = fRIN\narrayQualityMetrics(expressionset = nCCl4,\n                    outdir = \"Report_for_nCCl4_with_RIN\",\n                    force = TRUE,\n                    intgroup = \"RNA-integrity\")"
+    },
+    {
+      "name": "custom_modular_qc_report",
+      "intent": "Programmatically build a customized quality report by selecting specific modules and manually rendering the report.",
+      "input": [
+        "MLL.A (AffyBatch object containing raw Affymetrix data)"
+      ],
+      "stages": "1. Prepare data using prepdata to perform common pre-computations ;; 2. Generate individual report modules using functions like aqm.boxplot and aqm.density ;; 3. Combine modules into a list ;; 4. Inspect outlier detection statistics programmatically ;; 5. Render the report using aqm.writereport",
+      "code": "library(\"arrayQualityMetrics\")\nlibrary(\"ALLMLL\")\ndata(\"MLL.A\")\npreparedData = prepdata(expressionset = MLL.A, \n                        intgroup = c(), \n                        do.logtransform = TRUE)\nbo = aqm.boxplot(preparedData)\nde = aqm.density(preparedData)\nqm = list(\"Boxplot\" = bo, \"Density\" = de)\nbo@outliers\noutdir = tempdir()\naqm.writereport(modules = qm, reporttitle = \"My example\", outdir = outdir, \n                arrayTable = pData(MLL.A))\noutdir"
+    }
+  ]
+}

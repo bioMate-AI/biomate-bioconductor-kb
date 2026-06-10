@@ -1,0 +1,43 @@
+{
+  "package": "mosdef",
+  "requirements": [
+    "AnnotationDbi",
+    "DESeq2",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "clusterProfiler",
+    "formattable",
+    "ggplot2",
+    "goseq",
+    "htmlwidgets",
+    "mosdef",
+    "org.Hs.eg.db",
+    "topGO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "DESeq2",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "clusterProfiler",
+      "ggplot2",
+      "goseq",
+      "mosdef",
+      "org.Hs.eg.db",
+      "topGO"
+    ],
+    "report_beautification.nf": [
+      "AnnotationDbi",
+      "DESeq2",
+      "formattable",
+      "htmlwidgets",
+      "mosdef",
+      "org.Hs.eg.db"
+    ],
+    "vector_enrichment.nf": [
+      "DESeq2",
+      "mosdef",
+      "org.Hs.eg.db",
+      "topGO"
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "package": "edger",
+  "requirements": [
+    "edgeR"
+  ],
+  "by_workflow": {
+    "classic_pipeline.nf": [
+      "edgeR"
+    ],
+    "fold_change_threshold_testing.nf": [
+      "edgeR"
+    ],
+    "glm_lrt_pipeline.nf": [
+      "edgeR"
+    ],
+    "main.nf": [
+      "edgeR"
+    ]
+  }
+}

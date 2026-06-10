@@ -1,0 +1,15 @@
+{
+  "package": "cytokernel",
+  "requirements": [
+    "ComplexHeatmap",
+    "SummarizedExperiment",
+    "cytoKernel"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "SummarizedExperiment",
+      "cytoKernel"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: group_col=The column name in the colData of the SingleCellExperiment object containing cell type or group annotations (e.g., \"cellType.broad\") ;; cutoff=The maximum Proportion Zero threshold (e.g., 0.9 or 0.75) used to filter out genes with high sparsity across groups\n- alternatives: None mentioned in the documentation for finding TREGs, but the package is designed to identify genes for downstream assays like smFISH/RNAscope to improve deconvolution algorithms\n- when_to_use: Use when you have single-cell or single-nucleus RNA-seq data and want to identify candidate genes (TREGs) whose expression is proportional to overall cell RNA abundance, particularly for designing smFISH/RNAscope probes to assist in cell size/RNA abundance estimation for deconvolution\n- pitfalls: Sparsity in snRNA-seq data can cause rank ties; filtering out low-expression genes (e.g., keeping top 50%) and high Proportion Zero genes is crucial before running rank invariance ;; Extremely rare cell types (e.g., < 50 cells) should be merged or removed to avoid noise ;; Top candidates like MALAT1 might be too highly expressed to be reliably quantified in physical assays (e.g., causing fluorescence oversaturation in RNAscope), so experimental validation on pilot samples is highly recommended",
+  "workflows": [
+    {
+      "name": "treg_discovery",
+      "intent": "Identify candidate Total RNA Expression Genes (TREGs) from a SingleCellExperiment object by filtering low-expression and sparse genes, and calculating rank invariance.",
+      "input": [
+        "sce.dlpfc.tran (SingleCellExperiment object containing single-cell/single-nucleus RNA-seq count data and cell type annotations in colData)"
+      ],
+      "stages": "1. Filter to top 50% expressed genes using row means ;; 2. Calculate Proportion Zero per gene per cell type using get_prop_zero() ;; 3. Filter genes by a maximum Proportion Zero cutoff using filter_prop_zero() ;; 4. Calculate Rank Invariance using either the stepwise approach (rank_group(), rank_cells(), and rank_invariance()) or the express approach (rank_invariance_express())",
+      "code": "row_means <- rowMeans(assays(sce.dlpfc.tran)$logcounts)\nmedian_row_means <- median(row_means)\nsce.dlpfc.tran <- sce.dlpfc.tran[row_means > median_row_means, ]\n\nprop_zeros <- get_prop_zero(sce.dlpfc.tran, group_col = \"cellType.broad\")\n\npropZero_limit <- 0.9\n\nfiltered_genes <- filter_prop_zero(prop_zeros, cutoff = propZero_limit)\n\nsce.dlpfc.tran <- sce.dlpfc.tran[filtered_genes, ]\n\ngroup_rank <- rank_group(sce.dlpfc.tran, group_col = \"cellType.broad\")\n\ncell_rank <- rank_cells(sce.dlpfc.tran, group_col = \"cellType.broad\")\n\nrank_invar <- rank_invariance(group_rank, cell_rank)\n\nhead(sort(rank_invar, decreasing = TRUE))\n\nrank_invar2 <- rank_invariance_express(\n    sce.dlpfc.tran,\n    group_col = \"cellType.broad\"\n)\n\nhead(sort(rank_invar2, decreasing = TRUE))\n\nstopifnot(identical(rank_invar, rank_invar2))"
+    }
+  ]
+}

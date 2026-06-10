@@ -1,0 +1,27 @@
+{
+  "package": "cagefightr",
+  "requirements": [
+    "CAGEfightR",
+    "GenomicFeatures",
+    "Gviz",
+    "InteractionSet",
+    "SummarizedExperiment",
+    "TxDb.Mmusculus.UCSC.mm9.knownGene",
+    "org.Hs.eg.db",
+    "org.Mm.eg.db",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CAGEfightR",
+      "GenomicFeatures",
+      "Gviz",
+      "InteractionSet",
+      "SummarizedExperiment",
+      "TxDb.Mmusculus.UCSC.mm9.knownGene",
+      "org.Hs.eg.db",
+      "org.Mm.eg.db",
+      "rtracklayer"
+    ]
+  }
+}

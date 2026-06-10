@@ -1,0 +1,11 @@
+{
+  "package": "genomicdatacommons",
+  "requirements": [
+    "GenomicDataCommons"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicDataCommons"
+    ]
+  }
+}

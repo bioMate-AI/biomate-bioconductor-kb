@@ -1,155 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: intansv
-// This package provides efficient tools to read and integrate structural variations predicted by popul
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/intansv/inst/doc/intansvOverview.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("intansv")
+// Bioconductor workflow: intansv — sv_integration_annotation_visualization
+// Read structural variation predictions from multiple callers, merge them into a consensus set, annotate their genomic effects, and visualize their distribution.
+// Input: ZS97.breakdancer.sv, cnvnator, svseq2, ZS97.DELLY.vcf, pindel, ZS97.LUMPY.vcf, ZS97.softsearch, chr05_chr10.anno.txt, chr05_chr10.genome.txt
+// Container: quay.io/biocontainers/bioconductor-intansv:1.50.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: intansv, plyr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read predictions from individual SV callers using readBreakDancer, readCnvnator, readSvseq, readDelly, readPindel, readLumpy, and 
+//  * 2. [Core Analysis] Integrate predictions from multiple programs using methodsMerge
+//  * 3. [Input & Preparation] Load genomic annotation and annotate SV effects using svAnnotation
+//  * 4. [Visualization & Output] Load genome chromosome lengths and plot whole-genome SV distribution using plotChromosome
+//  * 5. [Visualization & Output] Visualize SVs in a specific genomic region using plotRegion
 
 nextflow.enable.dsl = 2
 
-process BIOC_INTANSV {
+process BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-intansv"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-intansv:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-intansv:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_intansv_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_intansv_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_intansv_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(intansv)
-    library(jsonlite)
-
-    # --- Read In Results Of Breakdancer [] ---
-    # Key functions: readBreakDancer
-    breakdancer.file.path <- system.file("extdata/ZS97.breakdancer.sv",
-                                   package="intansv")
-    breakdancer.file.path
+    library(plyr)
+    
+    # Define input file paths from the working directory
+    breakdancer.file.path <- "ZS97.breakdancer.sv"
+    cnvnator.dir.path     <- "cnvnator"
+    svseq.dir.path        <- "svseq2"
+    delly.file.path       <- "ZS97.DELLY.vcf"
+    pindel.dir.path       <- "pindel"
+    lumpy.file.path       <- "ZS97.LUMPY.vcf"
+    softSearch.file.path  <- "ZS97.softsearch"
+    anno.file.path        <- "chr05_chr10.anno.txt"
+    genome.file.path      <- "chr05_chr10.genome.txt"
+    
+    # 1. Read predictions from individual SV callers
+    message("Reading BreakDancer predictions...")
     breakdancer <- readBreakDancer(breakdancer.file.path)
-    str(breakdancer)
-    # --- Read In Results Of Cnvnator [] ---
-    # Key functions: readCnvnator
-    cnvnator.dir.path <- system.file("extdata/cnvnator", package="intansv")
-    cnvnator.dir.path
+    
+    message("Reading CNVnator predictions...")
     cnvnator <- readCnvnator(cnvnator.dir.path)
-    str(cnvnator)
-    # --- Read In Results Of Svseq2 [] ---
-    # Key functions: readSvseq
-    svseq.dir.path <- system.file("extdata/svseq2", package="intansv")
-    svseq.dir.path
+    
+    message("Reading SVseq2 predictions...")
     svseq <- readSvseq(svseq.dir.path)
-    str(svseq)
-    # --- Read In Results Of Delly [] ---
-    # Key functions: readDelly
-    delly.file.path <- system.file("extdata/ZS97.DELLY.vcf", package="intansv")
-    delly.file.path
+    
+    message("Reading DELLY predictions...")
     delly <- readDelly(delly.file.path)
-    str(delly)
-    # --- Read In Results Of Pindel [] ---
-    # Key functions: readPindel
-    pindel.dir.path <- system.file("extdata/pindel", package="intansv")
-    pindel.dir.path
+    
+    message("Reading Pindel predictions...")
     pindel <- readPindel(pindel.dir.path)
-    str(pindel)
-    # --- Read In Results Of Lumpy [] ---
-    # Key functions: readLumpy
-    lumpy.file.path <- system.file("extdata/ZS97.LUMPY.vcf",
-                       package="intansv")
-    lumpy.file.path
+    
+    message("Reading Lumpy predictions...")
     lumpy <- readLumpy(lumpy.file.path)
-    str(lumpy)
-    # --- Read In Results Of Softsearch [] ---
-    # Key functions: readSoftSearch
-    softSearch.file.path <- system.file("extdata/ZS97.softsearch", package="intansv")
-    softSearch.file.path
+    
+    message("Reading softSearch predictions...")
     softSearch <- readSoftSearch(softSearch.file.path)
-    str(softSearch)
-    # --- Methodsmerge [] ---
-    # Key functions: methodsMerge
+    
+    # 2. Integrate predictions from multiple programs
+    message("Merging SV predictions...")
     sv_all_methods <- methodsMerge(breakdancer, pindel, cnvnator, delly, svseq)
-    str(sv_all_methods)
-    # --- Read In Annotation File Into R [] ---
-    # Key functions: file
-    anno.file.path <- system.file("extdata/chr05_chr10.anno.txt", package="intansv")
-    anno.file.path
+    
+    # Save merged SV predictions
+    saveRDS(sv_all_methods, "sv_all_methods.rds")
+    
+    # 3. Load genomic annotation and annotate SV effects
+    message("Loading genomic annotations...")
     msu_gff_v7 <- read.table(anno.file.path, head=TRUE, as.is=TRUE)
-    head(msu_gff_v7)
-    # --- Sv Annotation [] ---
-    # Key functions: llply
-    sv_all_methods.anno <- llply(sv_all_methods,svAnnotation,
+    
+    message("Annotating SV effects...")
+    sv_all_methods.anno <- llply(sv_all_methods, svAnnotation,
                                  genomeAnnotation=msu_gff_v7)
-    names(sv_all_methods.anno)
-    head(sv_all_methods.anno$del)
-    # --- Genomic Distribution [] ---
-    # Key functions: plotChromosome
-    genome.file.path <- system.file("extdata/chr05_chr10.genome.txt", package="intansv")
-    genome.file.path
+    
+    # Save annotated SV predictions
+    saveRDS(sv_all_methods.anno, "sv_all_methods_annotated.rds")
+    
+    # Export annotated SVs to CSV files
+    for (sv_type in names(sv_all_methods.anno)) {
+      df <- sv_all_methods.anno[[sv_type]]
+      if (!is.null(df) && nrow(df) > 0) {
+        write.csv(df, file = paste0("annotated_", sv_type, ".csv"), row.names = FALSE)
+      }
+    }
+    
+    # 4. Load genome chromosome lengths and plot whole-genome SV distribution
+    message("Loading genome chromosome lengths...")
     genome <- read.table(genome.file.path, head=TRUE, as.is=TRUE)
-    plotChromosome(genome, sv_all_methods,1000000)
-    # --- Region Visualization [] ---
-    # Key functions: plotRegion
-    head(msu_gff_v7, n=3)
-    plotRegion(sv_all_methods,msu_gff_v7, "chr05", 1, 200000)
+    
+    message("Plotting whole-genome SV distribution...")
+    pdf("sv_chromosome_distribution.pdf", width = 10, height = 10)
+    plotChromosome(genome, sv_all_methods, 1000000)
+    dev.off()
+    
+    # 5. Visualize SVs in a specific genomic region
+    message("Plotting SVs in specific genomic region (chr05:1-200000)...")
+    pdf("sv_region_visualization.pdf", width = 10, height = 8)
+    plotRegion(sv_all_methods, msu_gff_v7, "chr05", 1, 200000)
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to working directory.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_intansv_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_intansv_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_intansv_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_INTANSV:", paste0("    intansv: ", packageVersion("intansv"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION":',
+        paste0('    intansv: ', as.character(packageVersion('intansv')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_intansv_results.csv
-    touch ${prefix}_intansv_output.rds
-    echo "BIOC_INTANSV:" > versions.yml
-    echo "    intansv: 0.0.0" >> versions.yml
+    touch ${prefix}_sv_integration_annotation_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_INTANSV_WORKFLOW {
+workflow BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ZS97.breakdancer.sv, cnvnator, svseq2, ZS97.DELLY.vcf, pindel, ZS97.LUMPY.vcf, ZS97.softsearch, chr05_chr10.anno.txt, chr05_chr10.genome.txt ] ]
 
     main:
-    BIOC_INTANSV(ch_input)
+    BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_INTANSV.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_INTANSV.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_INTANSV.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_INTANSV.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION.out.tables
+    plots    = BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION.out.plots
+    objects  = BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION.out.objects
+    versions = BIOC_INTANSV_SV_INTEGRATION_ANNOTATION_VISUALIZATION.out.versions
 }

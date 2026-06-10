@@ -1,0 +1,15 @@
+{
+  "package": "scifer",
+  "requirements": [
+    "ggplot2",
+    "sangerseqR",
+    "scifer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "sangerseqR",
+      "scifer"
+    ]
+  }
+}

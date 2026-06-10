@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_RHDF5CLIENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-rhdf5client"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rhdf5client:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rhdf5client:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -42,32 +41,68 @@ process BIOC_RHDF5CLIENT {
     library(HSDSArray)
     library(jsonlite)
 
-    # --- Data Querying [] ---
-    # Key functions: check_hsds, URL_hsds, HSDSArray
-    if (check_hsds()) {
-        da <- HSDSArray(
-            URL_hsds(), 
-            'hsds', 
-            '/shared/bioconductor/patelGBMSC.h5', 
-            '/assay001'
-        )
-        sub_da <- da[, 1:4]
-        col_sums <- apply(sub_da, 2, sum)
+    # --- HSDS Server Connection and Verification [] ---
+    # Key functions: check_hsds, URL_hsds, HSDSSource
+    hsds_active <- check_hsds()
+    if (hsds_active) {
+        endpoint_url <- URL_hsds()
+        hsds_source <- HSDSSource(endpoint_url)
     }
 
+    # --- Remote Genomic Dataset Exploration [] ---
+    # Key functions: URL_hsds, HSDSSource, HSDSFile, HSDSDataset
+    endpoint_url <- URL_hsds()
+    hsds_source <- HSDSSource(endpoint_url)
+    file_path <- "/shared/bioconductor/patelGBMSC.h5"
+    file_obj <- HSDSFile(hsds_source, file_path)
+    dataset_obj <- HSDSDataset(file_obj, "/assay001")
+
+    # --- DelayedArray Representation of Genomic Data [] ---
+    # Key functions: URL_hsds, HSDSArray
+    endpoint_url <- URL_hsds()
+    da <- HSDSArray(
+        endpoint = endpoint_url,
+        domain = "hsds",
+        filepath = "/shared/bioconductor/patelGBMSC.h5",
+        host = "/assay001"
+    )
+    da_dims <- dim(da)
+
+    # --- Expression Matrix Aggregation [] ---
+    # Key functions: URL_hsds, HSDSArray
+    endpoint_url <- URL_hsds()
+    da <- HSDSArray(
+        endpoint = endpoint_url,
+        domain = "hsds",
+        filepath = "/shared/bioconductor/patelGBMSC.h5",
+        host = "/assay001"
+    )
+    sub_matrix <- da[, 1:4]
+    column_sums <- apply(sub_matrix, 2, sum)
+
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rhdf5client_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_rhdf5client_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rhdf5client_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_rhdf5client_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rhdf5client_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_rhdf5client_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_RHDF5CLIENT:", paste0("    rhdf5client: ", packageVersion("rhdf5client"))),
+        c("BIOC_RHDF5CLIENT:", paste0("    rhdf5client: ", as.character(packageVersion("rhdf5client")))),
         "versions.yml"
     )
     """

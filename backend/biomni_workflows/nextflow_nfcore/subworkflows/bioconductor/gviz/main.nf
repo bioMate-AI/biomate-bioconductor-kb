@@ -1,109 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Gviz
-// Genomic data analyses requires integrated visualization of known genomic information and new experim
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Gviz/inst/doc/Gviz.R
-// Upstream  : GenomicFeatures, GenomicRanges, biomaRt, ensembldb, knitr
-// Downstream: biomvRCNS, chimeraviz, cicero, cummeRbund, Pviz
-//
-// Install: BiocManager::install("Gviz")
+// Bioconductor workflow: Gviz — numeric_data_visualization
+// Visualize numeric genomic data (e.g., microarray signals, custom scores, or bedGraph files) using various plot types and grouping.
+// Input: twoGroups, bgFile.bedGraph
+// Container: quay.io/biocontainers/bioconductor-gviz:1.54.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, Gviz
+// Visualizations: box plot, heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load genomic coordinates and numeric data
+//  * 2. [Input & Preparation] Construct a DataTrack object
+//  * 3. [Visualization & Output] Plot the track using plotTracks with specific visualization types (e.g., histogram, boxplot, heatmap)
+//  * 4. [Core Analysis] Group data and add a legend
 
 nextflow.enable.dsl = 2
 
-process BIOC_GVIZ {
+process BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gviz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gviz:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gviz:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gviz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gviz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gviz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Gviz)
-    library(AnnotationTrack)
-    library(GRanges)
-    library(GeneRegionTrack)
-    library(GenomeAxisTrack)
-    library(IdeogramTrack)
-    library(SequenceTrack)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(Gviz)
+        library(GenomicRanges)
+        
+        # 1. Load genomic coordinates and numeric data
+        # Read the twoGroups GRanges object from the working directory
+        if (file.exists("twoGroups")) {
+          twoGroups <- readRDS("twoGroups")
+        } else if (file.exists("twoGroups.rds")) {
+          twoGroups <- readRDS("twoGroups.rds")
+        } else {
+          stop("Required input file 'twoGroups' (RDS format) not found in the working directory.")
+        }
+        
+        # Define the path to the bedGraph file in the working directory
+        bgFile <- "bgFile.bedGraph"
+        if (!file.exists(bgFile)) {
+          stop("Required input file 'bgFile.bedGraph' not found in the working directory.")
+        }
+        
+        # 2. Construct a DataTrack object for the twoGroups data
+        dTrack <- DataTrack(twoGroups, name = "uniform")
+        
+        # 3. Plot the track using plotTracks with specific visualization types
+        # Save default plot
+        pdf("plot1_uniform_default.pdf")
+        plotTracks(dTrack)
+        dev.off()
+        
+        # Save boxplot, average, and grid plot
+        pdf("plot2_uniform_boxplot.pdf")
+        plotTracks(dTrack, type = c("boxplot", "a", "g"))
+        dev.off()
+        
+        # Save heatmap plot
+        pdf("plot3_uniform_heatmap.pdf")
+        plotTracks(dTrack, type = c("heatmap"), showSampleNames = TRUE, cex.sampleNames = 0.6)
+        dev.off()
+        
+        # 4. Group data and add a legend
+        # Dynamically determine grouping based on the number of metadata columns
+        n_cols <- ncol(mcols(twoGroups))
+        half_cols <- ceiling(n_cols / 2)
+        user_groups <- rep(c("control", "treated"), times = c(half_cols, n_cols - half_cols))
+        
+        # Save grouped plot with confidence intervals
+        pdf("plot4_uniform_grouped_confint.pdf")
+        plotTracks(dTrack, groups = user_groups, type = c("a", "p", "confint"))
+        dev.off()
+        
+        # Save grouped plot with legend
+        pdf("plot5_uniform_grouped_legend.pdf")
+        plotTracks(dTrack, groups = user_groups, type = c("a", "p"), legend = TRUE)
+        dev.off()
+        
+        # Construct and plot DataTrack from the bedGraph file
+        # Dynamically extract chromosome and genome from the user's GRanges object
+        user_chr <- as.character(unique(seqnames(twoGroups)))[1]
+        user_genome <- as.character(genome(twoGroups))[1]
+        
+        dTrack2 <- DataTrack(range = bgFile, genome = user_genome, type = "l", chromosome = user_chr, name = "bedGraph")
+        
+        pdf("plot6_bedGraph.pdf")
+        plotTracks(dTrack2)
+        dev.off()
 
-    # --- Genomic Track Visualization [] ---
-    # Key functions: plotTracks
-    plotTracks(list(gtrack, atrack, grtrack),
-               from = 26700000, 
-               to = 26750000,
-               extend.left = 0.5, 
-               extend.right = 1000000)
-
-
-    # --- Quantitative Data Track Plotting [] ---
-    # Key functions: DataTrack, plotTracks
-    dtrack <- DataTrack(data = dat, 
-                        start = coords[-length(coords)],
-                        end = coords[-1], 
-                        chromosome = chr,
-                        genome = gen, 
-                        name = "Uniform")
-    plotTracks(list(gtrack, dtrack), type = "histogram")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gviz_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gviz_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gviz_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GVIZ:", paste0("    gviz: ", packageVersion("Gviz"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION":',
+        paste0('    Gviz: ', as.character(packageVersion('Gviz')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gviz_results.csv
-    touch ${prefix}_gviz_output.rds
-    echo "BIOC_GVIZ:" > versions.yml
-    echo "    gviz: 0.0.0" >> versions.yml
+    touch ${prefix}_numeric_data_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_GVIZ_WORKFLOW {
+workflow BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ twoGroups, bgFile.bedGraph ] ]
 
     main:
-    BIOC_GVIZ(ch_input)
+    BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_GVIZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GVIZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GVIZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GVIZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION.out.tables
+    plots    = BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION.out.plots
+    objects  = BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION.out.objects
+    versions = BIOC_GVIZ_NUMERIC_DATA_VISUALIZATION.out.versions
 }

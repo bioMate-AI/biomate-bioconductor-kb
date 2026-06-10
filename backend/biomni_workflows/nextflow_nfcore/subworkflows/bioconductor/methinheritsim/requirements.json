@@ -1,0 +1,15 @@
+{
+  "package": "methinheritsim",
+  "requirements": [
+    "GenomicRanges",
+    "methInheritSim",
+    "methylKit"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "methInheritSim",
+      "methylKit"
+    ]
+  }
+}

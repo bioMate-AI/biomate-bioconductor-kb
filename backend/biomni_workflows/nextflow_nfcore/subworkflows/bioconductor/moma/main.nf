@@ -1,99 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MOMA
-// This package implements the inference of candidate master regulator proteins from multi-omics' data 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MOMA/inst/doc/moma.R
-// Upstream  : ggplot2, grid
-// Downstream: none
-//
-// Install: BiocManager::install("MOMA")
+// Bioconductor workflow: MOMA — moma_multi_omic_pipeline
+// Infer candidate master regulator proteins and genomic driver connections from multi-omics data and pathway networks.
+// Input: example.gbm.mae, gbm.pathways
+// Container: quay.io/biocontainers/bioconductor-moma:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MOMA, MultiAssayExperiment, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize the MOMA object using MomaConstructor
+//  * 2. [Core Analysis] Run the DIGGIT inference algorithm using runDIGGIT
+//  * 3. [Core Analysis] Infer robust computational predictions using makeInteractions
+//  * 4. [Core Analysis] Rank candidate Master Regulators using Rank
+//  * 5. [Core Analysis] Cluster samples based on protein ranks using Cluster and assign the optimal cluster solution
+//  * 6. [Core Analysis] Perform genomic saturation analysis using saturationCalculation
+//  * 7. [Visualization & Output] Generate saturation and oncoprint plots using makeSaturationPlots
+//  * 8. [Visualization & Output] Save results using saveData
 
 nextflow.enable.dsl = 2
 
-process BIOC_MOMA {
+process BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-moma"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-moma:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-moma:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_moma_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_moma_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_moma_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MomaConstructor)
-    library(jsonlite)
-
-    # --- assays [] ---
-    # Key functions: assays
-    MultiAssayExperiment::assays(example.gbm.mae)$viper[1:3, 1:3]
-    # --- Moma Constructor [] ---
-    # Key functions: MomaConstructor
-    momaObj <- MomaConstructor(example.gbm.mae, gbm.pathways)
-    # --- make Saturation Plots [] ---
-    # Key functions: makeSaturationPlots
-    plots <- makeSaturationPlots(momaObj)
-    # --- visualize plots [] ---
-    # Key functions: ggtitle
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(MOMA)
     library(ggplot2)
     library(grid)
-    grid.draw(plots$oncoprint.plots[[3]])
+    library(MultiAssayExperiment)
+    
+    # 1. Read User Input Files from the working directory
+    # The files are expected to be saved as RDS files containing the respective objects.
+    example.gbm.mae <- readRDS("example.gbm.mae")
+    gbm.pathways <- readRDS("gbm.pathways")
+    
+    # Create output directory if it doesn't exist
+    dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
+    
+    # 2. Initialize the MOMA object
+    momaObj <- MomaConstructor(example.gbm.mae, gbm.pathways)
+    
+    # 3. Run DIGGIT inference algorithm
+    momaObj\$runDIGGIT()
+    
+    # 4. Infer robust computational predictions
+    momaObj\$makeInteractions()
+    
+    # 5. Rank candidate Master Regulators
+    momaObj\$Rank()
+    
+    # 6. Cluster samples and assign the optimal cluster solution
+    momaObj\$Cluster()
+    
+    # 7. Perform genomic saturation analysis
+    momaObj\$saturationCalculation()
+    
+    # Extract and print checkpoint for cluster 1
+    cluster1.checkpoint <- momaObj\$checkpoints[[1]]
+    print(cluster1.checkpoint[1:5])
+    
+    # Save checkpoint to a text file
+    writeLines(as.character(cluster1.checkpoint), con = "outputs/cluster1_checkpoint.txt")
+    
+    # 8. Generate saturation and oncoprint plots
+    plots <- makeSaturationPlots(momaObj)
+    
+    # Save plots to a PDF file
+    pdf("outputs/moma_saturation_plots.pdf", width = 10, height = 8)
+    
+    # Draw the oncoprint plot (grid-based)
+    grid.newpage()
+    grid.draw(plots\$oncoprint.plots[[1]])
+    
+    # Draw the saturation curve plot (ggplot-based)
+    grid.newpage()
+    p <- plots\$curve.plots[[1]] +
+      ggtitle("Genomic Saturation Curve for Cluster 1")
+    print(p)
+    
+    dev.off()
+    
+    # 9. Save results using the MOMA saveData method
+    momaObj\$saveData(output.folder = "outputs", "hypotheses", "checkpoints")
+    
+    # Save the complete MOMA object for downstream analysis
+    saveRDS(momaObj, file = "outputs/momaObj_completed.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_moma_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_moma_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_moma_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MOMA:", paste0("    moma: ", packageVersion("MOMA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE":',
+        paste0('    MOMA: ', as.character(packageVersion('MOMA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_moma_results.csv
-    touch ${prefix}_moma_output.rds
-    echo "BIOC_MOMA:" > versions.yml
-    echo "    moma: 0.0.0" >> versions.yml
+    touch ${prefix}_moma_multi_omic_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_MOMA_WORKFLOW {
+workflow BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ example.gbm.mae, gbm.pathways ] ]
 
     main:
-    BIOC_MOMA(ch_input)
+    BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_MOMA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MOMA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MOMA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MOMA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE.out.tables
+    plots    = BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE.out.plots
+    objects  = BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE.out.objects
+    versions = BIOC_MOMA_MOMA_MULTI_OMIC_PIPELINE.out.versions
 }

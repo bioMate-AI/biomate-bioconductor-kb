@@ -1,103 +1,126 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: nuCpos
-// nuCpos, a derivative of NuPoP, is an R package for prediction of nucleosome positions. nuCpos calcul
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/nuCpos/inst/doc/nuCpos-intro.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("nuCpos")
+// Bioconductor workflow: nuCpos — nucleosome_affinity_prediction
+// Calculate whole and local histone binding affinity (HBA) scores for a 147-bp DNA sequence to predict nucleosome positioning.
+// Input: sequence.RData, sequence_DNAString.RData
+// Container: quay.io/biocontainers/bioconductor-nucpos:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biostrings, nuCpos
+// Visualizations: bar plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the nuCpos package and input sequence
+//  * 2. [Core Analysis] Calculate the whole nucleosomal HBA score using the HBA function
+//  * 3. [Core Analysis] Calculate local HBA scores for 13 subnucleosomal segments using the localHBA function
+//  * 4. [Visualization & Output] Visualize local HBA scores using a barplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_NUCPOS {
+process BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nucpos"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nucpos:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nucpos:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nucpos_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nucpos_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nucpos_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load required packages
     library(nuCpos)
-    library(HBA)
-    library(jsonlite)
-
-    # --- Local Affinity Analysis [] ---
-    # Key functions: localHBA
-    local_scores <- localHBA(
-        inseq = inseq,
-        species = "sc"
+    library(Biostrings)
+    
+    # 2. Load input sequences from the working directory
+    # We load them into separate environments to robustly retrieve the objects 
+    # regardless of their internal variable names, then assign them to the 
+    # exact variable names used in the documented code.
+    env_char <- new.env()
+    load("sequence.RData", envir = env_char)
+    inseq <- env_char[[names(env_char)[1]]]
+    
+    env_ds <- new.env()
+    load("sequence_DNAString.RData", envir = env_ds)
+    INSEQ <- env_ds[[names(env_ds)[1]]]
+    
+    # 3. Calculate whole nucleosomal HBA scores
+    hba_char <- HBA(inseq = inseq, species = "sc")
+    hba_ds <- HBA(inseq = INSEQ, species = "sc")
+    
+    # Save whole HBA scores to a CSV file
+    hba_results <- data.frame(
+      Input_Type = c("character", "DNAString"),
+      HBA_Score = c(hba_char, hba_ds)
     )
-
-
-    # --- Affinity Visualization [] ---
-    # Key functions: localHBA
+    write.csv(hba_results, "hba_scores.csv", row.names = FALSE)
+    
+    # 4. Calculate local HBA scores for 13 subnucleosomal segments
+    local_hba_scores <- localHBA(inseq = inseq, species = "sc")
+    
+    # Save local HBA scores to a CSV file
+    local_hba_df <- data.frame(
+      Segment = names(local_hba_scores),
+      Local_HBA = as.numeric(local_hba_scores)
+    )
+    write.csv(local_hba_df, "local_hba_scores.csv", row.names = FALSE)
+    
+    # 5. Visualize local HBA scores using a barplot and save as PDF
+    pdf("local_hba_barplot.pdf", width = 8, height = 6)
     barplot(
-        local_scores,
-        names.arg = LETTERS[1:13],
-        xlab = "Nucleosomal subsegments",
-        ylab = "local HBA",
-        main = "Local HBA scores for inseq"
+      localHBA(inseq = inseq, species = "sc"), 
+      names.arg = LETTERS[1:13], 
+      xlab = "Nucleosomal subsegments", 
+      ylab = "local HBA", 
+      main = "Local HBA scores for inseq"
     )
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nucpos_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nucpos_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nucpos_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NUCPOS:", paste0("    nucpos: ", packageVersion("nuCpos"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION":',
+        paste0('    nuCpos: ', as.character(packageVersion('nuCpos')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nucpos_results.csv
-    touch ${prefix}_nucpos_output.rds
-    echo "BIOC_NUCPOS:" > versions.yml
-    echo "    nucpos: 0.0.0" >> versions.yml
+    touch ${prefix}_nucleosome_affinity_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_NUCPOS_WORKFLOW {
+workflow BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sequence.RData, sequence_DNAString.RData ] ]
 
     main:
-    BIOC_NUCPOS(ch_input)
+    BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_NUCPOS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NUCPOS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NUCPOS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NUCPOS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION.out.tables
+    plots    = BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION.out.plots
+    objects  = BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION.out.objects
+    versions = BIOC_NUCPOS_NUCLEOSOME_AFFINITY_PREDICTION.out.versions
 }

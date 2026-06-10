@@ -1,0 +1,11 @@
+{
+  "package": "affycomp",
+  "requirements": [
+    "affycomp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "affycomp"
+    ]
+  }
+}

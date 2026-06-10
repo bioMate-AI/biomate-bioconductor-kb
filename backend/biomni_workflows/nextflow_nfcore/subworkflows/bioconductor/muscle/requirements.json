@@ -1,0 +1,13 @@
+{
+  "package": "muscle",
+  "requirements": [
+    "Biostrings",
+    "muscle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "muscle"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "usort",
+  "requirements": [
+    "gplots",
+    "uSORT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gplots",
+      "uSORT"
+    ]
+  }
+}

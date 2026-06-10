@@ -1,133 +1,294 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CeTF
-// This package provides the necessary functions for performing the Partial Correlation coefficient wit
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CeTF/inst/doc/CeTF.R
-// Upstream  : airway, dplyr, kableExtra, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("CeTF")
+// Bioconductor workflow: CeTF — integrated_cetf_analysis
+// Perform the complete integrated RIF and PCIT analysis in a single step, followed by network visualization and functional enrichment.
+// Input: counts_matrix.tsv, sample_metadata.csv, tf_list.txt
+// Container: quay.io/biocontainers/bioconductor-cetf:1.22.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CeTF, dplyr, org.Hs.eg.db
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load count data and sample annotations. 2. Load transcription factor list. 3. Run the complete integrated analysis using runAnalys
 
 nextflow.enable.dsl = 2
 
-process BIOC_CETF {
+process BIOC_CETF_INTEGRATED_CETF_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cetf"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cetf:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cetf:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cetf_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cetf_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cetf_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CeTF)
-    library(PCIT)
-    library(SmearPlot)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(CeTF)
+        library(org.Hs.eg.db)
+        library(dplyr)
+        
+        # ==========================================
+        # 1. Load count data and sample annotations
+        # ==========================================
+        counts_raw <- read.delim("counts_matrix.tsv", row.names = 1, check.names = FALSE)
+        meta <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
+        
+        # Identify sample and condition columns dynamically
+        sample_col <- colnames(meta)[1]
+        cond_col <- names(which(sapply(meta, function(x) length(unique(x)) == 2)))[1]
+        if (is.na(cond_col)) {
+          cond_col <- colnames(meta)[2]
+        }
+        
+        # Sort metadata by condition to group them
+        meta <- meta[order(meta[[cond_col]], decreasing = TRUE), ]
+        conds <- unique(meta[[cond_col]])
+        
+        # Align counts matrix with sorted metadata
+        common_samples <- intersect(meta[[sample_col]], colnames(counts_raw))
+        meta <- meta[meta[[sample_col]] %in% common_samples, ]
+        counts <- as.matrix(counts_raw[, meta[[sample_col]]])
+        
+        # Calculate sample sizes for each condition
+        nSamples1 <- sum(meta[[cond_col]] == conds[1])
+        nSamples2 <- sum(meta[[cond_col]] == conds[2])
+        
+        # ==========================================
+        # 2. Load transcription factor list
+        # ==========================================
+        TFs_all <- readLines("tf_list.txt")
+        # Filter TFs to those present in the counts matrix
+        TFs <- TFs_all[TFs_all %in% rownames(counts)]
+        if (length(TFs) == 0) {
+          stop("None of the transcription factors in tf_list.txt are present in the counts matrix.")
+        }
+        
+        # Open PDF device to save all plots
+        pdf("cetf_analysis_plots.pdf", width = 11, height = 8.5)
+        
+        # ==========================================
+        # 3. Run the complete integrated analysis
+        # ==========================================
+        out <- runAnalysis(mat = counts, 
+                           conditions = conds,
+                           lfc = 5,
+                           padj = 0.05,
+                           TFs = TFs,
+                           nSamples1 = nSamples1,
+                           nSamples2 = nSamples2,
+                           tolType = "mean",
+                           diffMethod = "Reverter", 
+                           data.type = "counts")
+        
+        # Save the CeTF class object
+        saveRDS(out, "cetf_analysis_output.rds")
+        
+        # ==========================================
+        # 4. Visualize DE and TF impact using SmearPlot
+        # ==========================================
+        print(SmearPlot(object = out, 
+                  diffMethod = 'Reverter', 
+                  lfc = 1.5, 
+                  conditions = conds, 
+                  type = "DE"))
+        
+        # Select a key TF dynamically to avoid hardcoding errors
+        key_tfs_df <- NetworkData(out, "keytfs")
+        selected_tf <- if (!is.null(key_tfs_df) && nrow(key_tfs_df) > 0) key_tfs_df\$TF[1] else TFs[1]
+        
+        print(SmearPlot(object = out,
+                  diffMethod = 'Reverter',
+                  lfc = 1.5,
+                  conditions = conds,
+                  TF = selected_tf,
+                  label = TRUE, 
+                  type = "TF"))
+        
+        # ==========================================
+        # 5. Plot condition-specific networks
+        # ==========================================
+        print(netConditionsPlot(out))
+        
+        # ==========================================
+        # 6. Perform group GO analysis
+        # ==========================================
+        genes <- unique(c(as.character(NetworkData(out, "network1")[, "gene1"]), 
+                          as.character(NetworkData(out, "network1")[, "gene2"])))
+        
+        cond1 <- getGroupGO(genes = genes, 
+                            ont = "BP", 
+                            keyType = "ENSEMBL", 
+                            annoPkg = org.Hs.eg.db, 
+                            level = 3)
+        
+        # ==========================================
+        # 7. Generate integrated network plots
+        # ==========================================
+        t1 <- head(cond1\$results, 12)
+        t2 <- subset(cond1\$netGO, cond1\$netGO\$gene1 %in% as.character(t1[, "ID"]))
+        
+        # Generating the GO plot grouping by pathways
+        pt_pathways <- netGOTFPlot(netCond = NetworkData(out, "network1") %>% 
+                            mutate(across(everything(), as.character)),
+                          resultsGO = t1,
+                          netGO = t2,
+                          anno = NetworkData(out, "annotation"),
+                          groupBy = 'pathways',
+                          type = 'GO')
+        print(pt_pathways\$plot)
+        
+        # Generating the GO plot grouping by TFs
+        tfs_plot <- head(NetworkData(out, "keytfs")\$TF, 4)
+        pt_tfs <- netGOTFPlot(netCond = NetworkData(out, "network1"),
+                          resultsGO = t1,
+                          netGO = t2,
+                          anno = NetworkData(out, "annotation"),
+                          groupBy = 'TFs',
+                          TFs = tfs_plot, 
+                          type = 'GO')
+        print(pt_tfs\$plot)
+        
+        # Generating the GO plot grouping by specific genes
+        genes_plot <- head(genes, 4)
+        pt_genes <- netGOTFPlot(netCond = NetworkData(out, "network1"),
+                          resultsGO = t1,
+                          netGO = t2,
+                          anno = NetworkData(out, "annotation"),
+                          groupBy = 'genes',
+                          genes = genes_plot,
+                          type = 'GO')
+        print(pt_genes\$plot)
+        
+        # Generating the integrated GO plot
+        pt_integrated <- netGOTFPlot(netCond = NetworkData(out, "network1") %>% 
+                           mutate(across(everything(), as.character)),
+                          netGO = t2,
+                          keyTFs = NetworkData(out, "keytfs"), 
+                          type = 'Integrated')
+        print(pt_integrated\$plot)
+        
+        # ==========================================
+        # 8. Plot RIF relationships
+        # ==========================================
+        print(RIFPlot(object = out,
+                color  = "darkblue",
+                type   = "RIF"))
+        
+        print(RIFPlot(object = out,
+                color  = "darkblue",
+                type   = "DE"))
+        
+        # ==========================================
+        # 9. Generate enrichment plots
+        # ==========================================
+        cond1 <- getEnrich(genes = genes, organismDB = org.Hs.eg.db, 
+                          keyType = 'ENSEMBL', ont = 'BP', fdrMethod = "BH", 
+                          fdrThr = 0.05, minGSSize = 5, maxGSSize = 500)
+        
+        # Save enrichment results table
+        if (!is.null(cond1\$results)) {
+          write.csv(cond1\$results, "enrichment_results.csv", row.names = FALSE)
+        }
+        
+        # Plot enrichment outputs with error handling in case of no enriched terms
+        tryCatch({
+          print(heatPlot(res = cond1\$results,
+                   diff = getDE(out, "all")))
+        }, error = function(e) {
+          message("Skipping heatPlot: ", e\$message)
+        })
+        
+        tryCatch({
+          print(enrichPlot(res = cond1\$results,
+                     type = "circle"))
+        }, error = function(e) {
+          message("Skipping enrichPlot (circle): ", e\$message)
+        })
+        
+        tryCatch({
+          print(enrichPlot(res = cond1\$results,
+                     type = "bar"))
+        }, error = function(e) {
+          message("Skipping enrichPlot (bar): ", e\$message)
+        })
+        
+        tryCatch({
+          print(enrichPlot(res = cond1\$results,
+                     type = "dot"))
+        }, error = function(e) {
+          message("Skipping enrichPlot (dot): ", e\$message)
+        })
+        
+        # Close PDF device
+        dev.off()
+        
+        # ==========================================
+        # 10. Save tabular outputs
+        # ==========================================
+        if (!is.null(key_tfs_df)) {
+          write.csv(key_tfs_df, "key_tfs.csv", row.names = FALSE)
+        }
+        
+        net1 <- NetworkData(out, "network1")
+        if (!is.null(net1)) {
+          write.csv(net1, "network1_edges.csv", row.names = FALSE)
+        }
+        
+        net2 <- NetworkData(out, "network2")
+        if (!is.null(net2)) {
+          write.csv(net2, "network2_edges.csv", row.names = FALSE)
+        }
+        
+        message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- PCIT Analysis [] ---
-    # Key functions: PCIT
-    PCIT_input_untrt <- PCIT_input[, grep("_untrt", colnames(PCIT_input))]
-    PCIT_input_trt <- PCIT_input[, grep("_trt", colnames(PCIT_input))]
-    PCIT_out_untrt <- PCIT(PCIT_input_untrt, tolType = "mean")
-    PCIT_out_trt <- PCIT(PCIT_input_trt, tolType = "mean")
-
-
-    # --- Regulatory Impact Factor Analysis [] ---
-    # Key functions: RIF
-    TFs_subset <- rownames(PCIT_input)[rownames(PCIT_input) %in% TFs]
-    Target <- setdiff(rownames(PCIT_input), TFs_subset)
-    RIF_input <- PCIT_input[c(Target, TFs_subset), ]
-    RIF_out <- RIF(input = RIF_input,
-                   nta = length(Target),
-                   ntf = length(TFs_subset),
-                   nSamples1 = 4,
-                   nSamples2 = 4)
-
-
-    # --- Integrated Analysis Pipeline [] ---
-    # Key functions: runAnalysis
-    out <- runAnalysis(mat = counts,
-                       conditions = c("untrt", "trt"),
-                       lfc = 5,
-                       padj = 0.05,
-                       TFs = TFs,
-                       nSamples1 = 4,
-                       nSamples2 = 4,
-                       tolType = "mean",
-                       diffMethod = "Reverter",
-                       data.type = "counts")
-
-
-    # --- Network and Diagnostic Visualisation [] ---
-    # Key functions: histPlot, densityPlot, SmearPlot, netConditionsPlot
-    histPlot(PCIT_out_trt$adj_sig)
-    densityPlot(mat1 = PCIT_out_trt$adj_raw,
-                mat2 = PCIT_out_trt$adj_sig,
-                threshold = 0.5)
-    SmearPlot(object = out,
-              diffMethod = 'Reverter',
-              lfc = 1.5,
-              conditions = c('untrt', 'trt'),
-              type = "DE")
-    netConditionsPlot(out)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cetf_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cetf_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cetf_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CETF:", paste0("    cetf: ", packageVersion("CeTF"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CETF_INTEGRATED_CETF_ANALYSIS":',
+        paste0('    CeTF: ', as.character(packageVersion('CeTF')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cetf_results.csv
-    touch ${prefix}_cetf_output.rds
-    echo "BIOC_CETF:" > versions.yml
-    echo "    cetf: 0.0.0" >> versions.yml
+    touch ${prefix}_integrated_cetf_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CETF_WORKFLOW {
+workflow BIOC_CETF_INTEGRATED_CETF_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts_matrix.tsv, sample_metadata.csv, tf_list.txt ] ]
 
     main:
-    BIOC_CETF(ch_input)
+    BIOC_CETF_INTEGRATED_CETF_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CETF.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CETF.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CETF.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CETF.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CETF_INTEGRATED_CETF_ANALYSIS.out.tables
+    plots    = BIOC_CETF_INTEGRATED_CETF_ANALYSIS.out.plots
+    objects  = BIOC_CETF_INTEGRATED_CETF_ANALYSIS.out.objects
+    versions = BIOC_CETF_INTEGRATED_CETF_ANALYSIS.out.versions
 }

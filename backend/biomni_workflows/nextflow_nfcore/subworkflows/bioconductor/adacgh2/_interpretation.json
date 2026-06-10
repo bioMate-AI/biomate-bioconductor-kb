@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ff.or.RAM=Specifies whether to store data in memory (\"RAM\") or on disk (\"ff\") ;; typeParall=Specifies the parallelization method, either \"fork\" (fast, Unix-only) or \"cluster\" (sockets/MPI, cross-platform) ;; mc.cores=Number of cores to use for parallel operations (e.g., in inputToADaCGH, pSegment, and pChromPlot) ;; merging=Method used to merge levels after segmentation, such as \"MAD\", \"mergeLevels\", or \"none\"\n- alternatives: Manual parallelization using parallel/snow packages is possible, but ADaCGH2 is preferred because it automates data partitioning, handles missing values consistently, avoids memory exhaustion via ff pointers, and integrates multiple segmentation algorithms (HaarSeg, DNAcopy, HMM, GLAD, BioHMM, CGHseg, Wavelets) under a unified API.\n- when_to_use: Use when performing copy number variant calling and segmentation on small to extremely large array CGH datasets, especially when parallel processing is needed to speed up computation or when RAM is limited.\n- pitfalls: Using ff objects on Windows can cause random and difficult-to-reproduce socket cluster or directory removal issues ;; Successive calls to inputToADaCGH with ff.or.RAM = \"ff\" will overwrite default filenames (e.g., cghData.RData) in the working directory ;; Reading from a directory (where each column is a file) can result in different column orderings across OS/R versions; always use column names to identify subjects ;; outputToCGHregions does not check if calls are meaningful (e.g., do not use it with merging = \"none\").",
+  "workflows": [
+    {
+      "name": "ram_objects_forking",
+      "intent": "Analyze small to moderate aCGH datasets entirely in memory using fast forking parallelization on Unix-like operating systems.",
+      "input": [
+        "inputEx.RData (RData file containing a data frame with probe IDs, chromosomes, positions, and log2 ratio columns for each sample)"
+      ],
+      "stages": "1. Prepare RAM objects from the input data frame; 2. Run parallelized segmentation using HaarSeg with forking; 3. Plot the chromosome results.",
+      "code": "library(ADaCGH2)\ndata(inputEx)\ncgh.dat <- inputEx[, -c(1, 2, 3)]\nchrom.dat <- as.integer(inputEx[, 2])\npos.dat <- inputEx[, 3]\nhaar.RAM.fork <- pSegmentHaarSeg(cgh.dat, chrom.dat,\n                                   merging = \"MAD\",\n                                 typeParall = \"fork\",\n                                 mc.cores = 2)\npChromPlot(haar.RAM.fork,\n           cghRDataName = cgh.dat,\n           chromRDataName = chrom.dat,\n           posRDataName = pos.dat,\n           probenamesRDataName = probenames.dat,\n           imgheight = 350,\n           typeParall = \"fork\",\n           mc.cores = 2)"
+    },
+    {
+      "name": "ff_objects_cluster",
+      "intent": "Analyze large aCGH datasets or run parallelized analysis on Windows using disk-backed ff objects and socket clusters.",
+      "input": [
+        "inputEx.RData (RData file containing a data frame with probe IDs, chromosomes, positions, and log2 ratio columns for each sample)"
+      ],
+      "stages": "1. Convert input data to disk-backed ff objects; 2. Initialize socket cluster; 3. Run parallelized segmentation using cluster; 4. Save and plot results; 5. Stop cluster.",
+      "code": "library(ADaCGH2)\nfnameRdata <- list.files(path = system.file(\"data\", package = \"ADaCGH2\"),\n                     full.names = TRUE, pattern = \"inputEx.RData\")\ninputToADaCGH(ff.or.RAM = \"ff\",\n                      RDatafilename = fnameRdata)\nnumber.of.nodes <- 2\ncl2 <- parallel::makeCluster(number.of.nodes, \"PSOCK\")\nparallel::clusterSetRNGStream(cl2)\nparallel::setDefaultCluster(cl2)\nparallel::clusterEvalQ(NULL, library(\"ADaCGH2\"))\nwdir <- getwd()\nparallel::clusterExport(NULL, \"wdir\")\nparallel::clusterEvalQ(NULL, setwd(wdir))\nhaar.ff.cluster <- pSegmentHaarSeg(\"cghData.RData\",\n                               \"chromData.RData\",\n                               merging = \"MAD\",\n                               typeParall = \"cluster\")\nsave(haar.ff.cluster, file = \"hs_mad.out.RData\", compress = FALSE)\npChromPlot(outRDataName = \"hs_mad.out.RData\",\n           cghRDataName = \"cghData.RData\",\n           chromRDataName = \"chromData.RData\",\n           posRDataName = \"posData.RData\",\n           probenamesRDataName = \"probeNames.RData\",\n           imgheight = 350,\n           typeParall = \"cluster\")\nparallel::stopCluster(cl2)"
+    },
+    {
+      "name": "large_text_file_cutting",
+      "intent": "Process extremely large text files by cutting them into single-column files and reading them in parallel to ff objects.",
+      "input": [
+        "inputEx.txt (Large tab-delimited text file containing probe IDs, chromosomes, positions, and log2 ratio columns)"
+      ],
+      "stages": "1. Cut the large text file into single-column files; 2. Read the directory of cut files in parallel to ff objects; 3. Run parallelized segmentation; 4. Plot results.",
+      "code": "library(ADaCGH2)\nfnametxt <- list.files(path = system.file(\"data\", package = \"ADaCGH2\"),\n                        full.names = TRUE, pattern = \"inputEx.txt\")\ndir.create(\"cuttedFile\")\nsetwd(\"cuttedFile\")\ncutFile(fnametxt, 1, 2, 3, sep = \"\\t\", mc.cores = 2)\ncuttedFile.dir <- getwd()\nsetwd(\"../\")\ninputToADaCGH(ff.or.RAM = \"ff\",\n              path = cuttedFile.dir,\n              verbose = TRUE,\n              mc.cores = 2)\nhaar.ff.fork <- pSegmentHaarSeg(\"cghData.RData\",\n                                \"chromData.RData\",\n                                 merging = \"MAD\",\n                                typeParall = \"fork\",\n                                mc.core = 2)\nsave(haar.ff.fork, file = \"haar.ff.fork.RData\", compress = FALSE)\npChromPlot(outRDataName = \"haar.ff.fork.RData\",\n           cghRDataName = \"cghData.RData\",\n           chromRDataName = \"chromData.RData\",\n           posRDataName = \"posData.RData\",\n           probenamesRDataName = \"probeNames.RData\",\n           imgheight = 350,\n           typeParall = \"fork\",\n           mc.cores = 2)"
+    }
+  ]
+}

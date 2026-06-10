@@ -1,0 +1,13 @@
+{
+  "package": "mapredictdsc",
+  "requirements": [
+    "class",
+    "maPredictDSC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "class",
+      "maPredictDSC"
+    ]
+  }
+}

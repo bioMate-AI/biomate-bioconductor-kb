@@ -1,0 +1,20 @@
+{
+  "package": "mitch",
+  "requirements": [
+    "HGNChelper",
+    "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+    "dplyr",
+    "mitch"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mitch"
+    ],
+    "methylation_array_enrichment.nf": [
+      "HGNChelper",
+      "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+      "dplyr",
+      "mitch"
+    ]
+  }
+}

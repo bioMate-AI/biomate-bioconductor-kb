@@ -1,0 +1,16 @@
+{
+  "package": "msprep",
+  "requirements": [
+    "MSPrep",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSPrep"
+    ],
+    "summarized_experiment_pipeline.nf": [
+      "MSPrep",
+      "SummarizedExperiment"
+    ]
+  }
+}

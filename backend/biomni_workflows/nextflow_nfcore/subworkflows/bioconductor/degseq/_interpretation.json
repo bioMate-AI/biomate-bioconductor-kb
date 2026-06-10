@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: geneExpMatrix1=First gene expression matrix ;; geneExpMatrix2=Second gene expression matrix ;; geneCol1=Column index of gene IDs in the first matrix ;; geneCol2=Column index of gene IDs in the second matrix ;; expCol1=Column index/indices of expression values in the first matrix ;; expCol2=Column index/indices of expression values in the second matrix ;; method=Method to identify DEGs (\"MARS\" for random sampling model, \"MATR\" for technical replicates model, or \"LRT\" for likelihood ratio test) ;; replicateExpMatrix1=Replicate expression matrix for the first sample (used in MATR) ;; replicateExpMatrix2=Replicate expression matrix for the second sample (used in MATR) ;; fileFormat=Format of mapped read files (e.g., \"bed\") ;; refFlat=Path to the gene annotation file in UCSC refFlat format ;; outputDir=Directory path where output text files and XHTML summaries will be saved\n- alternatives: samWrapper=A wrapper function employing the SAM method (via the samr package) for comparing groups with multiple replicates, though the documentation notes this function was removed from version 1.34.1\n- when_to_use: Use MARS when comparing two samples without replicates (or with pooled replicates) under a random sampling/Poisson assumption. Use MATR when technical replicates are available to estimate intensity-dependent noise levels via a sliding window on an MA-plot. Use LRT (via the DEGseq function) when starting directly from mapped read files (e.g., BED) and a refFlat annotation file.\n- pitfalls: The samWrapper function is no longer available as of version 1.34.1. The gene annotation file must strictly follow the UCSC refFlat format. If outputDir is not specified in DEGexp, results are only plotted and not written to disk. Strand information is ignored by default when counting reads mapped to genes.",
+  "workflows": [
+    {
+      "name": "deg_analysis_from_matrices",
+      "intent": "Identify differentially expressed genes from pre-calculated gene expression matrices using MA-plot-based methods (MARS or MATR).",
+      "input": [
+        "GeneExpExample5000.txt (tab-delimited text file containing gene expression values/read counts across multiple samples/columns)"
+      ],
+      "stages": "1. Read gene expression data from file into R matrices using readGeneExp ;; 2. Run differential expression analysis using DEGexp with the MARS method (random sampling model) or MATR method (using technical replicates)",
+      "code": "library(DEGseq)\n  geneExpFile <- system.file(\"extdata\", \"GeneExpExample5000.txt\", package=\"DEGseq\")\n  geneExpMatrix1 <- readGeneExp(file=geneExpFile, geneCol=1, valCol=c(7,9,12,15,18))\n  geneExpMatrix2 <- readGeneExp(file=geneExpFile, geneCol=1, valCol=c(8,10,11,13,16))\n  write.table(geneExpMatrix1[30:31,],row.names=FALSE)\n  write.table(geneExpMatrix2[30:31,],row.names=FALSE)\n\n  layout(matrix(c(1,2,3,4,5,6), 3, 2, byrow=TRUE))\n  par(mar=c(2, 2, 2, 2))\n  DEGexp(geneExpMatrix1=geneExpMatrix1, geneCol1=1, expCol1=c(2,3,4,5,6), groupLabel1=\"kidney\",\n         geneExpMatrix2=geneExpMatrix2, geneCol2=1, expCol2=c(2,3,4,5,6), groupLabel2=\"liver\",\n         method=\"MARS\")\n\n  layout(matrix(c(1,2,3,4,5,6), 3, 2, byrow=TRUE))\n  par(mar=c(2, 2, 2, 2))\n  DEGexp(geneExpMatrix1=geneExpMatrix1, expCol1=2, groupLabel1=\"kidneyR1L1\", \n         geneExpMatrix2=geneExpMatrix2, expCol2=2, groupLabel2=\"liverR1L2\",\n         replicateExpMatrix1=geneExpMatrix1, expColR1=3, replicateLabel1=\"kidneyR1L3\", \n         replicateExpMatrix2=geneExpMatrix1, expColR2=4, replicateLabel2=\"kidneyR1L7\",\n         method=\"MATR\")"
+    },
+    {
+      "name": "deg_analysis_from_alignments",
+      "intent": "Identify differentially expressed genes directly from mapped read files (e.g., BED format) using a gene annotation file and the Likelihood Ratio Test (LRT).",
+      "input": [
+        "kidneyChr21.bed.txt (mapped reads for sample 1)",
+        "liverChr21.bed.txt (mapped reads for sample 2)",
+        "refFlatChr21.txt (gene annotation file in UCSC refFlat format)"
+      ],
+      "stages": "1. Define paths to mapped read files and the refFlat annotation file ;; 2. Run DEGseq to count reads mapped to each gene and perform differential expression analysis using the LRT method",
+      "code": "kidneyR1L1 <- system.file(\"extdata\", \"kidneyChr21.bed.txt\", package=\"DEGseq\")\n  liverR1L2  <- system.file(\"extdata\", \"liverChr21.bed.txt\", package=\"DEGseq\")\n  refFlat    <- system.file(\"extdata\", \"refFlatChr21.txt\", package=\"DEGseq\")\n  mapResultBatch1 <- c(kidneyR1L1)  ## only use the data from kidneyR1L1 and liverR1L2\n  mapResultBatch2 <- c(liverR1L2)\n  outputDir <- file.path(tempdir(), \"DEGseqExample\")\n  DEGseq(mapResultBatch1, mapResultBatch2, fileFormat=\"bed\", refFlat=refFlat,\n         outputDir=outputDir, method=\"LRT\")"
+    },
+    {
+      "name": "gene_expression_extraction",
+      "intent": "Count the number of reads mapped to each gene for a single sample from mapped read files and output a gene expression matrix.",
+      "input": [
+        "kidneyChr21.bed.txt (mapped reads for a sample)",
+        "refFlatChr21.txt (gene annotation file in UCSC refFlat format)"
+      ],
+      "stages": "1. Define paths to mapped read files and the refFlat annotation file ;; 2. Run getGeneExp to count reads mapped to each gene and output the expression values to a file",
+      "code": "kidneyR1L1 <- system.file(\"extdata\", \"kidneyChr21.bed.txt\", package=\"DEGseq\")\n  refFlat    <- system.file(\"extdata\", \"refFlatChr21.txt\", package=\"DEGseq\")\n  mapResultBatch <- c(kidneyR1L1)\n  output <- file.path(tempdir(), \"kidneyChr21.bed.exp\")\n  exp <- getGeneExp(mapResultBatch, refFlat=refFlat, output=output)\n  write.table(exp[30:32,], row.names=FALSE)"
+    }
+  ]
+}

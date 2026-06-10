@@ -1,0 +1,13 @@
+{
+  "package": "mgfm",
+  "requirements": [
+    "MGFM",
+    "hgu133a.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MGFM",
+      "hgu133a.db"
+    ]
+  }
+}

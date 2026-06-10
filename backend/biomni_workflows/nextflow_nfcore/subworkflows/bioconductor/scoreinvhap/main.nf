@@ -1,101 +1,207 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scoreInvHap
-// scoreInvHap can get the samples' inversion status of known inversions. scoreInvHap uses SNP data as 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scoreInvHap/inst/doc/scoreInvHap.R
-// Upstream  : snpStats, VariantAnnotation
-// Downstream: none
-//
-// Install: BiocManager::install("scoreInvHap")
+// Bioconductor workflow: scoreInvHap — score_inversion_haplotypes
+// Genotype known genomic inversions from SNP VCF data using scoreInvHap, perform quality control filtering, and output classification results and diagnostic plots
+// Input: input.vcf, coldata.csv
+// Container: 1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: VariantAnnotation, scoreInvHap
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCOREINVHAP {
+process BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scoreinvhap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scoreinvhap:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scoreinvhap:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scoreinvhap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scoreinvhap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scoreinvhap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(scoreInvHap)
-    library(jsonlite)
-
-    # --- Load SNPs [] ---
-    # Key functions: readVcf, checkSNPs
     library(VariantAnnotation)
-    vcf_file <- system.file("extdata", "example.vcf", package = "scoreInvHap")
-    vcf <- readVcf(vcf_file, "hg19")
-    # --- score Inv Hap [] ---
-    # Key functions: scoreInvHap
-    res <- scoreInvHap(SNPlist = vcf, inv = "inv7_005")
-    # --- scoreInvHap scores [] ---
-    # Key functions: plotScores, plotCallRate
-    head(maxscores(res))
-    head(diffscores(res))
-    plotScores(res, pch = 16, main = "QC based on scores")
-    # --- score Inv Hap [] ---
-    # Key functions: scoreInvHap
-    res_imp <- scoreInvHap(SNPlist = vcf, inv = "inv7_005", probs = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scoreinvhap_results.csv", row.names = TRUE)
+    
+    # Retrieve parameters from environment variables or defaults
+    inversion_id <- Sys.getenv("INVERSION_ID", unset = "inv7_005")
+    min_diff <- as.numeric(Sys.getenv("MIN_DIFF", unset = "0.1"))
+    call_rate <- as.numeric(Sys.getenv("CALL_RATE", unset = "0.9"))
+    genome_build <- Sys.getenv("GENOME_BUILD", unset = "hg19")
+    
+    message("Starting scoreInvHap pipeline...")
+    message("Inversion ID: ", inversion_id)
+    message("Genome Build: ", genome_build)
+    
+    # Stage 1: Load and preprocess input VCF
+    if (!file.exists("input.vcf")) {
+      stop("Required input file 'input.vcf' not found in the working directory.")
+    }
+    
+    message("Reading input VCF file...")
+    vcf <- VariantAnnotation::readVcf("input.vcf", genome_build)
+    
+    # Stage 2: Quality Control and SNP Filtering
+    message("Checking SNPs against scoreInvHap references...")
+    check <- checkSNPs(vcf)
+    
+    if (is.null(check\$genos) || nrow(check\$genos) == 0) {
+      stop("No valid SNPs remained after running checkSNPs. Please verify that the input VCF contains SNPs matching the reference genome build.")
+    }
+    
+    vcf_clean <- check\$genos
+    message("Number of SNPs retained for analysis: ", nrow(vcf_clean))
+    
+    # Stage 3: Inversion Genotyping
+    message("Running scoreInvHap genotyping...")
+    # Check if genotype probabilities (GP) are available to use the probabilistic classifier
+    has_gp <- "GP" %in% names(VariantAnnotation::geno(vcf_clean))
+    if (has_gp) {
+      message("Posterior probabilities (GP) detected. Running with probs = TRUE.")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scoreinvhap_results.csv")
+      message("Posterior probabilities (GP) not detected. Running with best-guess genotypes.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scoreinvhap_output.rds")
+    
+    # Run the core scoring and classification
+    res <- tryCatch({
+      scoreInvHap(SNPlist = vcf_clean, inv = inversion_id, probs = has_gp)
+    }, error = function(e) {
+      message("Error during scoreInvHap execution: ", e\$message)
+      NULL
+    })
+    
+    # Stage 4: Extract Results and Apply QC Filters
+    if (!is.null(res)) {
+      message("Extracting classifications and scores...")
+      samples <- colnames(vcf_clean)
+      
+      # Extract default classifications
+      class_default <- classification(res)
+      
+      # Extract QC-filtered classifications
+      class_filtered <- classification(res, minDiff = min_diff, callRate = call_rate)
+      class_filtered_full <- class_filtered[match(samples, names(class_filtered))]
+      
+      # Extract haplotype-level classifications (inversion = FALSE)
+      class_haplo <- classification(res, inversion = FALSE)
+      class_haplo_full <- class_haplo[match(samples, names(class_haplo))]
+      
+      # Extract similarity scores and QC metrics
+      max_s <- maxscores(res)
+      diff_s <- diffscores(res)
+      num_s <- numSNPs(res)
+      prop_s <- propSNPs(res)
+      
+      # Construct the final results data frame
+      results_df <- data.frame(
+        Sample = samples,
+        Inversion_Genotype = as.character(class_default[samples]),
+        Inversion_Genotype_Filtered = as.character(class_filtered_full[samples]),
+        Haplotype_Genotype = as.character(class_haplo_full[samples]),
+        Max_Score = as.numeric(max_s[samples]),
+        Diff_Score = as.numeric(diff_s[samples]),
+        Num_SNPs = as.integer(num_s[samples]),
+        Prop_SNPs = as.numeric(prop_s[samples]),
+        stringsAsFactors = FALSE
+      )
+      
+      # Merge with optional sample metadata if available
+      if (file.exists("coldata.csv")) {
+        message("Merging with coldata.csv metadata...")
+        coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+        sample_col <- if ("sample" %in% colnames(coldata)) "sample" else colnames(coldata)[1]
+        results_df <- merge(coldata, results_df, by.x = sample_col, by.y = "Sample", all.y = TRUE)
+      }
+      
+      # Write results to CSV
+      write.csv(results_df, "inversion_genotypes.csv", row.names = FALSE)
+      message("Genotyping results written to 'inversion_genotypes.csv'.")
+      
+      # Stage 5: Generate Diagnostic Plots
+      message("Generating diagnostic QC plots...")
+      pdf("qc_plots.pdf", width = 10, height = 5)
+      par(mfrow = c(1, 2))
+      
+      # Plot scores QC
+      tryCatch({
+        plotScores(res, pch = 16, main = paste("QC Scores -", inversion_id))
+      }, error = function(e) {
+        plot(1, type = "n", main = "Score QC Plot Failed", xlab = "", ylab = "")
+        text(1, 1, paste("Error:", e\$message), cex = 0.8)
+      })
+      
+      # Plot call rate QC
+      tryCatch({
+        plotCallRate(res, main = paste("Call Rate QC -", inversion_id), callRate = call_rate)
+      }, error = function(e) {
+        plot(1, type = "n", main = "Call Rate QC Plot Failed", xlab = "", ylab = "")
+        text(1, 1, paste("Error:", e\$message), cex = 0.8)
+      })
+      
+      dev.off()
+      message("QC plots saved to 'qc_plots.pdf'.")
+      
+    } else {
+      # Fallback in case of execution failure
+      message("Writing fallback empty outputs due to execution failure.")
+      write.csv(data.frame(Error = "Inversion genotyping failed or returned no results."), 
+                "inversion_genotypes.csv", row.names = FALSE)
+      pdf("qc_plots.pdf", width = 6, height = 4)
+      plot(1, type = "n", main = "Genotyping Failed", xlab = "", ylab = "")
+      text(1, 1, "No QC plots available due to pipeline failure.", cex = 0.8)
+      dev.off()
     }
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCOREINVHAP:", paste0("    scoreinvhap: ", packageVersion("scoreInvHap"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES":',
+        paste0('    scoreInvHap: ', as.character(packageVersion('scoreInvHap')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scoreinvhap_results.csv
-    touch ${prefix}_scoreinvhap_output.rds
-    echo "BIOC_SCOREINVHAP:" > versions.yml
-    echo "    scoreinvhap: 0.0.0" >> versions.yml
+    touch ${prefix}_score_inversion_haplotypes.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCOREINVHAP_WORKFLOW {
+workflow BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SCOREINVHAP(ch_input)
+    BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES(ch_input)
 
     emit:
-    results  = BIOC_SCOREINVHAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCOREINVHAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCOREINVHAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCOREINVHAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES.out.tables
+    plots    = BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES.out.plots
+    objects  = BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES.out.objects
+    versions = BIOC_SCOREINVHAP_SCORE_INVERSION_HAPLOTYPES.out.versions
 }

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exclude=A vector of chromosome/contig names (e.g., chrY, chrM) to exclude from GC correction or ploidy detection ;; method=The normalization method in peakPloidy; 'closest' is robust and does not estimate ploidy/tumor content (ideal for polyclonal tumors), while 'density' or 'mixture' estimates absolute ploidy and tumor content (ideal for monoclonal tumors) ;; lambda=Smoothing parameter in addSmooth to decrease noise without losing resolution ;; DNAcopy.weight=Weighting method in addDNACopy (e.g., 'poisson') to improve segmentation and minimize false positives ;; independent.arms=Logical in addDNACopy; if TRUE, performs segmentation on a per-chromosome arm basis (requires ideograms) ;; ploidy=Parameter in validation to manually shift the suggested ploidy state up or down\n- alternatives: DNAcopy package is used internally for segmentation ;; CNAnormWorkflow is an automated alternative that combines the individual step-by-step functions into a single call\n- when_to_use: Use when analyzing low-coverage (0.01 - 0.5X, or one read every 100-10,000 bp) high-throughput sequencing data from tumor samples to detect copy number alterations and estimate tumor ploidy/content\n- pitfalls: Chromosomes Y and M are difficult to map correctly and can bias GC correction or ploidy detection, so they should be excluded ;; Estimating absolute ploidy and tumor content (using 'density' or 'mixture') only succeeds if the tumor is largely monoclonal; polyclonal tumors should use the 'closest' method ;; Higher depth data can lead to oversegmentation (false positives) if segmentation parameters (like DNAcopy.weight or alpha) are not adjusted",
+  "workflows": [
+    {
+      "name": "standard_cnanorm_workflow",
+      "intent": "Perform basic copy number profiling and normalization without estimating absolute ploidy or tumor content, suitable for heterogeneous or polyclonal tumors.",
+      "input": [
+        "LS041 (Dataframe containing columns Chr, Pos, Test, Norm, and GC)"
+      ],
+      "stages": "1. Convert dataframe to CNAnorm object ;; 2. Perform GC content normalization ;; 3. Smooth the ratio signal ;; 4. Find the representative peak closest to the median ratio ;; 5. Plot the peak distribution ;; 6. Validate and segment the data ;; 7. Perform discrete normalization ;; 8. Plot the normalized genome profile ;; 9. Export results to a table",
+      "code": "library(CNAnorm)\ndata(LS041)\nset.seed(31)\nCN <- dataFrame2object(LS041)\ntoSkip <- c(\"chrY\", \"chrM\")\nCN <- gcNorm(CN, exclude=toSkip)\nCN <- addSmooth(CN, lambda=7)\nCN <- peakPloidy(CN, exclude=toSkip, method='closest')\nplotPeaks(CN)\nCN <- validation(CN)\nCN <- addDNACopy(CN)\nCN <- discreteNorm(CN)\nset.seed(31)\nCNauto <- CNAnormWorkflow(LS041, gc.do=TRUE, gc.exclude=toSkip, peak.exclude=toSkip)\nidentical(CN, CNauto)\nplotGenome(CN, superimpose='DNACopy', show.centromeres=FALSE)\ntoPlot <- c('chr10', 'chr11', 'chr12')\nsubSet <- chrs(CN) %in% toPlot\nplotGenome(CN[subSet], superimpose='DNACopy')\nexportTable(CN, file = \"CNAnorm_table.tab\", show = 'center')"
+    },
+    {
+      "name": "advanced_ploidy_estimation_workflow",
+      "intent": "Estimate absolute ploidy and tumor content for monoclonal tumors, perform advanced segmentation, and optionally manually correct ploidy states.",
+      "input": [
+        "LS041 (Dataframe containing columns Chr, Pos, Test, Norm, and GC)",
+        "hg19_hs_ideogr (Ideogram data for independent arm segmentation)"
+      ],
+      "stages": "1. Convert dataframe to CNAnorm object and perform GC normalization and smoothing ;; 2. Estimate absolute ploidy and tumor content using density method ;; 3. Plot peaks to inspect integer state assignments ;; 4. Validate and perform advanced segmentation with Poisson weights and independent chromosome arms ;; 5. Perform discrete normalization and plot the genome ;; 6. Manually shift the suggested ploidy state ;; 7. Re-normalize and plot the manually corrected genome profile",
+      "code": "library(CNAnorm)\ndata(LS041)\nset.seed(31)\nCN <- dataFrame2object(LS041)\ntoSkip <- c(\"chrY\", \"chrM\")\nCN <- gcNorm(CN, exclude=toSkip)\nCN <- addSmooth(CN, lambda=7)\nCN <- peakPloidy(CN, exclude=toSkip, method='density')\nplotPeaks(CN)\nCN <- validation(CN)\ndata(hg19_hs_ideogr)\nCN <- addDNACopy(CN, DNAcopy.weight='poisson', DNAcopy.segment=list(alpha=0.001), independent.arms=TRUE, ideograms=hg19_hs_ideogr)\nCN <- discreteNorm(CN)\nplotGenome(CN, superimpose='DNACopy')\nCN <- validation(CN, ploidy = (sugg.ploidy(CN) - 1))\nplotPeaks(CN, show='validated')\nCN <- discreteNorm(CN)\nplotGenome(CN, superimpose='DNACopy')"
+    }
+  ]
+}

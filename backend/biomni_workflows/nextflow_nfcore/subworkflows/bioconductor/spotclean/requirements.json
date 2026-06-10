@@ -1,0 +1,23 @@
+{
+  "package": "spotclean",
+  "requirements": [
+    "S4Vectors",
+    "Seurat",
+    "SpatialExperiment",
+    "SpotClean",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "Seurat",
+      "SpotClean"
+    ],
+    "spatial_experiment_workflow.nf": [
+      "S4Vectors",
+      "SpatialExperiment",
+      "SpotClean",
+      "ggplot2"
+    ]
+  }
+}

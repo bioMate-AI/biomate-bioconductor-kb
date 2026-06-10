@@ -1,0 +1,15 @@
+{
+  "package": "promise",
+  "requirements": [
+    "Biobase",
+    "GSEABase",
+    "PROMISE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEABase",
+      "PROMISE"
+    ]
+  }
+}

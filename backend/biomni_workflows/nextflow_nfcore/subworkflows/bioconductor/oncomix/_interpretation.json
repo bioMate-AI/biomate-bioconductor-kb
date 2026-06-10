@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprNmlIsof=Dataframe of adjacent normal tissue expression values (genes/isoforms as rows, patients as columns) ;; exprTumIsof=Dataframe of tumor tissue expression values (genes/isoforms as rows, patients as columns) ;; deltMu2Thr=Percentile threshold (0-100) for the difference in the larger means between tumor and normal groups ;; deltMu1Thr=Percentile threshold (0-100) for the difference in the smaller means between tumor and normal groups ;; siThr=Selectivity index threshold (0-1) representing the proportion of normal samples below the tumor boundary ;; selIndThresh=Selectivity index threshold used to filter/highlight genes in scatter plots ;; geneLabels=Character vector of gene/isoform names to label on the scatter plot\n- alternatives: Traditional differential expression methods like Student's t-test (e.g., in limma) or DESeq2 are alternatives, but they assume expression is concentrated around a single mean across all tumors. oncomix should be preferred when looking for oncogenes overexpressed in only a subset of tumors.\n- when_to_use: Use when you have paired tumor and adjacent normal mRNA expression data from a large cohort of patients (ideally >15 pairs) and want to identify oncogenes driven by mRNA overexpression in a subset of patients.\n- pitfalls: The vignette text incorrectly states that input dataframes contain patients as rows and genes as columns, but the actual data and code show genes as rows and patients as columns. Additionally, oncomix will not detect oncogenes activated by non-expression mechanisms (e.g., mutational activation like BRAF V600E).",
+  "workflows": [
+    {
+      "name": "oncomix_analysis",
+      "intent": "Identify and visualize oncogene candidates from paired tumor-normal mRNA expression data using 2-component Gaussian mixture models.",
+      "input": [
+        "exprNmlIsof.csv (matrix of mRNA expression from adjacent normal samples with genes as rows and patients as columns)",
+        "exprTumIsof.csv (matrix of mRNA expression from tumor samples with genes as rows and patients as columns)"
+      ],
+      "stages": "1. Fit the mixture models to normal and tumor expression data using mixModelParams ;; 2. Filter for top candidate genes using topGeneQuants ;; 3. Select top N genes by sorting the mixture model parameters by score ;; 4. Plot a histogram of expression values for a specific gene using plotGeneHist ;; 5. Generate scatter plots of the differences between component means using scatterMixPlot",
+      "code": "data(exprNmlIsof, exprTumIsof, package=\"oncomix\")\nmmParams <- mixModelParams(exprNmlIsof, exprTumIsof)\ntopGeneQuant <- topGeneQuants(mmParams, deltMu2Thr=99, \n    deltMu1Thr=10, siThr=.99)\nmmParamsTop10 <- mmParams[1:10,]\nisof = \"uc002jxc.2\"\nplotGeneHist(mmParams, exprNmlIsof, exprTumIsof, isof)\nscatterMixPlot(mmParams)\nscatterMixPlot(mmParams, selIndThresh=.99)\nscatterMixPlot(mmParams=mmParams, geneLabels=rownames(mmParamsTop10))"
+    }
+  ]
+}

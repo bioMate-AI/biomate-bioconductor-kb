@@ -1,0 +1,20 @@
+{
+  "package": "iterativebmasurv",
+  "requirements": [
+    "iterativeBMAsurv",
+    "survival"
+  ],
+  "by_workflow": {
+    "automated_survival_analysis.nf": [
+      "iterativeBMAsurv",
+      "survival"
+    ],
+    "cross_validation.nf": [
+      "iterativeBMAsurv"
+    ],
+    "main.nf": [
+      "iterativeBMAsurv",
+      "survival"
+    ]
+  }
+}

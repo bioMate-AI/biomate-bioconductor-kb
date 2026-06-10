@@ -1,0 +1,21 @@
+{
+  "package": "spatialomicsoverlay",
+  "requirements": [
+    "GeomxTools",
+    "RBioFormats",
+    "SpatialOmicsOverlay",
+    "cowplot",
+    "ggplot2",
+    "viridis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GeomxTools",
+      "RBioFormats",
+      "SpatialOmicsOverlay",
+      "cowplot",
+      "ggplot2",
+      "viridis"
+    ]
+  }
+}

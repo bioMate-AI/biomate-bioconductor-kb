@@ -1,0 +1,11 @@
+{
+  "package": "bags",
+  "requirements": [
+    "BAGS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BAGS"
+    ]
+  }
+}

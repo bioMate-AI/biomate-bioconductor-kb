@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: species=Defines the species to analyze (currently \"human\" and \"mouse\" are supported) in inferCNV() ;; k=Number of genes per loci-block (default is 100) in inferCNV() ;; skip=Displacement in number of genes between loci-blocks (default is 75% overlap) in inferCNV() ;; nullmat=Optional matrix of gene expression for normal (non-neoplastic) samples to provide a better prior in inferCNV() ;; likelihood=Logical indicating whether to estimate GI likelihood (used when a reference null model is provided) in genomicInstabilityScore() ;; recompute=Logical indicating whether to recompute the mixture model parameters in giLikelihood() ;; normal=Index of the fitted Gaussian model representing normal cells in giLikelihood() ;; tumor=Indices of the fitted Gaussian models representing tumor cells in giLikelihood() ;; output=File name for saving the heatmap plot in plot()\n- alternatives: Unsupervised cluster analysis followed by marker gene annotation (sensitive to similarity metrics, clustering algorithms, and marker gene selection) ;; CNV-based methods (e.g., CaSpER) which are computationally intensive, requiring BAM files, tumor-matched normal reference samples, or SNV call sets.\n- when_to_use: Use when analyzing scRNA-Seq data from tumor samples containing a mixture of normal and neoplastic cells, and you need to classify cells as normal or tumor based on genomic instability (CNVs) without requiring matched normal samples or BAM files.\n- pitfalls: The default of giLikelihood() assumes the Gaussian model with the lowest mean represents normal cells; if this is not the case, you must manually specify normal and tumor parameters.",
+  "workflows": [
+    {
+      "name": "unsupervised_gia",
+      "intent": "Estimate genomic instability scores and neoplastic likelihood for single cells without a prior normal reference.",
+      "input": [
+        "tpm_matrix (A matrix of Transcripts-per-million (TPM) or gene expression values where rows are genes and columns are cells)"
+      ],
+      "stages": "1. Estimate association between gene expression and loci-blocks using inferCNV() ;; 2. Calculate the Genomic Instability Score (GIS) using genomicInstabilityScore() ;; 3. Estimate the relative likelihood of cells being neoplastic using giLikelihood() ;; 4. Plot the GIS density and fitted Gaussian models using giDensityPlot() ;; 5. Refine likelihood estimation by manually specifying normal and tumor components in giLikelihood()",
+      "code": "cnv <- inferCNV(tpm_matrix)\ncnv <- genomicInstabilityScore(cnv)\ncnv <- giLikelihood(cnv)\ngiDensityPlot(cnv)\ncnv <- giLikelihood(cnv, recompute=FALSE, normal=1, tumor=2:3)"
+    },
+    {
+      "name": "reference_based_gia",
+      "intent": "Refine genomic instability analysis by using a subset of cells identified as normal (or an external normal dataset) as a reference null model.",
+      "input": [
+        "tpm_matrix (Gene expression matrix of target cells)",
+        "nullmat (Gene expression matrix of normal reference cells, e.g., cells with low GI likelihood from a previous run)"
+      ],
+      "stages": "1. Run inferCNV() providing the normal reference matrix to the nullmat argument ;; 2. Calculate GIS and estimate likelihood simultaneously using genomicInstabilityScore() with likelihood=TRUE ;; 3. Visualize the GIS density, fitted models, and null model using giDensityPlot() ;; 4. Plot the loci-block enrichment heatmap using plot()",
+      "code": "cnv_norm <- inferCNV(tpm_matrix, nullmat=tpm_matrix[, cnv$gi_likelihood<.25, drop=FALSE])\ncnv_norm <- genomicInstabilityScore(cnv_norm, likelihood=TRUE)\ngiDensityPlot(cnv_norm, ylim=c(0, 1.1))\nplot(cnv_norm, output=\"heatmap.png\", resolution=120, gamma=2)"
+    }
+  ]
+}

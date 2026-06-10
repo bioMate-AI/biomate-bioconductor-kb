@@ -1,157 +1,161 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ATACseqTFEA
-// Assay for Transpose-Accessible Chromatin using sequencing (ATAC-seq) is a technique to assess genome
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ATACseqTFEA/inst/doc/ATACseqTFEA.R
-// Upstream  : ATACseqQC, Rsamtools
-// Downstream: none
-//
-// Install: BiocManager::install("ATACseqTFEA")
+// Bioconductor workflow: ATACseqTFEA — one_step_tfea
+// Perform transcription factor enrichment analysis (TFEA) in a single step using pre-shifted BAM files and prepared binding sites.
+// Input: bamExp.bam, bamCtl.bam, PWMatrixList.rds, peaks.granges
+// Container: quay.io/biocontainers/bioconductor-atacseqtfea:1.12.0--r45hdfd78af_0
+// R packages: BSgenome.Drerio.UCSC.danRer10, GenomicRanges, ATACseqQC, ATACseqTFEA, Rsamtools
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ATACseqQC, ATACseqTFEA, BSgenome.Drerio.UCSC.danRer10, GenomicRanges, Tal1
+// Visualizations: volcano plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load motifs and scan genome for binding sites using prepareBindingSites
+//  * 2. [Core Analysis] Run one-step TFEA using TFEA
+//  * 3. [Visualization & Output] Visualize results using ESvolcanoplot, plotES, and factorFootprints
 
 nextflow.enable.dsl = 2
 
-process BIOC_ATACSEQTFEA {
+process BIOC_ATACSEQTFEA_ONE_STEP_TFEA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-atacseqtfea"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-atacseqtfea:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-atacseqtfea:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_atacseqtfea_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_atacseqtfea_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_atacseqtfea_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ATACseqTFEA)
-    library(ESvolcanoplot)
-    library(GRanges)
-    library(IRanges)
-    library(jsonlite)
-
-    # --- Prepare Binding Sites [ATACseqTFEA] ---
-    # Key functions: prepareBindingSites
-    motifs <- readRDS(system.file("extdata", "PWMatrixList.rds",
-                                   package="ATACseqTFEA"))
-    Drerio <- BSgenome.Drerio.UCSC.danRer10::Drerio
-    seqlev <- "chr1"
-    bindingSites <- prepareBindingSites(
-        motifs, Drerio, seqlev,
-        grange = GenomicRanges::GRanges(
-            "chr1", 
-            IRanges::IRanges(5000, 100000)
-        ),
-        p.cutoff = 5e-05
-    )
-
-    # --- Direct TFEA Analysis [ATACseqTFEA] ---
-    # Key functions: TFEA
-    bamExp <- system.file("extdata",
-                          c("KD.shift.rep1.bam", "KD.shift.rep2.bam"),
-                          package="ATACseqTFEA")
-    bamCtl <- system.file("extdata",
-                          c("WT.shift.rep1.bam", "WT.shift.rep2.bam"),
-                          package="ATACseqTFEA")
-    res <- TFEA(
-        bamExp, bamCtl, 
-        bindingSites = bindingSites,
-        positive = 0, negative = 0
-    )
-
-    # --- Count 5' Ends and Filter [ATACseqTFEA] ---
-    # Key functions: expandBindingSites, count5ends, eventsFilter
-    exbs <- expandBindingSites(
-        bindingSites = bindingSites,
-        proximal = 40, distal = 40, gap = 10
-    )
-    counts <- count5ends(
-        bam = c(bamExp, bamCtl),
-        positive = 0L, negative = 0L,
-        bindingSites = bindingSites,
-        bindingSitesWithGap = exbs$bindingSitesWithGap,
-        bindingSitesWithProximal = exbs$bindingSitesWithProximal,
-        bindingSitesWithProximalAndGap = exbs$bindingSitesWithProximalAndGap,
-        bindingSitesWithDistal = exbs$bindingSitesWithDistal
-    )
-    counts <- eventsFilter(counts, "proximalRegion>0")
-
-    # --- Normalization and Differential Scoring [ATACseqTFEA] ---
-    # Key functions: countsNormalization, getWeightedBindingScore, DBscore
-    counts <- countsNormalization(counts, proximal = 40, distal = 40)
-    counts <- getWeightedBindingScore(counts)
-    design <- cbind(CTL = 1, EXPvsCTL = c(1, 1, 0, 0))
-    counts <- DBscore(counts, design = design, coef = "EXPvsCTL")
-
-    # --- Downstream TFEA and Visualization [ATACseqTFEA] ---
-    # Key functions: doTFEA, ESvolcanoplot, plotES, factorFootprints, getBindingSites
-    res_counts <- doTFEA(counts)
-    TF <- "Tal1::Gata1"
-    ESvolcanoplot(TFEAresults = res_counts, TFnameToShow = TF)
-    plotES(res_counts, TF = TF, outfolder = NA)
-    Drerio <- BSgenome.Drerio.UCSC.danRer10::Drerio
-    sigs <- factorFootprints(
-        c(bamCtl, bamExp),
-        pfm = as.matrix(motifs[[TF]]),
-        bindingSites = getBindingSites(res_counts, TF = TF),
-        seqlev = "chr1", genome = Drerio,
-        upstream = 100, downstream = 100,
-        group = rep(c("WT", "KD"), each = 2)
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_atacseqtfea_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_atacseqtfea_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Drerio.UCSC.danRer10", "GenomicRanges", "ATACseqQC", "ATACseqTFEA", "Rsamtools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_atacseqtfea_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ATACseqTFEA)
+        library(BSgenome.Drerio.UCSC.danRer10)
+        library(ATACseqQC)
+        library(GenomicRanges)
+        
+        # 1. Load user-provided input files
+        motifs <- readRDS("PWMatrixList.rds")
+        peaks <- readRDS("peaks.granges")
+        
+        # Define BAM files
+        bamExp <- "bamExp.bam"
+        bamCtl <- "bamCtl.bam"
+        
+        # Extract sequence levels (chromosomes) from the peaks object
+        seqlev <- unique(as.character(seqnames(peaks)))
+        
+        # 2. Scan genome for binding sites
+        bindingSites <- prepareBindingSites(
+          motifs, 
+          Drerio, 
+          seqlev,
+          grange = peaks,
+          p.cutoff = 5e-05
+        )
+        
+        # 3. Run one-step TFEA
+        res <- TFEA(
+          bamExp, 
+          bamCtl, 
+          bindingSites = bindingSites,
+          positive = 0, 
+          negative = 0
+        )
+        
+        # Determine a TF to plot (use "Tal1::Gata1" if present, otherwise fallback to the first available TF)
+        TF <- "Tal1::Gata1"
+        if (!(TF %in% names(motifs))) {
+          TF <- names(motifs)[1]
+        }
+        
+        # 4. Visualize and save results
+        # Volcano plot
+        pdf("ES_volcanoplot.pdf", width = 8, height = 6)
+        print(ESvolcanoplot(TFEAresults = res, TFnameToShow = TF))
+        dev.off()
+        
+        # Enrichment score plot
+        pdf("plotES.pdf", width = 8, height = 6)
+        print(plotES(res, TF = TF, outfolder = NA))
+        dev.off()
+        
+        # Footprint plot (wrapped in tryCatch for robustness)
+        tryCatch({
+          pdf("factor_footprints.pdf", width = 8, height = 6)
+          sigs <- factorFootprints(
+            c(bamCtl, bamExp), 
+            pfm = as.matrix(motifs[[TF]]),
+            bindingSites = getBindingSites(res, TF = TF),
+            seqlev = seqlev, 
+            genome = Drerio,
+            upstream = 100, 
+            downstream = 100,
+            group = rep(c("WT", "KD"), c(length(bamCtl), length(bamExp)))
+          )
+          dev.off()
+        }, error = function(e) {
+          message("Warning: factorFootprints plotting skipped or failed: ", e\$message)
+          if (dev.cur() > 1) dev.off()
+        })
+        
+        # Export results table and object
+        write.csv(res\$resultsTable, "TFEA_results.csv", row.names = FALSE)
+        saveRDS(res, "TFEA_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ATACSEQTFEA:", paste0("    atacseqtfea: ", packageVersion("ATACseqTFEA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ATACSEQTFEA_ONE_STEP_TFEA":',
+        paste0('    ATACseqTFEA: ', as.character(packageVersion('ATACseqTFEA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_atacseqtfea_results.csv
-    touch ${prefix}_atacseqtfea_output.rds
-    echo "BIOC_ATACSEQTFEA:" > versions.yml
-    echo "    atacseqtfea: 0.0.0" >> versions.yml
+    touch ${prefix}_one_step_tfea.csv versions.yml
     """
 }
 
-
-workflow BIOC_ATACSEQTFEA_WORKFLOW {
+workflow BIOC_ATACSEQTFEA_ONE_STEP_TFEA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bamExp.bam, bamCtl.bam, PWMatrixList.rds, peaks.granges ] ]
 
     main:
-    BIOC_ATACSEQTFEA(ch_input)
+    BIOC_ATACSEQTFEA_ONE_STEP_TFEA(ch_input)
 
     emit:
-    results  = BIOC_ATACSEQTFEA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ATACSEQTFEA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ATACSEQTFEA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ATACSEQTFEA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ATACSEQTFEA_ONE_STEP_TFEA.out.tables
+    plots    = BIOC_ATACSEQTFEA_ONE_STEP_TFEA.out.plots
+    objects  = BIOC_ATACSEQTFEA_ONE_STEP_TFEA.out.objects
+    versions = BIOC_ATACSEQTFEA_ONE_STEP_TFEA.out.versions
 }

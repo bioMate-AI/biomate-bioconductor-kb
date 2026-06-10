@@ -1,120 +1,117 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NTW
-// This package predicts the gene-gene interaction network and identifies the direct transcriptional ta
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NTW/inst/doc/NTW.R
-// Upstream  : mvtnorm
-// Downstream: none
-//
-// Install: BiocManager::install("NTW")
+// Bioconductor workflow: NTW — network_and_perturbation_prediction
+// Estimate the entire gene interaction network (A) and the perturbation targets matrix (P) from gene expression data, with or without prior network knowledge.
+// Input: gene_expression.csv, prior_network.csv
+// Container: quay.io/biocontainers/bioconductor-ntw:1.60.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: NTW, mvtnorm
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the gene expression data and convert to a matrix
+//  * 2. [Core Analysis] Set algorithm parameters (restK, topD, topK, numP)
+//  * 3. [Input & Preparation] Define or generate a prior network matrix (optional)
+//  * 4. [Core Analysis] Run the main NTW function to estimate the interaction network and perturbation targets
 
 nextflow.enable.dsl = 2
 
-process BIOC_NTW {
+process BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ntw"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ntw:1.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ntw:1.56.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ntw_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ntw_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ntw_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(NTW)
-    library(Srow)
-    library(jsonlite)
-
-    # --- Loaddata [] ---
-    # Key functions: data
-    data(sos.data)
-    X<-sos.data
-    X<-as.matrix(X)
-    X
-    # --- Setpara [] ---
-    # Key functions: rep
-    restK=rep(ncol(X)-1, nrow(X))
-    topD = round(0.6*nrow(X))
-    topK = round(0.5*nrow(X))
-    numP = round(0.25*nrow(X))
-    # --- Genprior [] ---
-    # Key functions: runif
-    pred.net<-matrix(round(runif(nrow(X)*nrow(X), min=0, max=1)), nrow(X), nrow(X))
-    pred.net
-    # --- Calresult1 [] ---
-    # Key functions: NTW
-    result<-NTW(X, restK, topD, topK, P.known=NULL, cFlag="sse", pred.net = NULL, sup.drop = -1,numP, noiseLevel=0.1)
-    result
-    # --- Calresult2 [] ---
-    # Key functions: NTW
-    result<-NTW(X, restK, topD, topK, P.known=NULL, cFlag="sse", pred.net =pred.net, sup.drop = 1,numP, noiseLevel=0.1)
-    result
-    # --- Calresults [] ---
-    # Key functions: preestimation, Srow
-    IX<-P.preestimation(X, topK= round(2*nrow(X)))
-    result.Srow<-AP.estimation.Srow(r=1,cMM.corrected = 1, pred.net,X, IX,topD, restK, cFlag="sse",sup.drop = -1, numP, noiseLevel=0.1)
-    result.Srow
-    # --- Calresultspknown [] ---
-    # Key functions: runif, Srow
-    P.known<-matrix(round(runif(nrow(X)*ncol(X), min=0, max=1)), nrow(X), ncol(X))
-    result.Srow<-A.estimation.Srow(r=1,cMM.corrected = 1, pred.net, X, P.known, topD, restK, cFlag="ml",sup.drop = -1, noiseLevel=0.1)
-    result.Srow
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ntw_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ntw_results.csv")
+    library(mvtnorm)
+    
+    # 1. Load the gene expression data and convert to a matrix
+    if (!file.exists("gene_expression.csv")) {
+      stop("Error: 'gene_expression.csv' is required but was not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ntw_output.rds")
+    
+    X <- read.csv("gene_expression.csv", row.names = 1, check.names = FALSE)
+    X <- as.matrix(X)
+    
+    # 2. Set algorithm parameters
+    restK = rep(ncol(X) - 1, nrow(X))
+    topD = round(0.6 * nrow(X))
+    topK = round(0.5 * nrow(X))
+    numP = round(0.25 * nrow(X))
+    
+    # 3. Run the main NTW function to estimate the interaction network and perturbation targets
+    # Stage 3a: Estimation without prior network knowledge
+    result <- NTW(X, restK, topD, topK, P.known=NULL, cFlag="sse", pred.net = NULL, sup.drop = -1, numP, noiseLevel=0.1)
+    
+    # Save results without prior
+    write.csv(result\$est.A, "estimated_A_no_prior.csv", row.names = TRUE)
+    write.csv(result\$est.P, "estimated_P_no_prior.csv", row.names = TRUE)
+    saveRDS(result, "ntw_result_no_prior.rds")
+    
+    # Stage 3b: Estimation with prior network knowledge (if optional file is provided)
+    if (file.exists("prior_network.csv")) {
+      pred.net <- read.csv("prior_network.csv", row.names = 1, check.names = FALSE)
+      pred.net <- as.matrix(pred.net)
+      
+      result <- NTW(X, restK, topD, topK, P.known=NULL, cFlag="sse", pred.net = pred.net, sup.drop = 1, numP, noiseLevel=0.1)
+      
+      # Save results with prior
+      write.csv(result\$est.A, "estimated_A_with_prior.csv", row.names = TRUE)
+      write.csv(result\$est.P, "estimated_P_with_prior.csv", row.names = TRUE)
+      saveRDS(result, "ntw_result_with_prior.rds")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NTW:", paste0("    ntw: ", packageVersion("NTW"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION":',
+        paste0('    NTW: ', as.character(packageVersion('NTW')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ntw_results.csv
-    touch ${prefix}_ntw_output.rds
-    echo "BIOC_NTW:" > versions.yml
-    echo "    ntw: 0.0.0" >> versions.yml
+    touch ${prefix}_network_and_perturbation_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_NTW_WORKFLOW {
+workflow BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_expression.csv, prior_network.csv ] ]
 
     main:
-    BIOC_NTW(ch_input)
+    BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_NTW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NTW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NTW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NTW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION.out.tables
+    plots    = BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION.out.plots
+    objects  = BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION.out.objects
+    versions = BIOC_NTW_NETWORK_AND_PERTURBATION_PREDICTION.out.versions
 }

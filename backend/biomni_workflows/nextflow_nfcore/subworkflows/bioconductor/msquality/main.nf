@@ -1,145 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MsQuality
-// The MsQuality provides functionality to calculate quality metrics for mass spectrometry-derived, spe
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MsQuality/inst/doc/MsQuality.R
-// Upstream  : MsExperiment, Spectra, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("MsQuality")
+// Bioconductor workflow: MsQuality — spectral_qc_spectra_msexperiment
+// Calculate and visualize HUPO-PSI mzQC quality metrics from mass spectrometry spectral data using Spectra or MsExperiment objects.
+// Input: fls, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-msquality:1.10.0--r45hdfd78af_0
+// R packages: BiocParallel, Chromatograms, knitr, MsExperiment, MsQuality, Spectra
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, Chromatograms, MsExperiment, MsQuality, Spectra
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load libraries and register parallel backend
+//  * 2. [Input & Preparation] Create a Spectra object from raw files
+//  * 3. [Input & Preparation] Create an MsExperiment object to group samples and link sample metadata
+//  * 4. [Core Analysis] Retrieve available metrics using qualityMetrics()
+//  * 5. [Core Analysis] Calculate metrics using calculateMetrics()
+//  * 6. [Visualization & Output] Visualize metrics using plotMetric() or explore interactively with shinyMsQuality()
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSQUALITY {
+process BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msquality"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msquality:1.6.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-msquality:1.6.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msquality_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msquality_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msquality_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MsQuality)
-    library(DataFrame)
-    library(MsExperiment)
-    library(Spectra)
-    library(jsonlite)
-
-    # --- Load and Prepare Spectra Data [Quality Control] ---
-    # Key functions: qualityMetrics
-    data("Lee2019", package = "MsQuality")
-    sps_comb <- c(sps_rplc, sps_hilic)
-    avail_metrics <- qualityMetrics(sps_comb)
-    sps_comb_subset <- sps_comb[
-        grep("Sample.1_", sps_comb$dataOrigin), 
-    ]
-
-    # --- Calculate Spectra Quality Metrics [Quality Control] ---
-    # Key functions: calculateMetrics, qualityMetrics
-    metrics_sps_Q1 <- calculateMetrics(
-        object = sps_comb_subset,
-        metrics = qualityMetrics(sps_comb_subset),
-        filterEmptySpectra = FALSE,
-        relativeTo = "Q1",
-        msLevel = 1L
-    )
-    metrics_sps_previous <- calculateMetrics(
-        object = sps_comb_subset,
-        metrics = qualityMetrics(sps_comb_subset),
-        filterEmptySpectra = FALSE,
-        relativeTo = "previous",
-        msLevel = 1L
-    )
-
-    # --- Calculate MsExperiment Quality Metrics [Quality Control] ---
-    # Key functions: calculateMetrics, qualityMetrics
-    msexp_rplc_subset <- msexp_rplc[1:20]
-    msexp_hilic_subset <- msexp_hilic[1:20]
-    metrics_rplc_msexp <- calculateMetrics(
-        object = msexp_rplc_subset,
-        metrics = qualityMetrics(msexp_rplc_subset),
-        filterEmptySpectra = TRUE,
-        relativeTo = "Q1",
-        msLevel = 1L
-    )
-    metrics_hilic_msexp <- calculateMetrics(
-        object = msexp_hilic_subset,
-        metrics = qualityMetrics(msexp_hilic_subset),
-        filterEmptySpectra = TRUE,
-        relativeTo = "Q1",
-        msLevel = 1L
-    )
-
-    # --- Quality Control Visualization [Visualisation] ---
-    # Key functions: plotMetric
-    metrics_msexp <- rbind(metrics_rplc_msexp, metrics_hilic_msexp)
-    plotMetric(
-        qc = metrics_msexp, 
-        metric = "numberSpectra"
-    )
-    plotMetric(
-        qc = metrics_msexp, 
-        metric = "ticQuartileToQuartileLogRatio"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msquality_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocParallel", "Chromatograms", "knitr", "MsExperiment", "MsQuality", "Spectra")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load libraries and register parallel backend
+    library("Spectra")
+    library("MsExperiment")
+    library("Chromatograms")
+    library("MsQuality")
+    library("BiocParallel")
+    
+    register(SerialParam())
+    
+    # Read user inputs from the working directory
+    if (!file.exists("sample_metadata.csv")) {
+        stop("Error: sample_metadata.csv not found in the working directory.")
+    }
+    sample_metadata <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
+    sd <- DataFrame(sample_metadata)
+    
+    fls <- list.files(pattern = "\\\\.(mzML|mzXML|cdf|CDF)\$", ignore.case = TRUE, full.names = TRUE)
+    if (length(fls) == 0) {
+        stop("Error: No mzML, mzXML, or CDF files found in the working directory.")
+    }
+    
+    # Align files and metadata to ensure matching lengths
+    n_samples <- min(nrow(sd), length(fls))
+    if (n_samples == 0) {
+        stop("Error: No matching samples and files found. Ensure sample_metadata.csv is not empty and mzML/mzXML/CDF files are present.")
+    }
+    sd <- sd[1:n_samples, , drop = FALSE]
+    fls <- fls[1:n_samples]
+    
+    # 2. Create a Spectra object from raw files
+    sps_sciex <- Spectra(fls, backend = MsBackendMzR())
+    
+    # 3. Create an MsExperiment object to group samples and link sample metadata
+    lmse <- MsExperiment()
+    sampleData(lmse) <- sd
+    experimentFiles(lmse) <- MsExperimentFiles(mzML_files = fls)
+    spectra(lmse) <- sps_sciex
+    lmse <- linkSampleData(lmse, with = "experimentFiles.mzML_files",
+        sampleIndex = seq_len(n_samples), withIndex = seq_len(n_samples))
+    
+    # 4. Retrieve available metrics using qualityMetrics()
+    # 5. Calculate metrics using calculateMetrics()
+    metrics_sps_Q1 <- calculateMetrics(object = sps_sciex,
+        metrics = qualityMetrics(sps_sciex), filterEmptyObject = FALSE,
+        relativeTo = "Q1", msLevel = 1L)
+    
+    metrics_msexp <- calculateMetrics(object = lmse,
+        metrics = qualityMetrics(lmse), filterEmptyObject = TRUE,
+        relativeTo = "Q1", msLevel = 1L)
+    
+    # Save calculated metrics to CSV and RDS
+    write.csv(as.data.frame(metrics_sps_Q1), "metrics_sps_Q1.csv", row.names = TRUE)
+    write.csv(as.data.frame(metrics_msexp), "metrics_msexp.csv", row.names = TRUE)
+    saveRDS(metrics_sps_Q1, "metrics_sps_Q1.rds")
+    saveRDS(metrics_msexp, "metrics_msexp.rds")
+    
+    # 6. Visualize metrics using plotMetric() or explore interactively with shinyMsQuality()
+    pdf("msquality_plots.pdf", width = 8, height = 6)
+    tryCatch({
+        plotMetric(qc = metrics_msexp, metric = "numberSpectra")
+    }, error = function(e) {
+        warning("Failed to plot numberSpectra: ", e\$message)
+    })
+    
+    tryCatch({
+        plotMetric(qc = metrics_msexp, metric = "ticQuartileToQuartileLogRatio")
+    }, error = function(e) {
+        warning("Failed to plot ticQuartileToQuartileLogRatio: ", e\$message)
+    })
+    dev.off()
+    
+    if (interactive()) {
+        shinyMsQuality(qc = metrics_msexp)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msquality_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msquality_output.rds")
+        message("Skipping interactive shinyMsQuality() in non-interactive mode.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSQUALITY:", paste0("    msquality: ", packageVersion("MsQuality"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT":',
+        paste0('    MsQuality: ', as.character(packageVersion('MsQuality')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msquality_results.csv
-    touch ${prefix}_msquality_output.rds
-    echo "BIOC_MSQUALITY:" > versions.yml
-    echo "    msquality: 0.0.0" >> versions.yml
+    touch ${prefix}_spectral_qc_spectra_msexperiment.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSQUALITY_WORKFLOW {
+workflow BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ fls, sample_metadata.csv ] ]
 
     main:
-    BIOC_MSQUALITY(ch_input)
+    BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT(ch_input)
 
     emit:
-    results  = BIOC_MSQUALITY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSQUALITY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSQUALITY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSQUALITY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT.out.tables
+    plots    = BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT.out.plots
+    objects  = BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT.out.objects
+    versions = BIOC_MSQUALITY_SPECTRAL_QC_SPECTRA_MSEXPERIMENT.out.versions
 }

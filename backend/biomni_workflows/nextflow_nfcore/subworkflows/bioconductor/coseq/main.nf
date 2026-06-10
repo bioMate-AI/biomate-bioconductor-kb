@@ -1,97 +1,164 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: coseq
-// Co-expression analysis for expression profiles arising from high-throughput sequencing data. Feature
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/coseq/inst/doc/coseq.R
-// Upstream  : Biobase, DESeq2, corrplot, edgeR, ggforce
-// Downstream: none
-//
-// Install: BiocManager::install("coseq")
+// Bioconductor workflow: coseq — standard_coexpression_analysis
+// Perform co-expression clustering directly on a raw count matrix using K-means or Gaussian mixture models, followed by model selection, parameter extraction, and
+// Input: counts
+// Container: quay.io/biocontainers/bioconductor-coseq:1.34.0--r45hdfd78af_0
+// R packages: Biobase, corrplot, coseq, DESeq2, edgeR, ggforce
+// Bioconductor: 3.20 | R: 4.4
+// Requires: coseq
+// Visualizations: box plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run coseq with K-means and logclr transformation (or Normal model with arcsin/logit transformation)
+//  * 2. [Core Analysis] Compare models using compareICL or compareARI
+//  * 3. [Visualization & Output] Summarize the selected model using summary
+//  * 4. [Core Analysis] Extract cluster labels using clusters and conditional probabilities using assay
+//  * 5. [Core Analysis] Access transformed profiles using tcounts and normalized profiles using profiles
+//  * 6. [Visualization & Output] Plot results using plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_COSEQ {
+process BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-coseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-coseq:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-coseq:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_coseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_coseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_coseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(NormMixParam)
-    library(jsonlite)
-
-    # --- figure=TRUE [] ---
-    # Key functions: compareICL
-    compareICL(list(runArcsin, runLogit))
-    # --- figure=TRUE [] ---
-    # Key functions: compareARI
-    compareARI(runArcsin, K=8:12)
-    summary(runArcsin)
-    # --- figure=TRUE [] ---
-    # Key functions: NormMixParam, corrplot, clusters, assay
-    rho <- NormMixParam(runArcsin)$rho
-    colnames(rho1) <- rownames(rho1) <- paste0(colnames(rho1), "\n", conds)
-    corrplot(rho1)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_coseq_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "corrplot", "coseq", "DESeq2", "edgeR", "ggforce")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(coseq)
+    
+    # 1. Read user input
+    # The pipeline reads the 'counts' file from the working directory.
+    # It supports common formats (plain, CSV, or TSV).
+    if (file.exists("counts")) {
+      counts <- as.matrix(read.table("counts", header=TRUE, row.names=1))
+    } else if (file.exists("counts.csv")) {
+      counts <- as.matrix(read.csv("counts.csv", header=TRUE, row.names=1))
+    } else if (file.exists("counts.tsv")) {
+      counts <- as.matrix(read.table("counts.tsv", header=TRUE, row.names=1, sep="\t"))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_coseq_results.csv")
+      stop("Required input file 'counts' (or counts.csv/tsv) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_coseq_output.rds")
+    
+    # 2. Run coseq with K-means and logclr transformation
+    runLogCLR <- coseq(counts, K=2:25, transformation="logclr",norm="TMM", 
+                          meanFilterCutoff=50, model="kmeans",
+                       nstart=1, iter.max=10)
+    saveRDS(runLogCLR, file="runLogCLR.rds")
+    
+    # 3. Run coseq with Normal model and arcsin/logit transformations
+    runArcsin <- coseq(counts, K=2:20, model="Normal", transformation="arcsin", 
+                       meanFilterCutoff=200, iter=10)
+    saveRDS(runArcsin, file="runArcsin.rds")
+    
+    runLogit <- coseq(counts, K=2:20, model="Normal", transformation="logit", 
+                      meanFilterCutoff=200, verbose=FALSE, iter=10)
+    saveRDS(runLogit, file="runLogit.rds")
+    
+    # 4. Compare models using compareICL or compareARI
+    pdf("icl_comparison.pdf")
+    icl_comp <- compareICL(list(runArcsin, runLogit))
+    print(icl_comp)
+    dev.off()
+    
+    ari_comp <- compareARI(runArcsin, K=8:12)
+    write.csv(as.data.frame(ari_comp), file="ari_comparison.csv")
+    
+    # 5. Summarize the selected model using summary
+    sink("summary_runArcsin.txt")
+    summary(runArcsin)
+    sink()
+    
+    # 6. Plot results using plot
+    pdf("boxplots_runArcsin.pdf")
+    p <- plot(runArcsin, graphs="boxplots")
+    if (is.list(p)) {
+      for (name in names(p)) {
+        print(p[[name]])
+      }
+    } else {
+      print(p)
     }
+    dev.off()
+    
+    # 7. Extract cluster labels using clusters and conditional probabilities using assay
+    labels <- clusters(runArcsin)
+    write.csv(data.frame(Gene=names(labels), Cluster=labels), file="cluster_labels.csv", row.names=FALSE)
+    
+    probapost <- assay(runArcsin)
+    write.csv(as.data.frame(probapost), file="probapost.csv")
+    
+    # 8. Access transformed profiles using tcounts and normalized profiles using profiles
+    trans_prof <- tcounts(runArcsin)
+    write.csv(as.data.frame(trans_prof), file="transformed_profiles.csv")
+    
+    norm_prof <- profiles(runArcsin)
+    write.csv(as.data.frame(norm_prof), file="normalized_profiles.csv")
+    
+    # 9. Extract full results
+    fullres <- coseqFullResults(runArcsin)
+    saveRDS(fullres, file="full_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COSEQ:", paste0("    coseq: ", packageVersion("coseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS":',
+        paste0('    coseq: ', as.character(packageVersion('coseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_coseq_results.csv
-    touch ${prefix}_coseq_output.rds
-    echo "BIOC_COSEQ:" > versions.yml
-    echo "    coseq: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_coexpression_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_COSEQ_WORKFLOW {
+workflow BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts ] ]
 
     main:
-    BIOC_COSEQ(ch_input)
+    BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_COSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS.out.tables
+    plots    = BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS.out.plots
+    objects  = BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS.out.objects
+    versions = BIOC_COSEQ_STANDARD_COEXPRESSION_ANALYSIS.out.versions
 }

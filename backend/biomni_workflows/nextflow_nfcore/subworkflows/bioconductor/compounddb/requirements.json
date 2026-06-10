@@ -1,0 +1,15 @@
+{
+  "package": "compounddb",
+  "requirements": [
+    "CompoundDb",
+    "RSQLite",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CompoundDb",
+      "RSQLite",
+      "S4Vectors"
+    ]
+  }
+}

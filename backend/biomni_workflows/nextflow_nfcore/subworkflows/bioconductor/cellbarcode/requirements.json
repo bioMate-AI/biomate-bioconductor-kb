@@ -1,0 +1,15 @@
+{
+  "package": "cellbarcode",
+  "requirements": [
+    "CellBarcode",
+    "data.table",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CellBarcode",
+      "data.table",
+      "ggplot2"
+    ]
+  }
+}

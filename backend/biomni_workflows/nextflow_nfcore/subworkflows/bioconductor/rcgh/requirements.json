@@ -1,0 +1,11 @@
+{
+  "package": "rcgh",
+  "requirements": [
+    "rCGH"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rCGH"
+    ]
+  }
+}

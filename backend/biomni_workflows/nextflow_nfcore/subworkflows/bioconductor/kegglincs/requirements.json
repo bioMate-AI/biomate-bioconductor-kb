@@ -1,0 +1,20 @@
+{
+  "package": "kegglincs",
+  "requirements": [
+    "KEGGlincs",
+    "KOdata",
+    "graph",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "KEGGlincs",
+      "graph",
+      "igraph"
+    ],
+    "overlay_experimental_edge_data.nf": [
+      "KEGGlincs",
+      "KOdata"
+    ]
+  }
+}

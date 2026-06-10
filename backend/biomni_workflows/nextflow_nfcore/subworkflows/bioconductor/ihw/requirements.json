@@ -1,0 +1,19 @@
+{
+  "package": "ihw",
+  "requirements": [
+    "IHW",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "incomplete_pvalues_ihw.nf": [
+      "IHW",
+      "dplyr",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "IHW",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "msnbase",
+  "requirements": [
+    "MSnbase"
+  ],
+  "by_workflow": {
+    "chromatogram_extraction.nf": [
+      "MSnbase"
+    ],
+    "label_free_quantitation.nf": [
+      "MSnbase"
+    ],
+    "main.nf": [
+      "MSnbase"
+    ]
+  }
+}

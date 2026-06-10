@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: au=Upper bound atom mismatches (integer, default 0; increase to identify FMCS) ;; bu=Upper bound bond mismatches (integer, default 0; increase to identify FMCS) ;; fast=Logical parameter (if TRUE, returns numeric summary information in a named vector instead of an S4 MCS object) ;; type=In mcs2sdfset, can be \"new\" (assigns new atom numbers to subsetted SDF) or \"old\" (maintains source atom numbers) ;; matching.mode=Matching mode for aromaticity, e.g., \"aromatic\" ;; regenCoords=In plotMCS, logical parameter to regenerate coordinates for visualization\n- alternatives: Descriptor-based strategies like fingerprints or structural keys (MCS is more intuitive and chemically meaningful, though computationally more expensive). Other MCS algorithms (only find exact MCSs, whereas fmcsR allows mismatch-tolerant FMCS).\n- when_to_use: When measuring structural similarities among small molecules for drug discovery or chemical genomics, and when identifying the actual common substructure (mapping back to source compounds) is required rather than just a numeric similarity score.\n- pitfalls: The MCS problem is NP-complete, which can lead to high computational complexity and search times for very large or complex molecules. Default parameters (au=0, bu=0) only find exact MCS; mismatch parameters must be explicitly increased for FMCS.",
+  "workflows": [
+    {
+      "name": "pairwise_mcs_analysis",
+      "intent": "Compute, extract, and visualize the exact or mismatch-tolerant maximum common substructure between two compounds.",
+      "input": [
+        "sdfset.sdf (SDF file containing compound structures)"
+      ],
+      "stages": "1. Import compound structures from an SDF file ;; 2. Compute the MCS/FMCS between two compounds ;; 3. Extract the MCS substructure as an SDFset ;; 4. Visualize the MCS highlighted in the compound structures",
+      "code": "library(\"fmcsR\")\ndata(fmcstest)\nsdfset <- fmcstest\nwrite.SDF(sdfset, file=\"sdfset.sdf\")\nmysdf <- read.SDFset(file=\"sdfset.sdf\")\nmcsa <- fmcs(sdfset[[1]], sdfset[[2]])\nstats(mcsa)\nmcsa1 <- mcs1(mcsa)\nmcsa2 <- mcs2(mcsa)\nmcstosdfset <- mcs2sdfset(mcsa, type=\"new\")\nplot(mcstosdfset[[1]], print=FALSE)\ntest <- fmcs(fmcstest[1], fmcstest[2], au=2, bu=1)\nplotMCS(test,regenCoords=TRUE)"
+    },
+    {
+      "name": "batch_search_and_clustering",
+      "intent": "Perform batch FMCS searches against a compound collection and cluster them based on structural similarity.",
+      "input": [
+        "sdfsample.sdf (SDF file containing a collection of compounds)"
+      ],
+      "stages": "1. Load a collection of compounds ;; 2. Perform batch FMCS search of a query compound against the collection ;; 3. Compute an all-against-all similarity matrix ;; 4. Perform hierarchical clustering and plot the dendrogram",
+      "code": "library(\"fmcsR\")\ndata(sdfsample)\nsdf <- sdfsample\nfmcsBatch(sdf[1], sdf[1:30], au=0, bu=0)\nsdf <- sdf[1:7]\nd <- sapply(cid(sdf), function(x) fmcsBatch(sdf[x], sdf, au=0, bu=0, matching.mode=\"aromatic\")[,\"Overlap_Coefficient\"])\nhc <- hclust(as.dist(1-d), method=\"complete\")\nplot(as.dendrogram(hc), edgePar=list(col=4, lwd=2), horiz=TRUE)\nplotMCS(fmcs(sdf[3], sdf[7], au=0, bu=0, matching.mode=\"aromatic\"))"
+    }
+  ]
+}

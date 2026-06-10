@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nominalPosition=FALSE ;; Specifies whether to incorporate positional ambiguity bounds (CIPOS and HOMPOS) into the GRanges breakend intervals. ;; selfPartnerSingleBreakends=TRUE ;; Parameter in partner() that treats the partner of a single breakend event as itself, preventing orphan creation during filtering. ;; maxgap=100 ;; Specifies the genomic distance margin allowed around call positions when matching breakpoints. ;; sizemargin=0.25 ;; Restricts the allowable size mismatch between matched events (e.g., 0.25 for 25% size difference). ;; restrictMarginToSizeMultiple=0.5 ;; Restricts the search margin based on a multiple of the event size to ensure simple events actually overlap. ;; countOnlyBest=TRUE ;; Prevents duplicate or highly similar calls from being double-counted against the truth set. ;; inferMissingBreakends=TRUE ;; Infers missing breakends for callers that do not output both sides of a breakpoint. ;; ignoreUnknownSymbolicAlleles=TRUE ;; Ignores symbolic alleles that are not recognized during parsing.\n- alternatives: rtracklayer (Pairs object) ;; Used for loading BEDPE files, but uses a breakpoint-centric notation rather than the breakend-centric notation of StructuralVariantAnnotation.\n- when_to_use: Use when analyzing structural variant calls from VCF files (e.g., from GRIDSS, Manta, DELLY, Pindel, BreakDancer) to perform downstream tasks like caller comparison, truth-set matching, transitive call identification, format conversion (BEDPE), or visualization (circos plots).\n- pitfalls: Subsetting a breakpoint GRanges object can orphan breakends by filtering out their partners, which causes downstream functions like findBreakpointOverlaps() to fail. Use hasPartner() or selfPartnerSingleBreakends=TRUE to handle or filter these. ;; Standard overlap tools will fail to match small tandem duplications (<1000bp) reported as insertions by long-read callers and duplications by short-read callers; use findInsDupOverlaps() instead. ;; Transitive calls (e.g., complex rearrangements reported as a single direct breakpoint) can cause internal inconsistency and incorrect karyotype reconstructions; use findTransitiveCalls() to identify them.",
+  "workflows": [
+    {
+      "name": "sv_overlap_and_caller_comparison",
+      "intent": "Load SV calls from multiple callers and compare them to a truth set to calculate precision and recall.",
+      "input": [
+        "na12878_chr22_Sudmunt2015.vcf (VCF file containing truth set SVs)",
+        "na12878_chr22_crest.vcf (VCF file from CREST caller)",
+        "na12878_chr22_hydra.vcf (VCF file from HYDRA caller)"
+      ],
+      "stages": "1. Load VCF files using VariantAnnotation::readVcf ;; 2. Convert VCFs to breakend-centric GRanges using breakpointRanges ;; 3. Combine caller GRanges and calculate overlaps with the truth set using countBreakpointOverlaps with custom matching margins ;; 4. Calculate precision and recall metrics",
+      "code": "truth_vcf <- readVcf(system.file(\"extdata\", \"na12878_chr22_Sudmunt2015.vcf\", package = \"StructuralVariantAnnotation\"))\ntruth_svgr <- breakpointRanges(truth_vcf)\ntruth_svgr <- truth_svgr[seqnames(truth_svgr) == \"chr22\"]\ncrest_vcf <- readVcf(system.file(\"extdata\", \"na12878_chr22_crest.vcf\", package = \"StructuralVariantAnnotation\"))\nVariantAnnotation::fixed(crest_vcf)$QUAL <- info(crest_vcf)$left_softclipped_read_count + info(crest_vcf)$left_softclipped_read_count\ncrest_svgr <- breakpointRanges(crest_vcf)\ncrest_svgr$caller <- \"crest\"\nhydra_vcf <- readVcf(system.file(\"extdata\", \"na12878_chr22_hydra.vcf\", package = \"StructuralVariantAnnotation\"))\nhydra_svgr <- breakpointRanges(hydra_vcf)\nhydra_svgr$caller <- \"hydra\"\nsvgr <- c(crest_svgr, hydra_svgr)\nsvgr$truth_matches <- countBreakpointOverlaps(svgr, truth_svgr,\n  maxgap=100,\n  sizemargin=0.25,\n  restrictMarginToSizeMultiple=0.5,\n  countOnlyBest=TRUE)"
+    },
+    {
+      "name": "transitive_breakpoint_identification",
+      "intent": "Identify transitive structural variant calls that can be explained by multiple other constituent breakpoints.",
+      "input": [
+        "truthset_somaticSVs_COLO829.vcf (VCF file containing high-confidence somatic SVs)",
+        "colo829_nanoSV_truth_overlap.vcf (VCF file containing SV calls from long-read sequencing)"
+      ],
+      "stages": "1. Load truth and query VCF files using readVcf ;; 2. Convert VCFs to GRanges using breakpointRanges, optionally inferring missing breakends ;; 3. Identify transitive calls using findTransitiveCalls",
+      "code": "colo829_truth_bpgr  <- breakpointRanges(readVcf(system.file(\"extdata\", \"truthset_somaticSVs_COLO829.vcf\", package = \"StructuralVariantAnnotation\")))\ncolo829_nanosv_bpgr <- breakpointRanges(readVcf(system.file(\"extdata\", \"colo829_nanoSV_truth_overlap.vcf\", package = \"StructuralVariantAnnotation\")), inferMissingBreakends=TRUE, ignoreUnknownSymbolicAlleles=TRUE)\nfindTransitiveCalls(colo829_nanosv_bpgr, colo829_truth_bpgr)"
+    },
+    {
+      "name": "format_conversion_and_visualization",
+      "intent": "Convert breakpoint GRanges to BEDPE format and visualize them using a circos plot.",
+      "input": [
+        "gridss.vcf (VCF file containing structural variant calls)",
+        "COLO829T.purple.sv.ann.vcf.gz (VCF file containing annotated SV calls)"
+      ],
+      "stages": "1. Load VCF and convert to GRanges using breakpointRanges ;; 2. Convert GRanges to Pairs and export to BEDPE using breakpointgr2pairs and rtracklayer::export ;; 3. Import BEDPE back to GRanges using pairs2breakpointgr and rtracklayer::import ;; 4. Prepare GRanges for circos plotting by adding a partner destination column ;; 5. Plot using ggbio and circle",
+      "code": "vcf <- VariantAnnotation::readVcf(system.file(\"extdata\", \"gridss.vcf\", package = \"StructuralVariantAnnotation\"))\ngr <- breakpointRanges(vcf)\nsuppressPackageStartupMessages(require(rtracklayer))\nrtracklayer::export(breakpointgr2pairs(gr), con=\"example.bedpe\")\nbedpe.gr  <- pairs2breakpointgr(rtracklayer::import(\"example.bedpe\"))\ncolo829_vcf <- VariantAnnotation::readVcf(system.file(\"extdata\", \"COLO829T.purple.sv.ann.vcf.gz\", package = \"StructuralVariantAnnotation\"))\ncolo829_bpgr <- breakpointRanges(colo829_vcf)\nsuppressPackageStartupMessages(require(ggbio))\ngr.circos <- colo829_bpgr[seqnames(colo829_bpgr) %in% seqlevels(biovizBase::hg19sub)]\nseqlevels(gr.circos) <- seqlevels(biovizBase::hg19sub)\nmcols(gr.circos)$to.gr <- granges(partner(gr.circos))\np <- ggbio() +\n\tcircle(gr.circos, geom=\"link\", linked.to=\"to.gr\") +\n\tcircle(biovizBase::hg19sub, geom='ideo', fill='gray70') +\n\tcircle(biovizBase::hg19sub, geom='scale', size=2) +\n\tcircle(biovizBase::hg19sub, geom='text', aes(label=seqnames), vjust=0, size=3)\np"
+    }
+  ]
+}

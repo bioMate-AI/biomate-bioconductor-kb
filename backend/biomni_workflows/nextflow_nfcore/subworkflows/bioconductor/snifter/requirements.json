@@ -1,0 +1,17 @@
+{
+  "package": "snifter",
+  "requirements": [
+    "ggplot2",
+    "snifter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "snifter"
+    ],
+    "project_new_data.nf": [
+      "ggplot2",
+      "snifter"
+    ]
+  }
+}

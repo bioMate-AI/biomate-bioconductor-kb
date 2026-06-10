@@ -1,0 +1,11 @@
+{
+  "package": "cytomem",
+  "requirements": [
+    "cytoMEM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cytoMEM"
+    ]
+  }
+}

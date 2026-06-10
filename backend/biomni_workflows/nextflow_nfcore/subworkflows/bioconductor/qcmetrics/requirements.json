@@ -1,0 +1,23 @@
+{
+  "package": "qcmetrics",
+  "requirements": [
+    "MSnbase",
+    "ggplot2",
+    "qcmetrics"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "qcmetrics"
+    ],
+    "n15_labeled_proteomics_qc.nf": [
+      "MSnbase",
+      "ggplot2",
+      "qcmetrics"
+    ],
+    "proteomics_raw_ms_qc.nf": [
+      "MSnbase",
+      "ggplot2",
+      "qcmetrics"
+    ]
+  }
+}

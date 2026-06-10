@@ -1,125 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pathwayPCA
-// pathwayPCA is an integrative analysis tool that implements the principal component analysis (PCA) ba
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pathwayPCA/inst/doc/Introduction_to_pathwayPCA.R
-// Upstream  : SummarizedExperiment, XML, parallel, rWikiPathways, survival
-// Downstream: none
-//
-// Install: BiocManager::install("pathwayPCA")
+// Bioconductor workflow: pathwayPCA — standard_pathway_association
+// Test pathway association with phenotypes (e.g., survival) using AES-PCA or SuperPCA and extract significant pathways and gene loadings.
+// Input: wikipathways_human_symbol.gmt, ovarian_PNNL_survival.RDS
+// Container: quay.io/biocontainers/bioconductor-pathwaypca:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: pathwayPCA, survival, tidyverse
+// Visualizations: bar plot, heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import the pathway collection from a GMT file using read_gmt. 2. Create an Omics S4 data container using CreateOmics, specifying t
 
 nextflow.enable.dsl = 2
 
-process BIOC_PATHWAYPCA {
+process BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pathwaypca"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pathwaypca:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pathwaypca:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pathwaypca_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pathwaypca_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pathwaypca_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(pathwayPCA)
-    library(AESPCA_pVals)
-    library(CreateOmics)
-    library(SubsetPathwayData)
-    library(Surv)
-    library(jsonlite)
-
-    # --- Omics Container Creation [] ---
-    # Key functions: CreateOmics
+    library(tidyverse)
+    library(survival)
+    
+    # 1. Import the pathway collection from a GMT file
+    # Reading the user-provided GMT file from the working directory
+    wikipathways_PC <- read_gmt("wikipathways_human_symbol.gmt", description = TRUE)
+    
+    # Load the user-provided assay and survival phenotype data frame
+    ovSurv_df <- readRDS("ovarian_PNNL_survival.RDS")
+    
+    # 2. Create an Omics S4 data container using CreateOmics
+    # Specifying the assay data, pathway collection, response, and response type
     ov_OmicsSurv <- CreateOmics(
-        assayData_df = ovSurv_df[, -(2:3)],
-        pathwayCollection_ls = wikipathways_PC,
-        response = ovSurv_df[, 1:3],
-        respType = "survival",
-        minPathSize = 5
+      assayData_df = ovSurv_df[, - ( 2 : 3 )],
+      pathwayCollection_ls = wikipathways_PC,
+      response = ovSurv_df[, 1 : 3 ],
+      respType = "survival",
+      minPathSize = 5
     )
-
-
-    # --- Pathway Significance Analysis [] ---
-    # Key functions: AESPCA_pVals, getPathpVals
+    
+    # 3. Perform pathway significance testing using AESPCA_pVals
     ovarian_aespcOut <- AESPCA_pVals(
-        object = ov_OmicsSurv,
-        numPCs = 1,
-        parallel = FALSE,
-        numReps = 0,
-        adjustment = "BH"
+      object = ov_OmicsSurv,
+      numPCs = 1,
+      parallel = TRUE,
+      numCores = 2,
+      numReps = 0,
+      adjustment = "BH"
     )
-    ovOutGather_df <- getPathpVals(
-        ovarian_aespcOut,
-        score = TRUE
-    )
+    
+    # 4. Extract and sort pathway p-values using getPathpVals
+    top10_pvals <- getPathpVals(ovarian_aespcOut, numPaths = 10)
+    write.csv(top10_pvals, "top10_pathways_pvals.csv", row.names = FALSE)
+    
+    # 5. Extract pathway-specific principal components and gene loadings using getPathPCLs
+    wp195PCLs_ls <- getPathPCLs(ovarian_aespcOut, "WP195")
+    saveRDS(wp195PCLs_ls, "wp195_PCLs.rds")
+    
+    # Extract and save non-zero loadings for WP195
+    wp195Loadings_df <- wp195PCLs_ls\$Loadings %>% filter(PC1 != 0)
+    write.csv(wp195Loadings_df, "wp195_loadings.csv", row.names = FALSE)
+    
+    # 6. Subset the original assay data for a specific pathway using SubsetPathwayData
+    wp195Data_df <- SubsetPathwayData(ov_OmicsSurv, "WP195")
+    write.csv(wp195Data_df, "wp195_assay_subset.csv", row.names = FALSE)
+    
+    # --- Visualizations and Additional Outputs ---
+    
+    # Plot 1: Pathway significance level for the top 20 pathways
+    ovOutGather_df <- getPathpVals(ovarian_aespcOut, score = TRUE)
+    p1 <- ggplot(ovOutGather_df) +
+      theme_bw() +
+      aes(x = reorder(terms, score), y = score) +
+      geom_col(position = "dodge", fill = "#66FFFF", width = 0.7) +
+      geom_text(aes(x = reorder(terms, score), label = reorder(description, score), y = 0.1), color = "black", size = 2, hjust = 0) +
+      ggtitle("AES-PCA Significant Pathways: Ovarian Cancer") +
+      xlab("Pathways") +
+      ylab("Negative LN (p-Value)") +
+      geom_hline(yintercept = -log(0.01), linewidth = 1, color = "blue") +
+      coord_flip()
+    ggsave("top_pathways_bar_plot.pdf", plot = p1, width = 10, height = 8)
+    
+    # Plot 2: Gene Loadings on IL-1 Signaling Pathway (WP195)
+    wp195Loadings_df_plot <- wp195Loadings_df %>%
+      arrange(desc(abs(PC1))) %>%
+      mutate(featureID = factor(featureID, levels = featureID)) %>%
+      mutate(Direction = factor(ifelse(PC1 > 0, "Up", "Down")))
+    
+    p2 <- ggplot(data = wp195Loadings_df_plot) +
+      theme_bw() +
+      aes(x = featureID, y = PC1, fill = Direction) +
+      geom_col(width = 0.5, fill = "#005030", color = "#f47321") +
+      labs(title = "Gene Loadings on IL-1 Signaling Pathway", x = "Protein", y = "Loadings of PC1") +
+      theme(legend.position = "none")
+    ggsave("wp195_gene_loadings.pdf", plot = p2, width = 8, height = 6)
+    
+    # Plot 3: Distribution of Sample-specific Estimate of Pathway Activities
+    p3 <- ggplot(data = wp195PCLs_ls\$PCs) +
+      theme_classic() +
+      aes(x = V1) +
+      geom_histogram(bins = 10, color = "#005030", fill = "#f47321") +
+      labs(title = "Distribution of Sample-specific Estimate of Pathway Activities",
+           subtitle = paste0(wp195PCLs_ls\$pathway, ": ", wp195PCLs_ls\$description),
+           x = "PC1 Value for Each Sample", y = "Count")
+    ggsave("wp195_sample_activities_histogram.pdf", plot = p3, width = 8, height = 6)
+    
+    # Plot 4: Heatmap of the proteins in WP195 pathway
+    wp195gather_df <- wp195Data_df %>%
+      arrange(EventTime) %>%
+      select(-EventTime, -EventObs) %>%
+      gather(protein, value, -sampleID)
+    
+    p4 <- ggplot(wp195gather_df, aes(x = protein, y = sampleID)) +
+      geom_tile(aes(fill = value)) +
+      scale_fill_gradient2(low = "red", mid = "black", high = "green") +
+      labs(x = "Proteins", y = "Subjects", fill = "Protein level") +
+      theme(axis.text.x = element_text(angle = 90)) +
+      coord_flip()
+    ggsave("wp195_heatmap.pdf", plot = p4, width = 10, height = 12)
 
-
-    # --- Pathway Loading and Data Extraction [] ---
-    # Key functions: getPathPCLs, SubsetPathwayData
-    wp195PCLs_ls <- getPathPCLs(
-        ovarian_aespcOut,
-        "WP195"
-    )
-    wp195Data_df <- SubsetPathwayData(
-        ov_OmicsSurv,
-        "WP195"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pathwaypca_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pathwaypca_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pathwaypca_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PATHWAYPCA:", paste0("    pathwaypca: ", packageVersion("pathwayPCA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION":',
+        paste0('    pathwayPCA: ', as.character(packageVersion('pathwayPCA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pathwaypca_results.csv
-    touch ${prefix}_pathwaypca_output.rds
-    echo "BIOC_PATHWAYPCA:" > versions.yml
-    echo "    pathwaypca: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_pathway_association.csv versions.yml
     """
 }
 
-
-workflow BIOC_PATHWAYPCA_WORKFLOW {
+workflow BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ wikipathways_human_symbol.gmt, ovarian_PNNL_survival.RDS ] ]
 
     main:
-    BIOC_PATHWAYPCA(ch_input)
+    BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION(ch_input)
 
     emit:
-    results  = BIOC_PATHWAYPCA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PATHWAYPCA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PATHWAYPCA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PATHWAYPCA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION.out.tables
+    plots    = BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION.out.plots
+    objects  = BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION.out.objects
+    versions = BIOC_PATHWAYPCA_STANDARD_PATHWAY_ASSOCIATION.out.versions
 }

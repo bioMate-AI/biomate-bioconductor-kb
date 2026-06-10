@@ -1,0 +1,47 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <mincov=minimum read coverage per base required to retain a methylation call (default is 10) ;; treatment=integer vector defining sample group membership (e.g., 1 for test, 0 for control) ;; context=methylation context to read, typically \"CpG\", \"CHG\", or \"CHH\" ;; dbtype=set to \"tabix\" to store methylation data in an external bgzipped flat-file database instead of in-memory ;; destrand=logical in unite() indicating whether to merge reads from both strands of a CpG dinucleotide (only for CpG context) ;; overdispersion=set to \"MN\" in calculateDiffMeth() to apply overdispersion correction, which automatically switches the statistical test to an F-test ;; covariates=a data.frame of covariates (e.g., age, sex) to include in the logistic regression model to control for confounding factors>\n- alternatives: <MEDIPS=preferred for affinity-based methods like MIRA-Seq or MeDIP-Seq ;; Bioconductor MethylationArray packages (e.g., minfi, ChAMP)=preferred for Illumina Methylation arrays (27K, 450k, EPIC) ;; methylDackel or Bismark methylation extractor=preferred for extracting methylation calls from local or spliced alignments (HISAT2 mode) before importing into methylKit>\n- when_to_use: <When performing base-pair or regional resolution differential DNA methylation analysis and annotation on high-throughput bisulfite sequencing data (RRBS, WGBS, or variants) with or without replicates and covariates.>\n- pitfalls: <Setting destrand=TRUE on non-CpG (CpH) methylation data will cause incorrect results ;; Using processBismarkAln() directly on local or spliced alignments is not supported; use external extractors first ;; Using select() or '[' on database-backed (methylDB) objects will return their in-memory equivalents, which may cause memory issues if the dataset is extremely large ;; regionCounts() sorts input regions by chromosome and position, so the output order may differ from the input GRanges order ;; Do not merge methylRaw objects of different contexts into a single methylRawList as they will not overlap correctly>",
+  "workflows": [
+    {
+      "name": "base_resolution_diff_meth",
+      "intent": "Perform base-resolution differential methylation analysis, sample comparative analysis, and genomic annotation using in-memory objects.",
+      "input": [
+        "file.list (list of text files containing methylation calls per sample)",
+        "gene.obj (transcript features object read from a BED file)",
+        "cpg.obj (CpG island and shore features read from a BED file)"
+      ],
+      "stages": "1. Read methylation call files ;; 2. Filter samples by coverage ;; 3. Merge samples to find common covered bases ;; 4. Calculate sample correlation and perform clustering/PCA ;; 5. Calculate differential methylation ;; 6. Extract hyper/hypo-methylated bases ;; 7. Annotate differentially methylated bases with genic parts and CpG features",
+      "code": "myobj=methRead(file.list,\n           sample.id=list(\"test1\",\"test2\",\"ctrl1\",\"ctrl2\"),\n           assembly=\"hg18\",\n           treatment=c(1,1,0,0),\n           context=\"CpG\",\n           mincov = 10\n           )\nfiltered.myobj=filterByCoverage(myobj,lo.count=10,lo.perc=NULL,\n                                      hi.count=NULL,hi.perc=99.9)\nmeth=unite(myobj, destrand=FALSE)\ngetCorrelation(meth,plot=TRUE)\nclusterSamples(meth, dist=\"correlation\", method=\"ward\", plot=TRUE)\nPCASamples(meth)\nmyDiff=calculateDiffMeth(meth)\nmyDiff25p=getMethylDiff(myDiff,difference=25,qvalue=0.01)\nannotateWithGeneParts(as(myDiff25p,\"GRanges\"),gene.obj)\ndiffCpGann=annotateWithFeatureFlank(as(myDiff25p,\"GRanges\"),\n                                    cpg.obj$CpGi,cpg.obj$shores,\n                         feature.name=\"CpGi\",flank.name=\"shores\")"
+    },
+    {
+      "name": "large_data_tabix_db",
+      "intent": "Read and manage large-scale bisulfite sequencing datasets using flat-file databases (Tabix) to minimize memory usage.",
+      "input": [
+        "file.list (list of text files containing methylation calls per sample)",
+        "methylBase.obj (an existing in-memory methylBase object)",
+        "mydbpath (path to an existing tabix file)"
+      ],
+      "stages": "1. Read raw files directly into a Tabix-backed methylRawListDB object ;; 2. Convert an in-memory object to a flat-file database ;; 3. Load an existing flat-file database using its file path",
+      "code": "myobjDB=methRead(file.list,\n           sample.id=list(\"test1\",\"test2\",\"ctrl1\",\"ctrl2\"),\n           assembly=\"hg18\",\n           treatment=c(1,1,0,0),\n           context=\"CpG\",\n           dbtype = \"tabix\",\n           dbdir = \"methylDB\"\n           )\nobjDB=makeMethylDB(methylBase.obj,\"exMethylDB\")\nreadMethylDB(mydbpath)"
+    },
+    {
+      "name": "regional_and_tiling_analysis",
+      "intent": "Summarize and analyze methylation levels over tiling windows or predefined genomic regions (e.g., promoters).",
+      "input": [
+        "file.list (list of text files containing methylation calls per sample)",
+        "gene.obj$promoters (GRanges object containing promoter regions)"
+      ],
+      "stages": "1. Read methylation call files with a relaxed coverage threshold ;; 2. Summarize counts over tiling windows ;; 3. Summarize counts over predefined genomic regions (promoters)",
+      "code": "myobj_lowCov = methRead(file.list,\n           sample.id=list(\"test1\",\"test2\",\"ctrl1\",\"ctrl2\"),\n           assembly=\"hg18\",\n           treatment=c(1,1,0,0),\n           context=\"CpG\",\n           mincov = 3\n           )\ntiles = tileMethylCounts(myobj_lowCov,win.size=1000,step.size=1000,cov.bases = 10)\npromoters=regionCounts(myobj,gene.obj$promoters)"
+    },
+    {
+      "name": "methylation_profile_segmentation",
+      "intent": "Segment methylation or differential methylation profiles into regions of similar methylation levels.",
+      "input": [
+        "mbw (methylBase object or RDS file containing methylation data)"
+      ],
+      "stages": "1. Segment the methylation profiles ;; 2. Export the segmented regions to a BED file",
+      "code": "res=methSeg(mbw,diagnostic.plot=TRUE,maxInt=100,minSeg=10)\nmethSeg2bed(res,filename=\"H1.chr21.chr22.trial.seg.bed\")"
+    }
+  ]
+}

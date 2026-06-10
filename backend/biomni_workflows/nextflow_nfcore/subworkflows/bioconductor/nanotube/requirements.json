@@ -1,0 +1,17 @@
+{
+  "package": "nanotube",
+  "requirements": [
+    "Biobase",
+    "NanoTube",
+    "ggplot2",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "NanoTube",
+      "ggplot2",
+      "limma"
+    ]
+  }
+}

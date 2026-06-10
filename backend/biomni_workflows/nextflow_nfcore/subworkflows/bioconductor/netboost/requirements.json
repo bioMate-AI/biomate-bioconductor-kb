@@ -1,0 +1,11 @@
+{
+  "package": "netboost",
+  "requirements": [
+    "netboost"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "netboost"
+    ]
+  }
+}

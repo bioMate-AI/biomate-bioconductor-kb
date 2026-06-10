@@ -1,0 +1,13 @@
+{
+  "package": "metabolomicsworkbenchr",
+  "requirements": [
+    "SummarizedExperiment",
+    "metabolomicsWorkbenchR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "metabolomicsWorkbenchR"
+    ]
+  }
+}

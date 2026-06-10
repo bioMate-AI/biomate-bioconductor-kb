@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pedigree=A data.frame or file path containing pedigree data (family, id, father, mother, sex) ;; age=Optional vector of ages or endages for individuals ;; trait=A vector representing trait status (0/FALSE for unaffected, 1/TRUE for affected) ;; nsim=Number of Monte Carlo simulations to perform ;; strata=Vector for stratified sampling (e.g., sex matching) ;; controlSetMethod=Method to define control sets (e.g., \"getSexMatched\", \"getExternalMatched\") ;; timeAtRisk=Vector representing time at risk (e.g., age of onset or death) for FIR ;; prob=Population-based probability of being affected for the binomial test ;; prune=Logical, if TRUE, extracts/plots the smallest possible pedigree for a list of individuals\n- alternatives: kinship2=Used internally for kinship coefficient calculations and pedigree plotting, but switch to Pedixplorer is recommended for R <= 4.5 ;; HaploPainter=Perl script that can be used as an alternative plotting backend via switchPlotfun(\"haplopaint\") ;; gap=Contains the gif function, which calculates the genealogical index of familiality but does not estimate significance ;; igraph=Used internally or via ped2graph to represent pedigrees as graphs\n- when_to_use: Use when you have large pedigree data and trait information (e.g., disease status) and want to identify families or individuals with significant familial clustering/aggregation of the trait, or to select promising individuals for sequencing projects.\n- pitfalls: Singletons (unconnected individuals) are excluded by default in several tests (e.g., GIF, FIR) or return NA because kinship-based statistics cannot be estimated for them ;; Stratified sampling or matching can lead to the exclusion of individuals with missing values in the matching criteria or strata ;; Systematic bias in datasets (e.g., ascertainment bias where families are only included if a founder is affected) can distort results ;; HaploPainter only allows exporting plots to a file, whereas kinship2 allows standard R plotting.",
+  "workflows": [
+    {
+      "name": "pedigree_management_and_visualization",
+      "intent": "Import pedigree data, manipulate relationships, prune pedigrees, and visualize them as standard pedigree plots or graphs.",
+      "input": [
+        "pedigree_data.txt (a tab-delimited text file containing pedigree columns: family, id, father, mother, sex)",
+        "pedigree_data.ped (a PLINK format pedigree file)"
+      ],
+      "stages": "1. Create FAData object from file or data.frame ;; 2. Extract family or individual pedigree information ;; 3. Find founders or common ancestors ;; 4. Plot pedigrees ;; 5. Convert pedigree to graph and find subgraphs",
+      "code": "fad <- FAData(pedigree = mbped, age = endage)\nhead(pedigree(fad))\nhead(fad$father)\nhead(family(fad, family = 4))\nswitchPlotfun(\"ks2paint\")\nplotPed(fad, id = 3, device = \"plot\")\nfullPed <- buildPed(fad, id = \"3\")\nbuildPed(fad, id = c(21, 22, 17), prune = TRUE)\nplotPed(fad, id = c(21, 22, 17), prune = TRUE)\nfindFounders(fad, \"4\")\ngetCommonAncestor(fad, id = c(21, 22, 17))\ngetChildren(fad, id = \"4\", max.generations = 1)\ngetAncestors(fad, id = \"4\")\ngetSiblings(fad, id = c(\"4\"))\nfullGraph <- ped2graph(pedigree(fad))\nsingleFam <- ped2graph(family(fad, family=4))\nsubgr <- connectedSubgraph(singleFam, nodes = c(\"7\", \"8\", \"27\", \"17\"))\npedFile <- system.file(\"txt/minnbreastsub.ped.gz\", package = \"FamAgg\")\nfad <- FAData(pedFile)\nexport(fam4, tmpF, format = \"ped\")"
+    },
+    {
+      "name": "familial_aggregation_testing",
+      "intent": "Evaluate familial clustering of traits using various statistical tests (GIF, FIR, Kinship Sum, Kinship Group, Binomial).",
+      "input": [
+        "pedigree_data.txt (pedigree structure)",
+        "trait_vector.csv (binary trait status for individuals)"
+      ],
+      "stages": "1. Set trait information on FAData ;; 2. Run Genealogical Index of Familiality test ;; 3. Calculate Familial Incidence Rate (FIR) ;; 4. Run Kinship Sum test ;; 5. Run Kinship Group test ;; 6. Run Binomial test ;; 7. Plot test results",
+      "code": "trait(fad) <- cancer\ngi <- genealogicalIndexTest(fad, trait = tcancer, traitName = \"cancer\", nsim = nsim)\nresult(gi)\ngiStrata <- genealogicalIndexTest(fad, trait = tcancer, traitName = \"cancer\", nsim = nsim, strata = fad$sex)\nplotRes(giStrata)\ngiFam <- genealogicalIndexTest(fad, trait = tcancer, nsim = nsim, perFamilyTest = TRUE, traitName = \"Cancer\")\nfr <- familialIncidenceRate(fad, trait = tcancer, timeAtRisk = mbsub$endage)\nfrTest <- familialIncidenceRateTest(fad, trait = tcancer, traitName = \"cancer\", timeAtRisk = mbsub$endage, nsim = nsim)\nhead(result(frTest))\nkinSum <- kinshipSumTest(fad, trait = tcancer, traitName = \"cancer\", nsim = nsim, strata = fad$sex)\nhead(result(kinSum))\nplotPed(kinSum, id = kinSumIds[1], cex = 0.3, only.phenotyped = TRUE)\nplotRes(kinSum, id = kinSumIds[1])\nkinGroup <- kinshipGroupTest(fad, trait = tcancer, traitName = \"cancer\", nsim = nsim, strata = fad$sex)\nhead(result(kinGroup))\nplotPed(kinGroup, id = kinGroupRes[kinGroupRes$family == \"432\", \"group_id\"][1], prune = TRUE, label1 = fr)\nbinRes <- binomialTest(fad, trait = tcancer, traitName = \"Cancer\")\nbinResTab <- result(binRes)"
+    }
+  ]
+}

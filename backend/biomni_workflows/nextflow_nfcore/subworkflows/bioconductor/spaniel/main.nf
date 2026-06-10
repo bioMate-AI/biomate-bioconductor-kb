@@ -1,131 +1,184 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Spaniel
-// Spaniel includes a series of tools to aid the quality control and analysis of Spatial Transcriptomic
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Spaniel/inst/doc/spaniel-vignette-tenX-import.R
-// Upstream  : DropletUtils, scater, scran
-// Downstream: none
-//
-// Install: BiocManager::install("Spaniel")
+// Bioconductor workflow: Spaniel — spatial_transcriptomics_visium_analysis
+// Import 10X Visium spatial transcriptomics data, perform quality control filtering, normalize gene expression, cluster spots, and visualize the results overlaid 
+// Input: pathToTenXOuts
+// Container: quay.io/biocontainers/bioconductor-spaniel:1.24.0--r45hdfd78af_0
+// R packages: DropletUtils, ggplot2, scater, scran, Spaniel
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DropletUtils, Spaniel, ggplot2, igraph, scater, scran
+// Visualizations: ordination plot, UMAP plot, cluster plot
+// QC: cell QC metrics, count normalization, clustering QC
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Import Space Ranger output into a SingleCellExperiment object using createVisiumSCE. 2. Perform quality control visualization by o
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPANIEL {
+process BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-spaniel"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spaniel:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-spaniel:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_spaniel_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_spaniel_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_spaniel_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DropletUtils", "ggplot2", "scater", "scran", "Spaniel")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(Spaniel)
-    library(jsonlite)
-
-    # --- Create Visium SCE [Data Loading] ---
-    # Key functions: createVisiumSCE
-    pathToTenXOuts <- file.path(
-        system.file(package = "Spaniel"), 
-        "extdata/outs"
-    )
-    sce <- createVisiumSCE(
-        tenXDir = pathToTenXOuts, 
-        resolution = "Low"
-    )
-
-    # --- Quality Control Plotting [QC] ---
-    # Key functions: spanielPlot
-    filter <- sce$detected > 0
-    p1 <- spanielPlot(
-        object = sce,
-        plotType = "NoGenes", 
-        showFilter = filter, 
-        techType = "Visium", 
-        ptSizeMax = 3
-    )
+    library(DropletUtils)
+    library(scater)
+    library(scran)
+    library(ggplot2)
+    
+    # Define input path as specified in the user input requirements
+    pathToTenXOuts <- "pathToTenXOuts"
+    
+    # Verify that the input directory exists
+    if (!dir.exists(pathToTenXOuts)) {
+      stop(paste("Error: The input directory", pathToTenXOuts, "does not exist."))
+    }
+    
+    # 1. Import Space Ranger output into a SingleCellExperiment object
+    sce <- createVisiumSCE(tenXDir=pathToTenXOuts, 
+                                resolution="Low")
+    
+    # Display colData and metadata information
+    print("Preview of colData:")
+    print(head(colData(sce)[, c("Barcode", "pixel_x", "pixel_y")]))
+    
+    print("Image Dimensions:")
+    print(metadata(sce)\$ImgDims)
+    
+    print("Grob Metadata:")
+    print(metadata(sce)\$Grob)
+    
+    # 2. Perform quality control visualization
+    filter <- sce\$detected > 0
+    
+    pdf("qc_filter_plot.pdf", width = 8, height = 8)
+    print(spanielPlot(object = sce,
+            plotType = "NoGenes", 
+            showFilter = filter, 
+            techType = "Visium", 
+            ptSizeMax = 3))
+    dev.off()
+    
+    # 3. Filter out low-quality spots
     sce <- sce[, filter]
-
-    # --- Gene Expression Visualisation [Visualisation] ---
-    # Key functions: spanielPlot
-    p2 <- spanielPlot(
-        object = sce,
-        plotType = "Gene", 
-        gene = "ENSMUSG00000024843",
-        techType = "Visium", 
-        ptSizeMax = 3
+    
+    # 4. Normalize the filtered data
+    sce <- logNormCounts(sce)
+    
+    # 5. Visualize the spatial expression of a specific gene
+    gene <- rownames(sce)[1]
+    p2 <- spanielPlot(object = sce,
+            plotType = "Gene", 
+            gene = gene,
+            techType = "Visium", 
+            ptSizeMax = 3)
+    
+    pdf("gene_expression_plot.pdf", width = 8, height = 8)
+    print(p2)
+    dev.off()
+    
+    # 6. Perform dimensionality reduction and clustering
+    library(scran)
+    sce <- logNormCounts(sce)
+    sce <- runPCA(sce)
+    sce <- runUMAP(sce)
+    g <- buildSNNGraph(sce, k = 70)
+    
+    clust <- igraph::cluster_walktrap(g)\$membership
+    sce\$clust <- factor(clust)
+    
+    p3 <- plotReducedDim(sce, "UMAP", colour_by="clust") 
+    
+    pdf("umap_clustering_plot.pdf", width = 8, height = 8)
+    print(p3)
+    dev.off()
+    
+    # 7. Visualize the resulting spatial clusters
+    p4 <- spanielPlot(object = sce,
+            plotType = "Cluster", 
+            clusterRes = "clust",
+            showFilter = NULL, 
+            techType = "Visium", 
+            ptSizeMax = 1, customTitle = "Section A")  
+    
+    pdf("spatial_clusters_plot.pdf", width = 8, height = 8)
+    print(p4)
+    dev.off()
+    
+    # Save meaningful outputs to the working directory
+    saveRDS(sce, "spaniel_processed_sce.rds")
+    
+    cluster_export <- data.frame(
+      Barcode = colData(sce)\$Barcode,
+      Cluster = sce\$clust,
+      pixel_x = colData(sce)\$pixel_x,
+      pixel_y = colData(sce)\$pixel_y
     )
+    write.csv(cluster_export, "spatial_clustering_results.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- Spatial Cluster Visualisation [Visualisation] ---
-    # Key functions: spanielPlot
-    sce$clust <- factor(rep(1:2, length.out = ncol(sce)))
-    p3 <- spanielPlot(
-        object = sce,
-        plotType = "Cluster", 
-        clusterRes = "clust",
-        showFilter = NULL, 
-        techType = "Visium", 
-        ptSizeMax = 1, 
-        customTitle = "Section A"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spaniel_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spaniel_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spaniel_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPANIEL:", paste0("    spaniel: ", packageVersion("Spaniel"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS":',
+        paste0('    Spaniel: ', as.character(packageVersion('Spaniel')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_spaniel_results.csv
-    touch ${prefix}_spaniel_output.rds
-    echo "BIOC_SPANIEL:" > versions.yml
-    echo "    spaniel: 0.0.0" >> versions.yml
+    touch ${prefix}_spatial_transcriptomics_visium_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPANIEL_WORKFLOW {
+workflow BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pathToTenXOuts ] ]
 
     main:
-    BIOC_SPANIEL(ch_input)
+    BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SPANIEL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPANIEL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPANIEL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPANIEL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS.out.tables
+    plots    = BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS.out.plots
+    objects  = BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS.out.objects
+    versions = BIOC_SPANIEL_SPATIAL_TRANSCRIPTOMICS_VISIUM_ANALYSIS.out.versions
 }

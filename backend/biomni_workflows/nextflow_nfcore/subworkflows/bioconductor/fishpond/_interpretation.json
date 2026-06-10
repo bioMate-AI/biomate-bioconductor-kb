@@ -1,0 +1,54 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - x=The primary condition variable of interest for differential testing (e.g., \"condition\", \"allele\").\n  - pair=The variable indicating paired or matched samples (e.g., \"line\", \"sample\", \"pair\") to perform paired tests.\n  - cov=The secondary covariate used for blocking/stratification, batch correction, or interaction testing.\n  - interaction=Logical; if TRUE, tests whether the effect of the primary condition x changes across the levels of the secondary covariate cov.\n  - fast=Set to 1 to use a fast one-sample z-score test statistic instead of the signed-rank test for simple paired designs.\n  - cor=The correlation method (\"pearson\" or \"spearman\") used when testing correlation with a continuous covariate.\n  - lengthCorrect=Logical; passed to scaleInfReps to specify whether to correct counts for effective transcript length (set to FALSE for 3' tagged RNA-seq or scRNA-seq).\n  - sfFun=A custom size factor calculation function passed to scaleInfReps (e.g., scran::computeSumFactors for single-cell data).\n  - nsplits=The number of chunks to split the dataset into when using splitSwish to distribute memory load.\n- alternatives:\n  - SAMseq (implemented in the samr package): Swish builds on and extends SAMseq by incorporating inferential uncertainty, controlling for batch effects/matched samples, and supporting interaction and correlation tests.\n  - limma::removeBatchEffect: Recommended for removing continuous batch effects directly from log-transformed inferential replicates prior to running Swish.\n- when_to_use:\n  - When analyzing bulk or single-cell RNA-seq data quantified with inferential replicates (Gibbs or bootstrap samples) to control for mapping and quantification uncertainty.\n  - When performing differential transcript expression (DTE), differential gene expression (DGE), differential transcript usage (DTU), or allelic imbalance (AI) analyses.\n- pitfalls:\n  - Failing to set a random seed (set.seed()) before running swish(), which uses pseudo-random numbers for tie-breaking and permutations.\n  - Relying on default alphabetical factor levels in R, which can invert the direction of log2 fold changes (explicitly set factor levels with the reference level first).\n  - Running scaleInfReps on allelic counts; allelic imbalance analysis compares alleles within the same sample, so depth scaling is unnecessary and should be skipped.\n  - Converting sparse single-cell matrices to dense matrices too early, which can cause out-of-memory errors (filter genes with labelKeep first, or use splitSwish).\n  - Ranking genes directly by q-value; due to the permutation plug-in calculation, many genes share identical q-values. Instead, threshold by q-value and then rank by absolute log2FC.",
+  "workflows": [
+    {
+      "name": "bulk_differential_expression",
+      "intent": "Perform differential transcript or gene expression analysis on bulk RNA-seq data using inferential replicates.",
+      "input": [
+        "coldata.csv (sample metadata table)",
+        "Salmon quantification directories (containing quant.sf or quant.sf.gz files with Gibbs or bootstrap replicates)"
+      ],
+      "stages": "1. Read sample metadata and import quantification data using tximeta.\n2. Scale inferential replicates using scaleInfReps.\n3. Filter out low-expression features using labelKeep.\n4. Run differential expression testing using swish.",
+      "code": "coldata <- read.csv(\"coldata.csv\")\nlibrary(tximeta)\ny <- tximeta(coldata) # reads in counts and inf reps\nlibrary(fishpond)\ny <- scaleInfReps(y) # scales counts\ny <- labelKeep(y) # labels features to keep\nset.seed(1)\ny <- swish(y, x=\"condition\") # simplest Swish case\n\n# For paired designs:\ny <- swish(y, x=\"condition\", pair=\"line\")\n\n# For fast paired designs:\ny_fast <- swish(y, x=\"condition\", pair=\"line\", fast=1)\n\n# For interaction designs:\ny2 <- swish(y2, x=\"salmonella\", cov=\"ifng\", pair=\"pair\", interaction=TRUE)"
+    },
+    {
+      "name": "differential_transcript_usage",
+      "intent": "Test for differential transcript usage (DTU) by analyzing isoform proportions per gene across conditions.",
+      "input": [
+        "coldata.csv (sample metadata table)",
+        "Salmon quantification directories (containing quant.sf or quant.sf.gz files with Gibbs or bootstrap replicates)"
+      ],
+      "stages": "1. Read sample metadata and import quantification data using tximeta.\n2. Scale inferential replicates using scaleInfReps.\n3. Filter out low-expression features using labelKeep.\n4. Compute isoform proportions per gene using isoformProportions.\n5. Run differential testing on isoform proportions using swish.",
+      "code": "coldata <- read.csv(\"coldata.csv\")\nlibrary(tximeta)\ny <- tximeta(coldata)\nlibrary(fishpond)\ny <- scaleInfReps(y)\ny <- labelKeep(y)\ny <- y[mcols(y)$keep,]\n# run on the transcript-level dataset\niso <- isoformProportions(y)\niso <- swish(iso, x=\"condition\", pair=\"line\")"
+    },
+    {
+      "name": "single_cell_differential_expression",
+      "intent": "Perform differential expression analysis on single-cell RNA-seq data using inferential mean and variance to generate pseudo-inferential replicates.",
+      "input": [
+        "Alevin quantification directory (containing quants_mat.gz with mean and variance matrices)"
+      ],
+      "stages": "1. Import sparse single-cell counts, mean, and variance using tximeta.\n2. Filter out low-expression genes using labelKeep.\n3. Generate pseudo-inferential replicates using makeInfReps.\n4. Convert sparse matrices to dense matrices.\n5. Scale inferential replicates using scaleInfReps.\n6. Run differential expression testing using swish.",
+      "code": "dir <- system.file(\"extdata\", package=\"tximportData\")\nfiles <- file.path(dir,\"alevin/neurons_900_v014/alevin/quants_mat.gz\")\nneurons <- tximeta(files, type=\"alevin\",\n                   skipMeta=TRUE, # just for vignette\n                   dropInfReps=TRUE,\n                   alevinArgs=list(filterBarcodes=TRUE))\ny <- labelKeep(y, minCount=3, minN=10)\ny <- y[mcols(y)$keep,] # subset genes\ny <- makeInfReps(y, 20)\nassays(y) <- lapply(assays(y), as.matrix) # make dense matrices\ny <- scaleInfReps(y, lengthCorrect=FALSE, sfFun=sfFun)\ny <- swish(y, x=\"condition\")"
+    },
+    {
+      "name": "single_cell_split_jobs",
+      "intent": "Perform memory-efficient single-cell differential expression by splitting the dataset and running Swish in distributed jobs.",
+      "input": [
+        "Alevin quantification directory (containing quants_mat.gz with mean and variance matrices)"
+      ],
+      "stages": "1. Import sparse single-cell counts, mean, and variance using tximeta.\n2. Filter out low-expression genes using labelKeep.\n3. Convert the object to a SingleCellExperiment.\n4. Compute size factors using scran::computeSumFactors.\n5. Split the dataset into multiple RDS files and generate a Snakefile using splitSwish.\n6. Run snakemake from the command line (external step).\n7. Import and merge the results back into R using addStatsFromCSV.",
+      "code": "library(SingleCellExperiment)\ny <- as(y, \"SingleCellExperiment\")\n# then, after filtering genes and cells...\n# compute and store sizeFactors calculated over all genes\ny <- scran::computeSumFactors(y)\n# split swish objects into 8 RDS files:\nsplitSwish(y, nsplits=8, prefix=\"swish\", snakefile=\"Snakefile\")\n# now, run snakemake from command line\n# after finished, results back into R:\ny <- addStatsFromCSV(y, \"summary.csv\")"
+    },
+    {
+      "name": "allelic_imbalance_seesaw",
+      "intent": "Test for global, differential, or dynamic allelic imbalance using diploid-quantified Salmon bootstrap replicates.",
+      "input": [
+        "coldata.csv (sample metadata table with allele information)",
+        "Diploid Salmon quantification directories (containing bootstrap replicates)"
+      ],
+      "stages": "1. Build a transcript-to-gene or transcript-to-TSS mapping using ensembldb.\n2. Import allelic counts using importAllelicCounts.\n3. Filter out features with low expression or no allelic information using labelKeep and manual filtering.\n4. Run paired differential testing using swish (skipping scaleInfReps).",
+      "code": "# first build tx2gene to gene- or TSS-level\n# (for isoform level skip `tx2gene`)\nlibrary(ensembldb)\nlibrary(plyranges)\n# gene level:\ntx2gene <- transcripts(edb) %>%\n  select(tx_id, group_id=gene_id)\n# TSS level:\ntx2gene <- makeTx2Tss(edb, maxgap=50) %>%\n  select(tx_id, gene_id, group_id, tss)\n# import counts:\ny <- importAllelicCounts(\n  coldata, a1=\"alt\", a2=\"ref\",\n  format=\"wide\", tx2gene=tx2gene\n)\n# testing with Swish:\ny <- labelKeep(y)\ny <- y[mcols(y)$keep,]\n# see below for other tests and details\ny <- swish(y, x=\"allele\", pair=\"sample\", fast=1)\n\n# For differential allelic imbalance (across groups):\ny <- swish(y, x=\"allele\", pair=\"sample\",\n           cov=\"condition\", interaction=TRUE)\n\n# For dynamic allelic imbalance (across a continuous covariate):\ny <- swish(y, x=\"allele\", pair=\"sample\", cov=\"time\", cor=\"pearson\")"
+    }
+  ]
+}

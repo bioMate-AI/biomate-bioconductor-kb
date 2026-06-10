@@ -1,0 +1,24 @@
+{
+  "package": "arraymvout",
+  "requirements": [
+    "affy",
+    "affyPLM",
+    "arrayMvout",
+    "simpleaffy"
+  ],
+  "by_workflow": {
+    "direct_affybatch_outlier_detection.nf": [
+      "affy",
+      "arrayMvout"
+    ],
+    "main.nf": [
+      "arrayMvout"
+    ],
+    "outlier_detection_from_affybatch.nf": [
+      "affy",
+      "affyPLM",
+      "arrayMvout",
+      "simpleaffy"
+    ]
+  }
+}

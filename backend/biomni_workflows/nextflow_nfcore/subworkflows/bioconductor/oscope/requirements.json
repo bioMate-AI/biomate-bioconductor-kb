@@ -1,0 +1,11 @@
+{
+  "package": "oscope",
+  "requirements": [
+    "Oscope"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Oscope"
+    ]
+  }
+}

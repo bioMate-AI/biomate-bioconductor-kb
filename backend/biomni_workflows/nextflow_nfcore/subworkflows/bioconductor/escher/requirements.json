@@ -1,0 +1,30 @@
+{
+  "package": "escher",
+  "requirements": [
+    "SpatialExperiment",
+    "escheR",
+    "ggplot2",
+    "scater",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "binned_spatial_visualization.nf": [
+      "SpatialExperiment",
+      "escheR",
+      "ggplot2",
+      "scater",
+      "scuttle"
+    ],
+    "dataframe_visualization.nf": [
+      "escheR",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "SpatialExperiment",
+      "escheR",
+      "ggplot2",
+      "scater",
+      "scuttle"
+    ]
+  }
+}

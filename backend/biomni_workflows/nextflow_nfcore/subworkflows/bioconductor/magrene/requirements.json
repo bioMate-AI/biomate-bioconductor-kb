@@ -1,0 +1,14 @@
+{
+  "package": "magrene",
+  "requirements": [
+    "magrene"
+  ],
+  "by_workflow": {
+    "interaction_similarity.nf": [
+      "magrene"
+    ],
+    "main.nf": [
+      "magrene"
+    ]
+  }
+}

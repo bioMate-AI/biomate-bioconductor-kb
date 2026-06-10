@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: url=URL to download the EBI GWAS catalog TSV (defaults to the EBI search downloads API) ;; refresh=Logical indicating whether to force a redownload of the catalog ;; tr=Character string specifying the trait of interest (e.g., \"LDL cholesterol\") ;; matIsAB=Logical indicating if the genotype matrix is in A/B format (if FALSE, assumes direct nucleotide coding) ;; gwwl=A GRanges instance representing the GWAS catalog (e.g., gwtrunc)\n- alternatives: DO.db=Preferred for standard disease ontology mapping, though it has a low direct mapping rate for raw GWAS catalog traits ;; obo2graphNEL=Used for parsing custom OBO-formatted ontologies like Human Phenotype Ontology (HPO) when standard Bioconductor annotation packages are unavailable\n- when_to_use: When analyzing genome-wide association study (GWAS) hits, mapping user-defined SNPs or genomic regions to known GWAS traits, calculating polygenic risk/allele counts from individual genotype data, or visualizing GWAS catalog data alongside other genomic tracks (e.g., eQTLs, dsQTLs).\n- pitfalls: Missing or complex chromosome positions (CHR_POS with semicolons or \"x\" notation) are simplified to the first position or omitted during as_GRanges conversion ;; get_cached_gwascat downloads a large uncompressed TSV (200+ MB) and does not check etags, requiring manual update management ;; Direct mapping of GWAS catalog traits to Disease Ontology (DO) terms has a high failure rate (~90% unmatched) due to non-disease traits or naming discrepancies, requiring approximate matching or alternative ontologies like HPO.",
+  "workflows": [
+    {
+      "name": "query_and_subset_gwas_catalog",
+      "intent": "Retrieve the latest GWAS catalog, convert it to a GRanges object, and subset it by specific traits or overlap with a SNP chip.",
+      "input": [
+        "locon6 (user SNP list/chip data)"
+      ],
+      "stages": "1. Retrieve the cached GWAS catalog using get_cached_gwascat.\n2. Convert the catalog to a GRanges object using as_GRanges.\n3. Filter for standard chromosomes using keepStandardChromosomes.\n4. Query top traits using topTraits or subset by specific traits using subsetByTraits.\n5. Find overlaps with a SNP chip using subsetByOverlaps.",
+      "code": "gwcat = get_cached_gwascat()\ngg = gwcat |> as_GRanges()\nlibrary(GenomeInfoDb)\ndata(si.hs.38)\ngg = keepStandardChromosomes(gg, pruning=\"coarse\")\nseqlevels(gg) = seqlevels(si.hs.38)\nseqinfo(gg) = si.hs.38\ndata(ebicat_2020_04_30)\ngwtrunc = ebicat_2020_04_30\ntopTraits(gwtrunc)\nsubsetByTraits(gwtrunc, tr=\"LDL cholesterol\")[1:3]\ndata(gr6.0_hg38)\nag = function(x) as(x, \"GRanges\")\novraw = suppressWarnings(subsetByOverlaps(ag(gwtrunc), gr6.0_hg38))"
+    },
+    {
+      "name": "calculate_risky_allele_counts",
+      "intent": "Calculate the count of risk-associated alleles for individuals based on a genotype matrix and the GWAS catalog.",
+      "input": [
+        "gg17N (genotype matrix with direct nucleotide coding or A/B format)"
+      ],
+      "stages": "1. Load genotype data.\n2. Calculate risky allele counts using riskyAlleleCount.\n3. Bind the calculated counts back to the GWAS catalog metadata.",
+      "code": "data(gg17N)\nh17 = riskyAlleleCount(gg17N, matIsAB=FALSE, chr=\"ch17\", gwwl = gwtrunc)\ngwr = gwtrunc\ngwr = gwr[colnames(h17),]\nS4Vectors::mcols(gwr) = cbind(mcols(gwr), DataFrame(t(h17)))\nsn = rownames(h17)\ngwr[,c(\"DISEASE/TRAIT\", sn[1:4])]"
+    },
+    {
+      "name": "visualize_gwas_catalog_data",
+      "intent": "Generate Manhattan plots and integrate GWAS catalog data with other genomic tracks (e.g., eQTLs, dsQTLs) using Gviz.",
+      "input": [
+        "c17tg (GFF3 file containing eQTL/dsQTL annotations)"
+      ],
+      "stages": "1. Truncate high p-values and format chromosome names.\n2. Generate a basic Manhattan plot using autoplot or traitsManh.\n3. Import external GFF3 track data using import.\n4. Convert GWAS catalog data to Gviz tracks using gwcex2gviz.\n5. Plot integrated tracks using plotTracks.",
+      "code": "mlpv = mcols(gwtrunc)$PVALUE_MLOG\nmlpv = ifelse(mlpv > 25, 25, mlpv)\nS4Vectors::mcols(gwtrunc)$PVALUE_MLOG = mlpv\nseqlevels(gwtrunc) = paste0(\"chr\", seqlevels(gwtrunc))\ngwlit = gwtrunc[ which(as.character(seqnames(gwtrunc)) %in% c(\"chr4\", \"chr5\", \"chr6\")) ]\nautoplot(gwlit, geom=\"point\", aes(y=PVALUE_MLOG), xlab=\"chr4-chr6\")\ntraitsManh(gwtrunc)\ngffpath = system.file(\"gff3/chr17_43000000_45000000.gff3\", package=\"gwascat\")\nc17tg = import(gffpath)\nc17td = c17tg[ which(S4Vectors::mcols(c17tg)$type == \"Degner_dsQTL\") ]\ndsqs = DataTrack( c17td, chrom=\"chr17\", genome=\"hg19\", data=\"score\", name=\"dsQTL\")\ng2 = GRanges(seqnames=\"chr17\", IRanges(start=4.3e7, width=2e6))\nbasic = gwcex2gviz(basegr = gwtrunc, contextGR=g2, plot.it=FALSE)\nc17ts = c17tg[ which(S4Vectors::mcols(c17tg)$type == \"Stranger_eqtl\") ]\neqloc = AnnotationTrack(c17ts,  chrom=\"chr17\", genome=\"hg19\", name=\"Str eQTL\")\ndisplayPars(eqloc)$col = \"black\"\ndisplayPars(dsqs)$col = \"red\"\ninteg = list(basic[[1]], eqloc, dsqs, basic[[2]], basic[[3]])\nplotTracks(integ)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "hiergwas",
+  "requirements": [
+    "hierGWAS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "hierGWAS"
+    ]
+  }
+}

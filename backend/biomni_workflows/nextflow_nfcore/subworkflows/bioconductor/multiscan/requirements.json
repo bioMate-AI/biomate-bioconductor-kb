@@ -1,0 +1,11 @@
+{
+  "package": "multiscan",
+  "requirements": [
+    "multiscan"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "multiscan"
+    ]
+  }
+}

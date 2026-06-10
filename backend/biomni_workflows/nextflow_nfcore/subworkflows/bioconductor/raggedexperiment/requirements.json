@@ -1,0 +1,19 @@
+{
+  "package": "raggedexperiment",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "RaggedExperiment",
+    "S4Vectors",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "RaggedExperiment",
+      "S4Vectors",
+      "rtracklayer"
+    ]
+  }
+}

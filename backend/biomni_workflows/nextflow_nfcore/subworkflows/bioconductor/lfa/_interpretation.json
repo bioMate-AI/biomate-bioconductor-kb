@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genotype_matrix=A matrix of SNP genotypes coded as 0, 1, and 2 ;; d=The number of logistic factors including the intercept passed to lfa() ;; LF=The matrix of logistic factors returned by lfa() and passed to af()\n- alternatives: read_plink from the genio package=Preferred for loading binary PLINK formatted genotypes (.bed, .bim, .fam) ;; BEDMatrix=Supported for reduced memory usage at a small runtime penalty\n- when_to_use: When analyzing categorical SNP genotype data (coded as 0, 1, 2) to estimate population structure via logistic factors and compute individual-specific allele frequencies.\n- pitfalls: The return value of lfa is a matrix of logistic factors, which must be explicitly saved and passed to subsequent functions like af() ;; Genotype data must be coded as 0, 1, and 2.",
+  "workflows": [
+    {
+      "name": "logistic_factor_analysis",
+      "intent": "Estimate genetic population structure and compute individual-specific allele frequencies from SNP genotype data.",
+      "input": [
+        "genotypes.bed (binary PLINK genotype file)",
+        "genotypes.bim (PLINK genotype information file)",
+        "genotypes.fam (PLINK individual information file)"
+      ],
+      "stages": "1. Estimate logistic factors using lfa ;; 2. Compute individual-specific allele frequencies using af ;; 3. Compute log-likelihood for each SNP",
+      "code": "LF <- lfa(hgdp_subset, 4)\nallele_freqs <- af(hgdp_subset, LF)\nsubset <- af(hgdp_subset[15:25,], LF)\nll <- function(snp, af){\n    -sum(snp*log(af) + (2-snp)*log(1-af))\n}\nlog_lik <- sapply(1:nrow(hgdp_subset), function(i) {ll(hgdp_subset[i,], \n    allele_freqs[i,])})\nwhich(max(log_lik) == log_lik)"
+    }
+  ]
+}

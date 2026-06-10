@@ -1,0 +1,20 @@
+{
+  "package": "pengls",
+  "requirements": [
+    "BiocParallel",
+    "nlme",
+    "pengls"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "nlme",
+      "pengls"
+    ],
+    "temporal_autocorrelation_analysis.nf": [
+      "BiocParallel",
+      "nlme",
+      "pengls"
+    ]
+  }
+}

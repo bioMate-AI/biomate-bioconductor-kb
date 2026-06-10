@@ -4,6 +4,8 @@
 // Perform differential expression analysis using edgeR with CQN-normalized offsets.
 // Input: count_matrix.tsv, gene_lengths.tsv, gc_content.tsv, size_factors.tsv, sample_groups.tsv
 // Container: quay.io/biocontainers/bioconductor-cqn:1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: cqn, edgeR, scales
 // Visualizations: MA plot
 // QC: input validation
@@ -43,9 +45,12 @@ process BIOC_CQN_CQN_EDGER_DIFFERENTIAL_EXPRESSION {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries

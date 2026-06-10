@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: func=statistical test function (e.g., t.test, wilcox.test) used in classic analysis ;; enrichment=enrichment method ('ORA', 'GSA', 'PADOG') in bilevelAnalysisGeneset ;; metaMethod=method to combine p-values (e.g., fisherMethod, defaults to addCLT) in intraAnalysisGene ;; nperms=number of permutations for GSA ;; NI=number of iterations for PADOG ;; mc.cores=number of cores for parallel processing of slow enrichment methods\n- alternatives: limma (used internally for moderated t-tests, but BLMA extends it via sample splitting and p-value combination) ;; ROntoTools (specifically pe for Pathway-Express, which can be run downstream of BLMA's getStatistics output) ;; Classic p-value combination methods like Fisher's or Stouffer's (BLMA's addCLT is the default and preferred method)\n- when_to_use: Use when you have multiple independent transcriptomics datasets profiling the same disease or condition, and you want to combine them to increase statistical power for identifying differentially expressed genes, enriched gene sets, or active pathways.\n- pitfalls: GSA and PADOG enrichment methods are computationally intensive and slow; users should utilize parallel computing via mc.cores to avoid long execution times. Ensure gene identifiers are consistent across all datasets (e.g., using Reduce(intersect, ...) to find common genes) before running meta-analysis.",
+  "workflows": [
+    {
+      "name": "gene_level_differential_expression",
+      "intent": "Perform intra-experiment and bi-level gene-level differential expression analysis across multiple datasets.",
+      "input": [
+        "data_GSE33223 (expression matrix of genes x samples)",
+        "group_GSE33223 (numeric vector of group labels, e.g., 0 for control, 1 for disease)",
+        "dataList (list of expression matrices from multiple datasets)",
+        "groupList (list of group label vectors from multiple datasets)"
+      ],
+      "stages": "1. Perform intra-experiment analysis on a single dataset using intraAnalysisGene with default addCLT or fisherMethod ;; 2. Perform bi-level meta-analysis across multiple datasets using bilevelAnalysisGene",
+      "code": "library(BLMA)\ndata(GSE33223)\nsystem.time(X <- intraAnalysisGene(data_GSE33223, group_GSE33223))\nX <- X[order(X$pIntra), ]\nhead(X)\ntail(X)\n\nsystem.time(Y <- intraAnalysisGene(data_GSE33223, group_GSE33223, \n                      metaMethod=fisherMethod))\nY = Y[order(Y$pIntra), ]\nhead(Y)\ntail(Y)\n\ndataSets <- c(\"GSE17054\", \"GSE57194\", \"GSE33223\", \"GSE42140\")\ndata(list=dataSets, package=\"BLMA\")\nnames(dataSets) <- dataSets\ndataList <- lapply(dataSets, function(dataset) get(paste0(\"data_\", dataset)))\ngroupList <- lapply(dataSets, function(dataset) get(paste0(\"group_\", dataset)))\n\nsystem.time(Z <- bilevelAnalysisGene(dataList = dataList, groupList = groupList))\nhead(Z)\ntail(Z)"
+    },
+    {
+      "name": "pathway_and_geneset_enrichment",
+      "intent": "Perform bi-level pathway and geneset enrichment analysis across multiple datasets using ORA, GSA, PADOG, or Impact Analysis.",
+      "input": [
+        "dataList (list of expression matrices from multiple datasets)",
+        "groupList (list of group label vectors from multiple datasets)"
+      ],
+      "stages": "1. Load KEGG pathways and prepare geneset lists ;; 2. Run bi-level meta-analysis in conjunction with ORA, GSA, or PADOG using bilevelAnalysisGeneset ;; 3. Run bi-level meta-analysis in conjunction with Impact Analysis using bilevelAnalysisPathway",
+      "code": "library(BLMA)\nx=loadKEGGPathways()\ngslist <- lapply(x$kpg,FUN=function(y){return (nodes(y));})\ngs.names <- x$kpn[names(gslist)]\n\ndataSets <- c(\"GSE17054\", \"GSE57194\", \"GSE33223\", \"GSE42140\")\ndata(list=dataSets, package=\"BLMA\")\n\nnames(dataSets) <- dataSets\ndataList <- lapply(dataSets, function(dataset) get(paste0(\"data_\", dataset)))\ngroupList <- lapply(dataSets, function(dataset) get(paste0(\"group_\", dataset)))\n\nsystem.time(ORAComb <- bilevelAnalysisGeneset(gslist, gs.names, dataList, \n                                              groupList, enrichment = \"ORA\"))\noptions(digits=2)\nhead(ORAComb[, c(\"Name\", \"pBLMA\", \"pBLMA.fdr\", \"rBLMA\")])\n\nsystem.time(GSAComb <- bilevelAnalysisGeneset(gslist, gs.names, dataList, \n                                            groupList, enrichment = \"GSA\", \n                                            nperms=200, random.seed = 1))\nhead(GSAComb[, c(\"Name\", \"pBLMA\", \"pBLMA.fdr\", \"rBLMA\")])\n\nset.seed(1)\nsystem.time(PADOGComb <- bilevelAnalysisGeneset(gslist, gs.names, dataList, \n                                    groupList, enrichment = \"PADOG\", NI=200))\nhead(PADOGComb[, c(\"Name\", \"pBLMA\", \"pBLMA.fdr\", \"rBLMA\")])\n\nx <- loadKEGGPathways()  \nsystem.time(IAComb <- bilevelAnalysisPathway(x$kpg, x$kpn, dataList, groupList))\nhead(IAComb[, c(\"Name\", \"pBLMA\", \"pBLMA.fdr\", \"rBLMA\")])"
+    },
+    {
+      "name": "network_based_integrative_analysis",
+      "intent": "Calculate gene statistics across multiple studies and perform downstream network-based pathway analysis.",
+      "input": [
+        "dataList (list of expression matrices from multiple datasets)",
+        "groupList (list of group label vectors from multiple datasets)"
+      ],
+      "stages": "1. Identify common genes across all datasets ;; 2. Calculate effect sizes and p-values across all studies using getStatistics ;; 3. Identify differentially expressed genes ;; 4. Perform pathway analysis with ORA and Pathway-Express (ROntoTools)",
+      "code": "library(BLMA)\ndataSets <- c(\"GSE17054\", \"GSE57194\", \"GSE33223\", \"GSE42140\")\ndata(list=dataSets, package=\"BLMA\")\nnames(dataSets) <- dataSets\ndataList <- lapply(dataSets, function(dataset) get(paste0(\"data_\", dataset)))\ngroupList <- lapply(dataSets, function(dataset) get(paste0(\"group_\", dataset)))\n\nallGenes <- Reduce(intersect, lapply(dataList, rownames))\nsystem.time(geneStat <- getStatistics(allGenes, dataList = dataList, groupList = groupList))\n\nlibrary(ROntoTools)\nkpg <- loadKEGGPathways()$kpg\nkpn <- loadKEGGPathways()$kpn\ngslist <- lapply(kpg,function(y) nodes(y))\n\nDEGenes.Left <- rownames(geneStat)[geneStat$pLeft < 0.05 & geneStat$ES.pLeft < 0.05]\nDEGenes.Right <- rownames(geneStat)[geneStat$pRight < 0.05 & geneStat$ES.pRight < 0.05]\nDEGenes <- union(DEGenes.Left, DEGenes.Right)\n\noraRes <- lapply(gslist, function(gs){\n    pORACalc(geneSet = gs, DEGenes = DEGenes, measuredGenes = rownames(geneStat))\n})\noraRes <- data.frame(p.value = unlist(oraRes), pathway = names(oraRes))\nrownames(oraRes)  <- kpn[rownames(oraRes)]\nprint(head(oraRes))\n\nES <- geneStat[DEGenes, \"ES\"]\nnames(ES) <- DEGenes\n\npeRes = pe(x = ES, graphs = kpg, ref = allGenes, nboot = 1000, seed=1, verbose = F)\n\npeRes.Summary <- Summary(peRes, comb.pv.func = fisherMethod)\npeRes.Summary[, ncol(peRes.Summary) + 1] <- rownames(peRes.Summary)\nrownames(peRes.Summary) <- kpn[rownames(peRes.Summary)]\ncolnames(peRes.Summary)[ncol(peRes.Summary)] = \"pathway\"\nprint(head(peRes.Summary))"
+    }
+  ]
+}

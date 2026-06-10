@@ -1,0 +1,32 @@
+{
+  "package": "clustifyr",
+  "requirements": [
+    "Matrix",
+    "Seurat",
+    "SingleCellExperiment",
+    "clustifyr",
+    "cowplot",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "build_reference_matrix.nf": [
+      "Seurat",
+      "SingleCellExperiment",
+      "clustifyr"
+    ],
+    "direct_object_annotation.nf": [
+      "Seurat",
+      "SingleCellExperiment",
+      "clustifyr"
+    ],
+    "main.nf": [
+      "Matrix",
+      "clustifyr",
+      "cowplot",
+      "ggplot2"
+    ],
+    "marker_list_annotation.nf": [
+      "clustifyr"
+    ]
+  }
+}

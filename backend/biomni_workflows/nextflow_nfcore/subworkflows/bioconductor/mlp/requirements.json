@@ -1,0 +1,15 @@
+{
+  "package": "mlp",
+  "requirements": [
+    "AnnotationDbi",
+    "MLP",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "MLP",
+      "limma"
+    ]
+  }
+}

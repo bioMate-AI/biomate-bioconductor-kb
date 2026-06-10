@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_ISEEHEX {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-iseehex"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-iseehex:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-iseehex:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(seurat_object)
@@ -44,33 +43,63 @@ process BIOC_ISEEHEX {
     library(ReprocessedAllenData)
     library(jsonlite)
 
-    # --- Standard Plot Configuration [] ---
-    # Key functions: ReducedDimensionPlot
-    dim_panel <- ReducedDimensionPlot(
+    # --- Single-Cell Data Preparation [] ---
+    # Key functions: ReprocessedAllenData, logNormCounts, runPCA, runTSNE
+    sce <- scRNAseq::ReprocessedAllenData(assays = "tophat_counts")
+    sce <- scater::logNormCounts(sce, exprs_values = "tophat_counts")
+    sce <- scater::runPCA(sce, ncomponents = 4)
+    sce <- scater::runTSNE(sce)
+    SummarizedExperiment::rowData(sce)\$ave_count <- rowMeans(
+        SummarizedExperiment::assay(sce, "tophat_counts")
+    )
+    SummarizedExperiment::rowData(sce)\$n_cells <- rowSums(
+        SummarizedExperiment::assay(sce, "tophat_counts") > 0
+    )
+
+    # --- Hexagonal Panel Configuration [] ---
+    # Key functions: ReducedDimensionHexPlot, ColumnDataHexPlot
+    hex_red_dim <- iSEEhex::ReducedDimensionHexPlot(
         ColorBy = "Feature name",
         ColorByFeatureName = "Cux2",
-        PanelWidth = 6L
+        PanelWidth = 6L,
+        BinResolution = 30
+    )
+    hex_col_data <- iSEEhex::ColumnDataHexPlot(
+        PanelWidth = 6L,
+        BinResolution = 25
+    )
+    initial_panels <- list(hex_red_dim, hex_col_data)
+
+    # --- Interactive Visualization App Creation [] ---
+    # Key functions: iSEE
+    app <- iSEE::iSEE(
+        se = sce,
+        initial = initial_panels
     )
 
 
-    # --- Interface Initialization [] ---
-    # Key functions: iSEE
-    initial_panels <- list(dim_panel, hex_panel)
-    app <- iSEE(se = sce, initial = initial_panels)
-
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_iseehex_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_iseehex_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_iseehex_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_iseehex_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_iseehex_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_iseehex_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_ISEEHEX:", paste0("    iseehex: ", packageVersion("iSEEhex"))),
+        c("BIOC_ISEEHEX:", paste0("    iseehex: ", as.character(packageVersion("iSEEhex")))),
         "versions.yml"
     )
     """

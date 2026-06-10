@@ -1,0 +1,21 @@
+{
+  "package": "timeomics",
+  "requirements": [
+    "lmms",
+    "mixOmics",
+    "tidyverse",
+    "timeOmics"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "lmms",
+      "mixOmics",
+      "timeOmics"
+    ],
+    "multi_block_omics_clustering.nf": [
+      "mixOmics",
+      "tidyverse",
+      "timeOmics"
+    ]
+  }
+}

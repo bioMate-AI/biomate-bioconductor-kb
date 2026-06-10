@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=A p x n matrix of raw methylation values (beta values), where p is the number of probes in a window and n is the number of samples ;; steps=The number of steps/iterations to run the group fused lars algorithm (e.g., steps = 30)\n- alternatives: single probe analysis=MBAmethyl can be applied as an alternative to single probe analysis when multiple biological replicates are available\n- when_to_use: Appropriate for smoothing densely methylated data from platforms such as Illumina 450k arrays, CHARM arrays, and bisulfite sequencing when multiple biological replicates are available\n- pitfalls: The method is designed for local windows of probes rather than whole-genome analysis; the documentation recommends using a window of approximately 200 probes on real data",
+  "workflows": [
+    {
+      "name": "dna_methylation_smoothing",
+      "intent": "Smooth raw DNA methylation beta values across neighboring probes and biological replicates using a group fused lasso model.",
+      "input": [
+        "methylation_matrix.csv (A p x n matrix of raw methylation beta values where rows represent neighboring probes in a genomic window and columns represent biological samples)"
+      ],
+      "stages": "1. Load the MBAmethyl package ;; 2. Run the smoothing algorithm on the raw methylation matrix ;; 3. Inspect and extract the smoothed methylation values using the BIC model selection criterion",
+      "code": "library(MBAmethyl)\nfit <- MBAmethyl(Y, steps = 30)\nstr(fit$ans.bic)\ntheta <- fit$ans.bic"
+    }
+  ]
+}

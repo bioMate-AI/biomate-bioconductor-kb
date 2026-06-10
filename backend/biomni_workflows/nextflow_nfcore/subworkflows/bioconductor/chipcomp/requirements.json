@@ -1,0 +1,11 @@
+{
+  "package": "chipcomp",
+  "requirements": [
+    "ChIPComp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChIPComp"
+    ]
+  }
+}

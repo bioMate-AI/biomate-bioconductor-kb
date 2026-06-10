@@ -1,0 +1,15 @@
+{
+  "package": "affyilm",
+  "requirements": [
+    "BiocManager",
+    "affyILM",
+    "hgfocusprobe"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocManager",
+      "affyILM",
+      "hgfocusprobe"
+    ]
+  }
+}

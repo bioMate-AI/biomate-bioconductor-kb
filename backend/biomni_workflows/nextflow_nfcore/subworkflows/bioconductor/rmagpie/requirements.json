@@ -1,0 +1,17 @@
+{
+  "package": "rmagpie",
+  "requirements": [
+    "Biobase",
+    "Rmagpie"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "Rmagpie"
+    ],
+    "nsc_classification.nf": [
+      "Biobase",
+      "Rmagpie"
+    ]
+  }
+}

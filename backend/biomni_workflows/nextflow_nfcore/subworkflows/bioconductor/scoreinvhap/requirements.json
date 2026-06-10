@@ -1,0 +1,13 @@
+{
+  "package": "scoreinvhap",
+  "requirements": [
+    "VariantAnnotation",
+    "scoreInvHap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "VariantAnnotation",
+      "scoreInvHap"
+    ]
+  }
+}

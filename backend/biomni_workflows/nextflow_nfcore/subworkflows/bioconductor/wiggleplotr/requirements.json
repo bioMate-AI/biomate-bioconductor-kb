@@ -1,0 +1,33 @@
+{
+  "package": "wiggleplotr",
+  "requirements": [
+    "GenomicFeatures",
+    "GenomicRanges",
+    "arrow",
+    "cowplot",
+    "dplyr",
+    "ensembldb",
+    "ggplot2",
+    "readr",
+    "wiggleplotr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "dplyr",
+      "ensembldb",
+      "ggplot2",
+      "wiggleplotr"
+    ],
+    "read_coverage_plotting.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "arrow",
+      "cowplot",
+      "dplyr",
+      "readr",
+      "wiggleplotr"
+    ]
+  }
+}

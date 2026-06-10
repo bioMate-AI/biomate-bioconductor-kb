@@ -1,0 +1,11 @@
+{
+  "package": "multimed",
+  "requirements": [
+    "MultiMed"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiMed"
+    ]
+  }
+}

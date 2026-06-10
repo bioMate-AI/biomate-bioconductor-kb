@@ -1,0 +1,23 @@
+{
+  "package": "duplexdiscoverer",
+  "requirements": [
+    "BiocGenerics",
+    "DuplexDiscovereR",
+    "GenomicRanges",
+    "Gviz",
+    "IRanges",
+    "InteractionSet",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "DuplexDiscovereR",
+      "GenomicRanges",
+      "Gviz",
+      "IRanges",
+      "InteractionSet",
+      "S4Vectors"
+    ]
+  }
+}

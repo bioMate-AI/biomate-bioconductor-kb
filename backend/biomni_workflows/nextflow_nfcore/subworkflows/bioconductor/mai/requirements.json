@@ -1,0 +1,16 @@
+{
+  "package": "mai",
+  "requirements": [
+    "MAI",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MAI"
+    ],
+    "summarized_experiment_imputation.nf": [
+      "MAI",
+      "SummarizedExperiment"
+    ]
+  }
+}

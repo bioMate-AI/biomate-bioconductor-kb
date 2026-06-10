@@ -1,0 +1,17 @@
+{
+  "package": "wppi",
+  "requirements": [
+    "dplyr",
+    "igraph",
+    "readr",
+    "wppi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "igraph",
+      "readr",
+      "wppi"
+    ]
+  }
+}

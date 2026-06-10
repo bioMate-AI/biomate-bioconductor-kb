@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_GENOMICSCORES {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-genomicscores"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomicscores:2.18.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomicscores:2.18.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -39,44 +38,71 @@ process BIOC_GENOMICSCORES {
     """
     #!/usr/bin/env Rscript
     library(GenomicScores)
-    library(GRanges)
+    library(GenomicRanges)
     library(jsonlite)
 
-    # --- Loading Genomic Scores [] ---
-    # Key functions: GScores, provider, providerVersion, organism, seqlevelsStyle
-    prov <- provider(phast)
-    ver <- providerVersion(phast)
-    org <- organism(phast)
-    style <- seqlevelsStyle(phast)
+    # --- Querying Available Scores [] ---
+    # Key functions: availableGScores
+    avgs <- availableGScores()
+    ah_scores <- rownames(avgs)[avgs\$AnnotationHub]
+    head(ah_scores)
 
+    # --- Retrieving Genomic Scores [] ---
+    # Key functions: getGScores, gscores, score
+    gsco <- getGScores("phastCons100way.UCSC.hg38")
+    gr <- GRanges(
+        seqnames = "chr22",
+        IRanges(start = 50528591:50528596, width = 1)
+    )
+    res_gscores <- gscores(gsco, gr)
+    res_scores <- score(gsco, gr)
 
-    # --- Scoring Genomic Ranges [] ---
-    # Key functions: gscores, score
-    gr <- GRanges(seqnames = "chr22",
-        IRanges(start = 50528591:50528596, width = 1))
-    scores_df <- gscores(phast, gr)
-    scores_vec <- score(phast, gr)
+    # --- Annotating Genomic Variants [] ---
+    # Key functions: score, populations, defaultPopulation
+    gsco <- getGScores("phastCons100way.UCSC.hg38")
+    pops <- populations(gsco)
+    def_pop <- defaultPopulation(gsco)
+    gwcgr <- GRanges(
+        seqnames = "chr22",
+        IRanges(start = c(50528591, 50528593, 50528595), width = 1)
+    )
+    pcsco <- score(gsco, gwcgr, pop = "DP2")
 
+    # --- Comparing Multiple Score Providers [] ---
+    # Key functions: getGScores, score
+    phast <- getGScores("phastCons100way.UCSC.hg38")
+    phylop <- getGScores("phyloP100way.UCSC.hg38")
+    gwcgr <- GRanges(
+        seqnames = "chr22",
+        IRanges(start = c(50528591, 50528593, 50528595), width = 1)
+    )
+    pcsco <- score(phast, gwcgr)
+    ppsco <- score(phylop, gwcgr)
+    plot(pcsco, ppsco, xlab = "phastCons", ylab = "phyloP")
 
-    # --- Population-Specific Scoring [] ---
-    # Key functions: populations, defaultPopulation, score
-    pops <- populations(phast)
-    def_pop <- defaultPopulation(phast)
-    pop_scores <- score(phast, gr, pop = "DP2")
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomicscores_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_genomicscores_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomicscores_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_genomicscores_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomicscores_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_genomicscores_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_GENOMICSCORES:", paste0("    genomicscores: ", packageVersion("GenomicScores"))),
+        c("BIOC_GENOMICSCORES:", paste0("    genomicscores: ", as.character(packageVersion("GenomicScores")))),
         "versions.yml"
     )
     """

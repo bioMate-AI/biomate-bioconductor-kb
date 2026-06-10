@@ -1,0 +1,13 @@
+{
+  "package": "badregionfinder",
+  "requirements": [
+    "BadRegionFinder",
+    "biomaRt"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BadRegionFinder",
+      "biomaRt"
+    ]
+  }
+}

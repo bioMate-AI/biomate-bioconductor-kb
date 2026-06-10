@@ -1,0 +1,11 @@
+{
+  "package": "mdqc",
+  "requirements": [
+    "mdqc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mdqc"
+    ]
+  }
+}

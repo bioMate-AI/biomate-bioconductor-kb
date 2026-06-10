@@ -1,133 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GenVisR
-// Produce highly customizable publication quality graphics for genomic data primarily at the cohort le
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GenVisR/inst/doc/Intro.R
-// Upstream  : ggplot2, knitr, reshape2
-// Downstream: none
-//
-// Install: BiocManager::install("GenVisR")
+// Bioconductor workflow: GenVisR — mutation_landscape_waterfall
+// Visualize somatic mutations, mutation burden, and clinical data at the cohort level using a waterfall plot.
+// Input: brcaMAF, clinical
+// Container: quay.io/biocontainers/bioconductor-genvisr:1.42.2--r45hdfd78af_0
+// R packages: GenVisR, ggplot2, knitr, reshape2
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenVisR, reshape2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the GenVisR and reshape2 packages
+//  * 2. [Core Analysis] Format and melt clinical data into long format
+//  * 3. [Visualization & Output] Generate the waterfall plot with customized gene filtering, clinical annotations, and color palettes
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENVISR {
+process BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genvisr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genvisr:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genvisr:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genvisr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genvisr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genvisr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenVisR", "ggplot2", "knitr", "reshape2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+    
+    # Stage 1: Load the GenVisR and reshape2 packages
     library(GenVisR)
-    library(jsonlite)
-
-    # --- Transition and Transversion Analysis [] ---
-    # Key functions: TvTi
-    expec <- c("A->C or T->G (TV)"=.066, "A->G or T->C (TI)"=.217,
-               "A->T or T->A (TV)"=.065, "G->A or C->T (TI)"=.4945,
-               "G->C or C->G (TV)"=.0645, "G->T or C->A (TV)"=.093)
-    TvTi(brcaMAF, y=expec, lab_txtAngle=45, fileType="MAF",
-         palette=c("#77C55D", "#A461B4", "#C1524B", "#93B5BB", 
-                   "#4F433F", "#BFA753"))
-
-
-    # --- Genomic Coverage Visualisation [] ---
-    # Key functions: genCov
-    gr <- GenomicRanges::GRanges(seqnames=c("chr10"), 
-                                 ranges=IRanges::IRanges(start=c(89622195), 
-                                 end=c(89729532)), 
-                                 strand=BiocGenerics::strand(c("+")))
-    cov_input_A <- data.frame(chr=10, start=89622194:89729524, 
-                              end=89622195:89729525, 
-                              cov=c(rnorm(100000, mean=40), rnorm(7331, mean=10)))
-    cov_input_B <- data.frame(chr=10, start=89622194:89729524, 
-                              end=89622195:89729525, 
-                              cov=c(rnorm(50000, mean=40), rnorm(7331, mean=10), 
-                                    rnorm(50000, mean=40)))
-    data_cov <- list("Sample A"=cov_input_A, "Sample B"=cov_input_B)
-    genCov(data_cov, txdb, gr, genome, transform=c("Intron", "CDS", "UTR"), 
-           base=c(10, 2, 2), reduce=TRUE)
-
-
-    # --- Copy Number Visualisation [] ---
-    # Key functions: cnSpec, cnView
-    cnSpec(LucCNseg, genome="hg19")
-    coordinate <- sort(sample(0:106455000, size=2000, replace=FALSE))
-    cn <- c(rnorm(300, mean=3, sd=.2), rnorm(700, mean=2, sd=.2), 
-            rnorm(1000, mean=3, sd=.2))
-    data_cn <- data.frame(chromosome='chr14', coordinate=coordinate, cn=cn)
-    data_seg <- data.frame(chromosome=14, start=coordinate[c(1, 301, 1001)], 
-                           end=coordinate[c(300, 1000, 2000)], 
-                           segmean=c(3, 2, 3))
-    cnView(data_cn, z=data_seg, chr='chr14', genome='hg19', ideogram_txtSize=4)
-
-
-    # --- Loss of Heterozygosity and Coverage Bars [] ---
-    # Key functions: lohSpec, lohView, covBars
-    lohSpec(x=HCC1395_Germline)
-    lohView(HCC1395_Germline, chr='chr5', genome='hg19', ideogram_txtSize=4)
-    cov_matrix <- matrix(sample(100000, 500), nrow=50, ncol=10, 
-                         dimnames=list(0:49, paste0("Sample", 1:10)))
-    covBars(cov_matrix, colour=c("blue", "grey", "red"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genvisr_results.csv", row.names = TRUE)
+    library(reshape2)
+    
+    set.seed(383)
+    
+    # Helper function to robustly read user input files from the working directory
+    read_input_file <- function(base_name) {
+      if (file.exists(paste0(base_name, ".rds"))) {
+        return(readRDS(paste0(base_name, ".rds")))
+      } else if (file.exists(paste0(base_name, ".csv"))) {
+        return(read.csv(paste0(base_name, ".csv"), stringsAsFactors = FALSE))
+      } else if (file.exists(paste0(base_name, ".tsv"))) {
+        return(read.delim(paste0(base_name, ".tsv"), stringsAsFactors = FALSE))
+      } else if (file.exists(base_name)) {
+        return(read.csv(base_name, stringsAsFactors = FALSE))
+      } else {
+        stop(paste("Required input file not found in working directory:", base_name))
+      }
+    }
+    
+    # Read the user-provided input files
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    brcaMAF <- read_input_file("brcaMAF")
+    clinical_input <- read_input_file("clinical")
+    
+    # Stage 2: Format and melt clinical data into long format
+    # If the input clinical data is already in long format (contains sample, variable, value),
+    # we use it directly. Otherwise, we format and melt it.
+    if (all(c("sample", "variable", "value") %in% colnames(clinical_input))) {
+      clinical <- clinical_input
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genvisr_results.csv")
+      # Ensure the sample identifier column is named "sample"
+      if (!"sample" %in% colnames(clinical_input)) {
+        if ("Tumor_Sample_Barcode" %in% colnames(clinical_input)) {
+          colnames(clinical_input)[colnames(clinical_input) == "Tumor_Sample_Barcode"] <- "sample"
+        } else if ("Sample" %in% colnames(clinical_input)) {
+          colnames(clinical_input)[colnames(clinical_input) == "Sample"] <- "sample"
+        }
+      }
+      clinical <- melt(clinical_input, id.vars = c("sample"))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genvisr_output.rds")
-    }
+    
+    # Save the formatted long clinical data as a CSV output
+    write.csv(clinical, "clinical_melted.csv", row.names = FALSE)
+    
+    # Stage 3: Generate the waterfall plots with customized gene filtering, clinical annotations, and color palettes
+    # Save Plot 1: Waterfall plot with recurrence cutoff
+    pdf("waterfall_recurrence_cutoff.pdf", width = 12, height = 8)
+    plot1 <- waterfall(brcaMAF, mainRecurCutoff = 0.06)
+    print(plot1)
+    dev.off()
+    
+    # Save Plot 2: Waterfall plot with specific genes
+    pdf("waterfall_selected_genes.pdf", width = 12, height = 8)
+    plot2 <- waterfall(brcaMAF, plotGenes = c("PIK3CA", "TP53", "USH2A", "MLL3", "BRCA1"))
+    print(plot2)
+    dev.off()
+    
+    # Save Plot 3: Waterfall plot with clinical annotations and custom colors
+    pdf("waterfall_with_clinical.pdf", width = 14, height = 10)
+    plot3 <- waterfall(brcaMAF, 
+                       clinDat = clinical, 
+                       clinVarCol = c(lumA = "blue4", 
+                                      lumB = "deepskyblue", 
+                                      her2 = "hotpink2", 
+                                      basal = "firebrick2", 
+                                      normal = "green4", 
+                                      `20-30` = "#ddd1e7", 
+                                      `31-50` = "#bba3d0", 
+                                      `51-60` = "#9975b9", 
+                                      `61+` = "#7647a2"), 
+                       plotGenes = c("PIK3CA", "TP53", "USH2A", "MLL3", "BRCA1"), 
+                       clinLegCol = 2, 
+                       clinVarOrder = c("lumA", "lumB", "her2", "basal", "normal", "20-30", "31-50", "51-60", "61+"))
+    print(plot3)
+    dev.off()
+    
+    # Save the final plot object as an RDS file for downstream use
+    saveRDS(plot3, "waterfall_final_plot.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENVISR:", paste0("    genvisr: ", packageVersion("GenVisR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL":',
+        paste0('    GenVisR: ', as.character(packageVersion('GenVisR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genvisr_results.csv
-    touch ${prefix}_genvisr_output.rds
-    echo "BIOC_GENVISR:" > versions.yml
-    echo "    genvisr: 0.0.0" >> versions.yml
+    touch ${prefix}_mutation_landscape_waterfall.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENVISR_WORKFLOW {
+workflow BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ brcaMAF, clinical ] ]
 
     main:
-    BIOC_GENVISR(ch_input)
+    BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL(ch_input)
 
     emit:
-    results  = BIOC_GENVISR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENVISR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENVISR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENVISR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL.out.tables
+    plots    = BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL.out.plots
+    objects  = BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL.out.objects
+    versions = BIOC_GENVISR_MUTATION_LANDSCAPE_WATERFALL.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "stringdb",
+  "requirements": [
+    "STRINGdb"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "STRINGdb"
+    ]
+  }
+}

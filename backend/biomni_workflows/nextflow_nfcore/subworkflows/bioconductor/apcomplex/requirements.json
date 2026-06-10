@@ -1,0 +1,11 @@
+{
+  "package": "apcomplex",
+  "requirements": [
+    "apComplex"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "apComplex"
+    ]
+  }
+}

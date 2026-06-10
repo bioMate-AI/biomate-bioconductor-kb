@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data.mat=Normalized RNA-Seq gene expression matrix with genes as rows and samples as columns ;; class.vec=Character vector containing the classes of samples (columns) of data.mat in the same order ;; samples2compare=Optional character vector specifying which sample types to compare (defaults to all) ;; annotate=Optional boolean indicating whether to map gene IDs to gene symbols and Entrez IDs using biomaRt (defaults to FALSE) ;; gene.ids.type=Type of gene identifiers used in the matrix, supporting \"ensembl\", \"refseq\", or \"ucsc\" (defaults to \"ensembl\") ;; score.cutoff=Optional specificity score threshold in the interval [0,1] to filter markers, where lower scores indicate higher specificity and 1 means no filtering ;; directory=Path to save HTML output files when using getMarkerGenes.rnaseq.html (defaults to current working directory)\n- alternatives: MGFM is the predecessor tool designed for microarray gene expression data, whereas MGFR is updated and optimized specifically for RNA-seq data.\n- when_to_use: Use when you have normalized RNA-seq expression data with replicates across multiple sample types (e.g., tissues or cell types) and want to identify genes uniquely and highly expressed in a single sample type compared to all others.\n- pitfalls: RNA-seq data must be normalized before analysis to eliminate systematic experimental biases ;; Replicates are required for each sample type to ensure precision, though unequal replicate numbers are tolerated ;; The algorithm only identifies positive markers (high expression in one tissue vs others) and disregards negative markers or multi-tissue markers ;; Setting annotate = TRUE requires an active internet connection to query biomaRt.",
+  "workflows": [
+    {
+      "name": "marker_detection_rnaseq",
+      "intent": "Detect tissue- or cell-type-specific marker genes from normalized RNA-seq expression data and return them as an R list.",
+      "input": [
+        "expression_matrix.tsv (Normalized RNA-seq expression matrix with genes as rows and samples as columns)",
+        "sample_classes.txt (A vector or column of sample class labels corresponding to the columns of the expression matrix)"
+      ],
+      "stages": "1. Load the MGFR package and the normalized expression matrix.\n2. Run marker gene detection and annotation using getMarkerGenes.rnaseq().\n3. Retrieve and inspect the identified marker genes for specific sample types.",
+      "code": "library(MGFR)\ndata(\"ref.mat\")\nmarkers.list <- getMarkerGenes.rnaseq(ref.mat, class.vec = colnames(ref.mat),samples2compare=\"all\", annotate=TRUE, gene.ids.type=\"ensembl\", score.cutoff=1)\nnames(markers.list)\n# show the first 20 markers of liver\nmarkers.list[[\"liver_markers\"]][1:20]"
+    }
+  ]
+}

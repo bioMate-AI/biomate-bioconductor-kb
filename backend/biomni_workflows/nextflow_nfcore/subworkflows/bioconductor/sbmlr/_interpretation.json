@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: file=Path to the SBML XML or R model file ;; model=An SBML model object of class SBML ;; time=A numeric vector specifying the time points for simulation ;; modulator=A vector of numbers or list of interpolation functions of length equal to the number of reactions, used to scale reaction rate amplitudes at t >= 0\n- alternatives: saveSBMLR and readSBMLR are preferred over dput and deparse because they generate well-structured, lightweight, and highly readable ASCII text representations that are easier to manually edit\n- when_to_use: Use this package when you need to simulate biochemical networks defined in SBML format, test the effects of perturbations (such as initial concentration changes or enzyme level modulations), or convert SBML models into editable R scripts\n- pitfalls: Modulating reaction rates without maintaining stoichiometric balance (e.g., scaling some reactions up and others down) can easily destabilize the system, leading to extreme concentration changes or simulation failures",
+  "workflows": [
+    {
+      "name": "sbml_simulation_and_export",
+      "intent": "Import an SBML model, modify initial conditions, run time-course simulations with or without reaction modulators, and export the modified model.",
+      "input": [
+        "model.xml (SBML model file containing species, reactions, and rate laws)"
+      ],
+      "stages": "1. Import the SBML model from an XML file using readSBML.\n2. Inspect the model structure and reaction laws using summary.\n3. Run a baseline simulation to establish steady state using sim.\n4. Modify initial concentrations of specific species directly in the model list.\n5. Run a perturbation simulation using sim.\n6. Apply reaction rate modulators to simulate enzyme level changes using the modulator argument in sim.\n7. Export the model to XML format using saveSBML or to an editable R script using saveSBMLR.",
+      "code": "curto=readSBML(system.file(\"models\", \"curto.xml\", package = \"SBMLR\"))  \nhead(summary(curto)$reactions)\nsaveSBML(curto,\"curto.xml\")\nsaveSBMLR(curto,\"curto.r\")\ncurtoX=readSBML(\"curto.xml\")\ncurtoR=readSBMLR(\"curto.r\")\nhead((curtoX==curtoR)$species)\nhead((curtoX==curtoR)$reactions)\nout1=sim(curto,seq(-20,0,1))\ncurto$species$PRPP$ic=50\nout2=sim(curto,0:70)\nouts=data.frame(rbind(out1,out2))\ncurto$species$PRPP$ic=5\nsim(curto,(-10):10,modulator=rep(2,37))\nsim(curto,(-10):10,modulator=c(rep(1.1,20),rep(0.9,17)))\nsummary(curto)\ncurto"
+    }
+  ]
+}

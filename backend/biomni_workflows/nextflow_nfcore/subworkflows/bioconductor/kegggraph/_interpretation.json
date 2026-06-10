@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: expandGenes=Whether to expand nodes containing multiple paralogues/homologues into individual nodes and copy their edges (essential for gene-oriented analysis and merging) ;; genesOnly=If TRUE, discards non-gene nodes (like compounds) to focus purely on gene product networks ;; pathwayid=The 5-digit KEGG pathway identifier used in retrieveKGML ;; organism=The 3- or 4-letter organism code (e.g., 'hsa' for human, 'mcf' for macaque) used in retrieveKGML\n- alternatives: KEGG.db=Neglects graph topology and only provides gene membership ;; keggorth=Does not parse pathway networks ;; cMAP=Specialized only for certain pathways ;; pathRender=Specialized only for certain pathways ;; biomaRt=Alternative for ID translation but requires an active internet connection\n- when_to_use: Use when you need to perform graph-theory based analyses (e.g., degree centrality, betweenness centrality) on KEGG pathways, merge multiple pathways to study crosstalk, or subset pathways to focus on specific gene neighborhoods.\n- pitfalls: Many disease pathways contain disconnected nodes (degree 0) because KEGG records their involvement but does not provide edges within that specific map; merging related pathways using mergeGraphs can resolve this. ;; When merging graphs, expandGenes=TRUE must be used during parsing to ensure nodes have unique, mergeable KEGG IDs.",
+  "workflows": [
+    {
+      "name": "pathway_parsing_and_topology_analysis",
+      "intent": "Parse a KGML file into a gene-expanded graph and calculate node degrees to identify key regulatory genes.",
+      "input": [
+        "hsa04010.xml (KGML XML file for human MAPK signaling pathway)"
+      ],
+      "stages": "1. Parse the KGML file into a graphNEL object with gene expansion; 2. Extract node and edge information; 3. Retrieve node-specific KEGG attributes; 4. Calculate in-degrees and out-degrees to identify central regulatory nodes.",
+      "code": "mapkKGML <- system.file(\"extdata/hsa04010.xml\", package=\"KEGGgraph\")\nmapkG <- parseKGML2Graph(mapkKGML,expandGenes=TRUE)\nmapkNodes <- nodes(mapkG)\nmapkEdges <- edges(mapkG)\nmapkGnodedata <- getKEGGnodeData(mapkG)\nmapkGoutdegrees <- sapply(edges(mapkG), length)\nmapkGindegrees <- sapply(inEdges(mapkG), length)\ntopouts <- sort(mapkGoutdegrees, decreasing=T)\ntopins <- sort(mapkGindegrees, decreasing=T)"
+    },
+    {
+      "name": "pathway_merging_and_crosstalk",
+      "intent": "Merge multiple KEGG pathways to study crosstalk and shared nodes between biological processes.",
+      "input": [
+        "hsa04010.xml (MAPK pathway KGML file)",
+        "hsa04310.xml (Wnt pathway KGML file)"
+      ],
+      "stages": "1. Parse individual KGML files into graphs with gene expansion enabled; 2. Combine the parsed graphs into a named list; 3. Merge the graphs into a single unified network.",
+      "code": "mapkKGML <- system.file(\"extdata/hsa04010.xml\", package=\"KEGGgraph\")\nmapkG <- parseKGML2Graph(mapkKGML,expandGenes=TRUE)\nwntKGML <- system.file(\"extdata/hsa04310.xml\",package=\"KEGGgraph\")\nwntG <- parseKGML2Graph(wntKGML,expandGenes=TRUE)\ngraphs <- list(mapk=mapkG, wnt=wntG)\nmerged <- mergeGraphs(graphs)"
+    },
+    {
+      "name": "chemical_reaction_network_parsing",
+      "intent": "Parse a metabolic pathway to build and analyze a chemical reaction network of compounds.",
+      "input": [
+        "map00260.xml (KGML XML file for Glycine, serine and threonine metabolism)"
+      ],
+      "stages": "1. Parse the KGML file into a KEGGPathway object; 2. Extract chemical reactions; 3. Convert the pathway into a reaction graph of chemical compounds; 4. Calculate compound out-degrees.",
+      "code": "mapfile <-  system.file(\"extdata/map00260.xml\",package=\"KEGGgraph\")\nmap <- parseKGML(mapfile)\nreactions <- getReactions(map)\nchemicalGraph <- KEGGpathway2reactionGraph(map)\noutDegrees <- sapply(edges(chemicalGraph), length)"
+    },
+    {
+      "name": "expression_data_integration_and_neighborhood_subsetting",
+      "intent": "Map differential expression data onto a KEGG pathway graph and subset the graph to focus on active gene neighborhoods.",
+      "input": [
+        "hsa05210.xml (Colorectal cancer pathway KGML file)",
+        "DE_Colorectal (Named numeric vector of log fold changes with Entrez IDs as names)",
+        "ALL_Colorectal (Character vector of all detected Entrez IDs)"
+      ],
+      "stages": "1. Parse the pathway KGML file into a graph; 2. Translate Entrez IDs to KEGG IDs; 3. Identify upregulated genes; 4. Find the neighborhood of upregulated genes and subset the KEGG graph.",
+      "code": "colFile <- system.file(\"extdata/hsa05210.xml\", package=\"KEGGgraph\")\ng <- parseKGML2Graph(colFile)\ndeKID <- translateGeneID2KEGGID(names(DE_Colorectal))\nallKID <- translateGeneID2KEGGID(ALL_Colorectal)\nisDiffExp <- nodes(g) %in% deKID\nups <- nodes(g)[logfcs > 0]\nupNs <- unique(unlist(neighborhood(g, ups, return.self=TRUE)))\nupSub <- subKEGGgraph(upNs, g)"
+    }
+  ]
+}

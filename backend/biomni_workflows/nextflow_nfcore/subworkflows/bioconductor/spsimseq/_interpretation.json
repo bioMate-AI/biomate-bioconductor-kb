@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n.sim=Number of simulated datasets to generate ;; s.data=Source data matrix (counts) or SingleCellExperiment object ;; group=Grouping variable (e.g., treatment groups) in the source data ;; n.genes=Number of genes to simulate ;; batch.config=Batch configuration (e.g., 1 for a single batch) ;; group.config=Vector specifying the proportion of samples in each group (e.g., c(0.5, 0.5)) ;; tot.samples=Total number of samples/cells to simulate ;; pDE=Proportion of differentially expressed (DE) genes ;; lfc.thrld=Log-fold-change threshold for selecting candidate DE genes from the source data ;; result.format=Format of the output, either \"list\" or \"SCE\" (SingleCellExperiment) ;; return.details=Logical indicating whether to return detailed density estimation results (useful for evaluateDensities) ;; model.zero.prob=Logical indicating whether to model zero count probabilities separately (set to TRUE for single-cell RNA-seq) ;; variable.lib.size=Controls whether library sizes are modeled or kept identical ;; genewiseCor=Controls correlation network emulation\n- alternatives: The documentation mentions using Gaussian-copulas to retain between-genes correlation structure as implemented by Hawinkel et al. (2019) for microbiome data simulation, but does not list alternative RNA-seq simulation packages.\n- when_to_use: Use when you need to simulate realistic bulk or single-cell RNA-seq datasets that preserve the marginal distributions, mean-variance relationships, and gene-gene correlation structures of a specific real template dataset. It is particularly useful for benchmarking differential expression or clustering methods.\n- pitfalls: Failing to filter low-expression genes from the source data before running SPsimSeq can cause bugs and errors. If the number of required null or DE genes to simulate exceeds those available in the source data, they will be sampled with replacement.",
+  "workflows": [
+    {
+      "name": "simulate_bulk_rna_seq",
+      "intent": "Simulate bulk RNA-seq data from a real bulk RNA-seq count matrix template.",
+      "input": [
+        "zhang.counts (matrix of real bulk RNA-seq counts)",
+        "MYCN.status (vector of grouping variables for the samples)"
+      ],
+      "stages": "1. Load and filter the source count data to remove low-expression genes ;; 2. Run SPsimSeq with model.zero.prob = FALSE and result.format = \"list\" ;; 3. Extract the simulated count matrix, sample metadata, and gene metadata ;; 4. Evaluate densities using evaluateDensities",
+      "code": "# load the Zhang bulk RNA-seq data (availabl with the package) \n data(\"zhang.data.sub\") \n  # filter genes with sufficient expression (important step to avoid bugs) \n zhang.counts <- zhang.data.sub$counts \n MYCN.status  <- zhang.data.sub$MYCN.status #The grouping variable\n\n set.seed(6452) #Set seed for reproducibility\n # simulate data\n sim.data.bulk <- SPsimSeq(n.sim = 1, s.data = zhang.counts,\n                          group = MYCN.status, n.genes = 3000, batch.config = 1,\n                          group.config = c(0.5, 0.5), tot.samples = ncol(zhang.counts), \n                          pDE = 0.1, lfc.thrld = 0.5, result.format = \"list\", return.details = TRUE)\n\n sim.data.bulk1 <- sim.data.bulk$sim.data.list[[1]]\n head(sim.data.bulk1$counts[, seq_len(5)])  # count data\n head(sim.data.bulk1$colData)        # sample info\n head(sim.data.bulk1$rowData)        # gene info\n\ngeneDens = evaluateDensities(sim.data.bulk, newData = rownames(zhang.counts)[1])"
+    },
+    {
+      "name": "simulate_single_cell_rna_seq",
+      "intent": "Simulate single-cell RNA-seq data from a real single-cell RNA-seq template (SingleCellExperiment).",
+      "input": [
+        "scNGP.data (SingleCellExperiment object containing real single-cell RNA-seq counts and treatment metadata)"
+      ],
+      "stages": "1. Load the single-cell source data ;; 2. Run SPsimSeq with model.zero.prob = TRUE and result.format = \"SCE\" ;; 3. Extract the simulated SingleCellExperiment object and access counts, colData, and rowData",
+      "code": "library(SingleCellExperiment)\n# load the NGP nutlin data (availabl with the package, processed with SMARTer/C1 protocol, and contains read-counts)\n  data(\"scNGP.data\")\n  set.seed(654321)\n # simulate data (we simulate here only a single data, n.sim = 1)\n sim.data.sc <- SPsimSeq(n.sim = 1, s.data = scNGP.data,\n                         group = scNGP.data$characteristics..treatment, \n                         n.genes = 4000, batch.config = 1,\n                         group.config = c(0.5, 0.5), tot.samples = 100, \n                         pDE = 0.1, lfc.thrld = 0.5, model.zero.prob = TRUE,\n                         result.format = \"SCE\")\n\n sim.data.sc1 <- sim.data.sc[[1]]\n class(sim.data.sc1)\n head(counts(sim.data.sc1)[, seq_len(5)])\n colData(sim.data.sc1)\n rowData(sim.data.sc1)"
+    }
+  ]
+}

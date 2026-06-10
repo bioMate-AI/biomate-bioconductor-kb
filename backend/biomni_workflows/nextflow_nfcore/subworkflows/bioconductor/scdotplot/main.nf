@@ -1,139 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scDotPlot
-// Dot plots of single-cell RNA-seq data allow for an examination of the relationships between cell gro
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scDotPlot/inst/doc/scDotPlot.R
-// Upstream  : AnnotationDbi, Seurat, SeuratObject, dplyr, ggsci
-// Downstream: none
-//
-// Install: BiocManager::install("scDotPlot")
+// Bioconductor workflow: scDotPlot — single_cell_experiment_dotplot
+// Generate an annotated, hierarchically clustered dot plot from a SingleCellExperiment object.
+// Input: sce
+// Container: quay.io/biocontainers/bioconductor-scdotplot:1.4.0--r45hdfd78af_0
+// R packages: SingleCellExperiment, AnnotationDbi, dplyr, ggplot2, ggsci, purrr, scDotPlot, scran, scuttle, Seurat, SeuratObject
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, SingleCellExperiment, aplot, dplyr, ggplot2, ggsci, purrr, scDotPlot, scran, scuttle
+// Visualizations: dot plot
+// QC: missing-value handling, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Normalize and subset the SingleCellExperiment object
+//  * 2. [Core Analysis] Identify marker genes and add them to the rowData of the object
+//  * 3. [Visualization & Output] Generate the clustered dot plot with annotations using scDotPlot
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCDOTPLOT {
+process BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scdotplot"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scdotplot:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scdotplot:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(seurat_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scdotplot_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scdotplot_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scdotplot_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "AnnotationDbi", "dplyr", "ggplot2", "ggsci", "purrr", "scDotPlot", "scran", "scuttle", "Seurat", "SeuratObject")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(scuttle)
+    library(scran)
+    library(purrr)
+    library(dplyr)
+    library(AnnotationDbi)
     library(scDotPlot)
-    library(DefaultAssay)
-    library(FindAllMarkers)
-    library(ZeiselBrainData)
-    library(jsonlite)
+    library(ggsci)
+    library(ggplot2)
+    
+    # 1. Read the input SingleCellExperiment object from the working directory
+    sce <- readRDS("sce.rds")
+    
+    # Dynamically determine grouping and annotation columns from colData
+    anno_col <- colnames(colData(sce))[1]
+    group_col <- if (ncol(colData(sce)) > 1) colnames(colData(sce))[2] else anno_col
+    
+    # 2. Normalize and subset the SingleCellExperiment object
+    sce <- sce |> 
+        logNormCounts()
+    sce <- sce[, !is.na(sce[[group_col]])]
+    
+    # 3. Identify marker genes and add them to the rowData of the object
+    features <- sce |>
+        scoreMarkers(sce[[anno_col]]) |>
+        map(~ .x |>
+                as.data.frame() |>
+                arrange(desc(mean.AUC))|>
+                dplyr::slice(1:6) |>
+                rownames()) |> 
+        unlist2()
+    
+    rowData(sce)\$Marker <- features[match(rownames(sce), features)] |>
+        names()
+    
+    # Dynamically determine the number of unique values for color palettes
+    n_anno <- length(unique(na.omit(sce[[anno_col]])))
+    n_marker <- length(unique(na.omit(rowData(sce)\$Marker)))
+    
+    # 4. Generate and save the clustered dot plot (logcounts)
+    p1 <- sce |>
+        scDotPlot(features = features,
+                  group = group_col,
+                  groupAnno = anno_col,
+                  featureAnno = "Marker",
+                  groupLegends = FALSE,
+                  annoColors = setNames(list(colorRampPalette(pal_d3()(10))(n_anno), 
+                                             colorRampPalette(pal_d3()(10))(n_marker)), 
+                                        c(anno_col, "Marker")),
+                  annoWidth = 0.02)
+    
+    aplot::ggsave("scDotPlot_logcounts.pdf", plot = p1, width = 12, height = 12)
+    
+    # 5. Generate and save the clustered dot plot (Z-scores)
+    p2 <- sce |>
+        scDotPlot(scale = TRUE,
+                  features = features,
+                  group = group_col,
+                  groupAnno = anno_col,
+                  featureAnno = "Marker",
+                  groupLegends = FALSE,
+                  annoColors = setNames(list(colorRampPalette(pal_d3()(10))(n_anno), 
+                                             colorRampPalette(pal_d3()(10))(n_marker)), 
+                                        c(anno_col, "Marker")),
+                  annoWidth = 0.02)
+    
+    aplot::ggsave("scDotPlot_zscores.pdf", plot = p2, width = 12, height = 12)
+    
+    # 6. Save processed objects and features
+    write.csv(data.frame(Feature = features, Marker = names(features)), "marker_features.csv", row.names = FALSE)
+    saveRDS(sce, "sce_processed.rds")
 
-    # --- Scaled SingleCellExperiment Dot Plot Visualization [] ---
-    # Key functions: scDotPlot
-    plot_sce_scaled <- scDotPlot(
-        object = sce,
-        scale = TRUE,
-        features = features,
-        group = "level2class",
-        groupAnno = "level1class",
-        featureAnno = "Marker",
-        groupLegends = FALSE,
-        annoColors = list(
-            "level1class" = ggsci::pal_d3()(7),
-            "Marker" = ggsci::pal_d3()(7)
-        ),
-        annoWidth = 0.02
-    )
-
-
-    # --- Seurat Dot Plot Visualization [] ---
-    # Key functions: scDotPlot
-    plot_seurat <- scDotPlot(
-        object = pbmc_small,
-        features = features,
-        group = "RNA_snn_res.1",
-        groupAnno = "RNA_snn_res.1",
-        featureAnno = "cluster",
-        annoColors = list(
-            "RNA_snn_res.1" = ggsci::pal_d3()(7),
-            "cluster" = ggsci::pal_d3()(7)
-        ),
-        groupLegends = FALSE,
-        annoWidth = 0.075
-    )
-
-
-    # --- Scaled Seurat Dot Plot Visualization [] ---
-    # Key functions: scDotPlot
-    plot_seurat_scaled <- scDotPlot(
-        object = pbmc_small,
-        scale = TRUE,
-        features = features,
-        group = "RNA_snn_res.1",
-        groupAnno = "RNA_snn_res.1",
-        featureAnno = "cluster",
-        annoColors = list(
-            "RNA_snn_res.1" = ggsci::pal_d3()(7),
-            "cluster" = ggsci::pal_d3()(7)
-        ),
-        groupLegends = FALSE,
-        annoWidth = 0.075
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scdotplot_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scdotplot_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scdotplot_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCDOTPLOT:", paste0("    scdotplot: ", packageVersion("scDotPlot"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT":',
+        paste0('    scDotPlot: ', as.character(packageVersion('scDotPlot')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scdotplot_results.csv
-    touch ${prefix}_scdotplot_output.rds
-    echo "BIOC_SCDOTPLOT:" > versions.yml
-    echo "    scdotplot: 0.0.0" >> versions.yml
+    touch ${prefix}_single_cell_experiment_dotplot.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCDOTPLOT_WORKFLOW {
+workflow BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(seurat_object) ]
+    ch_input  // channel: [ val(meta), [ sce ] ]
 
     main:
-    BIOC_SCDOTPLOT(ch_input)
+    BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT(ch_input)
 
     emit:
-    results  = BIOC_SCDOTPLOT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCDOTPLOT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCDOTPLOT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCDOTPLOT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT.out.tables
+    plots    = BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT.out.plots
+    objects  = BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT.out.objects
+    versions = BIOC_SCDOTPLOT_SINGLE_CELL_EXPERIMENT_DOTPLOT.out.versions
 }

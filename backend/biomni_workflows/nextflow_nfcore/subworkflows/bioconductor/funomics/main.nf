@@ -1,161 +1,216 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: funOmics
-// The 'funOmics' package ggregates or summarizes omics data into higher level functional representatio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/funOmics/inst/doc/funomics_vignette.R
-// Upstream  : MultiAssayExperiment, SummarizedExperiment, airway
-// Downstream: none
-//
-// Install: BiocManager::install("funOmics")
+// Bioconductor workflow: funOmics — funomics_pathway_aggregation
+// Aggregate proteomics intensity data into KEGG pathway-level functional activity scores using multiple pooling operators, identify short pathways, and perform di
+// Input: intensity.csv, coldata.csv
+// Container: 1.4.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, funOmics
+// Visualizations: heatmap
+// QC: low-count filtering
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_FUNOMICS {
+process BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-funomics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-funomics:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-funomics:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_funomics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_funomics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_funomics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MultiAssayExperiment)
-    library(jsonlite)
-
-    # --- Get Kegg Sets [] ---
-    # Key functions: get_kegg_sets
-    ---------------------------------------------------------------------
-    hsa_kegg_sets_entrez <- get_kegg_sets()
-    head(hsa_kegg_sets_entrez)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    library(SummarizedExperiment)
-    library(airway)
-    data(airway)
-    airway
-    # --- Assaynames [] ---
-    # Key functions: assayNames
-    ---------------------------------------------------------------------
-    assayNames(airway)
-    # --- Head [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    head(assay(airway, "counts"))
-    dim(assay(airway, "counts"))
-    # --- Get Kegg Sets [] ---
-    # Key functions: get_kegg_sets
-    ---------------------------------------------------------------------
-    kegg_sets <- get_kegg_sets(geneid_type = "ensembl")
-    head(kegg_sets)
-    # --- Summarize Pathway Level [] ---
-    # Key functions: summarize_pathway_level, assay
-    ---------------------------------------------------------------------
-    pathway_activity_pca <- summarize_pathway_level(assay(airway, "counts"), kegg_sets, type = "pca")
-    # --- Any [] ---
-    # Key functions: any, assay, rowSums
-    ---------------------------------------------------------------------
-    print(any(assay(airway, "counts")[rowSums(assay(airway, "counts")) <0, ]))
-    X <- assay(airway, "counts")[rowSums(assay(airway, "counts")) >= 10, ]
-    # --- Summarize Pathway Level [] ---
-    # Key functions: summarize_pathway_level
-    ---------------------------------------------------------------------
-    pathway_activity_nmf <- summarize_pathway_level(X, kegg_sets, type = "nmf") # note that the NMF operation can take some minutes
-    print(paste("Pathway activity score matrix has dimensions:", nrow(pathway_activity_nmf), ",", ncol(pathway_activity_nmf)))
-    # --- List [] ---
-    # Key functions: assay, MultiAssayExperiment, colData
-    ---------------------------------------------------------------------
-    library(MultiAssayExperiment)
-    assays_list <- list( counts = assay(airway, "counts"), kegg_nmf_agg = pathway_activity_nmf, kegg_pca_agg = pathway_activity_pca)
-    airwayMultiAssay <- MultiAssayExperiment(experiments=assays_list)
-    colData(airwayMultiAssay) <- colData(airway)
-    # --- Summarize Pathway Level [] ---
-    # Key functions: summarize_pathway_level, assay
-    ---------------------------------------------------------------------
-    min <- 12
-    pathway_activity <- summarize_pathway_level(assay(airway, "counts"), kegg_sets, type = "mean", minsize = min)
-    print(paste("Pathway activity score matrix has dimensions:", nrow(pathway_activity), ",", ncol(pathway_activity)))
-    # --- Short Sets Detail [] ---
-    # Key functions: short_sets_detail
-    ---------------------------------------------------------------------
-    short_sets <- short_sets_detail(kegg_sets, min)
-    print(short_sets$short_sets)
-    # --- Summarize Pathway Level [] ---
-    # Key functions: summarize_pathway_level, assay
-    ---------------------------------------------------------------------
-    min <- 15
-    pathway_activity <- summarize_pathway_level(assay(airway, "counts"), kegg_sets, type = "sd", minsize = min)
-    print(paste("Pathway activity score matrix has dimensions:", nrow(pathway_activity), ",", ncol(pathway_activity)))
-    head(pathway_activity)
-    # --- Short Sets Detail [] ---
-    # Key functions: short_sets_detail
-    ---------------------------------------------------------------------
-    min <- 8
-    short_sets <- short_sets_detail(gocc_sets, min)
-    print(head(short_sets$short_sets_molecules))
-    # --- Summarize Pathway Level [] ---
-    # Key functions: summarize_pathway_level
-    ---------------------------------------------------------------------
-    sd_gocc_expr <- summarize_pathway_level(X_expr, gocc_sets, type="sd", minsize=8)
-    head(sd_gocc_expr)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_funomics_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_funomics_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load libraries and input data
+    library(funOmics)
+    
+    message("Loading input datasets...")
+    intensity_df <- read.csv("intensity.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Set feature_id as row names and convert to matrix
+    if (!"feature_id" %in% colnames(intensity_df)) {
+      stop("Input intensity.csv must contain a 'feature_id' column.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_funomics_output.rds")
+    rownames(intensity_df) <- intensity_df\$feature_id
+    intensity_matrix <- as.matrix(intensity_df[, setdiff(colnames(intensity_df), "feature_id"), drop = FALSE])
+    
+    # Align samples between intensity matrix and coldata
+    common_samples <- intersect(colnames(intensity_matrix), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between intensity.csv and coldata.csv.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FUNOMICS:", paste0("    funomics: ", packageVersion("funOmics"))),
-        "versions.yml"
+    intensity_matrix <- intensity_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
+    
+    # Stage 2: Determine identifier type and retrieve KEGG pathway sets
+    # Check if IDs look like Ensembl (e.g., ENSG...) or Gene Symbols
+    first_ids <- head(rownames(intensity_matrix), 50)
+    is_ensembl <- any(grepl("^ENSG", first_ids))
+    detected_id_type <- if (is_ensembl) "ensembl" else "symbol"
+    
+    message(paste("Detected identifier type:", detected_id_type))
+    kegg_sets <- get_kegg_sets(organism = "hsa", geneid_type = detected_id_type)
+    
+    # Stage 3: Filter and clean the intensity matrix
+    # NMF and PCA require non-negative values and no completely null rows
+    intensity_matrix[is.na(intensity_matrix)] <- 0
+    intensity_matrix[intensity_matrix < 0] <- 0
+    intensity_matrix <- intensity_matrix[rowSums(intensity_matrix) > 0, , drop = FALSE]
+    
+    # Stage 4: Perform pathway-level aggregation
+    message("Aggregating pathway-level activity scores...")
+    minsize_threshold <- 10
+    
+    # 4.1 PCA Aggregation
+    pathway_pca <- tryCatch({
+      summarize_pathway_level(intensity_matrix, kegg_sets, type = "pca", minsize = minsize_threshold)
+    }, error = function(e) {
+      message("PCA aggregation failed: ", e\$message)
+      NULL
+    })
+    
+    # 4.2 Mean Aggregation
+    pathway_mean <- tryCatch({
+      summarize_pathway_level(intensity_matrix, kegg_sets, type = "mean", minsize = minsize_threshold)
+    }, error = function(e) {
+      message("Mean aggregation failed: ", e\$message)
+      NULL
+    })
+    
+    # 4.3 NMF Aggregation
+    pathway_nmf <- tryCatch({
+      summarize_pathway_level(intensity_matrix, kegg_sets, type = "nmf", minsize = minsize_threshold)
+    }, error = function(e) {
+      message("NMF aggregation failed: ", e\$message)
+      NULL
+    })
+    
+    # Save aggregated matrices
+    if (!is.null(pathway_pca)) {
+      write.csv(as.data.frame(pathway_pca), "pathway_activity_pca.csv", row.names = TRUE)
+    }
+    if (!is.null(pathway_mean)) {
+      write.csv(as.data.frame(pathway_mean), "pathway_activity_mean.csv", row.names = TRUE)
+    }
+    if (!is.null(pathway_nmf)) {
+      write.csv(as.data.frame(pathway_nmf), "pathway_activity_nmf.csv", row.names = TRUE)
+    }
+    
+    # Stage 5: Identify and document short pathways
+    message("Identifying short pathways excluded from aggregation...")
+    short_sets <- short_sets_detail(kegg_sets, minsize = minsize_threshold)
+    short_sets_df <- data.frame(
+      pathway = short_sets\$short_sets,
+      length = short_sets\$short_sets_lengths,
+      stringsAsFactors = FALSE
     )
+    write.csv(short_sets_df, "short_pathways_detail.csv", row.names = FALSE)
+    
+    # Stage 6: Differential pathway activity analysis
+    message("Performing differential pathway activity analysis...")
+    if (!is.null(pathway_mean) && "condition" %in% colnames(coldata)) {
+      conditions <- unique(coldata\$condition)
+      if (length(conditions) >= 2) {
+        g1 <- coldata\$sample[coldata\$condition == conditions[1]]
+        g2 <- coldata\$sample[coldata\$condition == conditions[2]]
+        
+        diff_results <- apply(pathway_mean, 1, function(row) {
+          t_res <- tryCatch(t.test(row[g1], row[g2]), error = function(e) NULL)
+          if (!is.null(t_res)) {
+            c(p_value = t_res\$p.value, 
+              t_stat = t_res\$statistic[[1]], 
+              mean_cond1 = t_res\$estimate[1], 
+              mean_cond2 = t_res\$estimate[2])
+          } else {
+            c(p_value = NA, t_stat = NA, mean_cond1 = NA, mean_cond2 = NA)
+          }
+        })
+        
+        diff_df <- as.data.frame(t(diff_results))
+        diff_df\$pathway <- rownames(diff_df)
+        diff_df\$adj_p_value <- p.adjust(diff_df\$p_value, method = "BH")
+        diff_df <- diff_df[, c("pathway", "t_stat", "p_value", "adj_p_value", "mean_cond1.mean of x", "mean_cond2.mean of y")]
+        colnames(diff_df)[5:6] <- paste0("mean_", conditions[1:2])
+        
+        write.csv(diff_df, "differential_pathway_activity.csv", row.names = FALSE)
+      } else {
+        write.csv(data.frame(message = "Fewer than 2 conditions found; skipping differential analysis."), 
+                  "differential_pathway_activity.csv", row.names = FALSE)
+      }
+    } else {
+      write.csv(data.frame(message = "Mean pathway activity matrix or condition column missing."), 
+                "differential_pathway_activity.csv", row.names = FALSE)
+    }
+    
+    # Stage 7: Visualization
+    message("Generating pathway activity heatmap...")
+    pdf("pathway_activity_heatmap.pdf", width = 10, height = 8)
+    if (!is.null(pathway_mean) && nrow(pathway_mean) > 1) {
+      # Select top 20 most variable pathways for visualization
+      row_vars <- apply(pathway_mean, 1, var, na.rm = TRUE)
+      top_20_indices <- head(order(row_vars, decreasing = TRUE), 20)
+      heatmap_data <- pathway_mean[top_20_indices, , drop = FALSE]
+      
+      heatmap(heatmap_data, 
+              main = "Top 20 Most Variable Pathways (Mean Aggregation)",
+              col = heat.colors(256), 
+              margins = c(10, 15))
+    } else {
+      plot.new()
+      text(0.5, 0.5, "Insufficient data to generate heatmap")
+    }
+    dev.off()
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION":',
+        paste0('    funOmics: ', as.character(packageVersion('funOmics')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_funomics_results.csv
-    touch ${prefix}_funomics_output.rds
-    echo "BIOC_FUNOMICS:" > versions.yml
-    echo "    funomics: 0.0.0" >> versions.yml
+    touch ${prefix}_funomics_pathway_aggregation.csv versions.yml
     """
 }
 
-
-workflow BIOC_FUNOMICS_WORKFLOW {
+workflow BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_FUNOMICS(ch_input)
+    BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION(ch_input)
 
     emit:
-    results  = BIOC_FUNOMICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FUNOMICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FUNOMICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FUNOMICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION.out.tables
+    plots    = BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION.out.plots
+    objects  = BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION.out.objects
+    versions = BIOC_FUNOMICS_FUNOMICS_PATHWAY_AGGREGATION.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "rgoslin",
+  "requirements": [
+    "rgoslin"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rgoslin"
+    ]
+  }
+}

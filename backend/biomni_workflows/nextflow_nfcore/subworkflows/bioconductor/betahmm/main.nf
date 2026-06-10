@@ -1,148 +1,215 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: betaHMM
-// A novel approach utilizing a homogeneous hidden Markov model. And effectively model untransformed be
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/betaHMM/inst/doc/betaHMM.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("betaHMM")
+// Bioconductor workflow: betaHMM — dmc_dmr_detection
+// Identify differentially methylated CpG sites (DMCs) and regions (DMRs) from untransformed beta values and annotation data.
+// Input: pca_methylation_data, annotation_data
+// Container: quay.io/biocontainers/bioconductor-betahmm:1.6.0--r45hdfd78af_0
+// R packages: SummarizedExperiment, betaHMM
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, betaHMM
+// Visualizations: density plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Estimate model parameters and hidden states using betaHMM
+//  * 2. [Core Analysis] Identify DMCs using dmc_identification
+//  * 3. [Core Analysis] Identify DMRs from identified DMCs using dmr_identification
+//  * 4. [Visualization & Output] Plot fitted densities, uncertainties, and identified regions using plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_BETAHMM {
+process BIOC_BETAHMM_DMC_DMR_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-betahmm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-betahmm:1.2.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-betahmm:1.2.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_betahmm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_betahmm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_betahmm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(betaHMM)
-    library(AUC)
-    library(jsonlite)
-
-    # --- BetaHMM Model Fitting [Model Fitting] ---
-    # Key functions: betaHMM
-    data(pca_methylation_data)
-    data(annotation_data)
-    betaHMM_out <- betaHMM(
-        pca_methylation_data,
-        annotation_data,
-        M = 3,
-        N = 4,
-        R = 2,
-        parallel_process = FALSE,
-        seed = 321,
-        treatment_group = c("Benign", "Tumour")
-    )
-
-    # --- Model Parameter Extraction [Parameter Extraction] ---
-    # Key functions: A, phi, hidden_states, summary
-    trans_matrix <- A(betaHMM_out)
-    shape_params <- phi(betaHMM_out)
-    states_chr7 <- hidden_states(betaHMM_out)[["chr 7"]]
-    model_summary <- summary(betaHMM_out)
-
-    # --- Differentially Methylated CpG Identification [DMC Identification] ---
-    # Key functions: dmc_identification, assay, AUC, plot
-    dmc_out <- dmc_identification(betaHMM_out)
-    dmc_df <- assay(dmc_out)
-    dmc_summary <- summary(dmc_out)
-    AUC_chr <- AUC(dmc_out)
-    plot(
-        betaHMM_out,
-        chromosome = "7",
-        what = "fitted density",
-        AUC = AUC_chr
-    )
-    plot(
-        betaHMM_out,
-        chromosome = "7",
-        what = "uncertainty",
-        uncertainty_threshold = 0.2
-    )
-
-    # --- Differentially Methylated Region Identification [DMR Identification] ---
-    # Key functions: dmr_identification, assay, plot
-    dmr_out <- dmr_identification(dmc_out, parallel_process = FALSE)
-    dmr_df <- assay(dmr_out)
-    dmr_summary <- summary(dmr_out)
-    plot(dmc_out, start_CpG = "cg17750844", end_CpG = 15)
-
-    # --- Threshold Identification [Threshold Identification] ---
-    # Key functions: threshold_identification, threshold, plot
-    threshold_out <- threshold_identification(
-        pca_methylation_data[, 1:5],
-        package_workflow = FALSE,
-        annotation_file = annotation_data,
-        M = 3,
-        N = 4,
-        parameter_estimation_only = FALSE,
-        seed = 321
-    )
-    thresh_val <- threshold(threshold_out)
-    plot(threshold_out, plot_threshold = TRUE, what = "fitted density")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_betahmm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_betahmm_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SummarizedExperiment", "betaHMM")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_betahmm_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(betaHMM)
+        
+        # Helper function to load user input files with various extensions
+        load_input_file <- function(base_name) {
+          extensions <- c(".csv", ".tsv", ".rds", ".txt", "")
+          for (ext in extensions) {
+            file_path <- paste0(base_name, ext)
+            if (file.exists(file_path)) {
+              if (ext == ".rds") {
+                return(readRDS(file_path))
+              } else if (ext == ".tsv") {
+                return(read.delim(file_path, header = TRUE, check.names = FALSE))
+              } else if (ext == ".csv") {
+                return(read.csv(file_path, header = TRUE, check.names = FALSE))
+              } else {
+                return(read.table(file_path, header = TRUE, check.names = FALSE))
+              }
+            }
+          }
+          stop(paste("Error: Required input file", base_name, "not found in the working directory."))
+        }
+        
+        # Load user input data
+        pca_methylation_data <- load_input_file("pca_methylation_data")
+        annotation_data <- load_input_file("annotation_data")
+        
+        # Define parameters dynamically
+        M <- 3 ## No. of methylation states in a DNA sample type
+        
+        # Dynamically determine N, R, and treatment_group from pca_methylation_data
+        sample_names <- setdiff(colnames(pca_methylation_data), "IlmnID")
+        groups <- gsub("[_\\\\.]?[0-9]+\$", "", sample_names)
+        treatment_group <- unique(groups)
+        R <- length(treatment_group)
+        N <- as.integer(length(sample_names) / R)
+        
+        my.seed <- 321 ## set seed for reproducibility
+        
+        # 1. Estimate model parameters and hidden states using betaHMM
+        betaHMM_out <- betaHMM(pca_methylation_data,
+                                        annotation_data,
+                                        M = M,
+                                        N = N,
+                                        R = R,
+                                        parallel_process = FALSE,
+                                        seed = my.seed,
+                                        treatment_group = treatment_group)
+        
+        # Display estimated parameters
+        A(betaHMM_out)
+        phi(betaHMM_out)
+        
+        # Access hidden states for the first available chromosome (wrapped in tryCatch for robustness to custom data)
+        first_chr_name <- names(hidden_states(betaHMM_out))[1]
+        first_chr <- gsub("^chr\\\\s*", "", first_chr_name)
+        
+        tryCatch({
+          print(head(hidden_states(betaHMM_out)[[first_chr_name]]))
+        }, error = function(e) {
+          warning(paste("Could not access hidden states for", first_chr_name, ":"), e\$message)
+        })
+        
+        summary(betaHMM_out)
+        
+        # 2. Identify DMCs using dmc_identification
+        dmc_out <- dmc_identification(betaHMM_out)
+        dmc_df <- assay(dmc_out)
+        head(dmc_df)
+        summary(dmc_out)
+        
+        # Save DMC results
+        write.csv(dmc_df, "dmc_results.csv", row.names = FALSE)
+        saveRDS(dmc_out, "dmc_out.rds")
+        saveRDS(betaHMM_out, "betaHMM_out.rds")
+        
+        # Calculate AUC metric
+        AUC_chr <- AUC(dmc_out)
+        
+        # Plot fitted densities (wrapped in tryCatch for robustness to custom data)
+        tryCatch({
+          pdf("fitted_density_plot.pdf")
+          plot(betaHMM_out, chromosome = first_chr, what = "fitted density", AUC = AUC_chr)
+          dev.off()
+        }, error = function(e) {
+          warning("Fitted density plot failed: ", e\$message)
+          if (dev.cur() > 1) dev.off()
+        })
+        
+        # Plot uncertainty (wrapped in tryCatch for robustness to custom data)
+        tryCatch({
+          pdf("uncertainty_plot.pdf")
+          plot(betaHMM_out, chromosome = first_chr, what = "uncertainty",
+                  uncertainty_threshold = 0.2)
+          dev.off()
+        }, error = function(e) {
+          warning("Uncertainty plot failed: ", e\$message)
+          if (dev.cur() > 1) dev.off()
+        })
+        
+        # 3. Identify DMRs from identified DMCs using dmr_identification
+        dmr_out <- dmr_identification(dmc_out, parallel_process = FALSE)
+        dmr_df <- assay(dmr_out)
+        head(dmr_df)
+        summary(dmr_out)
+        
+        # Save DMR results
+        write.csv(dmr_df, "dmr_results.csv", row.names = FALSE)
+        saveRDS(dmr_out, "dmr_out.rds")
+        
+        # 4. Plot identified regions (wrapped in tryCatch for robustness to custom data)
+        tryCatch({
+          first_cpg <- if (nrow(dmr_df) > 0) {
+            as.character(dmr_df\$start_CpG[1])
+          } else if (nrow(dmc_df) > 0) {
+            as.character(dmc_df\$IlmnID[1])
+          } else {
+            as.character(pca_methylation_data\$IlmnID[1])
+          }
+          
+          pdf("dmc_dmr_plot.pdf")
+          plot(dmc_out, start_CpG = first_cpg, end_CpG = 15)
+          dev.off()
+        }, error = function(e) {
+          warning("DMC/DMR plot failed: ", e\$message)
+          if (dev.cur() > 1) dev.off()
+        })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BETAHMM:", paste0("    betahmm: ", packageVersion("betaHMM"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BETAHMM_DMC_DMR_DETECTION":',
+        paste0('    betaHMM: ', as.character(packageVersion('betaHMM')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_betahmm_results.csv
-    touch ${prefix}_betahmm_output.rds
-    echo "BIOC_BETAHMM:" > versions.yml
-    echo "    betahmm: 0.0.0" >> versions.yml
+    touch ${prefix}_dmc_dmr_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_BETAHMM_WORKFLOW {
+workflow BIOC_BETAHMM_DMC_DMR_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pca_methylation_data, annotation_data ] ]
 
     main:
-    BIOC_BETAHMM(ch_input)
+    BIOC_BETAHMM_DMC_DMR_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_BETAHMM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BETAHMM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BETAHMM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BETAHMM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BETAHMM_DMC_DMR_DETECTION.out.tables
+    plots    = BIOC_BETAHMM_DMC_DMR_DETECTION.out.plots
+    objects  = BIOC_BETAHMM_DMC_DMR_DETECTION.out.objects
+    versions = BIOC_BETAHMM_DMC_DMR_DETECTION.out.versions
 }

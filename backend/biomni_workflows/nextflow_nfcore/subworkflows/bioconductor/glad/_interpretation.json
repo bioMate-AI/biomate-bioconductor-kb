@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: smoothfunc=The smoothing algorithm to use (\"lawsglad\" for AWS or \"haarseg\" for HaarSeg) ;; lambdabreak=Penalty parameter for breakpoint detection (decreasing it identifies more breakpoints) ;; lambdacluster=Penalty parameter for clustering within chromosomes ;; lambdaclusterGen=Penalty parameter for clustering over the whole genome ;; param=Parameter vector, e.g., c(d=6) (decreasing d to 3 or less is recommended for arrays with low signal-to-noise ratio) ;; genomestep=Logical in daglad; if TRUE, performs a genome-wide smoothing step to identify the normal level ;; deltaN=Threshold to define the normal region interval in daglad ;; forceGL=Thresholds to force gain and loss status assignment in daglad\n- alternatives: daglad is an improved version of the original glad function and is recommended for most analyses. smoothfunc=\"haarseg\" is recommended as a faster alternative to \"lawsglad\" for high-throughput or fast computation.\n- when_to_use: Use this package when you have array CGH log-ratio data and need to identify genomic breakpoints, segment the genome, call copy number alterations (gains, losses, amplicons, deletions), and visualize the genomic profiles.\n- pitfalls: For array experiments with very small signal-to-noise ratios, default parameters may fail to detect breakpoints; users must manually decrease the param value (e.g., d=3 or less). Input data frames for as.profileCGH must strictly contain the compulsory columns LogRatio, Chromosome, and PosOrder.",
+  "workflows": [
+    {
+      "name": "glad_analysis",
+      "intent": "Detect genomic breakpoints and assign copy number status using the classic GLAD algorithm.",
+      "input": [
+        "user_data.txt (a data frame containing LogRatio, Chromosome, PosOrder, and optionally PosBase and Clone)"
+      ],
+      "stages": "1. Convert data to a profileCGH object ;; 2. Run the glad segmentation and calling algorithm ;; 3. Plot the genomic profile with cytoband information",
+      "code": "data(snijders)\n\nprofileCGH <- as.profileCGH(gm13330)\n\nres <- glad(profileCGH, mediancenter=FALSE,\n                smoothfunc=\"lawsglad\", bandwidth=10, round=1.5,\n                model=\"Gaussian\", lkern=\"Exponential\", qlambda=0.999,\n                base=FALSE,\n                lambdabreak=8, lambdacluster=8, lambdaclusterGen=40,\n                type=\"tricubic\", param=c(d=6),\n                alpha=0.001, msize=2,\n                method=\"centroid\", nmax=8,\n                verbose=FALSE)\ndata(cytoband)\nplotProfile(res, unit=3, Bkp=TRUE, labels=FALSE, plotband=FALSE, Smoothing=\"Smoothing\", cytoband = cytoband)"
+    },
+    {
+      "name": "daglad_analysis",
+      "intent": "Detect genomic breakpoints and assign copy number status using the improved DAGLAD algorithm with explicit calling thresholds.",
+      "input": [
+        "user_data.txt (a data frame containing LogRatio, Chromosome, PosOrder, and optionally PosBase and Clone)"
+      ],
+      "stages": "1. Convert data to a profileCGH object ;; 2. Run the daglad segmentation and calling algorithm with custom thresholds ;; 3. Plot the genomic profile with threshold lines",
+      "code": "data(veltman)\n\nprofileCGH <- as.profileCGH(P9)\n\nprofileCGH <- daglad(profileCGH, mediancenter=FALSE, normalrefcenter=FALSE, genomestep=FALSE,\n                     smoothfunc=\"lawsglad\", lkern=\"Exponential\", model=\"Gaussian\",\n                     qlambda=0.999,  bandwidth=10, base=FALSE, round=1.5,\n                     lambdabreak=8, lambdaclusterGen=40, param=c(d=6), alpha=0.001, msize=2,\n                     method=\"centroid\", nmin=1, nmax=8,\n                     amplicon=1, deletion=-5, deltaN=0.2,  forceGL=c(-0.3,0.3), nbsigma=3,\n                     MinBkpWeight=0.35, CheckBkpPos=TRUE)\nplotProfile(profileCGH, Smoothing=\"Smoothing\", Bkp=TRUE, plotband=FALSE, cytoband = cytoband)\nabline(h=c(-0.3,-0.2,0.2,0.3),col=c(\"green\",\"black\",\"black\",\"red\"))\naxis(2,at=c(-0.3,-0.2,0.2,0.3), labels=c(\"forceGL[1]\",\"-deltaN\",\"+deltaN\",\"forceGL[2]\"), las=2)"
+    },
+    {
+      "name": "array_spatial_visualization",
+      "intent": "Visualize spatial layout and raw intensity values of CGH microarrays to detect experimental artifacts.",
+      "input": [
+        "raw_array_data.txt (a table containing Col and Row coordinates and Log2 ratios)"
+      ],
+      "stages": "1. Create an arrayCGH object from a list containing arrayValues and arrayDesign ;; 2. Plot the spatial layout ;; 3. Plot the 3D perspective layout",
+      "code": "data(arrayCGH)\n\n# object of class arrayCGH\n\narray <- list(arrayValues=array2, arrayDesign=c(4,4,21,22))\nclass(array) <- \"arrayCGH\"\narrayPlot(array,\"Log2Rat\", bar=\"none\")\narrayPersp(array,\"Log2Rat\", box=FALSE, theta=110, phi=40, bar=FALSE)"
+    }
+  ]
+}

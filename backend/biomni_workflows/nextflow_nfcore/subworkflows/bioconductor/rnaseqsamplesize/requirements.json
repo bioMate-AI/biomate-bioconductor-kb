@@ -1,0 +1,20 @@
+{
+  "package": "rnaseqsamplesize",
+  "requirements": [
+    "RnaSeqSampleSize"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RnaSeqSampleSize"
+    ],
+    "reference_distribution_estimation.nf": [
+      "RnaSeqSampleSize"
+    ],
+    "user_prior_data_estimation.nf": [
+      "RnaSeqSampleSize"
+    ],
+    "visualization_and_optimization.nf": [
+      "RnaSeqSampleSize"
+    ]
+  }
+}

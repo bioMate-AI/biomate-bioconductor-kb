@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: multicore=FALSE ;; Controls whether qualSample parallelizes the calculation of sample SNRs using the parallel package.\n- alternatives: impute package ;; Mentioned as a tool to impute missing values (NAs) in the gene expression matrix before calculating sample SNRs, since qualSample does not accept NAs.\n- when_to_use: Appropriate for assessing the quality of gene expression studies (especially microarrays) and identifying problematic samples, particularly in studies containing a large number of diverse samples (e.g., cancer tissues).\n- pitfalls: Input data must have probes mapped to gene IDs. qualSample cannot handle missing values (NAs), so they must be imputed or removed beforehand. A low study SNR does not always indicate poor experimental quality; it can also result from low biological variability (e.g., comparing cell lines in highly controlled conditions). Sample SNRs are relative to their study, meaning a very poor study might not show any outlier samples, and a flagged sample in a high-quality study might still be of acceptable absolute quality.",
+  "workflows": [
+    {
+      "name": "study_quality_assessment",
+      "intent": "Estimate the overall signal-to-noise ratio (SNR) of a gene expression study to assess its quality.",
+      "input": [
+        "ALL (an ExpressionSet or gene expression matrix mapped to gene IDs)"
+      ],
+      "stages": "1. Load the SNAGEE package and the dataset. 2. Calculate the study-level quality score using qualStudy. 3. Print the resulting SNR score.",
+      "code": "library(SNAGEE)\nlibrary(ALL)\ndata(ALL)\nq = qualStudy(ALL)\nprint(q)"
+    },
+    {
+      "name": "sample_quality_assessment",
+      "intent": "Determine the relative signal-to-noise ratios (SNRs) of individual samples within a study to flag potentially problematic samples.",
+      "input": [
+        "ALL (an ExpressionSet or gene expression matrix with no missing values, mapped to gene IDs)"
+      ],
+      "stages": "1. Load the SNAGEE package and the dataset. 2. Calculate individual sample quality scores using qualSample. 3. Identify samples with quality scores below the threshold of -5.",
+      "code": "library(SNAGEE)\nlibrary(ALL)\ndata(ALL)\nqs = qualSample(ALL, multicore=FALSE)\nsum(qs < -5)"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "dewseq",
+  "requirements": [
+    "DEWSeq",
+    "data.table",
+    "dplyr",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DEWSeq",
+      "data.table",
+      "dplyr",
+      "tidyverse"
+    ]
+  }
+}

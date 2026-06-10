@@ -1,114 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Rtpca
-// R package for performing thermal proximity co-aggregation analysis with thermal proteome profiling d
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Rtpca/inst/doc/Rtpca.R
-// Upstream  : TPP
-// Downstream: none
-//
-// Install: BiocManager::install("Rtpca")
+// Bioconductor workflow: Rtpca — single_condition_tpca
+// Run TPCA on a single condition to evaluate how well TPP data captures known protein-protein interactions or protein complexes.
+// Input: tpp_data.RData, ppi_annotations.csv, complex_annotations.csv
+// Container: quay.io/biocontainers/bioconductor-rtpca:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Rtpca
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run TPCA for protein-protein interactions using runTPCA
+//  * 2. [Core Analysis] Run TPCA for protein complexes using runTPCA
+//  * 3. [Visualization & Output] Plot ROC curve for protein-protein interactions using plotPPiRoc
+//  * 4. [Visualization & Output] Plot ROC curve for protein complexes using plotComplexRoc
 
 nextflow.enable.dsl = 2
 
-process BIOC_RTPCA {
+process BIOC_RTPCA_SINGLE_CONDITION_TPCA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rtpca"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rtpca:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rtpca:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rtpca_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rtpca_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rtpca_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Rtpca)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(Rtpca)
+        
+        # -----------------------------------------------------------------------------
+        # 1. Read User Input Files
+        # -----------------------------------------------------------------------------
+        
+        # Load the TPP dataset (list of ExpressionSet objects or matrices)
+        env <- new.env()
+        load("tpp_data.RData", envir = env)
+        loaded_objects <- ls(env)
+        
+        if ("trData" %in% loaded_objects) {
+            trData <- env\$trData
+        } else {
+            # Fallback: take the first loaded object
+            trData <- env[[loaded_objects[1]]]
+        }
+        
+        # Read protein-protein interactions annotations
+        string_ppi_cs_950_df <- read.csv("ppi_annotations.csv", stringsAsFactors = FALSE)
+        
+        # If the input contains a combined_score column, apply the >= 950 filter as in the vignette
+        if ("combined_score" %in% colnames(string_ppi_cs_950_df)) {
+            string_ppi_cs_950_df <- string_ppi_cs_950_df[string_ppi_cs_950_df\$combined_score >= 950, ]
+        }
+        
+        # Read protein complex annotations
+        ori_et_al_complexes_df <- read.csv("complex_annotations.csv", stringsAsFactors = FALSE)
+        
+        
+        # -----------------------------------------------------------------------------
+        # 2. Run TPCA for Protein-Protein Interactions
+        # -----------------------------------------------------------------------------
+        vehTPCA <- runTPCA(
+            objList = trData,
+            ppiAnno = string_ppi_cs_950_df
+        )
+        
+        
+        # -----------------------------------------------------------------------------
+        # 3. Run TPCA for Protein Complexes
+        # -----------------------------------------------------------------------------
+        vehComplexTPCA <- runTPCA(
+            objList = trData,
+            complexAnno = ori_et_al_complexes_df,
+            minCount = 2
+        )
+        
+        
+        # -----------------------------------------------------------------------------
+        # 4. Plot ROC Curves and Save Outputs
+        # -----------------------------------------------------------------------------
+        
+        # Plot and save PPI ROC curve
+        pdf("ppi_roc_plot.pdf", width = 6, height = 6)
+        print(plotPPiRoc(vehTPCA, computeAUC = TRUE))
+        dev.off()
+        
+        # Plot and save Complex ROC curve
+        pdf("complex_roc_plot.pdf", width = 6, height = 6)
+        print(plotComplexRoc(vehComplexTPCA, computeAUC = TRUE))
+        dev.off()
+        
+        # Save the TPCA results as RDS objects for downstream analysis
+        saveRDS(vehTPCA, "vehTPCA.rds")
+        saveRDS(vehComplexTPCA, "vehComplexTPCA.rds")
 
-    # --- TPCA Analysis [] ---
-    # Key functions: runTPCA
-    data("string_ppi_df", package = "Rtpca")
-    string_ppi_cs_950_df <- string_ppi_df[string_ppi_df$combined_score >= 950, ]
-    vehTPCA <- runTPCA(
-        objList = trData,
-        ppiAnno = string_ppi_cs_950_df
-    )
-
-
-    # --- Differential TPCA Analysis [] ---
-    # Key functions: runDiffTPCA, diffTpcaResultTable
-    data("string_ppi_df", package = "Rtpca")
-    string_ppi_cs_950_df <- string_ppi_df[string_ppi_df$combined_score >= 950, ]
-    diffTPCA <- runDiffTPCA(
-        objList = trData[1:2],
-        contrastList = trData[3:4],
-        ctrlCondName = "DMSO",
-        contrastCondName = "Panobinostat",
-        ppiAnno = string_ppi_cs_950_df
-    )
-    resTable <- diffTpcaResultTable(diffTPCA)
-
-
-    # --- Visualization [] ---
-    # Key functions: plotPPiRoc, plotDiffTpcaVolcano, plotPPiProfiles
-    plotPPiRoc(vehTPCA, computeAUC = TRUE)
-    plotDiffTpcaVolcano(diffTPCA, setXLim = TRUE, xlimit = c(-0.5, 0.5))
-    plotPPiProfiles(diffTPCA, pair = c("KPNA6", "KPNB1"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rtpca_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rtpca_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rtpca_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RTPCA:", paste0("    rtpca: ", packageVersion("Rtpca"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RTPCA_SINGLE_CONDITION_TPCA":',
+        paste0('    Rtpca: ', as.character(packageVersion('Rtpca')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rtpca_results.csv
-    touch ${prefix}_rtpca_output.rds
-    echo "BIOC_RTPCA:" > versions.yml
-    echo "    rtpca: 0.0.0" >> versions.yml
+    touch ${prefix}_single_condition_tpca.csv versions.yml
     """
 }
 
-
-workflow BIOC_RTPCA_WORKFLOW {
+workflow BIOC_RTPCA_SINGLE_CONDITION_TPCA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tpp_data.RData, ppi_annotations.csv, complex_annotations.csv ] ]
 
     main:
-    BIOC_RTPCA(ch_input)
+    BIOC_RTPCA_SINGLE_CONDITION_TPCA(ch_input)
 
     emit:
-    results  = BIOC_RTPCA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RTPCA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RTPCA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RTPCA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RTPCA_SINGLE_CONDITION_TPCA.out.tables
+    plots    = BIOC_RTPCA_SINGLE_CONDITION_TPCA.out.plots
+    objects  = BIOC_RTPCA_SINGLE_CONDITION_TPCA.out.objects
+    versions = BIOC_RTPCA_SINGLE_CONDITION_TPCA.out.versions
 }

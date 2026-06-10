@@ -1,0 +1,16 @@
+{
+  "package": "abseqr",
+  "requirements": [
+    "BiocParallel",
+    "abseqR"
+  ],
+  "by_workflow": {
+    "custom_sample_comparison.nf": [
+      "abseqR"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "abseqR"
+    ]
+  }
+}

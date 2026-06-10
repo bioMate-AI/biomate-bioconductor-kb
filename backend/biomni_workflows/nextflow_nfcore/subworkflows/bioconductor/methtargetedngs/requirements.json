@@ -1,0 +1,14 @@
+{
+  "package": "methtargetedngs",
+  "requirements": [
+    "MethTargetedNGS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MethTargetedNGS"
+    ],
+    "profile_hmm_analysis.nf": [
+      "MethTargetedNGS"
+    ]
+  }
+}

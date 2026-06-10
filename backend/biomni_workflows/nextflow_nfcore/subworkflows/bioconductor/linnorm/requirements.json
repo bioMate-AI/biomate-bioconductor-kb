@@ -1,0 +1,25 @@
+{
+  "package": "linnorm",
+  "requirements": [
+    "Linnorm",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "cell_subpopulation_clustering.nf": [
+      "Linnorm"
+    ],
+    "differential_expression_limma.nf": [
+      "Linnorm"
+    ],
+    "highly_variable_gene_analysis.nf": [
+      "Linnorm",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "Linnorm"
+    ],
+    "rnaxsim_expression_simulation.nf": [
+      "Linnorm"
+    ]
+  }
+}

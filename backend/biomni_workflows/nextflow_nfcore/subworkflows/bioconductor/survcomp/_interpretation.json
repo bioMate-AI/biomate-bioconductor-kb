@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=\"noether\" ;; na.rm=TRUE ;; time.cens=tc/365 ;; q=0.05 ;; list.cindex1=listOne ;; list.cindex2=listTwo\n- alternatives: None mentioned as direct replacements, but the package depends on survival, ipred, prodlim, survivalROC, SuppDists, and bootstrap.\n- when_to_use: When evaluating risk prediction models on survival data, especially when integrating results across multiple independent transcriptomic datasets using meta-analysis.\n- pitfalls: Microarray platforms (e.g., Affymetrix vs. Agilent) have different gene expression ranges, which directly affects hazard ratio computation. Gene expression data must be rescaled (e.g., using a robust quantile-based rescaling function) before computing hazard ratios to ensure comparability. Censoring times may differ across datasets; artificial censoring using censor.time is recommended to align them.",
+  "workflows": [
+    {
+      "name": "survival_risk_prediction_evaluation",
+      "intent": "Compute concordance index, D-index, and hazard ratio for risk predictors across multiple datasets, combine the estimates, and visualize them using forest plots.",
+      "input": [
+        "ExpressionSet objects or expression matrices (e.g., mainz7g) and clinical survival data (survival times and events)."
+      ],
+      "stages": "1. Compute concordance index using concordance.index ;; 2. Compute D-index using D.index ;; 3. Rescale expression data using a custom quantile-based function ;; 4. Compute hazard ratio using hazard.ratio ;; 5. Combine estimates across datasets using combine.est ;; 6. Plot combined estimates using forestplot.surv",
+      "code": "cindexall.mainz.small <- t(apply(X=exprs(mainz7g), MARGIN=1, function(x, y, z) { tt <- concordance.index(x=x, surv.time=y, surv.event=z, method=\"noether\", na.rm=TRUE); return(c(\"cindex\"=tt$c.index, \"cindex.se\"=tt$se, \"lower\"=tt$lower, \"upper\"=tt$upper)); }, y=pData(mainz7g)[ ,\"t.dmfs\"], z=pData(mainz7g)[ ,\"e.dmfs\"]))\ndindexall.mainz.small <- t(apply(X=exprs(mainz7g), MARGIN=1, function(x, y, z) { tt <- D.index(x=x, surv.time=y, surv.event=z, na.rm=TRUE); return(c(\"dindex\"=tt$d.index, \"dindex.se\"=tt$se, \"lower\"=tt$lower, \"upper\"=tt$upper)); }, y=pData(mainz7g)[ ,\"t.dmfs\"], z=pData(mainz7g)[ ,\"e.dmfs\"]))\nrescale <- function(x, na.rm=FALSE, q=0.05) { ma <- quantile(x, probs=1-(q/2), na.rm=na.rm); mi <- quantile(x, probs=q/2, na.rm=na.rm); x <- (x - mi) / (ma - mi); return((x - 0.5) * 2); }\nhratio.mainz.small <- t(apply(X=rescale(exprs(mainz7g) , q=0.05, na.rm=TRUE), MARGIN=1, function(x, y, z) { tt <- hazard.ratio(x=x, surv.time=y, surv.event=z, na.rm=TRUE); return(c(\"hratio\"=tt$hazard.ratio, \"hratio.se\"=tt$se, \"lower\"=tt$lower, \"upper\"=tt$upper)); }, y=pData(mainz7g)[ ,\"t.dmfs\"], z=pData(mainz7g)[ ,\"e.dmfs\"]))\ncombine.est(x=cbind(cindexall.mainz.small[i,\"cindex\"], cindexall.transbig.small[i,\"cindex\"]), x.se=cbind(cindexall.mainz.small[i,\"cindex.se\"], cindexall.transbig.small[i,\"cindex.se\"]), na.rm=TRUE)\nforestplot.surv(labeltext=labeltext, mean=r.mean, lower=r.lower, upper=r.upper, zero=0.5, align=c(\"l\"), graphwidth=grid::unit(2, \"inches\"), x.ticks=seq(0.4,0.7,0.05), xlab=paste( \"Concordance Index\", myspace, sep=\"\"), col=meta.colors(box=\"royalblue\", line=\"darkblue\", zero=\"darkred\"), box.size=bs, clip=c(0.4,1))"
+    },
+    {
+      "name": "survival_curve_visualization",
+      "intent": "Plot Kaplan-Meier survival curves for multiple datasets or stratified risk groups with risk tables.",
+      "input": [
+        "Survival times, survival events, and group indicators (e.g., dataset names or stratified gene expression levels)."
+      ],
+      "stages": "1. Artificially censor survival data using censor.time ;; 2. Create a data frame with time, event, and group ;; 3. Plot Kaplan-Meier curves using km.coxph.plot",
+      "code": "surv.data <- censor.time(surv.time=c(pData(mainz7g)[ ,\"t.dmfs\"], pData(transbig7g)[ ,\"t.dmfs\"]) / 365, surv.event=c(pData(mainz7g)[ ,\"e.dmfs\"], pData(transbig7g)[ ,\"e.dmfs\"]), time.cens=tc / 365)\ngg <- factor(c(rep(\"mainz\", nrow(pData(mainz7g))), rep(\"transbig\", nrow(pData(transbig7g)))), levels=c(\"mainz\", \"transbig\"))\ndd <- data.frame(\"time\"=surv.data[[1]], \"event\"=surv.data[[2]], \"group\"=gg)\nkm.coxph.plot(formula.s=formula(Surv(time, event) ~ group), data.s=dd, sub.s=\"all\", x.label=\"Time (years)\", y.label = \"Probability of DMFS/RFS\", main.title=\"\", sub.title=\"\", leg.pos=\"bottomright\", leg.inset=0.05, o.text=FALSE, v.line=FALSE, h.line=FALSE, .lty=rep(1, length(levels(gg))), show.n.risk=TRUE, n.risk.step=1, n.risk.cex=0.85, .col=c(\"darkorange\", \"red\"), leg.text=paste(levels(gg), myspace, sep=\"\"), verbose=FALSE, ylim=c(0.1,1))"
+    },
+    {
+      "name": "performance_comparison_meta_analysis",
+      "intent": "Statistically compare the concordance indices of different risk predictors across multiple datasets using meta-analysis.",
+      "input": [
+        "Concordance index objects computed for multiple genes across multiple datasets."
+      ],
+      "stages": "1. Compute concordance index objects for each gene in each dataset using concordance.index ;; 2. Construct lists of concordance index objects for the two predictors to be compared ;; 3. Compare the lists of concordance indices across datasets using cindex.comp.meta",
+      "code": "cindexMetaMainz <- t(apply(X=exprs(mainz7g), MARGIN=1, function(x, y, z) { tt <- concordance.index(x=x, surv.time=y, surv.event=z, method=\"noether\", na.rm=TRUE); return(tt); }, y=pData(mainz7g)[ ,\"t.dmfs\"], z=pData(mainz7g)[ ,\"e.dmfs\"]))\nlistOne <- list(\"mainz\" = cindexMetaMainz[[i]], \"transbig\" = cindexMetaTransbig[[i]])\nlistTwo <- list(\"mainz\" = cindexMetaMainz[[j]], \"transbig\" = cindexMetaTransbig[[j]])\nrr <- cindex.comp.meta(list.cindex1=listOne, list.cindex2=listTwo)"
+    }
+  ]
+}

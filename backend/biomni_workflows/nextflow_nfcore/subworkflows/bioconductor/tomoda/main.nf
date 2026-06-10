@@ -1,159 +1,228 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tomoda
-// This package provides many easy-to-use methods to analyze and visualize tomo-seq data. The tomo-seq 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tomoda/inst/doc/tomoda.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("tomoda")
+// Bioconductor workflow: tomoda — tomoda_tomo_seq_pipeline
+// Perform a complete spatial transcriptomics analysis of tomo-seq data, including normalization, correlation analysis, dimensionality reduction, clustering, and p
+// Input: counts.csv, coldata.csv
+// Container: 1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, ggplot2, tomoda
+// Visualizations: heatmap, PCA plot, t-SNE plot, UMAP plot, cluster plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TOMODA {
+process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tomoda"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tomoda:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tomoda:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tomoda_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tomoda_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tomoda_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(tomoda)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(zh.data)
-    head(zh.data)
-    # --- Createtomo [] ---
-    # Key functions: createTomo
-    ---------------------------------------------------------------------
-    zh <- createTomo(zh.data)
-    zh
-    # --- Head [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    head(assay(zh, 'scaled'), 2)
-    # --- Corheatmap [] ---
-    # Key functions: corHeatmap
-    ---------------------------------------------------------------------
-    corHeatmap(zh, max.cor=0.3)
-    # --- Runpca [] ---
-    # Key functions: runPCA, embedPlot, colData
-    ---------------------------------------------------------------------
-    zh <- runPCA(zh)
-    embedPlot(zh, method="PCA")
-    head(colData(zh))
-    # --- Hierarchclust [] ---
-    # Key functions: hierarchClust
-    ---------------------------------------------------------------------
-    hc_zh <- hierarchClust(zh)
-    plot(hc_zh)
-    # --- Kmeansclust [] ---
-    # Key functions: kmeansClust, colData, embedPlot
-    ---------------------------------------------------------------------
-    zh <- kmeansClust(zh, centers=3)
-    head(colData(zh))
-    embedPlot(zh, group='kmeans_cluster')
-    # --- Findpeakgene [] ---
-    # Key functions: findPeakGene
-    ---------------------------------------------------------------------
-    peak_genes <- findPeakGene(zh, threshold = 1, length = 4, nperm = 1e5)
-    head(peak_genes)
-    # --- Expheatmap [] ---
-    # Key functions: expHeatmap
-    ---------------------------------------------------------------------
-    expHeatmap(zh, peak_genes$gene, size=0)
-    # --- Genecorheatmap [] ---
-    # Key functions: geneCorHeatmap
-    ---------------------------------------------------------------------
-    geneCorHeatmap(zh, peak_genes, size=0)
-    # Use variable 'start' to group genes
-    geneCorHeatmap(zh, peak_genes, group='start', size=0)
-    # --- Runtsne [] ---
-    # Key functions: runTSNE, geneEmbedPlot, runUMAP
-    ---------------------------------------------------------------------
-    zh <- runTSNE(zh, peak_genes$gene)
-    geneEmbedPlot(zh, peak_genes)
-    zh <- runUMAP(zh, peak_genes$gene)
-    geneEmbedPlot(zh, peak_genes, method="UMAP")
-    # --- Lineplot [] ---
-    # Key functions: linePlot
-    ---------------------------------------------------------------------
-    linePlot(zh, peak_genes$gene[1:3])
-    # --- Expheatmap [] ---
-    # Key functions: expHeatmap, scale_fill_gradient2
-    ---------------------------------------------------------------------
     library(ggplot2)
-    exp_heat <- expHeatmap(zh, peak_genes$gene, size=0)
-    exp_heat + scale_fill_gradient2(low='magenta', mid='black', high='yellow')
-    # --- Lineplot [] ---
-    # Key functions: linePlot, theme_classic, scale_x_discrete
-    ---------------------------------------------------------------------
-    line <- linePlot(zh, peak_genes$gene[1:3])
-    line +
-      theme_classic() +
-      scale_x_discrete(breaks=paste('X', seq(5,40,5), sep=''), labels=seq(5,40,5))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tomoda_results.csv", row.names = TRUE)
+    
+    # Define parameters
+    MIN_SECTION <- 3
+    PEAK_THRESHOLD <- 1.0
+    PEAK_LENGTH <- 3
+    N_PERMUTATIONS <- 1000
+    
+    # ==========================================
+    # Stage 1: Data Loading and Preprocessing
+    # ==========================================
+    
+    message("Loading input datasets...")
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    if ("gene_id" %in% colnames(counts_df)) {
+      rownames(counts_df) <- counts_df\$gene_id
+      counts_df\$gene_id <- NULL
+    }
+    counts_matrix <- as.matrix(counts_df)
+    
+    coldata <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
+    # Align coldata with counts columns (representing consecutive spatial sections)
+    coldata <- coldata[colnames(counts_matrix), , drop = FALSE]
+    
+    message("Creating Tomo object and performing normalization/scaling...")
+    # Adjust min.section if the dataset has fewer sections than the default threshold
+    actual_min_section <- min(MIN_SECTION, ncol(counts_matrix))
+    zh <- createTomo(counts_matrix, min.section = actual_min_section)
+    
+    # Append custom colData
+    colData(zh) <- cbind(colData(zh), coldata)
+    
+    # ==========================================
+    # Stage 2: Correlation & Dimensionality Reduction
+    # ==========================================
+    
+    message("Performing section correlation analysis...")
+    pdf("section_correlation_heatmap.pdf", width = 8, height = 7)
+    print(corHeatmap(zh, max.cor = 0.3))
+    dev.off()
+    
+    message("Running PCA on sections...")
+    zh <- runPCA(zh)
+    pdf("section_pca_plot.pdf", width = 6, height = 5)
+    print(embedPlot(zh, method = "PCA"))
+    dev.off()
+    
+    message("Running t-SNE on sections...")
+    tryCatch({
+      set.seed(42)
+      zh <- runTSNE(zh)
+      pdf("section_tsne_plot.pdf", width = 6, height = 5)
+      print(embedPlot(zh, method = "TSNE"))
+      dev.off()
+    }, error = function(e) {
+      message("t-SNE failed: ", e\$message)
+    })
+    
+    message("Running UMAP on sections...")
+    tryCatch({
+      zh <- runUMAP(zh)
+      pdf("section_umap_plot.pdf", width = 6, height = 5)
+      print(embedPlot(zh, method = "UMAP"))
+      dev.off()
+    }, error = function(e) {
+      message("UMAP failed: ", e\$message)
+    })
+    
+    # ==========================================
+    # Stage 3: Clustering Analysis
+    # ==========================================
+    
+    message("Performing hierarchical clustering...")
+    hc_zh <- hierarchClust(zh)
+    pdf("section_hierarchical_clustering.pdf", width = 8, height = 5)
+    plot(hc_zh)
+    dev.off()
+    
+    message("Performing K-means clustering...")
+    # Determine number of centers dynamically based on sample size
+    centers_num <- min(3, ncol(counts_matrix) - 1)
+    if (centers_num >= 2) {
+      zh <- kmeansClust(zh, centers = centers_num)
+      pdf("section_kmeans_plot.pdf", width = 6, height = 5)
+      print(embedPlot(zh, group = "kmeans_cluster"))
+      dev.off()
+    }
+    
+    # Save section metadata with embeddings and cluster labels
+    write.csv(as.data.frame(colData(zh)), "section_metadata_with_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 4: Peak Gene Analysis
+    # ==========================================
+    
+    message("Identifying spatially upregulated (peak) genes...")
+    # Adjust peak length if the dataset has very few sections
+    actual_peak_length <- min(PEAK_LENGTH, ncol(counts_matrix))
+    peak_genes <- findPeakGene(zh, threshold = PEAK_THRESHOLD, length = actual_peak_length, nperm = N_PERMUTATIONS)
+    write.csv(peak_genes, "peak_genes.csv", row.names = FALSE)
+    
+    if (nrow(peak_genes) > 0) {
+      message(sprintf("Found %d peak genes. Generating downstream visualizations...", nrow(peak_genes)))
+      
+      # Expression Heatmap of Peak Genes
+      pdf("peak_genes_expression_heatmap.pdf", width = 8, height = 8)
+      print(expHeatmap(zh, peak_genes\$gene, size = 0))
+      dev.off()
+      
+      # Gene Correlation Heatmap
+      pdf("peak_genes_correlation_heatmap.pdf", width = 8, height = 8)
+      print(geneCorHeatmap(zh, peak_genes, size = 0))
+      dev.off()
+      
+      # Gene Embeddings
+      tryCatch({
+        zh <- runTSNE(zh, peak_genes\$gene)
+        pdf("peak_genes_tsne.pdf", width = 6, height = 5)
+        print(geneEmbedPlot(zh, peak_genes))
+        dev.off()
+      }, error = function(e) {
+        message("Gene t-SNE failed: ", e\$message)
+      })
+      
+      tryCatch({
+        zh <- runUMAP(zh, peak_genes\$gene)
+        pdf("peak_genes_umap.pdf", width = 6, height = 5)
+        print(geneEmbedPlot(zh, peak_genes, method = "UMAP"))
+        dev.off()
+      }, error = function(e) {
+        message("Gene UMAP failed: ", e\$message)
+      })
+      
+      # Line plots for top 3 peak genes
+      top_genes <- head(peak_genes\$gene, 3)
+      pdf("top_peak_genes_traces.pdf", width = 8, height = 5)
+      print(linePlot(zh, top_genes, facet = TRUE))
+      dev.off()
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tomoda_results.csv")
+      message("No peak genes identified with the current thresholds.")
+      # Create empty placeholder files to satisfy output declarations
+      pdf("peak_genes_expression_heatmap.pdf", width = 5, height = 5)
+      plot.new()
+      text(0.5, 0.5, "No peak genes found")
+      dev.off()
+      
+      file.copy("peak_genes_expression_heatmap.pdf", "peak_genes_correlation_heatmap.pdf")
+      file.copy("peak_genes_expression_heatmap.pdf", "peak_genes_tsne.pdf")
+      file.copy("peak_genes_expression_heatmap.pdf", "peak_genes_umap.pdf")
+      file.copy("peak_genes_expression_heatmap.pdf", "top_peak_genes_traces.pdf")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tomoda_output.rds")
-    }
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TOMODA:", paste0("    tomoda: ", packageVersion("tomoda"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE":',
+        paste0('    tomoda: ', as.character(packageVersion('tomoda')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tomoda_results.csv
-    touch ${prefix}_tomoda_output.rds
-    echo "BIOC_TOMODA:" > versions.yml
-    echo "    tomoda: 0.0.0" >> versions.yml
+    touch ${prefix}_tomoda_tomo_seq_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_TOMODA_WORKFLOW {
+workflow BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_TOMODA(ch_input)
+    BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_TOMODA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TOMODA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TOMODA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TOMODA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE.out.tables
+    plots    = BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE.out.plots
+    objects  = BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE.out.objects
+    versions = BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE.out.versions
 }

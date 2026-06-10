@@ -1,0 +1,23 @@
+{
+  "package": "scran",
+  "requirements": [
+    "SingleCellExperiment",
+    "scran",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "automated_pc_selection.nf": [
+      "SingleCellExperiment",
+      "scran"
+    ],
+    "gene_correlation_analysis.nf": [
+      "SingleCellExperiment",
+      "scran"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "scran",
+      "scuttle"
+    ]
+  }
+}

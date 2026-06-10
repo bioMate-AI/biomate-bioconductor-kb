@@ -1,92 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GeoTcgaData
-// Gene Expression Omnibus(GEO) and The Cancer Genome Atlas (TCGA) provide us with a wealth of data, su
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GeoTcgaData/inst/doc/GeoTcgaData.R
-// Upstream  : ChAMP
-// Downstream: none
-//
-// Install: BiocManager::install("GeoTcgaData")
+// Bioconductor workflow: GeoTcgaData — rna_seq_differential_analysis
+// Perform differential expression analysis on RNA-seq count data using a Wilcoxon test or other methods.
+// Input: df, group
+// Container: quay.io/biocontainers/bioconductor-geotcgadata:2.10.0--r45hdfd78af_0
+// R packages: S4Vectors, SummarizedExperiment, ChAMP, GeoTcgaData
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GeoTcgaData, S4Vectors, SummarizedExperiment
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Prepare the count matrix and group vector (or construct a SummarizedExperiment object)
+//  * 2. [Core Analysis] Run differential_RNA to identify differentially expressed genes
 
 nextflow.enable.dsl = 2
 
-process BIOC_GEOTCGADATA {
+process BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-geotcgadata"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-geotcgadata:2.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-geotcgadata:2.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(deseq2results)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_geotcgadata_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_geotcgadata_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_geotcgadata_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("S4Vectors", "SummarizedExperiment", "ChAMP", "GeoTcgaData")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(GeoTcgaData)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: countToFpkm
-    ---------------------------------------------------------------------
-    data(gene_cov)
-    lung_squ_count2 <- matrix(c(1,2,3,4,5,6,7,8,9),ncol=3)
-    rownames(lung_squ_count2) <- c("DISC1","TCOF1","SPPL3")
-    colnames(lung_squ_count2) <- c("sample1","sample2","sample3")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_geotcgadata_results.csv", row.names = TRUE)
+    library(S4Vectors)
+    
+    # 1. Prepare the count matrix and group vector
+    # Read df (matrix or data frame of raw RNA-seq counts) from the working directory
+    if (file.exists("df.csv")) {
+      df <- read.csv("df.csv", row.names = 1, check.names = FALSE)
+    } else if (file.exists("df.tsv")) {
+      df <- read.delim("df.tsv", row.names = 1, check.names = FALSE)
+    } else if (file.exists("df.rds")) {
+      df <- readRDS("df.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_geotcgadata_results.csv")
+      stop("Error: Could not find 'df.csv', 'df.tsv', or 'df.rds' in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_geotcgadata_output.rds")
+    
+    # Read group (vector of sample group assignments) from the working directory
+    if (file.exists("group.csv")) {
+      group_data <- read.csv("group.csv", header = FALSE)
+      group <- as.character(group_data[[1]])
+    } else if (file.exists("group.txt")) {
+      group <- readLines("group.txt")
+    } else if (file.exists("group.rds")) {
+      group <- readRDS("group.rds")
+    } else {
+      stop("Error: Could not find 'group.csv', 'group.txt', or 'group.rds' in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GEOTCGADATA:", paste0("    geotcgadata: ", packageVersion("GeoTcgaData"))),
-        "versions.yml"
+    
+    # Ensure df is a data frame
+    df <- as.data.frame(df)
+    
+    # Validate dimensions
+    if (ncol(df) != length(group)) {
+      stop(sprintf("Dimension mismatch: df has %d columns, but group has %d elements.", ncol(df), length(group)))
+    }
+    
+    # 2. Run differential_RNA to identify differentially expressed genes (Method 1: using data frame)
+    result_df <- differential_RNA(counts = df, group = group, filte = FALSE, method = "Wilcoxon")
+    
+    # Save results from Method 1
+    write.csv(result_df, "differential_RNA_results_df.csv", row.names = TRUE)
+    
+    # 3. Run differential_RNA to identify differentially expressed genes (Method 2: using SummarizedExperiment)
+    colData <- S4Vectors::DataFrame(row.names = colnames(df), group = group)
+    data <- SummarizedExperiment::SummarizedExperiment(
+      assays = S4Vectors::SimpleList(counts = as.matrix(df)),
+      colData = colData
     )
+    
+    result_se <- differential_RNA(counts = data, groupCol = "group", filte = FALSE, method = "Wilcoxon")
+    
+    # Save results from Method 2
+    write.csv(result_se, "differential_RNA_results_se.csv", row.names = TRUE)
+    saveRDS(result_se, "differential_RNA_results_se.rds")
+
+    writeLines(c(
+        '"BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS":',
+        paste0('    GeoTcgaData: ', as.character(packageVersion('GeoTcgaData')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_geotcgadata_results.csv
-    touch ${prefix}_geotcgadata_output.rds
-    echo "BIOC_GEOTCGADATA:" > versions.yml
-    echo "    geotcgadata: 0.0.0" >> versions.yml
+    touch ${prefix}_rna_seq_differential_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GEOTCGADATA_WORKFLOW {
+workflow BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(deseq2results) ]
+    ch_input  // channel: [ val(meta), [ df, group ] ]
 
     main:
-    BIOC_GEOTCGADATA(ch_input)
+    BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GEOTCGADATA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GEOTCGADATA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GEOTCGADATA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GEOTCGADATA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS.out.tables
+    plots    = BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS.out.plots
+    objects  = BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS.out.objects
+    versions = BIOC_GEOTCGADATA_RNA_SEQ_DIFFERENTIAL_ANALYSIS.out.versions
 }

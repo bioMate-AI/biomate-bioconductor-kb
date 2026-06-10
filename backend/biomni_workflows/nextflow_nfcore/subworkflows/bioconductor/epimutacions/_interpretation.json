@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Specifies the outlier detection method in epimutations() (\"manova\", \"mlm\", \"iForest\", \"mahdist\", \"quantile\", or \"beta\") ;; norm_parameters=Function to customize preprocessing parameters for minfi-based normalization methods ;; epi_parameters=Function to customize method-specific parameters (e.g., pvalue_cutoff, outlier_score_cutoff, ntrees, window_sz) ;; omim=Logical parameter in annotate_epimutations() to include OMIM accession and description ;; genes_annot=Logical parameter in plot_epimutations() to include gene annotations in the plot ;; regulation=Logical parameter in plot_epimutations() to plot chromatin marks (H3K4me3, H3K27me3, H3K27ac)\n- alternatives: minfi=The package wraps minfi's preprocessing methods (preprocessRaw, preprocessIllumina, preprocessSWAN, preprocessQuantile, preprocessNoob, preprocessFunnorm) inside epi_preprocess() ;; bumphunter=Used internally by manova, mlm, iForest, and mahdist to define candidate regions before testing\n- when_to_use: Use this package when analyzing genome-wide DNA methylation microarray data (such as Illumina 450K or EPIC arrays) to identify rare, localized epigenetic alterations (epimutations) in a case-control design or within a single cohort.\n- pitfalls: Probes in Illumina arrays are unequally distributed, which limits the regions that can be considered epimutations; using the candidate regions dataset (candRegsGR) helps filter these ;; If no epimutations are found, the epimutations() function returns a row containing the case sample information with NA values for all other columns.",
+  "workflows": [
+    {
+      "name": "case_control_epimutation_analysis",
+      "intent": "Preprocess raw DNA methylation data, identify epimutations by comparing case samples against a reference panel, annotate the identified regions, and visualize the results.",
+      "input": [
+        "baseDir (directory containing raw case IDAT files and SampleSheet.csv)",
+        "reference_panel (RGChannelSet object containing reference/control samples)",
+        "methy (GenomicRatioSet containing preprocessed case and control samples)"
+      ],
+      "stages": "1. Preprocess raw IDAT files against a reference panel using epi_preprocess ;; 2. Separate case and control samples ;; 3. Run epimutation detection using epimutations ;; 4. Annotate identified epimutations using annotate_epimutations ;; 5. Visualize epimutations along the genome using plot_epimutations",
+      "code": "library(epimutacions)\nparameters <- norm_parameters(illumina = list(\"bg.correct\" = FALSE))\nGRset <- epi_preprocess(baseDir, reference_panel, pattern = \"SampleSheet.csv\")\ncase_samples <- methy[,methy$status == \"case\"]\ncontrol_samples <- methy[,methy$status == \"control\"]\nepi_mvo <- epimutations(case_samples, control_samples, method = \"manova\")\nrst_mvo <- annotate_epimutations(epi_mvo, omim = TRUE)\nplot_epimutations(as.data.frame(epi_mvo[1,]), methy)\np <- plot_epimutations(as.data.frame(epi_mvo[1,]), methy = methy, genes_annot = TRUE)\nplot(p)\np <- plot_epimutations(as.data.frame(epi_mvo[1,]), methy = methy, regulation = TRUE)\nplot(p)"
+    },
+    {
+      "name": "leave_one_out_epimutation_analysis",
+      "intent": "Identify epimutations in a single cohort without explicit case-control groups by comparing each individual sample against all other samples in the cohort.",
+      "input": [
+        "GRset (GenomicRatioSet object containing the cohort's DNA methylation profiles)"
+      ],
+      "stages": "1. Load the preprocessed GenomicRatioSet ;; 2. Run leave-one-out epimutation detection using epimutations_one_leave_out",
+      "code": "library(epimutacions)\ndata(GRset)\nepi_mva_one_leave_out<- epimutations_one_leave_out(GRset)"
+    }
+  ]
+}

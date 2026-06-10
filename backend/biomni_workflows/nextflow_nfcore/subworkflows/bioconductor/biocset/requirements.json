@@ -1,0 +1,25 @@
+{
+  "package": "biocset",
+  "requirements": [
+    "AnnotationDbi",
+    "BiocSet",
+    "DESeq2",
+    "GO.db",
+    "dplyr",
+    "limma",
+    "org.Hs.eg.db",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "BiocSet",
+      "DESeq2",
+      "GO.db",
+      "dplyr",
+      "limma",
+      "org.Hs.eg.db",
+      "tibble"
+    ]
+  }
+}

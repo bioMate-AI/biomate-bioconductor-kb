@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: line.wd=controls the width of the edges in the bipartite graph ;; h.min=sets the minimum distance between consecutive nodes to avoid overlapping ;; greedy=logical indicating whether to use the greedy algorithm to map superclusters ;; coord1/coord2=vectors specifying custom initial ordering of nodes to minimize edge crossings ;; evenly=logical indicating whether to distribute nodes evenly along the axis ;; horiz=logical indicating whether to use a horizontal layout ;; pausing=logical indicating whether to pause and require user interaction between split decisions in hierarchical comparison ;; score.function=the metric used to decide branch splits, either \"crossing\" (layout aesthetics) or \"it\" (information theory) ;; look.ahead=integer (0, 1, or 2) specifying the look-ahead steps for splitting decisions ;; expanded=logical indicating whether to display the full dendrogram instead of the pruned tree ;; expression=matrix of expression data used to draw a heatmap alongside the expanded tree comparison\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you need to compare two different clustering results on the same dataset (e.g., comparing different algorithms, different parameter settings, or comparing a hierarchical tree to a flat partition) and visualize their overlap and structural relationships.\n- pitfalls: The default barycentre layout may not always find the absolute minimum edge crossings; users may need to manually provide initial node coordinates (coord1/coord2) for optimal visualization. Setting pausing=TRUE in non-interactive R sessions will cause the execution to hang.",
+  "workflows": [
+    {
+      "name": "flat_vs_flat_comparison",
+      "intent": "Compare and visualize two flat clustering results using barycentre layout optimization and greedy supercluster mapping.",
+      "input": [
+        "flat1 (vector of cluster assignments for the first clustering)",
+        "flat2 (vector of cluster assignments for the second clustering)"
+      ],
+      "stages": "1. Perform initial flat-versus-flat comparison and layout optimization using the barycentre algorithm.\n2. Manually adjust node coordinates or layout orientation to improve visualization aesthetics.\n3. Construct a one-to-one mapping of superclusters using the greedy algorithm.\n4. Visualize the supercluster mapping in the bipartite graph.",
+      "code": "flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = FALSE)\nflatVSflat(flat1, flat2, coord1=c(6,3,4,7,5,1,2), coord2=c(5,1,4,6,3,2), greedy = FALSE)\nflatVSflat(flat1, flat2, evenly=TRUE, horiz=TRUE, greedy = FALSE)\nmyMapping<-SCmapping(flat1, flat2)\nflatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = TRUE)"
+    },
+    {
+      "name": "flat_vs_hierarchical_comparison",
+      "intent": "Compare a hierarchical clustering tree with a flat clustering to identify optimal cutoffs and visualize branch-to-cluster relationships.",
+      "input": [
+        "hierar (hclust object representing the hierarchical clustering)",
+        "flat1 (vector of cluster assignments for the flat clustering)",
+        "expression_matrix (matrix of gene expression values for heatmap visualization)"
+      ],
+      "stages": "1. Compare hierarchical and flat clusterings using an aesthetics-based scoring function with no look-ahead.\n2. Generate an expanded visualization showing the full dendrogram.\n3. Compare clusterings using an information theory-based scoring function with look-ahead (1 or 2 steps).\n4. Generate an expanded visualization of the comparison including a gene expression heatmap.",
+      "code": "comparison.flatVShier.1<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, score.function=\"crossing\", greedy.colours=1:4, look.ahead=0)\ncomparison.flatVShier.1<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, score.function=\"crossing\", greedy.colours=1:4, look.ahead=0, expanded=TRUE)\ncomparison.flatVShier.2<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, h.min=0.2, score.function=\"it\", greedy.colours=1:4, look.ahead=1)\ncomparison.flatVShier.3<-flatVShier(hierar, flat1, verbose=FALSE, pausing=FALSE, h.min=0.2, score.function=\"it\", greedy.colours=1:4, look.ahead=2)\ncomparison.flatVShier.4<-flatVShier(hierar2, flat1, verbose=FALSE, pausing=FALSE, h.min=0.2, score.function=\"it\", greedy.colours=1:4, look.ahead=2, expanded=TRUE)\ncomparison.flatVShier.5<-flatVShier(hierar2, flat1, verbose=FALSE, pausing=FALSE, h.min=0.2, score.function=\"it\", greedy.colours=1:4, look.ahead=2, expanded=TRUE, expression=exprs(colonCA))"
+    }
+  ]
+}

@@ -1,90 +1,214 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GenomicSuperSignature
-// This package provides a novel method for interpreting new transcriptomic datasets through near-insta
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GenomicSuperSignature/inst/doc/Contents.R
-// Upstream  : BiocManager, bcellViper
-// Downstream: none
-//
-// Install: BiocManager::install("GenomicSuperSignature")
+// Bioconductor workflow: GenomicSuperSignature — transcriptomic_dataset_validation
+// Validate a user's transcriptomic dataset against a pre-built RAVmodel to identify and biologically interpret the most relevant Replicable Axes of Variation (RAV
+// Input: dataset.rds
+// Container: quay.io/biocontainers/bioconductor-genomicsupersignature:1.18.0--r45hdfd78af_0
+// R packages: bcellviper, biocmanager, GenomicSuperSignature
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicSuperSignature
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the GenomicSuperSignature package and download/load the pre-built RAVmodel using getModel. 2. Load the user's transcriptomic 
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENOMICSUPERSIGNATURE {
+process BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genomicsupersignature"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomicsupersignature:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomicsupersignature:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genomicsupersignature_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genomicsupersignature_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genomicsupersignature_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RAVindex)
-    library(jsonlite)
-
-    # --- get Model [] ---
-    # Key functions: getModel, version, geneSets, RAVindex, metadata
-    RAVmodel <- getModel("C2", load=TRUE)
-    version(RAVmodel)
-    geneSets(RAVmodel)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomicsupersignature_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomicsupersignature_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bcellviper", "biocmanager", "GenomicSuperSignature")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomicsupersignature_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the GenomicSuperSignature package and download/load the pre-built RAVmodel
+    library(GenomicSuperSignature)
+    
+    # Download/load the pre-built RAVmodel
+    RAVmodel <- getModel("PLIERpriors", load = TRUE)
+    
+    # 2. Load the user's transcriptomic dataset (ensuring gene symbols are used)
+    # The user input file is exactly "dataset.rds"
+    dset <- readRDS("dataset.rds")
+    
+    # 3. Validate the dataset against the RAVmodel
+    val_all <- validate(dset, RAVmodel)
+    write.csv(as.data.frame(val_all), "validation_scores.csv", row.names = TRUE)
+    
+    # Print head of validation results
+    print(head(val_all))
+    
+    # 4. Visualize the validation results
+    # Save heatmapTable to PDF
+    pdf("heatmap_table.pdf", width = 10, height = 8)
+    tryCatch({
+      heatmapTable(val_all, RAVmodel, num.out = 5, swCutoff = 0)
+    }, error = function(e) {
+      message("Error plotting heatmapTable: ", e\$message)
+    })
+    dev.off()
+    
+    # Save plotValidate to PDF
+    pdf("validation_plot.pdf", width = 8, height = 6)
+    tryCatch({
+      plotValidate(val_all, interactive = FALSE)
+    }, error = function(e) {
+      message("Error plotting plotValidate: ", e\$message)
+    })
+    dev.off()
+    
+    # 5. Extract the indices of the top validated RAVs
+    validated_ind <- validatedSignatures(val_all, RAVmodel, num.out = 3, swCutoff = 0, indexOnly = TRUE)
+    saveRDS(validated_ind, "validated_indices.rds")
+    print(validated_ind)
+    
+    # 6. Interpret the validated RAVs
+    # Draw word clouds of MeSH terms
+    pdf("wordclouds.pdf", width = 7, height = 7)
+    set.seed(1)
+    tryCatch({
+      drawWordcloud(RAVmodel, validated_ind[1])
+    }, error = function(e) {
+      message("Error drawing wordcloud 1: ", e\$message)
+    })
+    
+    tryCatch({
+      drawWordcloud(RAVmodel, validated_ind[2])
+    }, error = function(e) {
+      message("Error drawing wordcloud 2: ", e\$message)
+    })
+    
+    tryCatch({
+      drawWordcloud(RAVmodel, validated_ind[3])
+    }, error = function(e) {
+      message("Error drawing wordcloud 3: ", e\$message)
+    })
+    dev.off()
+    
+    # GSEA pathway annotations
+    tryCatch({
+      ann_rav2 <- annotateRAV(RAVmodel, validated_ind[2])
+      write.csv(as.data.frame(ann_rav2), "annotate_rav_2.csv", row.names = TRUE)
+    }, error = function(e) {
+      message("Error annotating RAV index 2: ", e\$message)
+    })
+    
+    tryCatch({
+      pathways_rav2 <- subsetEnrichedPathways(RAVmodel, validated_ind[2], include_nes = TRUE)
+      write.csv(as.data.frame(pathways_rav2), "enriched_pathways_rav2.csv", row.names = TRUE)
+    }, error = function(e) {
+      message("Error subsetting enriched pathways for RAV index 2: ", e\$message)
+    })
+    
+    tryCatch({
+      pathways_all <- subsetEnrichedPathways(RAVmodel, validated_ind, include_nes = TRUE)
+      write.csv(as.data.frame(pathways_all), "enriched_pathways_all.csv", row.names = TRUE)
+    }, error = function(e) {
+      message("Error subsetting enriched pathways for all validated indices: ", e\$message)
+    })
+    
+    # 7. Search for specific biological themes using keyword-based queries
+    sig_bcell <- findSignature(RAVmodel, "Bcell")
+    write.csv(as.data.frame(sig_bcell), "signature_search_bcell.csv", row.names = TRUE)
+    
+    sig_bcell_k5 <- findSignature(RAVmodel, "Bcell", k = 5)
+    saveRDS(sig_bcell_k5, "signature_search_bcell_k5.rds")
+    
+    kw_695 <- findKeywordInRAV(RAVmodel, "Bcell", ind = 695)
+    saveRDS(kw_695, "keyword_rank_695.rds")
+    
+    tryCatch({
+      pathways_both_rav2 <- subsetEnrichedPathways(RAVmodel, ind = validated_ind[2], n = 3, both = TRUE)
+      write.csv(as.data.frame(pathways_both_rav2), "pathways_both_rav2.csv", row.names = TRUE)
+    }, error = function(e) {
+      message("Error subsetting both enriched pathways for RAV index 2: ", e\$message)
+    })
+    
+    pathways_both_695 <- subsetEnrichedPathways(RAVmodel, ind = 695, n = 3, both = TRUE)
+    write.csv(as.data.frame(pathways_both_695), "pathways_both_695.csv", row.names = TRUE)
+    
+    pathways_both_953 <- subsetEnrichedPathways(RAVmodel, ind = 953, n = 3, both = TRUE)
+    write.csv(as.data.frame(pathways_both_953), "pathways_both_953.csv", row.names = TRUE)
+    
+    pathways_both_1994 <- subsetEnrichedPathways(RAVmodel, ind = 1994, n = 3, both = TRUE)
+    write.csv(as.data.frame(pathways_both_1994), "pathways_both_1994.csv", row.names = TRUE)
+    
+    # Associated prior studies
+    tryCatch({
+      studies_rav2 <- findStudiesInCluster(RAVmodel, validated_ind[2])
+      write.csv(as.data.frame(studies_rav2), "studies_in_cluster_rav2.csv", row.names = FALSE)
+    }, error = function(e) {
+      message("Error finding studies in cluster for RAV index 2: ", e\$message)
+    })
+    
+    tryCatch({
+      studies_title_rav2 <- findStudiesInCluster(RAVmodel, validated_ind[2], studyTitle = TRUE)
+      write.csv(as.data.frame(studies_title_rav2), "studies_in_cluster_title_rav2.csv", row.names = FALSE)
+    }, error = function(e) {
+      message("Error finding studies with titles in cluster for RAV index 2: ", e\$message)
+    })
+    
+    # Print session info
+    sessionInfo()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENOMICSUPERSIGNATURE:", paste0("    genomicsupersignature: ", packageVersion("GenomicSuperSignature"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION":',
+        paste0('    GenomicSuperSignature: ', as.character(packageVersion('GenomicSuperSignature')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genomicsupersignature_results.csv
-    touch ${prefix}_genomicsupersignature_output.rds
-    echo "BIOC_GENOMICSUPERSIGNATURE:" > versions.yml
-    echo "    genomicsupersignature: 0.0.0" >> versions.yml
+    touch ${prefix}_transcriptomic_dataset_validation.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENOMICSUPERSIGNATURE_WORKFLOW {
+workflow BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ dataset.rds ] ]
 
     main:
-    BIOC_GENOMICSUPERSIGNATURE(ch_input)
+    BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION(ch_input)
 
     emit:
-    results  = BIOC_GENOMICSUPERSIGNATURE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENOMICSUPERSIGNATURE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENOMICSUPERSIGNATURE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENOMICSUPERSIGNATURE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION.out.tables
+    plots    = BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION.out.plots
+    objects  = BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION.out.objects
+    versions = BIOC_GENOMICSUPERSIGNATURE_TRANSCRIPTOMIC_DATASET_VALIDATION.out.versions
 }

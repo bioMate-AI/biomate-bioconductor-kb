@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pSmrExpt=A SummarizedExperiment object containing count data in assays, gene location information in rowData, and experimental design in colData ;; nearest_neighbours=The number of adjacent genes to compare against (e.g., 5) ;; pDesign=Formula representing the experimental design (e.g., ~ condition) ;; pValue_cut=Adjusted p-value threshold for filtering results (e.g., 0.05) ;; pLogFold_cut=Log fold change threshold for filtering results (e.g., 0) ;; pGene_id=Gene identifier of interest for plotting neighborhood expression\n- alternatives: Limma, edgeR, and DESeq2, which identify DE genes based on expression levels alone without considering chromosomal co-localization\n- when_to_use: When analyzing transcriptomics data (RNA-seq or microarray) where identifying DE genes is challenging due to limited sample size, few replicates, or small changes in expression levels, and incorporating chromosomal neighborhood information can improve detection power\n- pitfalls: Running the analysis on the entire genome can take a long time, so filtering by specific chromosomes (e.g., X chromosome) is recommended to reduce runtime ;; The default neighborhood window is fixed (e.g., 1 Mb), which is arbitrary; users should consider using dynamic neighborhoods (like TAD boundaries) by providing \"neighbors_start\" and \"neighbors_end\" columns in rowData",
+  "workflows": [
+    {
+      "name": "delocal_fixed_neighborhood",
+      "intent": "Identify differentially expressed genes relative to a fixed number of nearest chromosomal neighbors and visualize their neighborhood expression.",
+      "input": [
+        "tooth_RNASeq_counts.txt (tab-separated raw count matrix)",
+        "gene_location.txt (tab-separated table containing ensembl_gene_id, start_position, and chromosome_name)"
+      ],
+      "stages": "1. Read raw count values and define sample conditions ;; 2. Load gene chromosomal location information ;; 3. Integrate counts, gene locations, and sample metadata into a SummarizedExperiment object ;; 4. Filter genes by chromosome to reduce runtime ;; 5. Run DELocal to identify DE genes ;; 6. Plot the expression pattern of a gene and its neighborhood",
+      "code": "count_matrix <- as.matrix(read.table(file = system.file(\"extdata\", \"tooth_RNASeq_counts.txt\", package = \"DELocal\")))\ncolData <- data.frame(condition=gsub(\"\\\\..*\",x=colnames(count_matrix), replacement = \"\"))\ngene_location <- read.table(file = system.file(\"extdata\", \"gene_location.txt\", package = \"DELocal\"))\nlibrary(SummarizedExperiment)\nsmrExpt <- SummarizedExperiment(assays=list(counts=count_matrix), rowData = gene_location, colData=colData)\nlibrary(dplyr)\nx_genes <- SummarizedExperiment::rowData(smrExpt) %>% as.data.frame() %>% filter(chromosome_name==\"X\") %>% rownames()\nDELocal_result <- DELocal(pSmrExpt = smrExpt[x_genes,], nearest_neighbours = 5,pDesign = ~ condition, pValue_cut = 0.05)\nDELocal::plotNeighbourhood(pSmrExpt = smrExpt, pGene_id = \"ENSMUSG00000059401\", pNearest_neighbours=5, pDesign = ~ condition)$plot"
+    },
+    {
+      "name": "delocal_dynamic_neighborhood",
+      "intent": "Identify differentially expressed genes relative to dynamic chromosomal neighborhoods such as Topologically Associating Domains (TADs).",
+      "input": [
+        "tooth_RNASeq_counts.txt (tab-separated raw count matrix)",
+        "Mouse_TAD_boundaries.csv (comma-separated table containing ensembl_gene_id, chromosome_name, and TAD boundaries)"
+      ],
+      "stages": "1. Read raw count values and define sample conditions ;; 2. Load dynamic gene neighborhood boundaries (TADs) and rename columns to neighbors_start and neighbors_end ;; 3. Integrate counts, dynamic locations, and sample metadata into a SummarizedExperiment object ;; 4. Run DELocal with dynamic neighborhood boundaries",
+      "code": "count_matrix <- as.matrix(read.table(file = system.file(\"extdata\", \"tooth_RNASeq_counts.txt\", package = \"DELocal\")))\ncolData <- data.frame(condition=gsub(\"\\\\..*\",x=colnames(count_matrix), replacement = \"\"))\ngene_location_dynamicNeighbourhood <- read.csv(system.file(\"extdata\", \"Mouse_TAD_boundaries.csv\", package = \"DELocal\"))\nrownames(gene_location_dynamicNeighbourhood) <- gene_location_dynamicNeighbourhood$ensembl_gene_id\ncolnames(gene_location_dynamicNeighbourhood)[4:5] <- c(\"neighbors_start\", \"neighbors_end\")\ncommon_genes <- intersect(rownames(count_matrix), rownames(gene_location_dynamicNeighbourhood) )\nsmrExpt_dynamicNeighbour <- SummarizedExperiment::SummarizedExperiment( assays = list(counts = count_matrix[common_genes,]), rowData = gene_location_dynamicNeighbourhood[common_genes, ], colData = colData )\nDELocal_result_tad <- DELocal(pSmrExpt = smrExpt_dynamicNeighbour[x_genes,], nearest_neighbours = 5,pDesign = ~ condition, pValue_cut = 0.05, pLogFold_cut = 0)"
+    }
+  ]
+}

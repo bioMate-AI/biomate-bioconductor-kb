@@ -1,0 +1,17 @@
+{
+  "package": "packfinder",
+  "requirements": [
+    "Biostrings",
+    "packFinder"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "packFinder"
+    ],
+    "step_wise_transposon_search.nf": [
+      "Biostrings",
+      "packFinder"
+    ]
+  }
+}

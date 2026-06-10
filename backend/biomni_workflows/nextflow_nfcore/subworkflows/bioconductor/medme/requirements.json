@@ -1,0 +1,13 @@
+{
+  "package": "medme",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg18",
+    "MEDME"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg18",
+      "MEDME"
+    ]
+  }
+}

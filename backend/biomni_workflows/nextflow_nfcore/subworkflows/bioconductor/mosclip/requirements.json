@@ -1,0 +1,22 @@
+{
+  "package": "mosclip",
+  "requirements": [
+    "MOSClip",
+    "MultiAssayExperiment",
+    "kableExtra",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MOSClip",
+      "MultiAssayExperiment",
+      "kableExtra",
+      "survival"
+    ],
+    "multi_omic_survival_pathway_analysis.nf": [
+      "MOSClip",
+      "MultiAssayExperiment",
+      "survival"
+    ]
+  }
+}

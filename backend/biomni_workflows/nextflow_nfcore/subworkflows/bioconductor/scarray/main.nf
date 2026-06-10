@@ -1,122 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SCArray
-// Provides large-scale single-cell omics data manipulation using Genomic Data Structure (GDS) files. I
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SCArray/inst/doc/SCArray.R
-// Upstream  : Matrix, SingleCellExperiment, scater, scuttle
-// Downstream: SCArray.sat
-//
-// Install: BiocManager::install("SCArray")
+// Bioconductor workflow: SCArray — gds_single_cell_analysis
+// Convert single-cell data to GDS format, load it as a GDS-backed SingleCellExperiment, and perform memory-efficient downstream analysis.
+// Input: example.rds, example.gds
+// Container: quay.io/biocontainers/bioconductor-scarray:1.18.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Matrix, SCArray, SingleCellExperiment, scater, scuttle
+// Visualizations: ordination plot, PCA plot, UMAP plot
+// QC: cell QC metrics, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert SingleCellExperiment or matrix to GDS format using scConvGDS()
+//  * 2. [Input & Preparation] Load GDS file as a SingleCellExperiment using scExperiment()
+//  * 3. [Core Analysis] Normalize counts using logNormCounts()
+//  * 4. [Visualization & Output] Calculate row and column summarizations using colMeans(), rowMeans(), and scRowMeanVar()
+//  * 5. [Core Analysis] Perform memory-efficient PCA using scRunPCA()
+//  * 6. [Core Analysis] Perform UMAP dimensionality reduction using runUMAP()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCARRAY {
+process BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scarray"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scarray:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scarray:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scarray_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scarray_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scarray_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DelayedMatrix)
-    library(jsonlite)
-
-    # --- Matrix [] ---
-    # Key functions: int, rpois, scConvGDS
-    ---------------------------------------------------------------------------------------------------
-    library(Matrix)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    suppressPackageStartupMessages(library(SCArray))
+    suppressPackageStartupMessages(library(SingleCellExperiment))
+    suppressPackageStartupMessages(library(Matrix))
+    suppressPackageStartupMessages(library(scuttle))
+    suppressPackageStartupMessages(library(scater))
+    
+    # 1. Convert SingleCellExperiment to GDS format
+    # Read the user-provided SingleCellExperiment RDS file from the working directory
+    fn_rds <- "example.rds"
+    sce <- readRDS(fn_rds)
+    
+    # Convert to GDS format
+    scConvGDS(sce, "test.gds")
+    
+    # Open and close the GDS file to verify structure
+    f <- scOpen("test.gds")
+    scClose(f)
+    
+    # 2. Convert a sparse matrix to GDS format
     cnt <- matrix(0, nrow=4, ncol=8)
-    set.seed(100); cnt[sample.int(length(cnt), 8)] <- rpois(8, 4)
-    (cnt <- as(cnt, "sparseMatrix"))
-    # --- Package [] ---
-    # Key functions: package, scExperiment, DelayedMatrix, assays, colData, rowData
-    ---------------------------------------------------------------------------------------------------
-    # a GDS file in the SCArray package
-    (fn <- system.file("extdata", "example.gds", package="SCArray"))
-    # load a SingleCellExperiment object from the file
-    sce <- scExperiment(fn)
-    # --- Assays [] ---
-    # Key functions: assays
-    ---------------------------------------------------------------------------------------------------
-    cnt <- assays(sce)$counts
+    set.seed(100)
+    cnt[sample.int(length(cnt), 8)] <- rpois(8, 4)
+    cnt <- as(cnt, "sparseMatrix")
+    
+    if (file.exists("test.gds")) {
+        unlink("test.gds", force=TRUE)
+    }
+    scConvGDS(cnt, "test.gds")
+    
+    # 3. Load GDS file as a SingleCellExperiment
+    # Read the user-provided GDS file from the working directory
+    fn_gds <- "example.gds"
+    sce <- scExperiment(fn_gds)
+    
+    # Extract counts and compute log-transformed counts (DelayedMatrix)
+    cnt <- assays(sce)\$counts
     logcnt <- log2(cnt + 1)
-    logcnt
-    # --- Colmeans [] ---
-    # Key functions: colMeans, rowMeans, scRowMeanVar
-    ---------------------------------------------------------------------------------------------------
+    
+    # 4. Normalize counts using logNormCounts
+    sce <- logNormCounts(sce)
+    
+    # 5. Calculate row and column summarizations
     col_mean <- colMeans(logcnt)
-    str(col_mean)
     row_mean <- rowMeans(logcnt)
-    str(row_mean)
-    # --- Scrunpca [] ---
-    # Key functions: scRunPCA
-    ---------------------------------------------------------------------------------------------------
+    mvar <- scRowMeanVar(logcnt)
+    
+    # Save summarization results to disk
+    write.csv(as.data.frame(col_mean), "column_means.csv", row.names=TRUE)
+    write.csv(as.data.frame(row_mean), "row_means.csv", row.names=TRUE)
+    write.csv(as.data.frame(mvar), "row_mean_variance.csv", row.names=TRUE)
+    
+    # 6. Perform memory-efficient PCA
     sce <- scRunPCA(sce)
-    # --- Rowmeans [] ---
-    # Key functions: rowMeans
-    ---------------------------------------------------------------------------------------------------
-    options(SCArray.verbose=TRUE)
-    m <- rowMeans(logcnt)
-    str(m)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scarray_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scarray_results.csv")
+    
+    # Plot and save PCA results
+    pdf("pca_plot.pdf", width=6, height=5)
+    plotReducedDim(sce, dimred="PCA")
+    dev.off()
+    
+    # 7. Perform UMAP dimensionality reduction
+    sce <- runUMAP(sce)
+    
+    # Plot and save UMAP results
+    pdf("umap_plot.pdf", width=6, height=5)
+    plotReducedDim(sce, dimred="UMAP")
+    dev.off()
+    
+    # Save the final analyzed SingleCellExperiment object
+    saveRDS(sce, "analyzed_sce.rds")
+    
+    # Clean up temporary GDS file
+    if (file.exists("test.gds")) {
+        unlink("test.gds", force=TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scarray_output.rds")
-    }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCARRAY:", paste0("    scarray: ", packageVersion("SCArray"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS":',
+        paste0('    SCArray: ', as.character(packageVersion('SCArray')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scarray_results.csv
-    touch ${prefix}_scarray_output.rds
-    echo "BIOC_SCARRAY:" > versions.yml
-    echo "    scarray: 0.0.0" >> versions.yml
+    touch ${prefix}_gds_single_cell_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCARRAY_WORKFLOW {
+workflow BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ example.rds, example.gds ] ]
 
     main:
-    BIOC_SCARRAY(ch_input)
+    BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCARRAY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCARRAY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCARRAY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCARRAY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS.out.tables
+    plots    = BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS.out.plots
+    objects  = BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS.out.objects
+    versions = BIOC_SCARRAY_GDS_SINGLE_CELL_ANALYSIS.out.versions
 }

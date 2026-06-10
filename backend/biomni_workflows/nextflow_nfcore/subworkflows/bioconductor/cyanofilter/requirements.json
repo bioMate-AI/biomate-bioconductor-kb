@@ -1,0 +1,25 @@
+{
+  "package": "cyanofilter",
+  "requirements": [
+    "cyanoFilter",
+    "dplyr",
+    "flowCore",
+    "flowDensity",
+    "magrittr",
+    "purrr",
+    "stringr",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cyanoFilter",
+      "dplyr",
+      "flowCore",
+      "flowDensity",
+      "magrittr",
+      "purrr",
+      "stringr",
+      "tidyr"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: obj=The input microbiome abundance data, which can be a matrix, data.frame, phyloseq, or TreeSummarizedExperiment object ;; set=A list of character vectors or a BiocSet object representing the taxa sets to be analyzed ;; output=The type of enrichment score to return, either \"zscore\" (standardized balance) or \"cdf\" (cumulative distribution function value) ;; distr=The null distribution to fit for calculating scores, typically \"norm\" (normal) or \"t\" (Student's t) ;; adj=Adjustment method for the null distribution, such as \"none\" or \"cb\" (correlation-based adjustment) ;; parametric=Logical indicating whether to use parametric estimation (TRUE) or non-parametric permutation/bootstrap (FALSE) to estimate the null distribution ;; n_boot=Number of bootstrap replicates to use when parametric is FALSE\n- alternatives: GSEA or GSVA can be used for set enrichment but do not account for the compositional nature of microbiome data; ALDEx2 or ANCOM-BC are preferred for taxon-level differential abundance testing rather than sample-specific set enrichment\n- when_to_use: Use when you want to calculate sample-specific enrichment scores for predefined groups of taxa (e.g., metabolic pathways, phylogenetic clades, or functional modules) using compositional microbiome relative abundance data\n- pitfalls: Passing raw count data without setting raw_count = TRUE or performing proper normalization; using very small taxon sets (e.g., < 5 taxa) which can lead to unstable balance calculations; choosing an inappropriate null distribution (e.g., \"norm\" when the data has heavy tails, where \"t\" might be better)",
+  "workflows": [
+    {
+      "name": "cbea_taxa_set_enrichment",
+      "intent": "Perform competitive balance enrichment analysis on microbiome taxonomic abundance data to obtain sample-specific enrichment scores for predefined taxa sets.",
+      "input": [
+        "abundance_matrix.csv (microbiome relative abundance matrix with samples as rows and taxa as columns)",
+        "taxa_sets.gmt (GMT file or list defining the taxa sets/pathways)"
+      ],
+      "stages": "1. Load the CBEA package and input datasets ;; 2. Format the taxa sets into a list or BiocSet object ;; 3. Run the cbea function to calculate enrichment scores (z-scores or CDF values) using the specified null distribution and adjustment ;; 4. Extract the resulting enrichment score matrix for downstream statistical analysis",
+      "code": "library(CBEA)\n# Assuming abundance_data is a matrix of relative abundances (samples as rows, taxa as columns)\n# and taxa_sets is a list of character vectors representing taxa sets\nresults <- cbea(obj = abundance_data, set = taxa_sets, output = \"zscore\", distr = \"norm\", adj = \"none\", parametric = TRUE)"
+    }
+  ]
+}

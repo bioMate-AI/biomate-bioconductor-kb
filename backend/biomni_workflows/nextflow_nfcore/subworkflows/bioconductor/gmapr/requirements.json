@@ -1,0 +1,27 @@
+{
+  "package": "gmapr",
+  "requirements": [
+    "Biostrings",
+    "GenomicFeatures",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "VariantAnnotation",
+    "gmapR",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "create_gmap_genome_package.nf": [
+      "gmapR"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "GenomicFeatures",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "gmapR",
+      "org.Hs.eg.db"
+    ],
+    "variant_tallying_bam_tally.nf": [
+      "VariantAnnotation",
+      "gmapR"
+    ]
+  }
+}

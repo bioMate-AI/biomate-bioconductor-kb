@@ -1,0 +1,13 @@
+{
+  "package": "cummerbund",
+  "requirements": [
+    "cummeRbund",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cummeRbund",
+      "ggplot2"
+    ]
+  }
+}

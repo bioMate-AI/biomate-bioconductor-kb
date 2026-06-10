@@ -1,0 +1,23 @@
+{
+  "package": "sigfeature",
+  "requirements": [
+    "RColorBrewer",
+    "SummarizedExperiment",
+    "e1071",
+    "pheatmap",
+    "sigFeature"
+  ],
+  "by_workflow": {
+    "cross_validation_and_frequency_profiling.nf": [
+      "e1071",
+      "sigFeature"
+    ],
+    "main.nf": [
+      "RColorBrewer",
+      "SummarizedExperiment",
+      "e1071",
+      "pheatmap",
+      "sigFeature"
+    ]
+  }
+}

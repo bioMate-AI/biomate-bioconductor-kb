@@ -1,0 +1,15 @@
+{
+  "package": "ggtree",
+  "requirements": [
+    "GenomicRanges",
+    "ggplot2",
+    "ggtree"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "ggtree"
+    ]
+  }
+}

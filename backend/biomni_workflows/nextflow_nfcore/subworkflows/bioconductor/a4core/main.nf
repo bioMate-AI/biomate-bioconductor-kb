@@ -1,97 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: a4Core
-// Utility functions for the Automated Affymetrix Array Analysis set of packages.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/a4Core/inst/doc/a4Core-vignette.R
-// Upstream  : none
-// Downstream: a4, a4Base, a4Classif, nlcv
-//
-// Install: BiocManager::install("a4Core")
+// Bioconductor workflow: a4Core — a4_core_classification_pipeline
+// Perform feature selection and classification evaluation on transcriptomics data using a4Core utility functions.
+// Input: counts.csv, coldata.csv
+// Container: 1.58.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, a4Core, glmnet
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_A4CORE {
+process BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-a4core"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-a4core:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-a4core:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_a4core_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_a4core_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_a4core_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
     library(a4Core)
-    library(jsonlite)
-
-    # --- Phenotypic Metadata Extraction [] ---
-    # Key functions: pData
-    phenoData <- pData(eSet)
-    classLabels <- phenoData$class
-    covariates <- phenoData[, "class", drop = FALSE]
-
-
-    # --- Expression Matrix Extraction [] ---
-    # Key functions: exprs
-    expressionMatrix <- exprs(eSet)
-    features <- rownames(expressionMatrix)
-    meanExpression <- rowMeans(expressionMatrix)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_a4core_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_a4core_results.csv")
+    library(Biobase)
+    library(glmnet)
+    
+    # Stage 2: Read and preprocess input files
+    # counts.csv: gene-by-sample normalized expression matrix (column 'gene_id' is row names)
+    # coldata.csv: sample metadata with columns 'sample' and 'condition'
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    if ("gene_id" %in% colnames(counts_df)) {
+      rownames(counts_df) <- counts_df\$gene_id
+      counts_df\$gene_id <- NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_a4core_output.rds")
+    counts_mat <- as.matrix(counts_df)
+    
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    rownames(coldata) <- coldata\$sample
+    
+    # Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(counts_mat), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("No common samples found between counts.csv and coldata.csv")
     }
+    counts_mat <- counts_mat[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, drop = FALSE]
+    
+    # Stage 3: Create ExpressionSet container
+    pheno_data <- new("AnnotatedDataFrame", data = coldata)
+    eSet <- ExpressionSet(assayData = counts_mat, phenoData = pheno_data)
+    
+    # Stage 4: Model Fitting using glmnet (Lasso/Elastic Net)
+    # Prepare predictors (x) and response (y)
+    x <- t(exprs(eSet))
+    y <- factor(pData(eSet)\$condition)
+    
+    # Fit a logistic regression model with lasso penalty
+    fit <- glmnet::glmnet(x, y, family = "binomial")
+    
+    # Stage 5: Feature Selection using a4Core::topTable
+    # topTable extracts the most important features from the classification model
+    top_feats <- tryCatch({
+      a4Core::topTable(fit, n = 20)
+    }, error = function(e) {
+      message("Standard topTable call failed, using fallback coefficient extraction: ", e\$message)
+      # Fallback: extract non-zero coefficients manually if topTable expects a specific subclass
+      coefs <- as.matrix(coef(fit, s = min(fit\$lambda)))
+      coefs_filtered <- coefs[coefs[, 1] != 0, , drop = FALSE]
+      df <- data.frame(
+        Feature = rownames(coefs_filtered),
+        Coefficient = coefs_filtered[, 1]
+      )
+      df <- df[order(abs(df\$Coefficient), decreasing = TRUE), ]
+      df
+    })
+    
+    # Save top features
+    write.csv(top_feats, "top_features.csv", row.names = FALSE)
+    
+    # Stage 6: Model Evaluation using a4Core::confusionMatrix
+    # Predict classes using a representative lambda
+    lambda_val <- fit\$lambda[median(seq_along(fit\$lambda))]
+    preds <- predict(fit, newx = x, s = lambda_val, type = "class")
+    preds_factor <- factor(preds, levels = levels(y))
+    
+    conf_mat <- tryCatch({
+      a4Core::confusionMatrix(preds_factor, y)
+    }, error = function(e) {
+      message("confusionMatrix call failed, using base table fallback: ", e\$message)
+      table(Predicted = preds_factor, Actual = y)
+    })
+    
+    # Save confusion matrix
+    write.csv(as.matrix(conf_mat), "confusion_matrix.csv", row.names = TRUE)
+    
+    # Stage 7: Visualization and Diagnostics
+    pdf("diagnostic_plots.pdf", width = 8, height = 6)
+    plot(fit, xvar = "lambda", label = TRUE)
+    title("Lasso Coefficient Paths", line = 2.5)
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_A4CORE:", paste0("    a4core: ", packageVersion("a4Core"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE":',
+        paste0('    a4Core: ', as.character(packageVersion('a4Core')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_a4core_results.csv
-    touch ${prefix}_a4core_output.rds
-    echo "BIOC_A4CORE:" > versions.yml
-    echo "    a4core: 0.0.0" >> versions.yml
+    touch ${prefix}_a4_core_classification_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_A4CORE_WORKFLOW {
+workflow BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_A4CORE(ch_input)
+    BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_A4CORE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_A4CORE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_A4CORE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_A4CORE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE.out.tables
+    plots    = BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE.out.plots
+    objects  = BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE.out.objects
+    versions = BIOC_A4CORE_A4_CORE_CLASSIFICATION_PIPELINE.out.versions
 }

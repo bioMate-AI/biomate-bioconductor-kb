@@ -1,0 +1,13 @@
+{
+  "package": "systempipetools",
+  "requirements": [
+    "systemPipeR",
+    "systemPipeTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "systemPipeR",
+      "systemPipeTools"
+    ]
+  }
+}

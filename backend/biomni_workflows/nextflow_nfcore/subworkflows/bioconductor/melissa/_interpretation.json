@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None documented in the provided text.\n- alternatives: None mentioned in the provided text.\n- when_to_use: This analysis is appropriate when you have single-cell DNA methylation data (methylomes) and want to simultaneously cluster cells into subpopulations and impute missing methylation values by exploiting local genomic correlations and global cell similarities.\n- pitfalls: The package is deprecated and will probably be removed from Bioconductor, meaning it may not be supported or available in future Bioconductor releases.",
+  "workflows": [
+    {
+      "name": "melissa_clustering_imputation",
+      "intent": "Jointly cluster single-cell methylomes and impute missing methylation states.",
+      "input": [
+        "single_cell_methylome_data (single-cell DNA methylation profiles, format not specified in the provided text)"
+      ],
+      "stages": "1. Joint clustering and imputation of single-cell methylomes (no specific functions are documented in the provided text)",
+      "code": "# No code or functions are documented in the provided text."
+    }
+  ]
+}

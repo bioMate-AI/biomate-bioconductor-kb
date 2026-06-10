@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <y=An N x G matrix of gene expression (representing logged counts, e.g., log2(TPM+1)) or a SummarizedExperiment object ;; x=An N-length vector of covariates, a covariate matrix, a character naming a column of colData(sce), or a formula to build a model matrix ;; elbo_tol=The percentage change in the ELBO below which the model is considered converged (e.g., 1e-6) ;; thin=Integer specifying how often to compute the ELBO (e.g., every 40 iterations) to save computational cost ;; z_init=Initialization of the latent space; can be an integer specifying a principal component, a vector of initial values, or \"random\" ;; maxiter=Maximum number of iterations to run coordinate ascent variational inference (CAVI) ;; sce_assay=String specifying which assay of a SummarizedExperiment to use as gene expression values (defaults to \"exprs\")>\n- alternatives: <None mentioned in the documentation, though PCA is used as a baseline comparison for visualization>\n- when_to_use: <When analyzing transcriptomic data (such as single-cell RNA-seq) where cells follow a trajectory (pseudotime) but the trajectory is perturbed by sample-specific covariates (e.g., mutational status, genotype, or drug exposure), and you want to identify genes with significant pseudotime-covariate interactions>\n- pitfalls: <The posterior distribution is multi-modal, meaning variational inference can converge to local maxima; proper initialization of the latent space via z_init is therefore highly important ;; Computing the ELBO is computationally expensive, so the thin parameter should be set appropriately to avoid calculating it at every iteration ;; Input expression data must represent logged counts (e.g., log2(TPM+1)) rather than raw counts, and PhenoPath centre-scales the input expression by default>",
+  "workflows": [
+    {
+      "name": "standard_matrix_workflow",
+      "intent": "Fit the PhenoPath model using a gene expression matrix and a covariate vector to infer pseudotimes and identify significant gene-covariate interactions.",
+      "input": [
+        "expression_matrix.csv (matrix of logged counts, e.g., log2(TPM+1), with samples as rows and genes as columns)",
+        "covariates.csv (vector or matrix of sample-specific covariates)"
+      ],
+      "stages": "1. Fit the PhenoPath model using phenopath() ;; 2. Check model convergence using plot_elbo() ;; 3. Extract the latent trajectory (pseudotimes) using trajectory() ;; 4. Retrieve interaction effects, standard deviations, and significance using interaction_effects(), interaction_sds(), and significant_interactions()",
+      "code": "fit <- phenopath(sim$y, sim$x, elbo_tol = 1e-6, thin = 40)\nprint(fit)\nplot_elbo(fit)\ntrajectory(fit)\ncor(sim$z, trajectory(fit))\ngene_names <- paste0(\"gene\", seq_len(ncol(fit$m_beta)))\ndf_beta <- data_frame(beta = interaction_effects(fit),\n                      beta_sd = interaction_sds(fit),\n                      is_sig = significant_interactions(fit),\n                      gene = gene_names)"
+    },
+    {
+      "name": "summarized_experiment_workflow",
+      "intent": "Fit the PhenoPath model using a SummarizedExperiment object containing expression data and sample metadata.",
+      "input": [
+        "summarized_experiment.rds (A SummarizedExperiment object containing an expression assay and sample metadata in colData)"
+      ],
+      "stages": "1. Prepare the SummarizedExperiment object ;; 2. Fit the PhenoPath model using phenopath() with the SummarizedExperiment and covariate specifications (vector, column name, or formula)",
+      "code": "exprs_mat <- t(sim$y)\npdata <- data.frame(x = sim$x)\nsce <- SummarizedExperiment(assays = list(exprs = exprs_mat), \n                            colData = pdata)\nsce\nfit <- phenopath(sce, sim$x) # 1\nfit <- phenopath(sce, \"x\") # 2\nfit <- phenopath(sce, ~ x) # 3"
+    }
+  ]
+}

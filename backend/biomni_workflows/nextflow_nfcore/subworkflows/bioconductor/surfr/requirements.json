@@ -1,0 +1,11 @@
+{
+  "package": "surfr",
+  "requirements": [
+    "SurfR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SurfR"
+    ]
+  }
+}

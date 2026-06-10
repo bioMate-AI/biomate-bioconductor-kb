@@ -1,0 +1,11 @@
+{
+  "package": "ebarrays",
+  "requirements": [
+    "EBarrays"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBarrays"
+    ]
+  }
+}

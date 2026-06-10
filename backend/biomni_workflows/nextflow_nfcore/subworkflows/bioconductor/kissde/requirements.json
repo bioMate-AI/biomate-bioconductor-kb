@@ -1,0 +1,17 @@
+{
+  "package": "kissde",
+  "requirements": [
+    "kissDE"
+  ],
+  "by_workflow": {
+    "custom_table_analysis.nf": [
+      "kissDE"
+    ],
+    "main.nf": [
+      "kissDE"
+    ],
+    "snv_snp_analysis.nf": [
+      "kissDE"
+    ]
+  }
+}

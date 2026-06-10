@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: chr=The chromosome of interest (e.g., \"chr1\", \"chr7\") based on GRCm38 ;; start=The start position of the genomic region ;; end=The end position of the genomic region ;; strain1=A vector of strain names representing the first group (e.g., cases or first founder) ;; strain2=A vector of strain names representing the second group (e.g., controls or second founder) ;; impact=A vector of variant impacts to filter by, such as HIGH, MODERATE, or LOW ;; flanking=Flanking distance in base pairs for gene annotation ;; n_top=The number of top strain combinations to return in get_top()\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when performing genetic finemapping of QTLs or genomic regions in inbred mice, or when planning follow-up crossing experiments to narrow down candidate genes/variants.\n- pitfalls: annotate_consequences() is not recommended for large queries due to performance and resource constraints. Ensure strain names match the exact identifiers returned by avail_strains().",
+  "workflows": [
+    {
+      "name": "genetic_finemapping",
+      "intent": "Finemap a specific genomic region by identifying homozygous SNVs that differ between two groups of mouse strains and annotating them with consequences and genes.",
+      "input": [
+        "Genomic region coordinates (chromosome, start, end) and two groups of mouse strains (e.g., case vs control strains)."
+      ],
+      "stages": "1. List available strains using avail_strains() ;; 2. Run finemapping using finemap() ;; 3. Annotate the resulting variants with consequences using annotate_consequences() ;; 4. Annotate the variants with nearby genes using annotate_mouse_genes()",
+      "code": "avail_strains()\nres = finemap(chr=\"chr7\", strain1=c(\"C57BL_6J\",\"C57L_J\",\"CBA_J\",\"NZB_B1NJ\"), strain2=c(\"C3H_HEJ\",\"MOLF_EiJ\",\"NZW_LacJ\",\"WSB_EiJ\",\"SPRET_EiJ\"), impact=c(\"HIGH\", \"MODERATE\", \"LOW\"))\ncons = annotate_consequences(res, \"mouse\")\ngenes = annotate_mouse_genes(res, flanking = 50000)"
+    },
+    {
+      "name": "strain_prioritization",
+      "intent": "Prioritize additional inbred mouse strains to refine a genetic region identified in a crossing experiment between two initial strains.",
+      "input": [
+        "Genomic region coordinates (chromosome, start, end) and the two founder strains of the initial cross."
+      ],
+      "stages": "1. Run strain prioritization using prio() ;; 2. Extract the top strain combinations that provide the best refinement using get_top() ;; 3. Visualize the reduction factors using vis_reduction_factors()",
+      "code": "df = prio(\"chr1\", start=5000000, end=6000000, strain1=\"C57BL_6J\", strain2=\"AKR_J\")\nget_top(df$reduction, n_top=3)\nplots = vis_reduction_factors(df$genotypes, df$reduction, 2)\nplots[[1]]\nplots[[2]]"
+    },
+    {
+      "name": "fetch_genotypes",
+      "intent": "Download homozygous genotypes of inbred mouse strains for a given genetic region.",
+      "input": [
+        "Genomic region coordinates (chromosome, start, end)."
+      ],
+      "stages": "1. Fetch genotypes using fetch() ;; 2. View metadata using comment()",
+      "code": "df = fetch(\"chr1\", start=5000000, end=6000000)\ncomment(df)"
+    }
+  ]
+}

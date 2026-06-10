@@ -1,0 +1,17 @@
+{
+  "package": "pathrender",
+  "requirements": [
+    "RColorBrewer",
+    "Rgraphviz",
+    "graph",
+    "pathRender"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RColorBrewer",
+      "Rgraphviz",
+      "graph",
+      "pathRender"
+    ]
+  }
+}

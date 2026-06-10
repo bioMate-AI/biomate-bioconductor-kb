@@ -1,0 +1,27 @@
+{
+  "package": "bindingsitefinder",
+  "requirements": [
+    "BindingSiteFinder",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "S4Vectors",
+    "rtracklayer",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "differential_binding_analysis.nf": [
+      "BindingSiteFinder",
+      "GenomicFeatures",
+      "rtracklayer",
+      "txdbmaker"
+    ],
+    "main.nf": [
+      "BindingSiteFinder",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "S4Vectors",
+      "rtracklayer",
+      "txdbmaker"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "package": "alphabeta",
+  "requirements": [
+    "AlphaBeta",
+    "data.table",
+    "ggplot2",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AlphaBeta",
+      "data.table",
+      "ggplot2",
+      "igraph"
+    ],
+    "somatic_clonal_systems_epimutation_rate.nf": [
+      "AlphaBeta",
+      "data.table",
+      "ggplot2",
+      "igraph"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: positionName=The column name in the input data frame representing genomic positions when calling createArrayData ;; quiet=A logical parameter in geneToSNPList (defaulting to TRUE) that suppresses warnings when finding overlaps between genes and study SNPs\n- alternatives: GLOSSI vs VEGAS. Use GLOSSI when analyzing independent SNPs (e.g., after LD-pruning). Use VEGAS when analyzing correlated SNPs, as it utilizes a correlation/linkage disequilibrium (LD) matrix to simulate the null distribution and account for correlation structure.\n- when_to_use: Use this package when you have SNP-level p-values from a genome-wide association study (GWAS) and want to aggregate them to test the association of specific gene sets or biological pathways with a phenotype.\n- pitfalls: Mapping gene IDs to SNPs is highly sensitive to genome builds; users must ensure that the gene transcripts database (e.g., TxDb.Hsapiens.UCSC.hg19.knownGene) matches the coordinate build of the SNP positions. GLOSSI assumes independent SNPs; running it on highly correlated SNPs without prior LD-pruning will violate statistical assumptions and yield incorrect p-values. Setting quiet=TRUE in geneToSNPList may suppress valid warnings about coordinate mismatches.",
+  "workflows": [
+    {
+      "name": "glossi_analysis",
+      "intent": "Perform gene set analysis on independent (LD-pruned) SNP p-values using the GLOSSI method.",
+      "input": [
+        "arrayData.csv (GWAS results containing SNP IDs, p-values, chromosomes, and genomic positions)",
+        "gene_sets.gmt (GeneSetCollection containing Entrez gene IDs)",
+        "independent_snps.txt (List of independent/LD-pruned SNP IDs)"
+      ],
+      "stages": "1. Convert GWAS data frame to a GRanges object using createArrayData.\n2. Map gene IDs in the GeneSetCollection to SNP IDs using geneToSNPList and a transcript database.\n3. Subset the GWAS GRanges to independent SNPs and extract named p-values.\n4. Run GLOSSI using glossi.\n5. Extract results using pValue, degreesOfFreedom, and statistic.\n6. Visualize results using plotPvals.",
+      "code": "arrayDataGR <- createArrayData(geneSetAnalysis[[\"arrayData\"]], \n    positionName=\"Position\")\ngeneSets <- geneSetAnalysis[[\"geneSets\"]]\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene)\ntxdb <- TxDb.Hsapiens.UCSC.hg19.knownGene\ngenesHg19 <- genes(txdb)\nsnpsGSC <- geneToSNPList(geneSets, arrayDataGR, genesHg19)\nindep <- geneSetAnalysis[[\"indepSNPs\"]]\npvals <- arrayDataGR$P[is.element(arrayDataGR$SNP, indep$V1)]\nnames(pvals) <- arrayDataGR$SNP[is.element(arrayDataGR$SNP, indep$V1)]\ngRes <- glossi(pvals, snpsGSC)\npValue(gRes)\ndegreesOfFreedom(gRes)\nstatistic(gRes)\nplotPvals(gRes, main=\"GLOSSI P-values\")"
+    },
+    {
+      "name": "vegas_analysis",
+      "intent": "Perform gene set analysis on correlated SNP p-values using the VEGAS method, accounting for linkage disequilibrium (LD).",
+      "input": [
+        "arrayData.csv (GWAS results containing SNP IDs, p-values, chromosomes, and genomic positions)",
+        "gene_sets.gmt (GeneSetCollection containing Entrez gene IDs)",
+        "ld_matrix.rds (Square, symmetric matrix of correlation/LD values among SNPs)"
+      ],
+      "stages": "1. Convert GWAS data frame to a GRanges object using createArrayData.\n2. Map gene IDs in the GeneSetCollection to SNP IDs using geneToSNPList and a transcript database.\n3. Run VEGAS using vegas with the mapped GeneSetCollection, SNP GRanges, and LD matrix.\n4. Extract results using pValue, degreesOfFreedom, and statistic.",
+      "code": "arrayDataGR <- createArrayData(geneSetAnalysis[[\"arrayData\"]], \n    positionName=\"Position\")\ngeneSets <- geneSetAnalysis[[\"geneSets\"]]\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene)\ntxdb <- TxDb.Hsapiens.UCSC.hg19.knownGene\ngenesHg19 <- genes(txdb)\nsnpsGSC <- geneToSNPList(geneSets, arrayDataGR, genesHg19)\nldMat <- geneSetAnalysis[[\"ldMat\"]]\nvRes <- vegas(snpsGSC[1], arrayDataGR, ldMat)\npValue(vRes)\ndegreesOfFreedom(vRes)\nstatistic(vRes)"
+    }
+  ]
+}

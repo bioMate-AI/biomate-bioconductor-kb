@@ -1,0 +1,11 @@
+{
+  "package": "amplican",
+  "requirements": [
+    "amplican"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "amplican"
+    ]
+  }
+}

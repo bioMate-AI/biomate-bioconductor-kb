@@ -1,108 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: REDseq
-// The package includes functions to build restriction enzyme cut site (RECS) map, distribute mapped se
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/REDseq/inst/doc/REDseq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("REDseq")
+// Bioconductor workflow: REDseq — single_end_redseq_analysis
+// Build a restriction enzyme map, assign single-end sequence tags to RE sites, visualize distributions, and perform statistical testing for enriched/depleted or d
+// Input: examplePattern.fa, example.REDseq, example.map
+// Container: quay.io/biocontainers/bioconductor-redseq:1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Celegans.UCSC.ce2, REDseq
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Build genome-wide RE map using buildREmap
+//  * 2. [Core Analysis] Assign mapped sequence tags to RE sites using assignSeq2REsite
+//  * 3. [Visualization & Output] Visualize cut frequency distribution using plotCutDistribution and distance distribution using distanceHistSeq2RE
+//  * 4. [Visualization & Output] Summarize assigned reads to generate a count table using summarizeByRE
+//  * 5. [Core Analysis] Identify statistically significant cut sites for a single condition using binom.test.REDseq, or compare two conditions without rep
 
 nextflow.enable.dsl = 2
 
-process BIOC_REDSEQ {
+process BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-redseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-redseq:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-redseq:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_redseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_redseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_redseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(REDseq)
-    library(jsonlite)
+    library(BSgenome.Celegans.UCSC.ce2)
+    
+    # 1. Build genome-wide RE map using buildREmap
+    REpatternFilePath <- "examplePattern.fa"
+    myMap <- buildREmap(REpatternFilePath, BSgenomeName=Celegans, outfile="example.REmap")
+    
+    # Read user input files
+    example.REDseq <- readRDS("example.REDseq")
+    example.map <- readRDS("example.map")
+    
+    # 2. Assign mapped sequence tags to RE sites using assignSeq2REsite
+    r.unique <- assignSeq2REsite(example.REDseq, example.map, cut.offset = 1, 
+                                 seq.length = 36, allowed.offset = 5, min.FragmentLength = 60, 
+                                 max.FragmentLength = 300, partitionMultipleRE = "unique")
+    
+    r.best <- assignSeq2REsite(example.REDseq, example.map, 
+                               cut.offset = 1, seq.length = 36, allowed.offset = 5, 
+                               min.FragmentLength = 60, max.FragmentLength = 300, partitionMultipleRE = "best")
+    
+    r.random <- assignSeq2REsite(example.REDseq, example.map, cut.offset = 1, 
+                                 seq.length = 36, allowed.offset = 5, min.FragmentLength = 60, 
+                                 max.FragmentLength = 300, partitionMultipleRE = "random")
+    
+    r.average <- assignSeq2REsite(example.REDseq, example.map, cut.offset = 1, 
+                                  seq.length = 36, allowed.offset = 5, min.FragmentLength = 60,
+                                  max.FragmentLength = 300, partitionMultipleRE = "average")
+    
+    r.estimate <- assignSeq2REsite(example.REDseq, example.map, cut.offset = 1, 
+                                   seq.length = 36, allowed.offset = 5, min.FragmentLength = 60, 
+                                   max.FragmentLength = 300, partitionMultipleRE = "estimate")
+    
+    # Save assigned sequence objects
+    saveRDS(r.unique, "r.unique.rds")
+    saveRDS(r.best, "r.best.rds")
+    saveRDS(r.random, "r.random.rds")
+    saveRDS(r.average, "r.average.rds")
+    saveRDS(r.estimate, "r.estimate.rds")
+    
+    # Use the assigned sequences from the estimate partition strategy for downstream analysis
+    example.assignedREDseq <- r.estimate\$passed.filter
+    
+    # 3. Visualize cut frequency distribution and distance distribution
+    pdf("cut_distribution.pdf")
+    plotCutDistribution(example.assignedREDseq, example.map, chr="2", xlim = c(3012000, 3020000))
+    dev.off()
+    
+    pdf("distance_hist.pdf")
+    distanceHistSeq2RE(example.assignedREDseq, ylim=c(0,25))
+    dev.off()
+    
+    # 4. Summarize assigned reads to generate a count table using summarizeByRE
+    REsummary <- summarizeByRE(example.assignedREDseq, by="Weight")
+    write.csv(REsummary, "REsummary.csv", row.names=FALSE)
+    
+    # 5. Identify statistically significant cut sites for a single condition using binom.test.REDseq
+    binom_res <- binom.test.REDseq(REsummary)
+    write.csv(binom_res, "binom_results.csv", row.names=FALSE)
+    
+    # Compare two conditions without replicates using compareREDseq
+    x <- cbind(c("RE1", "RE2", "RE3", "RE4"), c(10,1,100, 0), c(5,5,50, 40))
+    colnames(x) <- c("REid", "control", "treated")
+    compare_res <- compareREDseq(x)
+    write.csv(compare_res, "compare_results.csv", row.names=FALSE)
 
-    # --- Data [] ---
-    # Key functions: assignSeq2REsite
-    data(example.REDseq)
-    	data(example.map)
-    	r.unique = assignSeq2REsite(example.REDseq, example.map, cut.offset = 1,
-    	seq.length = 36, allowed.offset = 5, min.FragmentLength = 60,
-    	max.FragmentLength = 300, partitionMultipleRE = "unique")
-    # --- Data [] ---
-    # Key functions: data
-    data(example.assignedREDseq)
-    # --- Fig1 [] ---
-    # Key functions: plotCutDistribution
-    plotCutDistribution(example.assignedREDseq,example.map, chr="2",
-    xlim =c(3012000, 3020000))
-    # --- Fig2 [] ---
-    # Key functions: distanceHistSeq2RE
-    distanceHistSeq2RE(example.assignedREDseq,ylim=c(0,25))
-    # --- Summarizebyre [] ---
-    # Key functions: summarizeByRE
-    REsummary  =summarizeByRE(example.assignedREDseq,by="Weight")
-    # --- Redseq [] ---
-    # Key functions: REDseq
-    binom.test.REDseq(REsummary)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_redseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_redseq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_redseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REDSEQ:", paste0("    redseq: ", packageVersion("REDseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS":',
+        paste0('    REDseq: ', as.character(packageVersion('REDseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_redseq_results.csv
-    touch ${prefix}_redseq_output.rds
-    echo "BIOC_REDSEQ:" > versions.yml
-    echo "    redseq: 0.0.0" >> versions.yml
+    touch ${prefix}_single_end_redseq_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_REDSEQ_WORKFLOW {
+workflow BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ examplePattern.fa, example.REDseq, example.map ] ]
 
     main:
-    BIOC_REDSEQ(ch_input)
+    BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_REDSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REDSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REDSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REDSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS.out.tables
+    plots    = BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS.out.plots
+    objects  = BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS.out.objects
+    versions = BIOC_REDSEQ_SINGLE_END_REDSEQ_ANALYSIS.out.versions
 }

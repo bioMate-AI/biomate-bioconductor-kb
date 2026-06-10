@@ -1,0 +1,13 @@
+{
+  "package": "ddpcrclust",
+  "requirements": [
+    "ddPCRclust",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ddPCRclust",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: ssize — power_calculation
+// Calculate and plot the statistical power achieved by a fixed sample size and fold-change across all genes.
+// Input: control_expression_data.csv
+// Container: quay.io/biocontainers/bioconductor-ssize:1.84.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: gdata, ssize, xtable
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and calculate gene-specific standard deviations from control samples
+//  * 2. [Core Analysis] Compute power for a fixed sample size using pow
+//  * 3. [Visualization & Output] Plot the cumulative proportion of genes achieving power thresholds using power.plot
+
+nextflow.enable.dsl = 2
+
+process BIOC_SSIZE_POWER_CALCULATION {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ssize)
+        library(xtable)
+        library(gdata) # for nobs()
+        options(width=30)
+        
+        # 1. Load the control expression data and calculate gene-specific standard deviations
+        input_file <- "control_expression_data.csv"
+        if (!file.exists(input_file)) {
+          stop(paste("Required input file missing:", input_file))
+        }
+        
+        # Read the expression matrix (genes as rows, samples as columns)
+        control_data <- read.csv(input_file, row.names = 1, check.names = FALSE)
+        control_matrix <- as.matrix(control_data)
+        
+        # Calculate standard deviation for each gene across control samples
+        exp.sd <- apply(control_matrix, 1, sd, na.rm = TRUE)
+        
+        # Clean standard deviations (remove NA, NaN, or zero values)
+        exp.sd <- exp.sd[!is.na(exp.sd) & exp.sd > 0]
+        
+        # Save calculated standard deviations to a CSV file
+        write.csv(data.frame(Gene = names(exp.sd), SD = exp.sd), 
+                  file = "calculated_gene_sd.csv", 
+                  row.names = FALSE)
+        
+        # Define parameters for power calculation
+        n <- 6
+        fold.change <- 2.0
+        power <- 0.8
+        sig.level <- 0.05
+        
+        # 2. Compute power for a fixed sample size using pow
+        all.power <- pow(sd=exp.sd, n=n, delta=log2(fold.change),
+                         sig.level=sig.level)
+        
+        # Save the power results as an RDS object and a CSV table
+        saveRDS(all.power, file = "power_results.rds")
+        
+        # Extract power values (all.power is typically a vector or has a compatible structure)
+        power_values <- as.vector(all.power)
+        write.csv(data.frame(Gene = names(exp.sd), Power = power_values), 
+                  file = "power_results.csv", 
+                  row.names = FALSE)
+        
+        # 3. Plot the cumulative proportion of genes achieving power thresholds using power.plot
+        pdf("power_plot.pdf", width = 7, height = 7)
+        par(cex=1)
+        power.plot(all.power, lwd=2, col="blue")
+        
+        # Add legend and title as documented in the vignette
+        xmax <- par("usr")[2] - 0.05
+        ymax <- par("usr")[4] - 0.05
+        legend(x=xmax, y=ymax,
+               legend= strsplit( paste("n=",n,",",
+                 "fold change=",fold.change,",",
+                 "alpha=", sig.level, ",",
+                 "# genes=", nobs(exp.sd), sep=''), "," )[[1]],
+               xjust=1, yjust=1, cex=0.90)
+        title("Power to Detect 2-Fold Change")
+        dev.off()
+
+    writeLines(c(
+        '"BIOC_SSIZE_POWER_CALCULATION":',
+        paste0('    ssize: ', as.character(packageVersion('ssize')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_power_calculation.csv versions.yml
+    """
+}
+
+workflow BIOC_SSIZE_POWER_CALCULATION_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ control_expression_data.csv ] ]
+
+    main:
+    BIOC_SSIZE_POWER_CALCULATION(ch_input)
+
+    emit:
+    tables   = BIOC_SSIZE_POWER_CALCULATION.out.tables
+    plots    = BIOC_SSIZE_POWER_CALCULATION.out.plots
+    objects  = BIOC_SSIZE_POWER_CALCULATION.out.objects
+    versions = BIOC_SSIZE_POWER_CALCULATION.out.versions
+}

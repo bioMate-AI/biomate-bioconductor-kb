@@ -1,0 +1,18 @@
+{
+  "package": "rcas",
+  "requirements": [
+    "RCAS",
+    "RSQLite",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RCAS",
+      "data.table"
+    ],
+    "multi_sample_meta_analysis.nf": [
+      "RCAS",
+      "RSQLite"
+    ]
+  }
+}

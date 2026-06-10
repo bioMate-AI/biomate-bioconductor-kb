@@ -1,0 +1,28 @@
+{
+  "package": "cytomds",
+  "requirements": [
+    "BiocParallel",
+    "CytoMDS",
+    "flowCore",
+    "ggplot2",
+    "patchwork"
+  ],
+  "by_workflow": {
+    "generic_expression_matrices.nf": [
+      "CytoMDS",
+      "ggplot2"
+    ],
+    "large_dataset_parallel.nf": [
+      "BiocParallel",
+      "CytoMDS",
+      "flowCore",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "CytoMDS",
+      "flowCore",
+      "ggplot2",
+      "patchwork"
+    ]
+  }
+}

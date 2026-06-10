@@ -1,0 +1,32 @@
+library(QSutils)
+
+filepath <- system.file("extdata", "ToyData_10_50_1000.fna", package="QSutils")
+
+if (file.exists(filepath)) {
+    file.copy(filepath, "ToyData_10_50_1000.fna", overwrite = TRUE)
+} else {
+    # Fallback: construct the file exactly as shown in the vignette
+    lines <- c(
+        ">Hpl_0_0001|464|46.4",
+        "CACCCTGTGACCAGTGTGTGCGAGTTTGGTGCCCCGTTGGCATTGACTAT",
+        ">Hpl_1_0001|62|6.2",
+        "CACTCTGTGACCAGTGTGTGCGAGTTTGGTGCCCCGTTGGCATTGACTAT",
+        ">Hpl_1_0002|39|3.9",
+        "CACCCTGTGACCAGCGTGTGCGAGTTTGGTGCCCCGTTGGCATTGACTAT",
+        ">Hpl_1_0003|27|2.7",
+        "CACCCTGTGACCAGTGTGTGCGAGTTTGGTGCCCCGTTGGCATTGACTAC",
+        ">Hpl_2_0001|37|3.7",
+        "CACTCTGTGACCAGTGTGTGCGAGTTTGGTGCCCCGTTAGCATTGACTAT",
+        ">Hpl_4_0001|16|1.6",
+        "CACTCGGTGACCAGTGTGCGTGAGTTTGGTGCCCCGTTGGCATTGACTAT",
+        ">Hpl_5_0001|33|3.3",
+        "CACTCTGTGACCAGTGTGCGCGAGTTTAGTGCCCTGTCGGCATTGACTAT",
+        ">Hpl_8_0001|54|5.4",
+        "CACTCTGTGATCAGTGTGCGCGAGTTTAGTGCCCTGCCGGCATCGACTAT",
+        ">Hpl_9_0001|248|24.8",
+        "CACTCTGTGATCAGTGTGCGCGAGTTTAGTGCCCTGCCGGCATCGACTAC",
+        ">Hpl_10_0001|20|2",
+        "CACTCTGTGATCAGTGTGCGCGAGTTTAGTGCCCTGCCGGCACCGACTAC"
+    )
+    writeLines(lines, "ToyData_10_50_1000.fna")
+}

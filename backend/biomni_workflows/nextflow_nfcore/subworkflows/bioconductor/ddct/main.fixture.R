@@ -1,51 +1,45 @@
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("ddCt")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
 library(ddCt)
+library(Biobase)
 
-# --- Generate Experiment1.txt ---
-# The vignette reads Experiment1.txt from the 'extdata' directory of the ddct package.
-# We will copy this file to the current working directory to serve as the input fixture.
-extdata_exp1_path <- system.file("extdata", "Experiment1.txt", package="ddCt")
-
-# Read the original Experiment1.txt file.
-# The ddCt package's SDMFrame function (used in the vignette) reads a tab-separated file
-# with a header, containing at least "Sample", "Gene", and "Ct" columns.
-exp1_data <- read.table(extdata_exp1_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-
-# Write the data to Experiment1.txt in the current working directory.
-# Ensure it's tab-separated, has a header, and no row names or quotes.
-write.table(exp1_data, "Experiment1.txt", sep = "\t", row.names = FALSE, quote = FALSE)
-
-# --- Generate SampleAnno.txt ---
-# The vignette's default parameters set sampleAnnotationFile to NULL,
-# meaning it doesn't explicitly use SampleAnno.txt from extdata.
-# However, the prompt requires SampleAnno.txt as an input file.
-# When sampleAnnotationFile is NULL, the workflow internally creates an
-# AnnotatedDataFrame with a "Sample" column derived from the CtData.
-# We will create a SampleAnno.txt file that matches this structure,
-# and add a dummy "Group" column for potential future use with `columnForGrouping`.
-
-# Extract unique sample names from Experiment1.txt
-unique_samples <- unique(exp1_data$Sample)
-
-# Create a data frame for SampleAnno.txt
-sample_anno_data <- data.frame(Sample = unique_samples, stringsAsFactors = FALSE)
-
-# Add a dummy 'Group' column. This is a common use case for sample annotation files.
-# The vignette's `read.AnnotatedDataFrame` expects a tab-separated file with a header.
-num_samples <- length(unique_samples)
-if (num_samples > 1) {
-  sample_anno_data$Group <- rep(c("Control", "Treatment"), length.out = num_samples)
+# 1. Experiment1.txt
+exp_file <- system.file("extdata", "Experiment1.txt", package="ddCt")
+if (file.exists(exp_file)) {
+    file.copy(exp_file, "Experiment1.txt", overwrite = TRUE)
 } else {
-  sample_anno_data$Group <- "Control" # Handle case with single sample
+    # Fallback to find any txt file in extdata if exact name is missing
+    txt_files <- list.files(system.file("extdata", package="ddCt"), pattern="\\.txt$", full.names=TRUE)
+    if (length(txt_files) > 0) {
+        file.copy(txt_files[1], "Experiment1.txt", overwrite = TRUE)
+    } else {
+        stop("Could not find Experiment1.txt or any .txt file in ddCt extdata")
+    }
 }
 
-# Write the data to SampleAnno.txt in the current working directory.
-# Ensure it's tab-separated, has a header, and no row names or quotes.
-write.table(sample_anno_data, "SampleAnno.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+# 2. ddCt.conf
+conf_file <- system.file("scripts", "ddCt.conf", package="ddCt")
+if (file.exists(conf_file)) {
+    file.copy(conf_file, "ddCt.conf", overwrite = TRUE)
+} else {
+    # Fallback to create a dummy conf file
+    cat("loadPath=.\nsavePath=.\n", file="ddCt.conf")
+}
+
+# 3. SampleAnno.txt
+anno_file <- system.file("extdata", "SampleAnno.txt", package="ddCt")
+if (file.exists(anno_file)) {
+    file.copy(anno_file, "SampleAnno.txt", overwrite = TRUE)
+} else {
+    # Generate SampleAnno.txt based on the samples present in Experiment1.txt
+    if (file.exists("Experiment1.txt")) {
+        CtData <- SDMFrame("Experiment1.txt")
+        samples <- sampleNames(CtData)
+        anno_df <- data.frame(
+            Sample = samples,
+            Condition = rep(c("Control", "Treated"), length.out = length(samples))
+        )
+        write.table(anno_df, "SampleAnno.txt", sep="\t", row.names=FALSE, quote=FALSE)
+    } else {
+        anno_df <- data.frame(Sample=c("Sample1", "Sample2"), Condition=c("Control", "Treated"))
+        write.table(anno_df, "SampleAnno.txt", sep="\t", row.names=FALSE, quote=FALSE)
+    }
+}

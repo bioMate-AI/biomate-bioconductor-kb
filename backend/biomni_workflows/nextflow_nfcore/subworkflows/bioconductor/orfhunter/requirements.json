@@ -1,0 +1,17 @@
+{
+  "package": "orfhunter",
+  "requirements": [
+    "Biostrings",
+    "ORFhunteR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "ORFhunteR"
+    ],
+    "orf_prediction_and_annotation.nf": [
+      "Biostrings",
+      "ORFhunteR"
+    ]
+  }
+}

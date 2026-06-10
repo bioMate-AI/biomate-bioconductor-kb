@@ -1,108 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: compSPOT
-// Clonal cell groups share common mutations within cancer, precancer, and even clinically normal appea
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/compSPOT/inst/doc/compSPOT-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("compSPOT")
+// Bioconductor workflow: compSPOT — mutation_hotspot_analysis
+// Identify significant mutation hotspots from genomic regions, compare hotspot burden between patient groups, and correlate mutation burden with clinical risk fac
+// Input: mutation_data.csv, regions_data.csv
+// Container: quay.io/biocontainers/bioconductor-compspot:1.8.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: compSPOT
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the mutation and genomic region datasets
+//  * 2. [Core Analysis] Identify significant mutation hotspots using find_hotspots
+//  * 3. [Core Analysis] Filter the identified hotspots for downstream analysis
+//  * 4. [Core Analysis] Compare mutation hotspot burden between defined groups using compare_groups
+//  * 5. [Core Analysis] Perform exploratory data analysis of mutation hotspot burden against clinical features using compare_features
 
 nextflow.enable.dsl = 2
 
-process BIOC_COMPSPOT {
+process BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-compspot"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-compspot:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-compspot:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_compspot_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_compspot_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_compspot_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(compSPOT)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required library
+        library(compSPOT)
+        
+        # 1. Load the mutation and genomic region datasets from the working directory
+        mutation_data <- read.csv("mutation_data.csv", stringsAsFactors = FALSE)
+        regions_data <- read.csv("regions_data.csv", stringsAsFactors = FALSE)
+        
+        # 2. Identify significant mutation hotspots using find_hotspots
+        significant_spots <- find_hotspots(data = mutation_data, 
+                                           regions = regions_data, 
+                                           pvalue = 0.05, threshold = 0.2, 
+                                           include_genes = TRUE, 
+                                           rank = TRUE)
+        
+        # Print the head of the significant spots table
+        print("Significant Spots (Head):")
+        print(head(significant_spots[[1]]))
+        
+        # Save the significant spots table to CSV
+        write.csv(significant_spots[[1]], "significant_spots.csv", row.names = FALSE)
+        saveRDS(significant_spots, "significant_spots.rds")
+        
+        # 3. Filter the identified hotspots for downstream analysis
+        hotspots <- subset(significant_spots[[1]], type == "Hotspot")
+        
+        # 4. Compare mutation hotspot burden between defined groups using compare_groups
+        unique_groups <- unique(na.omit(mutation_data\$Group))
+        group1 <- if (length(unique_groups) >= 1) unique_groups[1] else "High-Risk"
+        group2 <- if (length(unique_groups) >= 2) unique_groups[2] else "Low-Risk"
+        
+        group_comp <- compare_groups(data = mutation_data, 
+                                     regions = hotspots, pval = 0.05, 
+                                     threshold = 0.2, 
+                                     name1 = group1, 
+                                     name2 = group2, 
+                                     include_genes = TRUE)
+        
+        # Print the group comparison table
+        print("Group Comparison Results:")
+        print(group_comp[[1]])
+        
+        # Save group comparison results
+        write.csv(group_comp[[1]], "group_comparison.csv", row.names = FALSE)
+        saveRDS(group_comp, "group_comparison.rds")
+        
+        # If a plot is returned in the group comparison list, attempt to save it
+        if (length(group_comp) >= 2) {
+          tryCatch({
+            pdf("group_comparison_plot.pdf", width = 8, height = 6)
+            print(group_comp[[2]])
+            dev.off()
+          }, error = function(e) {
+            warning("Could not save group comparison plot: ", e\$message)
+          })
+        }
+        
+        # 5. Perform exploratory data analysis of mutation hotspot burden against clinical features using compare_features
+        standard_cols <- c("Chromosome", "Position", "Sample", "Gene", "Group")
+        features <- setdiff(colnames(mutation_data), standard_cols)
+        
+        # Ensure only features present in the mutation dataset are passed
+        available_features <- features[features %in% colnames(mutation_data)]
+        
+        if (length(available_features) > 0) {
+          feature_example <- compare_features(data = mutation_data, 
+                                              regions = regions_data, 
+                                              feature = available_features)
+          
+          # Save feature comparison results
+          saveRDS(feature_example, "feature_comparison.rds")
+          
+          # If feature_example contains plots, attempt to save them
+          tryCatch({
+            pdf("feature_comparison_plots.pdf", width = 10, height = 8)
+            if (inherits(feature_example, "list")) {
+              for (i in seq_along(feature_example)) {
+                print(feature_example[[i]])
+              }
+            } else {
+              print(feature_example)
+            }
+            dev.off()
+          }, error = function(e) {
+            warning("Could not save feature comparison plots: ", e\$message)
+          })
+        } else {
+          warning("None of the specified clinical features were found in the mutation dataset.")
+        }
+        
+        print("Pipeline completed successfully.")
 
-    # --- Group Comparison [] ---
-    # Key functions: compare_groups
-    hotspots <- subset(significant_spots[[1]], type == "Hotspot")
-    group_comp <- compare_groups(
-        data = compSPOT_example_mutations,
-        regions = hotspots,
-        pval = 0.05,
-        threshold = 0.2,
-        name1 = "High-Risk",
-        name2 = "Low-Risk",
-        include_genes = TRUE
-    )
-    group_results <- group_comp[[1]]
-
-
-    # --- Feature Association [] ---
-    # Key functions: compare_features
-    features <- c("AGE", "SEX", "SMOKING_HISTORY", "TUMOR_VOLUME", "KI_67")
-    feature_example <- compare_features(
-        data = compSPOT_example_mutations,
-        regions = compSPOT_example_regions,
-        feature = features
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_compspot_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_compspot_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_compspot_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COMPSPOT:", paste0("    compspot: ", packageVersion("compSPOT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS":',
+        paste0('    compSPOT: ', as.character(packageVersion('compSPOT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_compspot_results.csv
-    touch ${prefix}_compspot_output.rds
-    echo "BIOC_COMPSPOT:" > versions.yml
-    echo "    compspot: 0.0.0" >> versions.yml
+    touch ${prefix}_mutation_hotspot_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_COMPSPOT_WORKFLOW {
+workflow BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mutation_data.csv, regions_data.csv ] ]
 
     main:
-    BIOC_COMPSPOT(ch_input)
+    BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_COMPSPOT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COMPSPOT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COMPSPOT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COMPSPOT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS.out.tables
+    plots    = BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS.out.plots
+    objects  = BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS.out.objects
+    versions = BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS.out.versions
 }

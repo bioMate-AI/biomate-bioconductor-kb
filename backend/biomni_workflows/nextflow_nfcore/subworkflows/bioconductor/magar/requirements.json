@@ -1,0 +1,14 @@
+{
+  "package": "magar",
+  "requirements": [
+    "MAGAR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MAGAR"
+    ],
+    "methqtl_comparison.nf": [
+      "MAGAR"
+    ]
+  }
+}

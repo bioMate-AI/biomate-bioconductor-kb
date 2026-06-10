@@ -1,0 +1,43 @@
+{
+  "package": "hicontacts",
+  "requirements": [
+    "BiocParallel",
+    "HiCExperiment",
+    "HiContacts",
+    "IRanges",
+    "InteractionSet",
+    "dplyr",
+    "ggplot2",
+    "patchwork",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "contact_map_analysis.nf": [
+      "HiCExperiment",
+      "HiContacts",
+      "IRanges",
+      "InteractionSet",
+      "dplyr",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "HiCExperiment",
+      "HiContacts",
+      "InteractionSet",
+      "dplyr",
+      "ggplot2",
+      "patchwork",
+      "rtracklayer"
+    ],
+    "topological_feature_mapping.nf": [
+      "HiCExperiment",
+      "HiContacts",
+      "IRanges",
+      "dplyr",
+      "ggplot2",
+      "rtracklayer"
+    ]
+  }
+}

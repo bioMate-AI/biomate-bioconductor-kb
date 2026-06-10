@@ -1,0 +1,31 @@
+{
+  "package": "geotcgadata",
+  "requirements": [
+    "ChAMP",
+    "GeoTcgaData",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "cnv_differential_analysis.nf": [
+      "GeoTcgaData"
+    ],
+    "dna_methylation_differential_analysis.nf": [
+      "ChAMP",
+      "GeoTcgaData",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ],
+    "geo_chip_data_preprocessing.nf": [
+      "GeoTcgaData"
+    ],
+    "main.nf": [
+      "GeoTcgaData",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ],
+    "tcga_id_conversion_and_normalization.nf": [
+      "GeoTcgaData"
+    ]
+  }
+}

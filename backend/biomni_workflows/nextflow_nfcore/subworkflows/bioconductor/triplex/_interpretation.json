@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Subset of values 0 to 7 to restrict search to specific triplex types ;; min_len/max_len=Specify the length range of triplex stems composed of individual triplets ;; min_loop/max_loop=Define the range of lengths for unpaired loops ;; iso_pen=Penalization for isomorphic group change (default is 5) ;; min_score=Filters results to show only triplexes with scores greater than or equal to this value ;; p_value=Filters results to show only triplexes with P-values less than or equal to this value\n- alternatives: None mentioned in the documentation for triplex search within R.\n- when_to_use: Appropriate when analyzing DNA sequences (from FASTA, BSgenome, or custom DNAString objects) to identify, score, visualize, and export potential intramolecular triplex-forming regions (H-DNA).\n- pitfalls: Searching for longer triplexes or larger loop sizes increases the search space and consumes more computation time. Penalization parameters (like iso_pen, mis_pen, ins_pen) and EVD parameters (lambda, mi) should not be changed without consulting the reference paper [1]. P-value calculations are highly dependent on the genomic background (prokaryotic vs. eukaryotic).",
+  "workflows": [
+    {
+      "name": "triplex_search_and_visualization",
+      "intent": "Search for intramolecular triplexes in a DNA sequence, visualize the alignments in text, 2D, or 3D, and export the results to GFF3 and FASTA formats.",
+      "input": [
+        "DNAString (DNA sequence to search)",
+        "BSgenome (genomic sequence database)"
+      ],
+      "stages": "1. Load the triplex package and define the target DNA sequence ;; 2. Search for triplexes using triplex.search with optional filtering parameters (type, min_len, max_len, iso_pen, min_score) ;; 3. Sort or subset the resulting TriplexViews object ;; 4. Visualize the triplexes using triplex.alignment, triplex.diagram, or triplex.3D ;; 5. Convert the results to GRanges and export to GFF3 format ;; 6. Convert the results to DNAStringSet and export to FASTA format ;; 7. Plot statistics such as score distribution histograms and coverage plots",
+      "code": "library(triplex)\nseq <- DNAString(\"TTGGGGAAAGCAATGCCAGGCAGGGGGTTCCTTTCGTTACGGTCCGTCCC\")\ntriplex.search(seq)\ntriplex.search(seq, type=1)\ntriplex.search(seq, min_len=10, max_len=20)\ntriplex.search(seq, iso_pen=2)\ntriplex.search(seq, min_score=14)\nt <- triplex.search(seq)\nt\ntriplex.alignment(t[1])\ntriplex.diagram(t[1])\ntriplex.3D(t[1])\ngr <- as(t, \"GRanges\")\ngr\nlibrary(rtracklayer)\nexport(gr,\"test.gff\", version=\"3\")\ndss <- as(t, \"DNAStringSet\")\ndss\nwriteXStringSet(dss, file=\"test.fa\", format=\"fasta\")\nlibrary(BSgenome.Celegans.UCSC.ce10) \nt <- triplex.search(Celegans[[\"chrX\"]][1:100000],min_score=17,min_len=8)\nt\nts <- t[order(score(t),decreasing=TRUE)]\nts\ntriplex.diagram(ts[1])\ntriplex.3D(ts[1])\ntriplex.alignment(ts[1])\nexport(as(t, \"GRanges\"),\"test.gff\", version=\"3\")\nwriteXStringSet(as(t, \"DNAStringSet\"), file=\"test.fa\", format=\"fasta\")\nhist(score(t), breaks=20)\nplot(coverage(ts[0:length(t)]), type=\"s\", col=\"grey75\")"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=Normalized expression matrix with rows representing genes and columns representing samples (e.g., RPKM) ;; GSDB=Gene set database containing pathway definitions (e.g., MSigDB) ;; iES_mat=The calculated iES matrix returned by iES_cal2 ;; cli=Clinical dataset containing survival outcomes (time and status) ;; indVec=Binary vector indicating patient phenotypes, where 0 represents normal/reference samples and 1 represents tumor/test samples ;; gs_str=Character string specifying the pathway/gene set of interest for visualization\n- alternatives: Single-gene biomarkers are mentioned as the traditional alternative, but they are limited by variable expression levels and do not capture pathway-level disruption.\n- when_to_use: Use when you have transcriptomics data (with both normal/control and tumor/case samples) and clinical survival data, and you want to identify personalized pathway-level biomarkers that predict clinical outcomes.\n- pitfalls: Requires a binary phenotype vector (indVec) where normal samples (0) are used as a reference to fit a Gaussian Mixture Model; if normal samples are missing or mislabeled, the classification of perturbed tumor samples will fail. Cox regression in iES_surv may produce convergence warnings if the number of perturbed samples in a pathway is extremely small.",
+  "workflows": [
+    {
+      "name": "individualized_pathway_analysis",
+      "intent": "Calculate personalized pathway enrichment scores (iES) from expression data and test their association with clinical survival outcomes.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix with genes as rows and samples as columns)",
+        "gene_set_database.gmt (gene set database containing pathway definitions)",
+        "clinical_data.csv (clinical dataset with survival time and status)",
+        "phenotype_vector.csv (binary vector indicating normal [0] vs tumor [1] samples)"
+      ],
+      "stages": "1. Load the expression matrix, phenotype vector, clinical data, and gene set database ;; 2. Calculate the individualized pathway enrichment score (iES) matrix using iES_cal2 ;; 3. Test the association of iES scores with survival outcomes using iES_surv ;; 4. Visualize the iES distribution and survival differences using water_fall, density_fall, and iES_survPlot",
+      "code": "library(iPath)\ndata(PRAD_data)\ndim(prad_exprs)\ndata(GSDB_example)\nhead(prad_cli)\niES_mat = iES_cal2(Y = prad_exprs, GSDB = GSDB_example)\niES_mat[1:2, 1:4]\nsurv_outcomes = iES_surv(iES_mat = iES_mat, cli = prad_cli, indVec = prad_inds)\nhead(surv_outcomes)\nwater_fall(iES_mat, gs_str = \"SimPathway2\", indVec = prad_inds)\ndensity_fall(iES_mat, gs_str = \"SimPathway2\", indVec = prad_inds)\niES_survPlot(iES_mat = iES_mat, cli = prad_cli, gs_str = \"SimPathway1\", indVec = prad_inds, title = TRUE)"
+    }
+  ]
+}

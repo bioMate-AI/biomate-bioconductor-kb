@@ -1,0 +1,17 @@
+{
+  "package": "gotools",
+  "requirements": [
+    "GO.db",
+    "goTools"
+  ],
+  "by_workflow": {
+    "custom_endnode_comparison.nf": [
+      "GO.db",
+      "goTools"
+    ],
+    "main.nf": [
+      "GO.db",
+      "goTools"
+    ]
+  }
+}

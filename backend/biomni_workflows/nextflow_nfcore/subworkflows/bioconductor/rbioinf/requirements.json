@@ -1,0 +1,15 @@
+{
+  "package": "rbioinf",
+  "requirements": [
+    "RBioinf",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RBioinf",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

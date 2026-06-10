@@ -1,0 +1,13 @@
+{
+  "package": "scddboost",
+  "requirements": [
+    "BiocParallel",
+    "scDDboost"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "scDDboost"
+    ]
+  }
+}

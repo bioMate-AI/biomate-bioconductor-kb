@@ -1,0 +1,17 @@
+{
+  "package": "zfpkm",
+  "requirements": [
+    "SummarizedExperiment",
+    "dplyr",
+    "tidyr",
+    "zFPKM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "dplyr",
+      "tidyr",
+      "zFPKM"
+    ]
+  }
+}

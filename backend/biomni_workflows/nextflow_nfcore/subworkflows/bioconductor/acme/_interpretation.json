@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: window=The sliding window size in base pairs, typically 2-3 times the expected fragment size and large enough to include at least 10 probes ;; thresh=The quantile threshold (e.g., 0.95) used to define positive probes (e.g., top 5% of data) ;; raw=Logical parameter in write.sgr to control whether raw data is exported alongside calculated values ;; chrom=The chromosome name to plot ;; sample=The sample index to plot\n- alternatives: None mentioned in the documentation\n- when_to_use: When analyzing high-density oligonucleotide tiling microarray data (such as ChIP-chip or DNase-chip) where regions of relative enrichment are expected and need to be identified and exported\n- pitfalls: Calculated p-values are not corrected for multiple comparisons and should be used as a guide to determining regions of interest rather than a strict statistical significance level",
+  "workflows": [
+    {
+      "name": "tiling_microarray_enrichment_analysis",
+      "intent": "Identify, visualize, and export genomic regions of enrichment from tiling microarray GFF files.",
+      "input": [
+        "fnames (GFF files containing tiling microarray probe coordinates and intensities)"
+      ],
+      "stages": "1. Read GFF files using read.resultsGFF ;; 2. Calculate enrichment probabilities using do.aGFF.calc ;; 3. Plot results for a specific chromosome and sample using plot ;; 4. Identify significant regions of enrichment using findRegions ;; 5. Export results to SGR format using write.sgr or bedGraph format using write.bedGraph",
+      "code": "library(ACME)\ndatdir <- system.file('extdata',package='ACME')\nfnames <- dir(datdir)\nexample.agff <- read.resultsGFF(fnames,path=datdir)\nexample.agff\ncalc <- do.aGFF.calc(example.agff,window=1000,thresh=0.95)\nplot(calc,chrom='chr1',sample=1)\nregs <- findRegions(calc)\nregs[1:5,]\nwrite.sgr(calc)\nwrite.sgr(calc,raw=FALSE)\nwrite.bedGraph(calc)"
+    }
+  ]
+}

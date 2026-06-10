@@ -1,0 +1,20 @@
+{
+  "package": "bayseq",
+  "requirements": [
+    "baySeq"
+  ],
+  "by_workflow": {
+    "generic_zinb_analysis.nf": [
+      "baySeq"
+    ],
+    "main.nf": [
+      "baySeq"
+    ],
+    "paired_data_beta_binomial.nf": [
+      "baySeq"
+    ],
+    "srna_seq_lengths_multiple_groups.nf": [
+      "baySeq"
+    ]
+  }
+}

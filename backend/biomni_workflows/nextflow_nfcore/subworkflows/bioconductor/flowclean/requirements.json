@@ -1,0 +1,17 @@
+{
+  "package": "flowclean",
+  "requirements": [
+    "flowClean",
+    "flowCore",
+    "flowViz",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowClean",
+      "flowCore",
+      "flowViz",
+      "gridExtra"
+    ]
+  }
+}

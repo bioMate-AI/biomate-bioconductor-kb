@@ -1,0 +1,17 @@
+{
+  "package": "ppcseq",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "ppcseq",
+    "readr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "ppcseq",
+      "readr"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None specified in the provided landing page documentation.\n- alternatives: Use 'ropls' and 'biosigner' for multivariate analysis and feature selection, which support the same data formats.\n- when_to_use: Use when performing quality control, signal drift correction, batch effect correction, intensity transformation, univariate hypothesis testing, clustering, or annotation on metabolomics, proteomics, or transcriptomics datasets.\n- pitfalls: None explicitly mentioned in the provided landing page documentation.",
+  "workflows": [
+    {
+      "name": "omics_post_processing_and_analysis",
+      "intent": "Perform quality control, normalization, and univariate statistical analysis on single or multi-omics datasets.",
+      "input": [
+        "SummarizedExperiment (single-omics dataset)",
+        "MultiAssayExperiment (multi-omics dataset)"
+      ],
+      "stages": "1. Quality control metrics assessment ;; 2. Signal drift and batch effect correction ;; 3. Intensity transformation ;; 4. Univariate hypothesis testing ;; 5. Clustering and metabolomics annotation",
+      "code": "# No code is provided in the source documentation."
+    }
+  ]
+}

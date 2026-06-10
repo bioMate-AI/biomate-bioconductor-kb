@@ -1,0 +1,25 @@
+{
+  "package": "biseq",
+  "requirements": [
+    "BiSeq",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiSeq",
+      "GenomicRanges"
+    ],
+    "predefined_regions_biseq.nf": [
+      "BiSeq",
+      "GenomicRanges"
+    ],
+    "predefined_regions_global_test.nf": [
+      "BiSeq",
+      "GenomicRanges"
+    ],
+    "two_sample_dmr_detection.nf": [
+      "BiSeq",
+      "GenomicRanges"
+    ]
+  }
+}

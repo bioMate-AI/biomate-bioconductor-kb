@@ -1,99 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bioDist
-// A collection of software tools for calculating distance measures.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bioDist/inst/doc/bioDist.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("bioDist")
+// Bioconductor workflow: bioDist — mutual_information_and_kl_divergence_distance
+// Calculate mutual information and Kullback-Leibler divergence distances between samples in an expression dataset.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-biodist:1.82.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: bioDist
+// Visualizations: image plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Transpose the expression matrix to compute distances between samples. 2. Compute mutual information distance using MIdist or dista
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIODIST {
+process BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biodist"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biodist:1.78.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biodist:1.78.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biodist_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biodist_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biodist_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(bioDist)
-    library(jsonlite)
-
-    # --- Loadlib [] ---
-    # Key functions: exprs
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library("bioDist")
-    data(sample.ExpressionSet)
-    exData = t(exprs(sample.ExpressionSet))
-    # --- Tau [] ---
-    # Key functions: dist
-    eS = sample.ExpressionSet[401:500,]
-    tauD = tau.dist(eS, sample=FALSE)
-    sp = spearman.dist(eS, sample=FALSE)
-    # --- Closest [] ---
-    # Key functions: featureNames, top
-    f1 = featureNames(eS)[1]
-    closest.top(f1, sp, 3)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biodist_results.csv", row.names = TRUE)
+    
+    # 1. Read the user input file
+    # The input file 'expression_matrix.csv' has genes as rows and samples as columns.
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Error: 'expression_matrix.csv' not found in the working directory.")
+    }
+    
+    expr_mat <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+    
+    # 2. Transpose the expression matrix to compute distances between samples
+    # In bioDist, distance functions compute pairwise distances between the rows of the input.
+    # Transposing ensures we compute distances between samples.
+    exData = t(expr_mat)
+    
+    # 3. Compute mutual information distance using MIdist
+    message("Computing mutual information distance (MIdist)...")
+    s1 = MIdist(exData)
+    s2 = as.matrix(s1)
+    dim(s2)
+    
+    # 4. Compute distance from independence using mutualInfo
+    message("Computing mutual information (mutualInfo)...")
+    r1 = mutualInfo(exData)
+    r1_matrix = as.matrix(r1)
+    
+    # 5. Compute Kullback-Leibler divergence using binning (KLdist.matrix)
+    message("Computing Kullback-Leibler distance via binning (KLdist.matrix)...")
+    kl1 = KLdist.matrix(exData)
+    kl1_matrix = as.matrix(kl1)
+    
+    # 6. Compute Kullback-Leibler divergence using density estimation (KLD.matrix)
+    message("Computing Kullback-Leibler distance via density estimation (KLD.matrix)...")
+    kl2 = KLD.matrix(exData, method="density", supp=range(exData))
+    kl2_matrix = as.matrix(kl2)
+    
+    # 7. Save results to output files
+    message("Saving results...")
+    
+    # Save CSV tables
+    write.csv(s2, "mutual_info_distance_matrix.csv", row.names = TRUE)
+    write.csv(r1_matrix, "mutual_info_independence_matrix.csv", row.names = TRUE)
+    write.csv(kl1_matrix, "kl_distance_binning_matrix.csv", row.names = TRUE)
+    write.csv(kl2_matrix, "kl_distance_density_matrix.csv", row.names = TRUE)
+    
+    # Save RDS objects for downstream R analysis
+    saveRDS(s1, "mutual_info_distance.rds")
+    saveRDS(r1, "mutual_info_independence.rds")
+    saveRDS(kl1, "kl_distance_binning.rds")
+    saveRDS(kl2, "kl_distance_density.rds")
+    
+    # Generate a PDF plot visualizing the distance matrices
+    pdf("distance_plots.pdf", width = 10, height = 10)
+    par(mfrow = c(2, 2))
+    
+    if (nrow(s2) > 1) {
+      # Heatmap of Mutual Information Distance
+      image(1:nrow(s2), 1:ncol(s2), s2, main = "Mutual Info Distance (MIdist)", 
+            xlab = "Samples", ylab = "Samples", col = heat.colors(12))
+      
+      # Heatmap of Mutual Info Independence
+      image(1:nrow(r1_matrix), 1:ncol(r1_matrix), r1_matrix, main = "Mutual Info (mutualInfo)", 
+            xlab = "Samples", ylab = "Samples", col = heat.colors(12))
+      
+      # Heatmap of KL Divergence (Binning)
+      image(1:nrow(kl1_matrix), 1:ncol(kl1_matrix), kl1_matrix, main = "KL Dist (Binning)", 
+            xlab = "Samples", ylab = "Samples", col = terrain.colors(12))
+      
+      # Heatmap of KL Divergence (Density)
+      image(1:nrow(kl2_matrix), 1:ncol(kl2_matrix), kl2_matrix, main = "KL Dist (Density)", 
+            xlab = "Samples", ylab = "Samples", col = terrain.colors(12))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biodist_results.csv")
+      plot(1, type = "n", axes = FALSE, xlab = "", ylab = "")
+      text(1, 1, "Insufficient samples to plot heatmaps", cex = 1.5)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biodist_output.rds")
-    }
+    
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to current directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIODIST:", paste0("    biodist: ", packageVersion("bioDist"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE":',
+        paste0('    bioDist: ', as.character(packageVersion('bioDist')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biodist_results.csv
-    touch ${prefix}_biodist_output.rds
-    echo "BIOC_BIODIST:" > versions.yml
-    echo "    biodist: 0.0.0" >> versions.yml
+    touch ${prefix}_mutual_information_and_kl_divergence_distance.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIODIST_WORKFLOW {
+workflow BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_BIODIST(ch_input)
+    BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE(ch_input)
 
     emit:
-    results  = BIOC_BIODIST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIODIST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIODIST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIODIST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE.out.tables
+    plots    = BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE.out.plots
+    objects  = BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE.out.objects
+    versions = BIOC_BIODIST_MUTUAL_INFORMATION_AND_KL_DIVERGENCE_DISTANCE.out.versions
 }

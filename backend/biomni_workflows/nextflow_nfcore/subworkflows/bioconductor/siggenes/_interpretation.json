@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=An object of class SAM, EBAM, or FindA0 representing the analysis results ;; y=The delta value (minimum probability for EBAM, or threshold for SAM) used to determine significance and generate plots ;; pos.stats=Location code (0 to 4) for plotting summary statistics on EBAM or SAM plots ;; sig.col=Color specification for significant genes (can be length 1 or 2 to distinguish up/down-regulated genes in SAM) ;; logit=Logical indicating if posterior probabilities should be logit-transformed in FindA0 plots ;; ll=Logical indicating if locus links and gene symbols should be added to the output in identify ;; browse=Logical indicating if the NCBI webpage for the identified gene should be opened ;; chip=Character string specifying the chip type used, required if the input data was not an ExpressionSet\n- alternatives: multtest package (used in examples to load the Golub dataset)\n- when_to_use: Use when performing differential expression analysis on microarray or transcriptomics data and you want to control FDR using SAM or EBAM, or when you need interactive identification of significant genes directly from a SAM plot.\n- pitfalls: There is a patent pending for the SAM technology at Stanford University ;; The browse and ll arguments in identify will be ignored or fail if chip is not specified and the input data was not an ExpressionSet ;; Setting incorrect delta values (y) can lead to incorrect FDR estimations or empty plots.",
+  "workflows": [
+    {
+      "name": "sam_analysis_and_visualization",
+      "intent": "Perform Significance Analysis of Microarrays (SAM) to identify differentially expressed genes and visualize the results via SAM and Delta plots.",
+      "input": [
+        "golub (microarray expression matrix)",
+        "golub.cl (class label vector for the samples)"
+      ],
+      "stages": "1. Load the dataset and class labels ;; 2. Run Significance Analysis of Microarrays (SAM) using sam() ;; 3. Generate a SAM plot for a specific delta value using sam.plot2() or plot() ;; 4. Generate Delta plots for a range of delta values using delta.plot() or plot()",
+      "code": "library(multtest)\ndata(golub)\nsam.out<-sam(golub,golub.cl,B=100,rand=123)\nsam.plot2(sam.out,2)\nplot(sam.out,2)\ndelta.plot(sam.out)\nplot(sam.out)\nplot(sam.out,seq(0.2,2,0.2))"
+    }
+  ]
+}

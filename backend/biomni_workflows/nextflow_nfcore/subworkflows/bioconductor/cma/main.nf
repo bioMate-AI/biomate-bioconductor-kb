@@ -1,184 +1,296 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CMA
-// This package provides a comprehensive collection of various microarray-based classification algorith
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CMA/inst/doc/CMA_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CMA")
+// Bioconductor workflow: CMA — single_classifier_pipeline
+// Run a complete classification pipeline for a single classifier including learning set generation, gene selection, hyperparameter tuning, classification, and det
+// Input: golubX, golubY
+// Container: quay.io/biocontainers/bioconductor-cma:1.68.0--r45hdfd78af_0
+// R packages: CMA
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CMA
+// Visualizations: box plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Generate learning sets using GenerateLearningsets
+//  * 2. [Core Analysis] Perform gene selection using GeneSelection
+//  * 3. [Core Analysis] Tune hyperparameters using CMA:::tune
+//  * 4. [Core Analysis] Run classification using classification
+//  * 5. [Core Analysis] Join results and evaluate performance using join, evaluation, ftable, roc, and obsinfo
 
 nextflow.enable.dsl = 2
 
-process BIOC_CMA {
+process BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cma"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cma:1.64.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cma:1.64.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cma_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cma_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cma_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GeneSelection)
-    library(GenerateLearningsets)
-    library(jsonlite)
-
-    # --- Cma Vignette.Rnw:400 405 [] ---
-    # Key functions: data
-    ## data(golub)
-    ## golubY <- golub[,1]
-    ##
-    ## golubX <- as.matrix(golub[,-1])
-    ##
-    # --- Cma Vignette.Rnw:414 420 [] ---
-    # Key functions: GenerateLearningsets, getSlots, show
-    ##
-    ## loodat <- GenerateLearningsets(y=golubY, method ="LOOCV")
-    ## class(loodat)
-    ## getSlots(class(loodat))
-    ## show(loodat)
-    # --- Cma Vignette.Rnw:425 430 [] ---
-    # Key functions: GenerateLearningsets
-    ##
-    ## set.seed(321)
-    ## fiveCVdat <- GenerateLearningsets(y=golubY, method = "CV", fold = 5, strat = TRUE)
-    ##
-    ##
-    # --- Cma Vignette.Rnw:437 446 [] ---
-    # Key functions: GenerateLearningsets
-    ##
-    ## set.seed(456)
-    ## MCCVdat <- GenerateLearningsets(y=golubY, method = "MCCV", niter = 3,
-    ##                                 ntrain = floor(2/3*length(golubY)), strat = TRUE)
-    ##
-    # --- Cma Vignette.Rnw:456 462 [] ---
-    # Key functions: GeneSelection
-    ##
-    ## varsel_fiveCV <- GeneSelection(X = golubX, y=golubY, learningsets = fiveCVdat, method = "wilcox.test")
-    ## varsel_MCCV <- GeneSelection(X = golubX, y=golubY, learningsets = MCCVdat, method = "wilcox.test")
-    ## varsel_boot <- GeneSelection(X = golubX, y=golubY, learningsets = bootdat, method = "wilcox.test")
-    ##
-    # --- Cma Vignette.Rnw:468 476 [] ---
-    # Key functions: show, toplist
-    ##
-    ## show(varsel_fiveCV)
-    ## toplist(varsel_fiveCV, iter=1)
-    ## seliter <- numeric()
-    ## for(i in 1:5)
-    # --- Cma Vignette.Rnw:506 511 [] ---
-    # Key functions: tune
-    ## set.seed(351)
-    ## tuningstep <- CMA:::tune(X = golubX, y=golubY, learningsets = fiveCVdat,
-    ##                       genesel = varsel_fiveCV, nbgene = 100, classifier = svmCMA,
-    ##                       grids = list(cost = c(0.1, 1, 10, 100, 200)),probability=T)
-    ##
-    # --- Cma Vignette.Rnw:516 520 [] ---
-    # Key functions: show, unlist, best
-    ##
-    ## show(tuningstep)
-    ## unlist(best(tuningstep))
-    ##
-    # --- Cma Vignette.Rnw:537 555 [] ---
-    # Key functions: classification
-    ##
-    ## #class_loo <- classification(X = golubX, y=golubY, learningsets = loodat,
-    ## #                      genesel = varsel_loo, nbgene = 100, classifier = svmCMA,
-    ## #                      cost = 100)
-    ##
-    # --- Cma Vignette.Rnw:595 599 [] ---
-    # Key functions: roc
-    ##
-    ## par(mfrow = c(2,2))
-    ## for(i in seq(along = result)) roc(result[[i]])
-    ##
-    # --- Cma Vignette.Rnw:605 609 [] ---
-    # Key functions: join, ftable
-    ##
-    ## totalresult <- join(result)
-    ## ftable(totalresult)
-    ##
-    # --- Cma Vignette.Rnw:618 624 [] ---
-    # Key functions: evaluation, show
-    ##
-    ## av_MCCV <- evaluation(class_MCCV, measure = "average probability")
-    ## show(av_MCCV)
-    ## boxplot(av_MCCV)
-    ## summary(av_MCCV)
-    # --- Cma Vignette.Rnw:639 642 [] ---
-    # Key functions: evaluation, show
-    ## av_obs_MCCV <- evaluation(class_MCCV, measure = "average probability", scheme = "obs")
-    ## show(av_obs_MCCV)
-    ##
-    # --- Cma Vignette.Rnw:648 651 [] ---
-    # Key functions: obsinfo
-    ##
-    ## obsinfo(av_obs_MCCV, threshold = 0.6)
-    ##
-    # --- Cma Vignette.Rnw:675 685 [] ---
-    # Key functions: GenerateLearningsets
-    data(khan)
-    khanY <- khan[,1]
-    khanX <- as.matrix(khan[,-1])
-    set.seed(27611)
-    fiveCV5iter <- GenerateLearningsets(y=khanY, method = "CV", fold = 5, niter = 5, strat = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cma_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CMA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
+    library(CMA)
+    
+    # ==========================================
+    # 1. READ USER INPUT FILES
+    # ==========================================
+    # The pipeline reads golubX and golubY from the working directory.
+    # It supports RDS, CSV, TSV, or plain text formats.
+    find_and_read <- function(base_name) {
+      extensions <- c("", ".rds", ".csv", ".tsv", ".txt")
+      for (ext in extensions) {
+        file_path <- paste0(base_name, ext)
+        if (file.exists(file_path)) {
+          message("Reading ", file_path)
+          if (grepl("\\\\.rds\$", file_path, ignore.case = TRUE)) {
+            return(readRDS(file_path))
+          } else if (grepl("\\\\.csv\$", file_path, ignore.case = TRUE)) {
+            df <- tryCatch({
+              read.csv(file_path, row.names = 1, check.names = FALSE)
+            }, error = function(e) {
+              read.csv(file_path, check.names = FALSE)
+            })
+            return(df)
+          } else if (grepl("\\\\.tsv\$|\\\\.txt\$", file_path, ignore.case = TRUE) || ext == "") {
+            df <- tryCatch({
+              read.table(file_path, header = TRUE, row.names = 1, sep = "\t", check.names = FALSE)
+            }, error = function(e) {
+              tryCatch({
+                read.table(file_path, header = TRUE, sep = "\t", check.names = FALSE)
+              }, error = function(e2) {
+                read.table(file_path, check.names = FALSE)
+              })
+            })
+            return(df)
+          }
+        }
+      }
+      stop(paste("Required file", base_name, "not found in the working directory."))
+    }
+    
+    golubX_raw <- find_and_read("golubX")
+    golubY_raw <- find_and_read("golubY")
+    
+    # Format inputs appropriately
+    golubX <- as.matrix(golubX_raw)
+    
+    if (is.data.frame(golubY_raw) || is.matrix(golubY_raw)) {
+      golubY <- golubY_raw[[1]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cma_results.csv")
+      golubY <- golubY_raw
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cma_output.rds")
+    
+    golubY <- as.vector(golubY)
+    if (is.character(golubY)) {
+      golubY <- as.factor(golubY)
     }
+    
+    # ==========================================
+    # 2. GENERATE LEARNING SETS
+    # ==========================================
+    loodat <- GenerateLearningsets(y=golubY, method ="LOOCV")
+    class(loodat)
+    getSlots(class(loodat))
+    show(loodat)
+    
+    set.seed(321)
+    fiveCVdat <- GenerateLearningsets(y=golubY, method = "CV", fold = 5, strat = TRUE)
+    
+    set.seed(456)
+    MCCVdat <- GenerateLearningsets(y=golubY, method = "MCCV", niter = 3,
+                                    ntrain = floor(2/3*length(golubY)), strat = TRUE)
+    
+    set.seed(651)
+    bootdat <- GenerateLearningsets(y=golubY, method = "bootstrap", niter = 3, strat = TRUE)
+    
+    # ==========================================
+    # 3. PERFORM GENE SELECTION
+    # ==========================================
+    varsel_fiveCV <- GeneSelection(X = golubX, y=golubY, learningsets = fiveCVdat, method = "wilcox.test")
+    varsel_MCCV <- GeneSelection(X = golubX, y=golubY, learningsets = MCCVdat, method = "wilcox.test")
+    varsel_boot <- GeneSelection(X = golubX, y=golubY, learningsets = bootdat, method = "wilcox.test")
+    
+    show(varsel_fiveCV)
+    toplist(varsel_fiveCV, iter=1)
+    seliter <- numeric()
+    for(i in 1:5) {
+      seliter <- c(seliter, toplist(varsel_fiveCV, iter = i, top = 10, show = FALSE)\$index)
+    }
+    sorted_seliter <- sort(table(seliter), dec = TRUE)
+    print(sorted_seliter)
+    
+    # Save gene selection results
+    write.csv(as.data.frame(sorted_seliter), "top_genes_fiveCV.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 4. HYPERPARAMETER TUNING
+    # ==========================================
+    set.seed(351) 
+    tuningstep <- CMA:::tune(X = golubX, y=golubY, learningsets = fiveCVdat,
+                          genesel = varsel_fiveCV, nbgene = 100, classifier = svmCMA,
+                          grids = list(cost = c(0.1, 1, 10, 100, 200)),probability=T)
+    
+    show(tuningstep)
+    best_params <- unlist(best(tuningstep))
+    print(best_params)
+    
+    # Save tuning parameters
+    writeLines(capture.output(print(best_params)), "best_tuning_params.txt")
+    
+    # Plot and save tuning results
+    pdf("tuning_plots.pdf", width = 8, height = 8)
+    par(mfrow = c(2,2))
+    for(i in 1:4) {
+      plot(tuningstep, iter = i, main = paste("iteration", i))
+    }
+    dev.off()
+    
+    # ==========================================
+    # 5. CLASSIFICATION
+    # ==========================================
+    class_fiveCV <- classification(X = golubX, y=golubY, learningsets = fiveCVdat,
+                          genesel = varsel_fiveCV, nbgene = 100, classifier = svmCMA,
+                          cost = 0.1,probability=T)
+                          
+    class_MCCV <- classification(X = golubX, y=golubY, learningsets = MCCVdat,
+                          genesel = varsel_MCCV, nbgene = 100, classifier = svmCMA,
+                          cost = 0.1,probability=T)
+                          
+    class_boot <- classification(X = golubX, y=golubY, learningsets = bootdat,
+                          genesel = varsel_boot, nbgene = 0.1, classifier = svmCMA,
+                          cost = 100,probability=T)
+    
+    # ==========================================
+    # 6. JOIN RESULTS AND EVALUATION
+    # ==========================================
+    resultlist <- list(class_fiveCV, class_MCCV, class_boot)
+    result <- lapply(resultlist, join)
+    
+    schemes <- c("five-fold CV", "MCCV", "bootstrap")
+    
+    # Plot and save voting/probability plots
+    pdf("voting_plots.pdf", width = 8, height = 10)
+    par(mfrow = c(3,1))
+    for(i in seq(along = result)) {
+      plot(result[[i]], main = schemes[i])
+    }
+    dev.off()
+    
+    # Print and save confusion matrices
+    invisible(lapply(result, ftable))
+    
+    # Plot and save ROC curves
+    pdf("roc_curves.pdf", width = 8, height = 8)
+    par(mfrow = c(2,2))
+    for(i in seq(along = result)) {
+      roc(result[[i]])
+    }
+    dev.off()
+    
+    totalresult <- join(result)
+    total_ftable <- ftable(totalresult)
+    print(total_ftable)
+    
+    # Save confusion matrices to text file
+    sink("confusion_matrices.txt")
+    cat("=== Individual Confusion Matrices ===\n")
+    for (i in seq_along(result)) {
+      cat("\nScheme:", schemes[i], "\n")
+      print(ftable(result[[i]]))
+    }
+    cat("\n=== Total Confusion Matrix ===\n")
+    print(total_ftable)
+    sink()
+    
+    # Detailed evaluation for MCCV
+    av_MCCV <- evaluation(class_MCCV, measure = "average probability")
+    show(av_MCCV)
+    
+    pdf("evaluation_boxplot.pdf", width = 6, height = 6)
+    boxplot(av_MCCV)
+    dev.off()
+    
+    mccv_summary <- summary(av_MCCV)
+    print(mccv_summary)
+    
+    av_obs_MCCV <- evaluation(class_MCCV, measure = "average probability", scheme = "obs")
+    show(av_obs_MCCV)
+    
+    mccv_obs_info <- obsinfo(av_obs_MCCV, threshold = 0.6)
+    print(mccv_obs_info)
+    
+    # Save evaluation summaries and observation info
+    sink("evaluation_summary.txt")
+    cat("=== Average Probability Evaluation (MCCV) ===\n")
+    print(mccv_summary)
+    cat("\n=== Observation-wise Average Probability (MCCV) ===\n")
+    print(av_obs_MCCV)
+    cat("\n=== Observations with average probability < 0.6 ===\n")
+    print(mccv_obs_info)
+    sink()
+    
+    write.csv(as.data.frame(mccv_obs_info), "obs_info_MCCV.csv", row.names = TRUE)
+    
+    # Save final classification results as RDS
+    saveRDS(result, "classification_results.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CMA:", paste0("    cma: ", packageVersion("CMA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE":',
+        paste0('    CMA: ', as.character(packageVersion('CMA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cma_results.csv
-    touch ${prefix}_cma_output.rds
-    echo "BIOC_CMA:" > versions.yml
-    echo "    cma: 0.0.0" >> versions.yml
+    touch ${prefix}_single_classifier_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_CMA_WORKFLOW {
+workflow BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ golubX, golubY ] ]
 
     main:
-    BIOC_CMA(ch_input)
+    BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_CMA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CMA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CMA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CMA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE.out.tables
+    plots    = BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE.out.plots
+    objects  = BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE.out.objects
+    versions = BIOC_CMA_SINGLE_CLASSIFIER_PIPELINE.out.versions
 }

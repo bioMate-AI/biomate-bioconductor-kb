@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: query=a matrix of query transcriptome data to be classified ;; reference=a matrix of reference transcriptome data with known classes ;; queryclasses=character vector of classes for the query data ;; refclasses=character vector of classes for the reference data ;; random=numeric variable indicating the number of randomly sampled features to form the subset features ;; featurenum=numeric variable indicating the number of features selected from both top and bottom of the subset features (used in RGSEAfix) ;; sd=standard deviation threshold where features with sd deviations from the mean value of the subset features are selected (used in RGSEAsd) ;; iteration=numeric variable indicating the number of times random sampling is performed\n- alternatives: Random forests, random generalized linear models (RGLM), and standard GSEA. RGSEA is preferred when a non-parametric, parameter-free method is needed to avoid overfitting and handle cross-study batch effects or heterogeneous transcriptome data.\n- when_to_use: When classifying transcriptome samples (e.g., tumor vs. normal, drug treatments) using reference datasets from different studies or platforms, especially when robustness against overfitting is required.\n- pitfalls: Ensure that the reference and query datasets have matching feature identifiers (e.g., gene symbols or probe IDs) so they can be compared. The documentation does not explicitly list pitfalls, but choosing an inappropriate random or iteration size might affect performance or runtime.",
+  "workflows": [
+    {
+      "name": "rgsea_fixed_features",
+      "intent": "Classify query transcriptome samples against a reference dataset using a fixed number of top/bottom features and predict class probabilities.",
+      "input": [
+        "query_matrix.csv (expression matrix for query samples)",
+        "reference_matrix.csv (expression matrix for reference samples with known classes)"
+      ],
+      "stages": "1. Run RGSEAfix to calculate similarity scores using a fixed number of features ;; 2. View the classification matrix ;; 3. Predict relative class probabilities using RGSEApredict",
+      "code": "RGSEAfix(e1,e2, queryclasses=colnames(e1), refclasses=colnames(e2), random=20000, \nfeaturenum=1000, iteration=100)->test\ntest[[1]]\nRGSEApredict(test[[1]], colnames(e2))"
+    },
+    {
+      "name": "rgsea_sd_features",
+      "intent": "Measure similarities between query and reference transcriptome samples using standard deviation-based feature selection.",
+      "input": [
+        "query_matrix.csv (expression matrix for query samples)",
+        "reference_matrix.csv (expression matrix for reference samples with known classes)"
+      ],
+      "stages": "1. Run RGSEAsd to calculate similarity scores using features selected by standard deviation deviations ;; 2. View the similarity results",
+      "code": "test2<-RGSEAsd(cmap[,1],cmap[,2:6], queryclasses=colnames(cmap)[1], \n\nrefclasses=colnames(cmap)[2:6], random=5000, sd=2, iteration=100)\ntest2[[1]]"
+    }
+  ]
+}

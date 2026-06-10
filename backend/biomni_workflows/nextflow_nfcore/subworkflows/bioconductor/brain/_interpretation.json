@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: aC=A list containing the atomic composition of the substance (e.g., list(C=50, H=71, N=13, O=12, S=0)) ;; nrPeaks=The number of consecutive aggregated isotopic variants to calculate ;; stopOption=The stopping criterion for probability calculations, which can be \"coverage\" or \"abundantEstim\" ;; coverage=The cumulative probability threshold (e.g., 0.99) used when stopOption is \"coverage\" ;; abundantEstim=The abundance threshold (e.g., 10) used when stopOption is \"abundantEstim\" ;; approxParam=The RCL (Recurrence of Constant Length) approximation parameter in useBRAIN2 (values >= 5 are recommended) ;; approxStart=The LSP (Late Starting Point) approximation parameter in useBRAIN2 to narrow down computations to peak indices around the most abundant ones\n- alternatives: None mentioned, but the package is presented as a computation- and memory-efficient alternative to traditional combinatorial methods that suffer from combinatorial explosion for large molecules.\n- when_to_use: Use this package when analyzing mass spectrometry data in proteomics to calculate theoretical isotopic distributions, monoisotopic masses, and average masses of peptides or proteins to interpret complex spectral patterns.\n- pitfalls: For extremely large atomic configurations, numerical problems may occur, which can be handled by checking if the calculated monoisotopic mass is NA. The LSP (Late Starting Point) approximation requires a burn-in period to retrieve accurate isotopic ratios, with a suggested rule-of-thumb burn-in of ceiling(log10(monoisotopicMass)) + 5.",
+  "workflows": [
+    {
+      "name": "single_molecule_isotopic_distribution",
+      "intent": "Calculate and plot the aggregated isotopic distribution, monoisotopic mass, and average mass for a single chemical substance or peptide sequence.",
+      "input": [
+        "chemical_composition.txt (A list or table defining the atomic counts of C, H, N, O, and S for the target molecule)"
+      ],
+      "stages": "1. Define the atomic composition list ;; 2. Calculate the theoretical monoisotopic mass ;; 3. Calculate the theoretical average mass ;; 4. Estimate the required number of peaks ;; 5. Compute isotopic probabilities with various stopping criteria ;; 6. Run the global useBRAIN function to obtain masses and abundances for plotting",
+      "code": "angiotensineII <- list(C=50,H=71,N=13,O=12) \nmonoisotopicMassAngiotensineII <- calculateMonoisotopicMass(aC = angiotensineII)\nmonoisotopicMassAngiotensineII\naverageMassAngiotensineII <- calculateAverageMass(aC = angiotensineII)\naverageMassAngiotensineII\nnrPeaksAngiotensineII <- calculateNrPeaks(aC = angiotensineII)\nnrPeaksAngiotensineII\nprob1 <- calculateIsotopicProbabilities(aC = angiotensineII)\nprob2 <- calculateIsotopicProbabilities(aC = angiotensineII, nrPeaks=20)\nprob3 <- calculateIsotopicProbabilities(aC = angiotensineII, stopOption = \"coverage\", coverage = 0.99)\nprob4 <- calculateIsotopicProbabilities(aC = angiotensineII, stopOption = \"abundantEstim\", abundantEstim = 10)\nres <- useBRAIN(aC= angiotensineII)"
+    },
+    {
+      "name": "high_throughput_protein_processing",
+      "intent": "Process a tabular file of protein sequences to calculate atomic compositions, monoisotopic masses, and most abundant peak masses in high-throughput.",
+      "input": [
+        "uniprot.tab (A tab-delimited text file containing protein sequences under a \"Sequence\" column)"
+      ],
+      "stages": "1. Read and clean the protein sequence data ;; 2. Filter sequences to ensure they only contain the 20 standard amino acids ;; 3. Convert amino acid sequences to atomic compositions ;; 4. Calculate isotopic distributions and extract monoisotopic and most abundant peak masses ;; 5. Export the processed data to a text file",
+      "code": "tabUniprot <- read.table('data/uniprot.tab', sep=\"\\t\", header=TRUE) \ntabUniprot$Sequence <- gsub(\" \", \"\", tabUniprot$Sequence)\nhowMany <- nrow(tabUniprot)\nAMINOS <- c(\"A\", \"R\", \"N\", \"D\", \"C\", \"E\", \"Q\", \"G\", \"H\", \"I\", \"L\", \"K\", \"M\", \"F\", \"P\", \"S\", \"T\", \"W\", \"Y\", \"V\")\nnrPeaks = 1000\ndfUniprot <- data.frame()\nfor (idx in 1:howMany){\n  seq <- as.character(tabUniprot[idx,\"Sequence\"])\n  seqVector <- strsplit(seq, split=\"\")[[1]]\n  if (!is.na(sum(match(seqVector, AMINOS)))){  \n  aC <- getAtomsFromSeq(seq)\n  res <- useBRAIN(aC = aC, nrPeaks = nrPeaks, stopOption = \"abundantEstim\", abundantEstim = 10)\n  isoDistr <- res$isoDistr\n  masses <- res$masses\n  maxIdx <- which.max(isoDistr)\n  mostAbundantPeakMass <- masses[maxIdx]\n  monoMass <- res$monoisotopicMass  \n  dfAtomicComp <- data.frame(C=aC[1], H=aC[2], N=aC[3], O=aC[4], S=aC[5])\n  singleDfUniprot <- data.frame(dfAtomicComp, monoMass=monoMass, maxIdx=maxIdx, mostAbundantPeakMass=mostAbundantPeakMass)\n  if (!is.na(monoMass)){ #for huge atomic configuration numerical problems may occur\n    dfUniprot <- rbind(dfUniprot, singleDfUniprot)\n  }\n  }\n}\nwrite.table(unique(dfUniprot), \"data/uniprotBRAIN.txt\")"
+    },
+    {
+      "name": "heuristic_isotopic_distribution",
+      "intent": "Compute isotopic distributions for large molecules using time- and memory-saving heuristics (RCL and LSP) via BRAIN 2.0.",
+      "input": [
+        "large_molecule_composition.txt (Atomic composition list of a large biomolecule)"
+      ],
+      "stages": "1. Define the atomic composition ;; 2. Run useBRAIN2 with the RCL (Recurrence of Constant Length) approximation using approxParam ;; 3. Run useBRAIN2 with the LSP (Late Starting Point) approximation using approxStart to focus on the most abundant peak region",
+      "code": "resNoRCL <-  useBRAIN2(aC = aC, nrPeaks = nrPeaks)$iso\nresRCL   <-  useBRAIN2(aC = aC, nrPeaks = nrPeaks, approxParam = 10)$iso\nresNoLSP <-  useBRAIN2(aC = aC, nrPeaks = endIdx)$iso\nresLSP   <-  useBRAIN2(aC = aC, nrPeaks = endIdx, approxStart = approxStart)$iso"
+    }
+  ]
+}

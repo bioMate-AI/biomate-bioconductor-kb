@@ -1,0 +1,28 @@
+{
+  "package": "structtoolbox",
+  "requirements": [
+    "SummarizedExperiment",
+    "cowplot",
+    "ggplot2",
+    "pmp",
+    "structToolbox"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "pmp",
+      "structToolbox"
+    ],
+    "supervised_pls_modeling_and_validation.nf": [
+      "cowplot",
+      "ggplot2",
+      "structToolbox"
+    ],
+    "svm_classification_and_boundary_tuning.nf": [
+      "cowplot",
+      "ggplot2",
+      "structToolbox"
+    ]
+  }
+}

@@ -1,102 +1,197 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GDSArray
-// GDS files are widely used to represent genotyping or sequence data. The GDSArray package implements 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GDSArray/inst/doc/GDSArray.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GDSArray")
+// Bioconductor workflow: GDSArray — gdsarray_genomic_processing
+// Convert a feature-by-sample CSV matrix into a high-performance Genomic Data Structure (GDS) file, represent it as a GDSArray for memory-efficient delayed operat
+// Input: input.csv
+// Container: 1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GDSArray, S4Vectors, SummarizedExperiment, gdsfmt
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GDSARRAY {
+process BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gdsarray"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gdsarray:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gdsarray:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gdsarray_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gdsarray_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gdsarray_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(gdsfmt)
     library(GDSArray)
-    library(jsonlite)
-
-    # --- gds Example File Name [] ---
-    # Key functions: gdsExampleFileName, GDSArray
-    file <- gdsExampleFileName("seqgds")
-    GDSArray(file, "genotype/data")
-    # --- G D S Array [] ---
-    # Key functions: GDSArray
-    GDSArray(file, "annotation/format/DP/data")
-    # --- gdsnodes [] ---
-    # Key functions: gdsnodes, GDSArray
-    gdsnodes(file)
-    identical(gdsnodes(file), gdsnodes(gf))
-    varname <- gdsnodes(file)[2]
-    # --- G D S Array [] ---
-    # Key functions: GDSArray, lengths
-    dp <- GDSArray(file, "annotation/format/DP/data")
-    dim(dp)
-    class(dimnames(dp))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gdsarray_results.csv", row.names = TRUE)
+    library(S4Vectors)
+    
+    # ==========================================
+    # STAGE 1: Read and Clean Input Defensively
+    # ==========================================
+    if (!file.exists("input.csv")) {
+      stop("Input file 'input.csv' not found in the working directory.")
+    }
+    
+    # Read CSV defensively
+    csv_data <- read.csv("input.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if (ncol(csv_data) < 2) {
+      stop("Input CSV must have at least a feature ID column and one sample column.")
+    }
+    
+    # Extract row names (features) and sample columns
+    if ("feature_id" %in% colnames(csv_data)) {
+      row_names <- csv_data\$feature_id
+      csv_data\$feature_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gdsarray_results.csv")
+      row_names <- csv_data[, 1]
+      csv_data <- csv_data[, -1, drop = FALSE]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gdsarray_output.rds")
+    
+    # Convert to numeric matrix
+    mat <- as.matrix(csv_data)
+    storage.mode(mat) <- "double"
+    
+    # Handle any missing values by replacing them with 0
+    mat[is.na(mat)] <- 0
+    
+    # ==========================================
+    # STAGE 2: Create GDS File from Matrix
+    # ==========================================
+    gds_path <- "input_data.gds"
+    if (file.exists(gds_path)) {
+      file.remove(gds_path)
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GDSARRAY:", paste0("    gdsarray: ", packageVersion("GDSArray"))),
-        "versions.yml"
+    
+    # Initialize GDS file and write nodes
+    f <- createfn.gds(gds_path)
+    add.gdsn(f, "assay/data", val = mat)
+    add.gdsn(f, "row_names", val = as.character(row_names))
+    add.gdsn(f, "col_names", val = as.character(colnames(mat)))
+    closefn.gds(f)
+    
+    # ==========================================
+    # STAGE 3: Represent GDS Nodes as GDSArrays
+    # ==========================================
+    # Instantiate GDSArray for the main data matrix
+    gds_arr <- GDSArray(gds_path, "assay/data")
+    
+    # Retrieve row and column names from GDS
+    row_names_arr <- as.vector(GDSArray(gds_path, "row_names"))
+    col_names_arr <- as.vector(GDSArray(gds_path, "col_names"))
+    
+    # Assign dimension names to the GDSArray
+    dimnames(gds_arr) <- list(row_names_arr, col_names_arr)
+    
+    # Inspect GDS metadata using GDSArray API
+    message("GDS File Path: ", gdsfile(gds_arr))
+    message("GDS Seed Details:")
+    print(seed(gds_arr))
+    
+    # Represent the file using GDSFile class for node exploration
+    gf <- GDSFile(gds_path)
+    gds_nodes <- gdsnodes(gf)
+    
+    # ==========================================
+    # STAGE 4: Delayed Operations & Filtering
+    # ==========================================
+    # Perform delayed log-transformation (no memory overhead)
+    log_arr <- log1p(gds_arr)
+    
+    # Compute row means using block-processing
+    row_means <- rowMeans(log_arr)
+    mean_threshold <- mean(row_means, na.rm = TRUE)
+    
+    # Filter features with expression above the mean
+    keep_idx <- which(row_means >= mean_threshold)
+    filtered_arr <- log_arr[keep_idx, , drop = FALSE]
+    
+    # ==========================================
+    # STAGE 5: SummarizedExperiment Integration
+    # ==========================================
+    se <- SummarizedExperiment(
+      assays = list(log_counts = filtered_arr),
+      rowData = DataFrame(
+        feature_id = rownames(filtered_arr),
+        mean_log_expr = row_means[keep_idx]
+      ),
+      colData = DataFrame(
+        sample_id = colnames(filtered_arr)
+      )
     )
+    
+    # ==========================================
+    # STAGE 6: Write Outputs
+    # ==========================================
+    # 1. Processed matrix (realize the delayed array to in-memory matrix for writing)
+    write.csv(as.matrix(assay(se, "log_counts")), "processed_features.csv", row.names = TRUE)
+    
+    # 2. Feature metadata
+    write.csv(as.data.frame(rowData(se)), "feature_metadata.csv", row.names = FALSE)
+    
+    # 3. GDS structure report
+    gds_report <- data.frame(
+      node_name = gds_nodes,
+      stringsAsFactors = FALSE
+    )
+    write.csv(gds_report, "gds_structure.csv", row.names = FALSE)
+    
+    # ==========================================
+    # STAGE 7: Cleanup and Resource Release
+    # ==========================================
+    tryCatch({
+      releaseGDS(gds_path)
+    }, error = function(e) {
+      warning("Could not release GDS file handle: ", e\$message)
+    })
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING":',
+        paste0('    GDSArray: ', as.character(packageVersion('GDSArray')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gdsarray_results.csv
-    touch ${prefix}_gdsarray_output.rds
-    echo "BIOC_GDSARRAY:" > versions.yml
-    echo "    gdsarray: 0.0.0" >> versions.yml
+    touch ${prefix}_gdsarray_genomic_processing.csv versions.yml
     """
 }
 
-
-workflow BIOC_GDSARRAY_WORKFLOW {
+workflow BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GDSARRAY(ch_input)
+    BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING(ch_input)
 
     emit:
-    results  = BIOC_GDSARRAY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GDSARRAY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GDSARRAY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GDSARRAY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING.out.tables
+    plots    = BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING.out.plots
+    objects  = BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING.out.objects
+    versions = BIOC_GDSARRAY_GDSARRAY_GENOMIC_PROCESSING.out.versions
 }

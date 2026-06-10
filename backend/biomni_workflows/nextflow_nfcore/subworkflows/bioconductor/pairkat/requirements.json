@@ -1,0 +1,15 @@
+{
+  "package": "pairkat",
+  "requirements": [
+    "SummarizedExperiment",
+    "dplyr",
+    "pairkat"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "dplyr",
+      "pairkat"
+    ]
+  }
+}

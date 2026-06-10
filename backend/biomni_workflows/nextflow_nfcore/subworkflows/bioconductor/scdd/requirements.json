@@ -1,0 +1,19 @@
+{
+  "package": "scdd",
+  "requirements": [
+    "SingleCellExperiment",
+    "gridExtra",
+    "scDD"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "gridExtra",
+      "scDD"
+    ],
+    "single_cell_simulation.nf": [
+      "SingleCellExperiment",
+      "scDD"
+    ]
+  }
+}

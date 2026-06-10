@@ -1,0 +1,11 @@
+{
+  "package": "veloviz",
+  "requirements": [
+    "veloviz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "veloviz"
+    ]
+  }
+}

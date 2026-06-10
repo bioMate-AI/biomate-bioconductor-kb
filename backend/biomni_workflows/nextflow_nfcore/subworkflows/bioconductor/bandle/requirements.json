@@ -1,0 +1,15 @@
+{
+  "package": "bandle",
+  "requirements": [
+    "MSnbase",
+    "bandle",
+    "pRoloc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "bandle",
+      "pRoloc"
+    ]
+  }
+}

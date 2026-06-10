@@ -1,0 +1,14 @@
+{
+  "package": "logicfs",
+  "requirements": [
+    "logicFS"
+  ],
+  "by_workflow": {
+    "bagged_logic_regression_classification.nf": [
+      "logicFS"
+    ],
+    "main.nf": [
+      "logicFS"
+    ]
+  }
+}

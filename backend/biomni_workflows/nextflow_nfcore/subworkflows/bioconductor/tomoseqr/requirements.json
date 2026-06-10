@@ -1,0 +1,14 @@
+{
+  "package": "tomoseqr",
+  "requirements": [
+    "tomoseqr"
+  ],
+  "by_workflow": {
+    "detect_axial_peak_genes.nf": [
+      "tomoseqr"
+    ],
+    "main.nf": [
+      "tomoseqr"
+    ]
+  }
+}

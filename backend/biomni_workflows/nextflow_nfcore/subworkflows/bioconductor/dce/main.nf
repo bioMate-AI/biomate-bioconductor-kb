@@ -1,111 +1,122 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: dce
-// Compute differential causal effects (dce) on (biological) networks. Given observational samples from
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/dce/inst/doc/dce.R
-// Upstream  : SummarizedExperiment, TCGAutils, cowplot, curatedTCGAData, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("dce")
+// Bioconductor workflow: dce — differential_causal_effect_estimation
+// Compute and visualize differential causal effects on a biological network using gene expression data from two conditions.
+// Input: network.gml, expression_control.csv, expression_treatment.csv
+// Container: quay.io/biocontainers/bioconductor-dce:1.10.0--r43hdfd78af_0
+// R packages: cowplot, curatedtcgadata, dce, ggplot2, igraph, SummarizedExperiment, TCGAutils
+// Bioconductor: 3.20 | R: 4.4
+// Requires: dce, igraph
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the network topology and expression datasets
+//  * 2. [Core Analysis] Compute differential causal effects using the dce function
+//  * 3. [Visualization & Output] Visualize the resulting differential causal network using the plot function
 
 nextflow.enable.dsl = 2
 
-process BIOC_DCE {
+process BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dce"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dce:1.13.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dce:1.13.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dce_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dce_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dce_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cowplot", "curatedtcgadata", "dce", "ggplot2", "igraph", "SummarizedExperiment", "TCGAutils")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(dce)
-    library(TCGAsplitAssays)
-    library(jsonlite)
+    library(igraph)
+    
+    # 1. Load the network topology and expression datasets
+    # Read the network graph from GML format
+    graph <- igraph::read_graph("network.gml", format = "gml")
+    
+    # Read gene expression datasets (samples as rows, genes as columns)
+    df.expr.wt <- read.csv("expression_control.csv", row.names = 1, check.names = FALSE)
+    df.expr.mt <- read.csv("expression_treatment.csv", row.names = 1, check.names = FALSE)
+    
+    # Ensure datasets are data frames
+    df.expr.wt <- as.data.frame(df.expr.wt)
+    df.expr.mt <- as.data.frame(df.expr.mt)
+    
+    # 2. Compute differential causal effects using the dce function
+    res <- dce(graph, df.expr.wt, df.expr.mt)
+    
+    # 3. Visualize the resulting differential causal network using the plot function
+    pdf("dce_plot.pdf", width = 10, height = 8)
+    plot(res)
+    dev.off()
+    
+    # Save the raw results object
+    saveRDS(res, "dce_results.rds")
+    
+    # Export the results as a CSV table
+    res_df <- tryCatch({
+      as.data.frame(res)
+    }, error = function(e) {
+      # Fallback if direct coercion is not supported
+      summary(res)
+    })
+    write.csv(res_df, "dce_results.csv", row.names = TRUE)
 
-    # --- Pathway Retrieval [] ---
-    # Key functions: get_pathways
-    pathways <- get_pathways(pathway_list = list(kegg = c("Breast cancer")))
-    brca_pathway <- pathways[[1]]$graph
-
-
-    # --- Differential Causal Effect Estimation [] ---
-    # Key functions: dce
-    res <- dce::dce(graph_wt, X_wt, X_mt)
-    df_dce <- as.data.frame(res)
-
-
-    # --- Ground Truth Evaluation [] ---
-    # Key functions: trueEffects
-    dce_gt <- trueEffects(graph_mt) - trueEffects(graph_wt)
-    dce_gt_ind <- which(dce_gt != 0, arr.ind = TRUE)
-
-
-    # --- Network Visualisation [] ---
-    # Key functions: plot_network
-    plot_network(
-        as(graph_wt, "matrix"),
-        labelsize = 0,
-        arrow_size = 0.01
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dce_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dce_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dce_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DCE:", paste0("    dce: ", packageVersion("dce"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION":',
+        paste0('    dce: ', as.character(packageVersion('dce')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dce_results.csv
-    touch ${prefix}_dce_output.rds
-    echo "BIOC_DCE:" > versions.yml
-    echo "    dce: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_causal_effect_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_DCE_WORKFLOW {
+workflow BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ network.gml, expression_control.csv, expression_treatment.csv ] ]
 
     main:
-    BIOC_DCE(ch_input)
+    BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_DCE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DCE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DCE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DCE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION.out.tables
+    plots    = BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION.out.plots
+    objects  = BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION.out.objects
+    versions = BIOC_DCE_DIFFERENTIAL_CAUSAL_EFFECT_ESTIMATION.out.versions
 }

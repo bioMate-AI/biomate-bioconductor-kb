@@ -1,0 +1,17 @@
+{
+  "package": "splinter",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm9",
+    "GenomicFeatures",
+    "SPLINTER",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm9",
+      "GenomicFeatures",
+      "SPLINTER",
+      "txdbmaker"
+    ]
+  }
+}

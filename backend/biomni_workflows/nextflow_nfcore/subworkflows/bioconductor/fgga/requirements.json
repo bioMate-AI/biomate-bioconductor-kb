@@ -1,0 +1,19 @@
+{
+  "package": "fgga",
+  "requirements": [
+    "GO.db",
+    "GOstats",
+    "Rgraphviz",
+    "fgga",
+    "pROC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GO.db",
+      "GOstats",
+      "Rgraphviz",
+      "fgga",
+      "pROC"
+    ]
+  }
+}

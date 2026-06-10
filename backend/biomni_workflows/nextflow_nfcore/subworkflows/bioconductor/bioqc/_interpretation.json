@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: valType=Specifies the alternative hypothesis direction for the Wilcoxon-Mann-Whitney test, such as \"p.greater\" or \"p.less\" ;; simplify=A logical value indicating whether to simplify the output of wmwTest to a matrix or vector instead of a list ;; gmt=A list of tissue-specific gene signatures, typically read from a GMT file ;; eset=An ExpressionSet object or numeric matrix containing the gene expression data to be tested\n- alternatives: stats::wilcox.test=The native R implementation of the Wilcoxon-Mann-Whitney test, which is much slower because it does not optimize background sorting ;; limma::rankSumTestWithCorrelation=An alternative rank sum test that is slower and requires more memory ;; Principal Component Analysis (PCA)=An unsupervised method that clusters samples but does not identify specific contaminating tissues or infiltration causes\n- when_to_use: Use as a first-line quality control tool for high-throughput gene expression datasets (microarray or RNA-seq) to detect potential tissue heterogeneity, sample mix-ups, or tissue contamination/infiltration before performing downstream analyses like differential expression\n- pitfalls: Background filtering matters because excluding lowly expressed genes prior to analysis changes the background and alters the resulting p-values, so any filtering must be reported and kept consistent ;; Contamination detection sensitivity is asymmetric between tissues, meaning tissues with highly distinct expression patterns (e.g., heart) are easier to detect at lower percentages than tissues with less distinct patterns (e.g., brain or small intestine) ;; Ontological differences in tissue signatures (e.g., specific brain regions vs. whole cerebrum) can affect detection limits and score ranks",
+  "workflows": [
+    {
+      "name": "tissue_heterogeneity_detection",
+      "intent": "Detect tissue heterogeneity and contamination in gene expression data using tissue-specific gene signatures.",
+      "input": [
+        "kidney_example.rda (ExpressionSet containing normalized gene expression values)",
+        "exp.tissuemark.affy.roche.symbols.gmt (GMT file containing tissue-specific gene signatures)"
+      ],
+      "stages": "1. Load tissue-specific gene signatures from a GMT file using readGmt ;; 2. Load the gene expression dataset ;; 3. Perform the Wilcoxon-Mann-Whitney test using wmwTest to calculate enrichment p-values ;; 4. Filter the resulting p-value matrix using filterPmat ;; 5. Transform the filtered p-values to BioQC scores using absLog10p for downstream visualization",
+      "code": "library (BioQC)\ngmtFile <- system.file ( \"extdata/exp.tissuemark.affy.roche.symbols.gmt\" , package= \"BioQC\" )\ngmt <- readGmt (gmtFile)\nfile <- system.file ( \"extdata/kidney_example.rda\" , package= \"BioQC\" )\nload (file)\nbioqcRes <- wmwTest (eset, gmt, valType= \"p.greater\" )\nbioqcResFil <- filterPmat (bioqcRes, 1E-6 )\nbioqcAbsLogRes <- absLog10p (bioqcResFil)"
+    }
+  ]
+}

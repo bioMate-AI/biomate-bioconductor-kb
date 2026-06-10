@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pval=A vector of p-values (the first argument to LBE) ;; ci.level=Confidence level for the confidence interval of pi0 (default is 0.95) ;; plot.type=Type of plot to display (\"main\", \"multiple\", or \"none\") ;; FDR.level=Level at which to control the FDR (default is 0.05) ;; n.significant=Specific number of significant genes for which to estimate the FDR (alternative to FDR.level) ;; a=Parameter for the transformation function (if set to -1, no transformation is applied) ;; l=Threshold for the upper bound of the asymptotic standard deviation used to choose a (default is 0.05)\n- alternatives: qvalue=The qvalue package uses a smoothing method to estimate the marginal density evaluated at one, whereas LBE is based on the expectation of a transformation of the p-values and provides an analytical confidence interval for pi0.\n- when_to_use: When performing genome-wide association, transcriptomics, or other high-throughput studies where a large number of statistical tests are simultaneously performed and FDR control/q-value estimation is required.\n- pitfalls: Assuming p-values are uniformly distributed under the null hypothesis when they are not (e.g., due to confounding or inappropriate test statistics). Setting the parameter 'a' too high can increase the variance of the estimator, while setting it too low (or using a = -1) can increase the conservative bias.",
+  "workflows": [
+    {
+      "name": "lbe_fdr_estimation",
+      "intent": "Estimate the proportion of true null hypotheses, FDR, and q-values from a vector of p-values, visualize the results, and export them.",
+      "input": [
+        "golub.pval (vector of p-values from a differential expression analysis)"
+      ],
+      "stages": "1. Load the package and p-value data ;; 2. Run the main LBE estimation with desired parameters (e.g., FDR level, confidence interval level, or specific number of significant genes) ;; 3. Plot the results using multiple plot types ;; 4. Summarize the estimation results ;; 5. Write the results to a file",
+      "code": "library(LBE)\ndata(golub.pval)\nLBE.res <- LBE(golub.pval)\nnames(LBE.res)\nLBE.res$pi0; LBE.res$pi0.ci; LBE.res$ci.level\nLBE.res2 <- LBE(golub.pval, ci.level=0.8,plot.type=\"none\")\nLBE.res2$pi0.ci; LBE.res2$ci.level\nLBE.res3 <- LBE(golub.pval, FDR.level=0.1,plot.type=\"none\")\nLBE.res3$qvalues[1:10]\nLBE.res3$n.significant\nLBE.res4 <- LBE(golub.pval,FDR.level=NA,n.significant=300)\nLBE.res4$qvalues[1:10]\nLBEplot(LBE.res,plot.type=\"multiple\")\nLBEsummary(LBE.res)\nLBEwrite(LBE.res)"
+    }
+  ]
+}

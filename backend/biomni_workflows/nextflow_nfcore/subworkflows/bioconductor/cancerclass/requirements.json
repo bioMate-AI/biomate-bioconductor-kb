@@ -1,0 +1,17 @@
+{
+  "package": "cancerclass",
+  "requirements": [
+    "Biobase",
+    "cancerclass"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "cancerclass"
+    ],
+    "predictor_construction_and_independent_validation.nf": [
+      "Biobase",
+      "cancerclass"
+    ]
+  }
+}

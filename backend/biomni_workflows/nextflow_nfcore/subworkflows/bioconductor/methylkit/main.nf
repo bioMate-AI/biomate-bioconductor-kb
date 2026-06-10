@@ -1,146 +1,160 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: methylKit
-// methylKit is an R package for DNA methylation analysis and annotation from high-throughput bisulfite
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/methylKit/inst/doc/methylKit.R
-// Upstream  : genomation
-// Downstream: none
-//
-// Install: BiocManager::install("methylKit")
+// Bioconductor workflow: methylKit — base_resolution_diff_meth
+// Perform base-resolution differential methylation analysis, sample comparative analysis, and genomic annotation using in-memory objects.
+// Input: file.list, gene.obj, cpg.obj
+// Container: quay.io/biocontainers/bioconductor-methylkit:1.36.0--r45ha27e39d_0
+// R packages: genomation, methylKit
+// Bioconductor: 3.20 | R: 4.4
+// Requires: genomation, methylKit
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read methylation call files
+//  * 2. [Core Analysis] Filter samples by coverage
+//  * 3. [Core Analysis] Merge samples to find common covered bases
+//  * 4. [Core Analysis] Calculate sample correlation and perform clustering/PCA
+//  * 5. [Core Analysis] Calculate differential methylation
+//  * 6. [Core Analysis] Extract hyper/hypo-methylated bases
+//  * 7. [Core Analysis] Annotate differentially methylated bases with genic parts and CpG features
 
 nextflow.enable.dsl = 2
 
-process BIOC_METHYLKIT {
+process BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-methylkit"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-methylkit:1.32.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-methylkit:1.32.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_methylkit_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_methylkit_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_methylkit_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(methylKit)
-    library(PCASamples)
-    library(jsonlite)
-
-    # --- Quality Control and Filtering [] ---
-    # Key functions: getMethylationStats, getCoverageStats, filterByCoverage
-    getMethylationStats(myobj[[1]], plot = FALSE, both.strands = FALSE)
-    getCoverageStats(myobj[[1]], plot = FALSE, both.strands = FALSE)
-    filtered_myobj <- filterByCoverage(
-        myobj,
-        lo.count = 10,
-        lo.perc = NULL,
-        hi.count = NULL,
-        hi.perc = 99.9
-    )
-
-
-    # --- Sample Merging and Clustering [] ---
-    # Key functions: unite, getCorrelation, clusterSamples, PCASamples
-    meth <- unite(filtered_myobj, destrand = FALSE)
-    getCorrelation(meth, plot = FALSE)
-    hc <- clusterSamples(
-        meth,
-        dist = "correlation",
-        method = "ward",
-        plot = FALSE
-    )
-    PCASamples(meth, screeplot = FALSE)
-
-
-    # --- Batch Effect Correction [] ---
-    # Key functions: assocComp, removeComp, percMethylation, reconstruct
-    sample_annotation <- data.frame(
-        batch_id = c("a", "a", "b", "b"),
-        age = c(19, 34, 23, 40)
-    )
-    as_comp <- assocComp(mBase = meth, sample_annotation)
-    new_obj <- removeComp(meth, comp = 1)
-    mat <- percMethylation(new_obj)
-    mat[mat == 100] <- 80
-    corrected_obj <- reconstruct(mat, new_obj)
-
-
-    # --- Differential Methylation Analysis [] ---
-    # Key functions: calculateDiffMeth, getMethylDiff, diffMethPerChr
-    my_diff <- calculateDiffMeth(corrected_obj)
-    my_diff_hyper <- getMethylDiff(
-        my_diff,
-        difference = 25,
-        qvalue = 0.01,
-        type = "hyper"
-    )
-    my_diff_hypo <- getMethylDiff(
-        my_diff,
-        difference = 25,
-        qvalue = 0.01,
-        type = "hypo"
-    )
-    diff_chr <- diffMethPerChr(
-        my_diff,
-        plot = FALSE,
-        qvalue.cutoff = 0.01,
-        meth.cutoff = 25
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_methylkit_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_methylkit_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("genomation", "methylKit")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_methylkit_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required Bioconductor libraries
+        library(methylKit)
+        library(genomation)
+        
+        # 1. Read methylation call files and annotation files from the working directory
+        # Read the list of file paths from the "file.list" text file
+        file.list <- readLines("file.list")
+        
+        # Read the transcript features from the "gene.obj" BED file
+        gene.obj <- readTranscriptFeatures("gene.obj")
+        
+        # Read the CpG features from the "cpg.obj" BED file
+        cpg.obj <- readFeatureFlank("cpg.obj", feature.flank.name = c("CpGi", "shores"))
+        
+        n_files <- length(file.list)
+        my_sample_ids <- as.list(paste0("sample", seq_len(n_files)))
+        my_treatment <- c(rep(1, ceiling(n_files/2)), rep(0, floor(n_files/2)))
+        
+        # Read the methylation files into a methylRawList object
+        myobj=methRead(as.list(file.list),
+                   sample.id=my_sample_ids,
+                   assembly="hg18",
+                   treatment=my_treatment,
+                   context="CpG",
+                   mincov = 10
+                   )
+        
+        # 2. Filter samples by coverage
+        filtered.myobj=filterByCoverage(myobj,lo.count=10,lo.perc=NULL,
+                                              hi.count=NULL,hi.perc=99.9)
+        
+        # 3. Merge samples to find common covered bases
+        meth=unite(filtered.myobj, destrand=FALSE)
+        
+        # 4. Calculate sample correlation and perform clustering/PCA
+        # Save comparative analysis plots to a PDF file
+        pdf("sample_comparative_analysis.pdf", width = 8, height = 8)
+        getCorrelation(meth,plot=TRUE)
+        clusterSamples(meth, dist="correlation", method="ward", plot=TRUE)
+        PCASamples(meth)
+        dev.off()
+        
+        # 5. Calculate differential methylation
+        myDiff=calculateDiffMeth(meth)
+        
+        # 6. Extract hyper/hypo-methylated bases
+        myDiff25p=getMethylDiff(myDiff,difference=25,qvalue=0.01)
+        
+        # Save differential methylation results to files
+        write.csv(as.data.frame(myDiff), "differential_methylation_all.csv", row.names = FALSE)
+        write.csv(as.data.frame(myDiff25p), "differential_methylation_q0.01_diff25.csv", row.names = FALSE)
+        saveRDS(myDiff, "myDiff.rds")
+        saveRDS(myDiff25p, "myDiff25p.rds")
+        
+        # 7. Annotate differentially methylated bases with genic parts and CpG features
+        gene_ann <- annotateWithGeneParts(as(myDiff25p,"GRanges"),gene.obj)
+        diffCpGann=annotateWithFeatureFlank(as(myDiff25p,"GRanges"),
+                                            cpg.obj\$CpGi,cpg.obj\$shores,
+                                 feature.name="CpGi",flank.name="shores")
+        
+        # Save annotation objects
+        saveRDS(gene_ann, "gene_annotation.rds")
+        saveRDS(diffCpGann, "cpg_annotation.rds")
+        
+        # Save annotation visualization plots
+        pdf("differential_methylation_annotation_plots.pdf", width = 8, height = 8)
+        plotTargetAnnotation(gene_ann, precedence = TRUE, main = "Differential Methylation Genic Annotation")
+        plotTargetAnnotation(diffCpGann, col = c("green", "gray", "white"), main = "Differential Methylation CpG Annotation")
+        dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METHYLKIT:", paste0("    methylkit: ", packageVersion("methylKit"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH":',
+        paste0('    methylKit: ', as.character(packageVersion('methylKit')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_methylkit_results.csv
-    touch ${prefix}_methylkit_output.rds
-    echo "BIOC_METHYLKIT:" > versions.yml
-    echo "    methylkit: 0.0.0" >> versions.yml
+    touch ${prefix}_base_resolution_diff_meth.csv versions.yml
     """
 }
 
-
-workflow BIOC_METHYLKIT_WORKFLOW {
+workflow BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file.list, gene.obj, cpg.obj ] ]
 
     main:
-    BIOC_METHYLKIT(ch_input)
+    BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH(ch_input)
 
     emit:
-    results  = BIOC_METHYLKIT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METHYLKIT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METHYLKIT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METHYLKIT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH.out.tables
+    plots    = BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH.out.plots
+    objects  = BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH.out.objects
+    versions = BIOC_METHYLKIT_BASE_RESOLUTION_DIFF_METH.out.versions
 }

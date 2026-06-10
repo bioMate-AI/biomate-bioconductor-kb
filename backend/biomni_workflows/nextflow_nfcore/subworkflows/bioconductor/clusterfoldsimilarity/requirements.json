@@ -1,0 +1,19 @@
+{
+  "package": "clusterfoldsimilarity",
+  "requirements": [
+    "BiocParallel",
+    "ClusterFoldSimilarity",
+    "Seurat",
+    "SingleCellExperiment",
+    "dplyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "ClusterFoldSimilarity",
+      "Seurat",
+      "SingleCellExperiment",
+      "dplyr"
+    ]
+  }
+}

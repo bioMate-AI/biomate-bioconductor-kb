@@ -1,0 +1,14 @@
+{
+  "package": "idr2d",
+  "requirements": [
+    "idr2d"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "idr2d"
+    ],
+    "one_dimensional_idr.nf": [
+      "idr2d"
+    ]
+  }
+}

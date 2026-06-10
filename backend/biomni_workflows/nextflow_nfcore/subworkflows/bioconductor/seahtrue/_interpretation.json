@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filepath = path to the Seahorse XF Excel file (.xlsx) passed as the first argument to revive_xfplate()\n- alternatives: None mentioned for software, but other instruments like Oroboros O2K, Hansatech oxygraphs, and Lucid Scientific ReSipher are mentioned as alternative extracellular flux analysis hardware.\n- when_to_use: Use when you have raw Seahorse XF analyzer Excel output files and want to perform reproducible, standardized preprocessing, background correction, and validation of OCR and ECAR measurements.\n- pitfalls: Background correction status can vary; the package automatically detects if background correction was applied by checking if background wells are zero, and applies it if missing. Users must verify the was_background_corrected attribute to ensure correct downstream interpretation.",
+  "workflows": [
+    {
+      "name": "seahorse_xf_preprocessing",
+      "intent": "Read, preprocess, and validate Seahorse XF analyzer Excel data into structured nested tibbles.",
+      "input": [
+        "20191219_SciRep_PBMCs_donor_A.xlsx (Seahorse XF analyzer Excel data file)"
+      ],
+      "stages": "1. Read and preprocess the Seahorse plate data using revive_xfplate(). 2. Inspect the structure of the nested tibble. 3. Extract rate data, raw data, assay information, and injection information using purrr::pluck().",
+      "code": "revive_output_donor_A <- \n  system.file(\"extdata\", \n              \"20191219_SciRep_PBMCs_donor_A.xlsx\",\n              package = \"seahtrue\") %>% \n  seahtrue::revive_xfplate()\n\nrevive_output_donor_A %>%  \n  dplyr::glimpse()\n\nrevive_output_donor_A %>%  \n  purrr::pluck(\"rate_data\", 1)\n\nrevive_output_donor_A %>%  \n  purrr::pluck(\"raw_data\", 1)\n\nrevive_output_donor_A %>%  \n  purrr::pluck(\"assay_info\", 1) %>% \n  pull(cartridge_barcode)\n\nrevive_output_donor_A %>%  \n  purrr::pluck(\"rate_data\", 1) %>% \n  attributes() %>% \n  purrr::pluck(\"was_background_corrected\")\n\nrevive_output_donor_A %>%  \n  purrr::pluck(\"injection_info\", 1)"
+    }
+  ]
+}

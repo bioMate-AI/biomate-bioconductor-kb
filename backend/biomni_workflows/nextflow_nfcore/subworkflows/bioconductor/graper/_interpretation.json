@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: spikeslab=logical determining whether to use a sparsity-promoting spike-and-slab prior (defaults to TRUE) ;; factoriseQ=logical determining whether to use a fully-factorised mean-field variational approximation (defaults to TRUE) ;; n_rep=integer specifying the number of random initializations to train multiple models and select the one with the highest ELBO ;; th=numeric threshold on the ELBO change for convergence in the variational Bayes algorithm ;; family=character string specifying the response distribution, such as \"binomial\" for logistic regression ;; calcELB=logical indicating whether to calculate the evidence lower bound (must be set to FALSE for logistic regression)\n- alternatives: none mentioned\n- when_to_use: Use when performing regression or classification on high-dimensional datasets where features are naturally grouped (e.g., multi-omics data) and different groups are expected to have different relative strengths of penalization and sparsity.\n- pitfalls: The logistic regression implementation is experimental, not optimized for speed, and can be slow on large datasets ;; The evidence lower bound (ELBO) is not calculated for logistic regression, meaning convergence cannot be monitored and the algorithm will only stop when the maximum number of iterations is reached ;; Variational Bayes posterior distributions are often too concentrated and should not be used directly for constructing confidence intervals, though they provide good point estimates.",
+  "workflows": [
+    {
+      "name": "linear_regression",
+      "intent": "Fit a group-penalized linear regression model on high-dimensional continuous data, evaluate convergence, extract coefficients, and make predictions.",
+      "input": [
+        "Xtrain (matrix of training features)",
+        "ytrain (vector of continuous training responses)",
+        "annot (vector of feature group annotations)",
+        "Xtest (matrix of test features)"
+      ],
+      "stages": "1. Fit the linear regression model using graper ;; 2. Plot the ELBO to monitor convergence using plotELBO ;; 3. Plot posterior distributions of parameters using plotPosterior ;; 4. Extract coefficients and intercept using coef ;; 5. Extract posterior inclusion probabilities using getPIPs ;; 6. Plot group-wise penalties using plotGroupPenalties ;; 7. Predict response on new data using predict",
+      "code": "fit <- graper(Xtrain, ytrain, annot, n_rep=3, verbose=FALSE, th=0.001)\nplotELBO(fit)\nplotPosterior(fit, \"gamma\", gamma0=data$gammas, range=c(0, 20))\nplotPosterior(fit, \"pi\", pi0=data$pis)\nbeta <- coef(fit, include_intercept=FALSE)\nintercept <- fit$intercept\npips <- getPIPs(fit)\nplotGroupPenalties(fit)\npreds <- predict(fit, Xtest)"
+    },
+    {
+      "name": "logistic_regression",
+      "intent": "Fit a group-penalized logistic regression model on high-dimensional binary data, extract coefficients, and make predictions.",
+      "input": [
+        "Xtrain (matrix of training features)",
+        "ytrain (vector of binary training responses)",
+        "annot (vector of feature group annotations)",
+        "Xtest (matrix of test features)"
+      ],
+      "stages": "1. Fit the logistic regression model using graper with family=\"binomial\" and calcELB=FALSE ;; 2. Plot posterior distributions of parameters using plotPosterior ;; 3. Extract coefficients and intercept using coef ;; 4. Extract posterior inclusion probabilities using getPIPs ;; 5. Predict response on new data using predict",
+      "code": "fit <- graper(Xtrain, ytrain, annot, verbose=FALSE, family=\"binomial\", calcELB=FALSE)\nplotPosterior(fit, \"gamma\", gamma0=data$gammas)\nplotPosterior(fit, \"pi\", pi0=data$pis)\nbeta <- coef(fit, include_intercept=FALSE)\nintercept <- fit$intercept\npips <- getPIPs(fit)\npreds <- predict(fit, Xtest)"
+    }
+  ]
+}

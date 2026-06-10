@@ -1,135 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: msqrob2
-// msqrob2 provides a robust linear mixed model framework for assessing differential abundance in MS-ba
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/msqrob2/inst/doc/cptac.R
-// Upstream  : QFeatures, gridExtra, limma, plotly, tidyverse
-// Downstream: none
-//
-// Install: BiocManager::install("msqrob2")
+// Bioconductor workflow: msqrob2 — dda_maxquant_peptide_workflow
+// Analyze MaxQuant DDA peptide-level data to identify differentially abundant proteins.
+// Input: peptides.txt, experimental_design.csv
+// Container: quay.io/biocontainers/bioconductor-msqrob2:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ExploreModelMatrix, QFeatures, data.table, dplyr, ggplot2, msqrob2, stringr, tidyr
+// Visualizations: volcano plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import peptide table and sample annotations
+//  * 2. [Core Analysis] Convert to QFeatures object using readQFeatures
+//  * 3. [Core Analysis] Replace zeros with NA using zeroIsNA
+//  * 4. [Core Analysis] Log2-transform intensities using logTransform
+//  * 5. [Core Analysis] Filter out failed protein inferences, shared peptides, decoys, and contaminants using filterFeatures
+//  * 6. [Core Analysis] Filter out highly missing peptides using filterNA
+//  * 7. [Core Analysis] Normalize intensities using sweep and nfLogMedian
+//  * 8. [Visualization & Output] Summarize peptide intensities to protein level using aggregateFeatures
+//  * 9. [Core Analysis] Fit robust linear models using msqrob
+//  * 10. [Input & Preparation] Define contrasts using makeContrast and perform hypothesis testing using hypothesisTest
+//  * 11. [Visualization & Output] Collect results using msqrobCollect and visualize using plotVolcano
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSQROB2 {
+process BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msqrob2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msqrob2:1.14.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-msqrob2:1.14.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msqrob2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msqrob2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msqrob2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(msqrob2)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(QFeatures)
+            library(dplyr)
+            library(tidyr)
+            library(ggplot2)
+            library(msqrob2)
+            library(stringr)
+            library(ExploreModelMatrix)
+            
+            # 1. Import peptide table and sample annotations
+            peptides <- data.table::fread("peptides.txt", check.names = TRUE, integer64 = "double")
+            annot <- read.csv("experimental_design.csv", stringsAsFactors = FALSE)
+            
+            # Identify the column in annot that maps to the peptide quantification columns
+            # and rename it to "quantCols" as expected by readQFeatures
+            quant_col_idx <- which.max(sapply(annot, function(x) sum(as.character(x) %in% colnames(peptides))))
+            colnames(annot)[quant_col_idx] <- "quantCols"
+            
+            # 2. Convert to QFeatures object using readQFeatures
+            qf <- readQFeatures(assayData = peptides, colData = annot, name = "peptides", fnames = "Sequence")
+            
+            # 3. Replace zeros with NA using zeroIsNA
+            qf <- zeroIsNA(qf, "peptides")
+            
+            # 4. Log2-transform intensities using logTransform
+            qf <- logTransform(qf, base = 2, i = "peptides", name = "peptides_log")
+            
+            # 5. Filter out failed protein inferences, shared peptides, decoys, and contaminants using filterFeatures
+            qf <- filterFeatures(
+              qf, ~ Proteins != "" &
+              !grepl(";", Proteins)
+            )
+            qf <- filterFeatures(
+              qf, ~ Reverse != "+" &
+              Potential.contaminant != "+"
+            )
+            
+            # 6. Filter out highly missing peptides using filterNA
+            nObs <- 3
+            n <- ncol(qf[["peptides_log"]])
+            qf <- filterNA(qf, i = "peptides_log", pNA = (n - nObs) / n)
+            
+            # 7. Normalize intensities using sweep and nfLogMedian
+            qf <- sweep(
+              qf, MARGIN = 2, STATS = nfLogMedian(qf, "peptides_log"), i = "peptides_log", name = "peptides_norm"
+            )
+            
+            # 8. Summarize peptide intensities to protein level using aggregateFeatures
+            qf <- aggregateFeatures(
+              qf, i = "peptides_norm", fcol = "Proteins", na.rm = TRUE, name = "proteins"
+            )
+            
+            # 9. Fit robust linear models using msqrob
+            model <- ~ condition
+            qf <- msqrob(
+              qf, i = "proteins", formula = model, robust = TRUE
+            )
+            
+            # Visualize design to get parameter names for contrast
+            vd <- ExploreModelMatrix::VisualizeDesign(
+              sampleData = colData(qf),
+              designFormula = model
+            )
+            
+            # 10. Define contrasts using makeContrast and perform hypothesis testing using hypothesisTest
+            params <- colnames(vd\$designmatrix)
+            contrast_param <- params[params != "(Intercept)"][1]
+            contrast_formula <- paste0(contrast_param, " = 0")
+            
+            L <- makeContrast(
+              contrast_formula, parameterNames = params
+            )
+            qf <- hypothesisTest(qf, i = "proteins", contrast = L)
+            
+            # 11. Collect results using msqrobCollect and visualize using plotVolcano
+            inferences <- msqrobCollect(qf[["proteins"]], L)
+            
+            # Write outputs
+            write.csv(inferences, "msqrob2_results.csv", row.names = TRUE)
+            saveRDS(qf, "qf_results.rds")
+            
+            pdf("volcano_plot.pdf")
+            print(inferences |> plotVolcano())
+            dev.off()
 
-    # --- Preprocessing ---
-    # Key functions: smallestUniqueGroups
-    prot_col <- rowData(pe[["peptideRaw"]])$Proteins
-    unique_filter <- prot_col %in% smallestUniqueGroups(prot_col)
-    pe <- pe[unique_filter, , ]
-    pe <- zeroIsNA(pe, "peptideRaw")
-    pe <- logTransform(
-        pe, 
-        base = 2, 
-        i = "peptideRaw", 
-        name = "peptideLog"
-    )
-
-    # --- Feature Filtering ---
-    # Key functions: filterFeatures
-    pe <- filterFeatures(pe, ~ Reverse != "+")
-    pe <- filterFeatures(pe, ~ Potential.contaminant != "+")
-    rowData(pe[["peptideLog"]])$nNonZero <- rowSums(
-        assay(pe[["peptideLog"]]) > 0, 
-        na.rm = TRUE
-    )
-    pe <- filterFeatures(pe, ~ nNonZero >= 2)
-
-    # --- Normalisation ---
-    # Key functions: normalize
-    pe <- normalize(
-        pe,
-        i = "peptideLog",
-        name = "peptideNorm",
-        method = "center.median"
-    )
-
-    # --- Protein Aggregation ---
-    # Key functions: aggregateFeatures
-    pe <- aggregateFeatures(
-        pe,
-        i = "peptideNorm",
-        fcol = "Proteins",
-        na.rm = TRUE,
-        name = "protein"
-    )
-
-    # --- Differential Abundance Analysis ---
-    # Key functions: msqrob, makeContrast, hypothesisTest, getCoef
-    pe <- msqrob(object = pe, i = "protein", formula = ~condition)
-    L <- makeContrast("conditionB=0", parameterNames = c("conditionB"))
-    pe <- hypothesisTest(object = pe, i = "protein", contrast = L)
-    models <- rowData(pe[["protein"]])$msqrobModels
-    coefs <- getCoef(models[[1]])
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msqrob2_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msqrob2_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msqrob2_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSQROB2:", paste0("    msqrob2: ", packageVersion("msqrob2"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW":',
+        paste0('    msqrob2: ', as.character(packageVersion('msqrob2')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msqrob2_results.csv
-    touch ${prefix}_msqrob2_output.rds
-    echo "BIOC_MSQROB2:" > versions.yml
-    echo "    msqrob2: 0.0.0" >> versions.yml
+    touch ${prefix}_dda_maxquant_peptide_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSQROB2_WORKFLOW {
+workflow BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peptides.txt, experimental_design.csv ] ]
 
     main:
-    BIOC_MSQROB2(ch_input)
+    BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_MSQROB2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSQROB2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSQROB2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSQROB2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW.out.tables
+    plots    = BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW.out.plots
+    objects  = BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW.out.objects
+    versions = BIOC_MSQROB2_DDA_MAXQUANT_PEPTIDE_WORKFLOW.out.versions
 }

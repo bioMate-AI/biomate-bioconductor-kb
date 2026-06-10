@@ -1,0 +1,16 @@
+{
+  "package": "qsmooth",
+  "requirements": [
+    "qsmooth",
+    "quantro"
+  ],
+  "by_workflow": {
+    "gc_content_aware_smooth_quantile_normalization.nf": [
+      "qsmooth",
+      "quantro"
+    ],
+    "main.nf": [
+      "qsmooth"
+    ]
+  }
+}

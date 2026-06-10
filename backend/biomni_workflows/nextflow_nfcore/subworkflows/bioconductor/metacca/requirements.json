@@ -1,0 +1,14 @@
+{
+  "package": "metacca",
+  "requirements": [
+    "metaCCA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metaCCA"
+    ],
+    "multi_snp_multi_trait_analysis.nf": [
+      "metaCCA"
+    ]
+  }
+}

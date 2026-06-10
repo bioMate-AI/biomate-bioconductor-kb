@@ -1,90 +1,218 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: svaRetro
-// svaRetro contains functions for detecting retrotransposed transcripts (RTs) from structural variant 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/svaRetro/inst/doc/svaRetro.R
-// Upstream  : StructuralVariantAnnotation, VariantAnnotation, circlize, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("svaRetro")
+// Bioconductor workflow: svaRetro — detect_and_visualize_rts
+// Detect retrotransposed transcripts from structural variant calls and visualize the resulting junctions and insertion sites.
+// Input: diploidSV.vcf, TxDb.Hsapiens.UCSC.hg19.knownGene
+// Container: quay.io/biocontainers/bioconductor-svaretro:1.15.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, GenomeInfoDb, S4Vectors, StructuralVariantAnnotation, TxDb.Hsapiens.UCSC.hg19.knownGene, VariantAnnotation, circlize, dplyr, svaRetro
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load VCF data and convert to breakend-centric GRanges. 2. Identify retrotransposed transcripts using rtDetect. 3. Format the detec
 
 nextflow.enable.dsl = 2
 
-process BIOC_SVARETRO {
+process BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-svaretro"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-svaretro:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-svaretro:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_svaretro_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_svaretro_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_svaretro_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(svaRetro)
-    library(jsonlite)
-
-    # --- Read VCF variant file [] ---
-    # Key functions: readVcf
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(StructuralVariantAnnotation)
     library(VariantAnnotation)
     library(svaRetro)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_svaretro_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_svaretro_results.csv")
+    library(dplyr)
+    library(circlize)
+    library(GenomeInfoDb)
+    library(S4Vectors)
+    
+    # 1. Load VCF data and convert to breakend-centric GRanges
+    # Read exactly the user-provided VCF file from the working directory
+    vcf_file <- "diploidSV.vcf"
+    if (!file.exists(vcf_file)) {
+      stop(paste("Required input file missing:", vcf_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_svaretro_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SVARETRO:", paste0("    svaretro: ", packageVersion("svaRetro"))),
-        "versions.yml"
+    
+    RT_vcf <- readVcf(vcf_file)
+    RT_gr <- StructuralVariantAnnotation::breakpointRanges(RT_vcf,
+      nominalPosition = TRUE
     )
+    head(RT_gr)
+    
+    # 2. Load Transcript Database
+    # Read the user-provided TxDb from the working directory if present,
+    # otherwise fall back to loading the installed package.
+    txdb_file <- "TxDb.Hsapiens.UCSC.hg19.knownGene"
+    if (file.exists(txdb_file)) {
+      message("Loading TxDb from local file...")
+      hg19.genes <- tryCatch({
+        AnnotationDbi::loadDb(txdb_file)
+      }, error = function(e) {
+        readRDS(txdb_file)
+      })
+    } else {
+      message("Loading TxDb from package...")
+      library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+      hg19.genes <- TxDb.Hsapiens.UCSC.hg19.knownGene
+    }
+    
+    # 3. Identify retrotransposed transcripts using rtDetect
+    RT <- rtDetect(RT_gr, hg19.genes, maxgap = 10, minscore = 0.8)
+    
+    # Save the complete detected retrotransposed transcripts object
+    saveRDS(RT, "detected_retrotranscripts.rds")
+    
+    # Dynamically select a detected gene for downstream steps
+    if (length(RT) > 0) {
+      # Find first gene with any junctions or insertion sites
+      has_events <- sapply(RT, function(x) length(x\$junctions) > 0 || length(x\$insSite) > 0)
+      if (any(has_events)) {
+        target_gene <- names(RT)[which(has_events)[1]]
+        message(paste("Selected gene", target_gene, "for downstream steps."))
+      } else {
+        target_gene <- names(RT)[1]
+        message("Selected first gene for downstream steps.")
+      }
+      rt_target <- RT[[target_gene]]
+    } else {
+      # Create an empty placeholder structure if no genes were detected
+      target_gene <- "None"
+      rt_target <- list(junctions = GRanges(), insSite = GRanges())
+      message("No retrotransposition events detected. Using empty placeholders.")
+    }
+    
+    # Print target gene details
+    rt_target
+    
+    # Export target gene junctions and insertion sites to CSV if they exist
+    if (length(rt_target\$junctions) > 0) {
+      write.csv(as.data.frame(rt_target\$junctions), paste0(target_gene, "_junctions.csv"), row.names = FALSE)
+    }
+    if (length(rt_target\$insSite) > 0) {
+      write.csv(as.data.frame(rt_target\$insSite), paste0(target_gene, "_insertion_sites.csv"), row.names = FALSE)
+    }
+    
+    # 4. Format the detected breakends into pairs using breakpointgr2pairs
+    rt_chr_prefix <- c(rt_target\$junctions, rt_target\$insSite)
+    
+    if (length(rt_chr_prefix) > 0) {
+      GenomeInfoDb::seqlevelsStyle(rt_chr_prefix) <- "UCSC"
+      pairs <- breakpointgr2pairs(rt_chr_prefix)
+      pairs
+      saveRDS(pairs, "breakpoint_pairs.rds")
+    } else {
+      pairs <- GRangesList()
+      message("No junctions or insertion sites to pair.")
+    }
+    
+    # 5. Visualize the breakpoint pairs using circlize
+    # Save the visualization to a PDF file
+    pdf("retrotransposition_circos_plot.pdf", width = 8, height = 8)
+    
+    tryCatch({
+      if (length(pairs) > 0) {
+        first_gr <- S4Vectors::first(pairs)
+        second_gr <- S4Vectors::second(pairs)
+        
+        all_gr <- c(first_gr, second_gr)
+        
+        seqs <- as.character(seqnames(all_gr))
+        starts <- start(all_gr)
+        ends <- end(all_gr)
+        
+        df <- data.frame(chr = seqs, start = starts, end = ends)
+        
+        agg_df <- df %>%
+          group_by(chr) %>%
+          summarize(
+            min_start = max(1, min(start) - 50000),
+            max_end = max(end) + 50000,
+            .groups = "drop"
+          ) %>%
+          as.data.frame()
+        
+        ideo_df <- data.frame(
+          V1 = agg_df\$chr,
+          V2 = agg_df\$min_start,
+          V3 = agg_df\$max_end,
+          V4 = paste0("reg", 1:nrow(agg_df)),
+          V5 = rep("gneg", nrow(agg_df))
+        )
+        
+        circos.initializeWithIdeogram(ideo_df)
+        
+        circos.genomicLink(
+          as.data.frame(first_gr),
+          as.data.frame(second_gr)
+        )
+      } else {
+        message("Skipping genomic link plotting due to empty breakpoint pairs.")
+      }
+      
+      circos.clear()
+    }, error = function(e) {
+      message("Circos plotting encountered an error: ", e\$message)
+      # Ensure device is cleared even on error
+      circos.clear()
+    })
+    
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
+
+    writeLines(c(
+        '"BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS":',
+        paste0('    svaRetro: ', as.character(packageVersion('svaRetro')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_svaretro_results.csv
-    touch ${prefix}_svaretro_output.rds
-    echo "BIOC_SVARETRO:" > versions.yml
-    echo "    svaretro: 0.0.0" >> versions.yml
+    touch ${prefix}_detect_and_visualize_rts.csv versions.yml
     """
 }
 
-
-workflow BIOC_SVARETRO_WORKFLOW {
+workflow BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ diploidSV.vcf, TxDb.Hsapiens.UCSC.hg19.knownGene ] ]
 
     main:
-    BIOC_SVARETRO(ch_input)
+    BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS(ch_input)
 
     emit:
-    results  = BIOC_SVARETRO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SVARETRO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SVARETRO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SVARETRO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS.out.tables
+    plots    = BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS.out.plots
+    objects  = BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS.out.objects
+    versions = BIOC_SVARETRO_DETECT_AND_VISUALIZE_RTS.out.versions
 }

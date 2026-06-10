@@ -1,0 +1,17 @@
+{
+  "package": "openprimer",
+  "requirements": [
+    "openPrimeR"
+  ],
+  "by_workflow": {
+    "analyze_primers.nf": [
+      "openPrimeR"
+    ],
+    "compare_primers.nf": [
+      "openPrimeR"
+    ],
+    "main.nf": [
+      "openPrimeR"
+    ]
+  }
+}

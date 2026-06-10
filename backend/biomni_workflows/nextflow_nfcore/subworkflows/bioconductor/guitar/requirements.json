@@ -1,0 +1,19 @@
+{
+  "package": "guitar",
+  "requirements": [
+    "GenomicFeatures",
+    "Guitar",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "custom_guitar_coordinates_and_sampling.nf": [
+      "GenomicFeatures",
+      "Guitar",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicFeatures",
+      "Guitar"
+    ]
+  }
+}

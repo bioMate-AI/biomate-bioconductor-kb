@@ -1,0 +1,11 @@
+{
+  "package": "skewr",
+  "requirements": [
+    "skewr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "skewr"
+    ]
+  }
+}

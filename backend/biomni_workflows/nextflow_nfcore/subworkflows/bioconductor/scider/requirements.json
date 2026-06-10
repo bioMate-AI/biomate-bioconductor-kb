@@ -1,0 +1,13 @@
+{
+  "package": "scider",
+  "requirements": [
+    "SpatialExperiment",
+    "scider"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "scider"
+    ]
+  }
+}

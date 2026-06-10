@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: benhur(data, fraction, max_clusters, seednum) = data is an ExpressionSet or matrix, fraction (e.g., 0.7) is the proportion of samples to subset, max_clusters (e.g., 6) is the maximum number of clusters to test, and seednum ensures reproducibility ;; clusterComp(data, k) = data is an ExpressionSet or matrix, and k is the chosen number of clusters to test for stability.\n- alternatives: hclust() is the default underlying hierarchical clustering method, but the package notes the approach can be generalized to other clustering algorithms. The genefilter package (specifically the cv() function) is recommended for non-specific gene filtering prior to clustering.\n- when_to_use: Use this package when performing unsupervised hierarchical clustering on transcriptomics/microarray data and you need to rigorously determine the optimal number of clusters and validate whether the resulting clusters are stable and not due to random chance.\n- pitfalls: Avoid filtering genes based on expected differences between known sample groups before clustering, as this creates a self-fulfilling prophecy where clusters appear artificially distinct. Use non-specific filtering (like coefficient of variation) instead. Clustering is highly sensitive to small changes in input data (adding/removing samples or genes), making stability validation essential.",
+  "workflows": [
+    {
+      "name": "cluster_number_and_stability_analysis",
+      "intent": "Estimate the optimal number of clusters in microarray data and test the stability of the chosen clusters.",
+      "input": [
+        "fibroEset (ExpressionSet containing microarray gene expression data)"
+      ],
+      "stages": "1. Filter genes using coefficient of variation (CV) to avoid bias ;; 2. Estimate the number of clusters using the benhur function ;; 3. Visualize the cluster number distribution using hist and ecdf ;; 4. Perform hierarchical clustering and plot the dendrogram ;; 5. Test the stability of the selected number of clusters using clusterComp",
+      "code": "library(clusterStab)\nlibrary(genefilter)\nlibrary(fibroEset)\ndata(fibroEset)\nexprs(fibroEset) <- log2(exprs(fibroEset))\nfilt <- cv(0.1, Inf)\nindex <- genefilter(fibroEset, filt)\nfb <- fibroEset[index,]\nbh <- benhur(fb, 0.7, 6, seednum = 12345) #seednum only used to ensure reproducibility\nhist(bh)\nplot(hclust(dist(t(exprs(fibroEset[index,])))), labels = pData(fibroEset)[,2], sub=\"\", xlab=\"\")\necdf(bh)\ncmp <- clusterComp(fb, 2)\ncmp"
+    }
+  ]
+}

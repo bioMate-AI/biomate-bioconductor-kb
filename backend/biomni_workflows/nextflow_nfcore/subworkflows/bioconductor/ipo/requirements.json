@@ -1,0 +1,13 @@
+{
+  "package": "ipo",
+  "requirements": [
+    "IPO",
+    "xcms"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IPO",
+      "xcms"
+    ]
+  }
+}

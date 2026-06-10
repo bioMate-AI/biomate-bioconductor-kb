@@ -1,0 +1,19 @@
+{
+  "package": "bayesknockdown",
+  "requirements": [
+    "BayesKnockdown",
+    "Biobase"
+  ],
+  "by_workflow": {
+    "bayes_knockdown_diff_exp.nf": [
+      "BayesKnockdown"
+    ],
+    "bayes_knockdown_expressionset.nf": [
+      "BayesKnockdown",
+      "Biobase"
+    ],
+    "main.nf": [
+      "BayesKnockdown"
+    ]
+  }
+}

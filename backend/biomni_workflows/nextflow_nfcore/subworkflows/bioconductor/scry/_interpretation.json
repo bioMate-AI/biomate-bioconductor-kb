@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: assay=specifies the assay name in the SingleCellExperiment containing raw counts (typically \"counts\") ;; sorted=logical indicating whether to sort genes by descending deviance in devianceFeatureSelection ;; type=specifies the residual type (\"deviance\" or \"pearson\") in nullResiduals ;; L=the number of latent dimensions to fit in GLMPCA (e.g., 2 for visualization, up to 10 for better cluster resolution)\n- alternatives: Standard PCA (linear-Gaussian) is not well-suited for small counts; GLM-PCA is more accurate but slower, while Null Residuals (deviance or Pearson) followed by standard PCA is a fast approximation for large datasets. Sparse in-memory Matrix format is faster than HDF5Array/DelayedArray when the dataset fits in memory and is mostly zeros.\n- when_to_use: When performing feature selection and dimensionality reduction on single-cell RNA-seq or other count-based transcriptomics datasets where standard linear-Gaussian assumptions do not hold.\n- pitfalls: GLM-PCA can be computationally slow for large datasets; use the null residuals approximation instead. Disk-based HDF5Array/DelayedArray data saves memory but significantly slows down computation compared to sparse in-memory Matrix objects.",
+  "workflows": [
+    {
+      "name": "sce_deviance_glmpca",
+      "intent": "Perform deviance-based feature selection and GLM-PCA dimension reduction on a SingleCellExperiment object.",
+      "input": [
+        "sce (SingleCellExperiment object containing raw UMI counts in the \"counts\" assay)"
+      ],
+      "stages": "1. Rank genes based on binomial deviance using devianceFeatureSelection ;; 2. Subset the SingleCellExperiment to keep only high-deviance genes ;; 3. Run GLM-PCA to reduce dimensionality ;; 4. Extract latent factors from metadata for visualization",
+      "code": "sce<-devianceFeatureSelection(sce, assay=\"counts\", sorted=TRUE)\nsce2<-sce[1:1000, ]\nset.seed(101)\nsce2<-GLMPCA(sce2, 2, assay=\"counts\")\nfit<-metadata(sce2)$glmpca\npd<-cbind(as.data.frame(colData(sce2)), fit$factors)"
+    },
+    {
+      "name": "sce_null_residuals_pca",
+      "intent": "Perform fast dimension reduction approximation by computing null residuals and running standard PCA.",
+      "input": [
+        "sce (SingleCellExperiment object containing raw UMI counts in the \"counts\" assay)"
+      ],
+      "stages": "1. Compute deviance and Pearson null residuals using nullResiduals ;; 2. Subset the SingleCellExperiment to high-deviance genes ;; 3. Run standard PCA on the computed residuals",
+      "code": "sce<-nullResiduals(sce, assay=\"counts\", type=\"deviance\")\nsce<-nullResiduals(sce, assay=\"counts\", type=\"pearson\")\nsce2<-sce[1:1000, ]\npca<-function(Y, L=2, center=TRUE, scale=TRUE){\n    res<-prcomp(as.matrix(t(Y)), center=center, scale.=scale, rank.=L)\n    factors<-as.data.frame(res$x)\n    colnames(factors)<-paste0(\"dim\", 1:L)\n    factors\n}\npca_d<-pca(assay(sce2, \"binomial_deviance_residuals\"))\npca_d$resid_type<-\"deviance_residuals\"\npca_p<-pca(assay(sce2, \"binomial_pearson_residuals\"))\npca_p$resid_type<-\"pearson_residuals\""
+    },
+    {
+      "name": "large_data_deviance",
+      "intent": "Calculate deviance feature selection and null residuals on large, disk-backed (HDF5/DelayedArray) or sparse in-memory matrices.",
+      "input": [
+        "h5counts (HDF5Array or DelayedArray of counts)",
+        "sce (SingleCellExperiment object with HDF5 backend)"
+      ],
+      "stages": "1. Filter out unexpressed genes from the HDF5/DelayedArray counts ;; 2. Run devianceFeatureSelection directly on the HDF5/DelayedArray counts ;; 3. Run nullResiduals on the HDF5-backed SingleCellExperiment",
+      "code": "h5counts<-h5counts[rowSums(h5counts)>0,]\nsystem.time(h5devs<-devianceFeatureSelection(h5counts))\nsce <- nullResiduals(sce, assay=\"counts\", type=\"deviance\")"
+    }
+  ]
+}

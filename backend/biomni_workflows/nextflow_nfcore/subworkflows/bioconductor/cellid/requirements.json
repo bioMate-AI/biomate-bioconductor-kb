@@ -1,0 +1,24 @@
+{
+  "package": "cellid",
+  "requirements": [
+    "CelliD",
+    "Seurat",
+    "ggplot2",
+    "ggpubr",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "functional_annotation.nf": [
+      "CelliD",
+      "Seurat",
+      "ggpubr",
+      "tidyverse"
+    ],
+    "main.nf": [
+      "CelliD",
+      "Seurat",
+      "ggplot2",
+      "tidyverse"
+    ]
+  }
+}

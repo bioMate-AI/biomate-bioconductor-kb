@@ -1,165 +1,233 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RcisTarget
-// RcisTarget identifies transcription factor binding motifs (TFBS) over-represented on a gene list. In
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RcisTarget/inst/doc/RcisTarget_MainTutorial.R
-// Upstream  : DT, reshape2, visNetwork
-// Downstream: none
-//
-// Install: BiocManager::install("RcisTarget")
+// Bioconductor workflow: RcisTarget — tfbs_motif_enrichment
+// Identify enriched transcription factor binding motifs and predict candidate target genes from a gene list.
+// Input: gene_list.txt, motif_rankings.db
+// Container: quay.io/biocontainers/bioconductor-rcistarget:1.29.0--r45hdfd78af_0
+// R packages: DT, RcisTarget, reshape2, visnetwork
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RcisTarget
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Identify DNA motifs over-represented near the transcription start site (TSS) using the ranking database
+//  * 2. [Core Analysis] Filter and retain motifs annotated to TFs with a high Normalized Enrichment Score (NES)
+//  * 3. [Core Analysis] Predict candidate target genes ranked above the leading edge for each enriched motif
 
 nextflow.enable.dsl = 2
 
-process BIOC_RCISTARGET {
+process BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rcistarget"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rcistarget:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rcistarget:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rcistarget_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rcistarget_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rcistarget_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GeneSet)
-    library(Stangle)
-    library(RcisTarget)
-    library(jsonlite)
-
-
-    # --- Libraries [] ---
-    # Key functions: suppressPackageStartupMessages, citation, textVersion
-    suppressPackageStartupMessages({
-    library(RcisTarget)
-    library(RcisTarget.hg19.motifDBs.cisbpOnly.500bp) 
-    library(DT)
-    library(data.table)
-    #require(visNetwork)
-    })
-    print(citation("RcisTarget")[1], style="textVersion")
-
-    # --- Gene Sets [] ---
-    # Key functions: GeneSet, gene1, gene2, gene3, geneSetName, read.table, hypoxiaGeneSet.txt
-    library(RcisTarget)
-    geneSet1 <- c("gene1", "gene2", "gene3")
-    geneLists <- list(geneSetName=geneSet1)
-    # or: 
-    # geneLists <- GSEABase::GeneSet(geneSet1, setName="geneSetName")
-    txtFile <- paste(file.path(system.file('examples', package='RcisTarget')),
-                     "hypoxiaGeneSet.txt", sep="/")
-    geneLists <- list(hypoxia=read.table(txtFile, stringsAsFactors=FALSE)[,1])
-    head(geneLists$hypoxia)
-
-    # --- Load Annot [] ---
-    # Key functions: showLogo
-    # mouse:
-    # data(motifAnnotations_mgi)
-
-    # human:
-    data(motifAnnotations_hgnc)
-    motifAnnotations[199:202,]
-    showLogo(motifAnnotations[(directAnnotation==TRUE) & keptInRanking 
-                                   & (TF %in% c("HIF1A", "HIF2A", "EPAS1")), ])
-
-    # --- Load Databases Cisbp Only [] ---
-    # Key functions: calcAUC
-    library(RcisTarget.hg19.motifDBs.cisbpOnly.500bp)
-    # Rankings
-    data(hg19_500bpUpstream_motifRanking_cispbOnly)
-    motifRankings <- hg19_500bpUpstream_motifRanking_cispbOnly
-    motifRankings
-
-    # Annotations
-    data(hg19_motifAnnotation_cisbpOnly) 
-    motifAnnotations <- hg19_motifAnnotation_cisbpOnly
-    motifs_AUC <- calcAUC(geneLists, motifRankings, nCores=1)
-
-    # --- Auchistogram [] ---
-    # Key functions: getAUC, abline, hypoxia, darkred, red, addMotifAnnotation, class, TF_lowConf
-    auc <- getAUC(motifs_AUC)["hypoxia",]
-    hist(auc, main="hypoxia", xlab="AUC histogram",
-         breaks=100, col="#ff000050", border="darkred")
-    nes3 <- (3*sd(auc)) + mean(auc)
-    abline(v=nes3, col="red")
-    motifEnrichmentTable <- addMotifAnnotation(motifs_AUC, nesThreshold=3,
-         motifAnnot=motifAnnotations,
-         highlightTFs=list(hypoxia=c("HIF1A", "EPAS1")))
-
-    ## -----------------------------------------------------------------------------
-    class(motifEnrichmentTable)
-    dim(motifEnrichmentTable)
-    head(motifEnrichmentTable[,-"TF_lowConf", with=FALSE])
-
-    # --- Add Significant Genes [] ---
-    # Key functions: addSignificantGenes, sample, par, getSignificantGenes, hypoxia, none, aprox
-    motifEnrichmentTable_wGenes <- addSignificantGenes(motifEnrichmentTable,
-                          rankings=motifRankings, 
-                          geneSets=geneLists)
-    dim(motifEnrichmentTable_wGenes)
-    geneSetName <- "hypoxia"
-    selectedMotifs <- c(sample(motifEnrichmentTable$motif, 2))
-    par(mfrow=c(2,2))
-    getSignificantGenes(geneLists[[geneSetName]], 
-                        rankings=motifRankings,
-                        signifRankingNames=selectedMotifs,
-                        plotCurve=TRUE, maxRank=5000, genesFormat="none",
-                        method="aprox")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rcistarget_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rcistarget_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DT", "RcisTarget", "reshape2", "visnetwork")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rcistarget_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(RcisTarget)
+            
+            # -----------------------------------------------------------------------------
+            # Input Validation
+            # -----------------------------------------------------------------------------
+            if (!file.exists("gene_list.txt")) {
+              stop("Error: Required input file 'gene_list.txt' not found in the working directory.")
+            }
+            
+            if (!file.exists("motif_rankings.db")) {
+              stop("Error: Required input file 'motif_rankings.db' not found in the working directory.")
+            }
+            
+            # -----------------------------------------------------------------------------
+            # Load User Inputs
+            # -----------------------------------------------------------------------------
+            # Read gene list (one gene symbol per line)
+            gene_list_raw <- readLines("gene_list.txt")
+            gene_list_clean <- unique(trimws(gene_list_raw))
+            gene_list_clean <- gene_list_clean[gene_list_clean != ""]
+            
+            if (length(gene_list_clean) == 0) {
+              stop("Error: 'gene_list.txt' is empty or contains no valid gene symbols.")
+            }
+            
+            # RcisTarget functions expect a named list of gene sets
+            geneLists <- list(query_gene_set = gene_list_clean)
+            
+            # Load the motif rankings database
+            motifRankings <- importRankings("motif_rankings.db")
+            
+            # -----------------------------------------------------------------------------
+            # Retrieve Motif Annotations (without using data() or system.file)
+            # -----------------------------------------------------------------------------
+            motifAnnot <- NULL
+            tryCatch({
+              # Attempt to retrieve standard HGNC annotations from the package environment
+              pkg_env <- as.environment("package:RcisTarget")
+              if (exists("motifAnnotations_hgnc", envir = pkg_env)) {
+                motifAnnot <- get("motifAnnotations_hgnc", envir = pkg_env)
+              } else if (exists("motifAnnotations_mgi", envir = pkg_env)) {
+                motifAnnot <- get("motifAnnotations_mgi", envir = pkg_env)
+              } else {
+                # Fallback: search for any motif annotation object in the environment
+                ns_objs <- ls(envir = pkg_env)
+                annot_objs <- ns_objs[grep("motifAnnotations", ns_objs)]
+                if (length(annot_objs) > 0) {
+                  motifAnnot <- get(annot_objs[1], envir = pkg_env)
+                }
+              }
+            }, error = function(e) {
+              message("Warning: Could not load motif annotations from package environment: ", e\$message)
+            })
+            
+            # Fallback to a minimal annotation structure if none could be loaded
+            if (is.null(motifAnnot)) {
+              warning("Using empty/placeholder motif annotations.")
+              
+              motif_names <- NULL
+              if (.hasSlot(motifRankings, "rankings")) {
+                rnk <- motifRankings@rankings
+                motif_names <- rownames(rnk)
+                if (is.null(motif_names) && length(rnk) > 0) {
+                  motif_names <- rnk[[1]]
+                }
+              }
+              
+              if (is.null(motif_names)) {
+                motif_names <- character(0)
+              }
+              
+              motifAnnot <- data.frame(
+                motif = as.character(motif_names),
+                TF = "Unknown",
+                directAnnotation = TRUE,
+                stringsAsFactors = FALSE
+              )
+            }
+            
+            # -----------------------------------------------------------------------------
+            # Stage 1: Identify DNA motifs over-represented near the TSS
+            # -----------------------------------------------------------------------------
+            message("Stage 1: Calculating Motif Enrichment (AUC)...")
+            motifs_AUC <- calcAUC(
+              geneSets = geneLists,
+              rankings = motifRankings
+            )
+            
+            # -----------------------------------------------------------------------------
+            # Stage 2: Filter and retain motifs annotated to TFs with a high NES
+            # -----------------------------------------------------------------------------
+            message("Stage 2: Annotating motifs and filtering by NES...")
+            motifEnrichmentTable <- addMotifAnnotation(
+              auc = motifs_AUC,
+              motifAnnot = motifAnnot
+            )
+            
+            # -----------------------------------------------------------------------------
+            # Stage 3: Predict candidate target genes ranked above the leading edge
+            # -----------------------------------------------------------------------------
+            message("Stage 3: Identifying leading edge target genes...")
+            motifEnrichmentTable_wGenes <- addSignificantGenes(
+              motifEnrichmentTable = motifEnrichmentTable,
+              geneSets = geneLists,
+              rankings = motifRankings,
+              method = "aprox"
+            )
+            
+            # -----------------------------------------------------------------------------
+            # Save Outputs
+            # -----------------------------------------------------------------------------
+            message("Saving results...")
+            
+            # Save the complete R object
+            saveRDS(motifEnrichmentTable_wGenes, "motif_enrichment_results.rds")
+            
+            # Flatten list columns for CSV export compatibility
+            flat_table <- motifEnrichmentTable_wGenes
+            for (col in colnames(flat_table)) {
+              if (is.list(flat_table[[col]])) {
+                flat_table[[col]] <- sapply(flat_table[[col]], function(x) paste(x, collapse = ";"))
+              }
+            }
+            write.csv(flat_table, "motif_enrichment_results.csv", row.names = FALSE)
+            
+            # Generate diagnostic plot of NES scores
+            pdf("nes_distribution.pdf", width = 7, height = 5)
+            if ("NES" %in% colnames(motifEnrichmentTable_wGenes) && nrow(motifEnrichmentTable_wGenes) > 0) {
+              hist(
+                motifEnrichmentTable_wGenes\$NES,
+                breaks = 30,
+                col = "skyblue",
+                border = "white",
+                main = "Distribution of Normalized Enrichment Scores (NES)",
+                xlab = "NES"
+              )
+              abline(v = 3.0, col = "red", lty = 2, lwd = 2)
+              legend("topright", legend = "NES Threshold (3.0)", col = "red", lty = 2, lwd = 2)
+            } else {
+              plot(1, type = "n", axes = FALSE, xlab = "", ylab = "")
+              text(1, 1, "No enriched motifs found or NES column missing.", cex = 1.2)
+            }
+            dev.off()
+            
+            message("Pipeline completed successfully. Outputs written to 'motif_enrichment_results.rds', 'motif_enrichment_results.csv', and 'nes_distribution.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RCISTARGET:", paste0("    rcistarget: ", packageVersion("RcisTarget"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT":',
+        paste0('    RcisTarget: ', as.character(packageVersion('RcisTarget')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rcistarget_results.csv
-    touch ${prefix}_rcistarget_output.rds
-    echo "BIOC_RCISTARGET:" > versions.yml
-    echo "    rcistarget: 0.0.0" >> versions.yml
+    touch ${prefix}_tfbs_motif_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_RCISTARGET_WORKFLOW {
+workflow BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_list.txt, motif_rankings.db ] ]
 
     main:
-    BIOC_RCISTARGET(ch_input)
+    BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_RCISTARGET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RCISTARGET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RCISTARGET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RCISTARGET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT.out.tables
+    plots    = BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT.out.plots
+    objects  = BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT.out.objects
+    versions = BIOC_RCISTARGET_TFBS_MOTIF_ENRICHMENT.out.versions
 }

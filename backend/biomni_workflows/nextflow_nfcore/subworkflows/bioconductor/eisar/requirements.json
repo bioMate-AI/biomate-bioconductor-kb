@@ -1,0 +1,31 @@
+{
+  "package": "eisar",
+  "requirements": [
+    "AnnotationDbi",
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "Biostrings",
+    "GenomicFeatures",
+    "QuasR",
+    "Rsamtools",
+    "edgeR",
+    "eisaR"
+  ],
+  "by_workflow": {
+    "convenient_eisa_workflow.nf": [
+      "eisaR"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "Biostrings",
+      "GenomicFeatures",
+      "Rsamtools",
+      "eisaR"
+    ],
+    "step_by_step_eisa_with_alignment.nf": [
+      "AnnotationDbi",
+      "QuasR",
+      "edgeR",
+      "eisaR"
+    ]
+  }
+}

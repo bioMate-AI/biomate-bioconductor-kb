@@ -1,0 +1,18 @@
+{
+  "package": "dmrcate",
+  "requirements": [
+    "DMRcate",
+    "SummarizedExperiment",
+    "bsseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DMRcate"
+    ],
+    "sequencing_dmr_analysis.nf": [
+      "DMRcate",
+      "SummarizedExperiment",
+      "bsseq"
+    ]
+  }
+}

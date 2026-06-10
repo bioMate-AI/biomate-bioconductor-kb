@@ -1,0 +1,24 @@
+{
+  "package": "dropletutils",
+  "requirements": [
+    "DropletUtils",
+    "Matrix",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "demultiplex_hashed_libraries.nf": [
+      "DropletUtils"
+    ],
+    "detect_empty_droplets.nf": [
+      "DropletUtils",
+      "Matrix"
+    ],
+    "main.nf": [
+      "DropletUtils",
+      "SingleCellExperiment"
+    ],
+    "remove_swapping_and_chimeric_effects.nf": [
+      "DropletUtils"
+    ]
+  }
+}

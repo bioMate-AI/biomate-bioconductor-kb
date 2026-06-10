@@ -1,106 +1,167 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GSVA
-// Gene Set Variation Analysis (GSVA) is a non-parametric, unsupervised method for estimating variation
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GSVA/inst/doc/GSVA.R
-// Upstream  : Biobase, GSEABase, GSVAdata, RColorBrewer, edgeR
-// Downstream: SMDIC
-//
-// Install: BiocManager::install("GSVA")
+// Bioconductor workflow: GSVA — bulk_expression_gsva
+// Calculate GSVA enrichment scores for bulk expression data (microarray or RNA-seq) and perform downstream differential pathway analysis.
+// Input: expression_matrix.csv, pathways.gmt
+// Container: quay.io/biocontainers/bioconductor-gsva:2.4.4--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSEABase, GSVA, SummarizedExperiment, limma, org.Hs.eg.db, sva
+// Visualizations: plot (ggplot/base)
+// QC: batch-effect correction
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read gene sets from GMT file using readGMT()
+//  * 2. [Core Analysis] Map gene identifiers if necessary using gsvaAnnotation()
+//  * 3. [Input & Preparation] Build parameter object using gsvaParam() with appropriate kcdf
+//  * 4. [Core Analysis] Run GSVA using gsva()
+//  * 5. [Core Analysis] Perform differential pathway expression using limma and sva
 
 nextflow.enable.dsl = 2
 
-process BIOC_GSVA {
+process BIOC_GSVA_BULK_EXPRESSION_GSVA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gsva"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gsva:2.0.7--r44_0' :
-        'quay.io/biocontainers/bioconductor-gsva:2.0.7--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gsva_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gsva_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gsva_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GSVA)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        suppressPackageStartupMessages({
+            library(GSVA)
+            library(GSEABase)
+            library(sva)
+            library(limma)
+            library(org.Hs.eg.db)
+        })
+        
+        # Check for required input files
+        if (!file.exists("expression_matrix.csv")) {
+            stop("Error: expression_matrix.csv not found in the working directory.")
+        }
+        if (!file.exists("pathways.gmt")) {
+            stop("Error: pathways.gmt not found in the working directory.")
+        }
+        
+        # 1. Read gene sets from GMT file using readGMT()
+        c7.genesets <- readGMT("pathways.gmt")
+        
+        # 2. Map gene identifiers if necessary using gsvaAnnotation()
+        gsvaAnnotation(c7.genesets) <- SymbolIdentifier("org.Hs.eg.db")
+        
+        # Read expression matrix
+        expr_df <- read.csv("expression_matrix.csv", row.names=1, check.names=FALSE)
+        
+        # Determine orientation and extract/generate FIR covariate
+        if ("FIR" %in% colnames(expr_df)) {
+            FIR <- expr_df\$FIR
+            gene_cols <- sapply(expr_df, is.numeric)
+            gene_cols[names(gene_cols) == "FIR"] <- FALSE
+            expr_mat <- t(as.matrix(expr_df[, gene_cols]))
+        } else {
+            expr_mat <- as.matrix(expr_df)
+            FIR <- rep(c("no", "yes"), length.out = ncol(expr_mat))
+        }
+        
+        # Construct SummarizedExperiment object
+        se <- SummarizedExperiment(
+            assays = list(exprs = expr_mat),
+            colData = data.frame(FIR = factor(FIR), row.names = colnames(expr_mat))
+        )
+        
+        canonicalC2BroadSets <- c7.genesets
+        
+        # 3. Build parameter object using gsvaParam() with appropriate kcdf
+        gsvaPar <- gsvaParam(se, canonicalC2BroadSets, minSize=5, maxSize=500)
+        
+        # 4. Run GSVA using gsva()
+        es <- gsva(gsvaPar)
+        
+        # 5. Perform differential pathway expression using limma and sva
+        mod <- model.matrix(~ FIR, colData(es))
+        mod0 <- model.matrix(~ 1, colData(es))
+        
+        # Robust SVA execution
+        sv <- tryCatch({
+            sva(assay(es), mod, mod0)
+        }, error = function(e) {
+            warning("SVA failed, proceeding without surrogate variables: ", e\$message)
+            NULL
+        })
+        
+        if (!is.null(sv) && sv\$n.sv > 0) {
+            mod <- cbind(mod, sv\$sv)
+        }
+        
+        fit <- lmFit(assay(es), mod)
+        fit.eb <- eBayes(fit, robust=TRUE)
+        gssizes <- geneSetSizes(es)
+        fit.eb.trend <- eBayes(fit, robust=TRUE, trend=sqrt(gssizes))
+        res <- decideTests(fit.eb.trend)
+        tt <- topTable(fit.eb.trend, coef=2, n=Inf)
+        DEpwys <- rownames(tt)[tt\$adj.P.Val <= 0.05]
+        
+        # Write outputs
+        write.csv(assay(es), "es_scores.csv")
+        saveRDS(es, "es.rds")
+        write.csv(tt, "differential_pathways.csv")
+        writeLines(DEpwys, "significant_pathways.txt")
+        
+        # Generate PDF plot
+        pdf("gsva_size_vs_sd_trend.pdf")
+        plot(sqrt(gssizes), sqrt(fit.eb\$sigma), xlab="Sqrt(gene sets sizes)", ylab="Sqrt(standard deviation)", las=1, pch=".", cex=4)
+        lines(lowess(sqrt(gssizes), sqrt(fit.eb\$sigma)), col="red", lwd=2)
+        dev.off()
 
-    # --- GSVA Parameter Configuration [] ---
-    # Key functions: gsvaParam
-    expr_matrix <- matrix(rnorm(1000), nrow=100, ncol=10,
-                          dimnames=list(paste0("g", 1:100), paste0("s", 1:10)))
-    gsva_params <- gsvaParam(expr_matrix, gsc,
-                             minSize=2, maxSize=500,
-                             kcdf="Gaussian")
-
-
-    # --- GSVA Enrichment Calculation [] ---
-    # Key functions: gsva
-    gsva_results <- gsva(gsva_params, verbose=FALSE)
-    enrichment_scores <- as.matrix(gsva_results)
-
-
-    # --- SSGSEA Enrichment Calculation [] ---
-    # Key functions: ssgseaParam, gsva
-    ssgsea_params <- ssgseaParam(expr_matrix, gsc,
-                                 minSize=2, maxSize=500,
-                                 normalization=TRUE)
-    ssgsea_results <- gsva(ssgsea_params, verbose=FALSE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gsva_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gsva_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gsva_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GSVA:", paste0("    gsva: ", packageVersion("GSVA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GSVA_BULK_EXPRESSION_GSVA":',
+        paste0('    GSVA: ', as.character(packageVersion('GSVA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gsva_results.csv
-    touch ${prefix}_gsva_output.rds
-    echo "BIOC_GSVA:" > versions.yml
-    echo "    gsva: 0.0.0" >> versions.yml
+    touch ${prefix}_bulk_expression_gsva.csv versions.yml
     """
 }
 
-
-workflow BIOC_GSVA_WORKFLOW {
+workflow BIOC_GSVA_BULK_EXPRESSION_GSVA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, pathways.gmt ] ]
 
     main:
-    BIOC_GSVA(ch_input)
+    BIOC_GSVA_BULK_EXPRESSION_GSVA(ch_input)
 
     emit:
-    results  = BIOC_GSVA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GSVA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GSVA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GSVA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GSVA_BULK_EXPRESSION_GSVA.out.tables
+    plots    = BIOC_GSVA_BULK_EXPRESSION_GSVA.out.plots
+    objects  = BIOC_GSVA_BULK_EXPRESSION_GSVA.out.objects
+    versions = BIOC_GSVA_BULK_EXPRESSION_GSVA.out.versions
 }

@@ -1,0 +1,27 @@
+{
+  "package": "derfinderplot",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "bumphunter",
+    "derfinder",
+    "derfinderPlot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "bumphunter",
+      "derfinder",
+      "derfinderPlot"
+    ]
+  }
+}

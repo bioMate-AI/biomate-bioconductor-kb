@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: countsData/fileName=Input count table or KisSplice fasta file path ;; conditions=Vector describing the experimental conditions for each sample; must contain at least two replicates per condition, and * can be used to exclude specific samples ;; pairedEnd=Boolean indicating if RNA-Seq libraries are paired-end (default FALSE) ;; k2rg=Boolean indicating if the input file is from KisSplice2refgenome (default FALSE) ;; counts=Integer (0, 1, or 2) matching the counts parameter used in KisSplice ;; exonicReads=Boolean indicating whether to include exonic reads in the analysis ;; keep/remove=Character vectors to filter specific splicing event types (e.g., ES, IR, altA, altD) when importing KisSplice2refgenome data ;; technicalReplicates=Boolean indicating if replicates are technical (uses Poisson model if TRUE, Negative Binomial if FALSE) ;; nbCore=Integer specifying the number of cores to use for parallel computation ;; pvalue=Numeric threshold (0 to 1) for adjusted p-values to output significant events in the final table (default 1) ;; filterLowCountsVariants=Minimum global count threshold to filter out low-expressed variants before testing (default 10) ;; flagLowCountsConditions=Count threshold below which an event is flagged as low-expressed in a condition (default 10) ;; adjPvalMax/dPSImin=Thresholds used in writeOutputKissDE to filter exported results ;; writePSI=Boolean to export the PSI/f table instead of the main results table\n- alternatives: DESeq2 is mentioned as the basis for normalization and shares similar statistical hypotheses ;; DSS is used internally to estimate the overdispersion parameter phi for the Negative Binomial model\n- when_to_use: Appropriate for differential analysis of alternative splicing events, single nucleotide variations (SNVs/SNPs), or indels quantified across two or more conditions with replicates\n- pitfalls: All analyzed conditions must have replicates (at least 2 replicates per condition); otherwise, the package will throw an error ;; Mixing biological and technical replicates in the same analysis is strongly discouraged ;; If sample order in the condition vector does not match the column order in the count table, replicates will fail to cluster in quality control plots ;; Setting the pvalue threshold too low during the diffExpressedVariants run permanently discards non-significant events from the returned object, requiring a full re-run if a different threshold is needed later ;; The sign of DeltaPSI/Deltaf depends on alphabetical ordering of the conditions, as kissDE subtracts the condition that comes first alphabetically from the other",
+  "workflows": [
+    {
+      "name": "alternative_splicing_analysis",
+      "intent": "Identify differentially used alternative splicing events from KisSplice2refgenome annotated output.",
+      "input": [
+        "output_k2rg_alt_splicing.txt (KisSplice2refgenome tab-delimited output file)"
+      ],
+      "stages": "1. Convert KisSplice2refgenome output to counts using kissplice2counts ;; 2. Define condition vector ;; 3. Perform quality control using qualityControl ;; 4. Run differential analysis using diffExpressedVariants ;; 5. Export results using writeOutputKissDE ;; 6. Explore results interactively using exploreResults",
+      "code": "fileInAS <- system.file(\"extdata\", \"output_k2rg_alt_splicing.txt\", package = \"kissDE\")\nmyCounts_AS <- kissplice2counts(fileInAS, pairedEnd = TRUE, k2rg = TRUE, counts = 2, exonicReads = FALSE)\nmyConditions_AS <- c(rep(\"SKNSH\", 2), rep(\"SKNSH-RA\", 2))\nqualityControl(myCounts_AS, myConditions_AS)\nmyResult_AS <- diffExpressedVariants(myCounts_AS, myConditions_AS)\nwriteOutputKissDE(myResult_AS, output = \"results_table.tab\")\nwriteOutputKissDE(myResult_AS, output = \"psi_table.tab\", writePSI = TRUE)\nexploreResults(rdsFile = \"results_table.tab.rds\")"
+    },
+    {
+      "name": "snv_snp_analysis",
+      "intent": "Identify differentially represented single nucleotide variations (SNVs/SNPs) from KisSplice fasta output.",
+      "input": [
+        "output_kissplice_SNV.fa (KisSplice fasta output file)"
+      ],
+      "stages": "1. Convert KisSplice fasta output to counts using kissplice2counts ;; 2. Define condition vector ;; 3. Perform quality control using qualityControl ;; 4. Run differential analysis using diffExpressedVariants ;; 5. Export results using writeOutputKissDE ;; 6. Explore results interactively using exploreResults",
+      "code": "fileInSNV <- system.file(\"extdata\", \"output_kissplice_SNV.fa\", package = \"kissDE\")\nmyCounts_SNV <- kissplice2counts(fileInSNV, counts = 0, pairedEnd = TRUE)\nmyConditions_SNV <- c(rep(\"TSC\", 2), rep(\"CEU\", 2))\nqualityControl(myCounts_SNV, myConditions_SNV)\nmyResult_SNV <- diffExpressedVariants(myCounts_SNV, myConditions_SNV)\nwriteOutputKissDE(myResult_SNV, output = \"final_table_significants.tab\", adjPvalMax = 0.05)\nexploreResults(rdsFile = \"final_table_significants.tab.rds\")"
+    },
+    {
+      "name": "custom_count_table_analysis",
+      "intent": "Run differential analysis on a pre-formatted custom table of counts.",
+      "input": [
+        "table_counts_alt_splicing.txt (User's custom formatted count table)"
+      ],
+      "stages": "1. Load custom count table using read.table ;; 2. Define condition vector ;; 3. Perform quality control using qualityControl ;; 4. Run differential analysis using diffExpressedVariants ;; 5. Export results using writeOutputKissDE",
+      "code": "fpath1 <- system.file(\"extdata\", \"table_counts_alt_splicing.txt\", package = \"kissDE\")\ntableCounts <- read.table(fpath1, head = TRUE)\nmyConditions <- c(rep(\"condition_1\", 2), rep(\"condition_2\", 2))\nqualityControl(tableCounts, myConditions)\nmyResults <- diffExpressedVariants(countsData = tableCounts, conditions = myConditions)\nwriteOutputKissDE(myResults, output = \"kissDE_output.tab\")"
+    }
+  ]
+}

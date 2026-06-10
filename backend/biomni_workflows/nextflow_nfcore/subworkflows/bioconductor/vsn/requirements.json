@@ -1,0 +1,30 @@
+{
+  "package": "vsn",
+  "requirements": [
+    "Biobase",
+    "affy",
+    "limma",
+    "vsn"
+  ],
+  "by_workflow": {
+    "affymetrix_genechip_normalization.nf": [
+      "Biobase",
+      "affy",
+      "vsn"
+    ],
+    "main.nf": [
+      "Biobase",
+      "limma",
+      "vsn"
+    ],
+    "reference_normalization.nf": [
+      "Biobase",
+      "vsn"
+    ],
+    "rglist_normalization.nf": [
+      "Biobase",
+      "limma",
+      "vsn"
+    ]
+  }
+}

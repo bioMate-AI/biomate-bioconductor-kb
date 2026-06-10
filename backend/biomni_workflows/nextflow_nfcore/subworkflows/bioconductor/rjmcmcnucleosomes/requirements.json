@@ -1,0 +1,17 @@
+{
+  "package": "rjmcmcnucleosomes",
+  "requirements": [
+    "GenomicRanges",
+    "RJMCMCNucleosomes"
+  ],
+  "by_workflow": {
+    "chromosomal_nucleosome_positioning.nf": [
+      "GenomicRanges",
+      "RJMCMCNucleosomes"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "RJMCMCNucleosomes"
+    ]
+  }
+}

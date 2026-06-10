@@ -1,0 +1,14 @@
+{
+  "package": "peakpanther",
+  "requirements": [
+    "peakPantheR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "peakPantheR"
+    ],
+    "real_time_annotation.nf": [
+      "peakPantheR"
+    ]
+  }
+}

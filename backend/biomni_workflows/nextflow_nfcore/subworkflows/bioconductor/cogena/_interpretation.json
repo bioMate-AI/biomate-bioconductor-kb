@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nClust=The number of clusters, which can be a single value or a vector ;; clMethods=Clustering methods to use, such as \"hierarchical\", \"pam\", \"kmeans\", \"diana\", \"fanny\", \"som\", \"model\", \"sota\", \"clara\", or \"agnes\" ;; metric=Distance metric, such as \"correlation\" ;; method=Agglomeration method used for hierarchical clustering, such as \"complete\" ;; annofile=Path to the GMT gene set file ;; sampleLabel=Factor indicating sample groups where the label of interest must follow the control label to ensure correct direction of gene regulation ;; orderMethod=Character string indicating the cluster number used to order the enrichment results in heatmaps ;; mergeMethod=Method to merge multi-instance drug results in heatmapCmap, typically \"mean\" or \"max\"\n- alternatives: None mentioned; the package provides a unified framework comparing multiple internal clustering methods (e.g., hierarchical vs. pam).\n- when_to_use: Use when you have transcriptomics data with differentially expressed genes and want to identify co-expressed gene clusters and their specific pathway involvements or drug repositioning candidates, rather than analyzing the entire set of differentially expressed genes as a single group.\n- pitfalls: All gene names must be gene SYMBOLs to match the pre-built gene set files ;; The sample label of interest must follow the control label in the factor levels (e.g., levels=c(\"ct\", \"Psoriasis\")), otherwise the direction of gene regulation will be incorrect ;; Always pass the cluster number and cluster count as character strings (e.g., \"10\", \"4\") in downstream analysis and visualization functions ;; User-defined gene sets must be in GMT format (optionally compressed by xz) and copied to the package's extdata directory.",
+  "workflows": [
+    {
+      "name": "pathway_and_go_analysis",
+      "intent": "Perform co-expression clustering on differentially expressed genes followed by pathway or GO term enrichment analysis.",
+      "input": [
+        "DEexprs (matrix, data.frame, or ExpressionSet of differentially expressed genes with genes in rows and samples in columns)",
+        "sampleLabel (vector of sample names/labels)",
+        "annofile (path to a GMT gene set file, e.g., KEGG or GO biological processes)"
+      ],
+      "stages": "1. Run co-expression clustering using coExp ;; 2. Run gene set enrichment analysis using clEnrich ;; 3. Summarize results using summary and extract enrichment tables using enrichment ;; 4. Visualize co-expression profiles using heatmapCluster ;; 5. Visualize enrichment results using heatmapPEI (with optional circle layout) ;; 6. Query genes in specific clusters using geneInCluster or extract expression profiles using geneExpInCluster ;; 7. Check gene correlation within a cluster using corInCluster",
+      "code": "genecl_result <- coExp(DEexprs, nClust=nClust, clMethods=clMethods, metric=metric, method=method, ncore=ncore)\nclen_res <- clEnrich(genecl_result, annofile=annofile, sampleLabel=sampleLabel)\nsummary(clen_res)\nenrichment.table <- enrichment(clen_res, \"pam\", \"10\")\nheatmapCluster(clen_res, \"pam\", \"10\", maintitle=\"Psoriasis\")\nheatmapPEI(clen_res, \"pam\", \"10\", printGS=FALSE, maintitle=\"Pathway analysis for Psoriasis\")\nheatmapPEI(clen_res, \"pam\", \"10\", printGS=FALSE, maintitle=\"Pathway analysis for Psoriasis\", geom=\"circle\")\ngeneC <- geneInCluster(clen_res, \"pam\", \"10\", \"4\")\ngec <- geneExpInCluster(clen_res, \"pam\", \"10\")\ncorInCluster(clen_res, \"pam\", \"10\", \"10\")"
+    },
+    {
+      "name": "drug_repositioning",
+      "intent": "Identify candidate drugs that can reverse disease-associated gene expression changes using Connectivity Map (CMap) gene sets.",
+      "input": [
+        "genecl_result (coExp clustering result object)",
+        "sampleLabel (vector of sample names/labels)",
+        "annofile (path to a CMap GMT gene set file, e.g., CmapDn100.gmt.xz or CmapUp100.gmt.xz)"
+      ],
+      "stages": "1. Run enrichment analysis for drug repositioning using clEnrich_one for a specific clustering method and cluster number ;; 2. Visualize drug enrichment results using heatmapPEI ordered by a specific cluster ;; 3. Merge multi-instance drug results and visualize using heatmapCmap",
+      "code": "cmapDn100_cogena_result <- clEnrich_one(genecl_result, \"pam\", \"10\", annofile=system.file(\"extdata\", \"CmapDn100.gmt.xz\", package=\"cogena\"), sampleLabel=sampleLabel)\nheatmapPEI(cmapDn100_cogena_result, \"pam\", \"10\", printGS=FALSE, orderMethod = \"7\", maintitle=\"Drug repositioning for Psoriasis\")\nheatmapCmap(cmapDn100_cogena_result, \"pam\", \"10\", printGS=FALSE, orderMethod = \"7\", maintitle=\"Drug repositioning for Psoriasis\")"
+    }
+  ]
+}

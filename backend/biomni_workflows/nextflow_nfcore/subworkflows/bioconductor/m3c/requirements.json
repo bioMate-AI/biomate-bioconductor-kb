@@ -1,0 +1,14 @@
+{
+  "package": "m3c",
+  "requirements": [
+    "M3C"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "M3C"
+    ],
+    "regularised_consensus_clustering.nf": [
+      "M3C"
+    ]
+  }
+}

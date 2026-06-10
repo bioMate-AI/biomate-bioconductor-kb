@@ -1,125 +1,173 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HiCcompare
-// HiCcompare provides functions for joint normalization and difference detection in multiple Hi-C data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HiCcompare/inst/doc/HiCcompare-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("HiCcompare")
+// Bioconductor workflow: HiCcompare — standard_hic_comparison
+// Jointly normalize and detect differential chromatin interactions between two Hi-C datasets for a single chromosome.
+// Input: HMEC.chr22, NHEK.chr22
+// Container: quay.io/biocontainers/bioconductor-hiccompare:1.32.0--r45hdfd78af_0
+// R packages: InteractionSet, HiCcompare
+// Bioconductor: 3.20 | R: 4.4
+// Requires: HiCcompare, InteractionSet, knitr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the sparse chromatin interaction matrices. 2. Create a hic.table object using create.hic.table. 3. Jointly normalize the data
 
 nextflow.enable.dsl = 2
 
-process BIOC_HICCOMPARE {
+process BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hiccompare"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hiccompare:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hiccompare:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hiccompare_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hiccompare_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hiccompare_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(KRnorm)
-    library(SCN)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # create list of `hic.table` objects
-    data("HMEC.chr10")
-    data("NHEK.chr10")
-    # create the `hic.table` object
-    # --- Hic Compare [] ---
-    # Key functions: hic_compare
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    hic.table <- hic_compare(hic.table, A.min = 15, adjust.dist = TRUE, p.method = 'fdr', Plot = TRUE)
-    # --- Kable [] ---
-    # Key functions: kable
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    knitr::kable(head(hic.table))
-    # --- Make Interactionset [] ---
-    # Key functions: make_InteractionSet
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    IntSet <- make_InteractionSet(hic.table)
-    # --- Sim Matrix [] ---
-    # Key functions: sim_matrix
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    sims <- sim_matrix(nrow = number_of_unitdistances, medianIF = 50000, sdIF = 14000, powerlaw.alpha = 1.8, fold.change = 4,
-                       i.range = i.range, j.range = j.range)
-    # --- sparse2full [] ---
-    # Key functions: sparse2full, full2sparse
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    full.NHEK <- sparse2full(NHEK.chr22)
-    full.NHEK[1:5, 1:5]
-    sparse.NHEK <- full2sparse(full.NHEK)
-    head(sparse.NHEK)
-    # --- Krnorm [] ---
-    # Key functions: KRnorm
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    KR.NHEK <- KRnorm(full.NHEK)
-    # --- Scn [] ---
-    # Key functions: SCN
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    SCN.NHEK <- SCN(full.NHEK)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hiccompare_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("InteractionSet", "HiCcompare")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(HiCcompare)
+    library(InteractionSet)
+    
+    # Helper function to robustly read the input files from the working directory
+    read_hic_file <- function(filepath) {
+      if (!file.exists(filepath)) {
+        stop(paste("Required input file '", filepath, "' not found in the working directory.", sep = ""))
+      }
+      
+      # Attempt to read with header
+      df <- read.table(filepath, header = TRUE, stringsAsFactors = FALSE)
+      
+      # If columns are not named correctly, try reading without header and assign names
+      required_cols <- c("region1", "region2", "IF")
+      if (!all(required_cols %in% colnames(df))) {
+        df <- read.table(filepath, header = FALSE, stringsAsFactors = FALSE)
+        if (ncol(df) >= 3) {
+          colnames(df)[1:3] <- required_cols
+          df <- df[, 1:3]
+        } else {
+          stop(paste("File '", filepath, "' does not have at least 3 columns (region1, region2, IF).", sep = ""))
+        }
+      }
+      return(df)
+    }
+    
+    # 1. Load the sparse chromatin interaction matrices from user input files
+    message("Loading input datasets...")
+    HMEC.chr22 <- read_hic_file("HMEC.chr22")
+    NHEK.chr22 <- read_hic_file("NHEK.chr22")
+    
+    print(head(HMEC.chr22))
+    
+    # 2. Create a hic.table object using create.hic.table
+    message("Creating hic.table object...")
+    chr22.table <- create.hic.table(HMEC.chr22, NHEK.chr22, chr = 'chr22')
+    print(head(chr22.table))
+    
+    # 3. Jointly normalize the datasets using hic_loess
+    message("Performing joint normalization using hic_loess...")
+    pdf("hic_loess_plot.pdf", width = 7, height = 5)
+    hic.table <- hic_loess(chr22.table, Plot = TRUE, Plot.smooth = FALSE)
+    dev.off()
+    
+    # Print normalized table head
+    if (requireNamespace("knitr", quietly = TRUE)) {
+      print(knitr::kable(head(hic.table)))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hiccompare_results.csv")
+      print(head(hic.table))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hiccompare_output.rds")
+    
+    # 4. Evaluate filtering parameters using filter_params
+    message("Evaluating filtering parameters...")
+    pdf("filter_params_plot.pdf", width = 7, height = 5)
+    tryCatch({
+      filter_params(hic.table)
+    }, error = function(e) {
+      message("Warning: filter_params failed with error: ", e\$message)
+    })
+    dev.off()
+    
+    # 5. Detect differential interactions using hic_compare
+    message("Detecting differential chromatin interactions using hic_compare...")
+    pdf("hic_compare_plot.pdf", width = 7, height = 5)
+    hic.table <- hic_compare(hic.table, A.min = 15, adjust.dist = TRUE, p.method = 'fdr', Plot = TRUE)
+    dev.off()
+    
+    # Print comparison table head
+    if (requireNamespace("knitr", quietly = TRUE)) {
+      print(knitr::kable(head(hic.table)))
+    } else {
+      print(head(hic.table))
     }
+    
+    # Save the final comparison table to a CSV file
+    write.csv(hic.table, "hic_compare_results.csv", row.names = FALSE)
+    message("Saved comparison results to 'hic_compare_results.csv'")
+    
+    # 6. Convert the results to an InteractionSet object using make_InteractionSet
+    message("Converting results to an InteractionSet object...")
+    IntSet <- make_InteractionSet(hic.table)
+    
+    # Save the InteractionSet object to an RDS file
+    saveRDS(IntSet, "InteractionSet_results.rds")
+    message("Saved InteractionSet object to 'InteractionSet_results.rds'")
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HICCOMPARE:", paste0("    hiccompare: ", packageVersion("HiCcompare"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON":',
+        paste0('    HiCcompare: ', as.character(packageVersion('HiCcompare')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hiccompare_results.csv
-    touch ${prefix}_hiccompare_output.rds
-    echo "BIOC_HICCOMPARE:" > versions.yml
-    echo "    hiccompare: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_hic_comparison.csv versions.yml
     """
 }
 
-
-workflow BIOC_HICCOMPARE_WORKFLOW {
+workflow BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ HMEC.chr22, NHEK.chr22 ] ]
 
     main:
-    BIOC_HICCOMPARE(ch_input)
+    BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON(ch_input)
 
     emit:
-    results  = BIOC_HICCOMPARE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HICCOMPARE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HICCOMPARE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HICCOMPARE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON.out.tables
+    plots    = BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON.out.plots
+    objects  = BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON.out.objects
+    versions = BIOC_HICCOMPARE_STANDARD_HIC_COMPARISON.out.versions
 }

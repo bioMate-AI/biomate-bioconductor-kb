@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cluster_rows/cluster_columns=Can take a hierarchical clustering object, a function, or a pre-clustered group-level dendrogram using cluster_within_group() to simplify large matrices ;; row_split/column_split=Splits the heatmap rows/columns into slices, which is highly recommended when using group-level clustering or k-means ;; row_km/column_km=Performs k-means clustering on rows/columns; requires set.seed() or row_km_repeats/column_km_repeats for reproducibility ;; row_km_repeats/column_km_repeats=Runs k-means multiple times to obtain a consensus clustering ;; padding=Adjusts the blank area around the final plot in draw() to prevent text clipping ;; newpage=Set to FALSE in draw() when managing layouts manually with grid viewports ;; axis_param=Controls annotation axes inside anno_*() functions ;; heatmap_legend_param/annotation_legend_param=Controls legend styles using parameters from the Legend() function\n- alternatives: pheatmap=A simpler heatmap package; ComplexHeatmap provides translation support (e.g., compare_pheatmap) for users migrating from pheatmap ;; InteractiveComplexHeatmap=Used to create interactive heatmaps instead of static ones\n- when_to_use: When visualizing high-dimensional genomic datasets (such as RNA-seq, microarrays, or multi-omics) where associations between different data sources (like clinical annotations, pathway scores, and expression levels) need to be aligned and visualized simultaneously.\n- pitfalls: No plot output can occur if draw() is not called explicitly in non-interactive scripts or complex layouts ;; Text clipping at the plotting region boundaries can occur, which is solved by setting padding in draw() ;; Unstable k-means clustering results across runs can occur if row_km or column_km are used without setting a random seed (set.seed()) or using row_km_repeats/column_km_repeats ;; Incorrect annotation sizing can occur if width/height of complex annotations (anno_*()) are set in the main HeatmapAnnotation instead of inside the specific anno_*() function.",
+  "workflows": [
+    {
+      "name": "group_level_clustering",
+      "intent": "Group rows into several clusters and make a group-level dendrogram to simplify visualization of large matrices.",
+      "input": [
+        "matrix (numeric matrix of genomic data, e.g., gene expression)"
+      ],
+      "stages": "1. Perform hierarchical clustering on the matrix ;; 2. Cut the dendrogram into a specified number of groups ;; 3. Generate a heatmap using cluster_within_group and split rows",
+      "code": "m = matrix(rnorm(1000*10), nr = 1000)\nhc = hclust(dist(m))\ngroup = cutree(hc, k = 6)\nHeatmap(m, cluster_rows = cluster_within_group(t(m), group), \n\trow_split = 6, border = TRUE) # it would be better if also set row_split"
+    },
+    {
+      "name": "custom_dendrogram_axes",
+      "intent": "Draw a heatmap and manually add customized axes to the row and column dendrograms.",
+      "input": [
+        "matrix (numeric matrix of genomic data)"
+      ],
+      "stages": "1. Define a heatmap with custom row and column dendrogram dimensions ;; 2. Draw the heatmap with padding to prevent text clipping ;; 3. Use decorate_column_dend and decorate_row_dend to add custom axes",
+      "code": "m = matrix(rnorm(100), 10)\n\nht = Heatmap(m, name = \"foo\", \n\trow_dend_width = unit(4, \"cm\"),\n\tcolumn_dend_height = unit(4, \"cm\")\n)\ndraw(ht, padding = unit(c(15, 2, 2, 2), \"mm\"))\ndecorate_column_dend(\"foo\", {\n\tgrid.yaxis()\n})\ndecorate_row_dend(\"foo\", {\n\tvp = current.viewport()\n\txscale = vp$xscale\n\tgrid.xaxis(at = xscale[2] - 0:5, label = 0:5)\n})"
+    },
+    {
+      "name": "annotations_only",
+      "intent": "Visualize dendrograms and multiple annotations without displaying a main heatmap body.",
+      "input": [
+        "matrix (numeric matrix used to compute the dendrogram)"
+      ],
+      "stages": "1. Compute hierarchical clustering on the input matrix ;; 2. Create a zero-column matrix to act as the heatmap body ;; 3. Draw the heatmap with the zero-column matrix, the computed dendrogram, and row annotations",
+      "code": "hc = hclust(dist(matrix(rnorm(100), 10)))\nHeatmap(matrix(nc = 0, nr = 10), cluster_rows = hc, \n\tright_annotation = rowAnnotation(\n\t\tfoo = anno_points(1:10),\n\t\tsth = 1:10,\n\t\tbar = anno_barplot(1:10)),\n\trow_split = 2)"
+    }
+  ]
+}

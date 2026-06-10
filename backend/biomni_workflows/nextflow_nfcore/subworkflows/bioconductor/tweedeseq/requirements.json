@@ -1,0 +1,17 @@
+{
+  "package": "tweedeseq",
+  "requirements": [
+    "tweeDEseq"
+  ],
+  "by_workflow": {
+    "generalized_linear_modeling.nf": [
+      "tweeDEseq"
+    ],
+    "goodness_of_fit_testing.nf": [
+      "tweeDEseq"
+    ],
+    "main.nf": [
+      "tweeDEseq"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "genie3",
+  "requirements": [
+    "GENIE3"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GENIE3"
+    ],
+    "targeted_network_inference.nf": [
+      "GENIE3"
+    ]
+  }
+}

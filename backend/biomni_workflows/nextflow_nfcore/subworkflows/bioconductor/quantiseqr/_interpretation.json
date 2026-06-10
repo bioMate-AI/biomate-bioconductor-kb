@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: expression_data=The input gene expression data containing TPM values (matrix, data frame, ExpressionSet, or SummarizedExperiment) ;; signature_matrix=The signature matrix to use for deconvolution, currently restricted to \"TIL10\" ;; is_arraydata=Logical indicating if the input is microarray data (TRUE) or RNA-seq data (FALSE, default) ;; is_tumordata=Logical indicating if the samples are from tumors (TRUE, default) or blood/PBMC (FALSE) ;; scale_mRNA=Logical indicating whether to correct for cell-type-specific mRNA content bias (TRUE, default; should be FALSE only for simulated data without mRNA bias)\n- alternatives: immunedeconv=An R package providing unified access to a collection of other computational deconvolution methods (e.g., EPIC)\n- when_to_use: Appropriate when analyzing human bulk transcriptomics data (RNA-seq or microarray) from tumor or blood samples to estimate the relative fractions of immune cell types (B cells, M1/M2 macrophages, monocytes, neutrophils, NK cells, CD4+ T cells, CD8+ T cells, Tregs, myeloid dendritic cells) and uncharacterized (often tumor) cells.\n- pitfalls: Input expression data must be formatted as TPM values; using raw counts or other normalized formats is not recommended and may trigger warnings ;; The TIL10 signature is designed and validated specifically for human samples; using it for other species (e.g., mouse) requires orthology conversion and is not officially validated ;; scale_mRNA must be set to TRUE for real RNA-seq data to avoid systematic bias, but set to FALSE for simulated data modeled without mRNA bias ;; Custom signature matrices cannot be provided; only the default \"TIL10\" is supported.",
+  "workflows": [
+    {
+      "name": "deconvolution_from_matrix",
+      "intent": "Perform immune cell deconvolution on a gene expression matrix and plot the resulting cell fractions.",
+      "input": [
+        "expression_matrix.txt (A matrix or data frame of TPM expression values with HGNC gene symbols as row names and sample identifiers as columns)"
+      ],
+      "stages": "1. Run the deconvolution using run_quantiseq ;; 2. Visualize the estimated cell fractions as a stacked barplot using quantiplot",
+      "code": "ti_racle <- quantiseqr::run_quantiseq(\n  expression_data = dataset_racle$expr_mat,\n  signature_matrix = \"TIL10\",\n  is_arraydata = FALSE,\n  is_tumordata = TRUE,\n  scale_mRNA = TRUE\n)\nquantiplot(ti_racle)"
+    },
+    {
+      "name": "deconvolution_from_summarized_experiment",
+      "intent": "Perform immune cell deconvolution on a SummarizedExperiment object, appending the results to the colData slot, and extract the quantifications.",
+      "input": [
+        "summarized_experiment.rds (A SummarizedExperiment object containing TPM values in its assay, such as \"abundance\")"
+      ],
+      "stages": "1. Run the deconvolution using run_quantiseq ;; 2. Extract the TIL10-relevant quantifications from the updated SummarizedExperiment using extract_ti_from_se",
+      "code": "se_Song2017_MAPKi_treatment_tiquant <- quantiseqr::run_quantiseq(\n  expression_data = se_Song2017_MAPKi_treatment,\n  signature_matrix = \"TIL10\",\n  is_arraydata = FALSE,\n  is_tumordata = TRUE,\n  scale_mRNA = TRUE\n)\nti_quant <- quantiseqr::extract_ti_from_se(se_Song2017_MAPKi_treatment_tiquant)"
+    }
+  ]
+}

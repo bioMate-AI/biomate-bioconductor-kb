@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: de=A named numeric vector of log2 fold changes for differentially expressed genes, where names are Entrez gene IDs ;; all=A character vector containing the Entrez gene IDs of all genes profiled/considered in the analysis (background) ;; organism=A three-letter character string specifying the organism (e.g., \"hsa\" for Homo sapiens, \"mmu\" for Mus musculus) ;; nB=Number of bootstrap iterations used to compute the perturbation p-value (pPERT); use 2000 or more for accurate results ;; plots=Logical indicating whether to generate and save perturbation plots as a PDF ;; beta=A named numeric vector of weights for each type of gene-to-gene relation; if NULL, default weights are used ;; combine=Method to combine pPERT and pNDE, either \"fisher\" (default) or \"norminv\" (normal inversion) ;; data.dir=Directory where the processed pathway data is stored, required when using custom-generated pathway data\n- alternatives: PathwayGuide=A commercial version of SPIA available from Advaita Bio that offers additional capabilities in visualization, speed, and user interface\n- when_to_use: Use SPIA when you have performed a differential expression analysis (e.g., microarray or RNA-seq) and want to identify impacted signaling pathways by leveraging both the number of differentially expressed genes (over-representation) and their position/interactions within the pathway topology (perturbation).\n- pitfalls: Outdated pathway data=The pre-packaged KEGG data in SPIA is outdated and provided for illustration only; users should download up-to-date KGML files and parse them using makeSPIAdata ;; Low bootstrap iterations=Using a low nB value (e.g., < 2000) can lead to inaccurate and unstable pPERT values ;; Incorrect gene IDs=SPIA strictly requires Entrez gene IDs; using other ID types (like probe IDs or Ensembl IDs) without mapping them first will cause the analysis to fail ;; Choice of combination method=Fisher's method can yield highly significant global p-values (pG) when only one of the two evidence types (pNDE or pPERT) is strong, whereas the normal inversion method (\"norminv\") requires both to be simultaneously low",
+  "workflows": [
+    {
+      "name": "standard_spia_analysis",
+      "intent": "Perform Signaling Pathway Impact Analysis (SPIA) using pre-existing pathway data to identify significant pathways based on over-representation and topology perturbation.",
+      "input": [
+        "DE_Colorectal (named numeric vector of log2 fold changes for differentially expressed genes, named by Entrez IDs)",
+        "ALL_Colorectal (character vector of Entrez IDs for all genes profiled on the platform)"
+      ],
+      "stages": "1. Run the SPIA analysis using the spia function ;; 2. Visualize the pathway significance using the plotP function ;; 3. Recompute combined p-values using the combfunc function with the normal inversion method and adjust for multiple testing",
+      "code": "res=spia(de=DE_Colorectal,all=ALL_Colorectal,organism=\"hsa\",nB=2000,plots=FALSE,beta=NULL,combine=\"fisher\",verbose=FALSE)\nplotP(res,threshold=0.05)\nres$pG=combfunc(res$pNDE,res$pPERT,combine=\"norminv\")\nres$pGFdr=p.adjust(res$pG,\"fdr\")\nres$pGFWER=p.adjust(res$pG,\"bonferroni\")"
+    },
+    {
+      "name": "spia_with_custom_kegg_data",
+      "intent": "Parse up-to-date KGML (XML) files downloaded from KEGG to build custom pathway data and run SPIA analysis.",
+      "input": [
+        "mydir (path to a directory containing downloaded KGML XML files for the organism of interest)",
+        "DE_Colorectal (named numeric vector of log2 fold changes for differentially expressed genes, named by Entrez IDs)",
+        "ALL_Colorectal (character vector of Entrez IDs for all genes profiled on the platform)"
+      ],
+      "stages": "1. Parse the KGML files and generate SPIA-compatible data using the makeSPIAdata function ;; 2. Run the SPIA analysis using the spia function, pointing to the directory containing the newly generated data",
+      "code": "makeSPIAdata(kgml.path=mydir,organism=\"hsa\",out.path=\"./\")\nres<-spia(de=DE_Colorectal, all=ALL_Colorectal, organism=\"hsa\",data.dir=\"./\")"
+    }
+  ]
+}

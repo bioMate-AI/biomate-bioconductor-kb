@@ -1,0 +1,15 @@
+{
+  "package": "micsqtl",
+  "requirements": [
+    "MICSQTL",
+    "SummarizedExperiment",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MICSQTL",
+      "SummarizedExperiment",
+      "ggplot2"
+    ]
+  }
+}

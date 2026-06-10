@@ -1,0 +1,21 @@
+{
+  "package": "ipddb",
+  "requirements": [
+    "BiocGenerics",
+    "Biostrings",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "ipdDb"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "Biostrings",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "ipdDb"
+    ]
+  }
+}

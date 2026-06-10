@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: input=A SpatialExperiment object containing the spatially resolved transcriptomics data ;; family=The distribution family to use, such as poisson or poisson() for raw counts, or gaussian() for log-transformed normalized data ;; assay_name=The name of the assay in the input object to use for modeling (e.g., \"counts\" or \"logcounts\") ;; offset=A numeric vector to account for technical variation, typically the natural log of the library size (log(spe$total)) or size factors (log(spe$sizeFactor)) ;; X=A vector or design matrix of covariates (e.g., tissue anatomy or cell type composition) to adjust for in the model\n- alternatives: nnSVG=A Gaussian-based SVG detection method. tpSVG with a Poisson distribution is preferred over nnSVG because it avoids the mean-rank relationship bias that tends to over-prioritize highly expressed genes over lowly expressed genes\n- when_to_use: Use when analyzing spatially resolved transcriptomics data (e.g., 10x Visium, seqFISH) to identify spatially variable genes, especially when dealing with low-expressed genes or when wanting to adjust for known anatomical/biological covariates\n- pitfalls: Forgetting to apply the natural log function to the offset parameter (e.g., using spe$total instead of log(spe$total)), which is critical to ensure the data scale is conformable ;; Failing to remove missing values (NAs) from covariates before running covariate-adjusted models, which will cause model fitting failures (use complete.cases to filter the SpatialExperiment object first)",
+  "workflows": [
+    {
+      "name": "poisson_count_model",
+      "intent": "Detect spatially variable genes from raw count spatially resolved transcriptomics data using a Poisson model.",
+      "input": [
+        "spe (SpatialExperiment object containing raw gene expression counts and spatial coordinates)"
+      ],
+      "stages": "1. Calculate the library size (total counts) per spot/cell ;; 2. Run tpSVG with a Poisson family, specifying the raw counts assay and the log-transformed library size as an offset ;; 3. Retrieve the SVG statistics and p-values from the rowData of the returned object",
+      "code": "spe$total <- counts(spe) |> colSums()\nspe_poisson  <- tpSVG(\n  spe,\n  family = poisson,\n  assay_name = \"counts\",\n  offset = log(spe$total)   # Natural log library size\n)\n\nrowData(spe_poisson)"
+    },
+    {
+      "name": "covariate_adjusted_model",
+      "intent": "Detect spatially variable genes while adjusting for known biological covariates (such as tissue anatomy or cell type composition).",
+      "input": [
+        "spe (SpatialExperiment object containing raw gene expression counts, spatial coordinates, and covariate annotations in colData)"
+      ],
+      "stages": "1. Identify and remove cells/spots with missing covariate data using complete.cases ;; 2. Extract the covariate vector or design matrix ;; 3. Run tpSVG with the covariate matrix X, Poisson family, and log-transformed library size offset",
+      "code": "# Check missing data\nidx_complete_case <- complete.cases(spe$ground_truth)\n# If multiple covariates\n# idx_complete_case <- complete.cases(spe$ground_truth, spe$cell_count)\n\n# Remove missing data\nspe <- spe[, idx_complete_case]\n\n# Create a design matrix\nx <- spe$ground_truth \n\nspe_poisson_cov  <- tpSVG(\n  spe,\n  X = x, \n  family = poisson,\n  assay_name = \"counts\",\n  offset = log(spe$total)   # Natural log library size\n)"
+    }
+  ]
+}

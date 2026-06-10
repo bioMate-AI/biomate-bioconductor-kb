@@ -1,0 +1,13 @@
+{
+  "package": "flowsom",
+  "requirements": [
+    "FlowSOM",
+    "flowCore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FlowSOM",
+      "flowCore"
+    ]
+  }
+}

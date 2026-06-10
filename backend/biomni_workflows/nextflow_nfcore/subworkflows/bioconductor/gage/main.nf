@@ -1,174 +1,230 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gage
-// GAGE is a published method for gene set (enrichment or GSEA) or pathway analysis. GAGE is generally 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gage/inst/doc/RNA-seqWorkflow.R
-// Upstream  : DESeq, DESeq2, GenomicAlignments, edgeR, gageData
-// Downstream: EGSEA
-//
-// Install: BiocManager::install("gage")
+// Bioconductor workflow: gage — gage_pathway_analysis
+// Perform a comprehensive gene set and pathway enrichment analysis on RNA-Seq count data using GAGE, identifying significant GO/KEGG pathways, extracting non-redu
+// Input: counts.csv, coldata.csv
+// Container: 2.60.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: gage
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GAGE {
+process BIOC_GAGE_GAGE_PATHWAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gage"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gage:2.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gage:2.56.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gage_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gage_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gage_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
     library(gage)
-    library(BamFileList)
-    library(DESeq)
-    library(DESeqDataSetFromMatrix)
-    library(DGEList)
-    library(DataFrame)
-    library(ScanBamParam)
-    library(jsonlite)
-
-    # --- KEGG Pathway Enrichment ---
-    # Key functions: gage
-    ref.idx <- 5:8
-    samp.idx <- 1:4
-    cnts.kegg.p <- gage(
-        cnts.norm,
-        gsets = kegg.gs,
-        ref = ref.idx,
-        samp = samp.idx,
-        compare = "unpaired"
-    )
-
-    # --- Pathway Visualization ---
-    # Key functions: pathview
-    sel <- cnts.kegg.p$greater[, "q.val"] < 0.1 &
-        !is.na(cnts.kegg.p$greater[, "q.val"])
-    path.ids <- rownames(cnts.kegg.p$greater)[sel]
-    path.ids2 <- substr(path.ids, 1, 8)
-    cnts.d <- cnts.norm[, samp.idx] - rowMeans(cnts.norm[, ref.idx])
-    pv.out.list <- sapply(
-        path.ids2[1:3],
-        function(pid) pathview(
-            gene.data = cnts.d,
-            pathway.id = pid,
-            species = "hsa"
-        )
-    )
-
-    # --- Gene Ontology Enrichment ---
-    # Key functions: gage
-    ref.idx <- 5:8
-    samp.idx <- 1:4
-    cnts.mf.p <- gage(
-        cnts.norm,
-        gsets = go.sets.hs[go.subs.hs$MF],
-        ref = ref.idx,
-        samp = samp.idx,
-        compare = "unpaired"
-    )
-
-    # --- Gene-level Visualization ---
-    # Key functions: geneData
-    ref.idx <- 5:8
-    samp.idx <- 1:4
-    top.gs <- rownames(cnts.mf.p$less)[1:3]
-    for (gs in top.gs) {
-        outname <- gsub(" |:|/", "_", substr(gs, 12, 100))
-        geneData(
-            genes = go.sets.hs[[gs]],
-            exprs = cnts.norm,
-            ref = ref.idx,
-            samp = samp.idx,
-            outname = outname,
-            txt = TRUE,
-            heatmap = TRUE,
-            limit = 3,
-            scatterplot = TRUE
-        )
+    
+    # Define parameters
+    species <- "human"
+    kegg_code <- "hsa"
+    q_cutoff <- 0.1
+    
+    # Stage 2: Load and preprocess user input data
+    message("Loading input data...")
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Ensure counts is a matrix
+    cnts <- as.matrix(counts)
+    
+    # Filter out genes with zero counts across all samples
+    sel.rn <- rowSums(cnts) != 0
+    cnts <- cnts[sel.rn, ]
+    
+    # Normalize counts using the size factor method documented in the GAGE RNA-Seq workflow
+    libsizes <- colSums(cnts)
+    size.factor <- libsizes / exp(mean(log(libsizes)))
+    cnts.norm <- t(t(cnts) / size.factor)
+    cnts.norm <- log2(cnts.norm + 8)
+    
+    # Align coldata with count matrix columns
+    sample_order <- match(coldata\$sample, colnames(cnts.norm))
+    if (any(is.na(sample_order))) {
+        stop("Sample names in coldata.csv do not match column names in counts.csv")
     }
-
-    # --- Enrichment Analysis with Custom Statistics ---
-    # Key functions: gage
-    ref.idx <- 5:8
-    samp.idx <- 1:4
-    cnts.t <- apply(cnts.norm, 1, function(x) {
-        t.test(x[samp.idx], x[ref.idx], paired = FALSE)$statistic
+    cnts.norm <- cnts.norm[, sample_order, drop = FALSE]
+    
+    # Identify reference (control) and sample (treatment) indices
+    conditions <- unique(coldata\$condition)
+    if (length(conditions) < 2) {
+        stop("At least two distinct conditions are required in coldata.csv for comparison")
+    }
+    ref_cond <- conditions[1]
+    samp_cond <- conditions[2]
+    
+    ref.idx <- which(coldata\$condition == ref_cond)
+    samp.idx <- which(coldata\$condition == samp_cond)
+    
+    message(paste("Reference condition:", ref_cond, "(Samples:", paste(ref.idx, collapse=","), ")"))
+    message(paste("Comparison condition:", samp_cond, "(Samples:", paste(samp.idx, collapse=","), ")"))
+    
+    # Stage 3: Fetch Gene Sets (GO and KEGG)
+    message("Fetching gene sets...")
+    # Fetch GO Molecular Function gene sets (offline-capable via annotation packages)
+    go.hs <- go.gsets(species = species)
+    go.gs <- go.hs\$go.sets[go.hs\$go.subs\$MF]
+    
+    # Fetch KEGG gene sets (wrapped in tryCatch to handle potential network/API limits gracefully)
+    kegg.gs <- NULL
+    tryCatch({
+        kg.hsa <- kegg.gsets(kegg_code)
+        kegg.gs <- kg.hsa\$kg.sets[kg.hsa\$sigmet.idx]
+    }, error = function(e) {
+        warning("Failed to fetch KEGG gene sets online: ", e\$message, ". Proceeding with GO analysis only.")
     })
-    cnts.meanfc <- rowMeans(
-        cnts.norm[, samp.idx] - cnts.norm[, ref.idx]
-    )
-    cnts.t.kegg.p <- gage(
-        cnts.t,
-        gsets = kegg.gs,
-        ref = NULL,
-        samp = NULL
-    )
-    cnts.meanfc.kegg.p <- gage(
-        cnts.meanfc,
-        gsets = kegg.gs,
-        ref = NULL,
-        samp = NULL
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gage_results.csv", row.names = TRUE)
+    
+    # Stage 4: Run GAGE Pathway Enrichment Analysis
+    message("Running GAGE analysis...")
+    # Run GAGE on GO Molecular Function
+    go.p <- gage(cnts.norm, gsets = go.gs, ref = ref.idx, samp = samp.idx, compare = "unpaired")
+    
+    # Run GAGE on KEGG if available
+    kegg.p <- NULL
+    if (!is.null(kegg.gs)) {
+        kegg.p <- gage(cnts.norm, gsets = kegg.gs, ref = ref.idx, samp = samp.idx, compare = "unpaired")
+    }
+    
+    # Stage 5: Identify and Output Significant Gene Sets
+    message("Filtering significant gene sets...")
+    go.sig <- sigGeneSet(go.p, outname = "go_gage", cutoff = q_cutoff)
+    write.table(rbind(go.p\$greater, go.p\$less), file = "go_gage_results.txt", sep = "\t", col.names = NA)
+    write.table(rbind(go.sig\$greater, go.sig\$less), file = "significant_go_pathways.txt", sep = "\t", col.names = NA)
+    
+    if (!is.null(kegg.p)) {
+        kegg.sig <- sigGeneSet(kegg.p, outname = "kegg_gage", cutoff = q_cutoff)
+        write.table(rbind(kegg.p\$greater, kegg.p\$less), file = "kegg_gage_results.txt", sep = "\t", col.names = NA)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gage_results.csv")
+        writeLines("KEGG analysis was bypassed due to API unavailability.", "kegg_gage_results.txt")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gage_output.rds")
+    
+    # Stage 6: Extract Non-Redundant Essential Gene Sets
+    message("Extracting non-redundant essential gene sets...")
+    # For GO Up-regulated
+    go_up_sig <- go.p\$greater[!is.na(go.p\$greater[, "q.val"]) & go.p\$greater[, "q.val"] < q_cutoff, , drop = FALSE]
+    if (nrow(go_up_sig) > 0) {
+        esset.grp(go.p\$greater, cnts.norm, gsets = go.gs, ref = ref.idx, samp = samp.idx,
+                  test4up = TRUE, output = TRUE, outname = "essential_go_sets_up", make.plot = FALSE)
+    } else {
+        writeLines("No significantly up-regulated GO terms found.", "essential_go_sets_up.txt")
     }
+    
+    # For GO Down-regulated
+    go_dn_sig <- go.p\$less[!is.na(go.p\$less[, "q.val"]) & go.p\$less[, "q.val"] < q_cutoff, , drop = FALSE]
+    if (nrow(go_dn_sig) > 0) {
+        esset.grp(go.p\$less, cnts.norm, gsets = go.gs, ref = ref.idx, samp = samp.idx,
+                  test4up = FALSE, output = TRUE, outname = "essential_go_sets_down", make.plot = FALSE)
+    } else {
+        writeLines("No significantly down-regulated GO terms found.", "essential_go_sets_down.txt")
+    }
+    
+    # Stage 7: Visualization of Top Enriched Pathways
+    message("Generating visualizations...")
+    pdf("top_pathway_expression.pdf", width = 10, height = 8)
+    
+    # Identify top 3 enriched GO terms (either up or down)
+    top_go_terms <- c(rownames(go.p\$greater)[1:min(3, nrow(go.p\$greater))],
+                      rownames(go.p\$less)[1:min(3, nrow(go.p\$less))])
+    top_go_terms <- unique(top_go_terms[!is.na(top_go_terms)])
+    
+    if (length(top_go_terms) > 0) {
+        # Extract unique genes belonging to these top pathways
+        top_genes <- unique(unlist(go.gs[top_go_terms]))
+        top_genes <- intersect(top_genes, rownames(cnts.norm))
+        
+        if (length(top_genes) > 1) {
+            # Extract essential gene expression data
+            essData <- essGene(top_genes, cnts.norm, ref = ref.idx, samp = samp.idx)
+            
+            # Plot a global heatmap of essential genes across top pathways
+            heatmap(essData, 
+                    Colv = NA, 
+                    col = colorRampPalette(c("blue", "white", "red"))(50),
+                    main = "Essential Genes in Top Enriched GO Terms",
+                    xlab = "Samples", 
+                    ylab = "Genes",
+                    margins = c(8, 8))
+            
+            # Generate individual geneData plots for the top pathways
+            for (gs in top_go_terms[1:min(3, length(top_go_terms))]) {
+                clean_name <- gsub(" |:|/", "_", substr(gs, 1, 40))
+                tryCatch({
+                    geneData(genes = go.gs[[gs]], exprs = essData, 
+                             ref = seq_along(ref.idx), 
+                             samp = (length(ref.idx) + 1):(length(ref.idx) + length(samp.idx)),
+                             outname = paste0("geneData_", clean_name), txt = TRUE, heatmap = TRUE,
+                             Colv = FALSE, Rowv = FALSE, dendrogram = "none", limit = 3, scatterplot = TRUE)
+                }, error = function(e) {
+                    warning("Could not run geneData for: ", gs, " - ", e\$message)
+                })
+            }
+        } else {
+            plot.new()
+            text(0.5, 0.5, "Insufficient overlapping genes for heatmap visualization")
+        }
+    } else {
+        plot.new()
+        text(0.5, 0.5, "No enriched pathways found to visualize")
+    }
+    
+    dev.off()
+    message("GAGE analysis pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GAGE:", paste0("    gage: ", packageVersion("gage"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GAGE_GAGE_PATHWAY_ANALYSIS":',
+        paste0('    gage: ', as.character(packageVersion('gage')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gage_results.csv
-    touch ${prefix}_gage_output.rds
-    echo "BIOC_GAGE:" > versions.yml
-    echo "    gage: 0.0.0" >> versions.yml
+    touch ${prefix}_gage_pathway_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GAGE_WORKFLOW {
+workflow BIOC_GAGE_GAGE_PATHWAY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GAGE(ch_input)
+    BIOC_GAGE_GAGE_PATHWAY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GAGE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GAGE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GAGE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GAGE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GAGE_GAGE_PATHWAY_ANALYSIS.out.tables
+    plots    = BIOC_GAGE_GAGE_PATHWAY_ANALYSIS.out.plots
+    objects  = BIOC_GAGE_GAGE_PATHWAY_ANALYSIS.out.objects
+    versions = BIOC_GAGE_GAGE_PATHWAY_ANALYSIS.out.versions
 }

@@ -1,0 +1,19 @@
+{
+  "package": "nnsvg",
+  "requirements": [
+    "S4Vectors",
+    "SpatialExperiment",
+    "ggplot2",
+    "nnSVG",
+    "scran"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "SpatialExperiment",
+      "ggplot2",
+      "nnSVG",
+      "scran"
+    ]
+  }
+}

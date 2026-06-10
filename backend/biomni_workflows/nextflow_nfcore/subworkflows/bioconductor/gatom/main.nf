@@ -1,128 +1,163 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gatom
-// This package implements a metabolic network analysis pipeline to identify an active metabolic module
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gatom/inst/doc/gatom-tutorial.R
-// Upstream  : igraph, mwcsr
-// Downstream: none
-//
-// Install: BiocManager::install("gatom")
+// Bioconductor workflow: gatom — dual_omics_active_module
+// Identify an active metabolic module from paired transcriptomics and metabolomics differential expression data using atom-level topology.
+// Input: gene.de.rawEx, met.de.rawEx
+// Container: quay.io/biocontainers/bioconductor-gatom:1.8.4--r45hdfd78af_0
+// R packages: data.table, fgsea, gatom, igraph, mwcsr
+// Bioconductor: 3.20 | R: 4.4
+// Requires: data.table, fgsea, gatom, igraph, mwcsr
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Construct the metabolic graph with atom-level topology using makeMetabolicGraph. 2. Score the graph nodes and edges based on p-val
 
 nextflow.enable.dsl = 2
 
-process BIOC_GATOM {
+process BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gatom"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gatom:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gatom:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gatom_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gatom_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gatom_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("data.table", "fgsea", "gatom", "igraph", "mwcsr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Set timeout for downloading large database files
+    options(timeout = 600)
+    
+    # Load required libraries
     library(gatom)
-    library(E)
-    library(jsonlite)
-
-    # --- Graph Scoring [] ---
-    # Key functions: scoreGraph
-    gs <- scoreGraph(
-        g = g,
-        k.gene = 25,
-        k.met = 25
-    )
-
-
-    # --- Subgraph Optimization [] ---
-    # Key functions: rnc_solver, solve_mwcsp
+    library(data.table)
+    library(igraph)
+    library(mwcsr)
+    library(fgsea)
+    
+    # 1. Read user input files from the working directory
+    gene.de.rawEx <- data.table::fread("gene.de.rawEx")
+    met.de.rawEx <- data.table::fread("met.de.rawEx")
+    
+    # 2. Download the required network and annotation databases
+    networkEx <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.kegg.rds"))
+    met.kegg.dbEx <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.kegg.db.rds"))
+    org.Mm.eg.gatom.annoEx <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/org.Mm.eg.gatom.anno.rds"))
+    
+    # Define aliases to match the exact documented code variables for downstream analysis
+    org.Mm.eg.gatom.anno <- org.Mm.eg.gatom.annoEx
+    
+    # 3. Construct the metabolic graph with atom-level topology
+    g <- makeMetabolicGraph(network=networkEx, 
+                            topology="atoms",
+                            org.gatom.anno=org.Mm.eg.gatom.annoEx, 
+                            gene.de=gene.de.rawEx,
+                            met.db=met.kegg.dbEx, 
+                            met.de=met.de.rawEx)
+    
+    kg <- g # Alias for downstream ORA universe
+    
+    # 4. Score the graph nodes and edges
+    gs <- scoreGraph(g, k.gene = 25, k.met = 25)
+    
+    # 5. Initialize the solver
     solver <- rnc_solver()
-    res <- solve_mwcsp(
-        solver = solver,
-        g = gs
-    )
-    m <- res$graph
+    
+    # 6. Solve the maximum weight connected subgraph problem
+    set.seed(42)
+    res <- solve_mwcsp(solver, gs)
+    m <- res\$graph
+    
+    km <- m # Alias for downstream ORA genes
+    
+    # 7. Visualize and save the module
+    createShinyCyJSWidget(m)
+    
+    write_graph(m, file = file.path(tempdir(), "M0.vs.M1.graphml"), format = "graphml")
+    
+    saveModuleToHtml(module = m, file = file.path(tempdir(), "M0.vs.M1.html"), 
+                     name="M0.vs.M1")
+    
+    saveModuleToDot(m, file = file.path(tempdir(), "M0.vs.M1.dot"), name = "M0.vs.M1")
+    
+    saveModuleToPdf(m, file = file.path(tempdir(), "M0.vs.M1.pdf"), name = "M0.vs.M1", 
+                    n_iter=100, force=1e-5)
+    
+    # Copy the saved files from tempdir to the current working directory
+    file.copy(file.path(tempdir(), "M0.vs.M1.graphml"), "./M0.vs.M1.graphml", overwrite = TRUE)
+    file.copy(file.path(tempdir(), "M0.vs.M1.html"), "./M0.vs.M1.html", overwrite = TRUE)
+    file.copy(file.path(tempdir(), "M0.vs.M1.dot"), "./M0.vs.M1.dot", overwrite = TRUE)
+    file.copy(file.path(tempdir(), "M0.vs.M1.pdf"), "./M0.vs.M1.pdf", overwrite = TRUE)
+    
+    # 8. Downstream pathway enrichment analysis
+    foraRes <- fgsea::fora(pathways=org.Mm.eg.gatom.anno\$pathways,
+                           genes=E(km)\$gene,
+                           universe=unique(E(kg)\$gene),
+                           minSize=5)
+    
+    mainPathways <- fgsea::collapsePathwaysORA(
+      foraRes[padj < 0.05],
+      pathways=org.Mm.eg.gatom.anno\$pathways,
+      genes=E(km)\$gene,
+      universe=unique(E(kg)\$gene))
+    
+    # Save enrichment results to the working directory
+    data.table::fwrite(foraRes, "foraRes.csv")
+    saveRDS(mainPathways, "mainPathways.rds")
 
-
-    # --- Module Export and Visualization [] ---
-    # Key functions: saveModuleToHtml, saveModuleToPdf, saveModuleToDot, createShinyCyJSWidget
-    html_path <- file.path(tempdir(), "M0.vs.M1.html")
-    pdf_path <- file.path(tempdir(), "M0.vs.M1.pdf")
-    dot_path <- file.path(tempdir(), "M0.vs.M1.dot")
-    saveModuleToHtml(
-        module = m,
-        file = html_path,
-        name = "M0.vs.M1"
-    )
-    saveModuleToDot(
-        module = m,
-        file = dot_path,
-        name = "M0.vs.M1"
-    )
-    saveModuleToPdf(
-        module = m,
-        file = pdf_path,
-        name = "M0.vs.M1",
-        n_iter = 100,
-        force = 1e-5
-    )
-    widget <- createShinyCyJSWidget(m)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gatom_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gatom_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gatom_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GATOM:", paste0("    gatom: ", packageVersion("gatom"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE":',
+        paste0('    gatom: ', as.character(packageVersion('gatom')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gatom_results.csv
-    touch ${prefix}_gatom_output.rds
-    echo "BIOC_GATOM:" > versions.yml
-    echo "    gatom: 0.0.0" >> versions.yml
+    touch ${prefix}_dual_omics_active_module.csv versions.yml
     """
 }
 
-
-workflow BIOC_GATOM_WORKFLOW {
+workflow BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene.de.rawEx, met.de.rawEx ] ]
 
     main:
-    BIOC_GATOM(ch_input)
+    BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE(ch_input)
 
     emit:
-    results  = BIOC_GATOM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GATOM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GATOM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GATOM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE.out.tables
+    plots    = BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE.out.plots
+    objects  = BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE.out.objects
+    versions = BIOC_GATOM_DUAL_OMICS_ACTIVE_MODULE.out.versions
 }

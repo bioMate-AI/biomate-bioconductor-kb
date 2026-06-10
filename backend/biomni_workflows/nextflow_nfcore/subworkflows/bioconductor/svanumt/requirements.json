@@ -1,0 +1,23 @@
+{
+  "package": "svanumt",
+  "requirements": [
+    "GenomeInfoDb",
+    "S4Vectors",
+    "StructuralVariantAnnotation",
+    "VariantAnnotation",
+    "circlize",
+    "readr",
+    "svaNUMT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomeInfoDb",
+      "S4Vectors",
+      "StructuralVariantAnnotation",
+      "VariantAnnotation",
+      "circlize",
+      "readr",
+      "svaNUMT"
+    ]
+  }
+}

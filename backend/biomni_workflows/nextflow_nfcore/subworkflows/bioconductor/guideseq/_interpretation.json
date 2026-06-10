@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: alignment.inputfile=Path to the BAM or BED alignment file containing CIGAR information ;; umi.inputfile=Path to the tab-delimited file containing read IDs and their corresponding UMIs ;; gRNA.file=Path to the FASTA file containing the guide RNA sequence ;; BSgenomeName=A BSgenome object of the organism of interest (e.g., Hsapiens) ;; min.reads=Minimum number of reads required to call a peak ;; n.cores.max=Maximum number of cores to use for parallel processing ;; upstream=Distance in base pairs to extend upstream of the peak region for off-target analysis ;; downstream=Distance in base pairs to extend downstream of the peak region for off-target analysis ;; PAM.size=Size of the PAM sequence ;; gRNA.size=Size of the gRNA sequence ;; PAM=PAM sequence of interest (e.g., NGG) ;; PAM.pattern=Regular expression pattern for PAM matching ;; max.mismatch=Maximum number of mismatches allowed for off-target identification ;; orderOfftargetsBy=Criteria to sort off-targets (e.g., \"predicted_cleavage_score\" or \"peak_score\")\n- alternatives: GS-Preprocess (an external 6-argument pipeline) can be used to preprocess raw BCL files into the required BAM/BED and UMI files before running GUIDEseq. CRISPRseek is used internally for off-target homology scoring, and ChIPpeakAnno is used internally for peak merging.\n- when_to_use: Use this package when you have performed a GUIDE-seq experiment to profile genome-wide off-target cleavage sites of CRISPR-Cas nucleases and have obtained alignment files (BAM/BED) and UMI files.\n- pitfalls: Ensure that R1 reads are used as input to the getUmi.pl script when generating the UMI file. The alignment file must contain CIGAR information; if using BED format, it must be tab-delimited and contain chromosome, start, end, readID, mapping quality, strand, and CIGAR columns.",
+  "workflows": [
+    {
+      "name": "step_by_step_guideseq",
+      "intent": "Perform GUIDE-seq analysis step-by-step to remove PCR bias, identify peaks, merge strands, and analyze off-targets.",
+      "input": [
+        "bowtie2.HEK293_site4_chr13.sort.bam (BAM alignment file with CIGAR info)",
+        "UMI-HEK293_site4_chr13.txt (tab-delimited file with read IDs and UMIs)",
+        "T2.fa (FASTA file of the gRNA sequence)",
+        "T2plus100OffTargets.bed (BED file of peak regions)"
+      ],
+      "stages": "1. Remove PCR bias and obtain unique cleavage events using getUniqueCleavageEvents ;; 2. Summarize cleavage events into peaks using getPeaks ;; 3. Merge peaks from plus and minus strands using mergePlusMinusPeaks ;; 4. Perform off-target analysis of extended regions around identified cleavage sites using offTargetAnalysisOfPeakRegions",
+      "code": "uniqueCleavageEvents <- getUniqueCleavageEvents(bamfile, umifile, n.cores.max =1)\nuniqueCleavageEvents$cleavage.gr\npeaks <- getPeaks(uniqueCleavageEvents$cleavage.gr, min.reads = 80)\npeaks.gr <- peaks$peaks\npeaks.gr\nmergedPeaks <- mergePlusMinusPeaks(peaks.gr = peaks.gr,  \n    output.bedfile = \"mergedPeaks.bed\")\nmergedPeaks$mergedPeaks.gr\nhead(mergedPeaks$mergedPeaks.bed)\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\npeaks <- system.file(\"extdata\", \"T2plus100OffTargets.bed\",\n    package = \"CRISPRseek\")\ngRNAs <- system.file(\"extdata\", \"T2.fa\",\n    package = \"CRISPRseek\")\noutputDir <- getwd() \noffTargets <- offTargetAnalysisOfPeakRegions(gRNA = gRNAs, peaks = peaks,\n    format=c(\"fasta\", \"bed\"),\n    peaks.withHeader = TRUE, BSgenomeName = Hsapiens,\n    upstream = 50, downstream =50, PAM.size = 3, gRNA.size = 20,\n    PAM = \"NGG\", PAM.pattern = \"(NAG|NGG|NGA)$\", max.mismatch = 2,\n    outputDir = outputDir,\n    orderOfftargetsBy = \"predicted_cleavage_score\",\n    allowed.mismatch.PAM = 2, overwrite = TRUE\n   )"
+    },
+    {
+      "name": "all_in_one_guideseq",
+      "intent": "Run the entire GUIDE-seq analysis workflow (from UMI deduplication to off-target analysis) in a single function call.",
+      "input": [
+        "bowtie2.HEK293_site4_chr13.sort.bam (BAM alignment file with CIGAR info)",
+        "UMI-HEK293_site4_chr13.txt (tab-delimited file with read IDs and UMIs)",
+        "gRNA.fa (FASTA file of the gRNA sequence)"
+      ],
+      "stages": "1. Run the complete pipeline using GUIDEseqAnalysis",
+      "code": "gRNA.file <- system.file(\"extdata\",\"gRNA.fa\", package = \"GUIDEseq\")\nsystem.time(guideSeqRes <- GUIDEseqAnalysis(\n    alignment.inputfile = bamfile, \n    umi.inputfile = umifile, gRNA.file = gRNA.file, \n    orderOfftargetsBy = \"peak_score\",\n    descending = TRUE, n.cores.max = 1,\n    BSgenomeName = Hsapiens, min.reads = 1))\nnames(guideSeqRes)"
+    }
+  ]
+}

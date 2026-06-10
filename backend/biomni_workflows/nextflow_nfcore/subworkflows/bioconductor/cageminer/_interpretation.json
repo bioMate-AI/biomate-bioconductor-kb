@@ -1,0 +1,19 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: expand_intervals=Set to FALSE to prevent expanding a sliding window if genomic intervals (e.g., LD blocks) are already defined for SNPs ;; gene_ranges=A GRanges object containing gene coordinates ;; snp_pos or marker_ranges=A GRanges or GRangesList object containing SNP positions ;; exp=A SummarizedExperiment object containing gene expression data ;; gcn=A gene coexpression network object inferred using BioNERO ;; guides=A character vector of guide gene IDs or a data frame with gene IDs in the first column ;; sample_group=The level from the sample metadata corresponding to the condition of interest\n- alternatives: rtracklayer::import() is recommended to create GRanges objects from genomic coordinates in GFF/GTF files ;; BioNERO is required to infer the gene coexpression network (GCN) and identify hub genes\n- when_to_use: Use when you have GWAS-derived SNPs associated with a phenotype and transcriptomic data (RNA-seq) for the same species, and you want to identify and prioritize high-confidence candidate genes.\n- pitfalls: By default, cageminer expands SNP coordinates upstream and downstream using a sliding window. If you already have pre-determined genomic intervals (e.g., LD blocks), you must set expand_intervals = FALSE to prevent incorrect expansion.",
+  "workflows": [
+    {
+      "name": "candidate_gene_mining_and_prioritization",
+      "intent": "Integrate GWAS SNPs and coexpression networks to mine and score high-confidence candidate genes.",
+      "input": [
+        "gene_ranges.gr (GRanges of gene coordinates)",
+        "snp_pos.gr (GRanges of SNP positions)",
+        "pepper_se.rds (SummarizedExperiment of RNA-seq expression data)",
+        "guides.tsv (Table of guide genes)",
+        "tfs.tsv (Table of transcription factors)"
+      ],
+      "stages": "1. Visualize SNP distribution across chromosomes using plot_snp_distribution and plot_snp_circos ;; 2. Identify genes close to SNPs using mine_step1 ;; 3. Infer a gene coexpression network using BioNERO::SFT_fit and BioNERO::exp2gcn ;; 4. Filter candidates in coexpression modules enriched in guide genes using mine_step2 ;; 5. Identify candidates with altered expression in a condition of interest using mine_step3 (or perform steps 2-5 automatically using mine_candidates) ;; 6. Score and prioritize candidates using score_genes",
+      "code": "plot_snp_distribution(snp_pos)\nplot_snp_circos(chr_length, gene_ranges, snp_pos)\ncandidates1 <- mine_step1(gene_ranges, snp_pos)\nsimulate_windows(gene_ranges, snp_pos)\nsft <- BioNERO::SFT_fit(pepper_se, net_type = \"signed\", cor_method = \"pearson\")\ngcn <- BioNERO::exp2gcn(pepper_se, net_type = \"signed\", cor_method = \"pearson\", module_merging_threshold = 0.8, SFTpower = sft$power)\ncandidates2 <- mine_step2(pepper_se, gcn = gcn, guides = guides$Gene, candidates = candidates1$ID)\ncandidates3 <- mine_step3(pepper_se, candidates = candidates2$candidates, sample_group = \"PRR_stress\")\ncandidates <- mine_candidates(gene_ranges = gene_ranges, marker_ranges = snp_pos, exp = pepper_se, gcn = gcn, guides = guides$Gene, sample_group = \"PRR_stress\")\nhubs <- BioNERO::get_hubs_gcn(pepper_se, gcn)\nscored <- score_genes(candidates, hubs$Gene, tfs$Gene_ID)"
+    }
+  ]
+}

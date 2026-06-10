@@ -1,90 +1,132 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ggseqalign
-// Simple visualizations of alignments of DNA or AA sequences as well as arbitrary strings. Compatible 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ggseqalign/inst/doc/ggseqalign.R
-// Upstream  : Biostrings, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("ggseqalign")
+// Bioconductor workflow: ggseqalign — pairwise_sequence_alignment_visualization
+// Align query sequences to a reference subject sequence and visualize the mismatches, insertions, and deletions.
+// Input: query_sequences.fa, subject_sequence
+// Container: quay.io/biocontainers/bioconductor-ggseqalign:1.4.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biostrings, ggplot2, ggseqalign
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load query and subject sequences using Biostrings or character vectors
+//  * 2. [Core Analysis] Generate the alignment table using alignment_table()
+//  * 3. [Visualization & Output] Plot the alignment using plot_sequence_alignment() with optional customization
 
 nextflow.enable.dsl = 2
 
-process BIOC_GGSEQALIGN {
+process BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ggseqalign"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ggseqalign:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ggseqalign:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ggseqalign_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ggseqalign_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ggseqalign_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAStringSet)
-    library(jsonlite)
-
-    # --- ReadDNAStringSet analysis [] ---
-    # Key functions: readDNAStringSet, replaceLetterAt, replaceAt, plot_sequence_alignment, theme, valid, install_git, alignment_table
-    if (!requireNamespace("BiocManager", quietly=TRUE))
-    install.packages("BiocManager")
-    BiocManager::install(version = "devel")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ggseqalign_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ggseqalign_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(ggseqalign)
+    library(Biostrings)
+    library(ggplot2)
+    
+    # Helper function to robustly read DNA or AA sequences
+    read_sequences <- function(filepath) {
+      tryCatch({
+        Biostrings::readDNAStringSet(filepath)
+      }, error = function(e) {
+        tryCatch({
+          Biostrings::readAAStringSet(filepath)
+        }, error = function(e2) {
+          stop(paste("Failed to read sequence file:", filepath, "\nError details:", e2\$message))
+        })
+      })
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ggseqalign_output.rds")
+    
+    # 1. Load query and subject sequences from the working directory
+    query_file <- "query_sequences.fa"
+    if (!file.exists(query_file)) {
+      stop(paste("Required query sequence file '", query_file, "' not found in the working directory.", sep = ""))
     }
+    query_sequences <- read_sequences(query_file)
+    
+    subject_file <- "subject_sequence"
+    if (!file.exists(subject_file)) {
+      if (file.exists("subject_sequence.fa")) {
+        subject_file <- "subject_sequence.fa"
+      } else {
+        stop("Required subject sequence file 'subject_sequence' or 'subject_sequence.fa' not found in the working directory.")
+      }
+    }
+    subject_sequence <- read_sequences(subject_file)
+    
+    # Ensure subject sequence is of length 1 as required by alignment_table
+    if (length(subject_sequence) > 1) {
+      message("Subject sequence file contains multiple sequences. Using the first sequence as the reference.")
+      subject_sequence <- subject_sequence[1]
+    }
+    
+    # 2. Generate the alignment table using alignment_table()
+    alignment <- alignment_table(query_sequences, subject_sequence)
+    
+    # Save the alignment table and object to files
+    write.csv(as.data.frame(alignment), "alignment_table.csv", row.names = FALSE)
+    saveRDS(alignment, "alignment.rds")
+    
+    # 3. Plot the alignment using plot_sequence_alignment() with customization
+    p <- plot_sequence_alignment(alignment) +
+        theme(text = element_text(size = 15))
+    
+    # Save the plot to a PDF file
+    ggsave("sequence_alignment_plot.pdf", plot = p, width = 12, height = 8)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GGSEQALIGN:", paste0("    ggseqalign: ", packageVersion("ggseqalign"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION":',
+        paste0('    ggseqalign: ', as.character(packageVersion('ggseqalign')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ggseqalign_results.csv
-    touch ${prefix}_ggseqalign_output.rds
-    echo "BIOC_GGSEQALIGN:" > versions.yml
-    echo "    ggseqalign: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_sequence_alignment_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_GGSEQALIGN_WORKFLOW {
+workflow BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ query_sequences.fa, subject_sequence ] ]
 
     main:
-    BIOC_GGSEQALIGN(ch_input)
+    BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_GGSEQALIGN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GGSEQALIGN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GGSEQALIGN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GGSEQALIGN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION.out.tables
+    plots    = BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION.out.plots
+    objects  = BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION.out.objects
+    versions = BIOC_GGSEQALIGN_PAIRWISE_SEQUENCE_ALIGNMENT_VISUALIZATION.out.versions
 }

@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pScreen=A vector of p-values or adjusted p-values for the screening stage (typically gene-level) ;; pConfirmation=A matrix of p-values for the confirmation stage (typically contrast-level or transcript-level) with rows corresponding to features ;; pScreenAdjusted=A logical indicating whether the screening p-values are already adjusted for FDR control ;; tx2gene=A data.frame with transcript identifiers in the first column and gene identifiers in the second column (required for stageRTx) ;; method=The FWER correction procedure to use in the confirmation stage (e.g., \"none\", \"dtu\", \"user\") ;; alpha=The target overall false discovery rate (OFDR) level ;; adjustment=A numeric vector specifying manual FWER adjustments when method=\"user\" ;; onlySignificantGenes=A logical specifying whether to return adjusted p-values only for genes passing the screening stage ;; order=A logical specifying whether to order the returned adjusted p-values\n- alternatives: Conventional analysis (e.g., standard limma-voom or DEXSeq) which assesses contrasts or transcripts independently, failing to control FDR at the gene level or losing statistical power.\n- when_to_use: Use when analyzing high-throughput gene expression data where multiple hypotheses per gene are of interest, such as complex experimental designs with multiple contrasts (DGE) or isoform-level analyses (DTU).\n- pitfalls: Adjusted p-values from the confirmation stage are only valid for the specific target OFDR level (alpha) provided during adjustment; if a different alpha is desired, the entire stageWiseAdjustment must be re-run. Independent filtering in upstream tools (like DEXSeq) can cause mismatch errors if genes are filtered out of the screening stage but their transcripts remain in the confirmation stage; these must be manually aligned and filtered before running stageRTx.",
+  "workflows": [
+    {
+      "name": "differential_gene_expression",
+      "intent": "Perform stage-wise testing for differential gene expression with multiple contrasts using the stageR class.",
+      "input": [
+        "pScreen (vector of gene-level screening p-values, e.g., from a limma F-test)",
+        "pConfirmation (matrix of contrast-level confirmation p-values, e.g., from individual limma contrasts)"
+      ],
+      "stages": "1. Construct the stageR object using stageR() ;; 2. Perform stage-wise adjustment using stageWiseAdjustment() ;; 3. Retrieve adjusted p-values using getAdjustedPValues() ;; 4. Retrieve binary significance results using getResults()",
+      "code": "stageRObj <- stageR(pScreen=pScreen, pConfirmation=pConfirmation, pScreenAdjusted=FALSE)\nstageRObj <- stageWiseAdjustment(object=stageRObj, method=\"none\", alpha=0.05)\nhead(getAdjustedPValues(stageRObj, onlySignificantGenes=FALSE, order=FALSE))\nhead(getAdjustedPValues(stageRObj, onlySignificantGenes=TRUE, order=TRUE))\nres <- getResults(stageRObj)"
+    },
+    {
+      "name": "differential_transcript_usage",
+      "intent": "Perform stage-wise testing for differential transcript usage (DTU) mapping transcripts to genes using the stageRTx class.",
+      "input": [
+        "pScreen (vector of gene-level q-values, e.g., from DEXSeq perGeneQValue)",
+        "pConfirmation (matrix of transcript-level p-values)",
+        "tx2gene (data.frame mapping transcripts to genes)"
+      ],
+      "stages": "1. Filter out transcripts belonging to genes that were removed during independent filtering ;; 2. Construct the stageRTx object using stageRTx() ;; 3. Perform stage-wise adjustment using stageWiseAdjustment() with method=\"dtu\" ;; 4. Retrieve significant genes using getSignificantGenes() ;; 5. Retrieve significant transcripts using getSignificantTx() ;; 6. Retrieve adjusted p-values using getAdjustedPValues()",
+      "code": "rowsNotFiltered <- tx2gene[,2]%in%names(qvalDxr)\npConfirmation <- matrix(pConfirmation[rowsNotFiltered,],ncol=1,dimnames=list(dxr$featureID[rowsNotFiltered],\"transcript\"))\ntx2gene <- tx2gene[rowsNotFiltered,]\nstageRObj <- stageRTx(pScreen=pScreen, pConfirmation=pConfirmation, pScreenAdjusted=TRUE, tx2gene=tx2gene)\nstageRObj <- stageWiseAdjustment(object=stageRObj, method=\"dtu\", alpha=0.05)\nhead(getSignificantGenes(stageRObj))\nhead(getSignificantTx(stageRObj))\npadj <- getAdjustedPValues(stageRObj, order=TRUE, onlySignificantGenes=FALSE)"
+    }
+  ]
+}

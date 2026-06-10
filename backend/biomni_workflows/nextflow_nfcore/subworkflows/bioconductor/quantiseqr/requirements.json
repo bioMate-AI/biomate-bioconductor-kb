@@ -1,0 +1,25 @@
+{
+  "package": "quantiseqr",
+  "requirements": [
+    "SummarizedExperiment",
+    "dplyr",
+    "ggplot2",
+    "quantiseqr",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "deconvolution_from_summarized_experiment.nf": [
+      "SummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "quantiseqr",
+      "tibble",
+      "tidyr"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "quantiseqr"
+    ]
+  }
+}

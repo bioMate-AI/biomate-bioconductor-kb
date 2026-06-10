@@ -1,0 +1,36 @@
+{
+  "package": "tximport",
+  "requirements": [
+    "DESeq2",
+    "edgeR",
+    "readr",
+    "tximport"
+  ],
+  "by_workflow": {
+    "alevin_import.nf": [
+      "tximport"
+    ],
+    "gene_level_import_and_edger_limma.nf": [
+      "edgeR",
+      "readr",
+      "tximport"
+    ],
+    "main.nf": [
+      "DESeq2",
+      "readr",
+      "tximport"
+    ],
+    "rsem_import.nf": [
+      "tximport"
+    ],
+    "stringtie_import.nf": [
+      "readr",
+      "tximport"
+    ],
+    "transcript_level_import_and_summarization.nf": [
+      "edgeR",
+      "readr",
+      "tximport"
+    ]
+  }
+}

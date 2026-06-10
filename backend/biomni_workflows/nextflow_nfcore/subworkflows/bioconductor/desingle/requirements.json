@@ -1,0 +1,16 @@
+{
+  "package": "desingle",
+  "requirements": [
+    "DEsingle",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DEsingle"
+    ],
+    "sce_input_workflow.nf": [
+      "DEsingle",
+      "SingleCellExperiment"
+    ]
+  }
+}

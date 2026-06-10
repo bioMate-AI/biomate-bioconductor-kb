@@ -1,0 +1,65 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genes=A dataframe with gene-symbols or genomic regions and gene-associated variables ;; test=Statistical test to use ('hyper', 'wilcoxon', 'binomial' or 'contingency') ;; n_randsets=Number of randomsets for computing the family-wise error rate ;; organismDb=OrganismDb package for GO-annotations and gene coordinates (default 'Homo.sapiens') ;; gene_len=Correct for gene length (only for test='hyper') ;; regions=Chromosomal regions as input instead of independent genes (only for test='hyper') ;; circ_chrom=Use background on circularized chromosome (only for test='hyper' and regions=TRUE) ;; silent=Suppress output to screen ;; domains=Optional vector of GO-domains (if NULL all 3 domains are analyzed) ;; orgDb=Optional OrgDb package for GO-annotations (overrides organismDb) ;; txDb=Optional TxDb package for gene-coordinates (overrides organismDb) ;; annotations=Optional dataframe with GO-annotations (overrides organismDb and orgDb) ;; gene_coords=Optional dataframe with gene-coordinates (overrides organismDb and txDb) ;; godir=Optional directory with ontology graph tables to use instead of the integrated GO-graph\n- alternatives: OrganismDb packages (e.g., 'Mus.musculus', 'Rattus.norvegicus') for combined annotations and coordinates ;; OrgDb packages (e.g., 'org.Pt.eg.db', 'org.Gg.eg.db') for annotations only ;; TxDb packages (e.g., 'TxDb.Hsapiens.UCSC.hg38.knownGene') for custom reference genome coordinates ;; Custom dataframes for annotations, gene coordinates, or custom GO-graph directories\n- when_to_use: Appropriate for performing Gene Ontology enrichment analysis using candidate vs. background gene sets, ranked gene lists, genes with two counts, or genes with four counts, while correcting for multiple testing (FWER) via permutations, gene length, or spatial clustering.\n- pitfalls: Using TxDb packages for gene coordinates always requires defining an OrgDb package for the annotations ;; For genomic regions input, the first column of the input dataframe must be formatted as 'chr:start-stop' where start is smaller than stop, and background regions must be provided ;; When using p-values as scores in the Wilcoxon test, users often need to look for enrichment of low ranks or use (1 - p-value) as the score ;; The 2x2 contingency table test is the only test that is not dependent on the distribution of the gene-associated variables in the root nodes ;; refine by default checks for over-representation, check ?refine for under-representation",
+  "workflows": [
+    {
+      "name": "hypergeometric_test",
+      "intent": "Test for gene set enrichment using the hypergeometric test with options for custom background, gene length correction, or genomic regions.",
+      "input": [
+        "candidate_genes.tsv (dataframe with gene symbols and binary candidate indicator)",
+        "genomic_regions.tsv (dataframe with genomic coordinates and binary candidate indicator)"
+      ],
+      "stages": "1. Define candidate (and optionally background) genes or genomic regions ;; 2. Run enrichment analysis using go_enrich with test='hyper' ;; 3. Extract results and plot distribution of gene-associated variables using plot_anno_scores.",
+      "code": "library(GOfuncR)\ngene_ids = c('NCAPG', 'APOL4', 'NGFR', 'NXPH4', 'C21orf59', 'CACNG2', 'AGTR1',\n    'ANO1', 'BTBD3', 'MTUS1', 'CALB1', 'GYG1', 'PAX2')\ninput_hyper = data.frame(gene_ids, is_candidate=1)\nres_hyper = go_enrich(input_hyper, n_randset=100)\nstats = res_hyper[[1]]\nhead(stats)\nby(stats, stats$ontology, head, n=3)\nhead(res_hyper[[2]])\nres_hyper[[3]]\nhead(res_hyper[[4]])\n\ncandi_gene_ids = c('NCAPG', 'APOL4', 'NGFR', 'NXPH4', 'C21orf59', 'CACNG2', \n    'AGTR1', 'ANO1', 'BTBD3', 'MTUS1', 'CALB1', 'GYG1', 'PAX2')\nbg_gene_ids = c('FGR', 'NPHP1', 'DRD2', 'ABCC10', 'PTBP2', 'JPH4', 'SMARCC2',\n    'FN1', 'NODAL', 'CYP1A2', 'ACSS1', 'CDHR1', 'SLC25A36', 'LEPR', 'PRPS2',\n    'TNFAIP3', 'NKX3-1', 'LPAR2', 'PGAM2')\nis_candidate = c(rep(1,length(candi_gene_ids)), rep(0,length(bg_gene_ids)))\ninput_hyper_bg = data.frame(gene_ids = c(candi_gene_ids, bg_gene_ids),\n    is_candidate)\nres_hyper_bg = go_enrich(input_hyper_bg, n_randsets=100)\nhead(res_hyper_bg[[1]])\n\nres_hyper_len = go_enrich(input_hyper, gene_len=TRUE)\n\nregions = c('8:81000000-83000000', '7:1300000-56800000', '7:74900000-148700000',\n    '8:7400000-44300000', '8:47600000-146300000', '9:0-39200000',\n    '9:69700000-140200000')\nis_candidate = c(1, rep(0,6))\ninput_regions = data.frame(regions, is_candidate)\nres_region = go_enrich(input_regions, n_randsets=100, regions=TRUE)\nstats_region = res_region[[1]]\nhead(stats_region)\ninput_genes = res_region[[2]]\ncandidate_genes = input_genes[input_genes[,2]==1, 1]\ncandidate_genes\n\ntop_gos_hyper = res_hyper[[1]][1:5, 'node_id']\nplot_anno_scores(res_hyper, top_gos_hyper)\n\ntop_gos_hyper_bg = res_hyper_bg[[1]][1:5, 'node_id']\nplot_stats = plot_anno_scores(res_hyper_bg, top_gos_hyper_bg)\nplot_stats"
+    },
+    {
+      "name": "wilcoxon_test",
+      "intent": "Test for enrichment of high (or low) scored genes using the Wilcoxon rank-sum test.",
+      "input": [
+        "gene_scores.tsv (dataframe with gene symbols and continuous scores)"
+      ],
+      "stages": "1. Define genes and their continuous scores ;; 2. Run enrichment analysis using go_enrich with test='wilcoxon' ;; 3. Extract results and plot distribution of scores using plot_anno_scores.",
+      "code": "high_score_genes = c('GCK', 'CALB1', 'PAX2', 'GYS1','SLC2A8', 'UGP2', 'BTBD3',\n    'MTUS1', 'SYP', 'PSEN1')\nlow_score_genes = c('CACNG2', 'ANO1', 'ZWINT', 'ENGASE', 'HK2', 'PYGL', 'GYG1')\ngene_scores = c(runif(length(high_score_genes), 0.5, 1),\n    runif(length(low_score_genes), 0, 0.5))\ninput_willi = data.frame(gene_ids = c(high_score_genes, low_score_genes),\n    gene_scores)\nres_willi = go_enrich(input_willi, test='wilcoxon', n_randsets=100)\nhead(res_willi[[1]])\n\ntop_gos_willi = res_willi[[1]][1:5, 'node_id']\nplot_anno_scores(res_willi, top_gos_willi)"
+    },
+    {
+      "name": "binomial_test",
+      "intent": "Test for enrichment of genes associated with two counts using the binomial test.",
+      "input": [
+        "gene_counts_two.tsv (dataframe with gene symbols and two columns of counts)"
+      ],
+      "stages": "1. Define genes and two count columns ;; 2. Run enrichment analysis using go_enrich with test='binomial' ;; 3. Extract results and plot distribution of counts using plot_anno_scores.",
+      "code": "high_A_genes = c('G6PD', 'GCK', 'GYS1', 'HK2', 'PYGL', 'SLC2A8', 'UGP2',\n    'ZWINT', 'ENGASE')\nlow_A_genes = c('CACNG2', 'AGTR1', 'ANO1', 'BTBD3', 'MTUS1', 'CALB1', 'GYG1',\n    'PAX2')\nA_counts = c(sample(20:30, length(high_A_genes)),\n    sample(5:15, length(low_A_genes)))\nB_counts = c(sample(5:15, length(high_A_genes)),\n    sample(20:30, length(low_A_genes)))\ninput_binom = data.frame(gene_ids=c(high_A_genes, low_A_genes), A_counts,\n    B_counts)\nres_binom = go_enrich(input_binom, test='binomial', n_randsets=100,\n    silent=TRUE, domains=c('molecular_function', 'cellular_component'))\nhead(res_binom[[1]])\n\ntop_gos_binom = res_binom[[1]][1:5, 'node_id']\nplot_anno_scores(res_binom, top_gos_binom)"
+    },
+    {
+      "name": "contingency_test",
+      "intent": "Test for enrichment of genes associated with four counts using the 2x2 contingency table test.",
+      "input": [
+        "gene_counts_four.tsv (dataframe with gene symbols and four columns of counts)"
+      ],
+      "stages": "1. Define genes and four count columns ;; 2. Run enrichment analysis using go_enrich with test='contingency' ;; 3. Extract results and plot distribution of counts using plot_anno_scores.",
+      "code": "high_substi_genes = c('G6PD', 'GCK', 'GYS1', 'HK2', 'PYGL', 'SLC2A8', 'UGP2',\n    'ZWINT', 'ENGASE')\nlow_substi_genes = c('CACNG2', 'AGTR1', 'ANO1', 'BTBD3', 'MTUS1', 'CALB1',\n    'GYG1', 'PAX2', 'C21orf59')\nsubs_non_syn = c(sample(5:15, length(high_substi_genes), replace=TRUE),\n    sample(0:5, length(low_substi_genes), replace=TRUE))\nsubs_syn = sample(5:15, length(c(high_substi_genes, low_substi_genes)),\n    replace=TRUE)\nvari_non_syn = c(sample(0:5, length(high_substi_genes), replace=TRUE),\n    sample(0:10, length(low_substi_genes), replace=TRUE))\nvari_syn = sample(5:15, length(c(high_substi_genes, low_substi_genes)),\n    replace=TRUE)\ninput_conti = data.frame(gene_ids=c(high_substi_genes, low_substi_genes),\n    subs_non_syn, subs_syn, vari_non_syn, vari_syn)\nres_conti = go_enrich(input_conti, test='contingency', n_randset=100)\nhead(res_conti[[1]])\n\ntop_gos_conti = res_conti[[1]][1:5, 'node_id']\nplot_anno_scores(res_conti, top_gos_conti)"
+    },
+    {
+      "name": "custom_annotations_and_coordinates",
+      "intent": "Run enrichment analysis using custom annotations, custom gene coordinates, or a custom GO-graph.",
+      "input": [
+        "candidate_genes.tsv (dataframe with candidate genes)",
+        "custom_annotations.tsv (dataframe with custom gene-to-GO mappings)",
+        "custom_coordinates.tsv (dataframe with custom gene coordinates)"
+      ],
+      "stages": "1. Define candidate genes ;; 2. Define custom annotations, coordinates, or GO-graph directory ;; 3. Run go_enrich with custom parameters (annotations, gene_coords, or godir).",
+      "code": "res_hyper_anno = go_enrich(input_hyper, annotations=custom_anno)\n\nres_hyper_cc = go_enrich(input_hyper, gene_len=TRUE, gene_coords=custom_coords)\n\ngo_path = '/home/user/go_graphs/2018-11-24/'\nres_hyper = go_enrich(input_hyper, godir=go_path)"
+    },
+    {
+      "name": "go_graph_exploration_and_utilities",
+      "intent": "Explore the GO-graph, retrieve associations between genes and GO-categories, and refine enrichment results.",
+      "input": [
+        "go_ids.txt (list of GO-IDs)",
+        "gene_symbols.txt (list of gene symbols)",
+        "go_enrich_results.RData (saved go_enrich result object)"
+      ],
+      "stages": "1. Retrieve parent or child nodes of GO-categories ;; 2. Retrieve names and domains of GO-IDs ;; 3. Search for GO-categories by name ;; 4. Retrieve annotated genes for GO-categories ;; 5. Retrieve annotated GO-categories for genes ;; 6. Refine enrichment results using refine.",
+      "code": "get_parent_nodes(c('GO:0051082', 'GO:0042254'))\n\nget_child_nodes(c('GO:0090070', 'GO:0000112'))\n\nget_names(c('GO:0090070', 'GO:0000112'))\n\nbbb = get_ids('blood-brain barrier')\nhead(bbb)\n\nhead(get_anno_genes(go_ids='GO:0000109'))\n\ngenes = c('AGTR1', 'ANO1', 'CALB1', 'GYG1', 'PAX2')\ngos = c('GO:0001558', 'GO:0005536', 'GO:0072205', 'GO:0006821')\nanno_genes = get_anno_genes(go_ids=gos, genes=genes)\ncbind(anno_genes, get_names(anno_genes$go_id)[,2:3])\n\nanno = get_anno_categories(c('BTC', 'SPAG5'))\nhead(anno)\n\ndirect_anno = get_anno_categories('NXPH4')\ndirect_anno\nparent_ids = unique(get_parent_nodes(direct_anno$go_id)[,2])\nfull_anno = get_names(parent_ids)\nhead(full_anno)\n\ngene_ids = c('NCAPG', 'APOL4', 'NGFR', 'NXPH4', 'C21orf59', 'CACNG2', 'AGTR1',\n    'ANO1', 'BTBD3', 'MTUS1', 'CALB1', 'GYG1', 'PAX2')\ninput_hyper = data.frame(gene_ids, is_candidate=1)\nres_hyper = go_enrich(input_hyper, n_randset=100)\nrefined = refine(res_hyper, fwer=0.1)\nrefined"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: user_df=The prepared dataframe containing sample names and grouping factors (from convertCSV, convertESet, or convertSE) ;; plate_dims=List specifying the dimensions of the plate (e.g., list(8,12) for 8 rows and 12 columns) ;; nb_plates=The number of plates to fill ;; forbidden_wells=Character string of comma-separated well coordinates (e.g., \"A1,A2,A3\") that must not be filled ;; fixed_wells=Character string of comma-separated well coordinates (e.g., \"B1,B2\") reserved for quality control or standard samples ;; spatial_constraint=The spatial constraint pattern to prevent adjacent samples of the same group (\"NS\", \"WE\", \"NSEW\", or \"None\") ;; max_iteration=The maximum number of backtracking attempts to find a valid layout (default is 20)\n- alternatives: none=No alternative packages or methods are mentioned in the documentation.\n- when_to_use: Use when designing high-throughput experiments (such as mass spectrometry or proteomics) that require distributing biological samples across one or multiple multi-well plates while minimizing batch/plate effects through randomized block design.\n- pitfalls: incorrect_csv_format=CSV files must have sample names in the first column (or second column if rownames are present) ;; backtracking_failure=Complex constraints or small plate sizes relative to sample size can cause the algorithm to fail within the default 20 iterations, requiring an increase in iterations or relaxation of constraints ;; multiple_plates_indexing=When multiple plates are generated, wrapperWPM returns a list of dataframes, meaning the user must index the list (e.g., wpm_result[[1]]) before passing it to drawMap ;; shiny_app_unsaved_changes=Modifying parameters in the Shiny app's Parameters tab does not automatically update the Results tab; the user must click \"start WPM\" again to apply changes.",
+  "workflows": [
+    {
+      "name": "csv_to_plate_map",
+      "intent": "Generate and visualize a randomized well-plate map starting from a CSV file containing sample metadata.",
+      "input": [
+        "path-to-CSV-file (CSV file containing sample names in the first column and grouping factors in subsequent columns)"
+      ],
+      "stages": "1. Convert the CSV file into the WPM-compatible dataframe format using convertCSV ;; 2. Run the randomization algorithm using wrapperWPM ;; 3. Visualize the generated plate map using drawMap ;; 4. Save the generated plot using ggplot2::ggsave",
+      "code": "imported_csv <- wpm::convertCSV(\"path-to-CSV-file\")\nwpm_result <- wpm::wrapperWPM(user_df = imported_csv$df_wpm,\n            plate_dims = list(8,12),\n            nb_plates = 1,\n            forbidden_wells = \"A1,A2,A3\",\n            fixed_wells = \"B1,B2\",\n            spatial_constraint = \"NS\")\ndrawned_map <- wpm::drawMap(df = wpm_result,\n        sample_gps = length(levels(as.factor(colData$Treatment))),\n        gp_levels = gp_lvl <- levels(as.factor(colData$Treatment)),\n        plate_lines = 8,\n        plate_cols = 12,\n        project_title = \"my Project Title\")\ndrawned_map\nggplot2::ggsave(\n    filename = \"my file name\",\n    plot = drawned_map,\n    width = 10,\n    height = 7,\n    units = \"in\"\n)"
+    },
+    {
+      "name": "expressionset_to_plate_map",
+      "intent": "Generate and visualize a randomized well-plate map starting from an ExpressionSet or MSnSet object.",
+      "input": [
+        "my_MSnSet_object (An MSnSet or ExpressionSet object containing sample expression data and metadata)"
+      ],
+      "stages": "1. Convert the ExpressionSet/MSnSet object into the WPM-compatible dataframe format using convertESet, specifying the grouping factor ;; 2. Run the randomization algorithm using wrapperWPM ;; 3. Visualize the generated plate map using drawMap",
+      "code": "sample_names <- c(\"s1\",\"s2\",\"s3\",\"s4\", \"s5\")\nM <- matrix(NA, nrow = 4, ncol = 5)\ncolnames(M) <- sample_names\nrownames(M) <- paste0(\"id\", LETTERS[1:4])\npd <- data.frame(Environment = rep_len(LETTERS[1:3], 5),\n                 Category = rep_len(1:2, 5), row.names = sample_names)\nrownames(pd) <- colnames(M)\nmy_MSnSet_object <- MSnbase::MSnSet(exprs = M,pData =  pd)\ndf <- wpm::convertESet(my_MSnSet_object, \"Environment\")\nwpm_result <- wpm::wrapperWPM(user_df = df,\n            plate_dims = list(8,12),\n            nb_plates = 1,\n            forbidden_wells = \"A1,A2,A3\",\n            fixed_wells = \"B1,B2\",\n            spatial_constraint = \"NS\")\nnumberOfThePlate <- 1\ndrawned_map <- wpm::drawMap(df = wpm_result[[numberOfThePlate]],\n        sample_gps = length(levels(as.factor(pd$Environment))),\n        gp_levels = gp_lvl <- levels(as.factor(pd$Environment)),\n        plate_lines = 8,\n        plate_cols = 12,\n        project_title = \"my Project Title\")\ndrawned_map"
+    },
+    {
+      "name": "summarizedexperiment_to_plate_map",
+      "intent": "Generate and visualize a randomized well-plate map starting from a SummarizedExperiment object.",
+      "input": [
+        "se (A SummarizedExperiment object containing sample assays and colData metadata)"
+      ],
+      "stages": "1. Convert the SummarizedExperiment object into the WPM-compatible dataframe format using convertSE, specifying the grouping factor ;; 2. Run the randomization algorithm using wrapperWPM ;; 3. Visualize the generated plate map using drawMap",
+      "code": "nrows <- 200\nncols <- 6\ncounts <- matrix(runif(nrows * ncols, 1, 1e4), nrows)\ncolData <- data.frame(Treatment=rep(c(\"ChIP\", \"Input\"), 3),\n                      row.names=LETTERS[1:6])\nse <- SummarizedExperiment::SummarizedExperiment(assays=list(counts=counts),\n                                                 colData=colData)\ndf <- wpm::convertSE(se, \"Treatment\")\nwpm_result <- wpm::wrapperWPM(user_df = df,\n            plate_dims = list(8,12),\n            nb_plates = 1,\n            forbidden_wells = \"A1,A2,A3\",\n            fixed_wells = \"B1,B2\",\n            spatial_constraint = \"NS\")\ndrawned_map <- wpm::drawMap(df = wpm_result,\n        sample_gps = length(levels(as.factor(colData$Treatment))),\n        gp_levels = gp_lvl <- levels(as.factor(colData$Treatment)),\n        plate_lines = 8,\n        plate_cols = 12,\n        project_title = \"my Project Title\")\ndrawned_map"
+    }
+  ]
+}

@@ -1,92 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: phosphonormalizer
-// It uses the overlap between enriched and non-enriched datasets to compensate for the bias introduced
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/phosphonormalizer/inst/doc/phosphonormalizer.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("phosphonormalizer")
+// Bioconductor workflow: phosphonormalizer — pairwise_phospho_normalization
+// Normalize enriched phosphoproteomics data using overlapping peptides from non-enriched data to correct for enrichment-induced bias.
+// Input: enriched_data.csv, non_enriched_data.csv
+// Container: quay.io/biocontainers/bioconductor-phosphonormalizer:1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: phosphonormalizer
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define abundance column indices for enriched and non-enriched datasets
+//  * 2. [Input & Preparation] Define sequence and modification column indices
+//  * 3. [Input & Preparation] Define technical replicates as a factor
+//  * 4. [Visualization & Output] Specify plot parameters for fold change distribution
+//  * 5. [Core Analysis] Run normalizePhospho to perform pairwise normalization
 
 nextflow.enable.dsl = 2
 
-process BIOC_PHOSPHONORMALIZER {
+process BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-phosphonormalizer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-phosphonormalizer:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-phosphonormalizer:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_phosphonormalizer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_phosphonormalizer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_phosphonormalizer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(phosphonormalizer)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load the required library
+            library(phosphonormalizer)
+            
+            # Read the user input files from the working directory
+            enriched.rd <- read.csv("enriched_data.csv", stringsAsFactors = FALSE)
+            non.enriched.rd <- read.csv("non_enriched_data.csv", stringsAsFactors = FALSE)
+            
+            # Ensure sequence and modification columns are character format
+            enriched.rd[[1]] <- as.character(enriched.rd[[1]])
+            enriched.rd[[2]] <- as.character(enriched.rd[[2]])
+            non.enriched.rd[[1]] <- as.character(non.enriched.rd[[1]])
+            non.enriched.rd[[2]] <- as.character(non.enriched.rd[[2]])
+            
+            # Ensure abundance columns are numeric format
+            for (i in 3:ncol(enriched.rd)) {
+              enriched.rd[[i]] <- as.numeric(enriched.rd[[i]])
+            }
+            for (i in 3:ncol(non.enriched.rd)) {
+              non.enriched.rd[[i]] <- as.numeric(non.enriched.rd[[i]])
+            }
+            
+            # 1. Define abundance column indices for enriched and non-enriched datasets
+            samplesCols <- data.frame(enriched=3:ncol(enriched.rd), non.enriched=3:ncol(non.enriched.rd))
+            
+            # 2. Define sequence and modification column indices
+            modseqCols <- data.frame(enriched = 1:2, non.enriched = 1:2)
+            
+            # 3. Define technical replicates as a factor
+            # Dynamically group replicates by removing common trailing suffixes (e.g., .1, _1) from column names
+            tech_names <- gsub("[-_\\\\.][0-9]+\$", "", colnames(enriched.rd)[3:ncol(enriched.rd)])
+            techRep <- factor(tech_names, levels = unique(tech_names))
+            
+            # 4. Specify plot parameters for fold change distribution
+            plot.param <- list(
+              control = levels(techRep)[1], 
+              samples = levels(techRep)[min(2, length(levels(techRep)))]
+            )
+            
+            # 5. Run normalizePhospho to perform pairwise normalization
+            # We wrap this in a PDF device to capture the generated fold change distribution plots
+            pdf("fold_change_distribution_plots.pdf", width = 7, height = 5)
+            
+            norm <- normalizePhospho(
+              enriched = enriched.rd, 
+              non.enriched = non.enriched.rd, 
+              samplesCols = samplesCols, 
+              modseqCols = modseqCols, 
+              techRep = techRep, 
+              plot.fc = plot.param
+            )
+            
+            dev.off()
+            
+            # Write the meaningful results to output files
+            write.csv(norm, "normalized_enriched_data.csv", row.names = FALSE)
+            saveRDS(norm, "normalized_enriched_data.rds")
 
-    # --- Frame [] ---
-    # Key functions: frame, factor, normalizePhospho
-    #Load the library
-    library(phosphonormalizer)
-    #Specify the column numbers of abundances in the original
-    #data.frame, from both enriched and non-enriched runs
-    samplesCols <- data.frame(enriched=3:17, non.enriched=3:17)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_phosphonormalizer_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_phosphonormalizer_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_phosphonormalizer_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PHOSPHONORMALIZER:", paste0("    phosphonormalizer: ", packageVersion("phosphonormalizer"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION":',
+        paste0('    phosphonormalizer: ', as.character(packageVersion('phosphonormalizer')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_phosphonormalizer_results.csv
-    touch ${prefix}_phosphonormalizer_output.rds
-    echo "BIOC_PHOSPHONORMALIZER:" > versions.yml
-    echo "    phosphonormalizer: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_phospho_normalization.csv versions.yml
     """
 }
 
-
-workflow BIOC_PHOSPHONORMALIZER_WORKFLOW {
+workflow BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ enriched_data.csv, non_enriched_data.csv ] ]
 
     main:
-    BIOC_PHOSPHONORMALIZER(ch_input)
+    BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION(ch_input)
 
     emit:
-    results  = BIOC_PHOSPHONORMALIZER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PHOSPHONORMALIZER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PHOSPHONORMALIZER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PHOSPHONORMALIZER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION.out.tables
+    plots    = BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION.out.plots
+    objects  = BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION.out.objects
+    versions = BIOC_PHOSPHONORMALIZER_PAIRWISE_PHOSPHO_NORMALIZATION.out.versions
 }

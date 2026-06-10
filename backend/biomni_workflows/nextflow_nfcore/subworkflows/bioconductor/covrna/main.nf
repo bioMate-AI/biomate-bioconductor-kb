@@ -1,100 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: covRNA
-// This package provides the analysis methods fourthcorner and RLQ analysis for large-scale transcripto
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/covRNA/inst/doc/covRNA.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("covRNA")
+// Bioconductor workflow: covRNA — covrna_analysis_workflow
+// Perform fourthcorner statistical testing and RLQ ordination to analyze and visualize associations between sample and gene covariates mediated by gene expression
+// Input: expression_set.RData, L_matrix.csv, R_df.csv, Q_df.csv
+// Container: quay.io/biocontainers/bioconductor-covrna:1.36.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, covRNA
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and dataset
+//  * 2. [Core Analysis] Run fourthcorner analysis using stat to calculate statistical associations
+//  * 3. [Visualization & Output] Plot the statistical results using plot
+//  * 4. [Core Analysis] Run RLQ ordination using ord
+//  * 5. [Visualization & Output] Plot the ordination variance using plot
+//  * 6. [Visualization & Output] Combine and visualize both statistical and ordination results using vis
 
 nextflow.enable.dsl = 2
 
-process BIOC_COVRNA {
+process BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-covrna"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-covrna:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-covrna:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_covrna_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_covrna_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_covrna_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(covRNA)
-    library(jsonlite)
-
-    # --- Stat [] ---
-    # Key functions: stat, exprs, fData, pData
-    ---------------------------------------------------------------------
-    statBaca <- stat(ExprSet = Baca, npermut = 999, padjust = "BH", nrcor = 2, exprvar = 1)
-    # or
-    statBaca <- stat(L = exprs(Baca), R = fData(Baca), Q = pData(Baca), npermut = 999,
-                     padjust = "BH", nrcor = 2, exprvar = 1)
-    # --- Ord [] ---
-    # Key functions: ord
-    ---------------------------------------------------------------------
-    ordBaca <- ord(Baca)
-    # --- Vis [] ---
-    # Key functions: vis
-    ---------------------------------------------------------------------
-    vis(Stat = statBaca, Ord = ordBaca, rangex=1.5, rangey=1.5)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_covrna_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # 1. Read the declared USER INPUT files from the working directory
+    L_matrix <- read.csv("L_matrix.csv", row.names = 1, check.names = FALSE)
+    R_df <- read.csv("R_df.csv", row.names = 1, check.names = FALSE)
+    Q_df <- read.csv("Q_df.csv", row.names = 1, check.names = FALSE)
+    
+    # Load the ExpressionSet from expression_set.RData
+    env <- new.env()
+    load("expression_set.RData", envir = env)
+    eset_objs <- ls(env)[sapply(ls(env), function(x) is(env[[x]], "ExpressionSet"))]
+    
+    if (length(eset_objs) > 0) {
+      Baca <- env[[eset_objs[1]]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_covrna_results.csv")
+      # Fallback: construct ExpressionSet from the CSV files if not found in RData
+      L_mat <- as.matrix(L_matrix)
+      Baca <- ExpressionSet(
+        assayData = L_mat,
+        phenoData = AnnotatedDataFrame(Q_df),
+        featureData = AnnotatedDataFrame(R_df)
+      )
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_covrna_output.rds")
+    
+    # 2. Run fourthcorner analysis using stat to calculate statistical associations
+    statBaca <- stat(ExprSet = Baca, npermut = 999, padjust = "BH", nrcor = 2, exprvar = 1)
+    
+    # Save statistical results
+    saveRDS(statBaca, "statBaca.rds")
+    if (!is.null(statBaca\$adj.pvalue)) {
+      write.csv(statBaca\$adj.pvalue, "adjusted_pvalues.csv", row.names = TRUE)
     }
+    
+    # 3. Plot the statistical results using plot
+    # Determine xnames dynamically to prevent crash if user data has different categories,
+    # but default to the documented ones if they match.
+    actual_categories <- unique(as.character(pData(Baca)[, 1]))
+    if (all(c('cold', 'ctrl', 'etoh', 'salt') %in% actual_categories)) {
+      xnames_val <- c('cold', 'ctrl', 'etoh', 'salt')
+    } else {
+      xnames_val <- actual_categories
+    }
+    
+    pdf("stat_plot.pdf")
+    plot(statBaca, xnames = xnames_val, shiftx = -0.1)
+    dev.off()
+    
+    # 4. Run RLQ ordination using ord
+    ordBaca <- ord(Baca)
+    
+    # Save ordination results
+    saveRDS(ordBaca, "ordBaca.rds")
+    
+    # 5. Plot the ordination variance using plot
+    pdf("ord_variance_plot.pdf")
+    plot(ordBaca, feature = "variance")
+    dev.off()
+    
+    # 6. Combine and visualize both statistical and ordination results using vis
+    pdf("vis_plot.pdf")
+    vis(Stat = statBaca, Ord = ordBaca, rangex = 1.5, rangey = 1.5)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COVRNA:", paste0("    covrna: ", packageVersion("covRNA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW":',
+        paste0('    covRNA: ', as.character(packageVersion('covRNA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_covrna_results.csv
-    touch ${prefix}_covrna_output.rds
-    echo "BIOC_COVRNA:" > versions.yml
-    echo "    covrna: 0.0.0" >> versions.yml
+    touch ${prefix}_covrna_analysis_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_COVRNA_WORKFLOW {
+workflow BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_set.RData, L_matrix.csv, R_df.csv, Q_df.csv ] ]
 
     main:
-    BIOC_COVRNA(ch_input)
+    BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_COVRNA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COVRNA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COVRNA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COVRNA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW.out.tables
+    plots    = BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW.out.plots
+    objects  = BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW.out.objects
+    versions = BIOC_COVRNA_COVRNA_ANALYSIS_WORKFLOW.out.versions
 }

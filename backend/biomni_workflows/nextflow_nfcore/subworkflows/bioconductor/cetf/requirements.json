@@ -1,0 +1,18 @@
+{
+  "package": "cetf",
+  "requirements": [
+    "CeTF",
+    "dplyr",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CeTF",
+      "dplyr",
+      "org.Hs.eg.db"
+    ],
+    "step_by_step_pcit_rif.nf": [
+      "CeTF"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n=The number of bins/basis functions used in turbotrend (e.g., n=15) ;; method=The fitting method for turbotrend, such as \"original\" for the original piecewise constant B-spline basis ;; showArrays=An integer specifying which array's fit to plot during pspline normalization ;; weights=A vector or diagonal matrix of weights used in panel.pspline or weighted P-spline smoothing to handle data-dependent weighting (e.g., for invariant subsets)\n- alternatives: normalize.loess and normalize.AffyBatch.loess from the affy package can be used for single-colour data, but normalize.pspline and normalize.AffyBatch.pspline are faster alternatives ;; panel.loess from lattice or lowess normalization from limma can be used for two-colour/methylation data, but panel.pspline or pspline are preferred when fast computation or weighted normalization on invariant subsets is needed\n- when_to_use: Use when normalizing single-colour or two-colour microarray data, especially when fast computation is required or when dealing with array-based DNA methylation data where a large number of differential methylation events are expected and a weighted normalization on invariant fragments is preferred\n- pitfalls: Using unweighted normalization (like standard lowess) on DNA methylation arrays with high expected differential methylation can lead to overcorrection; a weighted P-spline using invariant subsets should be used instead ;; Ensure the input object type for pspline() is either RGList (from limma) or MarrayRaw (from marray) so it can be recognized and correctly returned as MAList or MarrayNorm",
+  "workflows": [
+    {
+      "name": "scatterplot_smoothing",
+      "intent": "Fit a fast piecewise constant P-spline to scatterplot data to estimate the underlying trend.",
+      "input": [
+        "x.txt (numeric vector of predictor values)",
+        "y.txt (numeric vector of response values)"
+      ],
+      "stages": "1. Load the TurboNorm library ;; 2. Fit the trend using turbotrend() ;; 3. Inspect the fitted model object",
+      "code": "library(TurboNorm)\nfunky <- function(x) sin(2*pi*x^3)^3\nm <- 100\nx <- seq(0, 1, length=m)\ny <- funky(x) + rnorm(m, 0, 0.1)\nplot(x, y, type='p', xlab=\"\", ylab=\"\")\ncurve(funky, add=TRUE)\nfitOrig <- turbotrend(x, y, n=15, method=\"original\")\nlines(fitOrig, col=\"green\", type='b', pch=1)\nfitOrig"
+    },
+    {
+      "name": "two_colour_normalization",
+      "intent": "Normalize two-colour microarray data using P-splines.",
+      "input": [
+        "swirl.RData (two-colour microarray data of class RGList or MarrayRaw)"
+      ],
+      "stages": "1. Load the marray or limma library and the two-colour data ;; 2. Normalize the data using pspline() while optionally plotting the fit for a specific array",
+      "code": "library(marray)\ndata(swirl)\nx <- pspline(swirl, showArrays=2, pch=20, col=\"grey\")"
+    },
+    {
+      "name": "weighted_methylation_normalization",
+      "intent": "Perform weighted P-spline normalization on array-based DNA methylation data using an invariant subset to prevent overcorrection.",
+      "input": [
+        "methylation.RData (DNA methylation array data as an RGList containing a weights matrix indicating invariant fragments)"
+      ],
+      "stages": "1. Load the TurboNorm library and methylation data ;; 2. Define weights based on the invariant subset indices ;; 3. Convert intensities to M and A values without background correction ;; 4. Plot and compare lowess and pspline fits using panel.pspline() within a lattice xyplot",
+      "code": "library(TurboNorm)\ndata(methylation)\nindices <- methylation$weights[,1]\nweights <- rep(1, length(indices))\nweights[indices] <- length(indices)/sum(indices)\nMA <- normalizeWithinArrays(methylation, method=\"none\", bc.method=\"none\")\nlabels <- paste(\"NMB\", c(\"(untreated)\", \"(treated)\"))\nlabels <- paste(rep(c(\"Raw\"), each=2), labels)\ndata <- data.frame(M=as.vector(MA$M),\nA=as.vector(MA$A),\nArray=factor(rep(labels, each=nrow(MA$A)), levels=rev(labels)))\nlibrary(lattice)\nprint(xyplot(M~A|Array, xlab=\"\", ylab=\"\", data=data, type='g',\npanel = function(x, y) {\n  panel.xyplot(x, y, col=\"grey\")\n  lpoints(x[indices], y[indices], pch=20, col=\"black\")\n  panel.pspline(x, y, weights = weights, col=\"red\", lwd=2)\n  panel.loess(x, y, col=\"green\", lwd=2)\n}))"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "cnvrd2",
+  "requirements": [
+    "CNVrd2"
+  ],
+  "by_workflow": {
+    "complex_locus_bayesian_clustering.nf": [
+      "CNVrd2"
+    ],
+    "main.nf": [
+      "CNVrd2"
+    ],
+    "polymorphic_region_detection.nf": [
+      "CNVrd2"
+    ]
+  }
+}

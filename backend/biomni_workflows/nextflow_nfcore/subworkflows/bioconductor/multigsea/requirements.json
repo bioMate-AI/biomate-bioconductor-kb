@@ -1,0 +1,20 @@
+{
+  "package": "multigsea",
+  "requirements": [
+    "dplyr",
+    "magrittr",
+    "multiGSEA",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "custom_gene_sets_enrichment.nf": [
+      "dplyr",
+      "multiGSEA"
+    ],
+    "main.nf": [
+      "magrittr",
+      "multiGSEA",
+      "org.Hs.eg.db"
+    ]
+  }
+}

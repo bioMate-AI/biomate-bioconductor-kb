@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: se=A SummarizedExperiment object containing protein intensities and metadata ;; thr=The threshold for the number of missing values allowed per protein in filter_missval ;; fun=The imputation method used in impute, such as \"man\", \"bpca\", \"knn\", \"QRILC\", \"MLE\", or \"MinProb\" ;; type=The type of contrast to test in test_diff, such as \"control\", \"all\", or \"manual\" ;; alpha=The significance threshold (FDR) in add_rejections ;; lfc=The log2 fold change threshold in add_rejections\n- alternatives: limma=for general linear modeling of expression data without proteomics-specific imputation workflows ;; MSstats=for complex mass spectrometry experimental designs and peptide-level processing\n- when_to_use: Use when analyzing label-free or isobaric-labeled mass spectrometry proteomics data to identify differentially expressed or enriched proteins, particularly when systematic handling of missing values is required.\n- pitfalls: Imputing missing values before filtering out proteins with excessive missing data can introduce severe artifacts and false positives ;; Choosing an inappropriate imputation method (e.g., assuming missing-at-random for missing-not-at-random data) can bias the differential analysis.",
+  "workflows": [
+    {
+      "name": "differential_protein_expression",
+      "intent": "Identify differentially expressed proteins from mass spectrometry intensity data using a robust filtering, normalization, imputation, and linear modeling workflow.",
+      "input": [
+        "proteinGroups.txt (tabular file containing protein IDs, gene names, and intensity columns from MaxQuant or similar)",
+        "experimental_design.txt (tabular file mapping sample names to experimental conditions and replicate numbers)"
+      ],
+      "stages": "1. Generate unique names for proteins using make_unique ;; 2. Create a SummarizedExperiment object using make_se ;; 3. Filter out proteins with too many missing values using filter_missval ;; 4. Normalize the data using normalize_vsn ;; 5. Impute missing values using impute ;; 6. Test for differential expression using test_diff ;; 7. Define significant proteins using add_rejections ;; 8. Extract results table using get_results",
+      "code": "data_unique <- make_unique(proteins_tbl, \"Gene.names\", \"Protein.IDs\", delim = \";\")\nse <- make_se(data_unique, columns, experimental_design)\nfilt <- filter_missval(se, thr = 0)\nnorm <- normalize_vsn(filt)\nimputed <- impute(norm, fun = \"MinProb\")\ndiff <- test_diff(imputed, type = \"control\", control = \"Ctrl\")\ndep <- add_rejections(diff, alpha = 0.05, lfc = 1)\nresults <- get_results(dep)"
+    }
+  ]
+}

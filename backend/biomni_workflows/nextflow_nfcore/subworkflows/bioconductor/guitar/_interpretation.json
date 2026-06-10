@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: txGenomeVer=Genome assembly version (e.g., \"mm10\") used to automatically download TxDb if txTxdb is not provided ;; stBedFiles=Named list of BED files containing genomic features to plot ;; txTxdb=A TxDb object containing gene annotation information ;; headOrtail=Logical; if TRUE, includes the 1kb promoter and 1kb tail DNA regions on the 5' and 3' sides of the transcript ;; enableCI=Logical; if TRUE, plots the Confidence Interval for the guitar plot ;; pltTxType=Character vector specifying transcript types to plot, e.g., c(\"tx\"), c(\"mrna\"), or c(\"ncrna\") ;; stGroupName=Character vector specifying names for the feature groups in the plot legend ;; miscOutFilePrefix=Prefix for the automatically saved PDF output file (set to NA to suppress or specify a string) ;; txPrimaryOnly=Logical; if TRUE, filters to primary transcripts only\n- alternatives: None mentioned, but TxDb objects can be loaded from local SQLite files, GFF files, or downloaded from UCSC using getTxdb() ;; blocks(import(file)) can be used to read BED files into GRangesList instead of passing raw file paths\n- when_to_use: Use when you want to visualize and compare the distribution of RNA-related genomic features (e.g., m6A peaks, RNA-binding protein binding sites) relative to transcript landmarks (5'UTR, CDS, 3'UTR) across different transcript types.\n- pitfalls: Automatically downloading TxDb via txGenomeVer requires an active internet connection and is slow; building and reusing a guitarTxdb or txdb object locally is highly recommended ;; The toy datasets/coordinates provided with the package (e.g., mm10_toy.sqlite) are very small and must never be used for real data analysis",
+  "workflows": [
+    {
+      "name": "guitar_plot_from_bed",
+      "intent": "Generate transcriptomic landmark-guided distribution plots of genomic features from BED files using a TxDb object.",
+      "input": [
+        "stBedFiles (list of BED files containing genomic features)",
+        "txdb_file (SQLite file containing TxDb transcript annotations)"
+      ],
+      "stages": "1. Load the TxDb annotation database ;; 2. Define the list of BED files ;; 3. Generate the Guitar plot using GuitarPlot with custom parameters",
+      "code": "stBedFiles <- list(system.file(\"extdata\", \"m6A_mm10_exomePeak_1000peaks_bed12.bed\",\n                   package=\"Guitar\"),\n                   system.file(\"extdata\", \"m6A_mm10_exomePeak_1000peaks_bed6.bed\", \n                   package=\"Guitar\"))\ntxdb_file <- system.file(\"extdata\", \"mm10_toy.sqlite\", \n                         package=\"Guitar\")\ntxdb <- loadDb(txdb_file)\nGuitarPlot(txTxdb = txdb, \n            stBedFiles = stBedFiles,\n            headOrtail = TRUE,\n            enableCI = FALSE,\n            mapFilterTranscript = TRUE,\n            pltTxType =  c(\"mrna\"),\n            stGroupName = c(\"BED12\",\"BED6\"))"
+    },
+    {
+      "name": "custom_guitar_coordinates_and_sampling",
+      "intent": "Build reusable genome-projected transcriptomic landmark coordinates (Guitar coordinates) and sample points from genomic features.",
+      "input": [
+        "stBedFiles (list of BED files containing genomic features)",
+        "txdb_file (SQLite file containing TxDb transcript annotations)"
+      ],
+      "stages": "1. Load the TxDb annotation database ;; 2. Build a reusable guitarTxdb object using makeGuitarTxdb ;; 3. Import BED files as GRangesList ;; 4. Sample points along the features using samplePoints",
+      "code": "txdb_file <- system.file(\"extdata\", \"mm10_toy.sqlite\", \n                         package=\"Guitar\")\ntxdb <- loadDb(txdb_file)\nguitarTxdb <- makeGuitarTxdb(txdb = txdb,\n                             txAmblguity = 5,\n                             txMrnaComponentProp = c(0.1,0.15,0.6,0.05,0.1),\n                             txLncrnaComponentProp = c(0.2,0.6,0.2),\n                             pltTxType = c(\"tx\",\"mrna\",\"ncrna\"),\n                             txPrimaryOnly = FALSE)\nstBedFiles <- list(system.file(\"extdata\", \"m6A_mm10_exomePeak_1000peaks_bed12.bed\",\n                   package=\"Guitar\"),\n                   system.file(\"extdata\", \"m6A_mm10_exomePeak_1000peaks_bed6.bed\", \n                   package=\"Guitar\"))\nstGRangeLists = vector(\"list\", length(stBedFiles))\nsitesPoints <- list()\n for (i in seq_len(length(stBedFiles))) {\n      stGRangeLists[[i]] <-  blocks(import(stBedFiles[[i]]))\n    }\n    for (i in seq_len(length(stGRangeLists))) {\n      sitesPoints[[i]] <- samplePoints(stGRangeLists[i], \n                                  stSampleNum = 10,\n                                  stAmblguity = 5,\n                                  pltTxType =  c(\"mrna\"), \n                                  stSampleModle = \"Equidistance\", \n                                  mapFilterTranscript = FALSE,\n                                  guitarTxdb = guitarTxdb)\n    }"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "package": "chipseq",
+  "requirements": [
+    "GenomicAlignments",
+    "GenomicFeatures",
+    "Rsamtools",
+    "ShortRead",
+    "TxDb.Mmusculus.UCSC.mm9.knownGene",
+    "chipseq",
+    "lattice"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicAlignments",
+      "GenomicFeatures",
+      "Rsamtools",
+      "ShortRead",
+      "TxDb.Mmusculus.UCSC.mm9.knownGene",
+      "chipseq",
+      "lattice"
+    ]
+  }
+}

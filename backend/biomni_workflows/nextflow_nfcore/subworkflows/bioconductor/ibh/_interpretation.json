@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: organism=The name of the organism when using BioGRID interactions (e.g., \"arabidopsis\", \"yeast\") ;; idType=The identifier type for genes when using BioGRID interactions (e.g., \"EntrezId\", \"UniqueId\", \"official names\") ;; geneList=A list of gene identifiers to evaluate ;; listofGeneList=A list containing multiple gene lists to evaluate simultaneously ;; cluster=A vector of cluster assignments (e.g., from kmeans) for clustering evaluation ;; genes=A vector of gene names corresponding to the clustered elements\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you need to evaluate the biological relevance or fitness of gene lists (e.g., from differential expression or clustering algorithms) against a known interaction network (like BioGRID or a custom network).\n- pitfalls: Ensure the gene identifier types in your gene list match the identifier types in the interaction network (e.g., EntrezId vs UniqueId). Using ibhClusterEval with custom interaction networks might return NaN if there are no overlapping genes or interactions in the provided network for the cluster.",
+  "workflows": [
+    {
+      "name": "gene_list_evaluation",
+      "intent": "Evaluate the interaction-based homogeneity of one or more gene lists against a custom or BioGRID interaction network.",
+      "input": [
+        "gene_list.txt (a list of gene identifiers)",
+        "custom_interactions.csv (optional custom interaction network file)"
+      ],
+      "stages": "1. Load the package and optionally read custom interactions using readUndirectedInteractionsFromCsv or readDirectedInteractionsFromCsv. ;; 2. Define the gene list or list of gene lists. ;; 3. Calculate IBH using ibh or ibhForMultipleGeneLists for custom networks, or ibhBioGRID or ibhForMultipleGeneListsBioGRID for BioGRID networks.",
+      "code": "library(ibh)\n data(ArabidopsisBioGRIDInteractionEntrezId)\n geneList <- list(839226, 817241, 824340, 832179, 818561, 831145, \n     838782, 826404)\n ibh(ArabidopsisBioGRIDInteractionEntrezId, geneList)\n ibhBioGRID(geneList, organism = \"arabidopsis\", idType = \"EntrezId\")\n listofGeneList <- list(list(839226, 817241, 824340, 832179, 818561, \n     831145, 838782, 826404), list(832018, 839226, 838824))\n ibhForMultipleGeneLists(ArabidopsisBioGRIDInteractionEntrezId, \n     listofGeneList)"
+    },
+    {
+      "name": "clustering_evaluation",
+      "intent": "Evaluate the fitness of clustering results of gene expression data against an interaction network.",
+      "input": [
+        "expression_data.csv (gene expression matrix)",
+        "custom_interactions.csv (optional custom interaction network file)"
+      ],
+      "stages": "1. Load expression data and perform clustering (e.g., using kmeans). ;; 2. Evaluate the clusters using ibhClusterEval (for custom networks) or ibhClusterEvalBioGRID (for BioGRID networks).",
+      "code": "require(yeastCC)\n require(stats)\n data(yeastCC)\n require(simpIntLists)\n data(YeastBioGRIDInteractionUniqueId)\n subset <- exprs(yeastCC)[1:50, ]\n d <- dist(subset, method = \"euclidean\")\n k <- kmeans(d, 3)\n ibhClusterEval(k$cluster, rownames(subset), YeastBioGRIDInteractionUniqueId)\n ibhClusterEvalBioGRID(k$cluster, rownames(subset), organism = \"yeast\", \n     idType = \"UniqueId\")"
+    }
+  ]
+}

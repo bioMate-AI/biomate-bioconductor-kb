@@ -1,114 +1,153 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: occugene
-// Statistical tools for building random mutagenesis libraries for prokaryotes. The package has functio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/occugene/inst/doc/occugene.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("occugene")
+// Bioconductor workflow: occugene — essential_gene_and_knockout_estimation
+// Estimate the number of essential genes and predict the number of new gene knockouts in future clones using experimental transposon insertion data and genome ann
+// Input: annotation.csv, insertions.csv
+// Container: quay.io/biocontainers/bioconductor-occugene:1.70.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: occugene
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load genome annotation and insertion data
+//  * 2. [Core Analysis] Format ORF coordinates and clone insertion positions
+//  * 3. [Core Analysis] Estimate future knockouts using the Efron and Thisted estimator
+//  * 4. [Core Analysis] Fit a nonlinear regression model to cumulative knockouts
+//  * 5. [Core Analysis] Estimate future knockouts using the Will and Jacobs' bootstrap
+//  * 6. [Core Analysis] Estimate the number of essential genes using the Will and Jacobs' bootstrap
+//  * 7. [Core Analysis] Convert data to negenes format if compatibility is needed
 
 nextflow.enable.dsl = 2
 
-process BIOC_OCCUGENE {
+process BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-occugene"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-occugene:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-occugene:1.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(plot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_occugene_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_occugene_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_occugene_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(occugene)
-    library(jsonlite)
-
-    # --- Momments [] ---
-    # Key functions: eMult, varMult
-    library("occugene")
-    n <- 60
-    p <- c(seq(10,1,-1),seq(10,1,-1),18)/124
-    p <- p/sum(p)
-    eMult(n,p)
-    # --- Approx Momments [] ---
-    # Key functions: eMult, varMult
-    eMult(n,p,iter=100,seed=4)
-    varMult(n,p,iter=100,seed=4)
-    # --- Et [] ---
-    # Key functions: etDelta
-    orf <- cbind(a.data$first,a.data$last)
-    clone <- experiment$position
-    etDelta(10,orf,clone)
-    # --- Wj Next [] ---
-    # Key functions: fFit, unbiasDelta0
-    orf <- cbind(a.data$first,a.data$last)
-    clone <- experiment$position
-    fFit(orf,clone,FALSE)
-    unbiasDelta0(10,orf,clone,iter=10,seed=4,alpha=0.05,TR=F)
-    # --- Number Essential Will [] ---
-    # Key functions: unbiasB0
-    unbiasB0(orf,clone,iter=10,seed=4,alpha=0.05,TR=F)
-    # --- Conversion [] ---
-    # Key functions: occup2Negenes
-    newOrf <- occup2Negenes(orf,clone)
-    print(newOrf)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_occugene_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_occugene_results.csv")
+    
+    # 1. Load genome annotation and insertion data from user-provided CSV files
+    if (!file.exists("annotation.csv") || !file.exists("insertions.csv")) {
+      stop("Error: Required input files 'annotation.csv' and/or 'insertions.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_occugene_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OCCUGENE:", paste0("    occugene: ", packageVersion("occugene"))),
-        "versions.yml"
+    
+    a.data <- read.csv("annotation.csv")
+    experiment <- read.csv("insertions.csv")
+    
+    # 2. Format ORF coordinates and clone insertion positions
+    orf <- cbind(a.data\$first, a.data\$last)
+    clone <- experiment\$position
+    
+    # 3. Estimate future knockouts using the Efron and Thisted estimator
+    et_res <- etDelta(10, orf, clone)
+    
+    # 4. Fit a nonlinear regression model to cumulative knockouts
+    fit_res <- fFit(orf, clone, FALSE)
+    
+    # 5. Estimate future knockouts using the Will and Jacobs' bootstrap
+    unbias_delta_res <- unbiasDelta0(10, orf, clone, iter=10, seed=4, alpha=0.05, TR=F)
+    
+    # 6. Estimate the number of essential genes using the Will and Jacobs' bootstrap
+    unbias_b0_res <- unbiasB0(orf, clone, iter=10, seed=4, alpha=0.05, TR=F)
+    
+    # 7. Convert data to negenes format if compatibility is needed
+    newOrf <- occup2Negenes(orf, clone)
+    
+    # --- Save Outputs ---
+    
+    # Save Efron & Thisted results
+    et_df <- data.frame(
+      expected = et_res\$expected, 
+      variance = et_res\$variance
     )
+    write.csv(et_df, "et_estimator_results.csv", row.names = FALSE)
+    
+    # Save nonlinear fit coefficients
+    fit_coefs <- coef(fit_res)
+    write.csv(as.data.frame(t(fit_coefs)), "nonlinear_fit_coefficients.csv", row.names = FALSE)
+    
+    # Save unbiasDelta0 results
+    delta0_df <- data.frame(
+      delta0 = unbias_delta_res\$delta0,
+      CI_lower = unbias_delta_res\$CI[1],
+      CI_upper = unbias_delta_res\$CI[2]
+    )
+    write.csv(delta0_df, "bootstrap_delta0_results.csv", row.names = FALSE)
+    
+    # Save unbiasB0 results
+    b0_df <- data.frame(
+      b0 = unbias_b0_res\$b0,
+      CI_lower = unbias_b0_res\$CI[1],
+      CI_upper = unbias_b0_res\$CI[2]
+    )
+    write.csv(b0_df, "bootstrap_b0_results.csv", row.names = FALSE)
+    
+    # Save converted negenes format
+    write.csv(newOrf, "negenes_format.csv", row.names = FALSE)
+    
+    # Save all results in a single RDS object for downstream analysis
+    saveRDS(list(
+      et_results = et_res,
+      fit_model = fit_res,
+      bootstrap_delta0 = unbias_delta_res,
+      bootstrap_b0 = unbias_b0_res,
+      negenes_data = newOrf
+    ), "occugene_output.rds")
+    
+    cat("Pipeline completed successfully. Outputs written to the working directory.\n")
+
+    writeLines(c(
+        '"BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION":',
+        paste0('    occugene: ', as.character(packageVersion('occugene')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_occugene_results.csv
-    touch ${prefix}_occugene_output.rds
-    echo "BIOC_OCCUGENE:" > versions.yml
-    echo "    occugene: 0.0.0" >> versions.yml
+    touch ${prefix}_essential_gene_and_knockout_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_OCCUGENE_WORKFLOW {
+workflow BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(plot_object) ]
+    ch_input  // channel: [ val(meta), [ annotation.csv, insertions.csv ] ]
 
     main:
-    BIOC_OCCUGENE(ch_input)
+    BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_OCCUGENE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OCCUGENE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OCCUGENE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OCCUGENE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION.out.tables
+    plots    = BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION.out.plots
+    objects  = BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION.out.objects
+    versions = BIOC_OCCUGENE_ESSENTIAL_GENE_AND_KNOCKOUT_ESTIMATION.out.versions
 }

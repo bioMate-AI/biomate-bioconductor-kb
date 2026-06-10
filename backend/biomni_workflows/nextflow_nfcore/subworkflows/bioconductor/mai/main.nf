@@ -1,105 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MAI
-// A two-step approach to imputing missing data in metabolomics. Step 1 uses a random forest classifier
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MAI/inst/doc/UsingMAI.R
-// Upstream  : SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("MAI")
+// Bioconductor workflow: MAI — data_frame_or_matrix_imputation
+// Perform mechanism-aware imputation on a standard data.frame or matrix containing missing metabolomics values.
+// Input: untargeted_LCMS_data
+// Container: quay.io/biocontainers/bioconductor-mai:1.16.0--r45hdfd78af_0
+// R packages: MAI, SummarizedExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MAI
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the MAI package and example dataset
+//  * 2. [Core Analysis] Set a random seed for reproducibility
+//  * 3. [Core Analysis] Run the MAI function to classify and impute missing values
+//  * 4. [Core Analysis] Extract the imputed data matrix and estimated missingness parameters from the results list
 
 nextflow.enable.dsl = 2
 
-process BIOC_MAI {
+process BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mai"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mai:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mai:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mai_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mai_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mai_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MAI)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: MAI
-    ---------------------------------------------------------------------
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MAI", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     # Load the MAI package
     library(MAI)
-    # Load the example data with missing values
-    data("untargeted_LCMS_data")
-    # --- Data [] ---
-    # Key functions: SummarizedExperiment, MAI, assay
-    ---------------------------------------------------------------------
-    # Load the SummarizedExperiment package
-    suppressMessages(
-      library(SummarizedExperiment)
-    )
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    # Get the estimated mixed missingness parameters
-    metadata(Results)[["meta_assay_1"]][["Estimated_Params"]]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mai_results.csv", row.names = TRUE)
+    
+    # Read the user input file from the working directory
+    # The pipeline supports CSV, RDS, or a plain text file named 'untargeted_LCMS_data'
+    if (file.exists("untargeted_LCMS_data.csv")) {
+      untargeted_LCMS_data <- as.matrix(read.csv("untargeted_LCMS_data.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("untargeted_LCMS_data.rds")) {
+      untargeted_LCMS_data <- readRDS("untargeted_LCMS_data.rds")
+      if (is.data.frame(untargeted_LCMS_data)) {
+        untargeted_LCMS_data <- as.matrix(untargeted_LCMS_data)
+      }
+    } else if (file.exists("untargeted_LCMS_data")) {
+      untargeted_LCMS_data <- as.matrix(read.csv("untargeted_LCMS_data", row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mai_results.csv")
+      stop("Required input file 'untargeted_LCMS_data' (CSV or RDS format) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mai_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MAI:", paste0("    mai: ", packageVersion("MAI"))),
-        "versions.yml"
+    
+    # Set a seed for reproducibility
+    # Estimating pattern of missingness involves imposing MCAR/MAR into the data
+    # these are done at random and as such may slightly change the results of the
+    # estimated parameters.
+    set.seed(137690)
+    
+    # Impute the data using BPCA for predicted MCAR value imputation and
+    # use Single imputation for predicted MNAR value imputation
+    Results = MAI(data_miss = untargeted_LCMS_data, # The data with missing values
+              MCAR_algorithm = "BPCA", # The MCAR algorithm to use
+              MNAR_algorithm = "Single", # The MNAR algorithm to use
+              assay_ix = 1, # If SE, designates the assay to impute
+              forest_list_args = list( # random forest arguments for training
+                ntree = 300,
+                proximity = FALSE
+            ),
+              verbose = TRUE # allows console message output
+            )
+    
+    # Display a preview of the imputed data
+    cat("Preview of Imputed Data (5x5):\n")
+    print(Results[["Imputed_data"]][1:5, 1:5])
+    
+    # Display the estimated mixed missingness parameters
+    cat("\nEstimated Missingness Parameters:\n")
+    print(Results[["Estimated_Params"]])
+    
+    # Write the imputed data matrix to a CSV file
+    write.csv(Results[["Imputed_data"]], "imputed_data.csv", row.names = TRUE)
+    
+    # Write the estimated parameters to a CSV file
+    params <- Results[["Estimated_Params"]]
+    params_df <- data.frame(
+      Parameter = names(params),
+      Value = unlist(params),
+      row.names = NULL
     )
+    write.csv(params_df, "estimated_params.csv", row.names = FALSE)
+    
+    # Save the complete Results object as an RDS file
+    saveRDS(Results, "MAI_results.rds")
+    
+    cat("\nPipeline completed successfully. Outputs saved: 'imputed_data.csv', 'estimated_params.csv', 'MAI_results.rds'.\n")
+
+    writeLines(c(
+        '"BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION":',
+        paste0('    MAI: ', as.character(packageVersion('MAI')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mai_results.csv
-    touch ${prefix}_mai_output.rds
-    echo "BIOC_MAI:" > versions.yml
-    echo "    mai: 0.0.0" >> versions.yml
+    touch ${prefix}_data_frame_or_matrix_imputation.csv versions.yml
     """
 }
 
-
-workflow BIOC_MAI_WORKFLOW {
+workflow BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ untargeted_LCMS_data ] ]
 
     main:
-    BIOC_MAI(ch_input)
+    BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION(ch_input)
 
     emit:
-    results  = BIOC_MAI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MAI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MAI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MAI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION.out.tables
+    plots    = BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION.out.plots
+    objects  = BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION.out.objects
+    versions = BIOC_MAI_DATA_FRAME_OR_MATRIX_IMPUTATION.out.versions
 }

@@ -1,0 +1,15 @@
+{
+  "package": "mzid",
+  "requirements": [
+    "S4Vectors",
+    "SummarizedExperiment",
+    "mzID"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "SummarizedExperiment",
+      "mzID"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "package": "cliprofiler",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "GenomicRanges",
+    "cliProfiler",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "custom_window_profiling.nf": [
+      "cliProfiler",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "cliProfiler",
+      "ggplot2",
+      "rtracklayer"
+    ],
+    "motif_enrichment_profiling.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "GenomicRanges",
+      "cliProfiler",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "myvariant",
+  "requirements": [
+    "S4Vectors",
+    "VariantAnnotation",
+    "myvariant"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "VariantAnnotation",
+      "myvariant"
+    ]
+  }
+}

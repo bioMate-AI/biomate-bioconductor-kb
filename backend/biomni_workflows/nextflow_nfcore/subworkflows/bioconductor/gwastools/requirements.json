@@ -1,0 +1,13 @@
+{
+  "package": "gwastools",
+  "requirements": [
+    "GWASTools",
+    "SNPRelate"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GWASTools",
+      "SNPRelate"
+    ]
+  }
+}

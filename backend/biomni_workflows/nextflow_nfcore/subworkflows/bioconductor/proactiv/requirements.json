@@ -1,0 +1,23 @@
+{
+  "package": "proactiv",
+  "requirements": [
+    "AnnotationDbi",
+    "Rtsne",
+    "dplyr",
+    "ggplot2",
+    "gridExtra",
+    "proActiv",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "Rtsne",
+      "dplyr",
+      "ggplot2",
+      "gridExtra",
+      "proActiv",
+      "tibble"
+    ]
+  }
+}

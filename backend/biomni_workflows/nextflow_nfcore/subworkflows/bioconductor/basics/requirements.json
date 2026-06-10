@@ -1,0 +1,19 @@
+{
+  "package": "basics",
+  "requirements": [
+    "BASiCS",
+    "SingleCellExperiment",
+    "cowplot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BASiCS",
+      "SingleCellExperiment",
+      "cowplot"
+    ],
+    "two_group_differential_expression.nf": [
+      "BASiCS",
+      "SingleCellExperiment"
+    ]
+  }
+}

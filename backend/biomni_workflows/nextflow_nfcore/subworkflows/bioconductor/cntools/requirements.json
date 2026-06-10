@@ -1,0 +1,13 @@
+{
+  "package": "cntools",
+  "requirements": [
+    "CNTools",
+    "genefilter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CNTools",
+      "genefilter"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "ivygapse",
+  "requirements": [
+    "SummarizedExperiment",
+    "ivygapSE",
+    "limma",
+    "randomForest"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ivygapSE",
+      "limma",
+      "randomForest"
+    ]
+  }
+}

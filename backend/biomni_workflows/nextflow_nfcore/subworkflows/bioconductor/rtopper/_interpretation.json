@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - dataIntersection=A list of data.frames containing the same set of patients (columns) and genes (rows) for each platform.\n  - response=A data.frame with 2 columns indicating patients' phenotypic class (Sample and Class).\n  - nPlatforms=An integer specifying the number of genomic platforms being integrated.\n  - columns=A numeric vector indicating column indexes corresponding to the genomic measurements in the gene-centered data.frames.\n  - method=The method used to compute the association score in computeDrStat (\"dev\" for difference of deviances, \"aic\" for Akaike information criterion, or \"bic\" for penalized likelihood ratio).\n  - integrate=A logical value in computeDrStat indicating whether to compute an integrated score across platforms (TRUE) or separate scores for each platform (FALSE).\n  - absolute=A logical value in runBatchGSE specifying whether the absolute values of the ranking statistics should be used in the test (default is TRUE).\n  - gseFunc=A user-defined function to perform GSE analysis in runBatchGSE (default is geneSetTest from the limma package).\n  - method=The method used to summarize individual p-values in combineGSE (\"geometricMean\", \"mean\", \"median\", \"min\", \"max\", or \"random\").\n  - proc=The multiple testing correction procedure in adjustPvalGSE (passed to multtest::mt.rawp2adjp, e.g., \"BH\" or \"Holm\").\n- alternatives:\n  - limma::geneSetTest=The default enrichment function used internally by runBatchGSE.\n  - limma::wilcoxGST=An alternative enrichment function that can be passed to runBatchGSE via the gseFunc argument.\n  - multtest::mt.rawp2adjp=The underlying function used by adjustPvalGSE for multiple testing correction.\n- when_to_use: Use this package when you have genomic measurements (such as gene expression, copy number variation, or methylation) from multiple distinct platforms for the same cohort of patients, and you want to identify functional gene sets (FGS) associated with a phenotypic class by integrating data across those platforms.\n- pitfalls:\n  - The same set of genes must be measured in each platform, and gene labels must be stored as rownames.\n  - The number of columns of the genomic measurements data.frames must match the number of rows of the phenotype data.\n  - Column names in the genomic data.frames must correspond to the patient identifiers in the phenotype data.frame.",
+  "workflows": [
+    {
+      "name": "integration_then_gse",
+      "intent": "Integrate genomic data across multiple platforms using a logistic model first, and then perform Gene Set Enrichment (GSE) analysis on the integrated score.",
+      "input": [
+        "dat (a list of data.frames containing genomic measurements for multiple platforms)",
+        "pheno (a data.frame containing patient identifiers and their phenotypic class)",
+        "fgsList (a list of functional gene set collections)"
+      ],
+      "stages": "1. Convert the genomic and phenotypic data into a gene-centered list using convertToDr.\n2. Compute integrated gene-to-phenotype association scores across all platforms using computeDrStat with integrate=TRUE.\n3. Perform batch GSE analysis on the integrated scores using runBatchGSE.\n4. Adjust the resulting p-values for multiple testing using adjustPvalGSE.",
+      "code": "dataDr <- convertToDr(dat, pheno, 4)\nbicStatInt <- computeDrStat(dataDr, columns = c(1:4), method=\"bic\", integrate = TRUE)\ngseABS.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList)\ngseABS.int.BH <- adjustPvalGSE(gseABS.int)"
+    },
+    {
+      "name": "gse_then_integration",
+      "intent": "Perform separate Gene Set Enrichment (GSE) analyses on individual genomic platforms first, and then integrate the GSE results across platforms.",
+      "input": [
+        "dat (a list of data.frames containing genomic measurements for multiple platforms)",
+        "pheno (a data.frame containing patient identifiers and their phenotypic class)",
+        "fgsList (a list of functional gene set collections)"
+      ],
+      "stages": "1. Convert the genomic and phenotypic data into a gene-centered list using convertToDr.\n2. Compute separate gene-to-phenotype association scores for each platform using computeDrStat with integrate=FALSE.\n3. Perform separate batch GSE analyses for each platform using runBatchGSE.\n4. Integrate the separate GSE p-values across platforms using combineGSE.",
+      "code": "dataDr <- convertToDr(dat, pheno, 4)\nbicStatSep <- computeDrStat(dataDr, columns = c(1:4), method=\"bic\", integrate = FALSE)\ngseABS.sep <- runBatchGSE(dataList=bicStatSep, fgsList=fgsList)\ngseABS.geoMean.sep <- combineGSE(gseABS.sep, method=\"geometricMean\")"
+    }
+  ]
+}

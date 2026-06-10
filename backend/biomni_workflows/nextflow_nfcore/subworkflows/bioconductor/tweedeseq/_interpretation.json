@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: a=The shape parameter of the Poisson-Tweedie distribution (e.g., a=0 for negative binomial, a=1 for Poisson) used in testShapePT and gofTest ;; group=A vector indicating the experimental group/condition for each sample in tweeDE ;; mc.cores=Number of cores to use for parallel processing in tweeDE and tweeDEglm ;; log2fc=Minimum absolute log2 fold-change threshold used to filter results in print.tweeDE ;; pval.adjust=Maximum adjusted P-value threshold used to filter results in print.tweeDE ;; offset=Matrix of normalizing offsets (e.g., from cqn package) to incorporate into tweeDEglm or glmPT\n- alternatives: edgeR=Mentioned as the underlying engine for normalizeCounts (which calls TMM and equalizeLibSizes). Users should use edgeR directly if they need more control over the normalization step ;; cqn=Mentioned for conditional quantile normalization to remove GC content or gene length biases, returning offsets that can be passed to tweeDEglm or glmPT\n- when_to_use: Use when analyzing RNA-seq count data (or other count data) with a wide dynamic range and heavy tails (overdispersion) that do not fit standard Poisson or negative binomial distributions well.\n- pitfalls: Assuming a negative binomial distribution is always adequate, as many genes show substantial discrepancy and heavy tails that require the more flexible Poisson-Tweedie distribution ;; Running gofTest on the entire genome can take a very long time; it is recommended to run it on a subset of genes first.",
+  "workflows": [
+    {
+      "name": "standard_differential_expression",
+      "intent": "Perform differential expression analysis between two groups using the score-based tweeDE test.",
+      "input": [
+        "countsNigerian (matrix of raw RNA-seq counts)",
+        "genderNigerian (vector of group labels for each sample)"
+      ],
+      "stages": "1. Normalize raw counts using normalizeCounts ;; 2. Filter out low-expression genes using filterCounts ;; 3. Test for differential expression using tweeDE ;; 4. Extract and annotate differentially expressed genes using print and merge ;; 5. Visualize results using MAplot and Vplot",
+      "code": "countsNigerianNorm <- normalizeCounts(countsNigerian, genderNigerian)\ncountsNigerianNorm <- filterCounts(countsNigerianNorm)\nresPT <- tweeDE(countsNigerianNorm[geneSubset, ], group = genderNigerian)\nprint(resPT)\ndeGenes <- print(resPT, n=Inf, log2fc=log2(1.5), pval.adjust=0.05, print=FALSE)\ndeGenes <- merge(deGenes, annotEnsembl63, by=\"row.names\", sort=FALSE)\ndeGenes <- rownames(print(resPT, n=Inf, log2fc=log2(1.5), pval.adjust=0.05, print=FALSE))\nMAplot(resPT, cex=0.7, log2fc.cutoff=log2(1.5), highlight=hl, main=\"MA-plot\")\nVplot(resPT, cex=0.7, highlight=hl, log2fc.cutoff=log2(1.5), pval.adjust.cutoff=0.05, main=\"Volcano plot\")"
+    },
+    {
+      "name": "generalized_linear_modeling",
+      "intent": "Fit generalized linear models using the Poisson-Tweedie distribution to test for differential expression with covariates or offsets.",
+      "input": [
+        "countsNigerianNorm (matrix of normalized RNA-seq counts)",
+        "genderNigerian (vector of covariates/group labels)",
+        "cqn.subset$offset (optional matrix of CQN offsets)"
+      ],
+      "stages": "1. Fit a GLM for a single gene using glmPT ;; 2. Summarize and test the model using summary and anova ;; 3. Fit GLMs for multiple genes simultaneously using tweeDEglm ;; 4. (Optional) Incorporate CQN offsets into the GLM using the offset argument in tweeDEglm",
+      "code": "mod <- glmPT(countsNigerianNorm[\"ENSG00000070031\",] ~ genderNigerian)\nsummary(mod)\nanova(mod)\nresPTglm <- tweeDEglm( ~ genderNigerian, counts = countsNigerianNorm[geneSubset,])\nhead(resPTglm[sort(resPTglm$pval.adjust, index.return = TRUE)$ix,])\ntweeDEglm(~ genderNigerian, counts = countsNigerianNorm[geneSubset,], offset = cqn.subset$offset)"
+    },
+    {
+      "name": "goodness_of_fit_testing",
+      "intent": "Assess whether count data for genes fits a specific distribution (like negative binomial).",
+      "input": [
+        "countsNigerianNorm (matrix of normalized RNA-seq counts)"
+      ],
+      "stages": "1. Perform goodness-of-fit testing across genes using gofTest ;; 2. Visualize the fit using quantile-quantile plots with qqchisq ;; 3. Compare empirical distributions against Poisson, negative binomial, and Poisson-Tweedie using compareCountDist",
+      "code": "chi2gof <- gofTest(countsNigerianNorm[geneSubset, ], a=0)\nqq <- qqchisq(chi2gof, main=\"Chi2 Q-Q Plot\", ylim = c(0, 60))\nqq <- qqchisq(chi2gof, normal=TRUE, ylim = c(-5, 7))\ncompareCountDist(xf, main=\"Female samples\")"
+    }
+  ]
+}

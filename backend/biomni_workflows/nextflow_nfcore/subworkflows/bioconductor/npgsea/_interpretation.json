@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=The gene expression dataset, which can be an ExpressionSet object or a matrix of expression values ;; y=The target variable or phenotype vector/factor of interest ;; set=A GeneSet or GeneSetCollection object defining the gene sets to test ;; approx=The approximation method to use, which can be \"norm\" (default), \"beta\", or \"chiSq\" ;; w=An optional numeric vector of weights for each gene in the gene set ;; covars=A vector or matrix of covariates (e.g., age, sex) to adjust for in the model\n- alternatives: Traditional permutation-based GSEA methods, which are computationally expensive, subject to random inference, and limited by a minimum achievable p-value of 1/(M+1)\n- when_to_use: When performing gene set enrichment analysis on expression data (primarily microarray, with RNA-seq applicability under evaluation) and requiring fast, non-granular, and non-random p-values, especially when adjusting for covariates or applying gene weights\n- pitfalls: The chi-squared approximation (approx=\"chiSq\") is only available for the two-sided quadratic test statistic ;; Gene identifiers in the expression dataset must match the identifiers in the GeneSet or GeneSetCollection (e.g., converting probe IDs to Entrez IDs) ;; The package is currently optimized and validated for microarray data, while RNA-seq applicability is still being evaluated",
+  "workflows": [
+    {
+      "name": "npgsea_single_set",
+      "intent": "Run moment-based gene set enrichment analysis for a single gene set with options for normal, beta, or chi-squared approximations, gene weights, and covariate adjustment.",
+      "input": [
+        "expression_matrix.csv (matrix of gene expression values or an ExpressionSet object)",
+        "phenotype_data.csv (target variable/factor and optional covariates)",
+        "gene_set.xml (a GeneSet object containing gene identifiers)"
+      ],
+      "stages": "1. Load expression data and phenotype factor.\n2. Define the gene set of interest using GeneSet.\n3. Run npGSEA with the desired approximation method (\"norm\", \"beta\", or \"chiSq\"), optional weights (w), and optional covariates (covars).\n4. Extract statistics and p-values using accessor functions (stat, sigmaSq, zStat, pTwoSided, pLeft, pValues, betaHats, chiSqStat).\n5. Visualize the approximation and observed statistic using npGSEAPlot.",
+      "code": "res1 <- npGSEA(x = ALL, y = yFactor, set = set1)  ##with the eset\nres2_exprs <- npGSEA(xData, ALL$mol.biol, gsc[[2]])  ##with the expression data\ngeneSetName(res3)\nstat(res3)\nsigmaSq(res3)\nzStat(res3)\npTwoSided(res3)\npLeft(res3)\npValues(res3)\ndim(xSet(res3))\nnpGSEAPlot(res3)\nres5_norm <- npGSEA(ALL, yFactor, set5, approx= \"norm\")  \nbetaHats(res5_norm)\nres5_beta <- npGSEA(ALL, yFactor, set5, approx= \"beta\")\nres5_chiSq <- npGSEA(ALL, yFactor, set5, approx= \"chiSq\")  \nchiSqStat(res5_chiSq)\nres7_wts <- npGSEA(x = ALL, y = yFactor, set = set7,  w = wts, approx= \"norm\")  \nres3_age <- npGSEA(x = ALL, y = yFactor, set = set3, covars = ALL$age) \nres3_agesex <- npGSEA(x = ALL, y = yFactor, set = set3, covars = cbind(ALL$age, ALL$sex))"
+    },
+    {
+      "name": "npgsea_multiple_sets",
+      "intent": "Run moment-based gene set enrichment analysis for a collection of gene sets and generate an HTML report.",
+      "input": [
+        "expression_matrix.csv (matrix of gene expression values or an ExpressionSet object)",
+        "phenotype_data.csv (target variable/factor)",
+        "gene_sets.gmt (a GeneSetCollection object containing multiple gene sets)"
+      ],
+      "stages": "1. Load expression data and phenotype factor.\n2. Define a collection of gene sets using GeneSetCollection.\n3. Run npGSEA on the collection to obtain a npGSEAResultNormCollection.\n4. Extract statistics and p-values across all sets using unlisted accessors (pLeft, stat, zStat, pTwoSided).\n5. Adjust p-values for multiple testing and publish results to an HTML report using ReportingTools.",
+      "code": "resgsc_norm <- npGSEA(x = ALL, y = yFactor, set = gsc)  \nunlist( pLeft(resgsc_norm) )\nunlist( stat (resgsc_norm) )\nunlist( zStat (resgsc_norm) )\npvals <- p.adjust( unlist(pTwoSided(resgsc_norm)), method= \"BH\" )\nlibrary(ReportingTools)\nnpgseaReport <- HTMLReport (shortName = \"npGSEA\",\n        title = \"npGSEA Results\", reportDirectory = \"./reports\")\npublish(gsc, npgseaReport, annotation.db = \"org.Hs.eg\",\n        setStats = unlist(zStat (resgsc_norm)), setPValues = pvals)\nfinish(npgseaReport)"
+    }
+  ]
+}

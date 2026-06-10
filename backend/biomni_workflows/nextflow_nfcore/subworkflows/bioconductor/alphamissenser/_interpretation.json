@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: record=Specifies the Zenodo record version to retrieve data from (defaults to the September 25, 2023 record, can be set globally via the ALPHAMISSENSE_RECORD environment variable) ;; key=The specific dataset key to download (e.g., \"hg38\", \"hg19\", \"aa_substitutions\", \"gene_hg38\") ;; read_only=Logical indicating whether the DuckDB connection should be read-only (defaults to TRUE; must be set to FALSE to write temporary tables) ;; plot_type=Character specifying the visualization style in gosling_plot(), such as \"bar\" or \"lollipop\"\n- alternatives: Manually downloading and parsing raw Zenodo TSV files (slower and lacks DuckDB indexing) ;; Using ensembldb and AnnotationHub to retrieve transcript/exon annotations and performing overlaps in-memory in R (preferable for small, specific gene queries to avoid database writes)\n- when_to_use: Use when you need to annotate human missense variants (hg19 or hg38) with AlphaMissense pathogenicity scores, visualize average pathogenicity on 3D protein structures (AlphaFold), or benchmark variant effect predictors against ClinVar or ProteinGym deep mutational scanning (DMS) assays.\n- pitfalls: Forgetting to close DuckDB connections with db_disconnect() or db_disconnect_all(), which triggers warning messages ;; Attempting to write temporary tables (e.g., using db_temporary_table()) on a default read-only database connection (must set read_only = FALSE in db_connect()) ;; Memory issues if trying to load the entire 70M+ variant table into R memory instead of filtering it within DuckDB first ;; Name conflicts between ensembldb and other packages, requiring explicit package namespacing (e.g., ensembldb::filter)",
+  "workflows": [
+    {
+      "name": "genomic_range_overlap",
+      "intent": "Query and annotate user-defined genomic ranges (such as exons of a gene) with AlphaMissense pathogenicity predictions using DuckDB range joins.",
+      "input": [
+        "bcl2l11_tbl (A tibble containing genomic ranges of interest with columns CHROM, start, and end)"
+      ],
+      "stages": "1. Connect to the AlphaMissense DuckDB database with write permissions ;; 2. Write the user ranges to a temporary table in DuckDB ;; 3. Perform a fast database-side range join using db_range_join() ;; 4. Disconnect from the database",
+      "code": "db_rw <- db_connect ( read_only = FALSE )\ndb_temporary_table (db_rw, bcl2l11_tbl, \"bcl2l11\" )\nrng <- db_range_join (db_rw, \"hg38\" , \"bcl2l11\" , \"bcl2l11_overlaps\" )\ndb_disconnect (db_rw)"
+    },
+    {
+      "name": "protein_structure_visualization",
+      "intent": "Map and visualize AlphaMissense pathogenicity scores onto 3D protein structures predicted by AlphaFold.",
+      "input": [
+        "uniprot_id (A character string representing the UniProt accession ID of interest)"
+      ],
+      "stages": "1. Retrieve AlphaMissense amino acid substitutions for the UniProt ID ;; 2. Query AlphaFold API for the protein structure metadata using af_predictions() ;; 3. Download and read the PDB structure file using bio3d::read.pdb() ;; 4. Calculate average pathogenicity per amino acid position using am_aa_pathogenicity() ;; 5. Generate a position-based color function using af_colorfunc_by_position() ;; 6. Render the 3D structure colored by pathogenicity using r3dmol",
+      "code": "P35557_aa <- am_data ( \"aa_substitutions\" ) | > dplyr :: filter (uniprot_id == \"P35557\" )\naf_prediction_view (P35557_aa)\n\nuniprot_ids <- am_data ( \"aa_substitutions\" ) | > dplyr :: filter (uniprot_id %like% \"P3555%\" ) | > dplyr :: distinct (uniprot_id) | > pull (uniprot_id)\nprediction <- af_predictions (uniprot_ids)\npdb_url <- prediction | > dplyr :: filter (uniprotAccession == \"P35557\" ) | > dplyr :: pull (pdbUrl)\npdb_file <- BiocFileCache :: bfcrpath ( rnames = basename (pdb_url), fpath = pdb_url)\npdb <- bio3d :: read.pdb (pdb_file)\nP35557 <- am_data ( \"hg38\" ) | > dplyr :: filter (uniprot_id == \"P35557\" )\npathogenicity <- am_aa_pathogenicity (P35557)\ncolorfunc <- pathogenicity | > af_colorfunc_by_position ( \"aa_pos\" , \"aa_pathogenicity_mean\" , length (pdb $ seqres) )\nr3dmol :: r3dmol () | > r3dmol :: m_add_model (r3dmol :: m_bio3d (pdb)) | > r3dmol :: m_set_style ( style = r3dmol :: m_style_cartoon ( arrow = TRUE , colorfunc = colorfunc ) ) | > r3dmol :: m_zoom_to ()"
+    },
+    {
+      "name": "genomic_track_plot",
+      "intent": "Create interactive, multi-scale genomic track plots of AlphaMissense pathogenicity scores using Gosling.",
+      "input": [
+        "uniprot_id (A character string representing the UniProt accession ID of interest)"
+      ],
+      "stages": "1. Filter AlphaMissense data for the target protein ;; 2. Coerce the filtered data to a GPos object using to_GPos() ;; 3. Plot the genomic track using gosling_plot()",
+      "code": "gpos <- am_data ( \"hg38\" ) | > filter (uniprot_id == \"Q1W6H9\" ) | > to_GPos ()\ngosling_plot ( gpos, plot_type = \"bar\" , title = \"Q1W6H9 track\" , subtitle = \"bar plot example\" )\ngosling_plot ( gpos, plot_type = \"lollipop\" , title = \"Q1W6H9 track\" , subtitle = \"lollipop plot example\" )"
+    },
+    {
+      "name": "clinvar_benchmarking",
+      "intent": "Compare AlphaMissense predictions against clinically-validated ClinVar classifications.",
+      "input": [
+        "uniprotId (A character string representing the UniProt accession ID of interest)"
+      ],
+      "stages": "1. Access ClinVar classifications using clinvar_data() ;; 2. Generate a benchmarking scatterplot using clinvar_plot()",
+      "code": "clinvar_data ()\nclinvar_plot ( uniprotId = \"P37023\" )"
+    }
+  ]
+}

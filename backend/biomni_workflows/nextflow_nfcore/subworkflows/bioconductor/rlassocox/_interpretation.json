@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=Gene expression matrix where rows represent samples and columns represent genes ;; y=Survival data matrix or data frame containing \"time\" (survival/censoring time) and \"status\" (0/1 indicator, 1 = event, 0 = censored) columns ;; globalGraph=An igraph object representing the gene interaction network (e.g., KEGG pathway network) ;; nfolds=Number of folds for cross-validation in cvRLassoCox ;; s=Penalty parameter lambda value (e.g., \"lambda.min\", \"lambda.1se\", or numeric values) used for coefficient extraction and prediction\n- alternatives: Standard Lasso-Cox model (via the glmnet package) which does not incorporate gene interaction network topology\n- when_to_use: Appropriate for survival analysis and biomarker discovery using transcriptomics data when a relevant gene interaction network is available to guide feature selection\n- pitfalls: Input graph objects created with older versions of igraph may trigger a warning to run igraph::upgrade_graph() ;; The survival data y must have columns named exactly \"time\" and \"status\" with \"status\" coded as 0/1 (where 1 is event/failure and 0 is censored)",
+  "workflows": [
+    {
+      "name": "rlasso_cox_survival_prediction",
+      "intent": "Train a topologically weighted Lasso-Cox model with or without cross-validation to predict survival risk and identify prognostic gene biomarkers.",
+      "input": [
+        "gene_expression.csv (matrix of gene expression profiles with samples as rows and genes as columns)",
+        "survival_data.csv (survival times and censoring status for each sample)",
+        "gene_network.rds (igraph object representing the gene interaction network)"
+      ],
+      "stages": "1. Load gene expression, survival data, and the gene interaction network ;; 2. Split data into training and testing sets ;; 3. Train the RLasso-Cox model using network topology weights ;; 4. Predict survival risk on test data using the trained model ;; 5. Perform cross-validation to find the optimal lambda parameter ;; 6. Extract active prognostic features and their coefficients at the optimal lambda ;; 7. Predict survival risk on test data using the cross-validated model",
+      "code": "library(\"RLassoCox\")\ndata(mRNA_matrix)\ndata(survData)\ndata(dGMMirGraph)\nset.seed(20150122)\ntrain.Idx <- sample(1:dim(mRNA_matrix)[1], floor(2/3*dim(mRNA_matrix)[1]))\ntest.Idx <- setdiff(1:dim(mRNA_matrix)[1], train.Idx)\nx.train <- mRNA_matrix[train.Idx ,]\nx.test <- mRNA_matrix[test.Idx ,]\ny.train <- survData[train.Idx,]\ny.test <- survData[test.Idx,]\nmod <- RLassoCox(x=x.train, y=y.train, globalGraph=dGMMirGraph)\nhead(mod$PT)\nplot(mod$glmnetRes)\nprint(mod$glmnetRes)\nhead(coef(mod$glmnetRes, s = 0.2))\nlp <- predict(object = mod, newx = x.test, s = c(0.1, 0.2))\ncv.mod <- cvRLassoCox(x=x.train, y=y.train, globalGraph=dGMMirGraph, nfolds = 5)\nplot(cv.mod$glmnetRes, xlab = \"log(lambda)\")\ncv.mod$glmnetRes$lambda.min\ncv.mod$glmnetRes$lambda.1se\ncoef.min <- coef(cv.mod$glmnetRes, s = \"lambda.min\")\nnonZeroIdx <- which(coef.min[,1] != 0)\nfeatures <- rownames(coef.min)[nonZeroIdx]\nfeatures.coef <- coef.min[nonZeroIdx]\nnames(features.coef) <- features\nlp <- predict.cvRLassoCox(object = cv.mod, newx = x.test, s = \"lambda.min\")"
+    }
+  ]
+}

@@ -4,6 +4,8 @@
 // Detect, annotate, and quantify de novo primary transcripts from strand-specific RNA-seq data alone.
 // Input: path.to.Bam, knownGene
 // Container: quay.io/biocontainers/bioconductor-transcriptr:1.38.3--r45hdfd78af_0
+// R packages: GenomicRanges, Rsamtools, GenomicFeatures, transcriptR
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("GenomicRanges", "Rsamtools", "genomicfeatures", "transcriptr")
+    .bm_deps <- c("GenomicRanges", "Rsamtools", "GenomicFeatures", "transcriptR")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -57,7 +69,7 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
       path.to.Bam <- "path.to.Bam.bam"
     } else {
       # Fallback: search for any BAM file in the working directory
-      bam_files <- list.files(pattern = "\\.bam\$")
+      bam_files <- list.files(pattern = "\\\\.bam\$")
       if (length(bam_files) > 0) {
         path.to.Bam <- bam_files[1]
         message("Using found BAM file: ", path.to.Bam)

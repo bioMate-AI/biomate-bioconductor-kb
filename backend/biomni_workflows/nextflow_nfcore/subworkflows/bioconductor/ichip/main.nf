@@ -1,143 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iChip
-// Hidden Ising models are implemented to identify enriched genomic regions in ChIP-chip data.  They ca
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iChip/inst/doc/iChip.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("iChip")
+// Bioconductor workflow: iChip — ichip2_second_order_ising
+// Identify enriched genomic regions in ChIP-chip data using a second-order hidden Ising model with a fixed interaction parameter (beta).
+// Input: chip_data.txt
+// Container: quay.io/biocontainers/bioconductor-ichip:1.64.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: iChip
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Sort the data by chromosome and genomic position. 2. Calculate enrichment measurements (limma t-statistics) using lmtstat. 3. Prep
 
 nextflow.enable.dsl = 2
 
-process BIOC_ICHIP {
+process BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ichip"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ichip:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ichip:1.60.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ichip_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ichip_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ichip_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(iChip)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    library(iChip)
-    data(oct4)
-    head(oct4,n=3L)
-    # --- Lmtstat [] ---
-    # Key functions: lmtstat
-    oct4lmt = lmtstat(oct4[,5:6],oct4[,3:4])
-    # --- Enrichreg [] ---
-    # Key functions: enrichreg
-    reg1 = enrichreg(pos=oct4[,1:2],enrich=oct4lmt,pp=oct4res2$pp,
-      cutoff=0.9,method="ppcut",maxgap=500)
-    print(reg1)
-    # --- Frame [] ---
-    # Key functions: frame
-    bed1 = data.frame(chr=paste("chr",reg2[,1],sep=""),reg2[,2:3])
-    print(bed1[1:2,])
-    # --- Ichip1 [] ---
-    # Key functions: iChip1
-    oct4res1 =iChip1(enrich=oct4lmt,burnin=2000,sampling=10000,sdcut=2,beta0=3,
-      minbeta=0,maxbeta=10,normsd=0.1,verbose=FALSE)
-    # --- Enrichreg [] ---
-    # Key functions: enrichreg
-    enrichreg(pos=oct4[,1:2],enrich=oct4lmt,pp=oct4res1$pp,cutoff=0.9,
-              method="ppcut",maxgap=500)
-    enrichreg(pos=oct4[,1:2],enrich=oct4lmt,pp=oct4res1$pp,cutoff=0.01,
-              method="fdrcut",maxgap=500)
-    # --- Data [] ---
-    # Key functions: lmtstat
-    data(p53)
-    head(p53,n=3L)
-    # sort the p53 data by chromosome and genomic position
-    p53 = p53[order(p53[,1],p53[,2]),]
-    p53lmt = lmtstat(p53[,9:14],p53[,3:8])
-    # --- Ichip2 [] ---
-    # Key functions: iChip2
-    p53res2 = iChip2(Y=p53Y,burnin=2000,sampling=10000,winsize=2,sdcut=2,beta=2.5)
-    # --- Enrichreg [] ---
-    # Key functions: enrichreg
-    enrichreg(pos=p53[,1:2],enrich=p53lmt,pp=p53res2$pp,cutoff=0.9,
-              method="ppcut",maxgap=500)
-    enrichreg(pos=p53[,1:2],enrich=p53lmt,pp=p53res2$pp,cutoff=0.01,
-              method="fdrcut",maxgap=500)
-    # --- Ichip1 [] ---
-    # Key functions: iChip1
-    p53res1 =iChip1(enrich=p53lmt,burnin=2000,sampling=10000,sdcut=2,beta0=3,
-      minbeta=0,maxbeta=10,normsd=0.1,verbose=FALSE)
-    # --- Enrichreg [] ---
-    # Key functions: enrichreg
-    enrichreg(pos=p53[,1:2],enrich=p53lmt,pp=p53res1$pp,cutoff=0.9,
-              method="ppcut",maxgap=500)
-    enrichreg(pos=p53[,1:2],enrich=p53lmt,pp=p53res1$pp,cutoff=0.01,
-              method="fdrcut",maxgap=500)
-    # --- Ichip1 [] ---
-    # Key functions: iChip1
-    randomres1 =iChip1(enrich=randomY[,2],burnin=1000,sampling=5000,sdcut=2,
-      beta0=3,minbeta=0,maxbeta=10,normsd=0.1,verbose=FALSE)
-    table(randomres1$pp)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ichip_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ichip_results.csv")
+    
+    # 1. Read the user input file
+    # The file 'chip_data.txt' is expected to be a tab-delimited file containing:
+    # Column 1: Chromosome
+    # Column 2: Genomic Position
+    # Columns 3-4: Control replicates (normalized intensities)
+    # Columns 5-6: IP replicates (normalized intensities)
+    if (!file.exists("chip_data.txt")) {
+      stop("Error: 'chip_data.txt' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ichip_output.rds")
+    
+    oct4 <- read.table("chip_data.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Sort the data by chromosome and genomic position
+    oct4 <- oct4[order(oct4[, 1], oct4[, 2]), ]
+    
+    # 2. Calculate enrichment measurements (limma t-statistics) using lmtstat
+    # Columns 5:6 are IP replicates, columns 3:4 are Control replicates
+    oct4lmt <- lmtstat(oct4[, 5:6], oct4[, 3:4])
+    
+    # 3. Prepare the input matrix Y by combining chromosome and the t-statistics
+    oct4Y <- cbind(oct4[, 1], oct4lmt)
+    
+    # 4. Run the second-order Ising model using iChip2
+    set.seed(777)
+    oct4res2 <- iChip2(Y = oct4Y, burnin = 2000, sampling = 10000, winsize = 2,
+                       sdcut = 2, beta = 1.25, verbose = FALSE)
+    
+    # Save the raw model results as an RDS object
+    saveRDS(oct4res2, file = "ichip2_results.rds")
+    
+    # 5. Call enriched regions using enrichreg with posterior probability or FDR cutoffs
+    # Method 1: Posterior probability cutoff (ppcut)
+    reg1 <- enrichreg(pos = oct4[, 1:2], enrich = oct4lmt, pp = oct4res2\$pp,
+                      cutoff = 0.9, method = "ppcut", maxgap = 500)
+    
+    # Method 2: False Discovery Rate cutoff (fdrcut)
+    reg2 <- enrichreg(pos = oct4[, 1:2], enrich = oct4lmt, pp = oct4res2\$pp,
+                      cutoff = 0.01, method = "fdrcut", maxgap = 500)
+    
+    # Write the identified enriched regions to CSV files
+    write.csv(reg1, file = "enriched_regions_pp0.9.csv", row.names = FALSE)
+    write.csv(reg2, file = "enriched_regions_fdr0.01.csv", row.names = FALSE)
+    
+    # Create and save BED files for downstream visualization (e.g., UCSC Genome Browser)
+    if (!is.null(reg2) && nrow(reg2) > 0) {
+      bed1 <- data.frame(chr = paste("chr", reg2[, 1], sep = ""), reg2[, 2:3])
+      write.table(bed1, file = "enriched_regions_fdr0.01.bed", sep = "\t", 
+                  row.names = FALSE, col.names = FALSE, quote = FALSE)
+      
+      bed2 <- data.frame(chr = paste("chr", reg2[, 1], sep = ""), 
+                         gstart = reg2[, 6] - 100,
+                         gend = reg2[, 6] + 100)
+      write.table(bed2, file = "enriched_peaks_fdr0.01.bed", sep = "\t", 
+                  row.names = FALSE, col.names = FALSE, quote = FALSE)
     }
+    
+    # Generate diagnostic plots to assess MCMC convergence
+    pdf("ichip2_mcmc_diagnostics.pdf", width = 8, height = 8)
+    par(mfrow = c(2, 2), mar = c(4.1, 4.1, 2.0, 1.0))
+    plot(oct4res2\$mu0, pch = ".", xlab = "Iterations", ylab = "mu0", main = "mu0 Trace")
+    plot(oct4res2\$lambda0, pch = ".", xlab = "Iterations", ylab = "lambda0", main = "lambda0 Trace")
+    plot(oct4res2\$mu1, pch = ".", xlab = "Iterations", ylab = "mu1", main = "mu1 Trace")
+    plot(oct4res2\$lambda1, pch = ".", xlab = "Iterations", ylab = "lambda1", main = "lambda1 Trace")
+    dev.off()
+    
+    # Generate posterior probability histogram
+    pdf("ichip2_pp_histogram.pdf", width = 6, height = 6)
+    hist(oct4res2\$pp, xlab = "Posterior Probability", main = "Histogram of Posterior Probabilities")
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ICHIP:", paste0("    ichip: ", packageVersion("iChip"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING":',
+        paste0('    iChip: ', as.character(packageVersion('iChip')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ichip_results.csv
-    touch ${prefix}_ichip_output.rds
-    echo "BIOC_ICHIP:" > versions.yml
-    echo "    ichip: 0.0.0" >> versions.yml
+    touch ${prefix}_ichip2_second_order_ising.csv versions.yml
     """
 }
 
-
-workflow BIOC_ICHIP_WORKFLOW {
+workflow BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ chip_data.txt ] ]
 
     main:
-    BIOC_ICHIP(ch_input)
+    BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING(ch_input)
 
     emit:
-    results  = BIOC_ICHIP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ICHIP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ICHIP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ICHIP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING.out.tables
+    plots    = BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING.out.plots
+    objects  = BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING.out.objects
+    versions = BIOC_ICHIP_ICHIP2_SECOND_ORDER_ISING.out.versions
 }

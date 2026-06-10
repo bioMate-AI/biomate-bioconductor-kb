@@ -1,0 +1,19 @@
+{
+  "package": "meshes",
+  "requirements": [
+    "BiocGenerics",
+    "BiocManager",
+    "IRanges",
+    "S4Vectors",
+    "meshes"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "BiocManager",
+      "IRanges",
+      "S4Vectors",
+      "meshes"
+    ]
+  }
+}

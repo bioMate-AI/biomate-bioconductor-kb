@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_PLYINTERACTIONS {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-plyinteractions"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-plyinteractions:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-plyinteractions:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,10 +37,41 @@ process BIOC_PLYINTERACTIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DNAStringSet", "HiContactsData", "Biostrings", "GenomicRanges", "jsonlite", "plyinteractions", "plyranges", "sessioninfo", "tidyverse")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
     library(plyinteractions)
-    library(DNAStringSet)
+    library(Biostrings)
     library(HiContactsData)
     library(jsonlite)
+
+    # --- Import Genomic Interactions [] ---
+    # Key functions: as_ginteractions
+    pairs_df <- data.frame(
+        ID = 1:100,
+        seqnames1 = "chr1", start1 = seq(1, 1000, by = 10),
+        seqnames2 = "chr1", start2 = seq(5, 1004, by = 10),
+        strand1 = "+", strand2 = "-"
+    )
+    pairs <- as_ginteractions(
+        pairs_df, end1 = start1, end2 = start2, 
+        keep.extra.columns = TRUE
+    )
 
     # --- Annotate Interactions [] ---
     # Key functions: annotate, mutate
@@ -57,7 +87,6 @@ process BIOC_PLYINTERACTIONS {
             group = paste0(strand1, strand2)
         )
 
-
     # --- Filter Interactions [] ---
     # Key functions: filter, mutate
     filtered_pairs <- annotated_pairs |>
@@ -68,7 +97,6 @@ process BIOC_PLYINTERACTIONS {
         )) |>
         filter(type == "kept")
 
-
     # --- Calculate Interaction Frequency [] ---
     # Key functions: mutate, group_by
     dat <- filtered_pairs |> 
@@ -78,19 +106,29 @@ process BIOC_PLYINTERACTIONS {
         as_tibble() |> 
         mutate(Ps = n / sum(n))
 
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_plyinteractions_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_plyinteractions_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_plyinteractions_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_plyinteractions_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_plyinteractions_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_plyinteractions_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_PLYINTERACTIONS:", paste0("    plyinteractions: ", packageVersion("plyinteractions"))),
+        c("BIOC_PLYINTERACTIONS:", paste0("    plyinteractions: ", as.character(packageVersion("plyinteractions")))),
         "versions.yml"
     )
     """

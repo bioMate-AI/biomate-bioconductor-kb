@@ -1,0 +1,23 @@
+{
+  "package": "alabaster_ranges",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "alabaster.base",
+    "alabaster.ranges",
+    "alabaster_ranges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "alabaster.base",
+      "alabaster.ranges",
+      "alabaster_ranges"
+    ]
+  }
+}

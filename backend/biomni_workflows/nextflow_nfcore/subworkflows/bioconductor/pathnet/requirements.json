@@ -1,0 +1,14 @@
+{
+  "package": "pathnet",
+  "requirements": [
+    "PathNet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PathNet"
+    ],
+    "pathway_contextual_analysis.nf": [
+      "PathNet"
+    ]
+  }
+}

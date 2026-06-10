@@ -1,0 +1,13 @@
+{
+  "package": "yamss",
+  "requirements": [
+    "S4Vectors",
+    "yamss"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "yamss"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "branchpointer",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "branchpointer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "branchpointer"
+    ],
+    "snp_effect_evaluation.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "branchpointer"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "prolocgui",
+  "requirements": [
+    "MSnbase",
+    "pRolocGUI"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "pRolocGUI"
+    ],
+    "proloc_spatial_compare.nf": [
+      "MSnbase",
+      "pRolocGUI"
+    ]
+  }
+}

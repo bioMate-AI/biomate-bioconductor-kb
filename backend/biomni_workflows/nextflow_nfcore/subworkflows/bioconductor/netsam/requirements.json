@@ -1,0 +1,20 @@
+{
+  "package": "netsam",
+  "requirements": [
+    "NetSAM"
+  ],
+  "by_workflow": {
+    "correlation_network_analysis.nf": [
+      "NetSAM"
+    ],
+    "id_mapping_to_symbols.nf": [
+      "NetSAM"
+    ],
+    "main.nf": [
+      "NetSAM"
+    ],
+    "network_topological_analysis.nf": [
+      "NetSAM"
+    ]
+  }
+}

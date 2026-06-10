@@ -1,0 +1,17 @@
+{
+  "package": "brain",
+  "requirements": [
+    "BRAIN"
+  ],
+  "by_workflow": {
+    "heuristic_isotopic_distribution.nf": [
+      "BRAIN"
+    ],
+    "high_throughput_protein_processing.nf": [
+      "BRAIN"
+    ],
+    "main.nf": [
+      "BRAIN"
+    ]
+  }
+}

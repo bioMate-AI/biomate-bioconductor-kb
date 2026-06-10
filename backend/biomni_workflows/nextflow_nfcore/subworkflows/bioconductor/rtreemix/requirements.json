@@ -1,0 +1,11 @@
+{
+  "package": "rtreemix",
+  "requirements": [
+    "Rtreemix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rtreemix"
+    ]
+  }
+}

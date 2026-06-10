@@ -1,0 +1,19 @@
+{
+  "package": "mitoclone2",
+  "requirements": [
+    "Rsamtools",
+    "mitoClone2",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "cohort_shared_noise_workflow.nf": [
+      "mitoClone2",
+      "pheatmap"
+    ],
+    "main.nf": [
+      "Rsamtools",
+      "mitoClone2",
+      "pheatmap"
+    ]
+  }
+}

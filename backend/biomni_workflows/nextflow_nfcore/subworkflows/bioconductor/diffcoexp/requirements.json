@@ -1,0 +1,13 @@
+{
+  "package": "diffcoexp",
+  "requirements": [
+    "SummarizedExperiment",
+    "diffcoexp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "diffcoexp"
+    ]
+  }
+}

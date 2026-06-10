@@ -1,0 +1,31 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: template=Path to an alternate RMarkdown template file in writeHtmlReport() ;; usePlotly=Logical value (TRUE/FALSE) to enable interactive plotly-based plots ;; plotType=Specifies the visualization style (e.g., \"boxplot\", \"line\", \"paracoord\") in plotting functions ;; duplicated=Logical value in plotReadTotals() to enable/disable showing duplicated sequences ;; nc=Passed to facet_wrap() to determine the number of columns in line plots ;; species=Specifies the species name for theoretical GC content comparison in plotGcContent() ;; gcType=Specifies the GC content type (\"Transcriptome\" or \"Genome\") in plotGcContent() ;; Fastafile=Path to a FASTA file to generate customized theoretical GC content in plotGcContent() ;; type=Specifies the log file tool type (e.g., \"bowtie\", \"star\", \"flagstat\", \"duplicationMetrics\", \"busco\", \"quast\") in importNgsLogs(), plotAlignmentSummary(), and plotAssemblyStats() ;; which=Specifies which part of the log to import (e.g., \"metrics\") for duplicationMetrics in importNgsLogs()\n- alternatives: shinyNgsreports=A GitHub-based Shiny app (UofABioinformaticsHub/shinyNgsreports) recommended for interactive, GUI-based viewing of FastQC reports\n- when_to_use: Use this package when you need to aggregate, visualize, and compare quality control metrics across multiple NGS libraries/samples from FastQC outputs or when you need to parse and plot log files from trimming, alignment, or assembly tools.\n- pitfalls: plotSeqContent() with usePlotly = TRUE can be very slow to render due to how plotly renders graphics ;; plotBaseQuals() with plotType = \"boxplot\" may not be suitable for datasets with a large number of libraries ;; importNgsLogs() only supports importing a single log file type at any one time",
+  "workflows": [
+    {
+      "name": "fastqc_quality_control_analysis",
+      "intent": "Parse multiple FastQC reports, extract quality modules, and generate summary and detailed quality plots.",
+      "input": [
+        "fastqc.zip (zipped FastQC output files)",
+        "fastqc_extracted_dir (extracted FastQC directories)"
+      ],
+      "stages": "1. Load FastQC files into a FastqcDataList ;; 2. Extract specific modules or read totals ;; 3. Generate summary plots of PASS/WARN/FAIL status ;; 4. Plot read totals ;; 5. Visualize base qualities, sequence qualities, sequence content, adapter content, duplication levels, and GC content ;; 6. Export overrepresented sequences to FASTA",
+      "code": "fileDir <- system.file(\"extdata\", package = \"ngsReports\")\nfiles <- list.files(fileDir, pattern = \"fastqc.zip$\", full.names = TRUE)\nfdl <- FastqcDataList(files)\ngetModule(fdl[[1]], \"Summary\")\nreads <- readTotals(fdl)\nplotSummary(fdl)\nplotReadTotals(fdl)\nplotBaseQuals(fdl[[1]])\nplotBaseQuals(fdl)\nplotBaseQuals(fdl[1:4], plotType = \"boxplot\")\nplotSeqQuals(fdl[[1]])\nplotSeqQuals(fdl)\nr2 <- grepl(\"R2\", names(fdl))\nplotSeqQuals(fdl[r2], plotType = \"line\")\nplotSeqContent(fdl[[1]])\nplotSeqContent(fdl)\nplotSeqContent(fdl[1:2], plotType = \"line\", nc = 1)\nplotAdapterContent(fdl[[1]]) \nplotAdapterContent(fdl)\nplotDupLevels(fdl[[1]])\nplotDupLevels(fdl)\ngcAvail(gcTheoretical, \"Genome\")\nplotGcContent(fdl[[1]], species = \"Hsapiens\", gcType = \"Transcriptome\")\nplotGcContent(fdl)\nplotGcContent(fdl, plotType = \"line\",  gcType = \"Transcriptome\")\nplotOverrep(fdl[[1]])\nplotOverrep(fdl)\noverRep2Fasta(fdl, n = 10)"
+    },
+    {
+      "name": "ngs_log_file_import_and_visualization",
+      "intent": "Import and visualize log files from adapter trimming, mapping/alignment, and genome assembly tools.",
+      "input": [
+        "trimmomatic_log.txt (Trimmomatic PE log file)",
+        "bowtie_log.txt (Bowtie alignment log file)",
+        "star_log.out (STAR alignment log file)",
+        "flagstat.txt (Samtools flagstat log file)",
+        "dedup_metrics.txt (Picard MarkDuplicates metrics file)",
+        "busco_log.txt (BUSCO assembly completeness log file)",
+        "quast_log.tsv (QUAST assembly statistics log file)"
+      ],
+      "stages": "1. Import log files using importNgsLogs() ;; 2. Plot alignment summaries using plotAlignmentSummary() ;; 3. Plot assembly statistics using plotAssemblyStats()",
+      "code": "fl <- c(\"Sample1.trimmomaticPE.txt\")\ntrimmomaticLogs <- system.file(\"extdata\", fl, package = \"ngsReports\")\ndf <- importNgsLogs(trimmomaticLogs)\nfls <- c(\"bowtiePE.txt\", \"bowtieSE.txt\")\nbowtieLogs <- system.file(\"extdata\", fls, package = \"ngsReports\")\ndf <- importNgsLogs(bowtieLogs, type = \"bowtie\")\nstarLog <- system.file(\"extdata\", \"log.final.out\", package = \"ngsReports\")\ndf <- importNgsLogs(starLog, type = \"star\")\nflagstatLog <- system.file(\"extdata\", \"flagstat.txt\", package = \"ngsReports\")\ndf <- importNgsLogs(flagstatLog, type = \"flagstat\")\nsysDir <- system.file(\"extdata\", package = \"ngsReports\")\nfl <- list.files(sysDir, \"Dedup_metrics.txt\", full.names = TRUE)\ndupMetrics <- importNgsLogs(fl, type = \"duplicationMetrics\", which = \"metrics\")\nplotAlignmentSummary(bowtieLogs, type = \"bowtie\")\nplotAlignmentSummary(starLog, type = \"star\")\nbuscoLog <- system.file(\"extdata\", \"short_summary_Dmelanogaster_Busco.txt\", package = \"ngsReports\")\nplotAssemblyStats(buscoLog, type = \"busco\")\nfls <- c(\"quast1.tsv\", \"quast2.tsv\")\nquastLog <- system.file(\"extdata\", fls, package = \"ngsReports\")\nplotAssemblyStats(quastLog, type = \"quast\")\nplotAssemblyStats(quastLog, type = \"quast\", plotType = \"paracoord\")"
+    }
+  ]
+}

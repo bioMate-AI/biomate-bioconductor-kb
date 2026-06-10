@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <read1=Path to the input FASTQ file (or vector of paths) for read 1 ;; read2=Path to the input FASTQ file (or vector of paths) for read 2 ;; outputFastq=Prefix or path for the output trimmed FASTQ file(s) ;; thread=Number of threads to use for multi-threading ;; merge=Logical; if TRUE, merges paired-end reads after QC ;; mergeOut=Path for the merged output FASTQ file when merge=TRUE ;; umi=Logical; enables UMI (Unique Molecular Identifier) preprocessing ;; umiLoc=Location of UMI (e.g., \"read1\", \"read2\") ;; umiLength=Length of the UMI sequence ;; disableTrimPolyG=Logical; disables polyG trimming (often needed for NextSeq/NovaSeq data) ;; cutLowQualFront=Logical; enables trimming of low-quality bases from the 5' end ;; cutLowQualTail=Logical; enables trimming of low-quality bases from the 3' end ;; adapterSequenceRead1=Custom adapter sequence to trim from read 1>\n- alternatives: <None mentioned in the documentation; the package serves as the direct R interface to the C++ command-line tool fastp.>\n- when_to_use: <Use when preprocessing raw single-end or paired-end FASTQ sequencing data to perform quality control, adapter trimming, low-quality base filtering, or UMI extraction before downstream alignment or analysis.>\n- pitfalls: <Ensure correct UMI parameters (umiLoc, umiLength) are set to avoid misidentifying or losing UMI sequences. Note that curvePlot() may trigger a deprecation warning due to internal use of aes_string() in older ggplot2 versions, though it still functions correctly.>",
+  "workflows": [
+    {
+      "name": "single_end_qc_trimming",
+      "intent": "Perform quality control, adapter trimming, and quality filtering on single-end FASTQ data, followed by generating summary tables and plots.",
+      "input": [
+        "Fox3_Std_small.fq.gz (Single-end FASTQ file)"
+      ],
+      "stages": "1. Run rfastp on the single-end FASTQ file ;; 2. Generate base quality and GC content plots ;; 3. Extract summary statistics.",
+      "code": "se_read1 <- system.file(\"extdata\",\"Fox3_Std_small.fq.gz\",package=\"Rfastp\")\noutputPrefix <- tempfile(tmpdir = tempdir())\nse_json_report <- rfastp(read1 = se_read1, \n    outputFastq = paste0(outputPrefix, \"_se\"), thread = 4)\np1 <- curvePlot(se_json_report)\np1\np2 <- curvePlot(se_json_report, curve=\"content_curves\")\np2"
+    },
+    {
+      "name": "paired_end_qc_trimming_merging",
+      "intent": "Perform quality control, adapter trimming, and optional merging on paired-end FASTQ data, followed by extracting summary statistics.",
+      "input": [
+        "reads1.fastq.gz (Paired-end Read 1 FASTQ file)",
+        "reads2.fastq.gz (Paired-end Read 2 FASTQ file)"
+      ],
+      "stages": "1. Run rfastp on paired-end FASTQ files ;; 2. Run rfastp with read merging enabled ;; 3. Extract QC and trimming summaries.",
+      "code": "pe_read1 <- system.file(\"extdata\",\"reads1.fastq.gz\",package=\"Rfastp\")\npe_read2 <- system.file(\"extdata\",\"reads2.fastq.gz\",package=\"Rfastp\")\noutputPrefix <- tempfile(tmpdir = tempdir())\npe_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2,\n    outputFastq = paste0(outputPrefix, \"_pe\"))\npe_merge_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, merge = TRUE,\n    outputFastq = paste0(outputPrefix, '_unpaired'),\n    mergeOut = paste0(outputPrefix, \"_merged.fastq.gz\"))\ndfsummary <- qcSummary(pe_json_report)\ndfTrim <- trimSummary(pe_json_report)"
+    },
+    {
+      "name": "umi_processing",
+      "intent": "Preprocess paired-end FASTQ files containing Unique Molecular Identifiers (UMIs), extracting and appending them to read headers.",
+      "input": [
+        "reads1.fastq.gz (Paired-end Read 1 FASTQ file)",
+        "reads2.fastq.gz (Paired-end Read 2 FASTQ file)"
+      ],
+      "stages": "1. Run rfastp with standard UMI extraction parameters ;; 2. Run rfastp with customized UMI prefix and location parameters.",
+      "code": "pe_read1 <- system.file(\"extdata\",\"reads1.fastq.gz\",package=\"Rfastp\")\npe_read2 <- system.file(\"extdata\",\"reads2.fastq.gz\",package=\"Rfastp\")\noutputPrefix <- tempfile(tmpdir = tempdir())\numi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, \n    outputFastq = paste0(outputPrefix, '_umi1'), umi = TRUE, umiLoc = \"read1\",\n    umiLength = 16)\numi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, \n    outputFastq = paste0(outputPrefix, '_umi2'), umi = TRUE, umiLoc = \"read1\",\n    umiLength = 16, umiPrefix = \"#\", umiNoConnection = TRUE, \n    umiIgnoreSeqNameSpace = TRUE)"
+    },
+    {
+      "name": "concatenate_fastq_files",
+      "intent": "Concatenate multiple split FASTQ files into a single output FASTQ file.",
+      "input": [
+        "splited_001_R2.fastq.gz, splited_002_R2.fastq.gz, splited_003_R2.fastq.gz, splited_004_R2.fastq.gz (Split FASTQ files)"
+      ],
+      "stages": "1. Define a vector of input file paths ;; 2. Concatenate files using catfastq.",
+      "code": "pe001_read2 <- system.file(\"extdata\",\"splited_001_R2.fastq.gz\",\n    package=\"Rfastp\")\npe002_read2 <- system.file(\"extdata\",\"splited_002_R2.fastq.gz\",\n    package=\"Rfastp\")\npe003_read2 <- system.file(\"extdata\",\"splited_003_R2.fastq.gz\",\n    package=\"Rfastp\")\npe004_read2 <- system.file(\"extdata\",\"splited_004_R2.fastq.gz\",\n    package=\"Rfastp\")\ninputR2files <- c(pe001_read2, pe002_read2, pe003_read2, pe004_read2)\ncatfastq(output = paste0(outputPrefix,\"_merged2_R2.fastq.gz\"), \n    inputFiles = inputR2files)"
+    }
+  ]
+}

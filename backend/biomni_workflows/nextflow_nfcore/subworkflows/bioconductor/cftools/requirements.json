@@ -1,0 +1,20 @@
+{
+  "package": "cftools",
+  "requirements": [
+    "cfTools"
+  ],
+  "by_workflow": {
+    "cancer_detection.nf": [
+      "cfTools"
+    ],
+    "main.nf": [
+      "cfTools"
+    ],
+    "tissue_deconvolution_cfsort.nf": [
+      "cfTools"
+    ],
+    "tissue_deconvolution_em.nf": [
+      "cfTools"
+    ]
+  }
+}

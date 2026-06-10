@@ -1,0 +1,17 @@
+{
+  "package": "metabocoreutils",
+  "requirements": [
+    "MetaboCoreUtils"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MetaboCoreUtils"
+    ],
+    "quality_assessment_and_filtering.nf": [
+      "MetaboCoreUtils"
+    ],
+    "signal_drift_adjustment.nf": [
+      "MetaboCoreUtils"
+    ]
+  }
+}

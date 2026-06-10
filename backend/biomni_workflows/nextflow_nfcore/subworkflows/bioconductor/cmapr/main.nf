@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_CMAPR {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-cmapr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cmapr:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cmapr:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,6 +37,24 @@ process BIOC_CMAPR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cmapR", "jsonlite")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
     library(cmapR)
     library(jsonlite)
 
@@ -53,8 +70,8 @@ process BIOC_CMAPR {
     ## Formal class 'GCT' [package "cmapR"] with 7 slots
     ##   ..@ mat    : num [1:978, 1:272] -0.524 -0.372 0.578 0.569 1.48 ...
     ##   .. ..- attr(*, "dimnames")=List of 2
-    ##   .. .. ..$ : chr [1:978] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
-    ##   .. .. ..$ : chr [1:272] "CPC006_A549_6H:BRD-U88459701-000-01-8:10" "CPC020_A375_6H:BRD-A82307304-001-01-8:10" "CPC020_HT29_6H:BRD-A82307304-001-01-8:10" "CPC020_PC3_24H:BRD-A82307304-001-01-8:10" ...
+    ##   .. .. ..\$ : chr [1:978] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
+    ##   .. .. ..\$ : chr [1:272] "CPC006_A549_6H:BRD-U88459701-000-01-8:10" "CPC020_A375_6H:BRD-A82307304-001-01-8:10" "CPC020_HT29_6H:BRD-A82307304-001-01-8:10" "CPC020_PC3_24H:BRD-A82307304-001-01-8:10" ...
     # --- Code Block 4 [] ---
     # Key functions: mat, meta, ids
     # access the data matrix
@@ -74,8 +91,8 @@ process BIOC_CMAPR {
     ## Formal class 'GCT' [package "cmapR"] with 7 slots
     ##   ..@ mat    : num [1:978, 1:272] 0 0 0 0 0 0 0 0 0 0 ...
     ##   .. ..- attr(*, "dimnames")=List of 2
-    ##   .. .. ..$ : chr [1:978] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
-    ##   .. .. ..$ : chr [1:272] "CPC006_A549_6H:BRD-U88459701-000-01-8:10" "CPC020_A375_6H:BRD-A82307304-001-01-8:10" "CPC020_HT29_6H:BRD-A82307304-001-01-8:10" "CPC020_PC3_24H:BRD-A82307304-001-01-8:10" ...
+    ##   .. .. ..\$ : chr [1:978] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
+    ##   .. .. ..\$ : chr [1:272] "CPC006_A549_6H:BRD-U88459701-000-01-8:10" "CPC020_A375_6H:BRD-A82307304-001-01-8:10" "CPC020_HT29_6H:BRD-A82307304-001-01-8:10" "CPC020_PC3_24H:BRD-A82307304-001-01-8:10" ...
     # --- Code Block 7 [] ---
     # Key functions: parse_gctx
     # create a variable to store the path to the GCTX file
@@ -88,8 +105,8 @@ process BIOC_CMAPR {
     ## Formal class 'GCT' [package "cmapR"] with 7 slots
     ##   ..@ mat    : num [1:50, 1:25] -1.145 -1.165 0.437 0.139 -0.673 ...
     ##   .. ..- attr(*, "dimnames")=List of 2
-    ##   .. .. ..$ : chr [1:50] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
-    ##   .. .. ..$ : chr [1:25] "CPC004_PC3_24H:BRD-A51714012-001-03-1:10" "BRAF001_HEK293T_24H:BRD-U73308409-000-01-9:0.625" "CPC006_HT29_24H:BRD-U88459701-000-01-8:10" "CVD001_HEPG2_24H:BRD-U88459701-000-01-8:10" ...
+    ##   .. .. ..\$ : chr [1:50] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
+    ##   .. .. ..\$ : chr [1:25] "CPC004_PC3_24H:BRD-A51714012-001-03-1:10" "BRAF001_HEK293T_24H:BRD-U73308409-000-01-9:0.625" "CPC006_HT29_24H:BRD-U88459701-000-01-8:10" "CVD001_HEPG2_24H:BRD-U88459701-000-01-8:10" ...
     # --- Code Block 10 [] ---
     # Key functions: indices, parse_gctx
     # read just the first 10 columns, using numeric indices
@@ -99,34 +116,43 @@ process BIOC_CMAPR {
     ## Formal class 'GCT' [package "cmapR"] with 7 slots
     ##   ..@ mat    : num [1:50, 1:10] -1.145 -1.165 0.437 0.139 -0.673 ...
     ##   .. ..- attr(*, "dimnames")=List of 2
-    ##   .. .. ..$ : chr [1:50] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
-    ##   .. .. ..$ : chr [1:10] "CPC004_PC3_24H:BRD-A51714012-001-03-1:10" "BRAF001_HEK293T_24H:BRD-U73308409-000-01-9:0.625" "CPC006_HT29_24H:BRD-U88459701-000-01-8:10" "CVD001_HEPG2_24H:BRD-U88459701-000-01-8:10" ...
+    ##   .. .. ..\$ : chr [1:50] "200814_at" "222103_at" "201453_x_at" "204131_s_at" ...
+    ##   .. .. ..\$ : chr [1:10] "CPC004_PC3_24H:BRD-A51714012-001-03-1:10" "BRAF001_HEK293T_24H:BRD-U73308409-000-01-9:0.625" "CPC006_HT29_24H:BRD-U88459701-000-01-8:10" "CVD001_HEPG2_24H:BRD-U88459701-000-01-8:10" ...
     # --- Code Block 13 [] ---
     # Key functions: read_gctx_meta, parse_gctx
     # read the column metadata
     col_meta <- read_gctx_meta(ds_path, dim="col")
     # figure out which signatures correspond to vorinostat by searching the 'pert_iname' column
-    idx <- which(col_meta$pert_iname=="vemurafenib")
+    idx <- which(col_meta\$pert_iname=="vemurafenib")
     # read only those columns from the GCTX file by using the 'cid' parameter
     # --- Code Block 15 [] ---
     # Key functions: parse_gctx
     # get a vector of character ids, using the id column in col_meta
-    col_ids <- col_meta$id[idx]
+    col_ids <- col_meta\$id[idx]
     vemurafenib_ds2 <- parse_gctx(ds_path, cid=col_ids)
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cmapr_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_cmapr_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cmapr_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_cmapr_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cmapr_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_cmapr_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_CMAPR:", paste0("    cmapr: ", packageVersion("cmapR"))),
+        c("BIOC_CMAPR:", paste0("    cmapr: ", as.character(packageVersion("cmapR")))),
         "versions.yml"
     )
     """

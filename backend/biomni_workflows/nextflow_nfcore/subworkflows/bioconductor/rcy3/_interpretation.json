@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: title=Sets the name of the network in Cytoscape ;; collection=Groups networks under a specific collection name ;; data.key.column=The column name in the R data frame used as the key for merging data ;; table.key.column=The column name in the Cytoscape table to match against (defaults to \"name\") ;; table=Target table type in Cytoscape (defaults to \"node\", can be \"edge\" or \"network\") ;; style.name=The unique identifier for a custom visual style ;; zoom=Numeric scaling factor for high-resolution image export\n- alternatives: igraph or graph (graphNEL) packages can be used for native R network analysis and representation, and should be preferred when GUI visualization is not required and pure computational graph theory operations are performed.\n- when_to_use: Use when you need to programmatically control Cytoscape to visualize biological networks, map high-throughput experimental data (e.g., expression log2 fold changes) onto nodes/edges, automate visual style applications, or perform interactive network exploration (like selecting neighbors) from R.\n- pitfalls: Cytoscape must be actively running locally or remotely before executing RCy3 commands; otherwise, connection errors will occur (verify with cytoscapePing()) ;; All networks in Cytoscape are implicitly modeled as directed; converting an undirected igraph network to Cytoscape and back will result in a directed network ;; Data rows that do not match existing node/edge identifiers in the active Cytoscape network are silently discarded upon import ;; Ensure stringsAsFactors = FALSE when creating data frames with character identifiers to prevent import issues ;; If you want to set NODE_WIDTH and NODE_HEIGHT independently in a custom style, you must explicitly unlock node dimensions using lockNodeDimensions(FALSE, style.name) ;; If you do not specify a complete path in saveSession or exportImage, files are saved relative to the current R working directory.",
+  "workflows": [
+    {
+      "name": "network_from_data_frames_and_styling",
+      "intent": "Create a network from node and edge data frames, apply custom visual styles (discrete and continuous mappings), and export the visualization.",
+      "input": [
+        "nodes_df (data frame of nodes with attributes)",
+        "edges_df (data frame of edges with source, target, and attributes)"
+      ],
+      "stages": "1. Verify Cytoscape connection ;; 2. Create network from data frames ;; 3. Define and apply custom visual style defaults and mappings ;; 4. Select nodes and neighbors ;; 5. Save session and export high-resolution image.",
+      "code": "cytoscapePing ()\ncytoscapeVersionInfo ()\nnodes <- data.frame(id=c(\"node 0\",\"node 1\",\"node 2\",\"node 3\"), group=c(\"A\",\"A\",\"B\",\"B\"), score=as.integer(c(20,10,15,5)), stringsAsFactors=FALSE)\nedges <- data.frame(source=c(\"node 0\",\"node 0\",\"node 0\",\"node 2\"), target=c(\"node 1\",\"node 2\",\"node 3\",\"node 3\"), interaction=c(\"inhibits\",\"interacts\",\"activates\",\"interacts\"), weight=c(5.1,3.0,5.2,9.9), stringsAsFactors=FALSE)\ncreateNetworkFromDataFrames(nodes,edges, title=\"my first network\", collection=\"DataFrame Example\")\nsetVisualStyle('Marquee')\nstyle.name = \"myStyle\"\ndefaults <- list(NODE_SHAPE=\"diamond\", NODE_SIZE=30, EDGE_TRANSPARENCY=120, NODE_LABEL_POSITION=\"W,E,c,0.00,0.00\")\nnodeLabels <- mapVisualProperty('node label','id','p')\nnodeFills <- mapVisualProperty('node fill color','group','d',c(\"A\",\"B\"), c(\"#FF9900\",\"#66AAAA\"))\narrowShapes <- mapVisualProperty('Edge Target Arrow Shape','interaction','d',c(\"activates\",\"inhibits\",\"interacts\"),c(\"Arrow\",\"T\",\"None\"))\nedgeWidth <- mapVisualProperty('edge width','weight','p')\ncreateVisualStyle(style.name, defaults, list(nodeLabels,nodeFills,arrowShapes,edgeWidth))\nsetVisualStyle(style.name)\nlockNodeDimensions(FALSE, style.name)\nsetNodeShapeDefault ('OCTAGON')\nsetNodeColorDefault ('#AAFF88')\nsetNodeSizeDefault (60)\nsetNodeFontSizeDefault (30)\ngetNodeShapes ()\ncolumn <- 'moleculeType'\nvalues <- c ('kinase', 'TF','cytokine')\nshapes <- c ('DIAMOND', 'TRIANGLE', 'RECTANGLE')\nsetNodeShapeMapping (column, values, shapes)\ncolumn <- 'log2fc'\ncontrol.points <- c (-3.0, 0.0, 3.0)\ncolors <- c ('#5588DD', '#FFFFFF', '#DD8855')\nsetNodeColorMapping (column, control.points, colors)\ncontrol.points <- c (-2.0, 0.0, 2.0)\ncolors <- c ('#2255CC', '#5588DD', '#FFFFFF', '#DD8855','#CC5522')\nsetNodeColorMapping (column, control.points, colors)\ncontrol.points = c (-3.0, 2.0, 3.0)\nsizes = c (20, 80, 90)\nsetNodeSizeMapping (column, control.points, sizes)\nselectNodes ('C','name')\ngetSelectedNodes ()\nselectFirstNeighbors ()\nnode.names <- getSelectedNodes ()\nclearSelection()\nsaveSession('vignette_session')\nfull.path=paste(getwd(),'vignette_image',sep='/')\nexportImage(full.path, 'PNG', zoom=200)\nexportImage(full.path, 'PDF')"
+    },
+    {
+      "name": "igraph_interoperability",
+      "intent": "Convert an igraph network to Cytoscape, and retrieve a Cytoscape network back into R as an igraph object.",
+      "input": [
+        "ig (an igraph network object)"
+      ],
+      "stages": "1. Verify Cytoscape connection ;; 2. Convert igraph network to Cytoscape ;; 3. Retrieve Cytoscape network as igraph.",
+      "code": "cytoscapePing()\nactors <- data.frame(name=c(\"Alice\", \"Bob\", \"Cecil\", \"David\", \"Esmeralda\"), age=c(48,33,45,34,21), gender=c(\"F\",\"M\",\"F\",\"M\",\"F\"))\nrelations <- data.frame(from=c(\"Bob\", \"Cecil\", \"Cecil\", \"David\", \"David\", \"Esmeralda\"), to=c(\"Alice\", \"Bob\", \"Alice\", \"Alice\", \"Bob\", \"Alice\"), same.dept=c(FALSE,FALSE,TRUE,FALSE,FALSE,TRUE), friendship=c(4,5,5,2,1,1), advice=c(4,5,5,4,2,3))\nig <- graph_from_data_frame(relations, directed=TRUE, vertices=actors)\ncreateNetworkFromIgraph(ig,\"myIgraph\")\nig2 <- createIgraphFromNetwork(\"myIgraph\")"
+    },
+    {
+      "name": "graphnel_interoperability",
+      "intent": "Convert a graphNEL network to Cytoscape, and retrieve a Cytoscape network back into R as a graphNEL object.",
+      "input": [
+        "g (a graphNEL network object)"
+      ],
+      "stages": "1. Verify Cytoscape connection ;; 2. Convert graphNEL network to Cytoscape ;; 3. Retrieve Cytoscape network as graphNEL.",
+      "code": "cytoscapePing()\ng <- makeSimpleGraph()\ncreateNetworkFromGraph(g,\"myGraph\")\ng2 <- createGraphFromNetwork(\"myGraph\")"
+    },
+    {
+      "name": "import_attribute_data",
+      "intent": "Import external node attribute data (such as gene expression data) from a data frame into an existing Cytoscape network.",
+      "input": [
+        "network_file.sif (network structure file)",
+        "expression_data.csv (CSV file containing node attributes keyed by node identifiers)"
+      ],
+      "stages": "1. Verify Cytoscape connection ;; 2. Import network from file ;; 3. Read external attribute data ;; 4. Load table data into Cytoscape matching on key columns.",
+      "code": "cytoscapePing()\nsif <- system.file(\"extdata\",\"galFiltered.sif\",package=\"RCy3\")\nimportNetworkFromFile(sif)\ncsv <- system.file(\"extdata\",\"galExpData.csv\", package=\"RCy3\")\ndata <- read.csv(csv, stringsAsFactors = FALSE)\nloadTableData(data,data.key.column=\"name\")"
+    }
+  ]
+}

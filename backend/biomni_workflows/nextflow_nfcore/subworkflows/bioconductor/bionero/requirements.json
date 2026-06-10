@@ -1,0 +1,30 @@
+{
+  "package": "bionero",
+  "requirements": [
+    "BioNERO",
+    "ComplexHeatmap",
+    "SummarizedExperiment",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "consensus_modules.nf": [
+      "BioNERO",
+      "SummarizedExperiment"
+    ],
+    "gene_regulatory_network.nf": [
+      "BioNERO",
+      "SummarizedExperiment",
+      "htmlwidgets"
+    ],
+    "main.nf": [
+      "BioNERO",
+      "ComplexHeatmap",
+      "SummarizedExperiment",
+      "htmlwidgets"
+    ],
+    "module_preservation.nf": [
+      "BioNERO",
+      "SummarizedExperiment"
+    ]
+  }
+}

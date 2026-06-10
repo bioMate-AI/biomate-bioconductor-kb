@@ -1,0 +1,21 @@
+{
+  "package": "cnvmetrics",
+  "requirements": [
+    "CNVMetrics",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "cnv_profile_simulation.nf": [
+      "CNVMetrics",
+      "GenomicRanges"
+    ],
+    "log2_ratio_similarity.nf": [
+      "CNVMetrics",
+      "GenomicRanges"
+    ],
+    "main.nf": [
+      "CNVMetrics",
+      "GenomicRanges"
+    ]
+  }
+}

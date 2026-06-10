@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: event_indicator=The column name in experiment_info representing the censoring indicator (1 for observed, 0 for censored), which is associated with the first element in cols_fixed ;; mi_reps=The number of multiple imputation repetitions to perform, where more imputations are needed for high censoring rates or high statistical power ;; imputation_method=The method used to impute censored values, such as \"cc\" (complete case), \"rs\" (risk set), \"km\" (Kaplan-Meier), or \"mrl\" (mean residual life) ;; BPPARAM=A BiocParallelParam object (e.g., MulticoreParam) used to parallelize the multiple imputation and testing steps\n- alternatives: testDA_GLMM or testDA_edgeR from diffcyt (preferred when covariates are fully observed without censoring) ;; Complete case analysis / listwise deletion (simple but reduces statistical power and introduces bias under high or non-random censoring) ;; Cox proportional hazard models (standard survival analysis, but only applicable when the censored variable is the response rather than a covariate)\n- when_to_use: Use when performing differential abundance analysis of cell populations in high-dimensional cytometry data where a key covariate of interest (e.g., patient survival time or time-to-event) is right-censored.\n- pitfalls: If the largest value in the dataset is censored, the survival function does not reach 0, leaving some replacements undefined in Kaplan-Meier imputation; this requires specifying tail approximation methods (e.g., km_exp, km_wei, km_os) ;; Using too few imputation repetitions (mi_reps) when the censoring rate is high, which can lead to unstable estimates and reduced statistical power.",
+  "workflows": [
+    {
+      "name": "censored_da_step_by_step",
+      "intent": "Perform differential abundance analysis with a censored covariate step-by-step using pre-calculated cluster counts.",
+      "input": [
+        "d_counts (SummarizedExperiment containing cluster cell counts per sample)",
+        "experiment_info (data.frame containing sample IDs, observed covariate values, and event indicators)"
+      ],
+      "stages": "1. Set up metadata and design formula using createFormula with an event indicator ;; 2. Define the contrast matrix ;; 3. Run differential testing using testDA_censoredGLMM with multiple imputation ;; 4. Extract top results using topTable",
+      "code": "da_formula <- createFormula(experiment_info = experiment_info,\n                            cols_fixed = \"X_obs\",\n                            cols_random = \"sample_id\",\n                            event_indicator = \"Event_ind\")\n# also create contrast matrix for testing\ncontrast <- matrix(c(0,1))\n\n# test with 50 repetitions with method risk set imputation (rs)\nda_out <- testDA_censoredGLMM(d_counts = d_counts,\n                              formula = da_formula,\n                              contrast = contrast,\n                              mi_reps = 30,\n                              imputation_method = \"km\",\n                              verbose = TRUE,\n                              BPPARAM=BiocParallel::MulticoreParam(workers = 1))\n\ntopTable(da_out)"
+    },
+    {
+      "name": "censored_da_wrapper",
+      "intent": "Perform the complete differential abundance analysis workflow (clustering and testing) from raw expression data using the censcyt wrapper.",
+      "input": [
+        "d_input (list of matrices containing marker expression data per sample)",
+        "experiment_info (data.frame containing sample IDs, observed covariate values, and event indicators)",
+        "marker_info (data.frame containing channel names, marker names, and marker classes)"
+      ],
+      "stages": "1. Set up metadata and design formula using createFormula with an event indicator ;; 2. Define the contrast matrix ;; 3. Run the all-in-one wrapper function censcyt to cluster cells and perform differential testing ;; 4. Extract top results using topTable and plot results using plotHeatmap",
+      "code": "da_formula <- createFormula(experiment_info = experiment_info,\n                            cols_fixed = \"X_obs\",\n                            cols_random = \"sample_id\",\n                            event_indicator = \"Event_ind\")\n# also create contrast matrix for testing\ncontrast <- matrix(c(0,1))\n\n# Run wrapper function\nout_DA <- censcyt(d_input, \n                  experiment_info, \n                  marker_info,\n                  formula = da_formula, \n                  contrast = contrast,\n                  meta_clustering = TRUE, \n                  meta_k = 10,\n                  seed_clustering = 123, \n                  verbose = FALSE, \n                  mi_reps = 10,\n                  imputation_method = \"km\",\n                  BPPARAM=BiocParallel::MulticoreParam(workers = 1))\n\n# Display results for top DA clusters\ntopTable(out_DA, format_vals = TRUE)\n\n# Plot heatmap for DA tests\nplotHeatmap(out_DA, \n            analysis_type = \"DA\", \n            sample_order = order(X_true))"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "package": "esetvis",
+  "requirements": [
+    "Biobase",
+    "SummarizedExperiment",
+    "esetVis",
+    "ggplot2",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "lda_visualization.nf": [
+      "Biobase",
+      "SummarizedExperiment",
+      "esetVis",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "Biobase",
+      "SummarizedExperiment",
+      "esetVis",
+      "htmlwidgets"
+    ],
+    "tsne_visualization.nf": [
+      "Biobase",
+      "SummarizedExperiment",
+      "esetVis",
+      "ggplot2"
+    ]
+  }
+}

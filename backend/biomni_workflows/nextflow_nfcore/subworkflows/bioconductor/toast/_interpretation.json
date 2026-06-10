@@ -1,0 +1,59 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sortBy=In findRefinx(), \"var\" (default) is recommended for DNA methylation and log-counts, while \"cv\" (coefficient of variation) is recommended for RNA-seq counts where variance-mean correlation is strong ;; bound_negative=In csDeconv(), TRUE or FALSE (default) determines whether to bound negative estimated parameters to zero ;; coef=In csTest(), specifies the phenotype name (e.g., \"disease\"), contrast levels (e.g., c(\"gender\", 2, 1)), \"joint\", or NULL to test ;; cell_type=In csTest(), specifies the target cell type name, \"joint\" for joint effect, or NULL to test all cell types individually and jointly ;; var_shrinkage=In csTest(), TRUE (default) or FALSE to apply shrinkage on estimated mean squared errors (MSEs) using a 10% quantile bound to prevent unstable test statistics\n- alternatives: EpiDISH is mentioned for reference-based DNA methylation deconvolution ;; RefFreeEWAS (copied in TOAST as myRefFreeCellMix) is mentioned for reference-free DNA methylation deconvolution ;; qprog, deconf, lsfit, and DSA are mentioned for gene expression deconvolution ;; CellMix package is mentioned as a general resource for deconvolution methods\n- when_to_use: Use when analyzing high-throughput profiling data (microarray or RNA-seq) from bulk heterogeneous tissues (e.g., blood, tumor, brain) to resolve cell-type specific signals or compositions without physical cell sorting.\n- pitfalls: Ignoring cell mixing proportions in heterogeneous samples can confound experimental factors (like age) and lead to high false-positive rates ;; Deconvolution accuracy is highly dependent on the number of features; using too few features (e.g., only 3000 instead of full 450K array) reduces proportion estimation accuracy ;; Binary or categorical variables in the design data frame must be explicitly converted to factors before running makeDesign() ;; F-tests used in csTest() can sometimes exhibit inflated Type I errors, so performing a permutation test is recommended to validate significant signals",
+  "workflows": [
+    {
+      "name": "cell_type_specific_differential_analysis",
+      "intent": "Detect cell-type specific and cross-cell type differential signals (csDE/csDM) from heterogeneous bulk high-throughput data using known or estimated cell proportions.",
+      "input": [
+        "Y_raw (matrix or SummarizedExperiment of bulk high-throughput data)",
+        "design (data frame of sample phenotypes/covariates)",
+        "Prop (matrix of cell type proportions for all samples)"
+      ],
+      "stages": "1. Format design covariates (convert categorical variables to factors) and ensure proportion matrix columns are named.\n2. Generate the model design matrix using makeDesign().\n3. Fit linear models for all features using fitModel().\n4. Test specific hypotheses (single cell type, joint effect, or cross-cell type contrasts) using csTest().",
+      "code": "design <- data.frame(disease = as.factor(Pheno$disease))\nProp <- estProp_RF_improved\ncolnames(Prop) <- colnames(Ref) \nDesign_out <- makeDesign(design, Prop)\nfitted_model <- fitModel(Design_out, Y_raw)\nfitted_model$all_cell_types\nfitted_model$all_coefs\nres_table <- csTest(fitted_model, coef = \"disease\", cell_type = \"Gran\")\nhead(res_table, 3)\nres_table <- csTest(fitted_model, coef = \"disease\", cell_type = \"joint\")\nres_table <- csTest(fitted_model, coef = \"disease\", cell_type = NULL)\nres_table <- csTest(fitted_model, coef = c(\"gender\", 2, 1), cell_type = \"CD4T\")\ntest <- csTest(fitted_model, coef = c(\"disease\", 1), cell_type = c(\"CD8T\", \"Bcell\"), contrast_matrix = NULL)\ntest <- csTest(fitted_model, coef = \"joint\", cell_type = c(\"Gran\", \"CD4T\"), contrast_matrix = NULL)"
+    },
+    {
+      "name": "reference_free_deconvolution",
+      "intent": "Estimate cell type proportions from bulk high-throughput data without a reference panel, optionally improving marker selection via cross-cell type differential analysis.",
+      "input": [
+        "Y_raw (matrix or SummarizedExperiment of bulk high-throughput data)",
+        "K (integer, number of cell types)"
+      ],
+      "stages": "1. Select the most variable features using findRefinx().\n2. Subset the bulk data to the selected features.\n3. Perform reference-free deconvolution using myRefFreeCellMix() or the wrapper csDeconv() to improve marker selection iteratively.\n4. Align estimated cell types to a reference (if available) using assignCellType().",
+      "code": "refinx <- findRefinx(Y_raw, nmarker = 1000)\nY <- Y_raw[refinx,]\nK <- 6\noutT <- myRefFreeCellMix(Y, mu0=myRefFreeCellMixInitialize(Y, K = K))\nestProp_RF <- outT$Omega\nestProp_RF <- assignCellType(input=estProp_RF, reference=estProp_RB)\noutRF1 <- csDeconv(Y_raw, K, TotalIter = 30, bound_negative = TRUE)\nestProp_RF_improved <- assignCellType(input=outRF1$estProp, reference=estProp_RB)"
+    },
+    {
+      "name": "partial_reference_free_deconvolution",
+      "intent": "Estimate cell type proportions using cell type-specific markers (partial reference-free) with or without prior knowledge of cell compositions.",
+      "input": [
+        "CBS_mix (matrix of bulk gene expression or methylation data)",
+        "LM_5 (matrix of pure cell type reference profiles for marker selection)",
+        "CellType (list mapping cell types to column indices in reference)"
+      ],
+      "stages": "1. Select cell type-specific markers from pure profiles using ChooseMarker().\n2. Retrieve prior composition parameters (alpha and sigma) for supported tissues using GetPrior() or define them manually.\n3. Perform partial reference-free deconvolution using MDeconv().",
+      "code": "CellType <- list(Bcells = 1, CD8T = 2, CD4T = 3, NK = 4, Monocytes = 5)\nmyMarker <- ChooseMarker(LM_5, CellType, nMarkCT = 20, chooseSig = TRUE, verbose = FALSE)\nresCBS0 <- MDeconv(CBS_mix, myMarker, epsilon = 1e-3, verbose = FALSE)\nprior_alpha <- c(0.09475, 0.23471, 0.33232, 0.0969, 0.24132)\nprior_sigma <- c(0.09963, 0.14418, 0.16024, 0.10064, 0.14556)\nnames(prior_alpha) <- c(\"B cells\", \"CD8T\", \"CD4T\", \"NK cells\", \"Monocytes\")\nnames(prior_sigma) <- names(prior_alpha) \nthisprior <- GetPrior(\"human pbmc\")\nresCBS1 <- MDeconv(CBS_mix, myMarker, alpha = prior_alpha, sigma = prior_sigma, epsilon = 1e-3, verbose = FALSE)\nresCBS2 <- MDeconv(CBS_mix, myMarker, alpha = \"human pbmc\", epsilon = 1e-3, verbose = FALSE)"
+    },
+    {
+      "name": "complete_geometric_deconvolution",
+      "intent": "Estimate cell compositions, number of cell types, and cell-type-specific markers from DNA methylation data using a complete geometric approach (Tsisal).",
+      "input": [
+        "Ybeta (matrix of bulk DNA methylation beta values)",
+        "ref_m (optional matrix of reference cell type profiles)"
+      ],
+      "stages": "1. Run complete deconvolution using Tsisal() with specified or unknown cell numbers (K) and reference panels.",
+      "code": "out = Tsisal(Ybeta,K = 4, knowRef = ref_m)\nout = Tsisal(Ybeta,K = NULL, knowRef = NULL, possibleCellNumber = 2:5)\nout = Tsisal(Ybeta, K = NULL, knowRef = ref_m, possibleCellNumber = 2:5)"
+    },
+    {
+      "name": "correlated_differential_analysis_cedar",
+      "intent": "Detect cell-type specific differential signals by incorporating DE/DM state correlation among cell types using a hierarchical tree structure (CEDAR).",
+      "input": [
+        "Y_raw (matrix or SummarizedExperiment of bulk high-throughput data)",
+        "Prop (matrix of cell type proportions)",
+        "design (data frame of sample phenotypes)"
+      ],
+      "stages": "1. Run the CEDAR algorithm using cedar() to perform joint inference of differential signals across correlated cell types.\n2. Extract posterior probabilities of differential expression/methylation and estimated tree structures.",
+      "code": "res_cedar <- cedar(Y_raw = Y_raw, prop = Prop, design.1 = design, factor.to.test = 'disease',cutoff.tree = c('pval',0.01), cutoff.prior.prob = c('pval',0.01))\nhead(res_cedar$tree_res$full$pp)\nres_cedar$tree_res$full$tree_structure\nres_cedar$tree_res$single$tree_structure"
+    }
+  ]
+}

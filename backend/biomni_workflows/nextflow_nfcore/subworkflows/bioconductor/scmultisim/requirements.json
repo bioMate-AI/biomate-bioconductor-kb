@@ -1,0 +1,20 @@
+{
+  "package": "scmultisim",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "scMultiSim"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "scMultiSim"
+    ],
+    "scmultisim_spatial_cci_simulation.nf": [
+      "dplyr",
+      "ggplot2",
+      "scMultiSim"
+    ]
+  }
+}

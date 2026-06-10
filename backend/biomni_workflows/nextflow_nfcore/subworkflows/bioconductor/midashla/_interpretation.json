@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: resolution=Sets the HLA allele resolution (e.g., 4 for 4-digit resolution) during import or reduction ;; experiment=Specifies the immunogenetic data transformation type, such as \"hla_alleles\", \"hla_aa\", or \"hla_NK_ligands\" ;; inheritance_model=Specifies the genetic model to test, such as \"dominant\", \"recessive\", \"overdominant\", or \"additive\" ;; conditional=Logical indicating whether to perform stepwise conditional association testing ;; omnibus=Logical indicating whether to perform a likelihood ratio test grouping residues at each amino acid position ;; lower_frequency_cutoff=Filters out alleles or variables below a specified frequency threshold\n- alternatives: None mentioned ;; Use standard R modeling functions (lm, glm, coxme) as the base model for runMiDAS\n- when_to_use: Appropriate when analyzing immunogenetic associations using HLA allele calls and/or KIR presence/absence data, particularly for fine-mapping associations to amino acid residues, testing NK cell ligand groups, or evaluating HLA-KIR interactions.\n- pitfalls: Phenotypic data read using read.table must include stringsAsFactors = FALSE ;; The statistical model formula must use the placeholder 'term' to represent the tested immunogenetic variable (e.g., disease ~ term) ;; The statistical function used (e.g., glm) must have a tidy method available ;; HLA alleles have complex linkage disequilibrium, so conditional testing should be used to distinguish independent signals from haplotypes",
+  "workflows": [
+    {
+      "name": "hla_allele_association",
+      "intent": "Perform association analysis on classical HLA alleles, filter by Hardy-Weinberg Equilibrium, and run conditional testing to identify independent signals.",
+      "input": [
+        "MiDAS_tut_pheno.txt (phenotype data)",
+        "MiDAS_tut_HLA.txt (HLA allele calls)"
+      ],
+      "stages": "1. Read phenotype data using read.table ;; 2. Read HLA calls using readHlaCalls with a specified resolution ;; 3. Combine genetic and phenotypic data using prepareMiDAS ;; 4. Test for Hardy-Weinberg Equilibrium and filter alleles using HWETest ;; 5. Define a statistical model using the placeholder term ;; 6. Run association analysis using runMiDAS ;; 7. Run stepwise conditional association analysis by setting conditional = TRUE in runMiDAS",
+      "code": "dat_pheno <- read.table ( file = system.file ( \"extdata\" , \"MiDAS_tut_pheno.txt\" , package = \"midasHLA\" ), header = TRUE )\ndat_HLA <- readHlaCalls ( file = system.file ( \"extdata\" , \"MiDAS_tut_HLA.txt\" , package = \"midasHLA\" ), resolution = 4 )\nHLA <- prepareMiDAS ( hla_calls = dat_HLA, colData = dat_pheno, experiment = \"hla_alleles\" )\nHLA <- HWETest ( object = HLA, experiment = \"hla_alleles\" , HWE_cutoff = 0.05 / 447 , as.MiDAS = TRUE )\nHLA_model <- glm (disease ~ term, data = HLA, family = binomial ())\nHLA_results <- runMiDAS ( object = HLA_model, experiment = \"hla_alleles\" , inheritance_model = \"dominant\" , lower_frequency_cutoff = 0.02 , upper_frequency_cutoff = 0.98 , correction = \"bonferroni\" , exponentiate = TRUE )\nHLA_results_cond <- runMiDAS ( object = HLA_model, experiment = \"hla_alleles\" , inheritance_model = \"dominant\" , conditional = TRUE , lower_frequency_cutoff = 0.02 , upper_frequency_cutoff = 0.98 , correction = \"bonferroni\" , exponentiate = TRUE )"
+    },
+    {
+      "name": "hla_amino_acid_fine_mapping",
+      "intent": "Fine-map HLA associations to the amino acid level by inferring residues, running omnibus tests, and mapping residues back to alleles.",
+      "input": [
+        "MiDAS_tut_pheno.txt (phenotype data)",
+        "MiDAS_tut_HLA.txt (HLA allele calls)"
+      ],
+      "stages": "1. Combine HLA and phenotypic data using prepareMiDAS with experiment = \"hla_aa\" ;; 2. Define a statistical model using the placeholder term ;; 3. Run a likelihood ratio (omnibus) test using runMiDAS ;; 4. Investigate effect estimates for a specific amino acid position using runMiDAS with omnibus_groups_filter ;; 5. Map amino acid residues back to HLA alleles using getAllelesForAA",
+      "code": "HLA_AA <- prepareMiDAS ( hla_calls = dat_HLA, colData = dat_pheno, experiment = \"hla_aa\" )\nHLA_AA_model <- glm (disease ~ term, data = HLA_AA, family = binomial ())\nHLA_AA_omnibus_results <- runMiDAS ( HLA_AA_model, experiment = \"hla_aa\" , inheritance_model = \"dominant\" , conditional = FALSE , omnibus = TRUE , lower_frequency_cutoff = 0.02 , upper_frequency_cutoff = 0.98 , correction = \"bonferroni\" )\nHLA_AA_DQB1_ 9 _results <- runMiDAS ( HLA_AA_model, experiment = \"hla_aa\" , inheritance_model = \"dominant\" , omnibus_groups_filter = \"DQB1_9\" , lower_frequency_cutoff = 0.02 , upper_frequency_cutoff = 0.98 , correction = \"bonferroni\" , exponentiate = TRUE )\nHLA_AA_DQB1_ 9 _alleles <- getAllelesForAA (HLA_AA, \"DQB1_9\" )"
+    },
+    {
+      "name": "hla_kir_interaction_analysis",
+      "intent": "Analyze associations with Natural Killer (NK) cell ligands and KIR gene presence/absence, including HLA-KIR interactions.",
+      "input": [
+        "MiDAS_tut_pheno.txt (phenotype data)",
+        "MiDAS_tut_HLA.txt (HLA allele calls)",
+        "MiDAS_tut_KIR.txt (KIR presence/absence calls)"
+      ],
+      "stages": "1. Combine HLA and phenotypic data using prepareMiDAS with experiment = c(\"hla_alleles\", \"hla_NK_ligands\") ;; 2. Define a statistical model and run association analysis on NK ligands using runMiDAS ;; 3. Import KIR calls using readKirCalls",
+      "code": "NKlig <- prepareMiDAS ( hla_calls = dat_HLA, colData = dat_pheno, experiment = c ( \"hla_alleles\" , \"hla_NK_ligands\" ) )\nNKlig_model <- glm (disease ~ term, data = NKlig, family = binomial ())\nNKlig_results <- runMiDAS ( NKlig_model, experiment = \"hla_NK_ligands\" , inheritance_model = \"dominant\" , correction = \"bonferroni\" , exponentiate = TRUE )\ndat_KIR <- readKirCalls ( file = system.file ( \"extdata\" , \"MiDAS_tut_KIR.txt\" , package = \"midasHLA\" ) )"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "package": "ioniser",
+  "requirements": [
+    "IONiseR",
+    "ShortRead",
+    "dplyr",
+    "ggplot2",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IONiseR",
+      "ShortRead",
+      "dplyr",
+      "ggplot2",
+      "gridExtra"
+    ]
+  }
+}

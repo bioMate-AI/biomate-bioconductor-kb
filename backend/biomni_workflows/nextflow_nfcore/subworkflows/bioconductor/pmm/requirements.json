@@ -1,0 +1,11 @@
+{
+  "package": "pmm",
+  "requirements": [
+    "pmm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "pmm"
+    ]
+  }
+}

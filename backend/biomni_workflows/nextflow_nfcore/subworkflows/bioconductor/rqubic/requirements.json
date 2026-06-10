@@ -1,0 +1,15 @@
+{
+  "package": "rqubic",
+  "requirements": [
+    "Biobase",
+    "biclust",
+    "rqubic"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "biclust",
+      "rqubic"
+    ]
+  }
+}

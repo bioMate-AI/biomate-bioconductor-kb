@@ -1,0 +1,11 @@
+{
+  "package": "plpe",
+  "requirements": [
+    "PLPE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PLPE"
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: protein.data=Input data frame of protein abundance across fractions ;; id=Identifier type (default \"UNIPROT\") to convert to gene symbols in convert2symbol() ;; dims=t-SNE dimensionality (2 or 3) ;; theta=t-SNE speed/accuracy trade-off parameter ;; perplexity=t-SNE perplexity parameter ;; min.psm=Minimum peptide-spectrum-matching count for filtering relocated candidates ;; pearson.cor=Pearson correlation coefficient threshold for filtering relocated candidates\n- alternatives: None mentioned.\n- when_to_use: Use when analyzing mass-spectrometry based spatial proteomics data (specifically fractionation-based proteomics with replicates) to map protein subcellular localization, evaluate co-localization, detect differential localization between conditions, or perform peptide/exon/transcript-centric localization.\n- pitfalls: Replicates must be named with \".A.\" and \".B.\" respectively ;; Input data must use gene symbols for protein identification; other identifiers must be converted using convert2symbol() which may cause minor ID loss ;; Low marker protein coverage (recommended at least 20% coverage per compartment; if lower, redo fractionation or increase MS analytical depth) ;; t-SNE can be misleading if not well optimized; grid search optimization is recommended ;; Reducing t-SNE dimensionality to 2D (dims = 2) results in loss of information and underestimation of data resolution compared to 3D (dims = 3) ;; Exon-centric classification enriches more noise than gene-centric classification due to analytical depth.",
+  "workflows": [
+    {
+      "name": "gene_centric_classification",
+      "intent": "Classify protein subcellular localization at compartment and neighborhood levels using a gene-centric approach.",
+      "input": [
+        "protein_abundance.tsv (data.frame of protein abundance across fractions with replicates .A. and .B.)",
+        "marker_proteins.tsv (data.frame of marker proteins)",
+        "psm_counts.tsv (data.frame of PSM counts for barcode plotting)"
+      ],
+      "stages": "1. Load and log2-transform protein data ;; 2. Convert identifiers to gene symbols if necessary ;; 3. Calculate covered marker proteins ;; 4. Perform quality control on marker proteins ;; 5. Optimize and visualize marker proteins in t-SNE space ;; 6. Train SVM classifier and predict probabilities ;; 7. Estimate and apply compartment-level thresholds ;; 8. Estimate and apply neighborhood-level thresholds ;; 9. Merge compartment and neighborhood classifications ;; 10. Plot single protein barcode or multiple proteins",
+      "code": "df <- loadData(protein.data = hcc827Ctrl)\n#df <- convert2symbol(df = df, id = \"UNIPROT\")\nset.seed(2)\ndf <- df[sample(nrow(df), 6000),]\nc.prots <- calculateCoveredProtein(proteinIDs = rownames(df), \n                        markerproteins = markerProteins[,1]) \nr.markers <- markerQualityControl(coveredProteins = c.prots,protein.data = df)\nset.seed(6)\ntsne.map <- tsneVisualization(protein.data = df, \n                    markerProteins = r.markers, \n                    dims = 3, \n                    theta = c(0.1), \n                    perplexity = c(60)) \nset.seed(9)\ntsne.map2 <- tsneVisualization(protein.data = df, \n                    markerProteins = r.markers, \n                    dims = 2, \n                    theta = c(0.5), \n                    perplexity = c(60))\nset.seed(4)\ncls <- svmClassification(markerProteins = r.markers, \n                                    protein.data = df, \n                                    markerprot.df = markerProteins)\ntest.A <- cls[[1]]$svm.test.prob.out\ntest.B <- cls[[2]]$svm.test.prob.out\nall.A <- cls[[1]]$all.prot.pred\nall.B <- cls[[2]]$all.prot.pred\nt.c.df <- computeThresholdCompartment(test.repA = test.A, test.repB = test.B)\nc.cls.df <- applyThresholdCompartment(all.repA = all.A, all.repB = all.B,\n                                    threshold.df = t.c.df)\nt.n.df <- computeThresholdNeighborhood(test.repA = test.A, test.repB = test.B)\nn.cls.df <- applyThresholdNeighborhood(all.repA = all.A, all.repB = all.B, \n                                    threshold.df = t.n.df)\ncls.df <- mergeCls(compartmentCls = c.cls.df, neighborhoodCls = n.cls.df)\nplotBarcode(sampleClassification = cls.df, protein = \"NLRP4\",\n        s1PSM = hcc827CtrlPSMCount)\nproteasome26s <- c(\"PSMA7\", \"PSMC3\",\"PSMA4\", \"PSMB4\", \n                    \"PSMB6\", \"PSMB5\", \"PSMC2\",\"PSMC4\",\n                    \"PSMB3\", \"PSMA6\",\"PSMC5\",\"PSMC6\")\nplotMultipleProtein(sampleClassification = cls.df, proteinList = proteasome26s)"
+    },
+    {
+      "name": "differential_localization",
+      "intent": "Compare protein subcellular localization between two conditions (e.g., control vs treatment) and filter high-confidence relocated candidates.",
+      "input": [
+        "cls_cond1.tsv (classification output for condition 1)",
+        "cls_cond2.tsv (classification output for condition 2)",
+        "psm_cond1.tsv (PSM counts for condition 1)",
+        "psm_cond2.tsv (PSM counts for condition 2)",
+        "quant_cond1.tsv (quantification data for condition 1)",
+        "quant_cond2.tsv (quantification data for condition 2)"
+      ],
+      "stages": "1. Visualize localization shifts between conditions using a sankey plot ;; 2. Filter and identify strong relocated candidates using PSM counts and correlation analysis",
+      "code": "sankeyPlot(sampleCls1 = cls.df, sampleCls2 = hcc827GEFClass)\ncandidate.df <- candidateRelocatedProteins(sampleCls1 = cls.df, \n                                s1PSM = hcc827CtrlPSMCount, \n                                s1Quant = hcc827Ctrl,\n                                sampleCls2 = hcc827GEFClass,\n                                s2PSM = hcc827GefPSMCount,\n                                s2Quant = hcc827GEF,\n                                min.psm = 2,\n                                pearson.cor = 0.8)\ncandidate2.df <- candidateRelocatedProteins(sampleCls1 = cls.df,\n                                s1PSM = hcc827CtrlPSMCount, \n                                s1Quant = hcc827Ctrl, \n                                sampleCls2 = hcc827GEFClass, \n                                s2PSM = hcc827GefPSMCount, \n                                s2Quant = hcc827GEF, \n                                annotation = TRUE, \n                                min.psm = 9, \n                                pearson.cor = 0.05)"
+    },
+    {
+      "name": "exon_centric_classification",
+      "intent": "Classify subcellular localization at the exon/peptide level using a pre-built gene-centric model and compare results to detect deviated localizations.",
+      "input": [
+        "exon_abundance.tsv (exon-centric quantification data frame)",
+        "gene_cls_model.rds (trained SVM model list from gene-centric workflow)",
+        "gene_cls_output.tsv (gene-centric classification output)"
+      ],
+      "stages": "1. Extract trained models from the gene-centric classification ;; 2. Predict probabilities for exon-centric data ;; 3. Apply compartment thresholds ;; 4. Apply neighborhood thresholds ;; 5. Merge classifications ;; 6. Compare gene-centric and exon-centric classifications to detect deviations",
+      "code": "modelA <- cls[[1]]$model\nmodelB <- cls[[2]]$model\nexon.cls <- svmExternalData(df = hcc827exon, modelA = modelA, modelB= modelB)\nexon.A <- exon.cls[[1]]\nexon.B <- exon.cls[[2]]\nexon.comp.cls <- applyThresholdCompartment(all.repA = exon.A[,2:17], \n                                    all.repB = exon.B[,2:17],\n                                    threshold.df = t.c.df)\nexon.neigh.cls <- applyThresholdNeighborhood(all.repA = exon.A[,2:17], \n                                    all.repB = exon.B[,2:17], \n                                    threshold.df = t.n.df)\nexon.cls.df <- mergeCls(compartmentCls = exon.comp.cls, \n                        neighborhoodCls = exon.neigh.cls)\nexon.cls.df <- exon.cls.df[rownames(exon.A),]\nexon.cls.df$GeneSymbol <- exon.A$Gene_Symbol\nexon.cls.df$PeptideCount <- hcc827exon$PeptideCount\ncomp.df <- compareCls(geneCls = cls.df, exonCls = exon.cls.df)"
+    }
+  ]
+}

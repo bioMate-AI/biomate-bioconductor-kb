@@ -1,0 +1,15 @@
+{
+  "package": "isee",
+  "requirements": [
+    "SummarizedExperiment",
+    "iSEE",
+    "viridis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "iSEE",
+      "viridis"
+    ]
+  }
+}

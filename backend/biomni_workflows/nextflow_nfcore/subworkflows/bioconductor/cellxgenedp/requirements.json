@@ -1,0 +1,17 @@
+{
+  "package": "cellxgenedp",
+  "requirements": [
+    "SingleCellExperiment",
+    "cellxgenedp",
+    "dplyr",
+    "zellkonverter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "cellxgenedp",
+      "dplyr",
+      "zellkonverter"
+    ]
+  }
+}

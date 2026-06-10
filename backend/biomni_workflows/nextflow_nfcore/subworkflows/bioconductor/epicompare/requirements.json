@@ -1,0 +1,17 @@
+{
+  "package": "epicompare",
+  "requirements": [
+    "EpiCompare",
+    "GenomicRanges",
+    "IRanges",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EpiCompare",
+      "GenomicRanges",
+      "IRanges",
+      "ggplot2"
+    ]
+  }
+}

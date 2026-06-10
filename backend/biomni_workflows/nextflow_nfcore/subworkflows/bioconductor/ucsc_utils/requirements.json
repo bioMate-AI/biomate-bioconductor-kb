@@ -1,0 +1,21 @@
+{
+  "package": "ucsc_utils",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "UCSC.utils",
+    "ucsc_utils"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "UCSC.utils",
+      "ucsc_utils"
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <type=the format of taxonomic classification output (\"extended\" or \"brief\") ;; strand=the strand to search for taxonomic classification (\"top\" or \"both\") ;; threshold=the confidence threshold for taxonomic assignment ;; minCoverage=the minimum coverage of a tile/primer/probe within a target group ;; minGroupCoverage=the minimum coverage of a tile/primer/probe across all sequences in the group ;; maxPermutations=the maximum number of probe permutations allowed per target site>\n- alternatives: <None mentioned in the documentation, though the package supports multiple sequence input types such as DNAStringSet, RNAStringSet, and AAStringSet depending on the biological molecule.>\n- when_to_use: <Use when you need to train a custom taxonomic classifier on reference sequences, classify query marker gene sequences, design highly specific FISH probes or PCR primers for target taxonomic groups, or design and analyze oligonucleotide microarrays.>\n- pitfalls: <Ensure all sequences are in the same orientation using OrientNucleotides before training a classifier. Gaps must be removed from sequences using RemoveGaps before classification. Problem sequences in the training set can degrade classifier performance and should be iteratively identified and removed using LearnTaxa's output.>",
+  "workflows": [
+    {
+      "name": "taxonomic_classification",
+      "intent": "Train a taxonomic classifier on reference sequences and classify query sequences (DNA or Amino Acids).",
+      "input": [
+        "seqs_path (FASTA file of training sequences)",
+        "rank_path (optional taxid text file containing taxonomic ranks)",
+        "fas (FASTA file of query sequences to classify)"
+      ],
+      "stages": "1. Read training sequences and optional taxid file ;; 2. Remove gaps and orient nucleotides ;; 3. Extract taxonomic group labels ;; 4. Iteratively train the classifier using LearnTaxa and remove problem sequences ;; 5. Read and clean query sequences ;; 6. Classify query sequences using IdTaxa ;; 7. Plot and analyze taxonomic assignments",
+      "code": "seqs <- readDNAStringSet(seqs_path)\ntaxid <- read.table(rank_path,\n\theader=FALSE,\n\tcol.names=c('Index', 'Name', 'Parent', 'Level', 'Rank'),\n\tsep=\"*\", # asterisks delimited\n\tquote=\"\", # preserve quotes\n\tstringsAsFactors=FALSE)\nseqs <- RemoveGaps(seqs)\nseqs <- OrientNucleotides(seqs)\ntrainingSet <- LearnTaxa(seqs[!remove],\n\tnames(seqs)[!remove],\n\ttaxid)\ntest <- readDNAStringSet(fas)\ntest <- RemoveGaps(test)\nids <- IdTaxa(test,\n\ttrainingSet,\n\ttype=\"extended\",\n\tstrand=\"top\",\n\tthreshold=60,\n\tprocessors=1)\nplot(ids, trainingSet)"
+    },
+    {
+      "name": "fish_probe_design",
+      "intent": "Design and evaluate specific hybridization probes (FISH) targeting a taxonomic group.",
+      "input": [
+        "gb (GenBank file of sequences)",
+        "dbConn (SQLite database connection path)"
+      ],
+      "stages": "1. Import sequences into an SQLite database using Seqs2DB ;; 2. Identify taxonomic ranks using IdentifyByRank ;; 3. Generate sequence tiles using TileSeqs ;; 4. Design specific probes using DesignProbes ;; 5. Evaluate hybridization efficiency using CalculateEfficiencyFISH",
+      "code": "Seqs2DB(gb, \"GenBank\", dbConn, \"Bacteria\")\nids <- IdentifyByRank(dbConn, level=Inf, add2tbl=TRUE)\ntiles <- TileSeqs(dbConn, add2tbl=\"Tiles\")\nprobes <- DesignProbes(tiles, identifier=\"Sphingopyxis\",\n\tstart=120, end=1450)\nefficiency <- CalculateEfficiencyFISH(probe, targets,\n\t\ttemp=46, P=250e-9, ions=1, FA)"
+    },
+    {
+      "name": "pcr_primer_design",
+      "intent": "Design specific PCR primers targeting a specific group of sequences.",
+      "input": [
+        "fas (FASTA file of aligned sequences)",
+        "dbConn (SQLite database connection path)"
+      ],
+      "stages": "1. Import sequences into an SQLite database using Seqs2DB ;; 2. Add taxonomic identifiers using Add2DB ;; 3. Generate sequence tiles using TileSeqs ;; 4. Design primers using DesignPrimers ;; 5. Evaluate PCR efficiency using CalculateEfficiencyPCR",
+      "code": "Seqs2DB(fas, \"FASTA\", dbConn, \"Streptomyces\")\nAdd2DB(data.frame(identifier=desc, stringsAsFactors=FALSE), dbConn)\ntiles <- TileSeqs(dbConn, add2tbl=\"Tiles\", minCoverage=1)\nprimers <- DesignPrimers(tiles, identifier=\"avermitilis\",\n\tminCoverage=1, minGroupCoverage=1)\nefficiency <- CalculateEfficiencyPCR(ps, reverseComplement(DNAStringSet(ps)),\n\t\ttemp, P=4e-7, ions=.225)"
+    },
+    {
+      "name": "microarray_design_and_analysis",
+      "intent": "Design microarray probes for OTUs and solve for OTU abundance using Non-Negative Least Squares (NNLS).",
+      "input": [
+        "fas (FASTA file of sequences)"
+      ],
+      "stages": "1. Read DNA sequences ;; 2. Calculate distance matrix using DistanceMatrix ;; 3. Cluster sequences using Treeline ;; 4. Generate consensus sequences for clusters using ConsensusSequence ;; 5. Design microarray probes using DesignArray ;; 6. Convert probes to a design matrix using Array2Matrix ;; 7. Solve for OTU abundance using NNLS",
+      "code": "dna <- readDNAStringSet(fas)\ndMatrix <- DistanceMatrix(dna, verbose=FALSE)\nclusters <- Treeline(myDistMatrix=dMatrix, type=\"clusters\", cutoff=0.03, method=\"complete\", verbose=FALSE)\nconSeqs <- tapply(dna, clusters$cluster, ConsensusSequence)\nconSeqs <- unlist(DNAStringSetList(conSeqs))\nprobes <- DesignArray(conSeqs, maxPermutations=2, numProbes=20,\n\tstart=120, end=1450, verbose=FALSE)\nA <- Array2Matrix(probes, verbose=FALSE)\nx_out <- NNLS(A, b, verbose=FALSE)"
+    }
+  ]
+}

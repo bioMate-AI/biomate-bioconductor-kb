@@ -1,0 +1,18 @@
+{
+  "package": "orderedlist",
+  "requirements": [
+    "Biobase",
+    "OrderedList",
+    "twilight"
+  ],
+  "by_workflow": {
+    "compare_ordered_lists.nf": [
+      "OrderedList"
+    ],
+    "main.nf": [
+      "Biobase",
+      "OrderedList",
+      "twilight"
+    ]
+  }
+}

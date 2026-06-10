@@ -1,0 +1,13 @@
+{
+  "package": "hyper",
+  "requirements": [
+    "ggplot2",
+    "hypeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "hypeR"
+    ]
+  }
+}

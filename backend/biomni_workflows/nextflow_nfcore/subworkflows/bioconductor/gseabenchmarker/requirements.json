@@ -1,0 +1,15 @@
+{
+  "package": "gseabenchmarker",
+  "requirements": [
+    "GSEABenchmarkeR",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABenchmarkeR",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

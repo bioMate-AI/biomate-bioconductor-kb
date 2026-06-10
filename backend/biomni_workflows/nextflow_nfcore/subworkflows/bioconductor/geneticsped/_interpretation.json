@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=pedigree data frame or Pedigree object ;; subject=column name for individual ID ;; ascendant=vector of column names for parents/ascendants ;; ascendantSex=vector of sexes corresponding to ascendants ;; sex=column name for individual sex ;; object=Pedigree object in model.matrix ;; y=phenotype vector ;; id=individual ID vector in model.matrix\n- alternatives: PEDIG (Fortran package for pedigree analysis in large populations) ;; Meuwissen and Luo (1992) algorithm for inbreeding coefficients ;; Sargolzaei et al. (2005) fast algorithm for inbreeding coefficients\n- when_to_use: When performing quantitative genetics analyses, specifically setting up mixed model equations (animal models) and calculating additive genetic relationship matrices or their inverses from pedigree data.\n- pitfalls: Ensure the pedigree is extended using extend() before calculating the inverse additive relationship matrix (inverseAdditive) to include all founders and ancestors without records in the matrix.",
+  "workflows": [
+    {
+      "name": "quantitative_genetics_animal_model",
+      "intent": "Set up and solve mixed model equations for an animal model using pedigree data and phenotypes.",
+      "input": [
+        "pedigree_data.csv (data frame containing individual, sire, dam, sex, and phenotype columns)"
+      ],
+      "stages": "1. Create a Pedigree object ;; 2. Generate the design matrix for random animal effects ;; 3. Extend the pedigree to include all ancestors ;; 4. Compute the inverse of the additive genetic relationship matrix ;; 5. Set up the coefficient matrix (LHS) and right-hand side (RHS) equations ;; 6. Solve the mixed model equations for breeding values and fixed effects",
+      "code": "library(GeneticsPed)\ndata(Mrode3.1)\n(x <- Pedigree(x=Mrode3.1, subject=\"calf\", ascendant=c(\"sire\", \"dam\"),\n               ascendantSex=c(\"Male\", \"Female\"), sex=\"sex\"))\n(y <- x$pwg)\nX <- model.matrix(~ x$sex - 1)\nt(X)\n(Z <- model.matrix(object=x, y=x$pwg, id=x$calf))\n(LHS <- rbind(cbind(crossprod(X),    crossprod(X, Z)),\n              cbind(crossprod(Z, X), crossprod(Z))))\nx <- extend(x)\nAinv <- inverseAdditive(x=x)\nsigma2a <- 20\nsigma2e <- 40\nalpha <- sigma2e / sigma2a\nq <- nIndividual(x)\np <- nrow(LHS) - q\n(LHS[(p + 1):(p + q), (p + 1):(p + q)] <-\n LHS[(p + 1):(p + q), (p + 1):(p + q)] + Ainv * alpha)\nRHS <- rbind(crossprod(X, y),\n             crossprod(Z, y))\nsol <- solve(LHS, RHS)\nt(sol)"
+    }
+  ]
+}

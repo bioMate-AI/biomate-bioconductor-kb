@@ -1,0 +1,11 @@
+{
+  "package": "ocplus",
+  "requirements": [
+    "OCplus"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OCplus"
+    ]
+  }
+}

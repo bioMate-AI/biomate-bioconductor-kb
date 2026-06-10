@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: BY=Logical indicating whether to compute Benjamini-Yekutieli FDR corrected p-values ;; alternative=Character string specifying the alternative hypothesis, either 'enrichment' (one-sided) or 'two.sided' ;; stepsize=Numeric value specifying the step size for sliding window overlap counts ;; plots=Logical indicating whether to generate plots during comparison ;; outputdir=Character string specifying the directory to save output files ;; labels=Character vector of length 3 specifying labels for the lists in RRHOComparison\n- alternatives: FDR (B-Y) vs FWER (permutation)=Use FDR (B-Y) control if you are concerned with the number of false i, j statements made (identifying where the overlap resides). Use FWER control (via pvalRRHO) if you are only concerned with the existence of any non-arbitrariness without claiming where it resides.\n- when_to_use: Use this package when you have two or three ranked lists of the same length (e.g., differential expression statistics from different experiments or conditions) and want to evaluate their overlap without choosing an arbitrary threshold.\n- pitfalls: The original two-sided hypothesis test algorithm proposed in Plaisier et al. (2010) does not control Type I error; the package replaces it with a simple summation of the two tails of the distribution. Permutation testing for FWER control (pvalRRHO) can be computationally intensive depending on the number of permutations.",
+  "workflows": [
+    {
+      "name": "compare_two_lists",
+      "intent": "Compare two ranked lists of genes to identify and visualize statistically significant overlap patterns with FDR and FWER corrections.",
+      "input": [
+        "gene.list1 (data frame with gene identifiers and ranking values)",
+        "gene.list2 (data frame with gene identifiers and ranking values)"
+      ],
+      "stages": "1. Compute overlap and significance using RRHO ;; 2. Visualize nominal p-values using lattice::levelplot ;; 3. Compute FWER-corrected p-values using pvalRRHO ;; 4. Plot the empirical cumulative distribution function (ECDF) of the minimum p-values ;; 5. Visualize B-Y corrected p-values using lattice::levelplot",
+      "code": "library(RRHO)\n# Create \"gene\" lists:\n  list.length <- 100\n\tlist.names <- paste('Gene',1:list.length, sep='')\n\tgene.list1<- data.frame(list.names, sample(100))\n\tgene.list2<- data.frame(list.names, sample(100))\n# Compute overlap and significance\n\tRRHO.example <-  RRHO(gene.list1, gene.list2, \n                        BY=TRUE, alternative='enrichment')\n\n# Examine Nominal (-log) pvalues\n  lattice::levelplot(RRHO.example$hypermat)\n\n# FWER corrected pvalues using 50 random permutations:\npval.testing <- pvalRRHO(RRHO.example, 50)\npval.testing$pval\n# The sampling distribution of the minimum \n# of the (-log) nominal p-values:\nxs<- seq(0, 10, length=100)\nplot(Vectorize(pval.testing$FUN.ecdf)(xs)~xs, \n     xlab='-log(pvalue)', ylab='ECDF', type='S')\n\n# Examine B-Y corrected pvalues \n# Note: probably nothing will be rejected in this \n# example as the data is generated from the null.\n  lattice::levelplot(RRHO.example$hypermat.by)"
+    },
+    {
+      "name": "compare_three_lists",
+      "intent": "Compare three ranked lists to test whether the difference between list 1 and list 3 is different from the difference between list 2 and list 3.",
+      "input": [
+        "list1 (data frame with gene identifiers and ranking values)",
+        "list2 (data frame with gene identifiers and ranking values)",
+        "list3 (data frame with gene identifiers and ranking values)"
+      ],
+      "stages": "1. Perform three-list comparison using RRHOComparison ;; 2. Visualize the standard RRHO map between list 1 and list 3 using lattice::levelplot ;; 3. Visualize the p-value of the difference using lattice::levelplot",
+      "code": "size<- 500\nlist1<- data.frame(\n  GeneIdentifier=paste('gen',1:size, sep=''), \n  RankingVal=-log(runif(size)))\nlist2<- data.frame(\n  GeneIdentifier=paste('gen',1:size, sep=''), \n  RankingVal=-log(runif(size)))\nlist3<- data.frame(\n  GeneIdentifier=paste('gen',1:size, sep=''), \n  RankingVal=-log(runif(size)))\nrrho.comparison<- RRHOComparison(list1,list2,list3,\n                stepsize=10,\n                labels=c(\"list1\",\n                         \"list2\",\n                         \"list3\"),\n                plots=FALSE,\n                outputdir=temp.dir);\n\n## The standard RRHO map between list1 and list 3.\nlattice::levelplot(rrho.comparison$hypermat1)  \n\n## The p-value of the difference between \n# (list1-list3)-(list2-list3).\nlattice::levelplot(rrho.comparison$Pdiff)"
+    }
+  ]
+}

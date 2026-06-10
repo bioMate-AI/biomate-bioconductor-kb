@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: testx, testy, testz=Data frames containing gene IDs in the first column and numeric expression levels across sections in subsequent columns, ordered left-to-right ;; mask=A 3D binary matrix (0 or 1) representing the physical shape of the sample ;; query=A character vector of gene IDs to reconstruct in estimate3dExpressions ;; genes=A character vector of candidate gene IDs to restrict the axial peak gene search in findAxialGenes\n- alternatives: Iterative proportional fitting (Fienberg, 1970) as described by Junker et al. (2014) is the primary method; no alternative computational reconstruction methods are mentioned in the package documentation.\n- when_to_use: When analyzing genome-wide Tomo-seq (RNA tomography) data sectioned along three orthogonal axes (x, y, z) to reconstruct 3D spatial expression patterns or identify genes with significant expression peaks along specific axes.\n- pitfalls: Input data frames must have gene IDs in the first column and numeric expression levels in subsequent columns ;; Section columns must be ordered strictly from left to right of the intercept for each axis ;; The mask dimensions must match the section counts of the Tomo-seq data ;; The documentation contains a typo in the Junker 2014 download function name (doadJunker2014 instead of downloadJunker2014).",
+  "workflows": [
+    {
+      "name": "reconstruct_and_visualize_3d_expression",
+      "intent": "Reconstruct 3D gene expression patterns from 3-axis Tomo-seq data and a spatial mask, then visualize the results.",
+      "input": [
+        "testx (Tomo-seq x-axis expression data frame)",
+        "testy (Tomo-seq y-axis expression data frame)",
+        "testz (Tomo-seq z-axis expression data frame)",
+        "mask (3D binary matrix representing sample shape)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Reconstruct 3D expression patterns for query genes using estimate3dExpressions ;; 3. Visualize the reconstructed 3D expression using the interactive imageViewer Shiny app",
+      "code": "library(tomoseqr)\ndata(testx, testy, testz)\ndata(mask)\ntomoObj <- estimate3dExpressions(\n    testx,\n    testy,\n    testz,\n    mask = mask,\n    query = c(\"gene1\", \"gene2\", \"gene3\")\n)\nimageViewer(tomoObj)"
+    },
+    {
+      "name": "detect_axial_peak_genes",
+      "intent": "Detect genes with significant differences in expression levels between sections along a specific axis.",
+      "input": [
+        "testx (Tomo-seq expression data frame for an axis)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Identify axial peak genes across all genes or a subset of candidate genes using findAxialGenes",
+      "code": "library(tomoseqr)\ndata(testx, testy, testz)\naxialGeneTable <- findAxialGenes(testx)\nprint(axialGeneTable)\naxialGeneTable <- findAxialGenes(testx, genes = c(\"gene1\", \"gene3\"))\nprint(axialGeneTable)"
+    }
+  ]
+}

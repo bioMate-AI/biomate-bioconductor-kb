@@ -1,113 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: simPIC
-// simPIC is a package for simulating single-cell ATAC-seq count data. It provides a user-friendly, wel
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/simPIC/inst/doc/vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("simPIC")
+// Bioconductor workflow: simPIC — pic_matrix_generation
+// Generate a Paired-Insertion Count (PIC) matrix from raw single-cell ATAC-seq files.
+// Input: singlecell.csv, peaks.bed, fragment.tsv.gz
+// Container: quay.io/biocontainers/bioconductor-simpic:1.6.0--r45hdfd78af_0
+// R packages: GenomicRanges, IRanges, simPIC
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, IRanges, simPIC
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run PIC counting to generate the PIC matrix using PIC_counting
 
 nextflow.enable.dsl = 2
 
-process BIOC_SIMPIC {
+process BIOC_SIMPIC_PIC_MATRIX_GENERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-simpic"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-simpic:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-simpic:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_simpic_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_simpic_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_simpic_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "IRanges", "simPIC")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(simPIC)
-    library(PIC_counting)
-    library(jsonlite)
-
-    # --- Parameter Customisation [] ---
-    # Key functions: newsimPICcount, setsimPICparameters, simPICget
-    sim_params <- simPIC::newsimPICcount()
-    sim_params <- simPIC::setsimPICparameters(
-        sim_params,
-        update = list(nPeaks = 5000, nCells = 300)
-    )
-    n_peaks <- simPIC::simPICget(sim_params, "nPeaks")
-
-
-    # --- Single-Cell Peak Simulation [] ---
-    # Key functions: simPICsimulate
-    simulated_data <- simPIC::simPICsimulate(
-        est_params,
-        nCells = 500
-    )
-    sim_counts <- SingleCellExperiment::counts(simulated_data)
-
-
-    # --- Simulation Comparison [] ---
-    # Key functions: simPICcompare
-    sim1 <- simPIC::simPICsimulate(nPeaks = 1000, nCells = 100)
-    sim2 <- simPIC::simPICsimulate(nPeaks = 1000, nCells = 100)
-    comparison <- simPIC::simPICcompare(
-        list(real = sim1, simPIC = sim2)
-    )
-    mean_plot <- comparison$Plots$Means
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_simpic_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_simpic_results.csv")
+    library(GenomicRanges)
+    
+    # Define input file paths as specified by the user
+    cells_file <- "singlecell.csv"
+    peaks_file <- "peaks.bed"
+    fragment_tsv_gz_file_location <- "fragment.tsv.gz"
+    
+    # Verify that the required input files exist
+    if (!file.exists(cells_file)) {
+        stop(paste("Required input file missing:", cells_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_simpic_output.rds")
+    if (!file.exists(peaks_file)) {
+        stop(paste("Required input file missing:", peaks_file))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SIMPIC:", paste0("    simpic: ", packageVersion("simPIC"))),
-        "versions.yml"
+    if (!file.exists(fragment_tsv_gz_file_location)) {
+        stop(paste("Required input file missing:", fragment_tsv_gz_file_location))
+    }
+    
+    # 1. Read cell barcodes and metadata
+    # Typically, cells can be represented as a data frame or a vector of barcodes.
+    # We read the CSV file directly.
+    cells <- read.csv(cells_file, stringsAsFactors = FALSE)
+    
+    # 2. Read peak regions and convert to a GRanges object
+    # BED files are tab-separated with chromosome, start, and end in the first three columns.
+    peaks_df <- read.table(peaks_file, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+    colnames(peaks_df)[1:3] <- c("chrom", "start", "end")
+    
+    peak_sets <- GenomicRanges::GRanges(
+        seqnames = peaks_df\$chrom,
+        ranges = IRanges::IRanges(start = peaks_df\$start, end = peaks_df\$end)
     )
+    
+    # 3. Run PIC counting to generate the PIC matrix
+    message("Running PIC_counting to generate the Paired-Insertion Count (PIC) matrix...")
+    pic_mat <- PIC_counting(
+        cells = cells,
+        fragment_tsv_gz_file_location = fragment_tsv_gz_file_location,
+        peak_sets = peak_sets
+    )
+    
+    # 4. Save the resulting PIC matrix and write outputs
+    output_rds <- "pic_matrix.rds"
+    saveRDS(pic_mat, file = output_rds)
+    message(paste("Successfully saved PIC matrix to", output_rds))
+    
+    # Write a quick summary log of the generated matrix
+    output_summary <- "pic_matrix_summary.txt"
+    sink(output_summary)
+    cat("=== PIC Matrix Summary ===\n")
+    cat("Dimensions:\n")
+    print(dim(pic_mat))
+    cat("\nClass:\n")
+    print(class(pic_mat))
+    sink()
+    message(paste("Summary written to", output_summary))
+
+    writeLines(c(
+        '"BIOC_SIMPIC_PIC_MATRIX_GENERATION":',
+        paste0('    simPIC: ', as.character(packageVersion('simPIC')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_simpic_results.csv
-    touch ${prefix}_simpic_output.rds
-    echo "BIOC_SIMPIC:" > versions.yml
-    echo "    simpic: 0.0.0" >> versions.yml
+    touch ${prefix}_pic_matrix_generation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SIMPIC_WORKFLOW {
+workflow BIOC_SIMPIC_PIC_MATRIX_GENERATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ singlecell.csv, peaks.bed, fragment.tsv.gz ] ]
 
     main:
-    BIOC_SIMPIC(ch_input)
+    BIOC_SIMPIC_PIC_MATRIX_GENERATION(ch_input)
 
     emit:
-    results  = BIOC_SIMPIC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SIMPIC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SIMPIC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SIMPIC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SIMPIC_PIC_MATRIX_GENERATION.out.tables
+    plots    = BIOC_SIMPIC_PIC_MATRIX_GENERATION.out.plots
+    objects  = BIOC_SIMPIC_PIC_MATRIX_GENERATION.out.objects
+    versions = BIOC_SIMPIC_PIC_MATRIX_GENERATION.out.versions
 }

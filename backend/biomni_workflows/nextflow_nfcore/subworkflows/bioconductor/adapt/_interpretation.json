@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: input_data=Required phyloseq object containing a count matrix and sample metadata ;; cond.var=Required variable name in metadata representing the condition to test (binary or continuous) ;; base.cond=Baseline group to compare against, required if the condition variable is categorical ;; adj.var=Optional vector of covariate names to adjust for ;; censor=Value to censor zero counts at, defaults to 1 ;; prev.filter=Prevalence threshold for filtering out rare taxa, defaults to 0.05 ;; depth.filter=Sequencing depth threshold for filtering out low-read samples, defaults to 1000 ;; alpha=Significance cutoff for Benjamini-Hochberg adjusted p-values, defaults to 0.05 ;; select=Filter summary results by \"all\", \"da\" (differentially abundant), or \"ref\" (reference taxa) ;; n.label=Number of top significant points to label in the volcano plot, defaults to 5\n- alternatives: None explicitly named; the documentation only refers generally to \"other DAA methods\" which struggle with excessive zeros and compositionality.\n- when_to_use: Use when performing differential abundance analysis on microbiome metagenomics count data (such as 16S rRNA or shotgun metagenomics) formatted as a phyloseq object, particularly when addressing excessive zeros and compositional effects.\n- pitfalls: If the condition variable has more than two groups, the user must specify a single baseline group (base.cond) to compare against all others. The input phyloseq object must contain both a count table and sample metadata.",
+  "workflows": [
+    {
+      "name": "microbiome_differential_abundance",
+      "intent": "Perform differential abundance analysis on microbiome count data using Tobit models with optional covariate adjustment, and visualize the results.",
+      "input": [
+        "phyloseq_object (phyloseq object containing a count matrix and sample metadata)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Run the differential abundance analysis with or without covariate adjustment using adapt() ;; 3. Extract and summarize the analysis results using summary() ;; 4. Visualize the differentially abundant taxa using plot()",
+      "code": "library(ADAPT)\ndata(ecc_saliva)\nsaliva_output_noadjust <- adapt(input_data=ecc_saliva, cond.var=\"CaseStatus\", base.cond=\"Control\")\nsaliva_output_adjust <- adapt(input_data=ecc_saliva, cond.var=\"CaseStatus\", base.cond=\"Control\", adj.var=\"Site\")\nDAtaxa_result <- summary(saliva_output_noadjust, select=\"da\")\nhead(DAtaxa_result)\nplot(saliva_output_noadjust, n.label=5)"
+    }
+  ]
+}

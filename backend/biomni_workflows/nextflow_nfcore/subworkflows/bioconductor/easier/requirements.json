@@ -1,0 +1,13 @@
+{
+  "package": "easier",
+  "requirements": [
+    "SummarizedExperiment",
+    "easier"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "easier"
+    ]
+  }
+}

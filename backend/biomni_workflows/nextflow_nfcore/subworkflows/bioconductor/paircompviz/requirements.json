@@ -1,0 +1,11 @@
+{
+  "package": "paircompviz",
+  "requirements": [
+    "paircompviz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "paircompviz"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "ccpromise",
+  "requirements": [
+    "Biobase",
+    "CCPROMISE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "CCPROMISE"
+    ],
+    "probe_pair_level_ccpromise.nf": [
+      "Biobase",
+      "CCPROMISE"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "package": "rgntx",
+  "requirements": [
+    "GenomicFeatures",
+    "GenomicRanges",
+    "IRanges",
+    "RgnTX",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "IRanges",
+      "RgnTX",
+      "S4Vectors"
+    ]
+  }
+}

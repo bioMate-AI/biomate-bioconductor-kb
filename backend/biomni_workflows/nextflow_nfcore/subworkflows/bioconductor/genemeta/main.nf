@@ -1,148 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GeneMeta
-// A collection of meta-analysis tools for analysing high throughput experimental data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GeneMeta/inst/doc/GeneMeta.R
-// Upstream  : RColorBrewer
-// Downstream: none
-//
-// Install: BiocManager::install("GeneMeta")
+// Bioconductor workflow: GeneMeta — manual_meta_analysis
+// Perform step-by-step meta-analysis of two-sample microarray data to calculate effect sizes, evaluate heterogeneity, and fit fixed or random effects models.
+// Input: Split1, Split2, Split1.ER, Split2.ER
+// Container: quay.io/biocontainers/bioconductor-genemeta:1.82.0--r45hdfd78af_0
+// R packages: Biobase, GeneMeta, RColorBrewer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, GeneMeta
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate effect size d for each study using getdF. 2. Adjust d values using dstar. 3. Calculate variance of adjusted d using sigm
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENEMETA {
+process BIOC_GENEMETA_MANUAL_META_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genemeta"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genemeta:1.78.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genemeta:1.78.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genemeta_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genemeta_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genemeta_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "GeneMeta", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(GeneMeta)
-    library(CountPlot)
-    library(DL)
-    library(IDRplot)
-    library(jsonlite)
-
-    # --- Data Preparation and Splitting [Biobase] ---
-    # Key functions: pData
-    data(Nevins)
-    thestatus <- Biobase::pData(Nevins)[, "ER.status"]
-    group1 <- which(thestatus == "pos")
-    group2 <- which(thestatus == "neg")
-    rrr <- c(sample(group1, floor(length(group1) / 2)),
-             sample(group2, ceiling(length(group2) / 2)))
-    Split1 <- Nevins[, rrr]
-    Split2 <- Nevins[, -rrr]
-    Split1.ER <- as.numeric(Biobase::pData(Split1)[, "ER.status"]) - 1
-    Split2.ER <- as.numeric(Biobase::pData(Split2)[, "ER.status"]) - 1
-
-    # --- Effect Size Estimation [genemeta] ---
-    # Key functions: getdF, dstar, sigmad
-    d.Split1 <- getdF(Split1, Split1.ER)
-    d.adj.Split1 <- dstar(d.Split1, length(Split1.ER))
-    var.d.adj.Split1 <- sigmad(d.adj.Split1,
-                               sum(Split1.ER == 0),
-                               sum(Split1.ER == 1))
+    library(Biobase)
+    
+    # Read user input files from the working directory
+    Split1 <- readRDS("Split1.rds")
+    Split2 <- readRDS("Split2.rds")
+    Split1.ER <- readRDS("Split1.ER.rds")
+    Split2.ER <- readRDS("Split2.ER.rds")
+    
+    # Define number of studies
+    num.studies <- 2
+    
+    # 1. Calculate effect size d for each study using getdF
+    d.Split1     <- getdF(Split1, Split1.ER)
+    
+    # 2. Adjust d values using dstar
+    d.adj.Split1    <- dstar(d.Split1, length(Split1.ER))
+    
+    # 3. Calculate variance of adjusted d using sigmad
+    var.d.adj.Spli1 <- sigmad(d.adj.Split1, sum(Split1.ER==0), sum(Split1.ER==1))
+    
+    # Repeat for Split2
     d.Split2 <- getdF(Split2, Split2.ER)
-    d.adj.Split2 <- dstar(d.Split2, length(Split2.ER))
-    var.d.adj.Split2 <- sigmad(d.adj.Split2,
-                               sum(Split2.ER == 0),
-                               sum(Split2.ER == 1))
-
-    # --- Heterogeneity Testing [genemeta] ---
-    # Key functions: f.Q
-    mymns <- cbind(d.adj.Split1, d.adj.Split2)
-    myvars <- cbind(var.d.adj.Split1, var.d.adj.Split2)
-    my.Q <- f.Q(mymns, myvars)
-
-    # --- Fixed and Random Effects Modeling [genemeta] ---
-    # Key functions: mu.tau2, var.tau2, tau2.DL
-    muFEM <- mu.tau2(mymns, myvars)
-    sdFEM <- var.tau2(myvars)
-    ZFEM <- muFEM / sqrt(sdFEM)
-    my.tau2.DL <- tau2.DL(my.Q, 2, my.weights = 1 / myvars)
+    d.adj.Split2     <- dstar(d.Split2, length(Split2.ER))
+    var.d.adj.Split2 <- sigmad(d.adj.Split2, sum(Split2.ER==0), sum(Split2.ER==1))
+    
+    # Combine means and variances
+    mymns  <- cbind(d.adj.Split1, d.adj.Split2)
+    myvars <- cbind(var.d.adj.Spli1,var.d.adj.Split2)
+    
+    # 4. Compute Cochran's Q statistic using f.Q to test for heterogeneity
+    my.Q   <- f.Q(mymns, myvars)
+    
+    # 5. Fit Fixed Effects Model (FEM) using mu.tau2 and var.tau2
+    muFEM = mu.tau2(mymns, myvars)
+    sdFEM = var.tau2(myvars)
+    ZFEM = muFEM/sqrt(sdFEM)
+    
+    # 6. Estimate between-study variance tau^2 using tau2.DL and fit Random Effects Model (REM)
+    my.tau2.DL<-tau2.DL(my.Q, num.studies, my.weights=1/myvars)
     myvarsDL <- myvars + my.tau2.DL
     muREM <- mu.tau2(mymns, myvarsDL)
     varREM <- var.tau2(myvarsDL)
-    ZREM <- muREM / sqrt(varREM)
-
-    # --- Multi-study Integration and Z-Scores [genemeta] ---
-    # Key functions: zScores, IDRplot
-    esets <- list(Split1, Split2, Nevins)
-    data.ER <- as.numeric(Biobase::pData(Nevins)[, "ER.status"]) - 1
-    classes <- list(Split1.ER, Split2.ER, data.ER)
-    theScores <- zScores(esets, classes, useREM = FALSE, CombineExp = 1:2)
-    IDRplot(theScores, Combine = 1:2, colPos = "blue", colNeg = "red")
-
-    # --- False Discovery Rate and Visualization [genemeta] ---
-    # Key functions: zScoreFDR, CountPlot
-    ScoresFDR <- zScoreFDR(esets, classes, useREM = FALSE,
-                           nperm = 50, CombineExp = 1:2)
-    CountPlot(ScoresFDR, Score = "FDR", kindof = "two.sided",
-              cols = c("red", "blue", "green", "orange"),
-              main = "two sided FDR", xlab = "FDR threshold",
-              ylab = "Number of genes", CombineExp = 3)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genemeta_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genemeta_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genemeta_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENEMETA:", paste0("    genemeta: ", packageVersion("GeneMeta"))),
-        "versions.yml"
+    ZREM <- muREM/sqrt(varREM)
+    
+    # Save results to a CSV table
+    results_df <- data.frame(
+      d_adj_Split1 = d.adj.Split1,
+      var_d_adj_Split1 = var.d.adj.Spli1,
+      d_adj_Split2 = d.adj.Split2,
+      var_d_adj_Split2 = var.d.adj.Split2,
+      Q_stat = my.Q,
+      mu_FEM = muFEM,
+      sd_FEM = sdFEM,
+      Z_FEM = ZFEM,
+      tau2_DL = my.tau2.DL,
+      mu_REM = muREM,
+      var_REM = varREM,
+      Z_REM = ZREM,
+      row.names = rownames(mymns)
     )
+    write.csv(results_df, "manual_meta_analysis_results.csv", row.names = TRUE)
+    
+    # Save results as an RDS object
+    saveRDS(results_df, "manual_meta_analysis_results.rds")
+    
+    # Generate diagnostic and results plots
+    pdf("manual_meta_analysis_plots.pdf", width = 10, height = 8)
+    
+    # Plot 1: Histogram of Q
+    hist(my.Q, breaks=50, col="red", main="Histogram of Q", xlab="Q statistic")
+    
+    # Plot 2: QQ Plot of Q against Chi-square distribution
+    chisqq <- qchisq(seq(0, .9999, .001), df=num.studies-1)
+    tmp <- quantile(my.Q, seq(0, .9999, .001))
+    qqplot(chisqq, tmp, ylab="Quantiles of Sample", pch="*",
+           xlab="Quantiles of Chi square", main="QQ Plot of Q")
+    lines(chisqq, chisqq, lty="dotted", col="red")
+    
+    # Plot 3: Normal QQ Plot of ZFEM
+    qqnorm(ZFEM, pch="*", main="Normal Q-Q Plot (ZFEM)")
+    qqline(ZFEM, col="red")
+    
+    # Plot 4: Comparison of muFEM and muREM
+    plot(muFEM, muREM, pch=".", main="Comparison of muFEM and muREM", xlab="muFEM", ylab="muREM")
+    abline(0, 1, col="red")
+    
+    # Plot 5: Histogram of tau
+    hist(my.tau2.DL, col="red", breaks=50, main="Histogram of tau", xlab="tau2.DL")
+    
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_GENEMETA_MANUAL_META_ANALYSIS":',
+        paste0('    GeneMeta: ', as.character(packageVersion('GeneMeta')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genemeta_results.csv
-    touch ${prefix}_genemeta_output.rds
-    echo "BIOC_GENEMETA:" > versions.yml
-    echo "    genemeta: 0.0.0" >> versions.yml
+    touch ${prefix}_manual_meta_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENEMETA_WORKFLOW {
+workflow BIOC_GENEMETA_MANUAL_META_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Split1, Split2, Split1.ER, Split2.ER ] ]
 
     main:
-    BIOC_GENEMETA(ch_input)
+    BIOC_GENEMETA_MANUAL_META_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GENEMETA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENEMETA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENEMETA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENEMETA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENEMETA_MANUAL_META_ANALYSIS.out.tables
+    plots    = BIOC_GENEMETA_MANUAL_META_ANALYSIS.out.plots
+    objects  = BIOC_GENEMETA_MANUAL_META_ANALYSIS.out.objects
+    versions = BIOC_GENEMETA_MANUAL_META_ANALYSIS.out.versions
 }

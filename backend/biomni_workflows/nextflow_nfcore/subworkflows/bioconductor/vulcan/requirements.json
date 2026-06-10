@@ -1,0 +1,17 @@
+{
+  "package": "vulcan",
+  "requirements": [
+    "vulcan"
+  ],
+  "by_workflow": {
+    "gsea_pareto.nf": [
+      "vulcan"
+    ],
+    "main.nf": [
+      "vulcan"
+    ],
+    "rank_enrichment_analysis.nf": [
+      "vulcan"
+    ]
+  }
+}

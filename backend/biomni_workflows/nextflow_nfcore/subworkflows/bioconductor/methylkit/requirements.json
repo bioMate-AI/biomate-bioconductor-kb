@@ -1,0 +1,24 @@
+{
+  "package": "methylkit",
+  "requirements": [
+    "GenomicRanges",
+    "genomation",
+    "methylKit"
+  ],
+  "by_workflow": {
+    "large_data_tabix_db.nf": [
+      "methylKit"
+    ],
+    "main.nf": [
+      "genomation",
+      "methylKit"
+    ],
+    "methylation_profile_segmentation.nf": [
+      "methylKit"
+    ],
+    "regional_and_tiling_analysis.nf": [
+      "GenomicRanges",
+      "methylKit"
+    ]
+  }
+}

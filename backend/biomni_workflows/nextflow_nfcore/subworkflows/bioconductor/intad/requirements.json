@@ -1,0 +1,17 @@
+{
+  "package": "intad",
+  "requirements": [
+    "GenomicRanges",
+    "InTAD"
+  ],
+  "by_workflow": {
+    "loop_based_correlation.nf": [
+      "GenomicRanges",
+      "InTAD"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "InTAD"
+    ]
+  }
+}

@@ -1,103 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: peco
-// Our approach provides a way to assign continuous cell cycle phase using scRNA-seq data, and conseque
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/peco/inst/doc/vignette.html
-// Upstream  : SingleCellExperiment, devtools, doParallel, foreach
-// Downstream: none
-//
-// Install: BiocManager::install("peco")
+// Bioconductor workflow: peco — peco_reconstruct_insample
+// Reconstruct continuous cell cycle phases de novo from scRNA-seq data using PCA, circle projection, and in-sample non-parametric regression.
+// Input: counts.csv, coldata.csv
+// Container: 1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, SummarizedExperiment, peco
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PECO {
+process BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-peco"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-peco:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-peco:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_peco_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_peco_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_peco_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
     library(peco)
-    library(jsonlite)
-
-    # --- Cell Cycle Phase Prediction [] ---
-    # Key functions: cycle_npreg_outsample
-    pred_top101genes <- cycle_npreg_outsample(
-        Y_test = sce_transformed,
-        sigma_est = training_human$sigma[rownames(sce_transformed), ],
-        funs_est = training_human$cellcycle_function[rownames(sce_transformed)],
-        method.trend = "trendfilter"
-    )
-
-
-    # --- Cyclical Model Fitting [] ---
-    # Key functions: fit_cyclical_many
-    theta_predict <- colData(pred_top101genes$Y)$cellcycle_peco
-    yy_input <- assay(pred_top101genes$Y, "cpm_quantNormed")[1:6, ]
-    fit_results <- fit_cyclical_many(
-        Y = yy_input,
-        theta = theta_predict
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_peco_results.csv", row.names = TRUE)
+    
+    # 1. Load input data
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+        stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    if (!"gene_id" %in% colnames(counts_df)) {
+        colnames(counts_df)[1] <- "gene_id"
+    }
+    rownames(counts_df) <- counts_df\$gene_id
+    counts_matrix <- as.matrix(counts_df[, -which(colnames(counts_df) == "gene_id"), drop = FALSE])
+    
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    if (!"sample" %in% colnames(coldata)) {
+        colnames(coldata)[1] <- "sample"
+    }
+    rownames(coldata) <- coldata\$sample
+    
+    # Align samples
+    common_samples <- intersect(colnames(counts_matrix), rownames(coldata))
+    counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Create SingleCellExperiment
+    sce <- SingleCellExperiment(assays = list(counts = counts_matrix), colData = coldata)
+    
+    # Transform expression values
+    sce <- data_transform_quantile(sce)
+    yy <- assay(sce, "cpm_quantNormed")
+    
+    # Select top 50 highly variable genes for de novo reconstruction
+    vars <- apply(yy, 1, var)
+    top_genes <- names(sort(vars, decreasing = TRUE)[1:min(50, nrow(yy))])
+    sce_sub <- sce[top_genes, ]
+    yy_sub <- yy[top_genes, ]
+    
+    # Perform PCA to get 2D coordinates
+    pca <- prcomp(t(yy_sub), scale. = TRUE)
+    coords <- pca\$x[, 1:2]
+    
+    # Project to circle to get initial theta
+    theta_init <- intensity2circle(coords)
+    names(theta_init) <- colnames(sce_sub)
+    
+    # Run in-sample training/refinement
+    fit_in <- tryCatch({
+        cycle_npreg_insample(Y_train = sce_sub, theta = theta_init, ncores = 1)
+    }, error = function(e) {
+        cycle_npreg_insample(Y = sce_sub, theta = theta_init, ncores = 1)
+    })
+    
+    # Extract refined phases
+    theta_refined <- NULL
+    if (!is.null(fit_in\$cellcycle_peco)) {
+        theta_refined <- fit_in\$cellcycle_peco
+    } else if (!is.null(fit_in\$Y) && !is.null(colData(fit_in\$Y)\$cellcycle_peco)) {
+        theta_refined <- colData(fit_in\$Y)\$cellcycle_peco
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_peco_results.csv")
+        theta_refined <- theta_init # fallback
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_peco_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PECO:", paste0("    peco: ", packageVersion("peco"))),
-        "versions.yml"
+    
+    reconstructed_df <- data.frame(
+        sample = colnames(sce_sub),
+        condition = colData(sce_sub)\$condition,
+        theta_initial = theta_init,
+        theta_refined = theta_refined,
+        stringsAsFactors = FALSE
     )
+    write.csv(reconstructed_df, "reconstructed_phases.csv", row.names = FALSE)
+    
+    # Fit cyclic trends for top 6 reconstructed genes
+    genes_to_plot <- head(top_genes, 6)
+    yy_plot <- yy[genes_to_plot, , drop = FALSE]
+    fit_cyclic <- fit_cyclical_many(Y = yy_plot, theta = theta_refined)
+    
+    # Plot reconstructed trends
+    pdf("reconstructed_trends.pdf", width = 10, height = 6)
+    par(mfrow = c(2, 3))
+    for (i in seq_along(genes_to_plot)) {
+        gene <- genes_to_plot[i]
+        plot(
+            y = yy_plot[gene, ],
+            x = fit_cyclic\$cellcycle_peco_ordered,
+            main = gene,
+            xlab = "Reconstructed Phase",
+            ylab = "Quantile Normalized Expression",
+            col = "grey",
+            pch = 16
+        )
+        points(
+            y = fit_cyclic\$cellcycle_function[[i]](seq(0, 2 * pi, length.out = 100)),
+            x = seq(0, 2 * pi, length.out = 100),
+            col = "red",
+            pch = 16,
+            cex = 0.8
+        )
+    }
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE":',
+        paste0('    peco: ', as.character(packageVersion('peco')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_peco_results.csv
-    touch ${prefix}_peco_output.rds
-    echo "BIOC_PECO:" > versions.yml
-    echo "    peco: 0.0.0" >> versions.yml
+    touch ${prefix}_peco_reconstruct_insample.csv versions.yml
     """
 }
 
-
-workflow BIOC_PECO_WORKFLOW {
+workflow BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_PECO(ch_input)
+    BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE(ch_input)
 
     emit:
-    results  = BIOC_PECO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PECO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PECO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PECO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE.out.tables
+    plots    = BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE.out.plots
+    objects  = BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE.out.objects
+    versions = BIOC_PECO_PECO_RECONSTRUCT_INSAMPLE.out.versions
 }

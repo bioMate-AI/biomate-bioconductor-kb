@@ -1,133 +1,262 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iCARE
-// An R package to build, validate and apply absolute risk models
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iCARE/inst/doc/vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("iCARE")
+// Bioconductor workflow: iCARE — absolute_risk_estimation
+// Estimate absolute risk of disease over a specified age interval using SNP profiles and/or classical risk factor profiles.
+// Input: model.snp.info, model.disease.incidence.rates, model.competing.incidence.rates, apply.snp.profile, apply.cov.profile, model.ref.dataset
+// Container: quay.io/biocontainers/bioconductor-icare:1.38.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: iCARE
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute absolute risk using computeAbsoluteRisk with SNP-only data (with or without individual profiles)
+//  * 2. [Core Analysis] Compute absolute risk using computeAbsoluteRisk with combined SNP and classical risk factor data
+//  * 3. [Visualization & Output] Summarize and plot risk distributions
 
 nextflow.enable.dsl = 2
 
-process BIOC_ICARE {
+process BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-icare"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-icare:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-icare:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_icare_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_icare_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_icare_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(iCARE)
-    library(jsonlite)
-
-    # --- Absolute Risk Estimation with Split Intervals [] ---
-    # Key functions: computeAbsoluteRiskSplitInterval
-    cov_info <- list(
-        list(name = "age", type = "continuous"),
-        list(name = "bmi", type = "continuous")
-    )
-    snp_info <- data.frame(
-        snp.name = c("rs1", "rs2"),
-        or = c(1.2, 1.1),
-        freq = c(0.2, 0.3)
-    )
-    res_split <- computeAbsoluteRiskSplitInterval(
-        model.formula = disease ~ age + bmi,
-        model.cov.info = cov_info,
-        model.snp.info = snp_info,
-        model.log.or = c(0.1, 0.2),
-        model.ref.dataset = data.frame(age = c(30, 40), bmi = c(22, 25)),
-        model.disease.incidence.rates = data.frame(
-            age = c(30, 40), rate = c(0.001, 0.002)
-        ),
-        model.competing.incidence.rates = data.frame(
-            age = c(30, 40), rate = c(0.0005, 0.001)
-        ),
-        apply.age.start = 30,
-        apply.age.interval.length = 20,
-        apply.cov.profile = data.frame(age = c(35), bmi = c(24)),
-        apply.snp.profile = data.frame(rs1 = c(1), rs2 = c(0)),
-        interval.cutpoints = c(30, 40, 50)
-    )
-
-
-    # --- Model Validation [] ---
-    # Key functions: modelValidation
-    val_data <- data.frame(
-        disease = c(1, 0, 1, 0),
-        age_start = c(30, 35, 40, 45),
-        age_end = c(50, 55, 60, 65),
-        follow_up = c(20, 20, 20, 20)
-    )
-    pred_risk <- c(0.05, 0.02, 0.08, 0.01)
-    validation_results <- modelValidation(
-        study.data = val_data,
-        outcome.name = "disease",
-        risk.prediction = pred_risk,
-        follow.up.time = "follow_up",
-        age.start = "age_start",
-        age.end = "age_end"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_icare_results.csv", row.names = TRUE)
+    
+    # Helper function to robustly read input files of various formats (RDS, CSV, TSV)
+    read_input <- function(file_path) {
+      if (!file.exists(file_path)) {
+        stop(paste("Error: Required file", file_path, "does not exist in the working directory."))
+      }
+      
+      # Try reading as RDS
+      res <- tryCatch({
+        readRDS(file_path)
+      }, error = function(e) {
+        NULL
+      })
+      if (!is.null(res)) return(res)
+      
+      # Try reading as CSV
+      res <- tryCatch({
+        read.csv(file_path, stringsAsFactors = FALSE)
+      }, error = function(e) {
+        NULL
+      })
+      if (!is.null(res)) return(res)
+      
+      # Try reading as table (TSV/space-separated)
+      res <- tryCatch({
+        read.table(file_path, header = TRUE, stringsAsFactors = FALSE)
+      }, error = function(e) {
+        NULL
+      })
+      if (!is.null(res)) return(res)
+      
+      stop(paste("Error: Failed to read file", file_path))
+    }
+    
+    # ----------------------------------------------------------------------
+    # 1. Load User Input Files
+    # ----------------------------------------------------------------------
+    
+    bc_72_snps <- read_input("model.snp.info")
+    bc_inc <- read_input("model.disease.incidence.rates")
+    mort_inc <- read_input("model.competing.incidence.rates")
+    new_snp_prof <- read_input("apply.snp.profile")
+    new_cov_prof <- read_input("apply.cov.profile")
+    ref_cov_dat_raw <- read_input("model.ref.dataset")
+    
+    # Ensure incidence rates are in matrix format as required by iCARE
+    if (is.data.frame(bc_inc)) {
+      bc_inc <- as.matrix(bc_inc)
+    }
+    if (is.data.frame(mort_inc)) {
+      mort_inc <- as.matrix(mort_inc)
+    }
+    
+    # Check for optional but necessary covariate model files if not bundled in model.ref.dataset
+    bc_model_formula <- NULL
+    if (file.exists("model.formula")) {
+      bc_model_formula <- read_input("model.formula")
+    }
+    bc_model_cov_info <- NULL
+    if (file.exists("model.cov.info")) {
+      bc_model_cov_info <- read_input("model.cov.info")
+    }
+    bc_model_log_or <- NULL
+    if (file.exists("model.log.RR")) {
+      bc_model_log_or <- read_input("model.log.RR")
+    }
+    
+    # If model.ref.dataset is a list containing the model structures, extract them
+    if (is.list(ref_cov_dat_raw) && !is.data.frame(ref_cov_dat_raw)) {
+      ref_cov_dat <- ref_cov_dat_raw\$ref_cov_dat
+      if (is.null(bc_model_cov_info)) bc_model_cov_info <- ref_cov_dat_raw\$bc_model_cov_info
+      if (is.null(bc_model_log_or)) bc_model_log_or <- ref_cov_dat_raw\$bc_model_log_or
+      if (is.null(bc_model_formula)) bc_model_formula <- ref_cov_dat_raw\$bc_model_formula
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_icare_results.csv")
+      ref_cov_dat <- ref_cov_dat_raw
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_icare_output.rds")
+    
+    # Ensure formula is of class 'formula'
+    if (!is.null(bc_model_formula) && is.character(bc_model_formula)) {
+      bc_model_formula <- as.formula(bc_model_formula)
     }
+    
+    # Set seed for reproducibility of SNP imputation
+    set.seed(50)
+    
+    # ----------------------------------------------------------------------
+    # 2. Compute Absolute Risk (SNP-only, without individual profiles)
+    # ----------------------------------------------------------------------
+    
+    res_snps_miss = computeAbsoluteRisk(model.snp.info = bc_72_snps, 
+                          model.disease.incidence.rates = bc_inc,
+                          model.competing.incidence.rates = mort_inc, 
+                          apply.age.start = 50, 
+                          apply.age.interval.length = 30,
+                          return.refs.risk=TRUE)
+    
+    # ----------------------------------------------------------------------
+    # 3. Compute Absolute Risk (SNP-only, with individual profiles)
+    # ----------------------------------------------------------------------
+    
+    res_snps_dat = computeAbsoluteRisk(model.snp.info = bc_72_snps, 
+                                    model.disease.incidence.rates = bc_inc,
+                                    model.competing.incidence.rates = mort_inc, 
+                                    apply.age.start = 50, 
+                                    apply.age.interval.length = 30, 
+                                    apply.snp.profile = new_snp_prof, 
+                                    return.refs.risk = TRUE)
+    
+    # ----------------------------------------------------------------------
+    # 4. Compute Absolute Risk (Combined SNP and Classical Risk Factors)
+    # ----------------------------------------------------------------------
+    
+    res_covs_snps = computeAbsoluteRisk(model.formula=bc_model_formula, 
+                                             model.cov.info=bc_model_cov_info,
+                                             model.snp.info=bc_72_snps,
+                                             model.log.RR=bc_model_log_or,
+                                             model.ref.dataset=ref_cov_dat,
+                                             model.disease.incidence.rates=bc_inc,
+                                             model.competing.incidence.rates=mort_inc, 
+                                             model.bin.fh.name="famhist",
+                                             apply.age.start=50, 
+                                             apply.age.interval.length=30,
+                                             apply.cov.profile=new_cov_prof,
+                                             apply.snp.profile=new_snp_prof, 
+                                             return.refs.risk=TRUE)
+    
+    # ----------------------------------------------------------------------
+    # 5. Summarize and Plot Risk Distributions
+    # ----------------------------------------------------------------------
+    
+    # Print summaries to standard output
+    cat("=== Summary of SNP-only Risk (Missing Profiles) ===\n")
+    print(summary(res_snps_miss\$risk))
+    cat("\n=== Summary of SNP-only Referent Risk (Missing Profiles) ===\n")
+    print(summary(res_snps_miss\$refs.risk))
+    
+    cat("\n=== Summary of SNP-only Referent Risk (With Profiles) ===\n")
+    print(summary(res_snps_dat\$refs.risk))
+    
+    cat("\n=== Details of Combined Covariate and SNP Risk Model ===\n")
+    print(res_covs_snps\$details)
+    
+    # Generate PDF plots
+    pdf("absolute_risk_plots.pdf", width = 8, height = 6)
+    
+    # Plot 1: SNP-only Risk Stratification (Missing Profiles)
+    plot(density(res_snps_miss\$risk), lwd=2, 
+         main="SNP-only Risk Stratification: Ages 50-80", 
+         xlab="Absolute Risk of Breast Cancer")
+    
+    # Plot 2: Referent SNP-only Risk Distribution (With Profiles)
+    plot(density(res_snps_dat\$refs.risk), lwd=2, 
+         main="Referent SNP-only Risk Distribution: Ages 50-80",
+         xlab="Absolute Risk of Breast Cancer")
+    abline(v=res_snps_dat\$risk, col="red")
+    legend("topright", legend="New Profiles", col="red", lwd=1)
+    
+    # Plot 3: Referent SNP-only Risk Distribution (Alternative limits)
+    plot(density(res_snps_dat\$refs.risk),
+         xlim = c(0.04, 0.18), xlab = "Absolute Risk of Breast Cancer",
+         main = "Referent SNP-only Risk Distribution: Ages 50-80 years")
+    abline(v = res_snps_dat\$risk, col = "red")
+    legend("topright", legend = "New profiles", col = "red", lwd = 1)
+    
+    dev.off()
+    
+    # ----------------------------------------------------------------------
+    # 6. Save Outputs to Disk
+    # ----------------------------------------------------------------------
+    
+    # Save RDS objects of the full results
+    saveRDS(res_snps_miss, "res_snps_miss.rds")
+    saveRDS(res_snps_dat, "res_snps_dat.rds")
+    saveRDS(res_covs_snps, "res_covs_snps.rds")
+    
+    # Save CSV tables of the risk estimates and details
+    write.csv(data.frame(Risk_Estimate = res_snps_miss\$risk), "risk_estimates_snps_miss.csv", row.names = FALSE)
+    write.csv(data.frame(Referent_Risk = res_snps_miss\$refs.risk), "referent_risks_snps_miss.csv", row.names = FALSE)
+    write.csv(data.frame(Risk_Estimate = res_snps_dat\$risk), "risk_estimates_snps_dat.csv", row.names = FALSE)
+    write.csv(res_covs_snps\$details, "risk_details_covs_snps.csv", row.names = FALSE)
+    
+    cat("\nPipeline completed successfully. Outputs written to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ICARE:", paste0("    icare: ", packageVersion("iCARE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION":',
+        paste0('    iCARE: ', as.character(packageVersion('iCARE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_icare_results.csv
-    touch ${prefix}_icare_output.rds
-    echo "BIOC_ICARE:" > versions.yml
-    echo "    icare: 0.0.0" >> versions.yml
+    touch ${prefix}_absolute_risk_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_ICARE_WORKFLOW {
+workflow BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ model.snp.info, model.disease.incidence.rates, model.competing.incidence.rates, apply.snp.profile, apply.cov.profile, model.ref.dataset ] ]
 
     main:
-    BIOC_ICARE(ch_input)
+    BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_ICARE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ICARE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ICARE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ICARE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION.out.tables
+    plots    = BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION.out.plots
+    objects  = BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION.out.objects
+    versions = BIOC_ICARE_ABSOLUTE_RISK_ESTIMATION.out.versions
 }

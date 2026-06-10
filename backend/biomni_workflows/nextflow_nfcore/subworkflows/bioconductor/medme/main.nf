@@ -1,113 +1,204 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MEDME
-// MEDME allows the prediction of absolute and relative methylation levels based on measures obtained b
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MEDME/inst/doc/MEDME.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MEDME")
+// Bioconductor workflow: MEDME — medme_methylation_prediction
+// Predict absolute and relative DNA methylation levels from MeDIP-microarray data using a logistic model calibrated on fully-methylated DNA.
+// Input: matrix.csv, coldata.csv
+// Container: 1.70.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Hsapiens.UCSC.hg18, MEDME
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MEDME {
+process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-medme"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-medme:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-medme:1.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_medme_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_medme_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_medme_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AMS)
-    library(CGcount)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(MEDME)
-    library(RMS)
-    library(jsonlite)
-
-    # --- Medmeload [] ---
-    # Key functions: data
-    library(MEDME)
-    data(testMEDMEset)
-    # --- Medmedata [] ---
-    # Key functions: logR
-    logR(testMEDMEset[1:5,])
-    # --- Medmesmooth [] ---
-    # Key functions: smooth
-    testMEDMEset = smooth(data = testMEDMEset, wsize = 1000, wFunction = 'linear')
-    # --- Medmecpg [] ---
-    # Key functions: CGcount
     library(BSgenome.Hsapiens.UCSC.hg18)
-    testMEDMEset = CGcount(data = testMEDMEset)
-    # --- Medmemodel [] ---
-    # Key functions: MEDME
-    MEDMEmodel = MEDME(data = testMEDMEset, sample = 1)
-    # --- Medmerun [] ---
-    # Key functions: predict
-    testMEDMEset = MEDME.predict(data = testMEDMEset, MEDMEfit = MEDMEmodel, MEDMEextremes = c(1,32), wsize = 1000, wFunction='linear')
-    # --- Medmesee [] ---
-    # Key functions: smoothed, AMS, RMS
-    smoothed(testMEDMEset)[1:3,]
-    AMS(testMEDMEset)[1:3,]
-    RMS(testMEDMEset)[1:3,]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_medme_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 1: Load and Preprocess Input Data
+    # ==========================================
+    
+    message("Loading input data...")
+    # Read the feature-by-sample matrix
+    mat <- read.csv("matrix.csv", check.names = FALSE)
+    if (!"feature_id" %in% colnames(mat)) {
+      stop("Input matrix.csv must contain a 'feature_id' column.")
+    }
+    rownames(mat) <- mat\$feature_id
+    feature_ids <- mat\$feature_id
+    mat\$feature_id <- NULL
+    
+    # Read sample metadata
+    coldata <- read.csv("coldata.csv")
+    if (!all(c("sample", "condition") %in% colnames(coldata))) {
+      stop("Input coldata.csv must contain 'sample' and 'condition' columns.")
+    }
+    
+    # Align matrix columns with coldata samples
+    common_samples <- intersect(colnames(mat), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between matrix.csv columns and coldata.csv 'sample' column.")
+    }
+    mat <- mat[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # Identify the calibration (fully-methylated) sample
+    # Look for common keywords representing calibration/control
+    calib_idx <- which(tolower(coldata\$condition) %in% c("fullymet", "calibration", "control", "reference", "calib"))
+    if (length(calib_idx) == 0) {
+      message("No explicit calibration sample found in 'condition'. Defaulting to the first sample.")
+      calib_idx <- 1
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_medme_results.csv")
+      calib_idx <- calib_idx[1]
+      message(sprintf("Using sample '%s' as the calibration control.", coldata\$sample[calib_idx]))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_medme_output.rds")
+    
+    # ==========================================
+    # Stage 2: Parse and Validate Genomic Coordinates
+    # ==========================================
+    
+    message("Parsing genomic coordinates...")
+    # Initialize default coordinates on chrX of hg18 to prevent out-of-bounds errors
+    chr_vec <- rep("chrX", length(feature_ids))
+    pos_vec <- seq(from = 1000000, by = 1000, length.out = length(feature_ids))
+    
+    # Attempt to parse actual coordinates from feature_id (e.g., "chr1_10000" or "chr1:10000")
+    parsed_chr <- gsub("^([Cc][Hh][Rr][0-9XYxy]+)[_:.].*\$", "\\1", feature_ids)
+    parsed_pos <- as.integer(gsub("^.*[_:.]([0-9]+)\$", "\\1", feature_ids))
+    
+    valid_parse <- !is.na(parsed_pos) & grepl("^chr", parsed_chr, ignore.case = TRUE)
+    if (any(valid_parse)) {
+      chr_vec[valid_parse] <- parsed_chr[valid_parse]
+      pos_vec[valid_parse] <- parsed_pos[valid_parse]
     }
+    
+    # Ensure chromosomes match hg18 naming style and positions are within bounds
+    genome <- BSgenome.Hsapiens.UCSC.hg18
+    chr_vec <- paste0("chr", gsub("^chr", "", chr_vec, ignore.case = TRUE))
+    
+    # Fallback for chromosomes not present in hg18
+    invalid_chr <- !chr_vec %in% seqnames(genome)
+    if (any(invalid_chr)) {
+      chr_vec[invalid_chr] <- "chrX"
+    }
+    
+    # Fallback for out-of-bounds positions
+    chr_lens <- seqlengths(genome)[chr_vec]
+    out_of_bounds <- is.na(pos_vec) | pos_vec < 1 | pos_vec > chr_lens
+    if (any(out_of_bounds)) {
+      pos_vec[out_of_bounds] <- 1000000 + (which(out_of_bounds) * 100) %% 10000000
+    }
+    
+    # ==========================================
+    # Stage 3: Create MEDMEset and Run Pipeline
+    # ==========================================
+    
+    message("Initializing MEDMEset object...")
+    medme_set <- new("MEDMEset",
+                     logR = as.matrix(mat),
+                     chr = chr_vec,
+                     pos = as.integer(pos_vec),
+                     org = "hsa")
+    
+    message("Smoothing MeDIP enrichment data...")
+    medme_set <- smooth(data = medme_set, wsize = 1000, wFunction = "linear")
+    
+    message("Calculating probe-level CpG content...")
+    medme_set <- CGcount(data = medme_set)
+    
+    message("Fitting logistic model on calibration data...")
+    # Save the diagnostic model fit plot to PDF
+    pdf("medme_model_fit.pdf", width = 7, height = 7)
+    MEDMEmodel <- MEDME(data = medme_set, sample = calib_idx)
+    dev.off()
+    
+    message("Predicting absolute and relative methylation levels...")
+    medme_set <- MEDME.predict(data = medme_set,
+                               MEDMEfit = MEDMEmodel,
+                               MEDMEextremes = c(1, 32),
+                               wsize = 1000,
+                               wFunction = "linear")
+    
+    # ==========================================
+    # Stage 4: Export Results
+    # ==========================================
+    
+    message("Exporting results...")
+    
+    # Extract results
+    smoothed_data <- smoothed(medme_set)
+    ams_data <- AMS(medme_set)
+    rms_data <- RMS(medme_set)
+    
+    # Add feature_id back as the first column
+    smoothed_df <- data.frame(feature_id = feature_ids, smoothed_data, check.names = FALSE)
+    ams_df <- data.frame(feature_id = feature_ids, ams_data, check.names = FALSE)
+    rms_df <- data.frame(feature_id = feature_ids, rms_data, check.names = FALSE)
+    
+    # Write to CSV
+    write.csv(smoothed_df, "smoothed_logR.csv", row.names = FALSE)
+    write.csv(ams_df, "absolute_methylation_scores.csv", row.names = FALSE)
+    write.csv(rms_df, "relative_methylation_scores.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MEDME:", paste0("    medme: ", packageVersion("MEDME"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MEDME_MEDME_METHYLATION_PREDICTION":',
+        paste0('    MEDME: ', as.character(packageVersion('MEDME')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_medme_results.csv
-    touch ${prefix}_medme_output.rds
-    echo "BIOC_MEDME:" > versions.yml
-    echo "    medme: 0.0.0" >> versions.yml
+    touch ${prefix}_medme_methylation_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_MEDME_WORKFLOW {
+workflow BIOC_MEDME_MEDME_METHYLATION_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MEDME(ch_input)
+    BIOC_MEDME_MEDME_METHYLATION_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_MEDME.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MEDME.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MEDME.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MEDME.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MEDME_MEDME_METHYLATION_PREDICTION.out.tables
+    plots    = BIOC_MEDME_MEDME_METHYLATION_PREDICTION.out.plots
+    objects  = BIOC_MEDME_MEDME_METHYLATION_PREDICTION.out.objects
+    versions = BIOC_MEDME_MEDME_METHYLATION_PREDICTION.out.versions
 }

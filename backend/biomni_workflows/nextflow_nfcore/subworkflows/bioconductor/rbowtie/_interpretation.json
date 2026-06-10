@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: references=Vector of filenames of the reference sequence in FASTA format ;; outdir=Output directory for the generated index files ;; prefix=Prefix for the generated index files ;; sequences=Filename of the file containing short reads to be aligned ;; index=Index filename prefix (minus trailing .X.ebwt) ;; outfile=Output file path for the generated alignments (typically SAM) ;; sam=Logical; if TRUE, writes hits in SAM format ;; best=Logical; if TRUE, guarantees hits are in the best stratum ;; cfg=A named list specifying SpliceMap parameters (e.g., genome_dir, reads_list1, read_format, quality_format, outfile, temp_path, bowtie_base_dir)\n- alternatives: QuasR=The documentation strongly recommends using the QuasR package instead of Rbowtie directly, as QuasR provides a simpler interface and covers the entire analysis workflow (pre-processing, alignment, and quantification).\n- when_to_use: Use when aligning short DNA or RNA-seq reads to a reference genome, or when performing de novo splice junction discovery and alignment for reads that are at least 50bp long.\n- pitfalls: SpliceMap can only be used for reads that are at least 50bp long ;; bowtie only generates ungapped alignments, so SpliceMap must be used if spliced alignments are required.",
+  "workflows": [
+    {
+      "name": "ungapped_alignment_bowtie",
+      "intent": "Build a reference genome index and align short reads to generate ungapped alignments in SAM format.",
+      "input": [
+        "refFiles (FASTA reference genome files)",
+        "readsFiles (FASTQ/FASTA short read files)"
+      ],
+      "stages": "1. Build reference index using bowtie_build ;; 2. Align short reads to the index using bowtie",
+      "code": "refFiles <- dir(system.file(package=\"Rbowtie\", \"samples\", \"refs\"), full=TRUE)\nindexDir <- file.path(tempdir(), \"refsIndex\")\ntmp <- bowtie_build(references=refFiles, outdir=indexDir, prefix=\"index\", force=TRUE)\nreadsFiles <- system.file(package=\"Rbowtie\", \"samples\", \"reads\", \"reads.fastq\")\nsamFiles <- file.path(tempdir(), \"alignments.sam\")\nbowtie(sequences=readsFiles, index=file.path(indexDir, \"index\"), outfile=samFiles, sam=TRUE, best=TRUE, force=TRUE)"
+    },
+    {
+      "name": "spliced_alignment_splicemap",
+      "intent": "Perform de novo splice junction discovery and alignment for reads >= 50bp.",
+      "input": [
+        "refDir (FASTA reference genome directory/file)",
+        "readsFiles (FASTQ/FASTA short read files)"
+      ],
+      "stages": "1. Define configuration parameters in a named list ;; 2. Run spliced alignment using SpliceMap",
+      "code": "readsFiles <- system.file(package=\"Rbowtie\", \"samples\", \"reads\", \"reads.fastq\")\nrefDir <- system.file(package=\"Rbowtie\", \"samples\", \"refs\", \"chr1.fa\")\nindexDir <- file.path(tempdir(), \"refsIndex\")\nsamFiles <- file.path(tempdir(), \"splicedAlignments.sam\")\ncfg <- list(genome_dir=refDir, reads_list1=readsFiles, read_format=\"FASTQ\", quality_format=\"phred-33\", outfile=samFiles, temp_path=tempdir(), max_intron=400000, min_intron=20000, max_multi_hit=10, seed_mismatch=1, read_mismatch=2, num_chromosome_together=2, bowtie_base_dir=file.path(indexDir, \"index\"), num_threads=4, try_hard=\"yes\", selectSingleHit=TRUE)\nres <- SpliceMap(cfg)"
+    }
+  ]
+}

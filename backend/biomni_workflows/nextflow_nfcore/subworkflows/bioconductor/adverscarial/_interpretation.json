@@ -1,0 +1,55 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exclGenes=A vector of gene names to exclude from modification (typically known marker genes) ;; advMethod=The perturbation method to apply, such as \"perc99\" (99th percentile), \"perc1\" (1st percentile), or a custom function ;; returnFirstFound=Logical; if TRUE, stops the search as soon as a successful single-gene attack is found ;; changeType=Set to \"not_na\" to force misclassification to an existing cell type rather than an undetermined/NA state ;; maxSplitSize=Maximum size of dichotomic slices for max-change search (smaller values like 1 yield better results but increase runtime) ;; argForClassif=Format of the input expression data expected by the classifier, e.g., \"data.frame\" or \"SingleCellExperiment\" ;; alpha=Step size parameter for gradient descent in advCGD ;; epsilon=Perturbation limit parameter for gradient descent in advCGD ;; walkLength=The number of steps to take in the random walk search for advRandWalkMinChange\n- alternatives: The package provides a built-in marker-based classifier (MClassifier) but is designed to integrate any custom or external classifier (such as CHETAH or scType) by wrapping them in a standardized function format.\n- when_to_use: Use this package when validating the reliability, safety, and robustness of scRNA-seq cell-type classifiers before clinical deployment or production use.\n- pitfalls: Dichotomic searches for adversarial perturbations can be computationally expensive; use returnFirstFound=TRUE or larger maxSplitSize to mitigate long runtimes. Ensure that custom classifiers are correctly wrapped to return the expected output format (prediction and odd score) and that official marker genes are excluded to keep the attacks biologically relevant.",
+  "workflows": [
+    {
+      "name": "single_gene_attack",
+      "intent": "Identify and apply a single-gene perturbation that alters the cell-type classification of a target cell cluster.",
+      "input": [
+        "counts_matrix.ext (scRNA-seq expression matrix or DelayedMatrix)",
+        "cell_annotations.ext (Vector of cell-type labels for each cell)"
+      ],
+      "stages": "1. Run a dichotomic search for single-gene attacks using advSingleGene ;; 2. Apply the identified gene modification to the expression matrix using advModifications ;; 3. Verify the successful misclassification using the classifier function",
+      "code": "genesMinChange <- advSingleGene(matPbmc, cellTypes, \"DC\", MClassifier, exclGenes = markers, advMethod = \"perc99\", returnFirstFound = TRUE, changeType = \"not_na\", firstDichot = 10)\nmatAdver <- advModifications(matPbmc, names(genesMinChange@values)[1], cellTypes, \"DC\")\nresClassif <- MClassifier(matAdver, cellTypes, \"DC\")"
+    },
+    {
+      "name": "max_change_attack",
+      "intent": "Identify and apply the maximum number of gene perturbations to a cell cluster without altering its original cell-type classification.",
+      "input": [
+        "counts_matrix.ext (scRNA-seq expression matrix or DelayedMatrix)",
+        "cell_annotations.ext (Vector of cell-type labels for each cell)"
+      ],
+      "stages": "1. Run a dichotomic search for the maximum set of modifiable genes using advMaxChange ;; 2. Apply the modifications to the expression matrix using advModifications ;; 3. Verify that the classification remains unchanged using the classifier function",
+      "code": "genesMaxChange <- advMaxChange(matPbmc, cellTypes, \"Memory CD4 T\", MClassifier, exclGenes = markers, advMethod = \"perc99\")\nmatMaxAdver <- advModifications(matPbmc, genesMaxChange@values, cellTypes, \"Memory CD4 T\")\nresClassif <- MClassifier(matMaxAdver, cellTypes, \"Memory CD4 T\")"
+    },
+    {
+      "name": "cluster_gradient_descent_attack",
+      "intent": "Apply a gradient-based Cluster Gradient Descent (CGD) attack to modify genes step-by-step until the cluster classification switches.",
+      "input": [
+        "counts_matrix.ext (scRNA-seq expression matrix or data.frame)",
+        "cell_annotations.ext (Vector of cell-type labels for each cell)"
+      ],
+      "stages": "1. Run the gradient descent attack using advCGD ;; 2. Retrieve the modified expression matrix from the results ;; 3. Verify the new classification of the modified matrix",
+      "code": "resCGD <- advCGD(as.data.frame(matPbmc), cellTypes, \"Memory CD4 T\", MClassifier, alpha=1, epsilon=1, genes=colnames(matPbmc)[ncol(matPbmc):1])\nmodifiedMatrix <- resCGD$expr\nMClassifier(modifiedMatrix, cellTypes, \"Memory CD4 T\")$prediction"
+    },
+    {
+      "name": "random_walk_minimum_change_attack",
+      "intent": "Generate a complex multi-gene minimum change attack using a random walk parameter search.",
+      "input": [
+        "sce_object.ext (SingleCellExperiment object containing logcounts and cell-type annotations)"
+      ],
+      "stages": "1. Run the random walk parameter search using advRandWalkMinChange ;; 2. Apply the selected modifications to the expression matrix using advModifications ;; 3. Verify the successful classification change using the classifier function",
+      "code": "rand_walk_min_change <- advRandWalkMinChange(test_4k, colData(test_4k)$celltypes, \"DC\", CHETAHClassifier, genes=genes_4walk, modifications=modifications, walkLength=15, argForClassif = 'SingleCellExperiment')\nmin_change_attack_rna_matrix <- advModifications(min_change_attack_rna_matrix, gene2modif, colData(test_4k)$celltypes, \"DC\", advMethod=modif, argForClassif=\"SingleCellExperiment\")\nres_classif <- CHETAHClassifier(min_change_attack_rna_matrix, colData(test_4k)$celltypes, \"DC\")"
+    },
+    {
+      "name": "vulnerability_overview",
+      "intent": "Profile and compare the vulnerability of different cell types to single-gene and max-change attacks across various modifications.",
+      "input": [
+        "counts_matrix.ext (scRNA-seq expression matrix or DelayedMatrix)",
+        "cell_annotations.ext (Vector of cell-type labels for each cell)"
+      ],
+      "stages": "1. Run single-gene attack profiling across cell types using singleGeneOverview ;; 2. Run max-change attack profiling across cell types using maxChangeOverview",
+      "code": "min_change_overview <- singleGeneOverview(matPbmc, cellTypes, MClassifier, modifications= modifications, maxSplitSize = 20, firstDichot = 5)\nmax_change_overview <- maxChangeOverview(matPbmc, cellTypes, MClassifier, modifications= modifications, maxSplitSize = 20)"
+    }
+  ]
+}

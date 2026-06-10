@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=A two-dimensional matrix of expression values where rows represent samples and columns represent features (genes) ;; y=A vector of sample labels containing only -1 and 1 ;; limit=In sigFeaturePvalue, the number of top features to evaluate ;; rankedList=In sigFeaturePvalue, the vector of ranked feature indices ;; pf=In sigFeatureFrequency, a logical parameter indicating whether to use parallel processing\n- alternatives: svmrfeFeatureRanking=Standard SVM-RFE algorithm (Guyon et al. 2002) which ranks features based solely on classification accuracy without considering differential significance. Use it when biological significance (p-values) of individual features is not a priority.\n- when_to_use: Use this package when performing binary classification on high-dimensional transcriptomics data (e.g., microarrays) and you need to identify a subset of features that are both highly predictive and biologically/statistically significant (differentially expressed) between the two classes.\n- pitfalls: Backward feature elimination is highly computationally intensive and time-consuming; users should consider pre-filtering features (e.g., using a t-test p-value threshold) or using parallel processing to reduce runtime. The input matrix x must be transposed compared to standard Bioconductor expression matrices (samples must be rows, features must be columns). Sample labels y must be strictly coded as -1 and 1.",
+  "workflows": [
+    {
+      "name": "significant_feature_selection_and_classification",
+      "intent": "Rank features using the sigFeature algorithm, train an SVM classifier, and compare its performance and feature p-values against standard SVM-RFE.",
+      "input": [
+        "expression_matrix.csv (microarray or RNA-seq expression matrix with features as rows and samples as columns)",
+        "sample_metadata.csv (metadata containing binary class labels)"
+      ],
+      "stages": "1. Transpose the expression matrix so samples are rows and features are columns ;; 2. Recode sample labels to -1 and 1 ;; 3. Calculate baseline p-values using sigFeaturePvalue ;; 4. Run feature selection using sigFeature or svmrfeFeatureRanking ;; 5. Train an SVM model using the top ranked features ;; 6. Predict class labels and evaluate accuracy ;; 7. Compare p-values of selected features between methods",
+      "code": "library(sigFeature)\nlibrary(SummarizedExperiment)\ndata(ExampleRawData, package=\"sigFeature\")\nx  <- t(assays(ExampleRawData)$counts)\ny  <- colData(ExampleRawData)$sampleLabels\npvals <- sigFeaturePvalue(x,y)\n#system.time(sigfeatureRankedList <- sigFeature(x, y))\ndata(sigfeatureRankedList)\nlibrary(e1071)\nsigFeature.model=svm(x[ ,sigfeatureRankedList[1:1000]], y, \n                    type=\"C-classification\", kernel=\"linear\")\nsummary(sigFeature.model)\npred <- predict(sigFeature.model, x[ ,sigfeatureRankedList[1:1000]])\ntable(pred,y)\n#system.time(featureRankedList <- svmrfeFeatureRanking(x, y))\ndata(featureRankedList)\nRFE.model=svm(x[ ,featureRankedList[1:1000]], y, \n            type=\"C-classification\", kernel=\"linear\")\nsummary(RFE.model)\npred <- predict(RFE.model, x[ ,featureRankedList[1:1000]])\ntable(pred,y)\npvalsigFe <- sigFeaturePvalue(x, y, 100, sigfeatureRankedList)\npvalRFE   <- sigFeaturePvalue(x, y, 100, featureRankedList)"
+    },
+    {
+      "name": "cross_validation_and_frequency_profiling",
+      "intent": "Perform external k-fold cross-validation, rank features based on their selection frequency across folds, and estimate classification error rates.",
+      "input": [
+        "expression_matrix.csv (microarray or RNA-seq expression matrix with features as rows and samples as columns)",
+        "sample_metadata.csv (metadata containing binary class labels)"
+      ],
+      "stages": "1. Run external cross-validation using sigFeature.enfold ;; 2. Rank features based on frequency across folds using sigFeatureFrequency ;; 3. Calculate cross-validation errors using sigCVError ;; 4. Plot validation errors using PlotErrors ;; 5. Write results using WritesigFeature",
+      "code": "#set.seed(1234)\n#results = sigFeature.enfold(x, y, \"kfold\", 10)\ndata(\"results\")\nFeatureBasedonFrequency <- sigFeatureFrequency(x, results, 400, 400, pf=FALSE)\n#inputdata <- data.frame(y=as.factor(y) ,x=x)\n#featsweepSigFe = lapply(1:400, sigCVError, FeatureBasedonFrequency, inputdata)\ndata(\"featsweepSigFe\")\nPlotErrors(featsweepSigFe, 0, 0.4)\n#WritesigFeature(results, x)"
+    }
+  ]
+}

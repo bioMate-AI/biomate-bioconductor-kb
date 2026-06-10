@@ -1,117 +1,296 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: blima
-// Package blima includes several algorithms for the preprocessing of Illumina microarray data. It focu
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/blima/inst/doc/blima.R
-// Upstream  : Biobase, blimaTestingData, xtable
-// Downstream: none
-//
-// Install: BiocManager::install("blima")
+// Bioconductor workflow: blima — bead_level_preprocessing_and_analysis
+// Preprocess raw Illumina bead-level data (background correction, variance stabilization, quantile normalization), perform differential expression testing, and su
+// Input: blimatesting, adrToIllumina
+// Container: quay.io/biocontainers/bioconductor-blima:1.40.0--r44he5774e6_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, beadarray, blima
+// Visualizations: plot (ggplot/base)
+// QC: count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Define experimental groups and processing masks. 2. Perform background outlier correction and non-positive value correction. 3. Ap
 
 nextflow.enable.dsl = 2
 
-process BIOC_BLIMA {
+process BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-blima"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-blima:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-blima:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_blima_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_blima_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_blima_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(blima)
-    library(jsonlite)
-
-    # --- Style Knitr [] ---
-    # Key functions: latex
-    ----------------
-    BiocStyle::latex()
-    # --- Data [] ---
-    # Key functions: data
-    ------------------------------------------------------------------
-    library(blima)
-    library(blimaTestingData)
-    data(blimatesting)
     library(Biobase)
-    # --- Totable [] ---
-    # Key functions: toTable, mappedLkeys, revmap, mappedRkeys
-    ------------------------------------------------------------------
-    library(illuminaHumanv4.db)
-    adrToIllumina = toTable(illuminaHumanv4ARRAYADDRESS)
-    adrToIllumina = adrToIllumina[, c("ArrayAddress", "IlluminaID")]
-    colnames(adrToIllumina) = c("Array_Address_Id", "Probe_Id")
-    # --- Data [] ---
-    # Key functions: pData
-    ------------------------------------------------------------------
-    data("blimatesting")
-    groups1 = "A";
-    groups2 = "E";
-    sampleNames = list()
-    # --- Bacgroundcorrect [] ---
-    # Key functions: bacgroundCorrect, nonPositiveCorrect, varianceBeadStabilise, quantileNormalize
-    ------------------------------------------------------------------
-    blimatesting = bacgroundCorrect(blimatesting, normalizationMod = processingMod,
-    		channelBackgroundFilter="bgf")
-    blimatesting = nonPositiveCorrect(blimatesting, normalizationMod = processingMod,
-    		channelCorrect="GrnF",  channelBackgroundFilter="bgf", channelAndVector="bgf")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_blima_results.csv", row.names = TRUE)
+    library(beadarray)
+    
+    # ==========================================
+    # 1. Load User Input Files
+    # ==========================================
+    
+    # Load blimatesting (list of beadLevelData objects)
+    if (file.exists("blimatesting")) {
+      blimatesting <- readRDS("blimatesting")
+    } else if (file.exists("blimatesting.rds")) {
+      blimatesting <- readRDS("blimatesting.rds")
+    } else if (file.exists("blimatesting.RData")) {
+      # In case it was saved as an RData workspace
+      env <- new.env()
+      load("blimatesting.RData", envir = env)
+      if (exists("blimatesting", envir = env)) {
+        blimatesting <- env\$blimatesting
+      } else {
+        stop("Error: 'blimatesting' object not found in blimatesting.RData")
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_blima_results.csv")
+      stop("Error: blimatesting input file not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_blima_output.rds")
+    
+    # Load adrToIllumina (data frame mapping Array Address IDs to Illumina Probe IDs)
+    if (file.exists("adrToIllumina")) {
+      adrToIllumina <- readRDS("adrToIllumina")
+    } else if (file.exists("adrToIllumina.rds")) {
+      adrToIllumina <- readRDS("adrToIllumina.rds")
+    } else if (file.exists("adrToIllumina.csv")) {
+      adrToIllumina <- read.csv("adrToIllumina.csv", stringsAsFactors = FALSE)
+    } else if (file.exists("adrToIllumina.RData")) {
+      env <- new.env()
+      load("adrToIllumina.RData", envir = env)
+      if (exists("adrToIllumina", envir = env)) {
+        adrToIllumina <- env\$adrToIllumina
+      } else {
+        stop("Error: 'adrToIllumina' object not found in adrToIllumina.RData")
+      }
+    } else {
+      stop("Error: adrToIllumina input file not found in the working directory.")
     }
+    
+    # Standardize column names of adrToIllumina if necessary
+    if (!all(c("Array_Address_Id", "Probe_Id") %in% colnames(adrToIllumina))) {
+      if (ncol(adrToIllumina) >= 2) {
+        colnames(adrToIllumina)[1:2] <- c("Array_Address_Id", "Probe_Id")
+      } else {
+        stop("Error: adrToIllumina must contain at least two columns mapping Array Address IDs to Probe IDs.")
+      }
+    }
+    
+    # Ensure Array_Address_Id is character or integer to match ProbeID types
+    adrToIllumina\$Array_Address_Id <- as.character(adrToIllumina\$Array_Address_Id)
+    
+    # ==========================================
+    # 2. Define Experimental Groups and Processing Masks
+    # ==========================================
+    
+    # Extract phenoData from all objects to determine the grouping column and groups
+    pdata_list <- lapply(blimatesting, function(x) pData(x@experimentData\$phenoData))
+    common_cols <- Reduce(intersect, lapply(pdata_list, colnames))
+    
+    if (length(common_cols) == 0) {
+      stop("Error: No common columns found in phenoData across all objects.")
+    }
+    
+    group_col <- NULL
+    # Prefer columns with typical grouping names
+    for (pref in c("Group", "group", "Condition", "condition", "Treatment", "treatment")) {
+      if (pref %in% common_cols) {
+        vals <- unique(unlist(lapply(pdata_list, function(p) p[[pref]])))
+        if (length(vals) >= 2) {
+          group_col <- pref
+          break
+        }
+      }
+    }
+    
+    # Fallback to the first column with exactly 2 unique values
+    if (is.null(group_col)) {
+      for (col in common_cols) {
+        vals <- unique(unlist(lapply(pdata_list, function(p) p[[col]])))
+        if (length(vals) == 2) {
+          group_col <- col
+          break
+        }
+      }
+    }
+    
+    # Fallback to the first column with > 1 unique values
+    if (is.null(group_col)) {
+      for (col in common_cols) {
+        vals <- unique(unlist(lapply(pdata_list, function(p) p[[col]])))
+        if (length(vals) > 1) {
+          group_col <- col
+          break
+        }
+      }
+    }
+    
+    if (is.null(group_col)) {
+      stop("Error: Could not find a suitable grouping column with at least 2 unique values in phenoData.")
+    }
+    
+    # Extract the first two unique groups
+    all_groups <- unique(unlist(lapply(pdata_list, function(p) p[[group_col]])))
+    groups1 <- all_groups[1]
+    groups2 <- all_groups[2]
+    
+    sampleNames = list()
+    groups1Mod = list()
+    groups2Mod = list()
+    processingMod = list()
+    for(i in 1:length(blimatesting))
+    {
+    	p = pData(blimatesting[[i]]@experimentData\$phenoData)
+    	groups1Mod[[i]] = p[[group_col]] %in% groups1;
+    	groups2Mod[[i]] = p[[group_col]] %in% groups2;
+    	processingMod[[i]] = p[[group_col]] %in% c(groups1, groups2);
+    	sampleNames[[i]] = p\$Name
+    }
+    
+    # ==========================================
+    # 3. Background and Non-Positive Correction
+    # ==========================================
+    blimatesting = bacgroundCorrect(blimatesting, normalizationMod = processingMod, 
+    		channelBackgroundFilter="bgf")
+    blimatesting = nonPositiveCorrect(blimatesting, normalizationMod = processingMod, 
+    		channelCorrect="GrnF",  channelBackgroundFilter="bgf", channelAndVector="bgf")
+    
+    # ==========================================
+    # 4. Variance Stabilizing Transformation
+    # ==========================================
+    blimatesting = varianceBeadStabilise(blimatesting, normalizationMod = processingMod, 
+    		quality="GrnF", channelInclude="bgf", channelOutput="vst")
+    
+    # ==========================================
+    # 5. Quantile Normalization
+    # ==========================================
+    blimatesting = quantileNormalize(blimatesting, normalizationMod = processingMod, 
+    		channelNormalize="vst", channelOutput="qua", channelInclude="bgf")
+    
+    # ==========================================
+    # 6. Differential Expression Testing
+    # ==========================================
+    probeTest <- doProbeTTests(blimatesting, groups1Mod, groups2Mod, 
+    		transformation=NULL, quality="qua", channelInclude="bgf")
+    beadTest <- doTTests(blimatesting, groups1Mod, groups2Mod, 
+    		transformation=NULL, quality="qua", channelInclude="bgf")
+    
+    # ==========================================
+    # 7. Summarization to Probe-Level Matrices
+    # ==========================================
+    nonnormalized = createSummarizedMatrix(blimatesting, spotsToProcess=processingMod, quality="GrnF", channelInclude="bgf", 
+            annotationTag="Name")
+    normalized = createSummarizedMatrix(blimatesting, spotsToProcess=processingMod, quality="qua", channelInclude="bgf", 
+            annotationTag="Name")
+    
+    # ==========================================
+    # 8. Downstream Processing and Exporting Outputs
+    # ==========================================
+    
+    # Save raw test results
+    write.csv(probeTest, "probe_level_tests.csv", row.names=FALSE)
+    write.csv(beadTest, "bead_level_tests.csv", row.names=FALSE)
+    
+    # Process and merge differential expression measures
+    probeTestID = probeTest[,"ProbeID"]
+    beadTestID = beadTest[,"ProbeID"]
+    probeTestFC = abs(probeTest[,"mean1"]-probeTest[,"mean2"])
+    beadTestFC = abs(beadTest[,"mean1"]-beadTest[,"mean2"])
+    probeTestP = probeTest[,"adjustedp"]
+    beadTestP = beadTest[,"adjustedp"]
+    probeTestMeasure = (1-probeTestP)*probeTestFC
+    beadTestMeasure = (1-beadTestP)*beadTestFC
+    
+    probeTest_df = data.frame(ArrayAddressID = as.character(probeTestID), difexPL = probeTestMeasure, stringsAsFactors = FALSE)
+    beadTest_df = data.frame(ArrayAddressID = as.character(beadTestID), difexBL = beadTestMeasure, stringsAsFactors = FALSE)
+    
+    tocmp <- merge(probeTest_df, beadTest_df, by="ArrayAddressID")
+    tocmp = merge(tocmp, adrToIllumina, by.x="ArrayAddressID", by.y="Array_Address_Id", all.x=TRUE)
+    write.csv(tocmp, "differential_expression_comparison.csv", row.names=FALSE)
+    
+    # Format and export summarized matrices
+    # Ensure ProbeID is character for merging
+    nonnormalized\$ProbeID <- as.character(nonnormalized\$ProbeID)
+    normalized\$ProbeID <- as.character(normalized\$ProbeID)
+    
+    # Dynamically reorder columns to put Probe_Id (ID_REF) first
+    sample_cols = setdiff(colnames(nonnormalized), "ProbeID")
+    
+    nonnormalized_merged = merge(nonnormalized, adrToIllumina, by.x="ProbeID", by.y="Array_Address_Id", all.x=TRUE)
+    nonnormalized_final = nonnormalized_merged[, c("Probe_Id", sample_cols), drop=FALSE]
+    colnames(nonnormalized_final)[1] = "ID_REF"
+    write.csv(nonnormalized_final, "summarized_nonnormalized.csv", row.names=FALSE)
+    
+    normalized_merged = merge(normalized, adrToIllumina, by.x="ProbeID", by.y="Array_Address_Id", all.x=TRUE)
+    normalized_final = normalized_merged[, c("Probe_Id", sample_cols), drop=FALSE]
+    colnames(normalized_final)[1] = "ID_REF"
+    write.csv(normalized_final, "summarized_normalized.csv", row.names=FALSE)
+    
+    # Generate comparison plot
+    pdf("differential_expression_comparison.pdf", width=6, height=6)
+    plot(tocmp\$difexPL, tocmp\$difexBL, 
+         xlab="Probe-level Diff Exp Measure (difexPL)", 
+         ylab="Bead-level Diff Exp Measure (difexBL)",
+         main="Comparison of Probe-level vs Bead-level Testing",
+         pch=16, col=rgb(0, 0, 1, 0.5))
+    abline(a=0, b=1, col="red", lty=2)
+    dev.off()
+    
+    # Save the processed beadLevelData object list
+    saveRDS(blimatesting, "blimatesting_processed.rds")
+    
+    cat("Pipeline completed successfully. Outputs written to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BLIMA:", paste0("    blima: ", packageVersion("blima"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS":',
+        paste0('    blima: ', as.character(packageVersion('blima')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_blima_results.csv
-    touch ${prefix}_blima_output.rds
-    echo "BIOC_BLIMA:" > versions.yml
-    echo "    blima: 0.0.0" >> versions.yml
+    touch ${prefix}_bead_level_preprocessing_and_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_BLIMA_WORKFLOW {
+workflow BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ blimatesting, adrToIllumina ] ]
 
     main:
-    BIOC_BLIMA(ch_input)
+    BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_BLIMA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BLIMA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BLIMA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BLIMA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS.out.tables
+    plots    = BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS.out.plots
+    objects  = BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS.out.objects
+    versions = BIOC_BLIMA_BEAD_LEVEL_PREPROCESSING_AND_ANALYSIS.out.versions
 }

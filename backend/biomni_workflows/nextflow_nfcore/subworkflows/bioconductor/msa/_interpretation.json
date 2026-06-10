@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Specifies the alignment algorithm (\"ClustalW\", \"ClustalOmega\", or \"Muscle\") ;; type=Specifies the sequence type (\"dna\", \"rna\", or \"protein\") ;; substitutionMatrix=Substitution matrix to use (ClustalOmega only supports predefined names like \"BLOSUM62\" or \"Gonnet\") ;; gapOpening=Penalty for opening a gap (not supported by ClustalOmega) ;; gapExtension=Penalty for extending a gap (not supported by ClustalOmega) ;; maxiters=Maximum number of alignment iterations ;; order=Output order of sequences (\"aligned\" or \"input\") ;; type (in msaConsensusSequence)=Consensus type, such as \"upperlower\" for threshold-based consensus ;; thresh (in msaConsensusSequence)=Conservation thresholds for upper/lower consensus (e.g., c(40, 20)) ;; gapVsGap (in msaConservationScore)=Score penalty/value for gap-to-gap comparisons\n- alternatives: muscle=An alternative R package that only provides the MUSCLE algorithm, whereas msa provides ClustalW, ClustalOmega, and MUSCLE ;; seqinr/ape=Used downstream for distance calculation and phylogenetic tree plotting after converting the msa object\n- when_to_use: Use when you need to perform multiple sequence alignment of DNA, RNA, or amino acid sequences directly within R, compute position-specific conservation scores, generate consensus sequences, or produce publication-quality alignment figures.\n- pitfalls: ClustalOmega does not allow setting custom gap penalties; setting gapOpening or gapExtension will trigger a warning and have no effect ;; ClustalOmega only supports a predefined set of amino acid substitution matrices, making it unsuitable for nucleotide alignments ;; msaPrettyPrint requires a working system installation of TeX/LaTeX and the texshade.sty style file ;; Masked columns/rows are handled differently across functions: consensusMatrix returns NA for masked columns, while msaConsensusSequence represents them as '#'",
+  "workflows": [
+    {
+      "name": "sequence_alignment_and_pretty_printing",
+      "intent": "Align amino acid or nucleotide sequences and generate a highly customizable PDF visualization of the alignment.",
+      "input": [
+        "exampleAA.fasta (FASTA file containing amino acid sequences)"
+      ],
+      "stages": "1. Read sequences using Biostrings ;; 2. Perform multiple sequence alignment using msa ;; 3. Print the complete alignment to the console ;; 4. Generate a pretty-printed PDF visualization using msaPrettyPrint",
+      "code": "mySequenceFile <- system.file(\"examples\", \"exampleAA.fasta\", package=\"msa\")\nmySequences <- readAAStringSet(mySequenceFile)\nmySequences\nmyFirstAlignment <- msa(mySequences)\nmyFirstAlignment\nprint(myFirstAlignment, show=\"complete\")\nmsaPrettyPrint(myFirstAlignment, output=\"pdf\", showNames=\"none\", showLogo=\"none\", askForOverwrite=FALSE, verbose=FALSE)"
+    },
+    {
+      "name": "alignment_masking_consensus_and_conservation",
+      "intent": "Apply masks to an alignment, compute consensus matrices/sequences, and calculate position-specific conservation scores.",
+      "input": [
+        "exampleAA.fasta (FASTA file containing amino acid sequences)"
+      ],
+      "stages": "1. Read and align sequences ;; 2. Apply a column mask using colmask and IRanges ;; 3. Retrieve the unmasked alignment ;; 4. Compute the consensus matrix ;; 5. Generate a threshold-based consensus sequence ;; 6. Calculate position-specific conservation scores using a substitution matrix",
+      "code": "mySequenceFile <- system.file(\"examples\", \"exampleAA.fasta\", package=\"msa\")\nmySequences <- readAAStringSet(mySequenceFile)\nmyFirstAlignment <- msa(mySequences)\nmyMaskedAlignment <- myFirstAlignment\ncolM <- IRanges(start=1, end=100)\ncolmask(myMaskedAlignment) <- colM\nmyMaskedAlignment\nunmasked(myMaskedAlignment)\nconMat <- consensusMatrix(myMaskedAlignment)\nmsaConsensusSequence(myFirstAlignment, type=\"upperlower\", thresh=c(40, 20))\nlibrary(pwalign)\ndata(BLOSUM62)\nmsaConservationScore(myFirstAlignment, BLOSUM62)"
+    },
+    {
+      "name": "phylogenetic_tree_reconstruction",
+      "intent": "Convert a multiple sequence alignment to a seqinr alignment object, calculate identity distances, and reconstruct a neighbor-joining phylogenetic tree.",
+      "input": [
+        "HemoglobinAA.fasta (FASTA file containing hemoglobin amino acid sequences)"
+      ],
+      "stages": "1. Read and align sequences ;; 2. Convert the alignment to seqinr format using msaConvert ;; 3. Compute a distance matrix using dist.alignment from seqinr ;; 4. Reconstruct a neighbor-joining tree using nj from ape ;; 5. Plot the phylogenetic tree",
+      "code": "hemoSeq <- readAAStringSet(system.file(\"examples/HemoglobinAA.fasta\", package=\"msa\"))\nhemoAln <- msa(hemoSeq)\nhemoAln2 <- msaConvert(hemoAln, type=\"seqinr::alignment\")\nlibrary(seqinr)\nd <- dist.alignment(hemoAln2, \"identity\")\nlibrary(ape)\nhemoTree <- nj(d)\nplot(hemoTree, main=\"Phylogenetic Tree of Hemoglobin Alpha Sequences\")"
+    }
+  ]
+}

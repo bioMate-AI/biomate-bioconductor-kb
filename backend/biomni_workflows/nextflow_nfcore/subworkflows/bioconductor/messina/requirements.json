@@ -1,0 +1,16 @@
+{
+  "package": "messina",
+  "requirements": [
+    "messina",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "messina"
+    ],
+    "survival_analysis_messina.nf": [
+      "messina",
+      "survival"
+    ]
+  }
+}

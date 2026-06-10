@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: min_sens=Minimum sensitivity requirement for the binary classifier (e.g., 0.95) ;; min_spec=Minimum specificity requirement for the binary classifier (e.g., 0.85) ;; obj_func=The objective function used in survival mode to quantify the difference in survival times between groups ('tau', 'reltau', or 'coxcoef') ;; obj_min=The minimum value of the survival objective function that all classifiers must satisfy on a test cohort ;; parallel=Logical indicating whether to run calculations in parallel (highly recommended for large datasets in messinaSurv) ;; silent=Logical to suppress progress messages during fitting ;; seed=Random seed for reproducibility of bootstrap resampling\n- alternatives: Conventional multi-feature classifiers (like SVM or kNN) which do not restrict the number of features and are hard to translate to single-gene clinical assays ;; Classical statistical tests (like the t-test) which work on a per-feature basis but are not designed for classification and lose power in the presence of expression outliers\n- when_to_use: Use when you want to identify single-gene biomarkers for clinical translation (e.g., developing a low-cost qPCR or immunohistochemistry diagnostic/prognostic test) ;; Use when analyzing clinical datasets with high sample heterogeneity, potential experimental outliers, or undiscovered sample subtypes\n- pitfalls: Running messinaSurv on large datasets without parallel processing (parallel = FALSE) can result in extremely long runtimes ;; Using 'reltau' or 'coxcoef' objective functions in survival analysis can lead to unstable fits compared to the more stable 'tau' objective, especially if the cohort contains very unbalanced subgroups",
+  "workflows": [
+    {
+      "name": "binary_classification_messina",
+      "intent": "Construct optimal single-gene threshold classifiers to distinguish between two distinct sample classes (e.g., normal vs. tumor).",
+      "input": [
+        "expression_matrix.csv (matrix of continuous gene expression values with genes as rows and samples as columns)",
+        "sample_metadata.csv (table containing binary class labels for each sample)"
+      ],
+      "stages": "1. Load the expression data and class labels ;; 2. Subset the data to the two classes of interest ;; 3. Fit the Messina classification model using the messina function with specified sensitivity and specificity thresholds ;; 4. Inspect the S4 result object to identify features passing performance requirements ;; 5. Plot the classifier fits, thresholds, and margins using the plot function",
+      "code": "library(messina)\nlibrary(antiProfilesData)\ndata(apColonData)\nx = exprs(apColonData)\ny = pData(apColonData)$SubType\nsel = y %in% c(\"normal\", \"tumor\")\nx = x[,sel]\ny = y[sel]\nfit.apColon = messina(x, y == \"tumor\", min_sens = 0.95, min_spec = 0.85, seed = 1234, silent = TRUE)\nfit.apColon\nplot(fit.apColon, i = 1, plot_type = \"point\")\nplot(fit.apColon, i = c(1,2,10,50), plot_type = \"point\")"
+    },
+    {
+      "name": "survival_analysis_messina",
+      "intent": "Identify optimal single-gene threshold classifiers to predict survival outcomes and separate patients into short and long survivors.",
+      "input": [
+        "expression_matrix.csv (matrix of continuous gene expression values with genes as rows and samples as columns)",
+        "survival_data.csv (table containing survival times and censoring status for each sample)"
+      ],
+      "stages": "1. Load the expression data and survival times ;; 2. Create a Surv object representing survival times and censoring status ;; 3. Fit the Messina survival model using the messinaSurv function with a specified objective function and minimum value ;; 4. Inspect the S4 result object to identify features passing performance requirements ;; 5. Plot the survival curves and separation at the threshold and margins using the plot function",
+      "code": "library(messina)\nlibrary(survival)\ndata(tcga_kirc_example)\ndim(kirc.exprs)\nkirc.surv\nfit.surv = messinaSurv(kirc.exprs, kirc.surv, obj_func = \"tau\", obj_min = 0.6, parallel = FALSE, silent = TRUE)\nfit.surv\nplot(fit.surv, bootstrap_type = \"ci\")"
+    }
+  ]
+}

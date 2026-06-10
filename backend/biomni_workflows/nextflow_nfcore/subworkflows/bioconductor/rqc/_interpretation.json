@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: path=The directory location where the FASTQ files of interest are saved ;; pattern=A regular expression (e.g., \".fastq.gz\") to identify target files in the directory ;; n=Number of records to sample from each FASTQ file (default is 1 million) ;; sample=Logical value; if FALSE, the file is processed as a whole instead of sampling records ;; workers=Number of cores/workers for parallel processing (interfacing with BiocParallel); set workers=1 for serial processing ;; outdir=Directory where the generated HTML report will be written ;; templateFile=Path to a custom R Markdown template file for personalized reports\n- alternatives: ShortRead package (specifically the .QA class, which RqcResultSet extends)\n- when_to_use: When performing initial quality control and assessment of high-throughput sequencing data (FASTQ files) to check read quality, GC content, read length distribution, and base call proportions\n- pitfalls: By default, rqc samples 1 million records (sample=TRUE); if the user wants to process the entire file, they must explicitly set sample=FALSE ;; rqcFileHeatmap only works with one result file (and not a list/multiple files)",
+  "workflows": [
+    {
+      "name": "simple_qc_report",
+      "intent": "Quickly generate an HTML quality control report from a directory of FASTQ files.",
+      "input": [
+        "folder (path to directory containing FASTQ files)",
+        "pattern (regular expression to match FASTQ files, e.g., \".fastq.gz\")"
+      ],
+      "stages": "1. Load the package ;; 2. Define the input directory ;; 3. Run the rqc function to process files and generate the HTML report.",
+      "code": "library(Rqc)\nfolder <- system.file(package=\"ShortRead\", \"extdata/E-MTAB-1147\")\nrqc(path = folder, pattern = \".fastq.gz\")"
+    },
+    {
+      "name": "advanced_qc_analysis",
+      "intent": "Perform step-by-step quality control analysis, generate individual diagnostic plots, and compile a customized HTML report.",
+      "input": [
+        "files (vector of absolute paths to FASTQ files)"
+      ],
+      "stages": "1. Load the package ;; 2. Define the vector of input file paths ;; 3. Process files using rqcQA to generate an RqcResultSet object ;; 4. Generate individual diagnostic plots (e.g., quality boxplots, average quality, GC content, base calls) ;; 5. Extract processed data for custom plotting using rqcCycleAverageQualityCalc ;; 6. Generate the HTML report using rqcReport.",
+      "code": "library(Rqc)\nfastqDir <- system.file(package=\"ShortRead\", \"extdata/E-MTAB-1147\")\nfiles <- list.files(fastqDir, \"fastq.gz\", full.names=TRUE)\nqa <- rqcQA(files, workers=1)\nknitr::kable(perFileInformation(qa))\nrqcReadQualityBoxPlot(qa)\nrqcReadQualityPlot(qa)\nrqcCycleAverageQualityPlot(qa)\nrqcReadFrequencyPlot(qa)\nrqcFileHeatmap(qa[[1]])\nrqcReadWidthPlot(qa)\nrqcCycleGCPlot(qa)\nrqcCycleQualityPlot(qa)\nrqcCycleAverageQualityPcaPlot(qa)\nrqcCycleQualityBoxPlot(qa)\nrqcCycleBaseCallsPlot(qa)\nrqcCycleBaseCallsLinePlot(qa)\ndf <- rqcCycleAverageQualityCalc(qa)\ncycle <- as.numeric(levels(df$cycle))[df$cycle]\nplot(cycle, df$quality, col = df$filename, xlab='Cycle', ylab='Quality Score')\nsublist <- qa[1]\nrqcCycleQualityPlot(sublist)\nreportFile <- rqcReport(qa)\nbrowseURL(reportFile)\nrqcReport(qa, templateFile = \"custom_report.Rmd\")"
+    }
+  ]
+}

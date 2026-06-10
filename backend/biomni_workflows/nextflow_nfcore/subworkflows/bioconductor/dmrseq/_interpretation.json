@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: testCovariate=The column name in pData representing the condition to test ;; cutoff=The coefficient threshold (magnitude of difference) for candidate region selection ;; adjustCovariate=Column name in pData to include directly in the model for adjustment ;; matchCovariate=Column name in pData to restrict permutations to balanced groups ;; block=Set to TRUE to detect large-scale methylation blocks ;; blockSize=Minimum basepairs for a candidate region to be considered a block (default 5000) ;; minInSpan=Minimum number of CpGs in a smoothing span (increase for blocks, e.g., 500) ;; bpSpan=Span in basepairs for smoothing (increase for blocks, e.g., 5e4) ;; maxGapSmooth=Maximum gap in basepairs allowed before smoothing is split (increase for blocks, e.g., 1e6) ;; maxGap=Maximum gap in basepairs between CpGs to allow merging into a single block (increase for blocks, e.g., 5e3)\n- alternatives: bsseq (specifically BSmooth() which smooths each sample independently, whereas dmrseq smooths methylation differences once; do not use BSmooth() prior to dmrseq) ;; Bismark (upstream alignment tool to generate coverage/methylation counts)\n- when_to_use: When scanning the genome to detect and perform statistical inference on differentially methylated regions (DMRs) or large-scale methylation blocks from Whole Genome Bisulfite Sequencing (WGBS) count data with at least 2 samples per condition.\n- pitfalls: Do not use methylation proportions (M/Cov) directly as input because it discards coverage confidence information ;; Do not use bsseq's BSmooth() function prior to running dmrseq, as dmrseq smooths differences in a single step ;; At least 2 samples per condition are required to distinguish biological variability from inter-individual variability ;; Filter out CpGs with zero coverage across all samples in a group and remove extraneous samples before running dmrseq ;; Large-scale block detection can be computationally intensive and may fail to find enough null candidates for inference if run on too small a subset of data.",
+  "workflows": [
+    {
+      "name": "dmr_detection",
+      "intent": "Scan the genome to detect and perform inference on local differentially methylated regions (DMRs) from WGBS count data.",
+      "input": [
+        "sample_bismark.cov.gz (Bismark coverage files containing methylated and total read counts)",
+        "sample_metadata.csv (CSV file containing sample names and condition covariates)"
+      ],
+      "stages": "1. Load Bismark coverage files into a BSseq object using read.bismark ;; 2. Add sample metadata to the pData slot of the BSseq object ;; 3. Filter out CpGs with zero coverage and subset samples ;; 4. Run dmrseq to detect candidate regions and perform permutation-based inference ;; 5. Extract significant regions and calculate raw mean differences using meanDiff ;; 6. Visualize DMRs and empirical distributions using plotDMRs and plotEmpiricalDistribution",
+      "code": "library(dmrseq)\ninfile <- system.file(\"extdata/test_data.fastq_bismark.bismark.cov.gz\",\n                        package = 'bsseq')\nbismarkBSseq <- read.bismark(files = infile,\n                               rmZeroCov = TRUE,\n                               strandCollapse = FALSE,\n                               verbose = TRUE)\nbismarkBSseq\n\nbs <- BSseq(chr = chr, pos = pos,\n            M = M, Cov = Cov, \n            sampleNames = sampleNames)\nshow(bs)\n\npData(bs)$CellType <- celltype\npData(bs)$Replicate <- substr(sampleNames, \n                              nchar(sampleNames), nchar(sampleNames))\n\npData(bs)\n\nloci.idx <- which(DelayedMatrixStats::rowSums2(getCoverage(bs, type=\"Cov\")==0) == 0)\nsample.idx <- which(pData(bs)$CellType %in% c(\"imr90\", \"h1\"))\n\nbs.filtered <- bs[loci.idx, sample.idx]\n\ntestCovariate <- \"CellType\"\nregions <- dmrseq(bs=bs[240001:260000,],\n                  cutoff = 0.05,\n                  testCovariate=testCovariate)\nshow(regions)\n\nsum(regions$qval < 0.05)\n\nsigRegions <- regions[regions$qval < 0.05,]\n\nsum(sigRegions$stat > 0) / length(sigRegions)\n\nannoTrack <- getAnnot(\"hg18\")\n\nplotDMRs(bs, regions=regions[1,], testCovariate=\"CellType\",\n    annoTrack=annoTrack)\n\nplotEmpiricalDistribution(bs, testCovariate=\"CellType\")\n\nplotEmpiricalDistribution(bs, testCovariate=\"CellType\", \n                          type=\"Cov\", bySample=TRUE)\n\nrawDiff <- meanDiff(bs, dmrs=sigRegions, testCovariate=\"CellType\")\nstr(rawDiff)"
+    },
+    {
+      "name": "block_detection",
+      "intent": "Detect large-scale, lower-resolution methylation blocks across the genome by adjusting smoothing and gap parameters.",
+      "input": [
+        "sample_metadata.csv (CSV file containing sample names and condition covariates)",
+        "bs_object.rds (Pre-constructed BSseq object containing WGBS count data)"
+      ],
+      "stages": "1. Run dmrseq with block = TRUE and increased smoothing parameters (minInSpan, bpSpan, maxGapSmooth, maxGap) ;; 2. Visualize the detected blocks using plotDMRs",
+      "code": "testCovariate <- \"CellType\"\nblocks <- dmrseq(bs=bs[120001:125000,],\n                  cutoff = 0.05,\n                  testCovariate=testCovariate,\n                  block = TRUE,\n                  minInSpan = 500,\n                  bpSpan = 5e4,\n                  maxGapSmooth = 1e6,\n                  maxGap = 5e3)\nhead(blocks)\n\nplotDMRs(bs, regions=blocks[1,], testCovariate=\"CellType\",\n    annoTrack=annoTrack)"
+    },
+    {
+      "name": "dmr_simulation",
+      "intent": "Split samples from the same condition into artificial groups and spike in in silico DMRs to assess the sensitivity and specificity of DMR detection.",
+      "input": [
+        "bs_object.rds (Pre-constructed BSseq object containing WGBS count data from multiple samples of the same biological condition)"
+      ],
+      "stages": "1. Reorder or subset samples to create a null comparison ;; 2. Run simDMRs to generate a simulated BSseq object with spiked-in DMRs ;; 3. Retrieve coordinates and effect sizes of the simulated DMRs",
+      "code": "data(BS.chr21)\n\n# reorder samples to create a null comparison \nBS.null <- BS.chr21[1:20000,c(1,3,2,4)]\n\n# add 100 DMRs\nBS.chr21.sim <- simDMRs(bs=BS.null, num.dmrs=100)\n\n# bsseq object with original null + simulated DMRs\nshow(BS.chr21.sim$bs)\n\n# coordinates of spiked-in DMRs\nshow(BS.chr21.sim$gr.dmrs)\n\n# effect sizes\nhead(BS.chr21.sim$delta)"
+    }
+  ]
+}

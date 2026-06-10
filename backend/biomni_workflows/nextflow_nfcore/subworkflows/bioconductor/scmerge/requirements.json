@@ -1,0 +1,48 @@
+{
+  "package": "scmerge",
+  "requirements": [
+    "BiocParallel",
+    "BiocSingular",
+    "DelayedArray",
+    "DelayedMatrixStats",
+    "HDF5Array",
+    "Matrix",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "batchelor",
+    "ggplot2",
+    "scMerge",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "BiocSingular",
+      "DelayedArray",
+      "HDF5Array",
+      "Matrix",
+      "SingleCellExperiment",
+      "ggplot2",
+      "scMerge",
+      "scater"
+    ],
+    "sc_merge_v2.nf": [
+      "DelayedMatrixStats",
+      "SingleCellExperiment",
+      "batchelor",
+      "ggplot2",
+      "scMerge",
+      "scater"
+    ],
+    "sc_merge_v2_hierarchical.nf": [
+      "SingleCellExperiment",
+      "scMerge",
+      "scater"
+    ],
+    "sc_seg_index_computation.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "scMerge"
+    ]
+  }
+}

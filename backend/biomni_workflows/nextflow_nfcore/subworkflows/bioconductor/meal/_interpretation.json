@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: set=Input dataset, which can be a GenomicRatioSet (for methylation), ExpressionSet (for expression), or SummarizedExperiment ;; model=A formula or design matrix representing the linear model to fit ;; variable_names=Character vector of the primary variable(s) of interest in runPipeline ;; covariable_names=Character vector of covariates to adjust for in runPipeline ;; sva=Logical indicating whether to run Surrogate Variable Analysis to correct for hidden batch effects or inflation ;; betas=Logical indicating whether to use Beta values (TRUE) or M-values (FALSE) for methylation analysis ;; rid=Character or numeric index specifying which analysis result to extract from a ResultSet (e.g., \"DiffMean\", \"DiffVar\", \"RDA\") ;; coef=Numeric vector indicating which coefficient(s) to evaluate in getProbeResults ;; range=A GRanges object specifying the genomic region of interest for regional analyses (RDA, plotRegion)\n- alternatives: minfi or lumi for raw preprocessing of Illumina methylation microarrays ;; limma (internally wrapped by runDiffMeanAnalysis) for standard differential expression/methylation ;; missMethyl (internally wrapped by runDiffVarAnalysis via varFit) for differential variability ;; bumphunter, blockFinder, and DMRcate for finding differentially methylated regions (DMRs) ;; vegan (internally wrapped by runRDA) for redundancy analysis\n- when_to_use: Appropriate when analyzing Illumina HumanMethylation (450K/EPIC) arrays and/or gene expression microarrays (or RNA-seq summarized as ExpressionSets) to find differential features, regional methylation changes, or to correlate methylation with nearby gene expression.\n- pitfalls: Inflation of p-values (S-shape in QQ-plot, lambda != 1) often occurs if key covariates (like cell type proportions or batch effects) are omitted; use SVA (sva = TRUE) to correct this ;; GRanges objects passed to plot for highlighting/subsetting must have chromosomes coded as numbers (e.g., \"11\" or \"23\" instead of \"chr11\" or \"chrX\" in some plotting contexts, though plotRegion accepts standard \"chr\" prefixes) ;; Input data must be preprocessed; MEAL does not perform raw normalization.",
+  "workflows": [
+    {
+      "name": "methylation_analysis",
+      "intent": "Perform genome-wide differential methylation mean and variance analysis on preprocessed methylation data.",
+      "input": [
+        "meth (GenomicRatioSet containing preprocessed methylation data)"
+      ],
+      "stages": "1. Run the analysis pipeline using runPipeline ;; 2. Extract results using getAssociation, getProbeResults, or getGeneVals ;; 3. Visualize results using plot (Manhattan, Volcano, QQ-plots), plotFeature, or plotRegion.",
+      "code": "resAdj <- runPipeline(set = meth, variable_names = \"status\", \n                      covariable_names = \"age\", analyses = c(\"DiffMean\", \"DiffVar\"))\nnames(resAdj)\nhead(getAssociation(resAdj, \"DiffMean\"))\nhead(getAssociation(resAdj, \"DiffVar\"))\nhead(getProbeResults(resAdj, rid = 1, coef = 2:3, \n                     fNames = c(\"chromosome\", \"start\")))\ngetGeneVals(resAdj, \"ARMS2\", genecol = \"UCSC_RefGene_Name\", fNames = c(\"chromosome\", \"start\"))\ntargetRange <- GRanges(\"23:13000000-23000000\")\nplot(resAdj, rid = \"DiffMean\", type = \"manhattan\", highlight = targetRange)\nplot(resAdj, rid = \"DiffMean\", type = \"manhattan\", subset = targetRange)\nplot(resAdj, rid = \"DiffMean\", type = \"manhattan\", suggestiveline = 3, \n     genomewideline = 6, main = \"My custom Manhattan\")\nabline(h = 13, col = \"yellow\")\nplot(resAdj, rid = \"DiffMean\", type = \"volcano\", tPV = 14, tFC = 0.4, \n     show.labels = FALSE) + ggtitle(\"My custom Volcano\")\nplot(resAdj, rid = \"DiffMean\", type = \"qq\") + ggtitle(\"My custom QQplot\")\nplotFeature(set = meth, feat = \"cg09383816\", variables = \"status\") + \n  ggtitle(\"Diff Means\")\nplotFeature(set = meth, feat = \"cg11847929\", variables = \"status\") + \n  ggtitle(\"Diff Vars\")\ntargetRange <- GRanges(\"chrX:13000000-14000000\")\nplotRegion(resAdj, targetRange)\nplotRegion(resAdj, targetRange, results = c(\"DiffMean\"), tPV = 10)"
+    },
+    {
+      "name": "expression_analysis",
+      "intent": "Perform differential expression analysis on an ExpressionSet.",
+      "input": [
+        "brge_gexp (ExpressionSet containing gene expression data)"
+      ],
+      "stages": "1. Run differential mean analysis using runDiffMeanAnalysis ;; 2. Evaluate model fit and visualize results using QQ-plots, Volcano plots, and Manhattan plots.",
+      "code": "gexpRes <- runDiffMeanAnalysis(set = brge_gexp, model = ~ sex)\nnames(gexpRes)\nplot(gexpRes, rid = \"DiffMean\", type = \"qq\")\nplot(gexpRes, rid = \"DiffMean\", type = \"volcano\") + ggtitle(\"Differences in Means\")\ntargetRangeNum <- GRanges(\"11:102600000-103300000\")\nplot(gexpRes, rid = \"DiffMean\", type = \"manhattan\", main = \"Differences in Means\", highlight = targetRangeNum)"
+    },
+    {
+      "name": "methylation_expression_integration",
+      "intent": "Integrate methylation and expression datasets to evaluate regional associations and calculate probe-level correlations.",
+      "input": [
+        "brge_methy (GenomicRatioSet containing methylation data)",
+        "brge_gexp (ExpressionSet containing gene expression data)"
+      ],
+      "stages": "1. Co-visualize regional results using plotRegion ;; 2. Create a MultiDataSet and add both expression and methylation datasets ;; 3. Subset the MultiDataSet to a target genomic range ;; 4. Calculate correlation between CpGs and expression probes using correlationMethExprs.",
+      "code": "plotRegion(rset = methRes, rset2 = gexpRes, range = targetRange)\nmulti <- createMultiDataSet()\nmulti <- add_genexp(multi, brge_gexp)\nmulti <- add_methy(multi, brge_methy)\nmulti.filt <- multi[, , targetRange]\nmethExprs <- correlationMethExprs(multi.filt)\nhead(methExprs)"
+    },
+    {
+      "name": "regional_rda",
+      "intent": "Determine if a specific genomic region is differentially methylated using Redundancy Analysis.",
+      "input": [
+        "meth (GenomicRatioSet containing preprocessed methylation data)"
+      ],
+      "stages": "1. Run RDA on a target genomic range using runRDA ;; 2. Extract RDA association summaries and top hits using getAssociation, getRDAresults, and topRDAhits ;; 3. Visualize RDA dimensions and sample groupings using plotRDA.",
+      "code": "targetRange <- GRanges(\"chrX:13000000-23000000\")\nresRDA <- runRDA(set = meth, model = ~ status, range = targetRange)\ngetAssociation(resRDA, rid = \"RDA\")\ngetRDAresults(resRDA)\ntopRDAhits(resRDA)\nplotRDA(object = resRDA, pheno = colData(meth)[, \"status\", drop = FALSE])\nplotRDA(object = resRDA, pheno = colData(meth)[, \"status\", drop = FALSE])\nabline(h = -1)"
+    }
+  ]
+}

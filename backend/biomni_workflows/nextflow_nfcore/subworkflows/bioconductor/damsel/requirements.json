@@ -1,0 +1,25 @@
+{
+  "package": "damsel",
+  "requirements": [
+    "BSgenome.Dmelanogaster.UCSC.dm6",
+    "Damsel",
+    "GenomicRanges",
+    "IRanges",
+    "TxDb.Dmelanogaster.UCSC.dm6.ensGene",
+    "dplyr",
+    "org.Dm.eg.db",
+    "stringr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Dmelanogaster.UCSC.dm6",
+      "Damsel",
+      "GenomicRanges",
+      "IRanges",
+      "TxDb.Dmelanogaster.UCSC.dm6.ensGene",
+      "dplyr",
+      "org.Dm.eg.db",
+      "stringr"
+    ]
+  }
+}

@@ -40,9 +40,7 @@ process BIOC_DECONRNASEQ {
     publishDir { "${params.outdir}/${meta.id}/deconvolution" }, mode: 'copy'
 
     conda "bioconductor-deconrnaseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-deconrnaseq:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-deconrnaseq:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(counts_matrix), path(signature_matrix)
@@ -75,7 +73,7 @@ process BIOC_DECONRNASEQ {
 
     # Read inputs -- accept TSV or CSV
     read_table_auto <- function(f) {
-        sep <- if (grepl("\\.tsv$", f, ignore.case = TRUE)) "\\t" else ","
+        sep <- if (grepl("\\\\.tsv$", f, ignore.case = TRUE)) "\\t" else ","
         read.table(f, header = TRUE, sep = sep, row.names = 1,
                    check.names = FALSE, stringsAsFactors = FALSE)
     }
@@ -158,9 +156,7 @@ process IMMUNEDECONV_SUMMARY {
     publishDir { "${params.outdir}/${meta.id}/summary" }, mode: 'copy'
 
     conda "bioconductor-deconrnaseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-deconrnaseq:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-deconrnaseq:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(cell_fractions)

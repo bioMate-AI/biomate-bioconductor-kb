@@ -1,0 +1,13 @@
+{
+  "package": "plotgrouper",
+  "requirements": [
+    "EBImage",
+    "plotGrouper"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "plotGrouper"
+    ]
+  }
+}

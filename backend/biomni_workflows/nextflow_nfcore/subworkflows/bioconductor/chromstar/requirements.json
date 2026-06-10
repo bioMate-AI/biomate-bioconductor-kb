@@ -1,0 +1,17 @@
+{
+  "package": "chromstar",
+  "requirements": [
+    "GenomicRanges",
+    "chromstaR",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "chromstaR",
+      "ggplot2",
+      "rtracklayer"
+    ]
+  }
+}

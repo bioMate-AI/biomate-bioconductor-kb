@@ -1,0 +1,17 @@
+{
+  "package": "beer",
+  "requirements": [
+    "SummarizedExperiment",
+    "beer",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "beer",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

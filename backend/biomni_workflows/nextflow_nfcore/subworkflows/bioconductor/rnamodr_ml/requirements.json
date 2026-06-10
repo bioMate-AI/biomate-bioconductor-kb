@@ -1,0 +1,13 @@
+{
+  "package": "rnamodr_ml",
+  "requirements": [
+    "RNAmodR.ML",
+    "rnamodr_ml"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RNAmodR.ML",
+      "rnamodr_ml"
+    ]
+  }
+}

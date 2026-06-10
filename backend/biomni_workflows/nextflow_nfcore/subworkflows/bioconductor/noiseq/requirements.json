@@ -1,0 +1,14 @@
+{
+  "package": "noiseq",
+  "requirements": [
+    "NOISeq"
+  ],
+  "by_workflow": {
+    "differential_expression_analysis.nf": [
+      "NOISeq"
+    ],
+    "main.nf": [
+      "NOISeq"
+    ]
+  }
+}

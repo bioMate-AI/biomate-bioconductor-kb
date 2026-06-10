@@ -1,97 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: txcutr
-// Various mRNA sequencing library preparation methods generate sequencing reads specifically from the 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/txcutr/inst/doc/intro.R
-// Upstream  : GenomicFeatures, RefManageR, knitr, rmarkdown, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("txcutr")
+// Bioconductor workflow: txcutr — transcriptome_truncation_and_export
+// Truncate a transcriptome annotation from the 3' end and export the resulting GTF, FASTA, and merge table for downstream alignment and quantification.
+// Input: txdb, sacCer3
+// Container: quay.io/biocontainers/bioconductor-txcutr:1.16.0--r45hdfd78af_0
+// R packages: GenomicFeatures, knitr, refmanager, rmarkdown, sessioninfo, txcutr
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, GenomicFeatures, txcutr
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the TxDb object and optionally restrict to specific chromosomes
+//  * 2. [Core Analysis] Truncate the transcriptome using truncateTxome
+//  * 3. [Visualization & Output] Export the truncated annotation to a GTF file using exportGTF
+//  * 4. [Visualization & Output] Export the truncated transcript sequences to a FASTA file using exportFASTA
+//  * 5. [Visualization & Output] Generate a merge table using generateMergeTable to map input transcripts to output transcripts or genes
 
 nextflow.enable.dsl = 2
 
-process BIOC_TXCUTR {
+process BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-txcutr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-txcutr:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-txcutr:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_txcutr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_txcutr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_txcutr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicFeatures", "knitr", "refmanager", "rmarkdown", "sessioninfo", "txcutr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(GenomicFeatures)
     library(txcutr)
-    library(PrintBibliography)
-    library(jsonlite)
-
-    # --- Merge Table Generation [] ---
-    # Key functions: generateMergeTable
-    df_merge <- generateMergeTable(txdb_w500, minDistance=500)
-    head(df_merge, 10)
-
-
-    # --- Transcript Annotation and Filtering [] ---
-    # Key functions: transcripts
-    tx_filtered <- transcripts(txdb_w500,
-                               columns=c("tx_name", "gene_id"),
-                               filter=list(gene_id=c("YAL026C")))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_txcutr_results.csv", row.names = TRUE)
+    
+    # 1. Load the TxDb object and BSgenome object from the working directory
+    message("Loading input files...")
+    
+    txdb_path <- if (file.exists("txdb.rds")) {
+      "txdb.rds"
+    } else if (file.exists("txdb")) {
+      "txdb"
+    } else if (file.exists("txdb.sqlite")) {
+      "txdb.sqlite"
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_txcutr_results.csv")
+      stop("Error: 'txdb' file (RDS or SQLite) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_txcutr_output.rds")
+    
+    txdb <- tryCatch({
+      AnnotationDbi::loadDb(txdb_path)
+    }, error = function(e) {
+      readRDS(txdb_path)
+    })
+    
+    sacCer3_path <- if (file.exists("sacCer3.rds")) {
+      "sacCer3.rds"
+    } else if (file.exists("sacCer3")) {
+      "sacCer3"
+    } else {
+      stop("Error: 'sacCer3' file (RDS) not found in the working directory.")
     }
+    
+    sacCer3 <- readRDS(sacCer3_path)
+    
+    ## constrain to "chrI"
+    seqlevels(txdb) <- "chrI"
+    
+    ## view the lengths of first ten transcripts
+    print("Transcript lengths before truncation:")
+    print(transcriptLengths(txdb)[1:10,])
+    
+    # 2. Truncate the transcriptome using truncateTxome
+    message("Truncating transcriptome...")
+    txdb_w500 <- truncateTxome(txdb, maxTxLength=500)
+    
+    print("Transcript lengths after truncation:")
+    print(transcriptLengths(txdb_w500)[1:10,])
+    
+    # 3. Export the truncated annotation to a GTF file using exportGTF
+    message("Exporting GTF...")
+    gtf_file <- "sacCer3_chrI.sgd.txcutr_w500.gtf.gz"
+    exportGTF(txdb_w500, file=gtf_file)
+    
+    # 4. Export the truncated transcript sequences to a FASTA file using exportFASTA
+    message("Exporting FASTA...")
+    fasta_file <- "sacCer3_chrI.sgd.txcutr_w500.fa.gz"
+    exportFASTA(txdb_w500, genome=sacCer3, file=fasta_file)
+    
+    # 5. Generate a merge table using generateMergeTable
+    message("Generating merge table...")
+    df_merge <- generateMergeTable(txdb_w500, minDistance=500)
+    
+    print("First 10 rows of merge table:")
+    print(head(df_merge, 10))
+    
+    print("Merged transcripts (where input != output):")
+    print(df_merge[df_merge\$tx_in != df_merge\$tx_out,])
+    
+    # Query transcripts for YAL026C
+    print("Transcripts for gene YAL026C:")
+    print(transcripts(txdb_w500, columns=c("tx_name", "gene_id"),
+                filter=list(gene_id=c("YAL026C"))))
+    
+    # Save outputs
+    write.csv(df_merge, "merge_table.csv", row.names = FALSE)
+    message("Pipeline completed successfully. Outputs written to:")
+    message("- ", gtf_file)
+    message("- ", fasta_file)
+    message("- merge_table.csv")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TXCUTR:", paste0("    txcutr: ", packageVersion("txcutr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT":',
+        paste0('    txcutr: ', as.character(packageVersion('txcutr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_txcutr_results.csv
-    touch ${prefix}_txcutr_output.rds
-    echo "BIOC_TXCUTR:" > versions.yml
-    echo "    txcutr: 0.0.0" >> versions.yml
+    touch ${prefix}_transcriptome_truncation_and_export.csv versions.yml
     """
 }
 
-
-workflow BIOC_TXCUTR_WORKFLOW {
+workflow BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ txdb, sacCer3 ] ]
 
     main:
-    BIOC_TXCUTR(ch_input)
+    BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT(ch_input)
 
     emit:
-    results  = BIOC_TXCUTR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TXCUTR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TXCUTR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TXCUTR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT.out.tables
+    plots    = BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT.out.plots
+    objects  = BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT.out.objects
+    versions = BIOC_TXCUTR_TRANSCRIPTOME_TRUNCATION_AND_EXPORT.out.versions
 }

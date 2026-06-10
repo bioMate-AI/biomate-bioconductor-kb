@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filenames=character vector of paths to CEL files ;; cores=integer specifying the number of CPU cores for parallel processing ;; runtype=character string specifying 'bm' for bigmemory or 'subset' for processing in subsets\n- alternatives: crlmm=for alternative genotyping and copy number estimation on Affymetrix/Illumina arrays ;; DNAcopy=for downstream circular binary segmentation (CBS) of the copy number estimates\n- when_to_use: When you have raw Affymetrix SNP microarray data (such as SNP 5.0 or 6.0) and want to estimate copy numbers using a robust latent variable model.\n- pitfalls: High memory usage when processing many CEL files simultaneously, which can be mitigated by using the 'bigmemory' runtype or setting appropriate subset sizes.",
+  "workflows": [
+    {
+      "name": "cn_farms_pipeline",
+      "intent": "Estimate copy numbers from raw Affymetrix CEL files using the FARMS algorithm.",
+      "input": [
+        "cel_files.CEL (raw Affymetrix intensity files)"
+      ],
+      "stages": "1. Locate CEL files ;; 2. Run the cn.farms pipeline to normalize, correct for fragment length, and summarize probe intensities ;; 3. Extract copy number estimates",
+      "code": "library(cn.farms)\ndirectory <- system.file(\"exampleData\", package=\"cn.farms\")\nfilenames <- dir(directory, full.names=TRUE, pattern=\"CEL$\")\ncn.data <- cn.farms(filenames)"
+    }
+  ]
+}

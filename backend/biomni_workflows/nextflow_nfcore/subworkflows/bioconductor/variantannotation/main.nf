@@ -1,144 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: VariantAnnotation
-// Annotate variants, compute amino acid coding changes, predict coding outcomes.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/VariantAnnotation/inst/doc/VariantAnnotation.R
-// Upstream  : AnnotationHub, GenomicRanges, ggplot2, microbenchmark, rjsoncons
-// Downstream: alabaster.vcf, CNVrd2, deepSNV, demuxSNP, HelloRanges
-//
-// Install: BiocManager::install("VariantAnnotation")
+// Bioconductor workflow: VariantAnnotation — variant_annotation_and_prediction
+// Read a VCF file, locate variants relative to gene models, predict amino acid coding changes, and query PolyPhen for functional impact.
+// Input: chr22.vcf.gz, TxDb.Hsapiens.UCSC.hg19.knownGene, BSgenome.Hsapiens.UCSC.hg19, PolyPhen.Hsapiens.dbSNP131
+// Container: quay.io/biocontainers/bioconductor-variantannotation:1.56.0--r45h01b2380_0
+// R packages: BSgenome.Hsapiens.UCSC.hg19, PolyPhen.Hsapiens.dbSNP131, TxDb.Hsapiens.UCSC.hg19.knownGene, AnnotationHub, GenomicRanges, ggplot2, microbenchmark, rjsoncons, VariantAnnotation
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Hsapiens.UCSC.hg19, PolyPhen.Hsapiens.dbSNP131, TxDb.Hsapiens.UCSC.hg19.knownGene, VariantAnnotation
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read the VCF file into a VCF object. 2. Align chromosome naming styles (seqlevels) between the VCF and the transcript database. 3.
 
 nextflow.enable.dsl = 2
 
-process BIOC_VARIANTANNOTATION {
+process BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-variantannotation"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-variantannotation:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-variantannotation:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_variantannotation_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_variantannotation_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_variantannotation_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "PolyPhen.Hsapiens.dbSNP131", "TxDb.Hsapiens.UCSC.hg19.knownGene", "AnnotationHub", "GenomicRanges", "ggplot2", "microbenchmark", "rjsoncons", "VariantAnnotation")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(VariantAnnotation)
-    library(GRanges)
-    library(ScanVcfParam)
-    library(TabixFile)
-    library(jsonlite)
-
-    # --- VCF Parsing and Inspection ---
-    # Key functions: readVcf, header, samples, geno, rowRanges
-    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    library(PolyPhen.Hsapiens.dbSNP131)
+    
+    # Define input file path (must exist in the working directory)
+    fl <- "chr22.vcf.gz"
+    
+    if (!file.exists(fl)) {
+      stop(paste("Required input file missing in the working directory:", fl))
+    }
+    
+    # 1. Read the VCF file into a VCF object
+    message("Reading VCF file...")
     vcf <- readVcf(fl, "hg19")
-    vcf_hdr <- header(vcf)
-    vcf_samples <- samples(vcf_hdr)
-    vcf_geno <- geno(vcf)
-    vcf_ranges <- rowRanges(vcf)
-
-    # --- Targeted Genomic Subsetting ---
-    # Key functions: ScanVcfParam, TabixFile, readVcf, scanVcfHeader
-    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-    rng <- GenomicRanges::GRanges(
-        seqnames="22",
-        ranges=IRanges::IRanges(
-            start=c(50301422, 50989541),
-            end=c(50312106, 51001328)
-        )
-    )
-    svp <- ScanVcfParam(info="LDAF", geno="GT", which=rng)
-    tab <- TabixFile(fl)
-    vcf_subset <- readVcf(tab, "hg19", param=svp)
-    hdr_info <- scanVcfHeader(fl)
-
-    # --- Variant Localization ---
-    # Key functions: locateVariants, CodingVariants
-    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-    vcf <- readVcf(fl, "hg19")
-    GenomeInfoDb::seqlevels(vcf) <- "chr22"
+    
+    # 2. Align chromosome naming styles (seqlevels) between the VCF and the transcript database
+    message("Aligning seqlevels...")
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+    seqlevels(vcf) <- "chr22"
     rd <- rowRanges(vcf)
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    
+    # 3. Locate variants in coding regions using locateVariants
+    message("Locating variants...")
     loc <- locateVariants(rd, txdb, CodingVariants())
-
-    # --- Coding Effect Prediction ---
-    # Key functions: predictCoding
-    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-    vcf <- readVcf(fl, "hg19")
-    GenomeInfoDb::seqlevels(vcf) <- "chr22"
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    seq_source <- BSgenome.Hsapiens.UCSC.hg19::Hsapiens
-    coding <- predictCoding(vcf, txdb, seqSource=seq_source)
-
-    # --- Genotype Conversion ---
-    # Key functions: genotypeToSnpMatrix
-    fl <- system.file("extdata", "gl_chr1.vcf", package="VariantAnnotation")
-    vcf_gl <- readVcf(fl, "hg19")
-    res_uncertain <- genotypeToSnpMatrix(vcf_gl, uncertain=TRUE)
-    res_certain <- genotypeToSnpMatrix(vcf_gl, uncertain=FALSE)
-
-    # --- VCF Export ---
-    # Key functions: writeVcf
-    fl <- system.file("extdata", "ex2.vcf", package="VariantAnnotation")
-    vcf_in <- readVcf(fl, "hg19")
-    out_file <- tempfile(fileext=".vcf")
-    writeVcf(vcf_in, out_file)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_variantannotation_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_variantannotation_results.csv")
+    
+    # 4. Predict amino acid coding changes for the variants using predictCoding
+    message("Predicting coding changes...")
+    coding <- predictCoding(vcf, txdb, seqSource=Hsapiens)
+    
+    # Filter for nonsynonymous variants
+    nms <- names(coding) 
+    idx <- mcols(coding)\$CONSEQUENCE == "nonsynonymous"
+    nonsyn <- coding[idx]
+    names(nonsyn) <- nms[idx]
+    rsids <- unique(names(nonsyn)[grep("rs", names(nonsyn), fixed=TRUE)])
+    
+    # 5. Query the PolyPhen database to retrieve functional impact predictions
+    message("Querying PolyPhen database...")
+    pp <- select(PolyPhen.Hsapiens.dbSNP131, keys=rsids,
+                 cols=c("TRAININGSET", "PREDICTION", "PPH2PROB"))
+    
+    # Helper function to safely convert GRanges with list-like columns to flat data.frame for CSV export
+    flatten_granges <- function(gr) {
+      df <- as.data.frame(gr)
+      for (col in names(df)) {
+        if (is.list(df[[col]]) || inherits(df[[col]], "List") || inherits(df[[col]], "IntegerList") || inherits(df[[col]], "CharacterList")) {
+          df[[col]] <- sapply(df[[col]], function(x) {
+            val <- unlist(x)
+            if (is.null(val) || length(val) == 0) "" else paste(val, collapse = ";")
+          })
+        }
+      }
+      return(df)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_variantannotation_output.rds")
-    }
+    
+    # Write outputs to the working directory
+    message("Writing output files...")
+    
+    # Save located variants
+    saveRDS(loc, "located_variants.rds")
+    write.csv(flatten_granges(loc), "located_variants.csv", row.names = FALSE)
+    
+    # Save predicted coding changes
+    saveRDS(coding, "predicted_coding.rds")
+    write.csv(flatten_granges(coding), "predicted_coding.csv", row.names = FALSE)
+    
+    # Save PolyPhen predictions
+    write.csv(pp, "polyphen_predictions.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VARIANTANNOTATION:", paste0("    variantannotation: ", packageVersion("VariantAnnotation"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION":',
+        paste0('    VariantAnnotation: ', as.character(packageVersion('VariantAnnotation')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_variantannotation_results.csv
-    touch ${prefix}_variantannotation_output.rds
-    echo "BIOC_VARIANTANNOTATION:" > versions.yml
-    echo "    variantannotation: 0.0.0" >> versions.yml
+    touch ${prefix}_variant_annotation_and_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_VARIANTANNOTATION_WORKFLOW {
+workflow BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ chr22.vcf.gz, TxDb.Hsapiens.UCSC.hg19.knownGene, BSgenome.Hsapiens.UCSC.hg19, PolyPhen.Hsapiens.dbSNP131 ] ]
 
     main:
-    BIOC_VARIANTANNOTATION(ch_input)
+    BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_VARIANTANNOTATION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VARIANTANNOTATION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VARIANTANNOTATION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VARIANTANNOTATION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION.out.tables
+    plots    = BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION.out.plots
+    objects  = BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION.out.objects
+    versions = BIOC_VARIANTANNOTATION_VARIANT_ANNOTATION_AND_PREDICTION.out.versions
 }

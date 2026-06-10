@@ -1,0 +1,11 @@
+{
+  "package": "trigger",
+  "requirements": [
+    "trigger"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "trigger"
+    ]
+  }
+}

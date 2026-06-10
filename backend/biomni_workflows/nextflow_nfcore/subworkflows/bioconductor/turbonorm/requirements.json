@@ -1,0 +1,23 @@
+{
+  "package": "turbonorm",
+  "requirements": [
+    "TurboNorm",
+    "lattice",
+    "limma",
+    "marray"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TurboNorm"
+    ],
+    "two_colour_normalization.nf": [
+      "TurboNorm",
+      "marray"
+    ],
+    "weighted_methylation_normalization.nf": [
+      "TurboNorm",
+      "lattice",
+      "limma"
+    ]
+  }
+}

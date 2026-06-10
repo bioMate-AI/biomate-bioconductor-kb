@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: k=The number of clusters (regions) to identify ;; cellType=The column name in colData specifying cell types (defaults to \"cellType\") ;; Rs=A vector of radii over which LISA curves are calculated in the lisa() function ;; useImages=A vector of image IDs to filter and plot in hatchingPlot() ;; nbp=A resolution parameter representing the number of grid points for hatching in hatchingPlot() ;; type=The visualization style in regionMap(), such as \"bubble\"\n- alternatives: Custom clustering methods (e.g., Self-Organizing Maps (SOM) or manual kmeans) can be performed on the output of the lisa() function instead of using the automated lisaClust() wrapper. Traditional pairwise spatial analysis (like spicyR) can be used as a complement to lisaClust's multi-cell-type colocalization.\n- when_to_use: Use this package when you have multiplexed imaging data segmented at single-cell resolution with cell-type annotations and spatial coordinates, and you want to identify spatial regions or microenvironments where multiple cell types consistently colocalize.\n- pitfalls: Ensure that spatial coordinates, cell types, and image IDs are correctly specified in the colData or spatial coordinates slot of the SingleCellExperiment or SpatialExperiment object. Choosing an inappropriate number of clusters (k) may over- or under-segregate biologically meaningful tissue regions.",
+  "workflows": [
+    {
+      "name": "automated_lisa_clustering",
+      "intent": "Simultaneously calculate LISA curves, perform k-means clustering, and visualize the identified tissue regions and cell-type enrichments.",
+      "input": [
+        "cells.csv (a table containing cell coordinates, cell types, and image IDs)"
+      ],
+      "stages": "1. Create a SingleCellExperiment object from the cell data ;; 2. Run lisaClust to calculate LISA curves and cluster cells into regions ;; 3. Examine cell-type enrichment across regions using regionMap ;; 4. Visualize spatial regions using hatchingPlot",
+      "code": "SCE <- SingleCellExperiment(colData = cells)\nSCE <- lisaClust(SCE, k = 2)\nhatchingPlot(SCE, useImages = c(\"s1\", \"s2\"))\n\nkerenSPE <- SpatialDatasets::spe_Keren_2018()\nkerenSPE <- kerenSPE[,kerenSPE$imageID %in% c(\"5\", \"6\")]\nkerenSPE <- lisaClust(kerenSPE, k = 5 )\nregionMap(kerenSPE, type = \"bubble\" )\nhatchingPlot(kerenSPE, nbp = 300)"
+    },
+    {
+      "name": "custom_lisa_clustering",
+      "intent": "Calculate LISA curves separately to allow custom clustering algorithms (e.g., manual k-means) before storing and plotting.",
+      "input": [
+        "cells.csv (a table containing cell coordinates, cell types, and image IDs)"
+      ],
+      "stages": "1. Create a SingleCellExperiment object ;; 2. Calculate LISA curves using the lisa function with specified radii ;; 3. Perform custom clustering (e.g., kmeans) on the generated curves ;; 4. Store the custom cluster assignments back into the object's colData",
+      "code": "SCE <- SingleCellExperiment(colData = cells)\nlisaCurves <- lisa(SCE, Rs = c(20, 50, 100))\nkM <- kmeans(lisaCurves, 2)\ncolData(SCE)$custom_region <- paste(\"region\", kM$cluster, sep = \"_\")"
+    }
+  ]
+}
