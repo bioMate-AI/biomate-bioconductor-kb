@@ -7,6 +7,15 @@ user-invocable: false
 
 # ShortRead
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.70.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, BiocParallel, Biostrings, Rsamtools, GenomicAlignments
+- **Imports:** Biobase, S4Vectors, IRanges, Seqinfo, GenomicRanges, pwalign, hwriter, lattice, latticeExtra
+- **Install:** `BiocManager::install("ShortRead")`
+
 ## When to Use
 - **Iterative FASTQ Processing**: Processing massive FASTQ files in memory-efficient chunks using `FastqStreamer()` and `yield()`.
 - **Random Subsampling**: Drawing a random sample of reads from a FASTQ file using `FastqSampler()` for quick inspection.

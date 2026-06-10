@@ -7,6 +7,15 @@ user-invocable: false
 
 # GEOquery
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.80.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biobase
+- **Imports:** readr, xml2, dplyr, data.table, tidyr, magrittr, limma, curl, rentrez, R.utils, stringr, SummarizedExperiment, S4Vectors, rvest, httr2
+- **Install:** `BiocManager::install("GEOquery")`
+
 ## When to Use
 - Downloading a complete GEO Series (GSE) matrix directly into a Bioconductor `ExpressionSet` using `getGEO`.
 - Programmatically searching the GEO database for specific terms or metadata using `searchGEO` and `searchFieldsGEO`.

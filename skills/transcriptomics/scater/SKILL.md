@@ -13,6 +13,15 @@ user-invocable: false
 
 Single-cell RNA-seq QC, normalization, and visualization toolkit. Provides perCellQCMetrics, plotReducedDim, and a rich set of diagnostic plots for SCE objects.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.40.1 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment, scuttle, ggplot2
+- **Imports:** Matrix, BiocGenerics, S4Vectors, SummarizedExperiment, MatrixGenerics, SparseArray, DelayedArray, beachmat, BiocNeighbors, BiocSingular, BiocParallel, rlang, ggbeeswarm, viridis, Rtsne, RColorBrewer, RcppML, uwot, pheatmap, ggrepel, ggrastr
+- **Install:** `BiocManager::install("scater")`
+
 ## When to Use
 
 - Compute per-cell QC metrics (nGenes, total UMI, % mitochondrial)

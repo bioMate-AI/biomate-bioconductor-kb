@@ -7,6 +7,15 @@ user-invocable: false
 
 # mzID
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.50.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** XML, plyr, doParallel, foreach, iterators, ProtGenerics
+- **System requirements:** URL
+- **Install:** `BiocManager::install("mzID")`
+
 ## When to Use
 - **Parsing mzIdentML Files**: Reading HUPO-PSI standard `mzIdentML` (.mzid) files containing peptide and protein identification results using the `mzID()` function.
 - **Data Flattening**: Converting complex, nested structures of mzIdentML files into flat, easy-to-manipulate R `data.frame` objects using the `flatten()` function.

@@ -13,6 +13,14 @@ user-invocable: false
 
 Query Ensembl BioMart databases to retrieve gene annotations, ID conversions, sequence retrieval, and cross-species homology information.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.68.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** AnnotationDbi, BiocFileCache, curl, httr2, progress, stringr, xml2
+- **Install:** `BiocManager::install("biomaRt")`
+
 ## When to Use
 
 - Convert between gene IDs (Ensembl → HGNC symbol → Entrez → RefSeq)

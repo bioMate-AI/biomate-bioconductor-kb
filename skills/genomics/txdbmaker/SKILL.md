@@ -7,6 +7,15 @@ user-invocable: false
 
 # txdbmaker
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.8.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, S4Vectors, Seqinfo, GenomicRanges, GenomicFeatures
+- **Imports:** httr, rjson, DBI, RSQLite, IRanges, UCSC.utils, GenomeInfoDb, AnnotationDbi, Biobase, BiocIO, rtracklayer, biomaRt
+- **Install:** `BiocManager::install("txdbmaker")`
+
 ## When to Use
 - Creating `TxDb` objects from UCSC Genome Browser transcript tables using `makeTxDbFromUCSC`.
 - Retrieving and assembling transcript annotations from BioMart datasets using `makeTxDbFromBiomart`.

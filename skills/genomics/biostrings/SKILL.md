@@ -7,6 +7,15 @@ user-invocable: false
 
 # Biostrings
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.80.1 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, S4Vectors, IRanges, XVector, Seqinfo
+- **Imports:** crayon
+- **Install:** `BiocManager::install("Biostrings")`
+
 ## When to Use
 - Representing and manipulating biological sequences using specialized classes like `BString`, `DNAString`, and `RNAString`.
 - Matching sets of probes against each other using `PDict` and `vcountPDict`.

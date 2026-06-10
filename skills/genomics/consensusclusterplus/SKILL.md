@@ -7,6 +7,16 @@ user-invocable: false
 
 # ConsensusClusterPlus
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.76.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** ALL, cluster
+- **Imports:** Biobase, ALL, cluster
+- **System requirements:** URL
+- **Install:** `BiocManager::install("ConsensusClusterPlus")`
+
 ## When to Use
 - Unsupervised class discovery from gene expression data (e.g., microarray data).
 - Determining optimal cluster count and membership using consensus clustering resampling.

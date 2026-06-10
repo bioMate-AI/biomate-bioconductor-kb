@@ -7,6 +7,15 @@ user-invocable: false
 
 # ExperimentHub
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 3.2.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, AnnotationHub, BiocFileCache
+- **Imports:** S4Vectors, BiocManager, rappdirs
+- **Install:** `BiocManager::install("ExperimentHub")`
+
 ## When to Use
 - **Accessing Curated Datasets**: Retrieving large files of curated data from experiments, publications, or training courses via the `ExperimentHub` web service.
 - **Retrieving R Objects**: Downloading specific R data objects like `SummarizedExperiment`, `ExpressionSet`, or `GAlignmentPairs` directly into your session.

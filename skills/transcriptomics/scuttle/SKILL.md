@@ -9,6 +9,16 @@ user-invocable: false
 
 Provides basic utility functions for performing single-cell analyses, focusing on simple normalization, quality control and data transformations. Also provides some helper functions to assist development of other packages.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.22.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** Matrix, Rcpp, BiocGenerics, S4Vectors, BiocParallel, GenomicRanges, SummarizedExperiment, S4Arrays, MatrixGenerics, SparseArray, DelayedArray, beachmat
+- **System requirements:** C++17
+- **Install:** `BiocManager::install("scuttle")`
+
 ## When to Use
 - **Quality Control Metrics**: When you need to compute basic feature-level statistics (mean counts, detection rates) using `perFeatureQCMetrics` or `calculateAverage`.
 - **Gene Identifier Conversion**: When you need to replace stable Ensembl identifiers with unique, non-missing gene symbols using `uniquifyFeatureNames`.

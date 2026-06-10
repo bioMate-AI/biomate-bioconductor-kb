@@ -7,6 +7,15 @@ user-invocable: false
 
 # QFeatures
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.22.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** MultiAssayExperiment
+- **Imports:** S4Vectors, IRanges, SummarizedExperiment, BiocGenerics, ProtGenerics, AnnotationFilter, lazyeval, Biobase, MsCoreUtils, igraph, plotly, tidyr, tidyselect, reshape2
+- **Install:** `BiocManager::install("QFeatures")`
+
 ## When to Use
 - **Multi-level Quantitative MS Management**: Managing multi-level quantitative mass spectrometry data (e.g., PSMs, peptides, and proteins) within a single, integrated object.
 - **Hierarchical Feature Aggregation**: Performing hierarchical aggregation of quantitative features (e.g., aggregating PSMs to peptides, or peptides to proteins) using `aggregateFeatures`.

@@ -7,6 +7,14 @@ user-invocable: false
 
 # limma
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 3.68.3 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** statmod
+- **Install:** `BiocManager::install("limma")`
+
 ## When to Use
 
 - Microarray differential expression

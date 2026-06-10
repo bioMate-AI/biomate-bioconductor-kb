@@ -7,6 +7,15 @@ user-invocable: false
 
 # topGO
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.64.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, graph, Biobase, GO.db, AnnotationDbi, SparseM
+- **Imports:** lattice, matrixStats, DBI
+- **Install:** `BiocManager::install("topGO")`
+
 ## When to Use
 - Performing Gene Ontology (GO) enrichment analysis using the `runTest` function on gene lists derived from differential expression.
 - Accounting for the hierarchical structure and dependencies of the GO DAG using algorithms like `elim`, `weight`, or `weight01`.

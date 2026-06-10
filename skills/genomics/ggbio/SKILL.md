@@ -7,6 +7,15 @@ user-invocable: false
 
 # ggbio
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.60.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, ggplot2
+- **Imports:** gridExtra, scales, reshape2, gtable, Hmisc, biovizBase, Biobase, S4Vectors, IRanges, Seqinfo, GenomeInfoDb, GenomicRanges, SummarizedExperiment, Biostrings, Rsamtools, GenomicAlignments, BSgenome, VariantAnnotation, rtracklayer, GenomicFeatures, OrganismDbi, ensembldb, AnnotationDbi, AnnotationFilter, rlang
+- **Install:** `BiocManager::install("ggbio")`
+
 ## When to Use
 - Construct an ideogram track for a specific genome (e.g., hg19) using `Ideogram`.
 - Plot gene models from `OrganismDb`, `TxDb`, or `EnsDb` objects using `autoplot`.

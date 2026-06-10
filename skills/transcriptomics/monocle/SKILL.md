@@ -7,6 +7,16 @@ user-invocable: false
 
 # monocle
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.40.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Matrix, Biobase, ggplot2, VGAM, DDRTree
+- **Imports:** igraph, BiocGenerics, HSMMSingleCell, plyr, cluster, combinat, fastICA, irlba, matrixStats, Rtsne, MASS, reshape2, leidenbase, limma, tibble, dplyr, pheatmap, stringr, proxy, slam, viridis, biocViews, RANN, Rcpp
+- **System requirements:** URL
+- **Install:** `BiocManager::install("monocle")`
+
 ## When to Use
 - Analyzing single-cell RNA-Seq experiments to study complex biological processes.
 - Ordering single cells in pseudotime to place them along a trajectory corresponding to a biological process such as cell differentiation.

@@ -7,6 +7,14 @@ user-invocable: false
 
 # KEGGgraph
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.72.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** XML, graph, RCurl, Rgraphviz
+- **Install:** `BiocManager::install("KEGGgraph")`
+
 ## When to Use
 - **KGML Parsing**: Parsing local or remote KGML (KEGG XML) files into standard R `graphNEL` objects using `parseKGML2Graph`.
 - **Pathway Dissection**: Subsetting complex pathways into smaller subgraphs based on node types (using `subGraphByNodeType`) or specific neighborhoods (using `subKEGGgraph`).

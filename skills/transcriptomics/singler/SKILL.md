@@ -7,6 +7,16 @@ user-invocable: false
 
 # SingleR
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.14.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SummarizedExperiment
+- **Imports:** Matrix, BiocGenerics, S4Vectors, DelayedArray, Rcpp, beachmat
+- **System requirements:** C++17
+- **Install:** `BiocManager::install("SingleR")`
+
 ## When to Use
 - Annotating unlabelled single-cell datasets using pre-labelled reference datasets (e.g., `HumanPrimaryCellAtlasData()`).
 - Propagating biological knowledge to new datasets in an automated manner without manually interpreting clusters.

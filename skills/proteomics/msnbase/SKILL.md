@@ -13,6 +13,15 @@ user-invocable: false
 
 Infrastructure for mass spectrometry data handling in R: reading mzML/mzXML/mzData files, spectral processing, quantification, and proteomics/metabolomics workflows.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.37.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, Biobase, mzR, S4Vectors, ProtGenerics
+- **Imports:** MsCoreUtils, PSMatch, BiocParallel, IRanges, plyr, vsn, affy, impute, pcaMethods, MALDIquant, mzID, digest, lattice, ggplot2, scales, MASS, Rcpp
+- **Install:** `BiocManager::install("MSnbase")`
+
 ## When to Use
 
 - Read mzML/mzXML files into R for proteomics or metabolomics workflows

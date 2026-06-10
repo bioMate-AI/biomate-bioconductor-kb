@@ -7,6 +7,16 @@ user-invocable: false
 
 # DirichletMultinomial
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.54.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** S4Vectors, IRanges
+- **Imports:** BiocGenerics
+- **System requirements:** gsl
+- **Install:** `BiocManager::install("DirichletMultinomial")`
+
 ## When to Use
 - Fitting Dirichlet-Multinomial models to microbial metagenomic count data using `dmn()`.
 - Identifying the optimal number of Dirichlet components (clusters) by comparing `laplace()`, `AIC()`, or `BIC()` scores.

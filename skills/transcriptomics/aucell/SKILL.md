@@ -7,6 +7,15 @@ user-invocable: false
 
 # AUCell
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.34.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** DelayedMatrixStats, data.table, GSEABase, Matrix, mixtools, R.utils, SummarizedExperiment, BiocGenerics
+- **Imports:** DelayedArray, DelayedMatrixStats, data.table, GSEABase, Matrix, mixtools, R.utils, SummarizedExperiment, BiocGenerics
+- **Install:** `BiocManager::install("AUCell")`
+
 ## When to Use
 - **Single-Cell Signature Scoring**: Identifying cells with active gene sets, signatures, or modules in single-cell RNA-seq data using `AUCell_run`.
 - **Normalization-Independent Scoring**: Scoring gene sets across cells independently of the gene expression units and normalization procedures by building rank-based profiles with `AUCell_buildRankings`.

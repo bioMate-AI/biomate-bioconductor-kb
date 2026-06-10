@@ -9,6 +9,14 @@ user-invocable: false
 
 `GOSemSim` is an R package designed for semantic similarity analysis among Gene Ontology (GO) terms and gene products.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.38.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** AnnotationDbi, DBI, digest, GO.db, rlang, yulab.utils
+- **Install:** `BiocManager::install("GOSemSim")`
+
 ## When to Use
 - Measuring semantic similarity among GO terms.
 - Computing functional similarity among gene products.

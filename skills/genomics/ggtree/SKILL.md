@@ -9,6 +9,14 @@ user-invocable: false
 
 `ggtree` extends the `ggplot2` plotting system to implement the grammar of graphics for phylogenetic trees. It is designed for the visualization, manipulation, and annotation of phylogenetic trees and other tree-like structures with their associated multi-omics and clinical metadata.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 4.2.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** ape, aplot, cli, dplyr, ggfun, ggiraph, ggplot2, magrittr, purrr, rlang, scales, tidyr, tidytree, treeio, yulab.utils
+- **Install:** `BiocManager::install("ggtree")`
+
 ## When to Use
 - Visualizing complex phylogenetic trees (e.g., from RAxML, IQ-TREE, or BEAST) integrated with multi-omics metadata (such as microbiome abundance, genomic features, or clinical traits).
 - Annotating tree nodes, clades, and leaves with custom shapes, colors, images, or subplots (e.g., barplots, pie charts) using the grammar of graphics.

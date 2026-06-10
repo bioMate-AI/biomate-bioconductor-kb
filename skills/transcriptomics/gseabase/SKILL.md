@@ -7,6 +7,16 @@ user-invocable: false
 
 # GSEABase
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.74.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, Biobase, annotate, graph
+- **Imports:** AnnotationDbi, XML
+- **System requirements:** URL
+- **Install:** `BiocManager::install("GSEABase")`
+
 ## When to Use
 - **Gene Set Management**: Storing and manipulating gene sets and collections using robust S4 classes like `GeneSet()` and `GeneSetCollection()`.
 - **Importing Standard Formats**: Reading gene sets encoded in XML following the schema and conventions of the Broad Institute using `getBroadSets()`.

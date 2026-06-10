@@ -9,6 +9,16 @@ user-invocable: false
 
 This tool uses the label-tree function from HyPhy to annotate a phylogenetic tree. It allows users to select a subset of leaves using either a regular expression or a list of sequence names, and then apply a specified label to these selected branches. The tool also provides options for rerooting the tree, inverting the selection, and defining strategies for labeling internal and leaf nodes. This functionality is crucial for customizing tree visualizations and focusing on specific evolutionary ev
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.90.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** AnnotationDbi, XML
+- **Imports:** Biobase, DBI, xtable, BiocGenerics, httr
+- **System requirements:** URL
+- **Install:** `BiocManager::install("annotate")`
+
 ## When to Use
 
 - Annotating specific clades or lineages in pre-computed phylogenetic trees for visualization

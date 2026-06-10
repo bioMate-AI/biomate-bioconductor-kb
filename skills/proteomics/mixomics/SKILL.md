@@ -7,6 +7,15 @@ user-invocable: false
 
 # mixOmics
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 6.36.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** MASS, lattice, ggplot2
+- **Imports:** igraph, ellipse, corpcor, RColorBrewer, dplyr, tidyr, reshape2, matrixStats, rARPACK, gridExtra, ggrepel, BiocParallel, rgl, rlang
+- **Install:** `BiocManager::install("mixOmics")`
+
 ## When to Use
 - Performing unsupervised exploratory analysis and dimensionality reduction using `pca` and `spca`.
 - Integrating multiple omics datasets measured on the same samples (N-integration) using DIABLO.

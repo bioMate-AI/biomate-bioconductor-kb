@@ -7,6 +7,14 @@ user-invocable: false
 
 # biocViews
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.80.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** Biobase, graph, RBGL, XML, RCurl, RUnit, BiocManager
+- **Install:** `BiocManager::install("biocViews")`
+
 ## When to Use
 - Generating repository HTML and control files (PACKAGES, VIEWS) for a CRAN-style layout using `genReposControlFiles` and `writeRepositoryHtml`.
 - Extracting package vignettes from source packages to a local directory using `extractVignettes`.

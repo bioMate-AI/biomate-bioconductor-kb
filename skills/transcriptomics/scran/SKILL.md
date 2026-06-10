@@ -13,6 +13,16 @@ user-invocable: false
 
 Methods for single-cell RNA-seq: pooling-based normalisation, high-variable gene detection, doublet detection, and graph-based clustering.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.40.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment, scuttle
+- **Imports:** SummarizedExperiment, S4Vectors, BiocGenerics, BiocParallel, Rcpp, Matrix, edgeR, limma, igraph, statmod, MatrixGenerics, S4Arrays, DelayedArray, BiocSingular, bluster, metapod, dqrng, beachmat
+- **System requirements:** C++11
+- **Install:** `BiocManager::install("scran")`
+
 ## When to Use
 
 - Pooling-based normalisation (handles zero inflation)

@@ -7,6 +7,15 @@ user-invocable: false
 
 # microbiome
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.34.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** phyloseq, ggplot2
+- **Imports:** Biostrings, compositions, dplyr, reshape2, Rtsne, scales, tibble, tidyr, vegan
+- **Install:** `BiocManager::install("microbiome")`
+
 ## When to Use
 - Facilitating `phyloseq`-based exploration and analysis of taxonomic profiling data.
 - Performing manipulation, statistical analysis, and visualization of taxonomic profiling data.

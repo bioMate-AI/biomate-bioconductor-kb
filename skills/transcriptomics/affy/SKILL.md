@@ -7,6 +7,15 @@ user-invocable: false
 
 # affy
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.90.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, Biobase
+- **Imports:** affyio, BiocManager, preprocessCore
+- **Install:** `BiocManager::install("affy")`
+
 ## When to Use
 - Importing and summarizing raw Affymetrix probe-level data into an `ExpressionSet` using classic algorithms like `rma()` or `mas5()`.
 - Performing quality control and exploratory data analysis on Affymetrix expression microarrays using `MAplot()`, `boxplot()`, and `image()`.

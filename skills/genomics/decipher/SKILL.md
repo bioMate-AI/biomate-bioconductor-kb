@@ -7,6 +7,15 @@ user-invocable: false
 
 # DECIPHER
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 3.8.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biostrings
+- **Imports:** DBI, S4Vectors, IRanges, XVector
+- **Install:** `BiocManager::install("DECIPHER")`
+
 ## When to Use
 - **Multiple Sequence Alignment (MSA)**: Aligning large sets of DNA, RNA, or amino acid sequences directly in R with high accuracy.
 - **Taxonomic Classification**: Classifying marker gene sequences (e.g., 16S/18S rRNA, ITS) using the robust IDTAXA algorithm.

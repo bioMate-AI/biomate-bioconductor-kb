@@ -7,6 +7,15 @@ user-invocable: false
 
 # basilisk
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.24.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** reticulate
+- **Imports:** dir.expiry
+- **Install:** `BiocManager::install("basilisk")`
+
 ## When to Use
 - Developing Bioconductor packages that require a reliable, self-contained Python environment using `BasiliskEnvironment` to freeze dependencies.
 - Executing Python-based calculations (e.g., `scikit-learn`'s TruncatedSVD) on R matrices safely in an isolated process via `basiliskRun`.

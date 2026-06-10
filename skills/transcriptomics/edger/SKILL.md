@@ -7,6 +7,15 @@ user-invocable: false
 
 # edgeR
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 4.10.1 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** limma
+- **Imports:** locfit
+- **Install:** `BiocManager::install("edgeR")`
+
 ## When to Use
 
 - Bulk RNA-seq differential expression

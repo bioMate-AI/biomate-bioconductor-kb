@@ -7,6 +7,15 @@ user-invocable: false
 
 # EnhancedVolcano
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.30.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** ggplot2, ggrepel
+- **Imports:** scales
+- **Install:** `BiocManager::install("EnhancedVolcano")`
+
 ## When to Use
 - **Publication-Ready Visualization**: Creating highly-configurable volcano plots from differential expression results using the `EnhancedVolcano()` function.
 - **Targeted Gene Labeling**: Visualizing specific genes of interest by supplying a vector of variables to the `selectLab` parameter.

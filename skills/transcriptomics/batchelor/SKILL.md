@@ -13,6 +13,16 @@ user-invocable: false
 
 Batch correction for single-cell RNA-seq using fastMNN, regressBatches, and other methods. Part of the OSCA workflow for multi-batch integration.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.28.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** SummarizedExperiment, S4Vectors, BiocGenerics, Rcpp, igraph, BiocNeighbors, BiocSingular, Matrix, SparseArray, DelayedArray, DelayedMatrixStats, BiocParallel, scuttle, ResidualMatrix, ScaledMatrix, beachmat
+- **System requirements:** C++11
+- **Install:** `BiocManager::install("batchelor")`
+
 ## When to Use
 
 - Integrate scRNA-seq data from multiple batches/studies

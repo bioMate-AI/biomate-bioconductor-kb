@@ -7,6 +7,16 @@ user-invocable: false
 
 # snpStats
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.62.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** survival, Matrix
+- **Imports:** BiocGenerics
+- **System requirements:** URL
+- **Install:** `BiocManager::install("snpStats")`
+
 ## When to Use
 - Performing genome-wide association studies (GWAS) on large cohorts with hundreds of thousands of SNPs.
 - Analyzing imputed genotype data where genotypes are represented as posterior probabilities (uncertainty) rather than hard calls.

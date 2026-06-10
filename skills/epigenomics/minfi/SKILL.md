@@ -13,6 +13,15 @@ user-invocable: false
 
 Analysis of Illumina Infinium DNA methylation arrays (450K, EPIC). Handles import, QC, normalisation, and differential methylation.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.58.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, GenomicRanges, SummarizedExperiment, Biostrings, bumphunter
+- **Imports:** S4Vectors, Seqinfo, Biobase, IRanges, beanplot, RColorBrewer, lattice, nor1mix, siggenes, limma, preprocessCore, illuminaio, DelayedMatrixStats, mclust, genefilter, nlme, reshape, MASS, quadprog, data.table, GEOquery, DelayedArray, HDF5Array, BiocParallel
+- **Install:** `BiocManager::install("minfi")`
+
 ## When to Use
 
 - Import and QC of 450K/EPIC array data

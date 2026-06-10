@@ -7,6 +7,15 @@ user-invocable: false
 
 # vsn
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 3.80.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biobase
+- **Imports:** affy, limma, lattice, ggplot2
+- **Install:** `BiocManager::install("vsn")`
+
 ## When to Use
 - **Microarray Normalization**: Normalizing and variance-stabilizing unnormalised microarray intensity data (e.g., two-colour spotted cDNA arrays or single-colour arrays) using `justvsn` or `vsn2`.
 - **Affymetrix Preprocessing**: Applying variance stabilization, background correction, and transformation to Affymetrix genechip data via the `vsnrma` wrapper.

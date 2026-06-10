@@ -7,6 +7,15 @@ user-invocable: false
 
 # gypsum
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.8.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** httr2, jsonlite, filelock, rappdirs
+- **Imports:** httr2, jsonlite, filelock, rappdirs
+- **Install:** `BiocManager::install("gypsum")`
+
 ## When to Use
 - Programmatically downloading files, manifests, and summaries from the gypsum bucket using `saveFile`, `saveVersion`, `fetchManifest`, and `fetchSummary`.
 - Uploading files to the gypsum backend using the upload sequence: `startUpload`, `uploadFiles`, and `completeUpload`.

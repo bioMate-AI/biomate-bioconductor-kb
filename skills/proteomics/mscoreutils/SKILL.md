@@ -7,6 +7,14 @@ user-invocable: false
 
 # MsCoreUtils
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.24.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** S4Vectors, MASS, clue
+- **Install:** `BiocManager::install("MsCoreUtils")`
+
 ## When to Use
 - **Quantitative Aggregation**: Calculating the robust summary of matrix columns (e.g., summarizing peptide quantitation values into protein intensities) using `robustSummary()`.
 - **Spectra Processing**: Performing low-level mass spectra processing such as noise estimation, smoothing, and binning using functions like `noise()`, `smooth()`, and `bin()`.

@@ -7,6 +7,14 @@ user-invocable: false
 
 # MetaboCoreUtils
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.20.1 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** MsCoreUtils, BiocParallel
+- **Install:** `BiocManager::install("MetaboCoreUtils")`
+
 ## When to Use
 - **Mass and m/z Conversions**: Converting between exact compound masses and ion mass-to-charge ratios ($m/z$) using `mass2mz` and `mz2mass`.
 - **Chemical Formula Manipulation**: Standardizing chemical formulas to Hill notation (`standardizeFormula`), adding/subtracting elements (`addElements`, `subtractElements`), and calculating exact masses (`calculateMass`).

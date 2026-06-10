@@ -7,6 +7,14 @@ user-invocable: false
 
 # biomformat
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.40.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** jsonlite, Matrix
+- **Install:** `BiocManager::install("biomformat")`
+
 ## When to Use
 - Reading BIOM format files (JSON or HDF5) into R using `read_biom()`.
 - Extracting core observation data (OTU tables) as sparse matrices using `biom_data()`.

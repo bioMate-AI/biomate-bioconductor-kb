@@ -7,6 +7,16 @@ user-invocable: false
 
 # VariantAnnotation
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.58.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, MatrixGenerics, Seqinfo, GenomicRanges, SummarizedExperiment, Rsamtools
+- **Imports:** DBI, Biobase, S4Vectors, IRanges, XVector, Biostrings, AnnotationDbi, rtracklayer, BSgenome, GenomicFeatures, curl
+- **System requirements:** GNU make
+- **Install:** `BiocManager::install("VariantAnnotation")`
+
 ## When to Use
 - **VCF File Parsing**: Reading, exploring, and subsetting Variant Call Format (VCF) files using `readVcf()` and `ScanVcfParam()`.
 - **Genomic Context Annotation**: Locating variants in and around genes (e.g., coding, intron, 5' UTR, splice site) relative to a transcript database using `locateVariants()`.

@@ -7,6 +7,14 @@ user-invocable: false
 
 # clusterProfiler
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 4.20.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** aisdk, AnnotationDbi, dplyr, enrichit, enrichplot, ggplot2, GO.db, GOSemSim, gson, httr, igraph, jsonlite, magrittr, plyr, qvalue, rlang, tidyr, yulab.utils
+- **Install:** `BiocManager::install("clusterProfiler")`
+
 ## When to Use
 
 - Performing Over-Representation Analysis or Gene Set Enrichment Analysis.

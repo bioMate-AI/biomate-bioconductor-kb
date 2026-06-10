@@ -7,6 +7,16 @@ user-invocable: false
 
 # TreeSummarizedExperiment
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.20.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment, S4Vectors, Biostrings
+- **Imports:** BiocGenerics, ape, rlang, dplyr, SummarizedExperiment, BiocParallel, IRanges, treeio
+- **System requirements:** URL
+- **Install:** `BiocManager::install("TreeSummarizedExperiment")`
+
 ## When to Use
 - Storing rectangular experimental data alongside hierarchical tree structures using the `TreeSummarizedExperiment` class.
 - Aggregating data to different taxonomic levels (e.g., phylum or class) using `aggTSE`.

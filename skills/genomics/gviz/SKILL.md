@@ -7,6 +7,15 @@ user-invocable: false
 
 # Gviz
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.56.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** S4Vectors, IRanges, GenomicRanges
+- **Imports:** XVector, rtracklayer, lattice, RColorBrewer, biomaRt, AnnotationDbi, Biobase, GenomicFeatures, ensembldb, BSgenome, Biostrings, biovizBase, Rsamtools, latticeExtra, matrixStats, GenomicAlignments, Seqinfo, GenomeInfoDb, BiocGenerics, digest
+- **Install:** `BiocManager::install("Gviz")`
+
 ## When to Use
 - Plotting genomic data and annotation features (e.g., CpG islands, gene models) in a genome browser-like layout using `plotTracks`.
 - Visualizing run-length encoded numeric vectors or matrices (like NGS read coverage or microarray probes) using `DataTrack`.

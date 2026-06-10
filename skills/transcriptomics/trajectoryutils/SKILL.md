@@ -7,6 +7,15 @@ user-invocable: false
 
 # TrajectoryUtils
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.20.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** Matrix, igraph, S4Vectors, SummarizedExperiment
+- **Install:** `BiocManager::install("TrajectoryUtils")`
+
 ## When to Use
 - Developing custom single-cell trajectory inference workflows or extending existing packages.
 - Constructing cluster-level minimum spanning trees (MST) from low-dimensional single-cell embeddings using `createClusterMST()`.

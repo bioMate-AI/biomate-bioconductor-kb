@@ -7,6 +7,15 @@ user-invocable: false
 
 # BSgenome
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.80.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, S4Vectors, IRanges, Seqinfo, GenomicRanges, Biostrings, BiocIO, rtracklayer
+- **Imports:** matrixStats, XVector, Rsamtools
+- **Install:** `BiocManager::install("BSgenome")`
+
 ## When to Use
 - **Chromosome Pattern Matching**: Finding or counting the occurrences of an arbitrary nucleotide pattern in a specific chromosome using `matchPattern()` or `countPattern()`.
 - **Genome-Wide Dictionary Searches**: Finding all occurrences of a constant-width dictionary of patterns across an entire genome using `PDict()` and `matchPDict()`.

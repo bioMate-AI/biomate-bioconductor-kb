@@ -9,6 +9,14 @@ user-invocable: false
 
 Reactome is a free, open-source, curated and peer-reviewed pathway database. Their goal is to provide intuitive bioinformatics tools for the visualization, interpretation and analysis of pathway knowledge.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.56.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** AnnotationDbi, enrichplot, enrichit, ggplot2, ggraph, reactome.db, igraph, graphite, gson, yulab.utils
+- **Install:** `BiocManager::install("ReactomePA")`
+
 ## When to Use
 
 - Identifying significantly enriched Reactome pathways from differentially expressed gene lists

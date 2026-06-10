@@ -7,6 +7,16 @@ user-invocable: false
 
 # pcaMethods
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.4.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biobase
+- **Imports:** BiocGenerics, Rcpp, MASS
+- **System requirements:** Rcpp
+- **Install:** `BiocManager::install("pcaMethods")`
+
 ## When to Use
 - **Handling Outliers**: When performing PCA on metabolite or microarray data corrupted with extreme values using a robust singular value decomposition (`method="robustPca"`).
 - **Missing Value Imputation**: When estimating missing values (`NA`) in incomplete datasets using Probabilistic PCA (`method="ppca"`) or Nipals (`method="nipals"`).

@@ -7,6 +7,14 @@ user-invocable: false
 
 # KEGGREST
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.52.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** httr, png, Biostrings
+- **Install:** `BiocManager::install("KEGGREST")`
+
 ## When to Use
 - Exploring available KEGG databases and organisms using `listDatabases()` and `keggList()`.
 - Retrieving specific KEGG entries, including amino acid (`aaseq`) or nucleotide (`ntseq`) sequences as `AAStringSet` or `DNAStringSet` objects using `keggGet()`.

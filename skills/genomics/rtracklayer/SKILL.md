@@ -7,6 +7,16 @@ user-invocable: false
 
 # rtracklayer
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.72.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** GenomicRanges
+- **Imports:** XML, BiocGenerics, S4Vectors, IRanges, XVector, Seqinfo, Biostrings, curl, httr, Rsamtools, GenomicAlignments, BiocIO, restfulr
+- **System requirements:** URL
+- **Install:** `BiocManager::install("rtracklayer")`
+
 ## When to Use
 - **Genomic Track Import/Export**: Importing and exporting genomic annotation tracks (e.g., BED, GFF, WIG) into R as `GRanges` objects using `import` and `export`.
 - **UCSC Genome Browser Interaction**: Interacting programmatically with the UCSC genome browser via `browserSession`.

@@ -7,6 +7,16 @@ user-invocable: false
 
 # siggenes
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.86.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biobase, multtest
+- **Imports:** scrime
+- **System requirements:** URL
+- **Install:** `BiocManager::install("siggenes")`
+
 ## When to Use
 - **Significance Analysis of Microarrays**: When identifying differentially expressed genes and estimating the False Discovery Rate (FDR) using permutation-based methods via `sam()`.
 - **Empirical Bayes Analysis**: When computing posterior probabilities of differential expression using the Empirical Bayes Analysis of Microarrays via `ebam()`.

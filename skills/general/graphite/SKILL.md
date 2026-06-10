@@ -7,6 +7,14 @@ user-invocable: false
 
 # graphite
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.58.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** AnnotationDbi, graph, httr, rappdirs, rlang, lifecycle, purrr, dir.expiry
+- **Install:** `BiocManager::install("graphite")`
+
 ## When to Use
 - Retrieving pathway topologies as directed/undirected graph objects from major databases (KEGG, Reactome, WikiPathways, Panther, PathBank, PharmGKB) using the `pathways` function.
 - Converting pathway identifiers (e.g., from UNIPROT to SYMBOL or ENTREZID) to match experimental data using `convertIdentifiers`.

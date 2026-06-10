@@ -7,6 +7,15 @@ user-invocable: false
 
 # MultiAssayExperiment
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.38.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SummarizedExperiment
+- **Imports:** Biobase, BiocBaseUtils, BiocGenerics, DelayedArray, GenomicRanges, IRanges, MatrixGenerics, S4Vectors, tidyr
+- **Install:** `BiocManager::install("MultiAssayExperiment")`
+
 ## When to Use
 - Integrating multi-omics experiments (e.g., DNA mutations, RNA abundance) measured on the same biological specimens into a single object.
 - Managing complex experimental designs where a single patient maps to multiple assays, missing assays, or technical replicates using a `sampleMap`.

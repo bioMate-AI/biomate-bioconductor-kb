@@ -7,6 +7,15 @@ user-invocable: false
 
 # PSMatch
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.16.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** S4Vectors, PTMods
+- **Imports:** igraph, Spectra, Matrix, BiocParallel, BiocGenerics, ProtGenerics, QFeatures, MsCoreUtils
+- **Install:** `BiocManager::install("PSMatch")`
+
 ## When to Use
 - **Fragment Ion Calculation**: Calculating theoretical MS2 fragment ions (b and y ions) for a peptide sequence using `calculateFragments`.
 - **Fragment Visualisation**: Visualising matched b- and y-ion fragment sequences directly on an MS spectrum using `plotSpectraPTM`.

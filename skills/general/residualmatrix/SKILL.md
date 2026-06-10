@@ -7,6 +7,15 @@ user-invocable: false
 
 # ResidualMatrix
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.22.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Matrix, S4Vectors, DelayedArray
+- **Imports:** Matrix, S4Vectors, DelayedArray
+- **Install:** `BiocManager::install("ResidualMatrix")`
+
 ## When to Use
 - **Memory-Efficient Residuals**: When computing residuals on large sparse matrices (e.g., `rsparsematrix`) where explicitly calculating a dense matrix of residuals would exhaust memory.
 - **Approximate PCA**: When performing randomized SVD or PCA on residuals using `BiocSingular::runPCA()` without ever materializing the full residual matrix.

@@ -9,6 +9,14 @@ user-invocable: false
 
 Pathview is a stand-alone software package for pathway based data integration and visualization.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.52.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** KEGGgraph, XML, Rgraphviz, graph, png, AnnotationDbi, org.Hs.eg.db, KEGGREST
+- **Install:** `BiocManager::install("pathview")`
+
 ## When to Use
 
 - Integrating gene expression data with metabolic pathway visualization

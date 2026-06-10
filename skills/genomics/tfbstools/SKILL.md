@@ -7,6 +7,14 @@ user-invocable: false
 
 # TFBSTools
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.50.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** Biobase, Biostrings, pwalign, BiocGenerics, BiocParallel, BSgenome, caTools, DirichletMultinomial, Seqinfo, GenomicRanges, gtools, IRanges, DBI, RSQLite, rtracklayer, seqLogo, S4Vectors, TFMPvalue, XML, XVector
+- **Install:** `BiocManager::install("TFBSTools")`
+
 ## When to Use
 - **Matrix Conversion**: Converting Position Frequency Matrices (PFMs) to Position Weight Matrices (PWMs) or Information Content Matrices (ICMs) using `toPWM` and `toICM`.
 - **Motif Scanning**: Scanning nucleotide sequences or pairwise alignments for transcription factor binding sites using `searchSeq` or `searchAln`.

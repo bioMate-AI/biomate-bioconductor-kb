@@ -7,6 +7,14 @@ user-invocable: false
 
 # ComplexHeatmap
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.28.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** circlize, GetoptLong, colorspace, clue, RColorBrewer, GlobalOptions, png, digest, IRanges, matrixStats, foreach, doParallel, codetools
+- **Install:** `BiocManager::install("ComplexHeatmap")`
+
 ## When to Use
 
 - Visualizing global patterns in matrices with a huge number of rows or columns.

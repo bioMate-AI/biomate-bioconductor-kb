@@ -7,6 +7,16 @@ user-invocable: false
 
 # OrganismDbi
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.54.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, AnnotationDbi, Seqinfo, GenomicFeatures
+- **Imports:** DBI, BiocManager, Biobase, graph, RBGL, S4Vectors, IRanges, GenomicRanges
+- **System requirements:** URL
+- **Install:** `BiocManager::install("OrganismDbi")`
+
 ## When to Use
 - **Unified Annotation Queries**: Querying multiple annotation resources (e.g., `TxDb` and `OrgDb`) simultaneously through a single unified interface using `select`.
 - **Custom Meta-Package Building**: Building custom `OrganismDbi` meta-packages (like `Homo.sapiens`) that link genome-centric and gene-centric databases using `makeOrganismPackage`.

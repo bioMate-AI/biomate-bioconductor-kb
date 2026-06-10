@@ -7,6 +7,15 @@ user-invocable: false
 
 # biovizBase
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.60.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** scales, Hmisc, RColorBrewer, dichromat, BiocGenerics, S4Vectors, IRanges, Seqinfo, GenomeInfoDb, GenomicRanges, SummarizedExperiment, Biostrings, Rsamtools, GenomicAlignments, GenomicFeatures, AnnotationDbi, VariantAnnotation, ensembldb, AnnotationFilter, rlang
+- **System requirements:** URL
+- **Install:** `BiocManager::install("biovizBase")`
+
 ## When to Use
 - Generating colorblind-safe palettes for biological data visualization using `colorBlindSafePal()`.
 - Retrieving standardized, biologically sensible color schemes for cytobands, strands, or nucleotides using `getBioColor()`.

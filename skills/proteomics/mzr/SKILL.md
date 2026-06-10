@@ -7,6 +7,16 @@ user-invocable: false
 
 # mzR
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.46.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Rcpp
+- **Imports:** Biobase, BiocGenerics, ProtGenerics, ncdf4
+- **System requirements:** C++11, GNU make
+- **Install:** `BiocManager::install("mzR")`
+
 ## When to Use
 - **Low-Level Raw Data Access**: High-performance reading of raw mass spectrometry data formats (mzML, mzXML, netCDF) using `openMSfile()`.
 - **Metadata Extraction**: Accessing metadata, instrument configurations, run summaries, and individual scan headers from raw MS files using `runInfo()`, `instrumentInfo()`, and `header()`.

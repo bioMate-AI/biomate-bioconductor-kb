@@ -7,6 +7,14 @@ user-invocable: false
 
 # qvalue
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.44.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** ggplot2, reshape2
+- **Install:** `BiocManager::install("qvalue")`
+
 ## When to Use
 
 - **False Discovery Rate Estimation**: When analyzing thousands of features (e.g., differential gene expression) to estimate q-values and control the false discovery rate using `qvalue`.

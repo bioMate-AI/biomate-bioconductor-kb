@@ -7,6 +7,15 @@ user-invocable: false
 
 # metapod
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.20.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** Rcpp
+- **System requirements:** C++11
+- **Install:** `BiocManager::install("metapod")`
+
 ## When to Use
 - **Genomic Window Aggregation**: Combining p-values across adjacent genomic windows in ChIP-seq (e.g., inside `csaw`) using grouped functions like `groupedSimes`.
 - **Multi-Batch Marker Detection**: Merging statistics from multiple batches or pairwise comparisons during marker gene detection (e.g., inside `scran`) using parallel functions like `parallelSimes`.

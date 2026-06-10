@@ -7,6 +7,16 @@ user-invocable: false
 
 # dada2
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.40.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Rcpp
+- **Imports:** Biostrings, ggplot2, reshape2, ShortRead, RcppParallel, IRanges, XVector, BiocGenerics
+- **System requirements:** GNU make
+- **Install:** `BiocManager::install("dada2")`
+
 ## When to Use
 - Resolving exact Amplicon Sequence Variants (ASVs) from high-throughput amplicon sequencing data using the `dada` algorithm.
 - Filtering and trimming raw paired-end or single-end FASTQ files using `filterAndTrim`.

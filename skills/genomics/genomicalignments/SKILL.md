@@ -7,6 +7,15 @@ user-invocable: false
 
 # GenomicAlignments
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.48.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, S4Vectors, IRanges, Seqinfo, GenomicRanges, SummarizedExperiment, Biostrings, Rsamtools
+- **Imports:** BiocGenerics, S4Vectors, IRanges, GenomicRanges, Biostrings, Rsamtools, BiocParallel, cigarillo
+- **Install:** `BiocManager::install("GenomicAlignments")`
+
 ## When to Use
 
 - Counting aligned reads overlapping genomic features (e.g., exons, genes) for differential expression analysis using `summarizeOverlaps`.

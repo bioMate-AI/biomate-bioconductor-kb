@@ -7,6 +7,14 @@ user-invocable: false
 
 # phyloseq
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.56.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** ade4, ape, Biobase, BiocGenerics, biomformat, Biostrings, cluster, data.table, foreach, ggplot2, igraph, multtest, plyr, reshape2, scales, vegan
+- **Install:** `BiocManager::install("phyloseq")`
+
 ## When to Use
 - Importing and storing complex phylogenetic sequencing data (OTU tables, sample metadata, taxonomy, trees) into a single object using `import()`.
 - Estimating and visualizing alpha diversity using `plot_richness()` with measures like "Chao1" or "Shannon".

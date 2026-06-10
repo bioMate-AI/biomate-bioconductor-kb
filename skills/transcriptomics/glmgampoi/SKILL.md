@@ -7,6 +7,15 @@ user-invocable: false
 
 # glmGamPoi
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.24.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** Rcpp, beachmat, DelayedMatrixStats, matrixStats, MatrixGenerics, SparseArray, S4Vectors, DelayedArray, HDF5Array, Matrix, SummarizedExperiment, SingleCellExperiment, BiocGenerics, rlang, vctrs
+- **System requirements:** C++17
+- **Install:** `BiocManager::install("glmGamPoi")`
+
 ## When to Use
 - Fitting Gamma-Poisson (negative binomial) generalized linear models on high-dimensional count data using `glm_gp()`.
 - Performing differential expression analysis on single-cell RNA-seq data using quasi-likelihood ratio testing via `test_de()`.

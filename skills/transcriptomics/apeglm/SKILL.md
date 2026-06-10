@@ -7,6 +7,16 @@ user-invocable: false
 
 # apeglm
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.34.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SummarizedExperiment, GenomicRanges, Rcpp
+- **Imports:** emdbook, SummarizedExperiment, GenomicRanges, Rcpp
+- **System requirements:** URL
+- **Install:** `BiocManager::install("apeglm")`
+
 ## When to Use
 - **Log Fold Change Shrinkage**: Shrinking effect sizes for negative binomial GLMs in RNA-seq differential expression analysis (typically called via the `DESeq2::lfcShrink` wrapper).
 - **Beta-Binomial Modeling**: Estimating and shrinking GLM coefficients for binomial or beta-binomial rate data, such as allele-specific count ratios.

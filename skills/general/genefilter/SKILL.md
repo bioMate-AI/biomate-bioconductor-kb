@@ -7,6 +7,16 @@ user-invocable: false
 
 # genefilter
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.94.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** AnnotationDbi, annotate, Biobase, survival
+- **Imports:** MatrixGenerics, AnnotationDbi, annotate, Biobase, survival
+- **System requirements:** URL
+- **Install:** `BiocManager::install("genefilter")`
+
 ## When to Use
 - Filtering genes from a microarray or expression dataset according to specific or non-specific filtering mechanisms using `genefilter`.
 - Selecting genes that have an expression measure above a certain threshold in at least a minimum number of samples using `kOverA`.

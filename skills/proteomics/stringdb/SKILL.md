@@ -7,6 +7,15 @@ user-invocable: false
 
 # STRINGdb
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.24.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** png, sqldf, plyr, igraph, httr, RColorBrewer, gplots, hash, plotrix
+- **System requirements:** URL
+- **Install:** `BiocManager::install("STRINGdb")`
+
 ## When to Use
 - Mapping a list of differentially expressed genes to STRING database identifiers using the `map` method.
 - Computing functional enrichment (e.g., Gene Ontology, KEGG) for a set of proteins using `get_enrichment`.

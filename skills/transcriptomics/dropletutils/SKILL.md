@@ -13,6 +13,16 @@ user-invocable: false
 
 Utilities for handling droplet-based single-cell RNA-seq data: emptyDrops for ambient RNA removal, barcodeRanks for knee detection, and read10xCounts for CellRanger output loading.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.32.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** Matrix, Rcpp, BiocGenerics, S4Vectors, IRanges, GenomicRanges, SummarizedExperiment, BiocParallel, SparseArray, DelayedArray, DelayedMatrixStats, HDF5Array, rhdf5, edgeR, R.utils, dqrng, beachmat, scuttle
+- **System requirements:** C++17, GNU make
+- **Install:** `BiocManager::install("DropletUtils")`
+
 ## When to Use
 
 - Load 10x Genomics CellRanger output (barcodes/features/matrix)

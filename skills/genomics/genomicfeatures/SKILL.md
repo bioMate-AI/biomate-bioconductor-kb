@@ -7,6 +7,15 @@ user-invocable: false
 
 # GenomicFeatures
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.64.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, S4Vectors, IRanges, Seqinfo, GenomicRanges, AnnotationDbi
+- **Imports:** DBI, XVector, Biostrings, rtracklayer
+- **Install:** `BiocManager::install("GenomicFeatures")`
+
 ## When to Use
 - Extract genomic coordinates for exons, transcripts, or coding sequences as `GRanges` objects using `transcripts`, `exons`, or `cds`.
 - Group genomic features by gene or transcript into a `GRangesList` using `transcriptsBy` or `exonsBy`.

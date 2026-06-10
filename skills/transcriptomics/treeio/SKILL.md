@@ -7,6 +7,14 @@ user-invocable: false
 
 # treeio
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.36.1 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** ape, dplyr, jsonlite, magrittr, rlang, tibble, tidytree, yulab.utils
+- **Install:** `BiocManager::install("treeio")`
+
 ## When to Use
 - **Phylogenetic Tree Input and Output**: Managing phylogenetic tree data using the package's core base classes.
 - **Vignette Redirection**: Accessing the full documentation and tutorials by navigating to the external `treedata-book` resource linked in the package stub.

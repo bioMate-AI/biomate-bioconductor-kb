@@ -7,6 +7,15 @@ user-invocable: false
 
 # SpatialExperiment
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.22.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** rjson, magick, S4Vectors, SummarizedExperiment, BiocGenerics, BiocFileCache
+- **Install:** `BiocManager::install("SpatialExperiment")`
+
 ## When to Use
 - **Spot-Based Spatial Transcriptomics**: Representing and manipulating data from spot-based spatial transcriptomics platforms (e.g., 10x Genomics Visium) containing gene expression, spatial coordinates, and histology images using `SpatialExperiment()` and `imgData()`.
 - **Molecule-Resolved Spatial Data**: Storing and querying molecule-resolved spatial data (e.g., seqFISH) where exact X-Y coordinates of individual transcripts are recorded, using `splitAsBumpyMatrix()` and the `molecules()` accessor.

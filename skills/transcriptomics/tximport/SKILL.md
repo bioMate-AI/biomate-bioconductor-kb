@@ -9,6 +9,14 @@ user-invocable: false
 
 Current version only works in 'merge' mode: A single table of gene summarizations is generated with one column for each sample file. Take into account that DEseq2 package in automated pipelines requires one table per sample.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.40.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** GeneExpression, ImmunoOncology, Preprocessing, RNASeq, Software, Transcription
+- **Install:** `BiocManager::install("tximport")`
+
 ## When to Use
 
 - Consolidating transcript quantifications from multiple RNA-seq samples into single gene-level matrix

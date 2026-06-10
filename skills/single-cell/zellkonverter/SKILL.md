@@ -7,6 +7,15 @@ user-invocable: false
 
 # zellkonverter
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.22.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** cli, DelayedArray, Matrix, reticulate, S4Vectors, SingleCellExperiment, SparseArray, SummarizedExperiment
+- **Imports:** basilisk, cli, DelayedArray, Matrix, reticulate, S4Vectors, SingleCellExperiment, SparseArray, SummarizedExperiment
+- **Install:** `BiocManager::install("zellkonverter")`
+
 ## When to Use
 - Reading a `SingleCellExperiment` from a `.h5ad` file using `readH5AD`.
 - Writing a `SingleCellExperiment` to a `.h5ad` file using `writeH5AD`.

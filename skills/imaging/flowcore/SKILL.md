@@ -7,6 +7,15 @@ user-invocable: false
 
 # flowCore
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.24.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** Biobase, BiocGenerics, Rcpp, matrixStats, cytolib, S4Vectors
+- **System requirements:** GNU make, C++17
+- **Install:** `BiocManager::install("flowCore")`
+
 ## When to Use
 - **FCS3.0 Standard Parsing**: Reading and interpreting Flow Cytometry Data File Standard Version FCS3.0 files.
 - **Segment Extraction**: Locating and extracting HEADER, TEXT, DATA, and ANALYSIS segments from flow cytometry data sets.

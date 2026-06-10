@@ -7,6 +7,14 @@ user-invocable: false
 
 # fgsea
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.38.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** Rcpp, data.table, BiocParallel, ggplot2, cowplot, fastmatch, Matrix, scales
+- **Install:** `BiocManager::install("fgsea")`
+
 ## When to Use
 
 - Fast pathway enrichment analysis on pre-ranked gene lists from differential expression studies

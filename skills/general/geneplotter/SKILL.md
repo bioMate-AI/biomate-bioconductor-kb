@@ -9,6 +9,16 @@ user-invocable: false
 
 Functions for plotting genomic data.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.90.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biobase, BiocGenerics, lattice, annotate
+- **Imports:** AnnotationDbi, RColorBrewer
+- **System requirements:** URL
+- **Install:** `BiocManager::install("geneplotter")`
+
 ## When to Use
 - Visualizing microarray or high-throughput genomic data along chromosomes using `cPlot` and `cColor`.
 - Plotting characteristics of expression levels over contiguous regions of a single chromosome using `alongChrom`.

@@ -9,6 +9,14 @@ user-invocable: false
 
 Functions that are needed by many other packages or which replace R functions.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.72.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics
+- **Install:** `BiocManager::install("Biobase")`
+
 ## When to Use
 - Coordinating high-throughput genomic data (e.g., microarray expression values) and phenotype metadata into a single, structured `ExpressionSet` object.
 - Evaluating statistical functions across sample strata defined by covariates using `esApply`.

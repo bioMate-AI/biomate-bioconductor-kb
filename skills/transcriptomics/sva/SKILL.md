@@ -7,6 +7,16 @@ user-invocable: false
 
 # sva
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 3.60.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** mgcv, genefilter, BiocParallel
+- **Imports:** matrixStats, limma, edgeR
+- **System requirements:** URL
+- **Install:** `BiocManager::install("sva")`
+
 ## When to Use
 - **Surrogate Variable Analysis (SVA)**: Identifying and adjusting for hidden, unmodeled, or latent sources of variation in high-dimensional datasets using `sva` and `num.sv`.
 - **Known Batch Effect Correction (ComBat)**: Adjusting for known batch effects in normalized gene expression data using `ComBat`.

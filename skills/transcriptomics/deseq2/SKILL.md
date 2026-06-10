@@ -7,6 +7,15 @@ user-invocable: false
 
 # DESeq2
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.52.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** S4Vectors, IRanges, GenomicRanges, SummarizedExperiment
+- **Imports:** BiocGenerics, Biobase, BiocParallel, matrixStats, locfit, ggplot2, Rcpp, MatrixGenerics
+- **Install:** `BiocManager::install("DESeq2")`
+
 ## When to Use
 
 - Two-group comparison (treatment vs control)

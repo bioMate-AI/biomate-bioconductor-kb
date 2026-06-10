@@ -13,6 +13,16 @@ user-invocable: false
 
 S4 class for storing single-cell experiment data including counts, reduced dimensions, and column/row metadata. The foundational container for the Bioconductor single-cell ecosystem.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.34.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SummarizedExperiment
+- **Imports:** S4Vectors, BiocGenerics, GenomicRanges, DelayedArray
+- **System requirements:** URL
+- **Install:** `BiocManager::install("SingleCellExperiment")`
+
 ## When to Use
 
 - Store and manipulate scRNA-seq count matrices + metadata

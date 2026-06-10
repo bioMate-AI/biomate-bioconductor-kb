@@ -7,6 +7,15 @@ user-invocable: false
 
 # DNAcopy
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.86.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Imports
+- **System requirements:** URL
+- **Install:** `BiocManager::install("DNAcopy")`
+
 ## When to Use
 - **Copy Number Segmentation**: Finding change-points in array DNA copy number data (e.g., array CGH) using the `segment()` function.
 - **Identifying Gains and Losses**: Determining regions of gained and lost copy number by plotting segment means with `plot()`.

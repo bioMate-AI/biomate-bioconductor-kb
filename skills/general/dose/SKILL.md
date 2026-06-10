@@ -7,6 +7,14 @@ user-invocable: false
 
 # DOSE
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 4.6.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** AnnotationDbi, enrichit, ggplot2, GOSemSim, reshape2, yulab.utils
+- **Install:** `BiocManager::install("DOSE")`
+
 ## When to Use
 
 - **Disease Ontology Analysis**: Performing Disease Ontology Semantic and Enrichment analysis as described by the package authors.

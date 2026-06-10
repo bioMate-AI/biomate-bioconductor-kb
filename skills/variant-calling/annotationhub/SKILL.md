@@ -13,6 +13,15 @@ user-invocable: false
 
 Access a large collection of biologically relevant annotation resources (genome sequences, chain files, GTF, OrgDbs, TxDbs) directly from within R via the Bioconductor AnnotationHub.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 4.2.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, BiocFileCache
+- **Imports:** RSQLite, BiocManager, BiocVersion, curl, rappdirs, AnnotationDbi, S4Vectors, httr2, yaml, dplyr, BiocBaseUtils
+- **Install:** `BiocManager::install("AnnotationHub")`
+
 ## When to Use
 
 - Download organism annotation databases (OrgDb, TxDb, EnsDb)

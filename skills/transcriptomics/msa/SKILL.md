@@ -7,6 +7,16 @@ user-invocable: false
 
 # msa
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.44.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Biostrings
+- **Imports:** Rcpp, BiocGenerics, IRanges, S4Vectors
+- **System requirements:** GNU make
+- **Install:** `BiocManager::install("msa")`
+
 ## When to Use
 - Performing multiple sequence alignment of amino acid or nucleotide sequences using `msa()`.
 - Generating highly customizable, publication-ready PDF visualizations of alignments using `msaPrettyPrint()`.

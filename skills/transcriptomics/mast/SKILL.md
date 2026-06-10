@@ -7,6 +7,15 @@ user-invocable: false
 
 # MAST
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.38.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** Biobase, BiocGenerics, S4Vectors, data.table, ggplot2, plyr, stringr, abind, reshape2, SummarizedExperiment, progress, Matrix
+- **Install:** `BiocManager::install("MAST")`
+
 ## When to Use
 - **Zero-Inflated scRNA-seq DE**: Performing differential expression analysis on single-cell RNA-seq data using a Hurdle model (`zlm`) to account for bimodal expression patterns.
 - **Data Filtering**: Filtering outlier cells and wells where discrete and continuous parts of the signal deviate significantly, visualized via `plotSCAConcordance` and applied via `mast_filter`.

@@ -7,6 +7,16 @@ user-invocable: false
 
 # Rsamtools
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.28.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** Seqinfo, GenomicRanges, Biostrings
+- **Imports:** BiocGenerics, S4Vectors, IRanges, XVector, bitops, BiocParallel
+- **System requirements:** GNU make
+- **Install:** `BiocManager::install("Rsamtools")`
+
 ## When to Use
 - **Low-level Alignment Import**: Importing and parsing BAM files directly into R lists or `DataFrame` objects using `scanBam`.
 - **Targeted Read Extraction**: Extracting specific genomic coordinates and alignment fields (e.g., read sequence, strand, position) using `ScanBamParam`.

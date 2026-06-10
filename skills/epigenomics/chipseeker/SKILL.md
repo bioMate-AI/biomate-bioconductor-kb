@@ -13,6 +13,14 @@ user-invocable: false
 
 ChIP-seq peak annotation, comparison, and visualization. Annotates peaks to nearest genomic features, generates coverage and TSS profile plots.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.48.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** AnnotationDbi, aplot, BiocGenerics, boot, dplyr, enrichplot, IRanges, GenomeInfoDb, GenomicRanges, GenomicFeatures, ggplot2, gplots, gtools, magrittr, plotrix, RColorBrewer, rlang, rtracklayer, S4Vectors, scales, tibble, TxDb.Hsapiens.UCSC.hg19.knownGene, yulab.utils
+- **Install:** `BiocManager::install("ChIPseeker")`
+
 ## When to Use
 
 - Annotate ChIP-seq/ATAC-seq peaks to promoters, exons, introns, intergenic regions

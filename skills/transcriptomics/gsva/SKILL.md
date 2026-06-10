@@ -7,6 +7,14 @@ user-invocable: false
 
 # GSVA
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 2.6.2 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** BiocGenerics, MatrixGenerics, S4Vectors, S4Arrays, HDF5Array, SparseArray, DelayedArray, IRanges, Biobase, SummarizedExperiment, GSEABase, Matrix, DelayedMatrixStats, BiocParallel, SingleCellExperiment, BiocSingular, SpatialExperiment, sparseMatrixStats, cli, memuse
+- **Install:** `BiocManager::install("GSVA")`
+
 ## When to Use
 - **Sample-Wise Pathway Scoring**: Calculating sample-specific pathway enrichment scores from a gene expression matrix using `gsva`.
 - **Dimensionality Reduction**: Transforming a high-dimensional gene-by-sample matrix into a lower-dimensional pathway-by-sample matrix for downstream analysis.

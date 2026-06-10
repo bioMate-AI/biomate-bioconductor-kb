@@ -7,6 +7,14 @@ user-invocable: false
 
 # illuminaio
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 0.54.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** base64
+- **Install:** `BiocManager::install("illuminaio")`
+
 ## When to Use
 - **Raw IDAT parsing**: Reading raw binary Illumina IDAT files from expression or genotyping microarrays using `readIDAT`.
 - **Metadata extraction**: Extracting per-bead-type values (e.g., `MeanBinData`, `NumBeadsBinData`, `DevBinData`) directly from Illumina BeadChip platforms.

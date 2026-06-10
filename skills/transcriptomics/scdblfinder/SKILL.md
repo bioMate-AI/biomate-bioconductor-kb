@@ -7,6 +7,15 @@ user-invocable: false
 
 # scDblFinder
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.26.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** SingleCellExperiment
+- **Imports:** igraph, Matrix, BiocGenerics, BiocParallel, BiocNeighbors, BiocSingular, S4Vectors, SummarizedExperiment, scran, scater, scuttle, bluster, DelayedArray, xgboost, MASS, IRanges, GenomicRanges, GenomeInfoDb, Rsamtools, rtracklayer
+- **Install:** `BiocManager::install("scDblFinder")`
+
 ## When to Use
 - Identifying heterotypic doublets in single-cell RNA sequencing data using the `scDblFinder` iterative classifier.
 - Detecting doublets in multiplexed samples by processing each capture separately using the `samples` argument.

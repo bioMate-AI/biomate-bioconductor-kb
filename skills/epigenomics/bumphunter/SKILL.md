@@ -7,6 +7,15 @@ user-invocable: false
 
 # bumphunter
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.54.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** S4Vectors, IRanges, Seqinfo, GenomicRanges, foreach, iterators, locfit
+- **Imports:** matrixStats, limma, doRNG, BiocGenerics, GenomicFeatures, AnnotationDbi
+- **Install:** `BiocManager::install("bumphunter")`
+
 ## When to Use
 - Finding continuous, spatially clustered genomic regions ("bumps") that differ significantly between conditions using `bumphunter()`.
 - Grouping genomic locations into distinct clusters based on maximum distance using `clusterMaker()`.

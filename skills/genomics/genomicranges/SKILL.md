@@ -13,6 +13,14 @@ user-invocable: false
 
 Infrastructure for representing and manipulating genomic intervals. The core workhorse for any genomic coordinate arithmetic in Bioconductor.
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 1.64.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Depends:** BiocGenerics, S4Vectors, IRanges, Seqinfo
+- **Install:** `BiocManager::install("GenomicRanges")`
+
 ## When to Use
 
 - Overlap queries between genomic features

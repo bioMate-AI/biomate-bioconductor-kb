@@ -7,6 +7,14 @@ user-invocable: false
 
 # EBImage
 
+## Dependencies & Environment
+
+> Package-intrinsic requirements from the Bioconductor landing page — reproduce in any R environment.
+
+- **Version:** 4.54.0 · **Bioconductor:** 3.23 · **R:** ≥ 4.6
+- **Imports:** BiocGenerics, abind, tiff, jpeg, png, locfit, fftwtools, htmltools, htmlwidgets, RCurl
+- **Install:** `BiocManager::install("EBImage")`
+
 ## When to Use
 - **General Image Manipulation**: Reading, writing, and displaying multi-dimensional images (JPEG, PNG, TIFF) using `readImage`, `writeImage`, and `display`.
 - **Spatial Transformations**: Applying geometric transformations such as `translate`, `rotate`, `resize`, `flip`, `flop`, and `affine` to image arrays.
