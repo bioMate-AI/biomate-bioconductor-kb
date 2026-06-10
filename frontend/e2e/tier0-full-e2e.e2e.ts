@@ -288,16 +288,25 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
   });
   // Step 5: switch to the Phases tab — phase-specific params (target_a,
   // target_b, indication for Phase A on bispecific) live inside each phase
-  // card's params toggle there, NOT in the Settings strip. Then expand every
-  // phase-params-toggle-${groupKey} and read the .param-row label/value pairs.
+  // card's params toggle there, NOT in the Settings strip. Phase cards mount
+  // collapsed by default ("Click a phase to expand…"); we have to click each
+  // .phase-head FIRST to expand the card, only then does the
+  // phase-params-toggle-${groupKey} button appear inside. Then click each
+  // toggle to surface the .param-row inputs.
   const phasesTab = page.locator('[data-testid="panel-tab-phases"]').first();
   if (await phasesTab.isVisible({ timeout: 1500 }).catch(() => false)) {
     await phasesTab.click({ force: true }).catch(() => {});
     await page.waitForTimeout(250);
   }
-  // Click each phase-params toggle so the inline param rows mount in DOM.
-  // (phase-card inline inputs don't carry an id attribute, so step 6 keys them
-  // by label-derived snake_case.)
+  // Step 5a: click each phase head to expand the phase card
+  const heads = await page.locator('[data-testid^="phase-group-"] .phase-head').elementHandles();
+  for (const h of heads) {
+    await h.click({ force: true }).catch(() => {});
+  }
+  await page.waitForTimeout(300);
+  // Step 5b: click each phase-params toggle so the inline param rows mount.
+  // (phase-card inline inputs don't carry an id attribute, so step 6 keys
+  // them by label-derived snake_case.)
   const toggles = await page.locator('[data-testid^="phase-params-toggle-"]').elementHandles();
   for (const t of toggles) {
     await t.click({ force: true }).catch(() => {});
