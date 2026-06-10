@@ -301,69 +301,12 @@ process NLMIXR2_POPULATION_PK {
     """
 }
 
-// Synthesise a Theophylline-style demo PK dataset when no external CSV is
-// provided. Lets the workflow run unattended (e.g. in CI / QC chain
-// verification) without forcing every test to supply real PK observations.
-// Uses the nlmixr2 / RxODE bundled theo_sd structure: 12 subjects, 11 time
-// points each, 1-cmt oral PK at 4 mg/kg.
-process GENERATE_DEMO_PK_DATA {
-    tag 'theo_sd_demo'
-    label 'process_low'
-    publishDir { "${params.outdir}/${meta.id}/demo_data" }, mode: 'copy'
-
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
-
-    input:
-    val(meta)
-
-    output:
-    tuple val(meta), path("synthetic_pk.csv"), emit: pk_csv
-
-    script:
-    """
-    python3 - <<'PYEOF'
-    import csv, math, random
-    random.seed(42)
-    times_h = [0.0, 0.25, 0.5, 1.0, 2.0, 3.5, 5.0, 7.0, 9.0, 12.0, 24.0]
-    subjects = 12
-    dose_mg_per_kg = 4.0
-    cl_pop = 2.8      # L/h
-    v_pop = 32.0      # L
-    ka_pop = 1.5      # 1/h
-    rows = [['ID', 'TIME', 'DV', 'AMT', 'EVID', 'CMT', 'WT']]
-    for sid in range(1, subjects + 1):
-        wt = 70.0 + random.gauss(0, 8.0)
-        eta_cl = random.gauss(0, 0.25)
-        eta_v  = random.gauss(0, 0.20)
-        cl = cl_pop * math.exp(eta_cl) * (wt / 70.0)
-        v  = v_pop  * math.exp(eta_v)  * (wt / 70.0)
-        ka = ka_pop
-        dose_amt_mg = dose_mg_per_kg * wt
-        k = cl / v
-        rows.append([sid, 0.0, 0.0, round(dose_amt_mg, 2), 1, 1, round(wt, 2)])
-        for t in times_h[1:]:
-            conc_lin = (dose_amt_mg * ka / (v * (ka - k))) * (math.exp(-k * t) - math.exp(-ka * t))
-            noise = random.gauss(0, 0.10) * conc_lin
-            dv = max(0.001, conc_lin + noise)
-            rows.append([sid, t, round(dv, 4), 0, 0, 1, round(wt, 2)])
-    with open('synthetic_pk.csv', 'w', newline='') as f:
-        csv.writer(f).writerows(rows)
-    print('Wrote synthetic_pk.csv:', subjects, 'subjects x', len(times_h), 'times')
-    PYEOF
-    """
-}
-
 workflow NLMIXR2_POPULATION_PK_WORKFLOW {
     take:
     ch_input  // channel: [ val(meta) ]
 
     main:
-    if (params.pk_data_csv) {
-        ch_pk_data = Channel.fromPath(params.pk_data_csv)
-    } else {
-        GENERATE_DEMO_PK_DATA(ch_input)
-        ch_pk_data = GENERATE_DEMO_PK_DATA.out.pk_csv.map { meta, csv -> csv }
-    }
+    ch_pk_data = Channel.fromPath(params.pk_data_csv)
     NLMIXR2_POPULATION_PK(ch_input, ch_pk_data)
 
     emit:
@@ -377,9 +320,10 @@ workflow NLMIXR2_POPULATION_PK_WORKFLOW {
 }
 
 workflow {
-    // Parser-v2 requires top-level statements inside workflow{}, not file-level.
-    // When pk_data_csv is null, the WORKFLOW will synthesise a Theophylline-style
-    // demo dataset (see GENERATE_DEMO_PK_DATA).
+    // Parser-v2 requires top-level statements inside workflow{}, not file-level
+    if (!params.pk_data_csv) {
+        error "Please provide --pk_data_csv (individual PK concentration-time data)"
+    }
     ch_input = Channel.of([id: 'popPK_run'])
     NLMIXR2_POPULATION_PK_WORKFLOW(ch_input)
     NLMIXR2_POPULATION_PK_WORKFLOW.out.results.view { meta, json -> "Results: $json" }
