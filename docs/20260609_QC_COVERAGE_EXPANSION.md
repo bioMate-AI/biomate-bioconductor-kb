@@ -1,0 +1,176 @@
+# QC & Auto-Loop Coverage Expansion — 2026-06-07 / 06-09
+
+**Goal:** extend BioMate's QC-gate + auto-loop coverage to every workflow that
+has a defined gate in `qc_gate_reader.py`, with honest provenance grading
+and end-to-end verification on dev.
+
+**Result:** 6 of 7 candidate workflows verified end-to-end. 1 blocked by
+a container-image issue (not QC code).
+
+## Verified workflows
+
+Each entry below is proven by a live `[QC-S3] Reading report for <process> from s3://...`
++ `[QC Gate] PASSED/FAILED for <process>` pair in dev's
+`/app/database/gravity/log/gunicorn.log`.
+
+| # | Workflow | Process | Gate metric | Threshold | Provenance | Run ID + UTC |
+|---|---|---|---|---|---|---|
+| 1 | hts_plate_qc_hit_calling | HTS_PLATE_QC_HIT_CALLING | `z_prime` | ≥ 0.5 | GOLD Zhang 1999 | af7f90d0 06-07 02:41:33 |
+| 2 | allometric_scaling | ALLOMETRIC_SCALING | `r_squared` | ≥ 0.85 | SILVER FDA 2005 FIH metric | e1d804bc 06-08 16:57:55 |
+| 3 | ich_s5_reproductive_tox | DART_IN_SILICO_PREDICTION | `safety_margin_x` | ≥ 10× Cmax | GOLD ICH S5R3 §3.1 | 85727f6e 06-09 02:05:01 |
+| 4 | ich_s7a_safety_pharmacology | ICH_S7A_ASSESS_CV | `herg_safety_margin_x` | ≥ 10× | GOLD ICH S7B / Redfern 2003 | f7f1a8a0 06-09 02:35:09 |
+| 5 | pocket_detection_druggability | DRUGGABILITY_QC_GATE | `druggability_score` | ≥ 0.5 | GOLD Le Guilloux 2009 | 67c4628a 06-09 16:18:27 |
+| 6 | p0_pkpd_semaglutide | P0_PKPD_SEMAGLUTIDE | `week30_weight_change_kg` | ∈ [-6, +3] kg | GOLD Overgaard 2019 / SUSTAIN-1 | 8a68457b 06-09 21:17:45 |
+
+## Code-ready but blocked
+
+| # | Workflow | Gate | Blocker |
+|---|---|---|---|
+| 7 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
+
+## Recipe
+
+For each workflow:
+
+1. **Identify the process** that computes the gate metric. Match against
+   `_PROCESS_KEYWORDS[<domain>]` in `qc_gate_emit.py` — if the process
+   name doesn't contain one of those keywords, either rename the process
+   or extend the keyword set.
+2. **Emit `qc_metrics.json`** from that process with the canonical key
+   the gate reader expects (`z_prime`, `safety_margin_x`,
+   `herg_safety_margin_x`, `druggability_score`, `r_squared`,
+   `num_solved_routes`, `week30_weight_change_kg`, ...). Keys are
+   case-sensitive — `hERG_safety_margin_x` ≠ `herg_safety_margin_x`.
+3. **Add the output declaration** to the process. Watch for the
+   ich_s5 footgun: if the process previously emitted N outputs and
+   downstream callers reference `.out[N-1]` positionally, adding a
+   new `.out[N]` will shift indices. Either reference outputs by name
+   (`.out.qc_metrics`) or pin downstream calls to specific indices.
+4. **Register in `_S3_REPORT_PATHS`** in `qc_trace_monitor.py`:
+   ```
+   "PROCESS_NAME": ("*", "qc_metrics.json"),  # gate (provenance, citation)
+   ```
+   Wildcard step prefix; the S3 search uses `list_objects_v2` which
+   returns nested paths.
+5. **Verify** by submitting via `/api/workflows/execute` and grepping
+   gunicorn.log for `[QC-S3] Reading report for <PROCESS>`.
+
+## Provenance audit (companion work)
+
+Audited the existing 26 GOLD entries in `backend/config/qc_evidence.yaml`
+and demoted 4 to SILVER where the cited paper establishes the metric but
+does not state the cutoff verbatim:
+
+| Entry | Was | Now | Why |
+|---|---|---|---|
+| `admet_ames` | GOLD | SILVER | Kazius 2005 defines alert SET; 0.5 cutoff is generic classifier midpoint |
+| `allometric_r_squared` | GOLD | SILVER | FDA 2005 FIH doesn't state R² ≥ 0.85 — textbook convention |
+| `cryo_em_fsc_resolution` | GOLD | SILVER | R&H 2003 establishes FSC 0.143 metric, not 4/8/15 Å tiers |
+| `cryo_et_sta_fsc_resolution` | GOLD | SILVER | Same root — paper has no STA tier values |
+
+Counts: GOLD 26 → 22, SILVER 26 → 30, BRONZE 5. Audit doc:
+`docs/20260607_QC_EVIDENCE_AUDIT_PASS_2.md`.
+
+Split-grade template adopted for new entries: "metric is GOLD-anchored
+to paper Y; specific cutoff is operational/SILVER."
+
+Also corrected `evidence_tier: "BRONZE"` → `"GOLD"` in the
+pocket_detection workflow's qc_result.json — Le Guilloux 2009 states
+the ≥0.5 cutoff verbatim, so the inline label now matches
+qc_evidence.yaml.
+
+## Infrastructure fixes (benefit every workflow)
+
+### `0e69e9577` — Header-aware trace column lookup
+
+The QC monitor's `_poll` thread previously hardcoded `parts[3]` /
+`parts[4]` for `process_name` / `task_status`. Workflows that customize
+`trace.fields` (observed: pocket_detection_druggability) drop the
+default `hash` column, shifting columns left.
+
+**Symptom on dev 2026-06-09 02:49:04:**
+```
+[WORKFLOW][inv=40d26482][workflow.phase_started] Step 0…
+    phase_name='0'   ← bogus: this is parts[3]=exit value
+```
+No further `[QC Gate]` events even though both Batch tasks COMPLETED.
+
+**Fix:** map header names → indices like
+`_parse_nextflow_trace_progress` (line 1942) already does, fall back
+to defaults if header is absent. Defensive bounds-check against
+`len(parts) ≤ max(needed indices)`.
+
+### `43603bf6c` — Prefer S3 when `s3_outdir` is set
+
+The old condition was:
+```python
+if self.s3_outdir and not task_work_dir.is_dir(): ... read S3
+```
+This skipped the S3 fallback whenever `process_hash` was empty (which
+happens when `trace.fields` omits `hash`): `task_work_dir` then defaults
+to `self.work_dir`, which exists locally on the Galaxy container, so
+`not is_dir()` is False.
+
+**Symptom on dev 2026-06-09 04:09:43**, even after the header-aware fix:
+```
+[QC Gate] Process completed: POCKET_DETECTION_DRUGGABILITY:DRUGGABILITY_QC_GATE
+[QC Gate] No QC metrics calculated for ...
+                                            ← no [QC-S3] line at all
+```
+The qc_metrics.json *was* on S3 (verified out-of-band) but the monitor's
+S3 read was gated off.
+
+**Fix:** when `s3_outdir` is set, try S3 first. Local parsers still
+run as a fallback if S3 returned nothing.
+
+## Sign-convention note (p0_pkpd_semaglutide)
+
+The workflow computes `weight_loss_30w` as positive when weight is LOST
+(e.g. 4.53 kg = lost 4.53 kg). The gate expects `week30_weight_change_kg`
+where negative = loss. The emit negates the sign:
+```python
+qc_metrics["week30_weight_change_kg"] = -weight_loss_30w
+```
+Without this, the band check ([-6, +3]) would interpret +4.53 as "gained
+4.53 kg" and FAIL the gate.
+
+## Known dev infrastructure flakes encountered
+
+- Disk fullness (06-08 ~12:30 UTC) → instance hang → reboot.
+- Parallel-session sync overwrote `/app/config/galaxy.yml` PYTHONPATH
+  back to laptop-local path (`/home/yzhang/biomate/backend/lib`),
+  breaking Galaxy boot with "No module named 'galaxy'". Required
+  manual sed + `galaxyctl update` + `galaxyctl restart gunicorn`.
+- Galaxy's `chat_narrator` mis-reports `outcome: failed` for many
+  workflows that actually succeed (Nextflow trace shows
+  `Succeeded: N`). Unrelated to QC chain; doesn't affect gate
+  evaluation. Tracked separately.
+
+## Commits (in chronological order this stretch)
+
+| Commit | What |
+|---|---|
+| `4b741af54` | 4 GOLD demotions + allometric coverage as SILVER + qc_metrics.json emit |
+| `f5c2cb39b5` | ALLO-1 e2e test |
+| `fde8506d43` | ich_s5 coverage |
+| `20eb0fe25` | ich_s5 AGGREGATE call signature fix + ICH-1 test |
+| `7929b26f0` | ich_s7a coverage |
+| `5c351e5656` | ICH-S7A-1 test |
+| `c29304eaf2` | pocket_detection coverage + workflow's BRONZE → GOLD inline label |
+| `a429c45ac9` | POCKET-1 test + initial poll-cadence finding |
+| `0e69e9577` | header-aware trace column lookup |
+| `43603bf6c` | S3-first when s3_outdir is set |
+| `20d10f9d7b` | aizynthfinder coverage |
+| `e75ccc3d5` | AIZYNTH-1 test + container-policy block doc |
+| `2860c9fc9` | p0_pkpd_semaglutide coverage |
+| `0757dc196` | P0-1 test |
+
+## Open follow-ups (not in this scope)
+
+- Aizynthfinder container needs an expansion policy configured
+- Galaxy `chat_narrator` mis-reports outcome=failed for succeeded runs
+- Galaxy worker boot time (~2h cold-start observed today) — likely the
+  toolbox indexing step
+- 4 untouched GOLD entries in qc_evidence.yaml could benefit from a
+  re-audit pass (they spot-checked legitimate but a deep re-read might
+  surface more split-grade demotions)
