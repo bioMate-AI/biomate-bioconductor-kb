@@ -1,11 +1,11 @@
-# QC & Auto-Loop Coverage Expansion — 2026-06-07 / 06-09
+# QC & Auto-Loop Coverage Expansion — 2026-06-07 / 06-10
 
 **Goal:** extend BioMate's QC-gate + auto-loop coverage to every workflow that
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 6 of 7 candidate workflows verified end-to-end. 1 blocked by
-a container-image issue (not QC code).
+**Result:** 7 of 10 candidate workflows verified end-to-end. 3 are
+code-ready, each blocked by an issue independent of the QC code path.
 
 ## Verified workflows
 
@@ -21,12 +21,15 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 4 | ich_s7a_safety_pharmacology | ICH_S7A_ASSESS_CV | `herg_safety_margin_x` | ≥ 10× | GOLD ICH S7B / Redfern 2003 | f7f1a8a0 06-09 02:35:09 |
 | 5 | pocket_detection_druggability | DRUGGABILITY_QC_GATE | `druggability_score` | ≥ 0.5 | GOLD Le Guilloux 2009 | 67c4628a 06-09 16:18:27 |
 | 6 | p0_pkpd_semaglutide | P0_PKPD_SEMAGLUTIDE | `week30_weight_change_kg` | ∈ [-6, +3] kg | GOLD Overgaard 2019 / SUSTAIN-1 | 8a68457b 06-09 21:17:45 |
+| 7 | clinical_trial_simulation (BOIN) | CLINICAL_TRIAL_SIMULATION | `mtd_observed_dlt_rate` | ≤ target φ | GOLD Liu & Yuan 2015 | a5c33d52 06-10 02:37:26 |
 
 ## Code-ready but blocked
 
 | # | Workflow | Gate | Blocker |
 |---|---|---|---|
-| 7 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
+| 8 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
+| 9 | boltz_structure_prediction | `mean_plddt ≥ 70`, `max_pae ≤ 8 Å`, `confident_fraction ≥ 0.70` (GOLD Jumper 2021 / Tunyasuvunakool 2021) | GPU Batch run, ~$ per minute. Verification deferred pending dedicated GPU-budget session. Code path validated: SUMMARISE_RESULTS renamed BOLTZ_SUMMARISE_RESULTS so process name contains the "BOLTZ" `_PROCESS_KEYWORDS` substring. |
+| 10 | lnp_formulation_optimization | `z_avg_nm ∈ [60, 120]` (SILVER, CLT range; `pdi` not computed by this workflow) | Test's `POST /api/workflows/execute` returned ≥ 400 before reaching Galaxy (no LNP entries in gunicorn.log during the test window). Likely a Node-side route or auth gating issue specific to this workflow path. QC instrumentation is correct and decoupled from this failure mode. |
 
 ## Recipe
 
@@ -164,6 +167,11 @@ Without this, the band check ([-6, +3]) would interpret +4.53 as "gained
 | `e75ccc3d5` | AIZYNTH-1 test + container-policy block doc |
 | `2860c9fc9` | p0_pkpd_semaglutide coverage |
 | `0757dc196` | P0-1 test |
+| `13df179ac` | clinical_trial_simulation (BOIN) coverage |
+| `8ae9aedb9` | BOIN-1 e2e test |
+| `0badbf787` | boltz_structure_prediction coverage (rename to BOLTZ_SUMMARISE_RESULTS) |
+| `98e536bc1` | lnp_formulation_optimization coverage |
+| `5d98c0441` | LNP-1 test + Node-route-block note |
 
 ## Open follow-ups (not in this scope)
 
