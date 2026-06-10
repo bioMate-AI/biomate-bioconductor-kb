@@ -16,7 +16,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
-import { buildCanonicalFixturePromptSection } from './canonical-fixtures';
+import { buildCanonicalFixturePromptSection, matchesCanonicalFixture } from './canonical-fixtures';
 
 // Per-request override of `this.galaxyAPI`. Set by processMessage() when the
 // caller (chat-stream) provides context.galaxyAPIOverride; resolved at every
@@ -5449,8 +5449,22 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // The extracted map is injected into the system prompt as structured facts so the LLM
     // never needs to ask for parameters already present in the message.
     const inlineDataMap = await extractInlineDataWithLLM(message, this.claude);
+    // Treat a canonical fixture name (airway, pasilla, pbmc3k, SRR\d+, etc.)
+    // as if it were inline data. The fixture is the data — `data(airway)`
+    // loads counts + metadata from the airway R package; SRA accessions
+    // resolve via sra-toolkit; nf-core test profiles ship their fixtures
+    // inside the pipeline. Without this, verbose phrasings like
+    // "Run DESeq2 on airway; treated vs untreated; export CSV + MA plot"
+    // still re-triggered the LLM's "Please upload counts matrix" reflex
+    // despite the prompt-level rule. See Plan C in
+    // docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md.
+    const _matchedFixture = matchesCanonicalFixture(message);
+    if (_matchedFixture) {
+      console.log(`[chat] canonical fixture matched in user message: ${_matchedFixture} — suppressing clarification ask`);
+    }
     const hasInlineData = Object.keys(inlineDataMap).length > 0 ||
-      /do not ask|no (further )?clarification|use (the )?provided|use default/i.test(message);
+      /do not ask|no (further )?clarification|use (the )?provided|use default/i.test(message) ||
+      _matchedFixture !== null;
 
     // ── Context stack: detect tangents and push/pop ──────────────────────────────
     // A tangent is a message that is: (a) informational/off-domain relative to the
