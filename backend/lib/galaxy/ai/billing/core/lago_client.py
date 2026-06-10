@@ -60,10 +60,26 @@ def _resolve_lago_api_key() -> str:
         ) from e
 
 LAGO_API_KEY = _resolve_lago_api_key()
-LAGO_TIMEOUT = 5.0  # seconds; fire-and-forget pattern, don't block requests
+LAGO_TIMEOUT = 2.0  # seconds; fire-and-forget pattern, don't block requests
 
-# Exponential backoff delays for transient network errors (1s, 2s, 4s)
-_RETRY_DELAYS: tuple[float, ...] = (1.0, 2.0, 4.0)
+# Exponential backoff delays for transient network errors (0.5s, 1s)
+_RETRY_DELAYS: tuple[float, ...] = (0.5, 1.0)
+
+# Circuit breaker — when Lago is unreachable, every chat request was burning
+# (3 × 5s timeout) + (1s + 2s + 4s sleep) = ~22s blocking on the worker, which
+# pushed /api/ai_assistant/generate_workflow past the frontend's read-timeout
+# and produced "Workflow generation failed" errors. The cost emit is async-fire
+# semantics so dropping events when Lago is down is acceptable. After 3
+# consecutive failures the circuit opens for 5 minutes; subsequent calls
+# short-circuit immediately. Verified 2026-06-10 against repeated dev outages.
+_CIRCUIT_FAILURE_THRESHOLD = 3
+_CIRCUIT_OPEN_DURATION_S = 300.0  # 5 minutes
+_circuit_consecutive_failures: int = 0
+_circuit_open_until: float = 0.0
+
+
+class LagoCircuitOpen(Exception):
+    """Raised when the Lago circuit is open (recent repeated failures)."""
 
 
 # ---------------------------------------------------------------------------
@@ -138,14 +154,24 @@ class LagoClient:
     def _retry_post(self, url: str, **kwargs) -> httpx.Response:
         """
         POST with exponential backoff on transient network errors.
+        Short-circuits immediately when the breaker is open (recent failures).
         Retries up to len(_RETRY_DELAYS) times on TimeoutException or ConnectError.
         HTTP error responses (4xx/5xx) are returned immediately — no retry.
-        Raises the last exception if all attempts fail.
         """
+        global _circuit_consecutive_failures, _circuit_open_until
+        now = time.time()
+        if now < _circuit_open_until:
+            raise LagoCircuitOpen(
+                f"Lago circuit open for {_circuit_open_until - now:.0f}s more "
+                "(skipping POST to avoid blocking the request worker)"
+            )
+
         last_exc: Exception = RuntimeError("no attempts made")
         for attempt, delay in enumerate(_RETRY_DELAYS):
             try:
-                return self._client.post(url, **kwargs)
+                r = self._client.post(url, **kwargs)
+                _circuit_consecutive_failures = 0  # reset on any HTTP response
+                return r
             except (httpx.TimeoutException, httpx.ConnectError) as exc:
                 last_exc = exc
                 if attempt + 1 < len(_RETRY_DELAYS):
@@ -157,6 +183,15 @@ class LagoClient:
                 else:
                     log.error("Lago POST %s failed after %d attempts: %s",
                               url, len(_RETRY_DELAYS), exc)
+
+        _circuit_consecutive_failures += 1
+        if _circuit_consecutive_failures >= _CIRCUIT_FAILURE_THRESHOLD:
+            _circuit_open_until = time.time() + _CIRCUIT_OPEN_DURATION_S
+            log.warning(
+                "Lago circuit OPENED after %d consecutive failures — "
+                "suppressing further calls for %.0fs",
+                _circuit_consecutive_failures, _CIRCUIT_OPEN_DURATION_S,
+            )
         raise last_exc
 
     # -----------------------------------------------------------------------
@@ -186,6 +221,8 @@ class LagoClient:
             log.warning("Lago event rejected %s %s → %s %s",
                         event.code, event.transaction_id, r.status_code, r.text[:200])
             return False
+        except LagoCircuitOpen:
+            return False  # silent skip while breaker is open
         except Exception as exc:
             log.error("Lago send_event failed: %s", exc)
             return False
@@ -214,6 +251,8 @@ class LagoClient:
                 return len(events)
             log.warning("Lago batch event rejected: %s %s", r.status_code, r.text[:200])
             return 0
+        except LagoCircuitOpen:
+            return 0  # silent skip while breaker is open
         except Exception as exc:
             log.error("Lago send_batch_events failed: %s", exc)
             return 0
