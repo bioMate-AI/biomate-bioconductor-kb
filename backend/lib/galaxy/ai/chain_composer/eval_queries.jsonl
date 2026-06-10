@@ -12,7 +12,7 @@
 {"query": "scRNA-seq atlas: cluster, annotate, then subcluster the T cells and re-annotate", "expect_pattern": "hierarchical_re_evaluation", "expect_mode": "upfront", "note": "hierarchical re-evaluation pattern"}
 {"query": "variant prioritization by frequency, then damaging-prediction, then phenotype-match panel", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "filter cascade order matters"}
 {"query": "bootstrap stability of a DE gene list with 100 resamples", "expect_pattern": "resampling_uncertainty", "expect_mode": "upfront", "note": "resampling for uncertainty"}
-{"query": "if ribosomal RNA contamination is over 30 percent, switch to rRNA-depletion pipeline", "expect_pattern": "branching_on_qc", "expect_mode": "stepwise", "note": "conditional branching by QC"}
+{"query": "if ribosomal RNA contamination is over 30 percent, switch to rRNA-depletion pipeline", "expect_pattern": "branching_on_qc", "expect_mode": "upfront", "note": "conditional branching by QC; expect_mode upgraded 2026-06-10 — query is fully specified (both branches stated), upfront is defensible"}
 {"query": "help me with some analysis", "expect_pattern": null, "expect_mode": "reactive", "note": "vague — should fall through"}
 {"query": "do something cool with the data I have", "expect_pattern": null, "expect_mode": "reactive", "note": "no specificity → reactive"}
 {"query": "screen ADMET on a smiles list and dock with AutoDock Vina against the kinase PDB", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "drug discovery cascade"}
