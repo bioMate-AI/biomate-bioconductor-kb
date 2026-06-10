@@ -309,10 +309,7 @@ process NLMIXR2_POPULATION_PK {
 process GENERATE_DEMO_PK_DATA {
     tag 'theo_sd_demo'
     label 'process_low'
-    // No publishDir: the CSV is intermediate and only consumed by the
-    // downstream NLMIXR2_POPULATION_PK process. Earlier publishDir
-    // attempt failed on S3 (CRT copy from work dir to outputs/) and
-    // marked the whole task FAILED before nlmixr2 ever ran.
+    publishDir { "${params.outdir}/${meta.id}/demo_data" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
