@@ -782,6 +782,57 @@ class TestLLMClientBillingCoverage(unittest.TestCase):
                 mock_svc.assert_not_called()
 
 
+class TestJavaBillingClientWalletAdapter(unittest.TestCase):
+    """
+    Tests for the 2026-06-10 wallet/plan adapter. The colleague's
+    billing_system Java service refactor removed three endpoints biomate
+    used to call:
+      - POST /api/billing/quota/acquire / release  (QuotaController deleted)
+      - GET  /api/billing/usage/current             (replaced by /usage/summary)
+      - GET  /api/billing/quota/usage               (replaced by customers/{id}/wallet)
+    JavaBillingClient was adapted to the new surface; these tests lock in
+    the mapping so future drift is caught.
+    """
+
+    def setUp(self):
+        from galaxy.ai.billing.java_billing_client import JavaBillingClient
+        self.client = JavaBillingClient(base_url="http://localhost:9999")
+
+    def test_acquire_quota_is_noop_returning_true(self):
+        with patch.object(self.client, "_post") as mp:
+            ok = self.client.acquire_quota("u1", "gpu_l40", "job-123")
+            self.assertTrue(ok)
+            mp.assert_not_called()
+
+    def test_release_quota_is_noop_returning_true(self):
+        with patch.object(self.client, "_post") as mp:
+            ok = self.client.release_quota("u1", "gpu_l40", "job-123")
+            self.assertTrue(ok)
+            mp.assert_not_called()
+
+    def test_get_current_usage_routes_to_summary_with_month_to_date(self):
+        from datetime import date
+        with patch.object(self.client, "_get") as mg:
+            mg.return_value = {"fromDate": "x", "byCode": []}
+            self.client.get_current_usage("u1")
+            mg.assert_called_once()
+            path, params = mg.call_args.args
+            self.assertEqual(path, "/api/billing/usage/summary")
+            self.assertEqual(params["externalCustomerId"], "bm_u1")
+            today = date.today()
+            self.assertEqual(params["startDate"], today.replace(day=1).isoformat())
+            self.assertEqual(params["endDate"], today.isoformat())
+
+    def test_get_quota_routes_to_customer_wallet(self):
+        with patch.object(self.client, "_get") as mg:
+            mg.return_value = {"balanceUsd": 12.34, "grantedUsd": 0.0}
+            self.client.get_quota("u1")
+            mg.assert_called_once()
+            path, params = mg.call_args.args
+            self.assertEqual(path, "/api/billing/customers/bm_u1/wallet")
+            self.assertEqual(params, {})
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
