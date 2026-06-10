@@ -4,7 +4,7 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 7 of 10 candidate workflows verified end-to-end. 3 are
+**Result:** 8 of 10 candidate workflows verified end-to-end. 2 are
 code-ready, each blocked by an issue independent of the QC code path.
 
 ## Verified workflows
@@ -22,14 +22,14 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 5 | pocket_detection_druggability | DRUGGABILITY_QC_GATE | `druggability_score` | ≥ 0.5 | GOLD Le Guilloux 2009 | 67c4628a 06-09 16:18:27 |
 | 6 | p0_pkpd_semaglutide | P0_PKPD_SEMAGLUTIDE | `week30_weight_change_kg` | ∈ [-6, +3] kg | GOLD Overgaard 2019 / SUSTAIN-1 | 8a68457b 06-09 21:17:45 |
 | 7 | clinical_trial_simulation (BOIN) | CLINICAL_TRIAL_SIMULATION | `mtd_observed_dlt_rate` | ≤ target φ | GOLD Liu & Yuan 2015 | a5c33d52 06-10 02:37:26 |
+| 8 | lnp_formulation_optimization | LNP_FORMULATION_OPTIMIZATION | `z_avg_nm` | ∈ [60, 120] | SILVER, CLT range; `pdi` not computed | 222a9c10 06-10 16:13:20 |
 
 ## Code-ready but blocked
 
 | # | Workflow | Gate | Blocker |
 |---|---|---|---|
-| 8 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
-| 9 | boltz_structure_prediction | `mean_plddt ≥ 70`, `max_pae ≤ 8 Å`, `confident_fraction ≥ 0.70` (GOLD Jumper 2021 / Tunyasuvunakool 2021) | GPU Batch run, ~$ per minute. Verification deferred pending dedicated GPU-budget session. Code path validated: SUMMARISE_RESULTS renamed BOLTZ_SUMMARISE_RESULTS so process name contains the "BOLTZ" `_PROCESS_KEYWORDS` substring. |
-| 10 | lnp_formulation_optimization | `z_avg_nm ∈ [60, 120]` (SILVER, CLT range; `pdi` not computed by this workflow) | Test's `POST /api/workflows/execute` returned ≥ 400 before reaching Galaxy (no LNP entries in gunicorn.log during the test window). Likely a Node-side route or auth gating issue specific to this workflow path. QC instrumentation is correct and decoupled from this failure mode. |
+| 9 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
+| 10 | boltz_structure_prediction | `mean_plddt ≥ 70`, `max_pae ≤ 8 Å`, `confident_fraction ≥ 0.70` (GOLD Jumper 2021 / Tunyasuvunakool 2021) | GPU Batch run, ~$ per minute. Verification deferred pending dedicated GPU-budget session. Code path validated: SUMMARISE_RESULTS renamed BOLTZ_SUMMARISE_RESULTS so process name contains the "BOLTZ" `_PROCESS_KEYWORDS` substring. |
 
 ## Recipe
 
