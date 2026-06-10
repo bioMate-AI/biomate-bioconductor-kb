@@ -410,20 +410,59 @@ export class AuthService {
       await this.provisionGalaxyUser(user.id, user.email);
     } else {
       // Stored key may be stale — Galaxy's universe.sqlite gets reset by
-      // sync_to_dev DB swaps, leaving PG rows that point at no-longer-valid
-      // api_keys rows. Validate against /api/whoami; if it 401s, clear the
-      // dead key and re-provision synchronously so the JWT we issue is
-      // immediately usable for /api/ai_assistant/* routes (see bf4787b54).
+      // sync_to_dev DB swaps OR by other admins, leaving PG rows that point
+      // at no-longer-valid api_keys rows. The original guard only fired on
+      // probe 401/no-response — but /api/whoami silently 500s and other
+      // endpoints time out when the key authenticates to a non-existent
+      // user (galaxyUserId drift). Validate via /api/users/current which
+      // returns the resolved user's encoded id; if it doesn't match
+      // user.galaxyUserId OR returns any non-2xx, treat the key as stale.
+      // See docs/20260610_STALE_GALAXY_USER_DRIFT.md for the root cause.
       try {
         const decrypted = decryptField(user.galaxyApiKey);
         const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8080';
-        const probe = await fetch(`${galaxyUrl}/api/whoami`, {
+        const probe = await fetch(`${galaxyUrl}/api/users/current`, {
           method: 'GET',
           headers: { 'X-API-Key': decrypted || '' },
           signal: AbortSignal.timeout(5000),
         }).catch(() => null);
-        if (!probe || probe.status === 401) {
-          console.log(`[auth] User ${user.email} galaxyApiKey is stale (Galaxy /whoami ${probe?.status ?? 'no-response'}) — re-provisioning`);
+
+        let isStale = false;
+        let staleReason = '';
+        if (!probe) {
+          isStale = true;
+          staleReason = 'no-response (network/timeout)';
+        } else if (!probe.ok) {
+          isStale = true;
+          staleReason = `HTTP ${probe.status}`;
+        } else {
+          // Confirm Galaxy resolves the key to the SAME user we stored.
+          // Galaxy returns an encoded id; we compare directly against the
+          // stored galaxyUserId (also encoded form on disk for newer rows;
+          // older rows are numeric — accept either form by string match).
+          try {
+            const body = await probe.json();
+            const galaxyResolvedId = String(body?.id ?? '');
+            const storedId = String(user.galaxyUserId ?? '');
+            const galaxyEmail = String(body?.email ?? '');
+            if (!galaxyResolvedId) {
+              isStale = true;
+              staleReason = 'Galaxy returned no id';
+            } else if (storedId && galaxyResolvedId !== storedId) {
+              isStale = true;
+              staleReason = `id drift: stored=${storedId} galaxy=${galaxyResolvedId}`;
+            } else if (galaxyEmail && galaxyEmail.toLowerCase() !== user.email.toLowerCase()) {
+              isStale = true;
+              staleReason = `email drift: BioMate=${user.email} Galaxy=${galaxyEmail}`;
+            }
+          } catch (parseErr) {
+            isStale = true;
+            staleReason = `unparseable response (${parseErr})`;
+          }
+        }
+
+        if (isStale) {
+          console.warn(`[auth] User ${user.email} galaxyApiKey is stale (${staleReason}) — clearing + re-provisioning`);
           await db.update(users)
             .set({ galaxyApiKey: null, galaxyUserId: null, galaxyUsername: null })
             .where(eq(users.id, user.id));
