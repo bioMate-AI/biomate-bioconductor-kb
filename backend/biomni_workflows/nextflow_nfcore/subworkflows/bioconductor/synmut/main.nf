@@ -1,134 +1,216 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SynMut
-// There are increasing demands on designing virus mutants with specific dinucleotide or codon composit
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SynMut/inst/doc/SynMut.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SynMut")
+// Bioconductor workflow: SynMut — synonymous_mutation_design
+// Design synonymously mutated DNA sequences with customized codon or dinucleotide usage patterns while preserving amino acid sequences and optional conserved regi
+// Input: seqs.fasta, regions.csv
+// Container: quay.io/biocontainers/bioconductor-synmut:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biostrings, SynMut
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import sequences and define mutable regions using input_seq to create a regioned_dna object
+//  * 2. [Core Analysis] Retrieve baseline sequence properties (optional) using get_dna, get_region, get_cu, get_du, get_nu, get_freq, or get_rscu
+//  * 3. [Core Analysis] Generate synonymous mutations using one of the mutation functions: codon_random (random mutations), codon_to (maximize/minimize sp
+//  * 4. [Visualization & Output] Export the mutated DNA sequences using get_dna and Biostrings::writeXStringSet
 
 nextflow.enable.dsl = 2
 
-process BIOC_SYNMUT {
+process BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-synmut"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-synmut:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-synmut:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_synmut_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_synmut_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_synmut_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAStringSet)
-    library(Usage)
-    library(jsonlite)
-
-    # --- Input Seq [] ---
-    # Key functions: input_seq
-    ---------------------------------------------------------------------
-    rgd.seq <- input_seq(filepath.fasta, region)
-    rgd.seq
-    # --- Get Dna [] ---
-    # Key functions: get_dna
-    ---------------------------------------------------------------------
-    get_dna(rgd.seq)
-    # --- Str [] ---
-    # Key functions: get_region, input_seq
-    ---------------------------------------------------------------------
-    str(get_region(rgd.seq))
-    get_region(input_seq(filepath.fasta))
-    # --- Get Cu [] ---
-    # Key functions: get_cu, get_du, get_nu
-    ---------------------------------------------------------------------
-    get_cu(rgd.seq)
-    get_du(rgd.seq)
-    get_nu(rgd.seq)
-    # --- Codon Random [] ---
-    # Key functions: codon_random, get_cu
-    ---------------------------------------------------------------------
-    # Random synonymous mutations
-    mut.seq <- codon_random(rgd.seq)
-    # Compare the codon usage
-    get_cu(mut.seq) - get_cu(rgd.seq)
-    # --- Codon To [] ---
-    # Key functions: codon_to, get_cu
-    ---------------------------------------------------------------------
-    # Generate AAC-maximized mutations
-    mut.seq <- codon_to(rgd.seq, max.codon = "AAC")
-    # Compare the codon usage
-    get_cu(mut.seq) - get_cu(rgd.seq)
-    # --- Dinu To [] ---
-    # Key functions: dinu_to, get_du, get_cu
-    ---------------------------------------------------------------------
-    # Maximaize the usage of "CG" dinucleotide in the pre-defined region
-    mut.seq <- dinu_to(rgd.seq, max.dinu = "cg")
-    # Check the dinucelotide usage difference between the mutant and the original
-    get_du(mut.seq) - get_du(rgd.seq)
-    # --- Get Cu [] ---
-    # Key functions: get_cu, codon_mimic, DNAStringSet, get_freq, Usage, get_rscu
-    ---------------------------------------------------------------------
-    # Use a codon usage vector as a target
-    target <- get_cu(rgd.seq)[2,]
-    mut.seq <- codon_mimic(rgd.seq, alt = target)
-    # Compare the codon usage
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_synmut_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library("SynMut")
+    library("Biostrings")
+    
+    # Define input file paths
+    filepath.fasta <- "seqs.fasta"
+    filepath.csv <- "regions.csv"
+    
+    # Check if the required FASTA file exists
+    if (!file.exists(filepath.fasta)) {
+      stop("Error: Required input file 'seqs.fasta' not found in the working directory.")
+    }
+    
+    # 1. Import sequences and define mutable regions
+    if (file.exists(filepath.csv)) {
+      message("Reading target regions from 'regions.csv'...")
+      region <- read.csv(filepath.csv)
+      rgd.seq <- input_seq(filepath.fasta, region)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_synmut_results.csv")
+      message("No 'regions.csv' found. Importing sequences without predefined mutable regions...")
+      rgd.seq <- input_seq(filepath.fasta)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_synmut_output.rds")
+    
+    # Display the regioned_dna object
+    print(rgd.seq)
+    
+    # 2. Retrieve baseline sequence properties
+    dna_seqs <- get_dna(rgd.seq)
+    print(dna_seqs)
+    
+    # Access user-defined mutable regions
+    regions_list <- get_region(rgd.seq)
+    print(str(regions_list))
+    
+    # Get region of sequence without predefined regions for comparison
+    print(get_region(input_seq(filepath.fasta)))
+    
+    # Retrieve codon, dinucleotide, and nucleotide usage
+    baseline_cu <- get_cu(rgd.seq)
+    baseline_du <- get_du(rgd.seq)
+    baseline_nu <- get_nu(rgd.seq)
+    
+    # Save baseline properties to CSV
+    write.csv(as.data.frame(baseline_cu), "baseline_codon_usage.csv", row.names = TRUE)
+    write.csv(as.data.frame(baseline_du), "baseline_dinu_usage.csv", row.names = TRUE)
+    write.csv(as.data.frame(baseline_nu), "baseline_nucleotide_usage.csv", row.names = TRUE)
+    
+    # 3. Generate synonymous mutations
+    
+    ## A. Random synonymous mutations
+    message("Generating random synonymous mutations...")
+    mut.seq_rand <- codon_random(rgd.seq)
+    diff_cu_rand <- get_cu(mut.seq_rand) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_cu_rand), "diff_cu_random.csv")
+    
+    # Keeping the original codon usage pattern
+    mut.seq_rand_keep <- codon_random(rgd.seq, keep = TRUE)
+    diff_cu_rand_keep <- get_cu(mut.seq_rand_keep) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_cu_rand_keep), "diff_cu_random_keep.csv")
+    
+    # Mutating a specific proportion (50%) of codons
+    mut.seq_rand_p50 <- codon_random(rgd.seq, n = 0.5)
+    diff_cu_rand_p50 <- get_cu(mut.seq_rand_p50) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_cu_rand_p50), "diff_cu_random_p50.csv")
+    Biostrings::writeXStringSet(get_dna(mut.seq_rand_p50), "mutated_random_p50.fasta")
+    
+    
+    ## B. Synonymous mutants with maximal/minimal usage of specific codon
+    message("Generating codon-targeted mutations (AAC)...")
+    # Maximize AAC
+    mut.seq_aac_max <- codon_to(rgd.seq, max.codon = "AAC")
+    diff_cu_aac_max <- get_cu(mut.seq_aac_max) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_cu_aac_max), "diff_cu_aac_max.csv")
+    Biostrings::writeXStringSet(get_dna(mut.seq_aac_max), "mutated_aac_max.fasta")
+    
+    # Minimize AAC
+    mut.seq_aac_min <- codon_to(rgd.seq, min.codon = "AAC")
+    diff_cu_aac_min <- get_cu(mut.seq_aac_min) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_cu_aac_min), "diff_cu_aac_min.csv")
+    
+    
+    ## C. Synonymous mutants with maximal/minimal usage of specific dinucleotide
+    message("Generating dinucleotide-targeted mutations...")
+    # Maximize "cg"
+    mut.seq_cg_max <- dinu_to(rgd.seq, max.dinu = "cg")
+    diff_du_cg_max <- get_du(mut.seq_cg_max) - get_du(rgd.seq)
+    write.csv(as.data.frame(diff_du_cg_max), "diff_du_cg_max.csv")
+    Biostrings::writeXStringSet(get_dna(mut.seq_cg_max), "mutated_cg_max.fasta")
+    
+    # Minimize "CA"
+    mut.seq_ca_min <- dinu_to(rgd.seq, min.dinu = "CA")
+    diff_du_ca_min <- get_du(mut.seq_ca_min) - get_du(rgd.seq)
+    write.csv(as.data.frame(diff_du_ca_min), "diff_du_ca_min.csv")
+    
+    # Maximize "cg" while keeping original codon usage
+    mut.seq_cg_max_keep <- dinu_to(rgd.seq, max.dinu = "cg", keep = TRUE)
+    diff_du_cg_max_keep <- get_du(mut.seq_cg_max_keep) - get_du(rgd.seq)
+    diff_cu_cg_max_keep <- get_cu(mut.seq_cg_max_keep) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_du_cg_max_keep), "diff_du_cg_max_keep.csv")
+    write.csv(as.data.frame(diff_cu_cg_max_keep), "diff_cu_cg_max_keep.csv")
+    
+    
+    ## D. Synonymous mutants mimicking a specific codon usage pattern
+    message("Generating codon-mimicking mutations...")
+    # Use a codon usage vector as a target (safely handling single vs multiple sequences)
+    cu_profile <- get_cu(rgd.seq)
+    if (is.matrix(cu_profile) && nrow(cu_profile) >= 2) {
+      target_vector <- cu_profile[2, ]
+    } else if (is.matrix(cu_profile)) {
+      target_vector <- cu_profile[1, ]
+    } else {
+      target_vector <- cu_profile
     }
+    
+    mut.seq_mimic_vec <- codon_mimic(rgd.seq, alt = target_vector)
+    diff_cu_mimic_vec <- get_cu(mut.seq_mimic_vec) - get_cu(rgd.seq)
+    write.csv(as.data.frame(diff_cu_mimic_vec), "diff_cu_mimic_vector.csv")
+    
+    # Use a sequence as a target
+    target_seq <- Biostrings::DNAStringSet("TTGAAAA-CTC-N--AAG")
+    mut.seq_mimic_seq <- codon_mimic(rgd.seq, alt = target_seq)
+    
+    diff_cu_mimic_seq <- get_cu(mut.seq_mimic_seq) - get_cu(rgd.seq)
+    diff_freq_mimic_seq <- get_freq(mut.seq_mimic_seq) - get_freq(rgd.seq)
+    diff_rscu_mimic_seq <- get_rscu(mut.seq_mimic_seq) - get_rscu(rgd.seq)
+    
+    write.csv(as.data.frame(diff_cu_mimic_seq), "diff_cu_mimic_seq.csv")
+    write.csv(as.data.frame(diff_freq_mimic_seq), "diff_freq_mimic_seq.csv")
+    write.csv(as.data.frame(diff_rscu_mimic_seq), "diff_rscu_mimic_seq.csv")
+    Biostrings::writeXStringSet(get_dna(mut.seq_mimic_seq), "mutated_mimic_seq.fasta")
+    
+    
+    # 4. Export the original regioned DNA sequences
+    message("Exporting original regioned sequences...")
+    Biostrings::writeXStringSet(get_dna(rgd.seq), "rgd.fasta")
+    
+    message("Pipeline completed successfully. Outputs generated in the working directory.")
+    sessionInfo()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SYNMUT:", paste0("    synmut: ", packageVersion("SynMut"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN":',
+        paste0('    SynMut: ', as.character(packageVersion('SynMut')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_synmut_results.csv
-    touch ${prefix}_synmut_output.rds
-    echo "BIOC_SYNMUT:" > versions.yml
-    echo "    synmut: 0.0.0" >> versions.yml
+    touch ${prefix}_synonymous_mutation_design.csv versions.yml
     """
 }
 
-
-workflow BIOC_SYNMUT_WORKFLOW {
+workflow BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ seqs.fasta, regions.csv ] ]
 
     main:
-    BIOC_SYNMUT(ch_input)
+    BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN(ch_input)
 
     emit:
-    results  = BIOC_SYNMUT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SYNMUT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SYNMUT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SYNMUT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN.out.tables
+    plots    = BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN.out.plots
+    objects  = BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN.out.objects
+    versions = BIOC_SYNMUT_SYNONYMOUS_MUTATION_DESIGN.out.versions
 }

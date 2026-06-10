@@ -1,0 +1,13 @@
+{
+  "package": "caen",
+  "requirements": [
+    "CAEN",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CAEN",
+      "SummarizedExperiment"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package": "tidycoverage",
+  "requirements": [
+    "GenomicRanges",
+    "ggplot2",
+    "plyranges",
+    "purrr",
+    "rtracklayer",
+    "tidyCoverage"
+  ],
+  "by_workflow": {
+    "aggregated_coverage_profiling.nf": [
+      "ggplot2",
+      "plyranges",
+      "purrr",
+      "rtracklayer",
+      "tidyCoverage"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "rtracklayer",
+      "tidyCoverage"
+    ]
+  }
+}

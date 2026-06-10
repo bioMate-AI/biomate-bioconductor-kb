@@ -1,0 +1,19 @@
+{
+  "package": "updhmm",
+  "requirements": [
+    "UPDhmm",
+    "VariantAnnotation",
+    "dplyr",
+    "karyoploteR",
+    "regioneR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "UPDhmm",
+      "VariantAnnotation",
+      "dplyr",
+      "karyoploteR",
+      "regioneR"
+    ]
+  }
+}

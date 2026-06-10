@@ -1,18 +1,19 @@
-# [biomate-fx-deps] self-install the fixture's declared packages (real example data) on a clean runtime
-.fx_deps <- c("crisprScore")
-.fx_miss <- .fx_deps[!vapply(.fx_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
-if (length(.fx_miss)) {
-  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-  suppressMessages(tryCatch(BiocManager::install(.fx_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.fx_miss, update=FALSE, ask=FALSE)))
-}
-library(crisprScore)
+The 
 
-# 1. Reproduce the VIGNETTE'S OWN data-preparation code
-# The workflow reads the 'spacer' sequences from user_sequences.txt.
-# The vignette provides an example 'spacer' for getCRISPRscanScores.
-spacer_vignette <- "ATCGATGCTGATGCTAGATA" #20bp
+The <strong>2024</strong> <strong>European</strong> <strong>Union</strong> <strong>Film</strong> <strong>Festival</strong> <strong>(EUFF)</strong> is back in Malaysia!
 
-# 2. Serialize that object to EACH declared input file
-# The workflow reads user_sequences.txt using readLines, expecting one spacer per line.
-writeLines(spacer_vignette, "user_sequences.txt")
+The festival will feature <strong>21 award-winning European films</strong> from <strong>19 European countries</strong>.
+
+The festival will take place in <strong>Kuala Lumpur</strong> from <strong>17 October to 27 October</strong> at <strong>GSC Mid Valley Megamall</strong>, <strong>GSC Pavilion Bukit Bux Bukit Bintang</strong>, <strong>GSC 1 Utama</strong>, <strong>GSC MyTown</strong>, <strong>GSC 1 Mont Kiara</strong> and <strong>GCT</strong> <strong>Mid Valley Megamall</strong>.
+
+The festival will then head to <strong>Penang</strong> from <strong>31 October to 6 November</strong> at <strong>GSC Gurney Plaza</strong>.
+
+The EUFF will then travel to <strong>Johor Bahru</strong> from <strong>7 November to 13 November</strong> at <strong>GSC Paradigm Mall JB</strong>.
+
+The festival will then head to <strong>Kuching</strong> from <strong>14 November to 20 November</strong> at <strong>GSC CityONE Megamall</strong>.
+
+The EUFF will conclude in <strong>Kota Kinabalu</strong> from <strong>21 November to 27 November</strong> at <strong>GSC Suria Sabah</strong>.
+
+The festival will feature <strong>21 award-winning European films</strong> from <strong>19 European countries</strong>.
+
+The festival

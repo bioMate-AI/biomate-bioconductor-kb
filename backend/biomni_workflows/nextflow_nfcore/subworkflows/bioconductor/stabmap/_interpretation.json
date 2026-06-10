@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: assay_list=A list of feature-by-cell matrices (e.g., dgCMatrix) representing the different datasets to be integrated ;; reference_list=A character vector specifying which dataset(s) in assay_list should be treated as the reference for embedding ;; plot=Logical indicating whether to plot the topology or upset representation ;; reference=Character vector of cell names representing the reference cells in imputeEmbedding ;; query=Character vector of cell names representing the query cells in imputeEmbedding\n- alternatives: Matching features by extracting genomic positions and making the \"central dogma assumption\" (e.g., matching ATAC peaks to genes) is mentioned as an alternative to StabMap's indirect integration, but StabMap is preferred as it does not require this assumption.\n- when_to_use: Use when integrating single-cell datasets with mosaic feature structures (e.g., some datasets measure RNA, some measure ATAC, and some measure both), especially when some pairs of datasets share no features at all but are connected via an intermediate dataset.\n- pitfalls: StabMap requires that the mosaic data topology network be connected (i.e., there must be a path of shared features between every pair of datasets/nodes in the network). If the network is disconnected, integration cannot proceed.",
+  "workflows": [
+    {
+      "name": "direct_mosaic_integration",
+      "intent": "Integrate two single-cell datasets with partially overlapping features into a joint embedding, followed by cell type classification and feature imputation.",
+      "input": [
+        "assay_list (a list of log-normalized expression/accessibility matrices where rows are features and columns are cells)",
+        "referenceLabels (a named character vector of cell type annotations for the reference cells)"
+      ],
+      "stages": "1. Inspect shared features using mosaicDataUpSet ;; 2. Build and plot the mosaic data topology using mosaicDataTopology ;; 3. Generate a joint embedding using stabMap ;; 4. Impute missing features for query cells using imputeEmbedding ;; 5. Classify query cells using classifyEmbedding",
+      "code": "mosaicDataUpSet(assay_list, plot = FALSE)\nmdt <- mosaicDataTopology(assay_list)\nplot(mdt)\nstab <- stabMap(assay_list,\n  reference_list = c(\"Multiome\"),\n  plot = FALSE\n)\nimp <- imputeEmbedding(\n  assay_list,\n  stab,\n  reference = colnames(assay_list[[\"Multiome\"]]),\n  query = colnames(assay_list[[\"RNA\"]])\n)\nknn_out <- classifyEmbedding(\n  stab,\n  referenceLabels,\n)"
+    },
+    {
+      "name": "indirect_mosaic_integration",
+      "intent": "Integrate three or more single-cell datasets where some pairs share no features (e.g., RNA and ATAC) but are connected via an intermediate dataset (e.g., Multiome).",
+      "input": [
+        "assay_list_indirect (a list of log-normalized expression/accessibility matrices for RNA, Multiome, and ATAC)"
+      ],
+      "stages": "1. Inspect shared features using mosaicDataUpSet ;; 2. Build and plot the indirect mosaic data topology using mosaicDataTopology ;; 3. Generate a joint embedding using stabMap",
+      "code": "mosaicDataUpSet(assay_list_indirect, plot = FALSE)\nmdt_indirect <- mosaicDataTopology(assay_list_indirect)\nplot(mdt_indirect)\nstab_indirect <- stabMap(assay_list_indirect,\n  reference_list = c(\"Multiome\"),\n  plot = FALSE\n)"
+    }
+  ]
+}

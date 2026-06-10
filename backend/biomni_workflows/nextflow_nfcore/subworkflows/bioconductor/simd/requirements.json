@@ -1,0 +1,11 @@
+{
+  "package": "simd",
+  "requirements": [
+    "SIMD"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SIMD"
+    ]
+  }
+}

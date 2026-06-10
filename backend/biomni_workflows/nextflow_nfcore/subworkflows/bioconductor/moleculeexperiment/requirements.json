@@ -1,0 +1,21 @@
+{
+  "package": "moleculeexperiment",
+  "requirements": [
+    "MoleculeExperiment",
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MoleculeExperiment",
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "ggplot2"
+    ],
+    "vendor_import_subset_and_visualize.nf": [
+      "MoleculeExperiment",
+      "ggplot2"
+    ]
+  }
+}

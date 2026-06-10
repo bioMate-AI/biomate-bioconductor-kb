@@ -1,0 +1,13 @@
+{
+  "package": "synapsis",
+  "requirements": [
+    "EBImage",
+    "synapsis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "synapsis"
+    ]
+  }
+}

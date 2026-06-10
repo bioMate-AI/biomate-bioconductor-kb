@@ -1,0 +1,13 @@
+{
+  "package": "biodbhmdb",
+  "requirements": [
+    "biodb",
+    "biodbHmdb"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biodb",
+      "biodbHmdb"
+    ]
+  }
+}

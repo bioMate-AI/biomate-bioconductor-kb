@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: high_base_quality=Cutoff for high-quality base counts (e.g., 23L), used by the likelihood ratio test ;; indels=Logical, whether to detect indels (e.g., TRUE or FALSE) ;; read_length=Length of reads (e.g., 75L), necessary for one of the QA filters ;; which=Genomic ranges to restrict the tallying ;; mask=GRanges object specifying regions to mask out (e.g., low complexity repeats) ;; fisher.strand.p.value=P-value cutoff for the Fisher Exact Test for strand bias (default 0.001) ;; read.count=Minimum read count for calling filters (e.g., 3L) ;; power=Power threshold for wildtype calling (e.g., 0.85) or somatic calling (e.g., 0.9) ;; p.value=P-value threshold for somatic calling (e.g., 0.001)\n- alternatives: samtools mpileup=Generates statistics useful for variant calling ;; vcfutils=Perl script for filtering mpileup output ;; Varscan2=Series of adhoc filters on mpileup output ;; GATK=Oriented towards genotyping in diploid samples ;; Comparative somatic callers (e.g., strelka, MuTect)=For somatic mutation calling, though VariantTools also supports sample-specific calling\n- when_to_use: Use when calling single nucleotide variants (SNVs) and indels from high-throughput sequencing data (WGS, Exome-seq, RNA-seq), especially when sensitive detection of low-frequency variants is needed (e.g., in heterogeneous, aneuploid, or contaminated samples) and when robust QA filtering is desired.\n- pitfalls: Running variant calling without detailed QC of tally results (highly recommended to use QA filters) ;; Missing read_length parameter in TallyVariantsParam which is required for the median distance from nearest end (mdfne) QA filter ;; Missing non-missing sample names when exporting to VCF (will fail or produce invalid VCF) ;; Using VCF class for intermediate steps (VRanges/tally GRanges is preferred because it has a separate record for each ALT at each position, unlike VCF which collapses them) ;; Failing to pass the exact same filters to callWildtype that were used to call the variants, which is required for consistency",
+  "workflows": [
+    {
+      "name": "single_sample_calling",
+      "intent": "Call single-sample variants from a BAM file, apply QA and calling filters, post-filter, and export the results to a VCF file.",
+      "input": [
+        "sample.bam (aligned reads BAM file)",
+        "genome_reference (GMAP/gmapR genome object or reference)"
+      ],
+      "stages": "1. Define tally parameters using TallyVariantsParam ;; 2. Tally variants from BAM using tallyVariants ;; 3. Apply QA filters using qaVariants ;; 4. Call variants using callVariants ;; 5. Post-filter variants using postFilterVariants ;; 6. Export called variants to VCF using asVCF and writeVcf",
+      "code": "tally.param <- TallyVariantsParam(gmapR::TP53Genome(), \n                                  high_base_quality = 23L,\n                                  which = range(p53) + 5e4,\n                                  indels = TRUE, read_length = 75L)\ntallies_H1993 <- tallyVariants(bam, tally.param)\nqa.variants <- qaVariants(tallies_H1993)\ncalled.variants <- callVariants(qa.variants)\npf.variants <- postFilterVariants(called.variants)\nsampleNames(called.variants) <- \"H1993\"\nmcols(called.variants) <- NULL\nvcf <- asVCF(called.variants)\nwriteVcf(vcf, \"H1993.vcf\", index = TRUE)"
+    },
+    {
+      "name": "somatic_variant_calling",
+      "intent": "Call sample-specific (e.g., somatic tumor vs. normal) variants from case and control BAM files.",
+      "input": [
+        "case.bam (case/tumor BAM file)",
+        "control.bam (control/normal BAM file)"
+      ],
+      "stages": "1. Define tally parameters using TallyVariantsParam ;; 2. Call sample-specific variants using callSampleSpecificVariants",
+      "code": "tally.param@bamTallyParam@indels <- FALSE\nsomatic <- callSampleSpecificVariants(bams$H1993, bams$H2073,\n                                      tally.param)\ncalling.filters <- VariantCallingFilters(read.count = 3L)\nsomatic <- callSampleSpecificVariants(bams$H1993, bams$H2073, tally.param,\n                                      calling.filters = calling.filters,\n                                      power = 0.9, p.value = 0.001)"
+    },
+    {
+      "name": "wildtype_calling",
+      "intent": "Determine which non-variant positions have sufficient coverage to be confidently called wildtype.",
+      "input": [
+        "sample.bam (aligned reads BAM file)",
+        "called_variants.GRanges (previously called variants)"
+      ],
+      "stages": "1. Filter out indels from called variants using isIndel ;; 2. Define positions of interest ;; 3. Call wildtype status using callWildtype",
+      "code": "called.variants <- called.variants[!isIndel(called.variants)]\npos <- c(called.variants, shift(called.variants, 3))\nwildtype <- callWildtype(bam, called.variants, VariantCallingFilters(), \n                         pos = pos, power = 0.85)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: formula=The GLM formula used in the differential expression analysis (e.g., ~ Label) ;; .sample=The column name containing sample identifiers ;; .transcript=The column name containing transcript/gene symbols ;; .abundance=The column name containing read counts/abundance values ;; .significance=The column name containing P-values or significance metrics ;; .do_check=A logical column indicating which transcripts to check (e.g., FDR < 0.0001) ;; percent_false_positive_genes=The percentage of false positive genes tolerated (e.g., 5) ;; approximate_posterior_inference=Logical, whether to use approximate posterior inference (variational Bayes) or full MCMC ;; cores=Number of cores to use for multi-threading ;; draws_after_tail=Number of draws after tail (used to speed up execution in the vignette)\n- alternatives: Standard negative binomial-based differential expression methods (like edgeR or DESeq2) which are not robust to extreme outliers. ppcseq is used as a post-hoc filter/check for these methods.\n- when_to_use: Use this analysis when you have performed a differential transcript abundance analysis on RNA-seq data and want to identify and filter out false positive/inflated differential expression calls caused by single-sample outliers.\n- pitfalls: Running without multi-threading on Linux can be slow; users should configure their ~/.R/Makevars with STAN_THREADS and pthread for speed. Setting draws_after_tail = 1 is only for speeding up vignette execution and may not be suitable for robust inference on real datasets.",
+  "workflows": [
+    {
+      "name": "outlier_identification_and_visualization",
+      "intent": "Identify and visualize outlier transcripts from RNA-seq differential expression analysis results.",
+      "input": [
+        "counts.tsv (A tidy tab-separated file containing sample IDs, transcript/gene symbols, abundance values, and differential expression statistics like P-value and FDR)"
+      ],
+      "stages": "1. Load the tidy count and differential expression data ;; 2. Identify outlier transcripts using identify_outliers with a specified GLM formula and significance threshold ;; 3. Generate credible interval plots for the identified outliers using plot_credible_intervals",
+      "code": "counts.ppc = \n\tcounts %>%\n\tmutate(is_significant = FDR < 0.0001) %>%\n\tidentify_outliers(\n\t\tformula = ~ Label,\n\t\t.sample = sample, \n\t\t.transcript = symbol,\n\t\t.abundance = value,\n\t\t.significance = PValue,\n\t\t.do_check = is_significant,\n\t\tpercent_false_positive_genes = 5, \n\t\tapproximate_posterior_inference = FALSE,\n\t\tcores = 1, \n\t\t\n\t\t# This is ONLY for speeding up the Vignette execution\n\t\tdraws_after_tail = 1\n\t)\n\ncounts.ppc_plots = \n\tcounts.ppc %>% \n\tplot_credible_intervals() \n\ncounts.ppc_plots %>%\n\tpull(plot) %>% \n\t.[seq_len(1)]"
+    }
+  ]
+}

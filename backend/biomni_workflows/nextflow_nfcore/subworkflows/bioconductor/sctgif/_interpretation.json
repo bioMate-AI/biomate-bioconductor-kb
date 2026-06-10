@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gmt=A GeneSetCollection object containing the gene sets for functional annotation ;; reducedDimNames=The name of the reduced dimension slot in the SingleCellExperiment object containing the 2D coordinates (e.g., \"PCA\") ;; assayNames=The name of the assay slot in the SingleCellExperiment object containing the gene expression data (e.g., \"normcounts\") ;; ndim=The number of dimensions (latent variables) to estimate in calcTGIF ;; html.open=Logical value in reportTGIF indicating whether to automatically open the generated HTML report in a browser\n- alternatives: Known marker gene expression (requires expert knowledge, not general-purpose) ;; BLAST-like gene expression comparison with reference DB (limited if cell type is unknown or unmeasured) ;; Differentially expressed genes (DEGs) and over-representation analysis (ORA) (ambiguous, time-consuming, and dependent on cluster labels)\n- when_to_use: Use when analyzing unannotated single-cell RNA-Seq data to directly link spatial/2D-coordinate cell patterns to functional gene sets without relying on prior clustering or marker gene lists.\n- pitfalls: Only NCBI Gene IDs (Entrez IDs) are supported for gene identifiers ;; Using raw counts instead of normalized gene expression is supported but normalized data (e.g., registered in normcounts) is highly recommended ;; The reportTGIF function can take some time to run ;; The category argument of msigdbr() is deprecated (use collection instead)",
+  "workflows": [
+    {
+      "name": "sctgif_analysis",
+      "intent": "Perform joint NMF on single-cell RNA-Seq data and gene sets to generate attention maps and functional annotations, followed by an HTML report.",
+      "input": [
+        "DistalLungEpithelium (gene expression matrix with Entrez IDs)",
+        "pca.DistalLungEpithelium (2D cell coordinates)",
+        "msigdbr (gene sets)"
+      ],
+      "stages": "1. Load and prepare the gene set collection ;; 2. Create a SingleCellExperiment object with the expression matrix and 2D coordinates ;; 3. Normalize the expression data and register it in the normcounts slot ;; 4. Initialize parameters using settingTGIF ;; 5. Perform joint NMF using calcTGIF ;; 6. Generate an HTML report using reportTGIF",
+      "code": "library(\"scTGIF\")\nlibrary(\"SingleCellExperiment\")\nlibrary(\"GSEABase\")\nlibrary(\"msigdbr\")\n\ndata(\"DistalLungEpithelium\")\ndata(\"pca.DistalLungEpithelium\")\ndata(\"label.DistalLungEpithelium\")\n\nm_df = msigdbr(species = \"Mus musculus\",\n    category = \"H\")[, c(\"gs_name\", \"entrez_gene\")]\n\nhallmark = unique(m_df$gs_name)\ngsc <- lapply(hallmark, function(h){\n    target = which(m_df$gs_name == h)\n    geneIds = unique(as.character(m_df$entrez_gene[target]))\n    GeneSet(setName=h, geneIds)\n})\ngmt = GeneSetCollection(gsc)\ngmt = gmt[1:10] # Reduced for this demo\n\nsce <- SingleCellExperiment(assays = list(counts = DistalLungEpithelium))\nreducedDims(sce) <- SimpleList(PCA=pca.DistalLungEpithelium)\n\nCPMED <- function(input){\n    libsize <- colSums(input)\n    median(libsize) * t(t(input) / libsize)\n}\nnormcounts(sce) <- log10(CPMED(counts(sce)) + 1)\n\nsettingTGIF(sce, gmt, reducedDimNames=\"PCA\", assayNames=\"normcounts\")\n\ncalcTGIF(sce, ndim=3)\n\nreportTGIF(sce,\n    html.open=FALSE,\n    title=\"scTGIF Report for DistalLungEpithelium dataset\",\n    author=\"Koki Tsuyuzaki\")"
+    }
+  ]
+}

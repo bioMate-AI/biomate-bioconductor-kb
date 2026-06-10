@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: perc.samples=The minimum fraction of samples in which a CpG site must be covered to be considered frequently covered (e.g., 4/5) ;; min.sites=The minimum number of frequently covered CpG sites required to define a CpG cluster (e.g., 20) ;; max.dist=The maximum distance in base pairs between neighboring CpG sites to be clustered or kept in the same DMR (e.g., 100) ;; maxCov=The maximum coverage threshold used to limit unusually high-coverage sites and reduce bias (often set to the 90% quantile) ;; formula=The formula specifying the group effect or null model in beta regression (e.g., ~group or ~group.null) ;; type=The type of beta regression, where \"BR\" (bias reduction) is highly recommended for small sample sizes ;; FDR.cluster=The target false discovery rate for rejecting CpG clusters (e.g., 0.1) ;; FDR.loc=The target location-wise false discovery rate for trimming non-significant sites within rejected clusters (e.g., 0.05) ;; diff.dir=Logical indicating whether to split DMRs if the direction of methylation difference changes (e.g., TRUE) ;; minDiff=The minimum methylation difference required to define a DMR between two samples (e.g., 0.3)\n- alternatives: globalTest=Use this function (which wraps Goeman's Global Test) when you want to test predefined genomic regions (like promoters or CpG islands) as a single high-dimensional alternative, rather than finding de novo DMRs.\n- when_to_use: Use this package when analyzing targeted bisulfite sequencing data (such as RRBS) from human or mouse samples to identify differentially methylated regions (DMRs) across experimental groups or between two individual samples, or to test predefined genomic regions.\n- pitfalls: high_coverage_bias=Unusually high coverages can bias the smoothing step; users must limit coverage using limitCov (e.g., to the 90% quantile) before smoothing ;; small_sample_size_bias=Standard maximum likelihood estimation in beta regression can be biased with small sample sizes; use type = \"BR\" (bias reduction) to mitigate this ;; p_value_distribution_under_null=To estimate the variogram and correlation of Z-scores accurately, P-values must be roughly uniformly distributed. It is highly recommended to estimate the variogram under the null hypothesis using resampled/permuted data (e.g., betaResultsNull) rather than the test data of interest ;; computational_time=Smoothing (predictMeth) and beta regression (betaRegression) can be slow; users should set mc.cores to parallelize these steps if possible.",
+  "workflows": [
+    {
+      "name": "group_wise_dmr_detection",
+      "intent": "Detect de novo differentially methylated regions (DMRs) between two groups of samples using clustering, smoothing, beta regression, and hierarchical testing.",
+      "input": [
+        "files.ext (Bismark CpG context output files)",
+        "colData (DataFrame specifying sample names and group/phenotype information)"
+      ],
+      "stages": "1. Import Bismark files ;; 2. Define CpG clusters ;; 3. Limit high coverage ;; 4. Smooth methylation data ;; 5. Model group effect with beta regression ;; 6. Model null group effect on resampled data ;; 7. Estimate and smooth the variogram under the null ;; 8. Estimate local correlation of Z-scores ;; 9. Test CpG clusters for differential methylation ;; 10. Trim rejected clusters ;; 11. Define DMR boundaries",
+      "code": "## readBismark(files, colData)\ndata(rrbs)\nrrbs.small <- rrbs[1:1000,]\nrrbs.clust.unlim <- clusterSites(object = rrbs.small,\n                                 groups = colData(rrbs)$group,\n                                 perc.samples = 4/5,\n                                 min.sites = 20,\n                                 max.dist = 100)\nind.cov <- totalReads(rrbs.clust.unlim) > 0\nquant <- quantile(totalReads(rrbs.clust.unlim)[ind.cov], 0.9)\nrrbs.clust.lim <- limitCov(rrbs.clust.unlim, maxCov = quant)\npredictedMeth <- predictMeth(object = rrbs.clust.lim)\nbetaResults <- betaRegression(formula = ~group,\n                              link = \"probit\",\n                              object = predictedMeth,\n                              type = \"BR\")\npredictedMethNull <- predictedMeth[,c(1:4, 6:9)]\ncolData(predictedMethNull)$group.null <- rep(c(1,2), 4)\nbetaResultsNull <- betaRegression(formula = ~group.null,\n                                  link = \"probit\",\n                                  object = predictedMethNull,\n                                  type=\"BR\")\nvario <- makeVariogram(betaResultsNull)\nvario.sm <- smoothVariogram(vario, sill = 0.9)\nvario.aux <- makeVariogram(betaResults, make.variogram=FALSE)\nvario.sm$pValsList <- vario.aux$pValsList\nlocCor <- estLocCor(vario.sm)\nclusters.rej <- testClusters(locCor,\n                             FDR.cluster = 0.1)\nclusters.trimmed <- trimClusters(clusters.rej,\n                                 FDR.loc = 0.05)\nDMRs <- findDMRs(clusters.trimmed,\n                 max.dist = 100,\n                 diff.dir = TRUE)"
+    },
+    {
+      "name": "two_sample_dmr_detection",
+      "intent": "Detect differentially methylated regions (DMRs) between exactly two samples.",
+      "input": [
+        "predictedMeth (BSrel object containing smoothed relative methylation levels)"
+      ],
+      "stages": "1. Compare two samples and aggregate sites surpassing the minimum difference",
+      "code": "DMRs.2 <- compareTwoSamples(object = predictedMeth,\n                            sample1 = \"APL1\",\n                            sample2 = \"APL10961\",\n                            minDiff = 0.3,\n                            max.dist = 100)"
+    },
+    {
+      "name": "predefined_regions_biseq",
+      "intent": "Test predefined genomic regions (e.g., promoters) for differential methylation using the BiSeq regression framework.",
+      "input": [
+        "rrbs (BSraw object containing raw bisulfite sequencing data)",
+        "promoters (GRanges object containing predefined genomic regions)"
+      ],
+      "stages": "1. Filter raw data by overlaps with predefined regions ;; 2. Assign region identifiers to the cluster.id metadata column",
+      "code": "data(promoters)\ndata(rrbs)\nrrbs.red <- subsetByOverlaps(rrbs, promoters)\nov <- findOverlaps(rrbs.red, promoters)\nrowRanges(rrbs.red)$cluster.id[queryHits(ov)] <- promoters$acc_no[subjectHits(ov)]"
+    },
+    {
+      "name": "predefined_regions_global_test",
+      "intent": "Test predefined genomic regions for association with a response variable using Goeman's Global Test.",
+      "input": [
+        "rrbs (BSraw object containing raw bisulfite sequencing data)",
+        "promoters (GRanges object containing predefined genomic regions)"
+      ],
+      "stages": "1. Convert raw data to relative methylation levels ;; 2. Filter predefined regions to those overlapping the data ;; 3. Run the global test",
+      "code": "data(promoters)\ndata(rrbs)\nrrbs <- rawToRel(rrbs)\npromoters <- promoters[overlapsAny(promoters, rrbs)]\ngt <- globalTest(group~1,\n                 rrbs,\n                 subsets = promoters)"
+    }
+  ]
+}

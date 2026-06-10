@@ -1,0 +1,11 @@
+{
+  "package": "rbsurv",
+  "requirements": [
+    "rbsurv"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rbsurv"
+    ]
+  }
+}

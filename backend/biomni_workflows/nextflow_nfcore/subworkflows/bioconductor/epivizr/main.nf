@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_EPIVIZR {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-epivizr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-epivizr:2.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-epivizr:2.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -54,22 +53,22 @@ process BIOC_EPIVIZR {
     # --- List Chart Types [] ---
     # Key functions: list_chart_types
     ---------------------------------------------------------------------
-    app$chart_mgr$list_chart_types()
+    app\$chart_mgr\$list_chart_types()
     # --- Print Chart Type Info [] ---
     # Key functions: print_chart_type_info
     ---------------------------------------------------------------------
-    app$chart_mgr$print_chart_type_info("BlocksTrack")
+    app\$chart_mgr\$print_chart_type_info("BlocksTrack")
     # --- Print Chart Info [] ---
     # Key functions: print_chart_info
     ---------------------------------------------------------------------
     # to list applied chart settings
-    app$chart_mgr$print_chart_info(blocks_chart)
+    app\$chart_mgr\$print_chart_info(blocks_chart)
     # --- Pdata [] ---
     # Key functions: pData, split, exprs, rowMeans
     ---------------------------------------------------------------------
-    keep <- pData(apColonData)$SubType!="adenoma"
+    keep <- pData(apColonData)\$SubType!="adenoma"
     apColonData <- apColonData[,keep]
-    status <- pData(apColonData)$Status
+    status <- pData(apColonData)\$Status
     Indexes <- split(seq(along=status),status)
     # --- Data [] ---
     # Key functions: show
@@ -79,21 +78,30 @@ process BIOC_EPIVIZR {
     # --- Stop App [] ---
     # Key functions: stop_app
     ---------------------------------------------------------------------
-    app$stop_app()
+    app\$stop_app()
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_epivizr_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_epivizr_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_epivizr_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_epivizr_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_epivizr_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_epivizr_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_EPIVIZR:", paste0("    epivizr: ", packageVersion("epivizr"))),
+        c("BIOC_EPIVIZR:", paste0("    epivizr: ", as.character(packageVersion("epivizr")))),
         "versions.yml"
     )
     """

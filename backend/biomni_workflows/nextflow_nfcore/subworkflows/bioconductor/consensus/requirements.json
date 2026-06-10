@@ -1,0 +1,13 @@
+{
+  "package": "consensus",
+  "requirements": [
+    "RColorBrewer",
+    "consensus"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RColorBrewer",
+      "consensus"
+    ]
+  }
+}

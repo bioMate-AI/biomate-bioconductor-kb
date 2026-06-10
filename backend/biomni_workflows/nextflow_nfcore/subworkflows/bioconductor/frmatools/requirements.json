@@ -1,0 +1,11 @@
+{
+  "package": "frmatools",
+  "requirements": [
+    "frmaTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "frmaTools"
+    ]
+  }
+}

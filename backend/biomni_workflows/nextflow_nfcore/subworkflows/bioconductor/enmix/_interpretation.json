@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nCores=Number of processors for parallel computing ;; qc=Logical flag in mpreprocess to enable quality control ;; fqcfilter=Logical flag in mpreprocess to filter low-quality samples/probes ;; rmcr=Logical flag to remove rows and columns with too many missing values ;; impute=Logical flag to impute missing values using k-nearest neighbors ;; bgParaEst=Background parameter estimation method in preprocessENmix (e.g., \"oob\") ;; dyeCorr=Dye bias correction method in preprocessENmix (e.g., \"RELIC\") ;; detPtype=Detection P-value type in QCinfo (\"negative\" or \"oob\") ;; detPthre=Detection P-value threshold in QCinfo (<= 10E-6 for \"negative\", 0.01 or 0.05 for \"oob\") ;; rmoutlier=Logical flag in qcfilter to control outlier removal (set to FALSE for epigenetic mutation analysis) ;; rthre=Missing value rate threshold for rows/probes in qcfilter (default 0.05) ;; cthre=Missing value rate threshold for columns/samples in qcfilter (default 0.05) ;; seed=FDR threshold for initial selection of DMR regions in ipdmr and combp\n- alternatives: minfi=Alternative package for reading IDATs and preprocessing; ENmix's readidat does not depend on array annotation packages and produces a smaller rgDataSet (~1/3 smaller than minfi's RGChannelSetExtended) ;; ChAMP and wateRmelon=Compatible packages sharing similar data structures ;; multidensity=Slow density plotting function; ENmix's multifreqpoly is a much faster and more accurate alternative for visualizing beta value distributions ;; combp=Alternative DMR method to ipdmr; seed is often more stringent in ipdmr than combp\n- when_to_use: Appropriate for preprocessing raw Illumina Methylation BeadChip data (450k, EPIC, mouse arrays) to remove experimental noise, perform quality control, and conduct downstream analyses like cell type proportion estimation, methylation age calculation, and DMR identification.\n- pitfalls: Missing data is not allowed in principal component regression analysis (pcrplot); users must specify impute=TRUE in qcfilter beforehand ;; For epigenetic mutation analysis, outliers should be kept (set rmoutlier=FALSE and impute=FALSE in qcfilter) ;; The same value of seed does not have the same effect in ipdmr and combp (it is more stringent in ipdmr) ;; multidensity plots can obscure probe-type differences and suggest values outside the [0,1] range, whereas multifreqpoly is more accurate.",
+  "workflows": [
+    {
+      "name": "pipeline_preprocessing",
+      "intent": "Perform quality control, preprocessing, and imputation in a single pipeline command.",
+      "input": [
+        "directory path for idat files (raw IDAT files)"
+      ],
+      "stages": "1. Read raw IDAT files ;; 2. Run the single-command preprocessing pipeline with quality control and imputation.",
+      "code": "#read in IDAT files\npath <- file.path(find.package(\"minfiData\"),\"extdata\")\nrgSet <- readidat(path = path,recursive = TRUE)\n#data pre-processing\nbeta=mpreprocess(rgSet,nCores=6)\n#quality control, data pre-processing and imputation\nbeta=mpreprocess(rgSet,nCores=6,qc=TRUE,fqcfilter=TRUE,\n     rmcr=TRUE,impute=TRUE)"
+    },
+    {
+      "name": "custom_step_by_step_preprocessing",
+      "intent": "Perform customized quality control, background/dye correction, normalization, probe-type bias adjustment, and filtering/imputation sequentially.",
+      "input": [
+        "directory path for idat files (raw IDAT files)",
+        "csv (sample sheet with phenotype info)"
+      ],
+      "stages": "1. Read raw IDAT files ;; 2. Extract quality control information ;; 3. Perform background and dye-bias correction ;; 4. Perform between-array quantile normalization ;; 5. Adjust for probe-type design bias ;; 6. Filter low-quality/outlier data points and perform imputation.",
+      "code": "#read in data\npath <- file.path(find.package(\"minfiData\"),\"extdata\")\nrgSet <- readidat(path = path,recursive = TRUE)\n#QC info\nqc<-QCinfo(rgSet)\n#background correction and dye bias correction\n#if qc info object is provided, the low quality or outlier samples\n# and probes will be excluded before background correction\nmdat<-preprocessENmix(rgSet, bgParaEst=\"oob\", dyeCorr=\"RELIC\",\n                     QCinfo=qc, nCores=6)\n#between-array normalization\nmdat<-norm.quantile(mdat, method=\"quantile1\")\n#probe-type bias adjustment\nbeta<-rcp(mdat,qcscore=qc)\n#set low quality and outlier data points as NA (missing value)\n#remove samples and probes with too many (eg. >5%) missing data\n#perform imputation to replace missing values\nbeta <- qcfilter(beta,qcscore=qc,rmcr=TRUE,impute=TRUE)"
+    },
+    {
+      "name": "downstream_epigenetic_analysis",
+      "intent": "Estimate cell type proportions, predict sex, calculate methylation age/scores, and identify differentially methylated regions (DMRs).",
+      "input": [
+        "beta (preprocessed methylation beta value matrix)",
+        "rgSet (raw rgDataSet)",
+        "mdat (preprocessed methDataSet)",
+        "pheno (data frame with sample ID, age, and sex)",
+        "dat (BED-formatted data frame of association P-values)"
+      ],
+      "stages": "1. Estimate cell type proportions ;; 2. Predict sample sex ;; 3. Calculate methylation age and predictors ;; 4. Identify differentially methylated regions (DMRs) using ipDMR or comb-p.",
+      "code": "#estimate cell type proportions\n#rgDataset or methDataSet can also be used for the estimation\ncelltype=estimateCellProp(userdata=beta,\n         refdata=\"FlowSorted.Blood.450k\",\n         nonnegative = TRUE,normalize=TRUE)\n\n#predic sex based on rgDataSet or methDataset\nsex=predSex(rgSet)\nsex=predSex(mdat)\n\n#Methylation predictors (>150), including methylation age calculation\npheno=data.frame(SampleID=colnames(beta),Age=c(23,45,52,36,58,43),Female=c(1,0,1,1,0,1))\nmscore=methscore(datMeth=beta,datPheno=pheno)\n\n#After association analysis, the P values can be used for DMR analysis\n#simulate a small example file in BED format\ndat=simubed()\n#using ipdmr method, low seed value (0.01 or 0.05) should be used in real study.\nipdmr(data=dat,seed=0.1)\n#using comb-p method\ncombp(data=dat,seed=0.1)"
+    }
+  ]
+}

@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_OMNIPATHR {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-omnipathr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-omnipathr:3.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-omnipathr:3.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,26 +40,34 @@ process BIOC_OMNIPATHR {
     library(OmnipathR)
     library(jsonlite)
 
-    # --- Path Finding [] ---
-    # Key functions: find_all_paths
+    # --- Transcriptional Interaction Network Construction [] ---
+    # Key functions: transcriptional, interaction_graph, find_all_paths
     gri <- transcriptional()
     gr_graph <- interaction_graph(gri)
     paths <- find_all_paths(
         graph = gr_graph,
-        start = c('EGFR', 'STAT3'),
-        end = c('AKT1', 'ULK1'),
-        attr = 'name'
+        start = c("EGFR", "STAT3"),
+        end = c("AKT1", "ULK1"),
+        attr = "name"
     )
 
-
-    # --- Enzyme-Substrate Interactions [] ---
+    # --- Post-Translational Modification Analysis [] ---
     # Key functions: enzyme_substrate, enzsub_graph, signed_ptms
     enz_sub <- enzyme_substrate()
     es_graph <- enzsub_graph(enz_sub)
     es_signed <- signed_ptms(enz_sub)
 
+    # --- Functional Annotation and Network Integration [] ---
+    # Key functions: annotations, omnipath, annotated_network
+    hpa_tissue <- annotations(
+        resources = "HPA_tissue",
+        wide = TRUE,
+        proteins = c("DLL1", "MEIS2", "PHOX2A", "BACH1", "KLF11")
+    )
+    network <- omnipath()
+    network_slk_pw <- annotated_network(network, "SignaLink_pathway")
 
-    # --- Intercellular Communication [] ---
+    # --- Intercellular Communication Network Filtering [] ---
     # Key functions: intercell_network, filter_intercell_network
     icn <- intercell_network()
     icn_hc <- filter_intercell_network(
@@ -71,19 +78,44 @@ process BIOC_OMNIPATHR {
         simplify = TRUE
     )
 
+    # --- Gene and Protein Identifier Translation [] ---
+    # Key functions: translate_ids
+    d <- data.frame(uniprot_id = c("P00533", "Q9ULV1", "P43897", "Q9Y2P5"))
+    d_translated <- translate_ids(
+        d,
+        uniprot_id = uniprot,
+        genesymbol
+    )
+
+    # --- Gene Ontology Graph Construction [] ---
+    # Key functions: go_ontology_download, relations_table_to_graph, ontology_ensure_name
+    go <- go_ontology_download()
+    go_graph <- relations_table_to_graph(go\$rel_tbl_c2p)
+    go_term <- ontology_ensure_name("GO:0000022")
+
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_omnipathr_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_omnipathr_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_omnipathr_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_omnipathr_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_omnipathr_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_omnipathr_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_OMNIPATHR:", paste0("    omnipathr: ", packageVersion("OmnipathR"))),
+        c("BIOC_OMNIPATHR:", paste0("    omnipathr: ", as.character(packageVersion("OmnipathR")))),
         "versions.yml"
     )
     """

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <normalize=Determines which experiments are normalized by which; defaults to c(\"guideRNA\", \"Group\") but can be set to c(\"guideRNA\") to normalize only by guideRNA match ;; min_freq=The normalization threshold, defaulting to 0.01 (1%). Lower to 0.001 for high-precision deep sequencing, raise to 0.1 for low depth/homogenous background, or set to 0.03 to 0.15 to filter out Index Hopping ;; fastqreads=Controls read assignment to IDs; default 0.5 requires only one read (forward or reverse) to match primers perfectly, while 1 requires only forward (auto-detected if Reverse_Primer is empty) ;; strict=Parameter in amplicanConsensus that changes behavior when both strands cover an event but one has no indel>\n- alternatives: <amplicanPipelineConservative=Use instead of amplicanPipeline when unique dual indexing pooling combinations are not used or to handle index hopping conservatively ;; External conversion tools=Must be used to convert ABI files to fastq format before running amplican, as ABI is not directly supported>\n- when_to_use: <When analyzing amplicon sequencing data from genome editing experiments (CRISPR, TALENs, Nickases, HDR, base editors) to calculate cut rates, frameshifts, and visualize insertions, deletions, and mismatches.>\n- pitfalls: <Index hopping can be confused with genetic background during normalization if the threshold (min_freq) is kept at default; adjust min_freq to 0.03 or 0.15 or use amplicanPipelineConservative. Primers must be perfectly matched for read assignment unless fastqreads is adjusted. Ensure the expected cut site is specified in UPPER CASE letters in the Amplicon column of the configuration file.>",
+  "workflows": [
+    {
+      "name": "amplican_standard_pipeline",
+      "intent": "Align amplicon reads, normalize editing events against controls, and generate comprehensive HTML reports.",
+      "input": [
+        "config.csv (comma-delimited configuration file containing experiment metadata, primers, guides, and amplicon sequences)",
+        "fastq_folder (directory containing raw forward and reverse fastq or fastq.gz files)"
+      ],
+      "stages": "1. Define paths to the configuration file and fastq folder. 2. Run the complete amplican pipeline to perform alignment, filtering, normalization, and report generation. 3. Load alignment results and look up specific alignments in human-readable format.",
+      "code": "config <- system.file(\"extdata\", \"config.csv\", package = \"amplican\")\nfastq_folder <- system.file(\"extdata\", package = \"amplican\")\nresults_folder <- tempdir()\namplicanPipeline(config, fastq_folder, results_folder)\naln <- system.file(\"extdata\", \"results\", \"alignments\", \"temp\", \"barcode_1_aln.rds\", package = \"amplican\")\naln <- readRDS(aln)\namplican::lookupAlignment(aln, ID = \"ID_1\")"
+    }
+  ]
+}

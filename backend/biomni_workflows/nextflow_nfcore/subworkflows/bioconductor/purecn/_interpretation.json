@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fun.segmentation=The segmentation function to use (PSCBS is recommended in version 1.22+; GATK4 is best for copy number backbones; CBS is fast and suited for small targeted panels; Hclust/none are for third-party segmentations) ;; model=The statistical model for SNV allelic fractions (betabin is recommended in version 1.22+ when using a larger panel of normals) ;; post.optimize=If TRUE, optimizes purity using both variant allelic fractions and copy number (highly recommended for production/variant classification, though increases runtime) ;; model.homozygous=Set to TRUE for cell lines or 100% pure samples without matched normals to model homozygous SNPs ;; min-base-quality=Set to 20 in PureCN.R when using GATK4 Mutect2 (version 4.2.0+) to prevent aggressive variant removal ;; off-target=Flag in interval preprocessing to include off-target reads (recommended except for Amplicon data) ;; average-off-target-width=Controls off-target bin width (setting to 1.2-1.5x the minimum recommendation is a good starting point to decrease noise)\n- alternatives: CNVkit, GATK3, and GATK4 can be used as alternative third-party tools for coverage calculation or segmentation, with PureCN importing their outputs (e.g., .cnr, .seg, .hdf5 files) and performing downstream purity/ploidy fitting.\n- when_to_use: Use this package when analyzing cancer genomic data from targeted gene panels or whole-exome sequencing (with or without matched normal samples) to accurately call copy number alterations, LOH, and somatic mutations by adjusting for tumor purity and ploidy.\n- pitfalls: Do not mix normal samples sequenced with different capture kits (e.g., Agilent v4 vs v6) in the normal database ;; Do not pad baits manually unless coverage is extremely low (<30X); instead, run the variant caller with 50-75bp padding to capture flanking heterozygous SNPs ;; Do not provide the Mutect2 stats file to PureCN (only Mutect 1.1.7 stats files are supported) ;; Providing matched normal coverage with the --normal argument skips the pool-of-normals denoising steps ;; Ensure GC-normalization is consistently applied (either used in both tumor and normaldb, or skipped in both) ;; High number of cores during parallel processing can cause out-of-memory crashes as memory usage scales linearly with cores.",
+  "workflows": [
+    {
+      "name": "standard_purecn_pipeline",
+      "intent": "Run the complete PureCN pipeline using internal coverage calculation, normalization, and segmentation to estimate purity, ploidy, and classify variants.",
+      "input": [
+        "baits.bed (capture baits coordinates)",
+        "reference.fa (genome reference FASTA)",
+        "mappability.bigWig (mappability score file)",
+        "tumor.bam (tumor sample BAM file)",
+        "normal_coverages.list (text file listing paths to process-matched normal coverage files)",
+        "normal_panel.vcf (VCF containing variants from normal samples)",
+        "tumor_mutect.vcf (VCF containing germline and somatic variants for the tumor sample)"
+      ],
+      "stages": "1. Preprocess intervals and calculate GC-content using preprocessIntervals ;; 2. Calculate BAM coverage for tumor and normal samples using calculateBamCoverageByInterval ;; 3. Correct library-specific coverage biases using correctCoverageBias ;; 4. Build a normal database for coverage normalization using createNormalDatabase ;; 5. Calculate tangent normal coverage using calculateTangentNormal ;; 6. Pre-calculate variant mapping biases from a normal panel VCF using calculateMappingBiasVcf ;; 7. Run absolute copy number, purity, and ploidy estimation using runAbsoluteCN ;; 8. Predict somatic status and cellular fraction using predictSomatic ;; 9. Call gene-level alterations and LOH using callAlterations, callAmplificationsInLowPurity, and callLOH ;; 10. Create and read curation files for manual verification using createCurationFile and readCurationFile",
+      "code": "intervals <- import(bed.file)\nmappability <- import(mappability.file)\n\npreprocessIntervals(intervals, reference.file, \n    mappability = mappability, output.file = \"ex2_gc_file.txt\")\n\ncalculateBamCoverageByInterval(bam.file = bam.file, \n interval.file = interval.file, output.file = \"ex1_coverage.txt\")\n\ncorrectCoverageBias(normal.coverage.file, interval.file, \n    output.file = \"example_normal_loess.txt.gz\", plot.bias = TRUE)\n\nnormalDB <- createNormalDatabase(normal.coverage.files)\nsaveRDS(normalDB, file = \"normalDB.rds\")\n\nnormalDB <- readRDS(\"normalDB.rds\")\npool <- calculateTangentNormal(tumor.coverage.file, normalDB)\n\nbias <- calculateMappingBiasVcf(normal.panel.vcf.file, genome = \"h19\")\nsaveRDS(bias, \"mapping_bias.rds\")\nmapping.bias.file <- \"mapping_bias.rds\"\n\nret <-runAbsoluteCN(normal.coverage.file = pool,\n    tumor.coverage.file = tumor.coverage.file, vcf.file = vcf.file, \n    genome = \"hg19\", sampleid = \"Sample1\", \n    interval.file = interval.file, normalDB = normalDB,\n    post.optimize = FALSE, plot.cnv = FALSE, verbose = FALSE)\n\nfile.rds <- \"Sample1_PureCN.rds\"\nsaveRDS(ret, file = file.rds)\npdf(\"Sample1_PureCN.pdf\", width = 10, height = 11)\nplotAbs(ret, type = \"all\")\ndev.off()\n\nhead(predictSomatic(ret), 3)\n\nvcf <- predictSomatic(ret, return.vcf = TRUE)\nwriteVcf(vcf, file = \"Sample1_PureCN.vcf\") \n\ngene.calls <- callAlterations(ret)\nhead(gene.calls)\n\ngene.calls.zscore <- callAmplificationsInLowPurity(ret, normalDB)\nhead(gene.calls.zscore)\n\nloh <- callLOH(ret)\nhead(loh)\n\ncreateCurationFile(file.rds) \n\nret <- readCurationFile(file.rds)"
+    },
+    {
+      "name": "third_party_segmentation",
+      "intent": "Run PureCN using pre-computed copy number segmentations or log2-ratios from third-party tools like CNVkit or GATK4.",
+      "input": [
+        "tumor.seg (segmented copy number file from third-party tool)",
+        "tumor.cnr (CNVkit copy number log2-ratio file, optional)",
+        "tumor_mutect.vcf (VCF containing germline and somatic variants)",
+        "interval.txt (interval file)"
+      ],
+      "stages": "1. Run absolute copy number estimation using pre-segmented data with runAbsoluteCN ;; 2. Alternatively, calculate log2-ratios from coverage files and run runAbsoluteCN with custom log-ratios",
+      "code": "retSegmented <- runAbsoluteCN(seg.file = seg.file, \n    interval.file = interval.file, vcf.file = vcf.file, \n    max.candidate.solutions = 1, genome = \"hg19\",\n    test.purity = seq(0.3,0.7,by = 0.05), verbose = FALSE, \n    plot.cnv = FALSE)\n\nlog.ratio <- calculateLogRatio(readCoverageFile(normal.coverage.file),\n    readCoverageFile(tumor.coverage.file))\n\nretLogRatio <- runAbsoluteCN(log.ratio = log.ratio,\n    interval.file = interval.file, vcf.file = vcf.file, \n    max.candidate.solutions = 1, genome = \"hg19\",\n    test.purity = seq(0.3, 0.7, by = 0.05), verbose = FALSE, \n    normalDB = normalDB, plot.cnv = FALSE)"
+    },
+    {
+      "name": "biomarker_extraction",
+      "intent": "Extract clinical biomarkers such as Tumor Mutational Burden (TMB) and Chromosomal Instability (CIN) from curated PureCN results.",
+      "input": [
+        "Sample1_PureCN.rds (serialized PureCN output object)",
+        "callable_status.bed (BED file containing callable regions, e.g. from GATK CallableLoci)"
+      ],
+      "stages": "1. Calculate tumor mutational burden (TMB) using callMutationBurden ;; 2. Calculate chromosomal instability (CIN) using callCIN",
+      "code": "callableBed <- import(system.file(\"extdata\", \"example_callable.bed.gz\", \n    package = \"PureCN\"))\n\ncallMutationBurden(ret, callable = callableBed)\n\ncin <- data.frame(\n    cin = callCIN(ret, allele.specific = FALSE, reference.state = \"normal\"),\n    cin.allele.specific = callCIN(ret, reference.state = \"normal\"),\n    cin.ploidy.robust = callCIN(ret, allele.specific = FALSE),\n    cin.allele.specific.ploidy.robust = callCIN(ret)\n)"
+    }
+  ]
+}

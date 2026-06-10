@@ -1,0 +1,13 @@
+{
+  "package": "meat",
+  "requirements": [
+    "MEAT",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MEAT",
+      "SummarizedExperiment"
+    ]
+  }
+}

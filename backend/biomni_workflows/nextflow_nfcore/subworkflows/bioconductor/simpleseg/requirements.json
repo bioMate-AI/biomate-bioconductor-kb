@@ -1,0 +1,17 @@
+{
+  "package": "simpleseg",
+  "requirements": [
+    "EBImage",
+    "cytomapper",
+    "ggplot2",
+    "simpleSeg"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "cytomapper",
+      "ggplot2",
+      "simpleSeg"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "geofastq",
+  "requirements": [
+    "GEOfastq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GEOfastq"
+    ]
+  }
+}

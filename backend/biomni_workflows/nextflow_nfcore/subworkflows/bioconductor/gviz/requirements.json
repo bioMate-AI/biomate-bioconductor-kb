@@ -1,0 +1,23 @@
+{
+  "package": "gviz",
+  "requirements": [
+    "GenomicFeatures",
+    "GenomicRanges",
+    "Gviz",
+    "Rsamtools"
+  ],
+  "by_workflow": {
+    "gene_region_visualization.nf": [
+      "GenomicFeatures",
+      "Gviz"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "Gviz"
+    ],
+    "sequence_alignment_visualization.nf": [
+      "Gviz",
+      "Rsamtools"
+    ]
+  }
+}

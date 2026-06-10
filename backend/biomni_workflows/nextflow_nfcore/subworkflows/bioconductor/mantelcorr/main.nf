@@ -1,114 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MantelCorr
-// Computes Mantel cluster correlations from a (p x n) numeric data matrix (e.g. microarray gene-expres
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MantelCorr/inst/doc/MantelCorrVignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MantelCorr")
+// Bioconductor workflow: MantelCorr — mantel_cluster_correlation_analysis
+// Perform k-means over-partitioning, compute Mantel correlation coefficients, and run permutation testing to identify statistically significant gene clusters from
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-mantelcorr:1.80.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MantelCorr
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Over-partition the gene space into non-overlapping clusters using GetClusters
+//  * 2. [Core Analysis] Compute full and cluster-specific dissimilarity matrices using DistMatrices
+//  * 3. [Core Analysis] Calculate Mantel correlation coefficients for each cluster using MantelCorrs
+//  * 4. [Core Analysis] Perform a permutation test to determine cluster significance using PermutationTest
+//  * 5. [Core Analysis] Generate lists of significant and non-significant clusters using ClusterList
+//  * 6. [Core Analysis] Extract the specific genes belonging to the significant clusters using ClusterGeneList
 
 nextflow.enable.dsl = 2
 
-process BIOC_MANTELCORR {
+process BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mantelcorr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mantelcorr:1.76.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mantelcorr:1.76.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mantelcorr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mantelcorr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mantelcorr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ClusterGeneList)
-    library(ClusterList)
-    library(DistMatrices)
-    library(GetClusters)
-    library(MantelCorrs)
-    library(PermutationTest)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(MantelCorr)
+            
+            # 1. Read the user input file
+            # The input must be a numeric p x n matrix of gene expression values,
+            # where rows represent genes and columns represent samples, with dimnames assigned.
+            input_file <- "expression_matrix.csv"
+            if (!file.exists(input_file)) {
+              stop(paste("Error: Input file", input_file, "not found in the working directory."))
+            }
+            
+            # Read the CSV and convert to a numeric matrix
+            data_df <- read.csv(input_file, row.names = 1, check.names = FALSE)
+            data <- as.matrix(data_df)
+            mode(data) <- "numeric"
+            
+            # 2. Determine parameters dynamically based on input dimensions
+            p <- nrow(data)
+            n <- ncol(data)
+            
+            # k-means over-partitioning parameter k must be between 5 and p/2
+            k <- min(500, floor(p / 2))
+            if (k < 5) {
+              k <- 5
+            }
+            
+            # 3. Execute the MantelCorr workflow stages
+            # Stage 1: Over-partition the gene space into non-overlapping clusters
+            kmeans.result <- GetClusters(data, k, 100)
+            
+            # Stage 2: Compute full and cluster-specific dissimilarity matrices
+            DistMatrices.result <- DistMatrices(data, kmeans.result\$clusters)
+            
+            # Stage 3: Calculate Mantel correlation coefficients for each cluster
+            MantelCorrs.result <- MantelCorrs(DistMatrices.result\$Dfull, DistMatrices.result\$Dsubsets)
+            
+            # Stage 4: Perform a permutation test to determine cluster significance
+            # Using 100 permutations as in the documented code, with dynamic sample size n
+            permuted.pval <- PermutationTest(DistMatrices.result\$Dfull, DistMatrices.result\$Dsubsets, 100, n, 0.05)
+            
+            # Stage 5: Generate lists of significant and non-significant clusters
+            ClusterLists <- ClusterList(permuted.pval, kmeans.result\$cluster.sizes, MantelCorrs.result)
+            
+            # Stage 6: Extract the specific genes belonging to the significant clusters
+            ClusterGenes <- ClusterGeneList(kmeans.result\$clusters, ClusterLists\$SignificantClusters, data)
+            
+            # 4. Save meaningful results to output files
+            # Save the complete R objects for downstream analysis
+            saveRDS(ClusterLists, "ClusterLists.rds")
+            saveRDS(ClusterGenes, "ClusterGenes.rds")
+            
+            # Save a comprehensive CSV summary of all clusters
+            cluster_summary <- data.frame(
+              Cluster = 1:length(kmeans.result\$cluster.sizes),
+              Size = kmeans.result\$cluster.sizes,
+              MantelCorr = MantelCorrs.result,
+              Permutation_Threshold = permuted.pval,
+              Significant = MantelCorrs.result >= permuted.pval
+            )
+            write.csv(cluster_summary, "cluster_summary.csv", row.names = FALSE)
+            
+            # Save a text summary of the genes in the clusters
+            sink("cluster_genes_summary.txt")
+            cat("====================================================\n")
+            cat("MantelCorr Cluster Gene List Summary\n")
+            cat("====================================================\n\n")
+            print(ClusterGenes)
+            sink()
 
-    # --- Preliminaries [] ---
-    # Key functions: data
-    library(MantelCorr)
-    data(GolubTrain)
-    dim(GolubTrain)
-    data <- GolubTrain
-    # --- Getclusters [] ---
-    # Key functions: GetClusters
-    kmeans.result <- GetClusters(data, 500, 100)
-    # --- Distmatrices [] ---
-    # Key functions: DistMatrices
-    DistMatrices.result <- DistMatrices(data, kmeans.result$clusters)
-    # --- Mantelcorrs [] ---
-    # Key functions: MantelCorrs
-    MantelCorrs.result <- MantelCorrs(DistMatrices.result$Dfull, DistMatrices.result$Dsubsets)
-    # --- Permutationtest [] ---
-    # Key functions: PermutationTest
-    permuted.pval <- PermutationTest(DistMatrices.result$Dfull, DistMatrices.result$Dsubsets, 100, 38, 0.05)
-    # --- Clusterlist [] ---
-    # Key functions: ClusterList
-    ClusterLists <- ClusterList(permuted.pval, kmeans.result$cluster.sizes, MantelCorrs.result)
-    # --- Clustergenelist [] ---
-    # Key functions: ClusterGeneList
-    ClusterGenes <- ClusterGeneList(kmeans.result$clusters, ClusterLists$SignificantClusters, data)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mantelcorr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mantelcorr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mantelcorr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MANTELCORR:", paste0("    mantelcorr: ", packageVersion("MantelCorr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS":',
+        paste0('    MantelCorr: ', as.character(packageVersion('MantelCorr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mantelcorr_results.csv
-    touch ${prefix}_mantelcorr_output.rds
-    echo "BIOC_MANTELCORR:" > versions.yml
-    echo "    mantelcorr: 0.0.0" >> versions.yml
+    touch ${prefix}_mantel_cluster_correlation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MANTELCORR_WORKFLOW {
+workflow BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_MANTELCORR(ch_input)
+    BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MANTELCORR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MANTELCORR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MANTELCORR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MANTELCORR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS.out.tables
+    plots    = BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS.out.plots
+    objects  = BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS.out.objects
+    versions = BIOC_MANTELCORR_MANTEL_CLUSTER_CORRELATION_ANALYSIS.out.versions
 }

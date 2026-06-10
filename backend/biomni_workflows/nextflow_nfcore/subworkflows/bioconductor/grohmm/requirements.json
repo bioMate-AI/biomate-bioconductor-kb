@@ -1,0 +1,25 @@
+{
+  "package": "grohmm",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "groHMM",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "groHMM",
+      "org.Hs.eg.db"
+    ]
+  }
+}

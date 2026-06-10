@@ -1,0 +1,15 @@
+{
+  "package": "sipsic",
+  "requirements": [
+    "Matrix",
+    "SiPSiC",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Matrix",
+      "SiPSiC",
+      "SingleCellExperiment"
+    ]
+  }
+}

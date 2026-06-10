@@ -1,0 +1,14 @@
+{
+  "package": "mgsa",
+  "requirements": [
+    "mgsa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mgsa"
+    ],
+    "mgsa_custom_sets.nf": [
+      "mgsa"
+    ]
+  }
+}

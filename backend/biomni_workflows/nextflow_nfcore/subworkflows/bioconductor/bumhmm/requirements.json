@@ -1,0 +1,15 @@
+{
+  "package": "bumhmm",
+  "requirements": [
+    "BUMHMM",
+    "Biostrings",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BUMHMM",
+      "Biostrings",
+      "SummarizedExperiment"
+    ]
+  }
+}

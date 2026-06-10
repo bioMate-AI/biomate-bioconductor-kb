@@ -1,0 +1,16 @@
+{
+  "package": "metabomxtr",
+  "requirements": [
+    "ggplot2",
+    "metabomxtr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metabomxtr"
+    ],
+    "mixture_model_normalization.nf": [
+      "ggplot2",
+      "metabomxtr"
+    ]
+  }
+}

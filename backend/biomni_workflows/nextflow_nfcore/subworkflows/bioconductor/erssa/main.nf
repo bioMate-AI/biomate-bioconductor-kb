@@ -1,92 +1,173 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ERSSA
-// The ERSSA package takes user supplied RNA-seq differential expression dataset and calculates the num
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ERSSA/inst/doc/ERSSA.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("ERSSA")
+// Bioconductor workflow: ERSSA — erssa_sample_size_analysis
+// Perform empirical RNA-seq sample size analysis by subsampling and running differential expression to determine replicate sufficiency.
+// Input: count_table, condition_table
+// Container: quay.io/biocontainers/bioconductor-erssa:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ERSSA, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the ERSSA package and prepare count and condition tables
+//  * 2. [Core Analysis] Set a random seed for reproducible subsampling
+//  * 3. [Core Analysis] Run the main erssa function to filter counts, generate subsamples, perform DE analysis, and identify DEGs
+//  * 4. [Visualization & Output] Customize and save the resulting diagnostic plots (e.g., dot plot, marginal plot, intersect plot, TPR/FPR plot)
 
 nextflow.enable.dsl = 2
 
-process BIOC_ERSSA {
+process BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-erssa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-erssa:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-erssa:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_erssa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_erssa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_erssa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ERSSA)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ERSSA)
+        library(ggplot2)
+        
+        # ==========================================
+        # 1. Load and Prepare Count and Condition Tables
+        # ==========================================
+        
+        # Load count table from the working directory
+        if (file.exists("count_table.rds")) {
+          count_table = readRDS("count_table.rds")
+        } else if (file.exists("count_table.csv")) {
+          count_table = read.csv("count_table.csv", row.names = 1, check.names = FALSE)
+        } else if (file.exists("count_table.tsv")) {
+          count_table = read.delim("count_table.tsv", row.names = 1, check.names = FALSE)
+        } else {
+          stop("Error: count_table file (RDS, CSV, or TSV) not found in the working directory!")
+        }
+        
+        # Load condition table from the working directory
+        if (file.exists("condition_table.rds")) {
+          condition_table = readRDS("condition_table.rds")
+        } else if (file.exists("condition_table.csv")) {
+          condition_table = read.csv("condition_table.csv", check.names = FALSE)
+        } else if (file.exists("condition_table.tsv")) {
+          condition_table = read.delim("condition_table.tsv", check.names = FALSE)
+        } else {
+          stop("Error: condition_table file (RDS, CSV, or TSV) not found in the working directory!")
+        }
+        
+        # Ensure standard column names for the condition table
+        colnames(condition_table) = c("name", "condition")
+        
+        # Identify the control condition to use in the ERSSA function call
+        unique_conds = unique(condition_table\$condition)
+        if (length(unique_conds) >= 1) {
+          ctrl_val = unique_conds[1]
+        }
+        
+        # Display preview of the loaded data
+        cat("--- Count Table Preview ---\n")
+        print(head(count_table[, 1:min(2, ncol(count_table)), drop = FALSE]))
+        cat("\n--- Condition Table Preview ---\n")
+        print(condition_table)
+        cat("\n")
+        
+        # ==========================================
+        # 2. Set Random Seed for Reproducibility
+        # ==========================================
+        set.seed(1) # for reproducible subsample generation
+        
+        # ==========================================
+        # 3. Run ERSSA Sample Size Analysis
+        # ==========================================
+        ssa = erssa(count_table, condition_table, DE_ctrl_cond=ctrl_val)
+        
+        # ==========================================
+        # 4. Customize and Save Diagnostic Plots
+        # ==========================================
+        
+        # Parse out plot 1 (Number of DE genes)
+        de_plot = ssa\$gg.dotPlot.obj\$gg_object 
+        
+        # Change y-axis label to be more descriptive
+        de_plot = de_plot + ylab('Number of differentially expressed genes')
+        
+        # Save the plot in the current working directory with new dimensions and a lower resolution.
+        ggsave(filename='ERSSA_plot_1_NumOfDEGenes.png',
+             plot=de_plot, dpi=100, width = 15,
+             height = 10, units = "cm")
+        
+        # Save other diagnostic plots if they are generated and available in the ssa object
+        if (!is.null(ssa\$gg.marginPlot.obj\$gg_object)) {
+          ggsave(filename='ERSSA_plot_2_MarginalNumOfDEGenes.png',
+                 plot=ssa\$gg.marginPlot.obj\$gg_object, dpi=100, width = 15,
+                 height = 10, units = "cm")
+        }
+        
+        if (!is.null(ssa\$gg.intersectPlot.obj\$gg_object)) {
+          ggsave(filename='ERSSA_plot_3_IntersectDEGenes.png',
+                 plot=ssa\$gg.intersectPlot.obj\$gg_object, dpi=100, width = 15,
+                 height = 10, units = "cm")
+        }
+        
+        if (!is.null(ssa\$gg.TPR_FPRPlot.obj\$gg_object)) {
+          ggsave(filename='ERSSA_plot_4_FPRvTPRPlot.png',
+                 plot=ssa\$gg.TPR_FPRPlot.obj\$gg_object, dpi=100, width = 15,
+                 height = 10, units = "cm")
+        }
+        
+        # Save the full ssa results object for downstream analysis
+        saveRDS(ssa, file = "ERSSA_ssa_results.rds")
+        
+        cat("ERSSA pipeline completed successfully. Results and plots saved to the working directory.\n")
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    library(ERSSA)
-    # GTEx dataset with 10 heart and 10 muscle samples
-    # "full"" dataset contains all ensembl genes
-    data(condition_table.full)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_erssa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_erssa_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_erssa_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ERSSA:", paste0("    erssa: ", packageVersion("ERSSA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS":',
+        paste0('    ERSSA: ', as.character(packageVersion('ERSSA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_erssa_results.csv
-    touch ${prefix}_erssa_output.rds
-    echo "BIOC_ERSSA:" > versions.yml
-    echo "    erssa: 0.0.0" >> versions.yml
+    touch ${prefix}_erssa_sample_size_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ERSSA_WORKFLOW {
+workflow BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ count_table, condition_table ] ]
 
     main:
-    BIOC_ERSSA(ch_input)
+    BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ERSSA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ERSSA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ERSSA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ERSSA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS.out.tables
+    plots    = BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS.out.plots
+    objects  = BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS.out.objects
+    versions = BIOC_ERSSA_ERSSA_SAMPLE_SIZE_ANALYSIS.out.versions
 }

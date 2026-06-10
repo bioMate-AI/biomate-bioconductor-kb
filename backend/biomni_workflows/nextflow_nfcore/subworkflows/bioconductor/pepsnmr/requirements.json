@@ -1,0 +1,11 @@
+{
+  "package": "pepsnmr",
+  "requirements": [
+    "PepsNMR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PepsNMR"
+    ]
+  }
+}

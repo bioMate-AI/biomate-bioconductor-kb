@@ -1,0 +1,25 @@
+{
+  "package": "dss",
+  "requirements": [
+    "DSS",
+    "bsseq",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "bsseq_multifactor_dml_dmr.nf": [
+      "DSS",
+      "bsseq"
+    ],
+    "bsseq_twogroup_dml_dmr.nf": [
+      "DSS",
+      "bsseq"
+    ],
+    "main.nf": [
+      "DSS"
+    ],
+    "rnaseq_multifactor_de.nf": [
+      "DSS",
+      "edgeR"
+    ]
+  }
+}

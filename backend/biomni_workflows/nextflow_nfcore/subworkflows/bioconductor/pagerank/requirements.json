@@ -1,0 +1,57 @@
+{
+  "package": "pagerank",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biobase",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "TFBSTools",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "annotate",
+    "igraph",
+    "motifmatchr",
+    "org.Hs.eg.db",
+    "pageRank"
+  ],
+  "by_workflow": {
+    "accessibility_grn_generation.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "TFBSTools",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "annotate",
+      "motifmatchr",
+      "org.Hs.eg.db",
+      "pageRank"
+    ],
+    "conformation_grn_generation.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "TFBSTools",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "annotate",
+      "motifmatchr",
+      "org.Hs.eg.db",
+      "pageRank"
+    ],
+    "graph_cleaning_and_adjustment.nf": [
+      "igraph",
+      "pageRank"
+    ],
+    "grn_filtering_expression.nf": [
+      "Biobase",
+      "igraph",
+      "pageRank"
+    ],
+    "main.nf": [
+      "igraph",
+      "pageRank"
+    ],
+    "multiplex_pagerank.nf": [
+      "igraph",
+      "pageRank"
+    ]
+  }
+}

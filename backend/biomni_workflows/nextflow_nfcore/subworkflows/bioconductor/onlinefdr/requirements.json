@@ -1,0 +1,17 @@
+{
+  "package": "onlinefdr",
+  "requirements": [
+    "onlineFDR"
+  ],
+  "by_workflow": {
+    "batch_fdr_control.nf": [
+      "onlineFDR"
+    ],
+    "main.nf": [
+      "onlineFDR"
+    ],
+    "online_fdr_bounded.nf": [
+      "onlineFDR"
+    ]
+  }
+}

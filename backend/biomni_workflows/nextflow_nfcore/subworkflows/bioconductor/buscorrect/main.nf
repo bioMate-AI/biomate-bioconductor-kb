@@ -1,120 +1,162 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BUScorrect
-// High-throughput experimental data are accumulating exponentially in public databases. However, minin
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BUScorrect/inst/doc/BUScorrect_user_guide.R
-// Upstream  : SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("BUScorrect")
+// Bioconductor workflow: BUScorrect — bus_correct_list_input
+// Correct batch effects and identify unknown subtypes from an R list of gene expression matrices using the BUS model.
+// Input: list_of_matrices.rds
+// Container: quay.io/biocontainers/bioconductor-buscorrect:1.28.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BUScorrect
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit the BUS model using Gibbs sampling with BUSgibbs
+//  * 2. [Core Analysis] Extract estimated subtypes using Subtypes
+//  * 3. [Core Analysis] Extract location and scale batch effects using location_batch_effects and scale_batch_effects
+//  * 4. [Core Analysis] Extract subtype effects using subtype_effects
+//  * 5. [Core Analysis] Identify intrinsic genes using postprob_DE_thr_fun, estimate_IG_indicators, and IG_index
+//  * 6. [Core Analysis] Calculate posterior probabilities of differential expression using postprob_DE
+//  * 7. [Core Analysis] Obtain batch-corrected expression values using adjusted_values
+//  * 8. [Visualization & Output] Visualize original and adjusted data using visualize_data
+//  * 9. [Core Analysis] Perform model selection for subtype number using BIC_BUS
 
 nextflow.enable.dsl = 2
 
-process BIOC_BUSCORRECT {
+process BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-buscorrect"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-buscorrect:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-buscorrect:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_buscorrect_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_buscorrect_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_buscorrect_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required Bioconductor package
     library(BUScorrect)
-    library(BIC_BUS)
-    library(BUSgibbs)
-    library(DataFrame)
-    library(IG_index)
-    library(Subtypes)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Subtype and Batch Effect Estimation [] ---
-    # Key functions: Subtypes, location_batch_effects, scale_batch_effects, subtype_effects
+    
+    # Read the user-provided list of gene expression matrices
+    if (!file.exists("list_of_matrices.rds")) {
+      stop("Error: Input file 'list_of_matrices.rds' not found in the working directory.")
+    }
+    BUSexample_data <- readRDS("list_of_matrices.rds")
+    
+    # 1. Model Fitting using Gibbs sampling
+    set.seed(123)
+    BUSfits <- BUSgibbs(Data = BUSexample_data, n.subtypes = 3, n.iterations = 300, 
+    						showIteration = FALSE)
+    
+    # Save the fitted model object
+    saveRDS(BUSfits, "BUSfits_k3.rds")
+    
+    # Capture and save the summary of the model fit
+    sink("BUSfits_summary.txt")
+    summary(BUSfits)
+    sink()
+    
+    # 2. Extract Estimated Subtypes
     est_subtypes <- Subtypes(BUSfits)
-    est_loc_batch <- location_batch_effects(BUSfits)
-    est_scale_batch <- scale_batch_effects(BUSfits)
-    est_sub_effects <- subtype_effects(BUSfits)
-
-
-    # --- Intrinsic Gene Identification [] ---
-    # Key functions: postprob_DE_thr_fun, estimate_IG_indicators, IG_index, postprob_DE
-    thr0 <- postprob_DE_thr_fun(BUSfits, fdr_threshold = 0.01)
-    est_L <- estimate_IG_indicators(BUSfits, postprob_DE_threshold = thr0)
+    saveRDS(est_subtypes, "estimated_subtypes.rds")
+    
+    # 3. Extract Location and Scale Batch Effects
+    est_location_batch_effects <- location_batch_effects(BUSfits)
+    write.csv(est_location_batch_effects, "location_batch_effects.csv", row.names = FALSE)
+    
+    est_scale_batch_effects <- scale_batch_effects(BUSfits)
+    write.csv(est_scale_batch_effects, "scale_batch_effects.csv", row.names = FALSE)
+    
+    # 4. Extract Subtype Effects
+    est_subtype_effects <- subtype_effects(BUSfits)
+    write.csv(est_subtype_effects, "subtype_effects.csv", row.names = FALSE)
+    
+    # 5. Identify Intrinsic Genes
+    thr0 <- postprob_DE_thr_fun(BUSfits, fdr_threshold=0.01)
+    est_L <- estimate_IG_indicators(BUSfits, postprob_DE_threshold=thr0)
     intrinsic_gene_indices <- IG_index(est_L)
+    write.csv(data.frame(IntrinsicGeneIndex = intrinsic_gene_indices), "intrinsic_gene_indices.csv", row.names = FALSE)
+    
+    # 6. Calculate Posterior Probabilities of Differential Expression
     postprob_DE_matr <- postprob_DE(BUSfits)
-
-
-    # --- Data Adjustment and Visualization [] ---
-    # Key functions: adjusted_values, visualize_data
+    write.csv(postprob_DE_matr, "postprob_DE.csv", row.names = FALSE)
+    
+    # 7. Obtain Batch-Corrected Expression Values
     adjusted_data <- adjusted_values(BUSfits, BUSexample_data)
-    visualize_data(
-        BUSexample_data,
-        title_name = "original expression values",
-        gene_ind_set = 1:100
-    )
-    visualize_data(
-        adjusted_data,
-        title_name = "adjusted expression values",
-        gene_ind_set = 1:100
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_buscorrect_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_buscorrect_results.csv")
+    saveRDS(adjusted_data, "adjusted_data.rds")
+    
+    # 8. Visualize Original and Adjusted Data
+    pdf("expression_heatmaps.pdf", width = 8, height = 8)
+    visualize_data(BUSexample_data, title_name = "original expression values", 
+    								gene_ind_set = 1:100) 
+    visualize_data(adjusted_data, title_name = "adjusted expression values", 
+    								gene_ind_set = 1:100) 
+    dev.off()
+    
+    # 9. Perform Model Selection using BIC
+    BIC_val <- BIC_BUS(BUSfits)
+    writeLines(as.character(BIC_val), "BIC_val_k3.txt")
+    
+    BIC_values <- NULL
+    for(k in 2:4){
+    	set.seed(123)
+    	BUSfits <- BUSgibbs(Data = BUSexample_data, n.subtypes = k, n.iterations = 300, 
+    						showIteration = FALSE)
+    	BIC_values <- c(BIC_values, BIC_BUS(BUSfits))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_buscorrect_output.rds")
-    }
+    
+    # Save the BIC values for different subtype numbers
+    write.csv(data.frame(SubtypeNumber = 2:4, BIC = BIC_values), "BIC_values_k2_to_k4.csv", row.names = FALSE)
+    
+    # Plot and save the BIC curve
+    pdf("bic_plot.pdf", width = 6, height = 6)
+    plot(2:4, BIC_values, xlab="subtype number", ylab="BIC", main="BIC plot", type="b")
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BUSCORRECT:", paste0("    buscorrect: ", packageVersion("BUScorrect"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT":',
+        paste0('    BUScorrect: ', as.character(packageVersion('BUScorrect')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_buscorrect_results.csv
-    touch ${prefix}_buscorrect_output.rds
-    echo "BIOC_BUSCORRECT:" > versions.yml
-    echo "    buscorrect: 0.0.0" >> versions.yml
+    touch ${prefix}_bus_correct_list_input.csv versions.yml
     """
 }
 
-
-workflow BIOC_BUSCORRECT_WORKFLOW {
+workflow BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ list_of_matrices.rds ] ]
 
     main:
-    BIOC_BUSCORRECT(ch_input)
+    BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT(ch_input)
 
     emit:
-    results  = BIOC_BUSCORRECT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BUSCORRECT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BUSCORRECT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BUSCORRECT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT.out.tables
+    plots    = BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT.out.plots
+    objects  = BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT.out.objects
+    versions = BIOC_BUSCORRECT_BUS_CORRECT_LIST_INPUT.out.versions
 }

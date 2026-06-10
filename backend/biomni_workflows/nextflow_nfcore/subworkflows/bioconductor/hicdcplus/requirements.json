@@ -1,0 +1,17 @@
+{
+  "package": "hicdcplus",
+  "requirements": [
+    "GenomicRanges",
+    "HiCDCPlus",
+    "InteractionSet",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "HiCDCPlus",
+      "InteractionSet",
+      "data.table"
+    ]
+  }
+}

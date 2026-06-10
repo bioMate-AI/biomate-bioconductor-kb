@@ -1,100 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: splatter
-// Splatter is a package for the simulation of single-cell RNA sequencing count data. It provides a sim
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/splatter/inst/doc/splatPop.R
-// Upstream  : ggplot2, scater
-// Downstream: none
-//
-// Install: BiocManager::install("splatter")
+// Bioconductor workflow: splatter — splat_standard_simulation
+// Estimate simulation parameters from an empirical single-cell count matrix and simulate a new synthetic dataset.
+// Input: sce, counts
+// Container: quay.io/biocontainers/bioconductor-splatter:1.34.0--r45hdfd78af_0
+// R packages: SingleCellExperiment, ggplot2, scater, splatter
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, scater, splatter
+// Visualizations: PCA plot
+// QC: diagnostic MA/PCA QC, cell QC metrics, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Estimate parameters from real data using splatEstimate. 2. Simulate synthetic counts using splatSimulate
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPLATTER {
+process BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-splatter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-splatter:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-splatter:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_splatter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_splatter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_splatter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(splatter)
-    library(jsonlite)
-
-    # --- Log-normalize count data [] ---
-    # Key functions: mockVCF, mockGFF, splatPopSimulate, logNormCounts, runPCA
-    vcf <- mockVCF()
-    gff <- mockGFF()
-    sim <- splatPopSimulate(vcf = vcf, gff = gff, sparsify = FALSE)
-    # --- PCA plot of sample distances [] ---
-    # Key functions: plotPCA, mockVCF, mockGFF, sample, ggplot
-    params.coreg <- newSplatPopParams(eqtl.coreg = 0.4, eqtl.ES.rate = 2)
-    vcf <- mockVCF(n.sample = 20, n.snps = 1200)
-    gff <- mockGFF(n.genes = 100)
-    # --- MockSCE analysis [] ---
-    # Key functions: mockSCE, newSplatPopParams, mockEmpiricalSet
-    bulk.means <- mockBulkMatrix(n.genes = 100, n.samples = 100)
-    bulk.eqtl <- mockBulkeQTL(n.genes = 100)
-    counts <- mockSCE()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_splatter_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_splatter_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "ggplot2", "scater", "splatter")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_splatter_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        suppressPackageStartupMessages({
+          library(splatter)
+          library(scater)
+        })
+        
+        # Set seed for reproducibility
+        set.seed(1)
+        
+        # Read user inputs from the working directory
+        sce <- readRDS("sce.rds")
+        counts_mat <- readRDS("counts.rds")
+        
+        # Estimate parameters from real data
+        params <- splatEstimate(counts_mat)
+        
+        # Simulate data using estimated parameters
+        sim <- splatSimulate(params)
+        
+        # Save the simulated SingleCellExperiment object
+        saveRDS(sim, "sim.rds")
+        
+        # Save the estimated parameters
+        saveRDS(params, "params.rds")
+        
+        # Extract and save simulated counts matrix
+        sim_counts <- counts(sim)
+        write.csv(as.matrix(sim_counts), "sim_counts.csv", row.names = TRUE)
+        
+        # Generate and save PCA plot of simulated data
+        tryCatch({
+          sim <- logNormCounts(sim)
+          sim <- runPCA(sim)
+          pdf("sim_pca.pdf")
+          print(plotPCA(sim))
+          dev.off()
+        }, error = function(e) {
+          message("Could not generate PCA plot: ", e\$message)
+        })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPLATTER:", paste0("    splatter: ", packageVersion("splatter"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION":',
+        paste0('    splatter: ', as.character(packageVersion('splatter')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_splatter_results.csv
-    touch ${prefix}_splatter_output.rds
-    echo "BIOC_SPLATTER:" > versions.yml
-    echo "    splatter: 0.0.0" >> versions.yml
+    touch ${prefix}_splat_standard_simulation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPLATTER_WORKFLOW {
+workflow BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce, counts ] ]
 
     main:
-    BIOC_SPLATTER(ch_input)
+    BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION(ch_input)
 
     emit:
-    results  = BIOC_SPLATTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPLATTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPLATTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPLATTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION.out.tables
+    plots    = BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION.out.plots
+    objects  = BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION.out.objects
+    versions = BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION.out.versions
 }

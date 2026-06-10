@@ -1,0 +1,19 @@
+{
+  "package": "enrichedheatmap",
+  "requirements": [
+    "ComplexHeatmap",
+    "EnrichedHeatmap",
+    "GenomicRanges",
+    "circlize",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "EnrichedHeatmap",
+      "GenomicRanges",
+      "circlize",
+      "rtracklayer"
+    ]
+  }
+}

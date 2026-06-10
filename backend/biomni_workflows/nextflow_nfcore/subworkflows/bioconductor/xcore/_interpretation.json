@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=A matrix of raw expression counts where columns represent samples and rows represent promoters ;; design=A design matrix mapping samples (rows) to experimental groups/conditions (columns) ;; base_lvl=A character string specifying the baseline/reference group in the design matrix used to calculate basal expression ;; xnames=A character vector specifying the names of the signature experiments in the MultiAssayExperiment object to use for modeling ;; min=The minimum fraction of promoters a signature must overlap to be retained during filtering (e.g., 0.05) ;; max=The maximum fraction of promoters a signature can overlap to be retained during filtering (e.g., 0.95) ;; nfolds=The number of folds used in the cross-validation procedure of the underlying cv.glmnet model ;; a=A GRanges object representing promoter annotations, which must contain promoter names in a metadata column named 'name' ;; b=A GRanges object representing transcription factor binding sites (TFBS) or motifs, which must contain TF/motif names in a metadata column named 'name' ;; ext=An integer specifying the number of base pairs by which promoters are extended in both directions before intersecting with TFBS\n- alternatives: None mentioned.\n- when_to_use: Use this package when you have promoter-level expression data (such as CAGE or promoter-mapped RNA-seq counts) across multiple conditions or timepoints, and you want to infer which transcription factors drive the observed expression changes using known or custom binding signatures.\n- pitfalls: Running xcore with extensive molecular signatures is highly time and memory intensive (e.g., requiring up to 8 GB RAM); filtering out signatures that overlap no promoters or all promoters using filterSignatures is mandatory before modeling. When constructing custom signatures, both the promoter and TFBS GRanges objects must store their identifiers specifically in a metadata column named 'name'.",
+  "workflows": [
+    {
+      "name": "tf_activity_modeling",
+      "intent": "Model transcription factor activity from promoter expression counts and molecular signatures using ridge regression.",
+      "input": [
+        "counts.csv (matrix of raw expression counts with promoters as rows and samples as columns)",
+        "design_matrix.csv (experimental design matrix mapping samples to conditions)"
+      ],
+      "stages": "1. Prepare counts for regression and set baseline level using prepareCountsForRegression ;; 2. Load molecular signatures from xcoredata via ExperimentHub ;; 3. Add signatures to the MultiAssayExperiment object using addSignatures ;; 4. Filter out signatures overlapping too few or too many promoters using filterSignatures ;; 5. Register a parallel backend ;; 6. Model gene expression using ridge regression with modelGeneExpression",
+      "code": "data(\"rinderpest_mini\")\ndesign <- matrix(\n  data = c(1, 0, 0,\n           1, 0, 0,\n           1, 0, 0,\n           0, 1, 0,\n           0, 1, 0,\n           0, 1, 0,\n           0, 0, 1,\n           0, 0, 1,\n           0, 0, 1),\n  ncol = 3,\n  nrow = 9,\n  byrow = TRUE,\n  dimnames = list(\n    c(\n      \"00hr_rep1\",\n      \"00hr_rep2\",\n      \"00hr_rep3\",\n      \"12hr_rep1\",\n      \"12hr_rep2\",\n      \"12hr_rep3\",\n      \"24hr_rep1\",\n      \"24hr_rep2\",\n      \"24hr_rep3\"\n    ),\n    c(\"00hr\", \"12hr\", \"24hr\")\n  )\n)\nmae <- prepareCountsForRegression(counts = rinderpest_mini,\n                                  design = design,\n                                  base_lvl = \"00hr\")\nlibrary(\"ExperimentHub\")\neh <- ExperimentHub()\nremap_promoters_f5 <- eh[[\"EH7301\"]]\nset.seed(432123)\ni <- sample(x = seq_len(ncol(remap_promoters_f5)), size = 100, replace = FALSE)\nremap_promoters_f5 <- remap_promoters_f5[, i]\nmae <- addSignatures(mae, remap = remap_promoters_f5)\nmae <- filterSignatures(mae, min = 0.05, max = 0.95)\ndoParallel::registerDoParallel(2L)\nBiocParallel::register(BiocParallel::DoparParam(), default = TRUE)\nset.seed(314159265)\nres <- modelGeneExpression(\n  mae = mae,\n  xnames = \"remap\",\n  nfolds = 5)"
+    },
+    {
+      "name": "construct_molecular_signatures",
+      "intent": "Construct a custom molecular signature matrix by intersecting promoter annotations with transcription factor binding sites (TFBS).",
+      "input": [
+        "promoters.gr (GRanges object of promoter annotations with names in the 'name' column)",
+        "tfbs.gr (GRanges object of TFBS/motifs with names in the 'name' column)"
+      ],
+      "stages": "1. Load promoter annotations and ensure names are in the 'name' metadata column ;; 2. Load TFBS/motif annotations and ensure names are in the 'name' metadata column ;; 3. Intersect promoters and TFBS with a specified extension window using getInteractionMatrix",
+      "code": "promoters_f5 <- eh[[\"EH7303\"]]\nlibrary(\"AnnotationHub\")\nah <- AnnotationHub()\nCTCF_hg38 <- ah[[\"AH104724\"]]\nCTCF_hg38$name <- \"CTCF\"\nmolecular_signature <- getInteractionMatrix(\n  a = promoters_f5,\n  b = CTCF_hg38,\n  ext = 500\n)"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "package": "apl",
+  "requirements": [
+    "APL",
+    "SingleCellExperiment",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "APL",
+      "SingleCellExperiment",
+      "ggplot2"
+    ],
+    "step_by_step_apl.nf": [
+      "APL",
+      "SingleCellExperiment",
+      "ggplot2"
+    ]
+  }
+}

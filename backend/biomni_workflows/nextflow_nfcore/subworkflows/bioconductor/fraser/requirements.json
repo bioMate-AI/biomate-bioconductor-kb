@@ -1,0 +1,26 @@
+{
+  "package": "fraser",
+  "requirements": [
+    "BiocParallel",
+    "FRASER",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "data.table",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "aberrant_splicing_from_counts.nf": [
+      "BiocParallel",
+      "FRASER",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "data.table",
+      "org.Hs.eg.db"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "FRASER",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "data.table",
+      "org.Hs.eg.db"
+    ]
+  }
+}

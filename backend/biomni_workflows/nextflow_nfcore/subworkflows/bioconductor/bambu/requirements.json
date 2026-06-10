@@ -1,0 +1,14 @@
+{
+  "package": "bambu",
+  "requirements": [
+    "bambu"
+  ],
+  "by_workflow": {
+    "custom_model_training_and_application.nf": [
+      "bambu"
+    ],
+    "main.nf": [
+      "bambu"
+    ]
+  }
+}

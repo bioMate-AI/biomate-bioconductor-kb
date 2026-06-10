@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SIM {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-sim"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sim:1.76.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sim:1.76.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,42 +37,104 @@ process BIOC_SIM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("jsonlite", "RColorBrewer", "SIM")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
     library(SIM)
     library(jsonlite)
 
+    # --- Data Assembly [] ---
+    # Key functions: assemble.data
+    assembled_data <- assemble.data(
+        dep.data = expression_matrix,
+        indep.data = copynumber_matrix,
+        dep.ann = expression_annotation,
+        indep.ann = copynumber_annotation,
+        dep.id = "probeset",
+        dep.chr = "chr",
+        dep.pos = "pos",
+        indep.id = "clone",
+        indep.chr = "chr",
+        indep.pos = "pos"
+    )
+
     # --- Integrated Association Analysis [] ---
     # Key functions: integrated.analysis
-    results <- SIM::integrated.analysis(
-        data = assembled,
+    analysis_results <- integrated.analysis(
+        data = assembled_data,
         method = "pearson",
-        p.adjust.method = "BY"
+        alternative = "greater",
+        p.adjust.method = "BY",
+        run.subset = TRUE,
+        subset.chr = c(1, 2)
     )
 
+    # --- Tabulate Results [] ---
+    # Key functions: tabulate.pvals, tabulate.top.dep
+    pvals_table <- tabulate.pvals(
+        sim.list = analysis_results,
+        p.cut = 0.05,
+        adjust = TRUE
+    )
+    top_dep_table <- tabulate.top.dep(
+        sim.list = analysis_results,
+        p.cut = 0.05,
+        adjust = TRUE
+    )
 
-    # --- Visualisation [] ---
-    # Key functions: sim.plot.zscore, sim.plot.pvals
-    SIM::sim.plot.zscore(
-        sim.list = results,
-        main = "Z-scores of Association"
+    # --- Visualization [] ---
+    # Key functions: sim.plot.zscore.heatmap, sim.plot.pvals.on.genome
+    sim.plot.zscore.heatmap(
+        sim.list = analysis_results,
+        adjust = TRUE,
+        p.cut = 0.05,
+        pdf = FALSE
     )
-    SIM::sim.plot.pvals(
-        sim.list = results,
-        main = "P-values of Association"
+    sim.plot.pvals.on.genome(
+        sim.list = analysis_results,
+        adjust = TRUE,
+        p.cut = 0.05,
+        pdf = FALSE
     )
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sim_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_sim_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sim_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_sim_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sim_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_sim_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SIM:", paste0("    sim: ", packageVersion("SIM"))),
+        c("BIOC_SIM:", paste0("    sim: ", as.character(packageVersion("SIM")))),
         "versions.yml"
     )
     """

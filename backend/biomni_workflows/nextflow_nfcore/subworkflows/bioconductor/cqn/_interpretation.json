@@ -1,0 +1,31 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=matrix of raw counts for genes/regions ;; lengths=vector of gene/region lengths ;; x=covariate vector, typically GC content ;; sizeFactors=vector of sample sequencing depths ;; lengthMethod=set to \"fixed\" to treat length as a known offset instead of fitting a smooth function (e.g., for small RNAs) ;; n=in cqnplot, 1 plots the covariate x effect, 2 plots the length effect\n- alternatives: Standard RPKM/RPM calculation=does not correct for systematic biases like GC content ;; edgeR's calcNormFactors=unnecessary when using CQN offsets, as CQN offsets already correct for library size and systematic biases\n- when_to_use: When analyzing multi-sample RNA-Seq datasets where systematic biases such as GC-content and gene length need to be controlled to improve fold-change estimation and differential expression analysis.\n- pitfalls: Do not use cqn$offset for GLM-type models (like edgeR or DESeq2); use cqn$glm.offset instead, which is on the natural log scale and includes size factor corrections. ;; For small RNAs (e.g., microRNAs) where lengths are very similar, fitting a smooth length effect can cause mathematical instability; use lengthMethod = \"fixed\" and/or set lengths = 1. ;; CQN does not remove general batch effects unless the batch effect specifically acts through GC content. ;; Genes with very small counts should be filtered out before or during downstream statistical testing, as high normalized fold changes for low-count genes are unreliable.",
+  "workflows": [
+    {
+      "name": "cqn_expression_normalization",
+      "intent": "Normalize RNA-Seq count data for GC-content and gene length to obtain corrected expression values (RPKM).",
+      "input": [
+        "count_matrix.tsv (matrix of raw counts)",
+        "gene_lengths.tsv (vector of gene lengths)",
+        "gc_content.tsv (vector of GC content values)",
+        "size_factors.tsv (vector of sample sequencing depths)"
+      ],
+      "stages": "1. Run conditional quantile normalization using cqn ;; 2. Plot systematic effects of GC content and length using cqnplot ;; 3. Calculate normalized expression values (RPKM) on the log2 scale",
+      "code": "cqn.subset <- cqn(montgomery.subset, lengths = uCovar$length, \n                  x = uCovar$gccontent, sizeFactors = sizeFactors.subset,\n                  verbose = TRUE)\npar(mfrow=c(1,2))\ncqnplot(cqn.subset, n = 1, xlab = \"GC content\", lty = 1, ylim = c(1,7))\ncqnplot(cqn.subset, n = 2, xlab = \"length\", lty = 1, ylim = c(1,7))\nRPKM.cqn <- cqn.subset$y + cqn.subset$offset"
+    },
+    {
+      "name": "cqn_edger_differential_expression",
+      "intent": "Perform differential expression analysis using edgeR with CQN-normalized offsets.",
+      "input": [
+        "count_matrix.tsv (matrix of raw counts)",
+        "gene_lengths.tsv (vector of gene lengths)",
+        "gc_content.tsv (vector of GC content values)",
+        "size_factors.tsv (vector of sample sequencing depths)",
+        "sample_groups.tsv (experimental design grouping)"
+      ],
+      "stages": "1. Run conditional quantile normalization using cqn ;; 2. Construct an edgeR DGEList object ;; 3. Define the experimental design matrix ;; 4. Assign the CQN glm.offset to the DGEList object ;; 5. Estimate dispersion and fit the GLM ;; 6. Perform likelihood ratio test and extract top differentially expressed genes",
+      "code": "cqn.subset <- cqn(montgomery.subset, lengths = uCovar$length, \n                  x = uCovar$gccontent, sizeFactors = sizeFactors.subset,\n                  verbose = TRUE)\nlibrary(edgeR)\nd.mont <- DGEList(counts = montgomery.subset, lib.size = sizeFactors.subset, \n                  group = rep(c(\"grp1\", \"grp2\"), each = 5), genes = uCovar)\ndesign <- model.matrix(~ d.mont$sample$group)\nd.mont$offset <- cqn.subset$glm.offset\nd.mont.cqn <- estimateGLMCommonDisp(d.mont, design = design) \nefit.cqn <- glmFit(d.mont.cqn, design = design)\nelrt.cqn <- glmLRT(efit.cqn, coef = 2)\ntopTags(elrt.cqn, n = 2)\nsummary(decideTests(elrt.cqn))"
+    }
+  ]
+}

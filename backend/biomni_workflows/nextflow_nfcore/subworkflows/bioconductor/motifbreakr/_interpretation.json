@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: algorithm=choice of 1) a weighted-sum probability matrix, 2) log-probabilities, or 3) weighted by relative entropy to judge motif disruptiveness ;; genome=any of the 32 curated species (109 versions) available within Bioconductor\n- alternatives: None mentioned\n- when_to_use: Use when analyzing the impact of novel or previously described single nucleotide polymorphisms (SNPs) on transcription factor binding sites across curated genomes.\n- pitfalls: None mentioned in the provided documentation.",
+  "workflows": [
+    {
+      "name": "predict_motif_disruption",
+      "intent": "Predict the disruptiveness of single nucleotide polymorphisms on transcription factor binding sites.",
+      "input": [
+        "variants.vcf (user-provided novel or public database SNPs)",
+        "genome_assembly (Bioconductor-curated genome package, e.g., BSgenome.Hsapiens.UCSC.hg19)"
+      ],
+      "stages": "1. Load the target genome and SNP data ;; 2. Select transcription factor motifs from public sources ;; 3. Run the disruptiveness prediction using one of the three available algorithms (weighted-sum, log-probabilities, or relative entropy) ;; 4. Compare the alleles to judge information gain or loss",
+      "code": "# No code examples are available in the provided documentation text."
+    }
+  ]
+}

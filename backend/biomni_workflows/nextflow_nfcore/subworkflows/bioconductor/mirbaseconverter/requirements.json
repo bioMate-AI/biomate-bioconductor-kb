@@ -1,0 +1,11 @@
+{
+  "package": "mirbaseconverter",
+  "requirements": [
+    "miRBaseConverter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "miRBaseConverter"
+    ]
+  }
+}

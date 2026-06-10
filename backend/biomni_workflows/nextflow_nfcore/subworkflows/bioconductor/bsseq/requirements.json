@@ -1,0 +1,23 @@
+{
+  "package": "bsseq",
+  "requirements": [
+    "BiocParallel",
+    "GenomicRanges",
+    "HDF5Array",
+    "S4Vectors",
+    "bsseq"
+  ],
+  "by_workflow": {
+    "large_scale_hdf5_analysis.nf": [
+      "BiocParallel",
+      "GenomicRanges",
+      "HDF5Array",
+      "bsseq"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "S4Vectors",
+      "bsseq"
+    ]
+  }
+}

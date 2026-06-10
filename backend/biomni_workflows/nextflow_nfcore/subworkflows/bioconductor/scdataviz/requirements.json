@@ -1,0 +1,29 @@
+{
+  "package": "scdataviz",
+  "requirements": [
+    "PCAtools",
+    "Seurat",
+    "SingleCellExperiment",
+    "cowplot",
+    "flowCore",
+    "ggplot2",
+    "scDataviz"
+  ],
+  "by_workflow": {
+    "import_from_seurat.nf": [
+      "Seurat",
+      "SingleCellExperiment",
+      "ggplot2",
+      "scDataviz"
+    ],
+    "import_numerical_data.nf": [
+      "scDataviz"
+    ],
+    "main.nf": [
+      "PCAtools",
+      "cowplot",
+      "flowCore",
+      "scDataviz"
+    ]
+  }
+}

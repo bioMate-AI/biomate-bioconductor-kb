@@ -1,0 +1,19 @@
+{
+  "package": "demixt",
+  "requirements": [
+    "DeMixT",
+    "SummarizedExperiment",
+    "psych"
+  ],
+  "by_workflow": {
+    "demixnb_spatial_deconvolution.nf": [
+      "DeMixT",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "DeMixT",
+      "SummarizedExperiment",
+      "psych"
+    ]
+  }
+}

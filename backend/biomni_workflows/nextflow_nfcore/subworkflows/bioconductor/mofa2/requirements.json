@@ -1,0 +1,17 @@
+{
+  "package": "mofa2",
+  "requirements": [
+    "MOFA2",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MOFA2",
+      "ggplot2"
+    ],
+    "mefisto_covariate_analysis.nf": [
+      "MOFA2",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: lower.quantile=The quantile threshold used to detect down-regulated outliers (e.g., 0.1) ;; upper.quantile=The quantile threshold used to detect up-regulated outliers (default is 0.95) ;; group=A factor variable defining the sample groups (e.g., 0 for normal, 1 for case) ;; is.gset.list.up.down=A logical parameter in gsva() that must be set to TRUE to sum up and down enrichment scores into positive scores ;; parallel.sz=Number of processors to use for parallel processing in gsva()\n- alternatives: original gsva function in the GSVA package=The original function returns negative enrichment scores for down-regulated signatures, whereas oppar::gsva reverses the ranking of down-regulated genes to yield positive scores ;; ssgsea=An alternative enrichment method that can be specified via the method argument in gsva()\n- when_to_use: Use when analyzing transcriptomic data (microarray or RNA-seq RPKM) to identify genes that act as outliers in only a subset of disease samples (e.g., oncogene activation in specific cancer subtypes) rather than across the entire group. Also use when performing gene set enrichment analysis where positive scores are desired for samples enriched in both up- and down-regulated signatures.\n- pitfalls: The modified gsva() function requires the gene set list to be a named list with exactly 'up' and 'down' as the names for the respective signatures, and is.gset.list.up.down must be set to TRUE ;; Missing values in the input expression matrix should be imputed (e.g., using K-nearest neighbors) before running opa().",
+  "workflows": [
+    {
+      "name": "cancer_outlier_profile_analysis",
+      "intent": "Identify up- and down-regulated outlier genes in disease samples compared to normal controls and extract outlier profiles.",
+      "input": [
+        "eset (ExpressionSet containing gene expression data and annotations)"
+      ],
+      "stages": "1. Define group factor (normal vs case) ;; 2. Run opa() to generate the outlier profile matrix ;; 3. Access profile matrix and quantiles ;; 4. Extract outlier profiles for individual samples using getSampleOutlier() ;; 5. Extract outliers for all samples or subtypes using getSubtypeProbes()",
+      "code": "g <- factor(c(rep(0,21),rep(1,ncol(exprs(eset)) - 21)))\ntomlins.opa <- opa(eset, group = g, lower.quantile = 0.1)\ntomlins.opa$profileMatrix[1:6,1:5]\ntomlins.opa$upper.quantile\ntomlins.opa$lower.quantile\ngetSampleOutlier(tomlins.opa, c(1,5))\noutlier.list <- getSubtypeProbes(tomlins.opa, 1:ncol(tomlins.opa$profileMatrix))"
+    },
+    {
+      "name": "modified_gsva_enrichment",
+      "intent": "Calculate enrichment scores for samples using a gene signature with both up- and down-regulated components, yielding positive scores for enrichment in both directions.",
+      "input": [
+        "maupin$data (matrix of gene expression measurements)",
+        "maupin$sig (data frame containing gene signatures with up/down annotations)"
+      ],
+      "stages": "1. Separate gene signature into 'up' and 'down' sets ;; 2. Run modified gsva() with is.gset.list.up.down=TRUE and a named list of gene sets ;; 3. Retrieve enrichment scores from the $es.obs slot",
+      "code": "geneSet<- maupin$sig$EntrezID    #Symbol  ##EntrezID # both up and down genes:\n\nup_sig<- maupin$sig[maupin$sig$upDown == \"up\",]\nd_sig<- maupin$sig[maupin$sig$upDown == \"down\",]\nu_geneSet<- up_sig$EntrezID   #Symbol   # up_sig$Symbol  ## EntrezID\nd_geneSet<- d_sig$EntrezID\n\nenrichment_scores_obj <- gsva(maupin$data, list(up = u_geneSet, down= d_geneSet), mx.diff=1,\n               verbose=TRUE, abs.ranking=FALSE, is.gset.list.up.down=TRUE, parallel.sz = 1 )\nenrichment_scores <- enrichment_scores_obj$es.obs"
+    }
+  ]
+}

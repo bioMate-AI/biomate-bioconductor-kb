@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: snp.list=A list defining the genotype file path, format (e.g., \"tped\"), and subject list ;; pheno.list=A list defining the phenotype file path, ID variables, file type, delimiter, response variable, strata variable, main effects, and interaction variables ;; op=An options list for GxE.scan which can specify output file, model type, custom scan functions, setup functions, and genotype filtering options ;; strata.var=The stratification variable used for the constrained maximum likelihood (CML) method ;; cc.var=The variable containing matched set IDs for case-control matching in snp.matched ;; nn.var=The variable containing matched set IDs for neighbor matching in snp.matched\n- alternatives: PLINK or GLU=External software that GxE.scan can call to automatically transform genotype data if they are installed on the system\n- when_to_use: Appropriate for case-control genetic association studies where researchers want to test for gene-environment (GxE) or gene-gene (GxG) interactions, especially when leveraging gene-environment independence in the control population via CML or EB methods to increase statistical power.\n- pitfalls: TPED files do not contain subject IDs, so a matching subject.list (like a TFAM file) must be provided to align genotypes with phenotypes ;; If a SNP has missing values during a custom scan, the base model must be refit on the non-missing subset to ensure valid likelihood ratio tests ;; Running GxE.scan on a single processor for an entire GWAS will take a long time; users should partition the scan for cluster computing using GxE.scan.partition and GxE.scan.combine.",
+  "workflows": [
+    {
+      "name": "gxe_scan_tped",
+      "intent": "Run a genome-wide association scan for gene-environment interactions using TPED genotype files and a phenotype file.",
+      "input": [
+        "geno_data.tped.gz (Gzipped TPED genotype file)",
+        "geno_data.tfam (TFAM file containing subject IDs)",
+        "pheno.txt (Tab-delimited phenotype file containing response, strata, and covariates)"
+      ],
+      "stages": "1. Define the subject list from the TFAM file ;; 2. Define the snp.list with the genotype file and format ;; 3. Define the pheno.list with phenotype file details and model variables ;; 4. Set output options ;; 5. Run the GxE scan using GxE.scan ;; 6. Read and inspect the output file",
+      "code": "subject.list <- list(file=subject.file, id.var=1:2, header=0, delimiter=\" \")\nsubject.list <- subject.file\nsnp.list <- list(file=geno.file, format=\"tped\", subject.list=subject.list)\npheno.list <- list(file=pheno.file, id.var=c(\"Family\", \"Subject\"),\n              file.type=3, delimiter=\"\\t\",\n              response.var=\"CaseControl\", strata.var=\"Study\",\n              main.vars=c(\"Gender\", \"Exposure\", \"Smoke_CURRENT\", \"Smoke_FORMER\"),\n              int.vars=\"Exposure\")\nout.file <- paste(getwd(), \"/GxE.out\", sep=\"\")\nop <- list(out.file=out.file)\nGxE.scan(snp.list, pheno.list, op=op)\nx <- read.table(out.file, header=1, as.is=TRUE, sep=\"\\t\")\nx[1:5, ]"
+    },
+    {
+      "name": "snp_logistic_interaction",
+      "intent": "Fit logistic regression models (UML, CML, and EB) to evaluate gene-environment interactions on a case-control dataset.",
+      "input": [
+        "Xdata (Data frame containing case-control status, SNP genotypes, stratification variables, and covariates)"
+      ],
+      "stages": "1. Create dummy variables for categorical covariates ;; 2. Fit the interaction model using snp.logistic ;; 3. Extract model summaries using getSummary ;; 4. Perform Wald tests for the SNP and interaction terms using getWaldTest",
+      "code": "for (a in unique(Xdata[, \"age.group\"])) {\n  dummyVar <- paste(\"age.group_\", a, sep=\"\")\n  Xdata[, dummyVar] <- 0\n  temp <- Xdata[, \"age.group\"] == a\n  if (any(temp)) Xdata[temp, dummyVar] <- 1\n}\nmainVars <- c(\"oral.years\", \"n.children\", \"age.group_1\",\n              \"age.group_2\", \"age.group_3\", \"age.group_5\")\nfit <- snp.logistic(Xdata, \"case.control\", \"BRCA.status\",\n                     main.vars=mainVars, \n                     int.vars=c(\"oral.years\", \"n.children\"), \n                     strata.var=\"ethnic.group\")\ngetSummary(fit)\ngetWaldTest(fit, c(\"BRCA.status\", \"BRCA.status:oral.years\", \"BRCA.status:n.children\"))"
+    },
+    {
+      "name": "matched_case_control",
+      "intent": "Perform matched case-control analysis by creating matched sets and fitting conditional models.",
+      "input": [
+        "Xdata (Data frame containing case-control status, SNP genotypes, matching covariates, and interaction variables)"
+      ],
+      "stages": "1. Compute a distance matrix using daisy ;; 2. Generate matched sets using getMatchedSets ;; 3. Append matched strata to the dataset ;; 4. Fit matched models using snp.matched ;; 5. Summarize the CLR and CCL models using getSummary ;; 6. Perform Wald tests on the HCL model using getWaldTest",
+      "code": "library(\"cluster\")\nsize <- ifelse(Xdata$ethnic.group == 3, 3, 4)\nd <- daisy(Xdata[,c(\"age.group_1\",\"gynSurgery.history\",\"BRCA.history\")])\nmx <- getMatchedSets(d, CC=TRUE, NN=TRUE, ccs.var = Xdata$case.control, \n\t  strata.var = Xdata$ethnic.group, size = size, fixed = TRUE)\nXdata <- cbind(Xdata, CCStrat = mx$CC, NNStrat = mx$NN)\nintVars <- ~ oral.years + n.children\nsnpVars <- ~ BRCA.status\nfit <- snp.matched(Xdata, \"case.control\", snp.vars=snpVars,\n                     main.vars=intVars, int.vars=intVars, \n                     cc.var=\"CCStrat\", nn.var=\"NNStrat\") \ngetSummary(fit, method = c(\"CLR\", \"CCL\"))\ngetWaldTest(fit$HCL, c( \"BRCA.status\" , \"BRCA.status:oral.years\" , \"BRCA.status:n.children\"))"
+    }
+  ]
+}

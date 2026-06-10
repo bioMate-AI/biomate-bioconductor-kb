@@ -1,194 +1,121 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gwascat
-// Represent and model data in the EMBL-EBI GWAS catalog.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gwascat/inst/doc/gwascat.R
-// Upstream  : GenomeInfoDb, Gviz, dplyr, ggbio, rtracklayer
-// Downstream: vtpnet, liftOver
-//
-// Install: BiocManager::install("gwascat")
+// Bioconductor workflow: gwascat — query_and_subset_gwas_catalog
+// Retrieve the latest GWAS catalog, convert it to a GRanges object, and subset it by specific traits or overlap with a SNP chip.
+// Input: locon6
+// Container: quay.io/biocontainers/bioconductor-gwascat:2.42.0--r45hdfd78af_0
+// R packages: S4Vectors, dplyr, GenomeInfoDb, ggbio, Gviz, gwascat, rtracklayer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomeInfoDb, S4Vectors, gwascat
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Retrieve the cached GWAS catalog using get_cached_gwascat. 2. Convert the catalog to a GRanges object using as_GRanges. 3. Filter 
 
 nextflow.enable.dsl = 2
 
-process BIOC_GWASCAT {
+process BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gwascat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gwascat:2.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gwascat:2.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gwascat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gwascat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gwascat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(IRanges)
-    library(jsonlite)
-
-
-    # --- Dotidy [] ---
-    # Key functions: get_cached_gwascat, arrange, as_GRanges, keepStandardChromosomes, seqlevels, seqinfo, coarse, args
-    gwcat = get_cached_gwascat()
-    library(dplyr)
-    gwcat |> arrange(DATE)
-    gg = gwcat |> as_GRanges()
-    gg
-    library(GenomeInfoDb)
-    data(si.hs.38)
-    gg = keepStandardChromosomes(gg, pruning="coarse")
-    seqlevels(gg) = seqlevels(si.hs.38)
-    seqinfo(gg) = si.hs.38
-    gg
-    args(get_cached_gwascat)
-    args(process_gwas_dataframe)
-
-    # --- Lk1 [] ---
-    # Key functions: search, detach, gwascat, objects, topTraits, subsetByTraits
-    if (length(grep("gwascat", search()))>0) detach("package:gwascat")
-    library(gwascat)
-    objects("package:gwascat")
-    data(ebicat_2020_04_30)
-    gwtrunc = ebicat_2020_04_30
-    topTraits(gwtrunc)
-    subsetByTraits(gwtrunc, tr="LDL cholesterol")[1:3]
-
-    # --- Lkm [] ---
-    # Key functions: requireNamespace, mcols, ifelse, seqlevelsStyle, seqlevels, seqnames, chr, chr4
-    requireNamespace("S4Vectors")
-    mcols = S4Vectors::mcols
-    mlpv = mcols(gwtrunc)$PVALUE_MLOG
-    mlpv = ifelse(mlpv > 25, 25, mlpv)
-    S4Vectors::mcols(gwtrunc)$PVALUE_MLOG = mlpv
-    library(GenomeInfoDb)
-    # seqlevelsStyle(gwtrunc) = "UCSC" # no more!
-    seqlevels(gwtrunc) = paste0("chr", seqlevels(gwtrunc))
-    gwlit = gwtrunc[ which(as.character(seqnames(gwtrunc)) %in% c("chr4", "chr5", "chr6")) ]
-    library(ggbio)
-    autoplot(gwlit, geom="point", aes(y=PVALUE_MLOG), xlab="chr4-chr6")
-    traitsManh(gwtrunc)
-    gffpath = system.file("gff3/chr17_43000000_45000000.gff3", package="gwascat")
-    library(rtracklayer)
-    c17tg = import(gffpath)
-    c17td = c17tg[ which(S4Vectors::mcols(c17tg)$type == "Degner_dsQTL") ]
-    library(Gviz)
-    dsqs = DataTrack( c17td, chrom="chr17", genome="hg19", data="score",
-      name="dsQTL")
-
-    # --- Dost [] ---
-    # Key functions: GRanges, IRanges, gwcex2gviz, chr17, mcols, AnnotationTrack, displayPars, Stranger_eqtl
-    g2 = GRanges(seqnames="chr17", IRanges(start=4.3e7, width=2e6))
-
-    basic = gwcex2gviz(basegr = gwtrunc, contextGR=g2, plot.it=FALSE)
-    c17ts = c17tg[ which(S4Vectors::mcols(c17tg)$type == "Stranger_eqtl") ]
-    eqloc = AnnotationTrack(c17ts,  chrom="chr17", genome="hg19", name="Str eQTL")
-    displayPars(eqloc)$col = "black"
-    displayPars(dsqs)$col = "red"
-    integ = list(basic[[1]], eqloc, dsqs, basic[[2]], basic[[3]])
-    plotTracks(integ)
-    data(locon6)
-    rson6 = as.character(locon6[[1]])
-    rson6[1:5]
-    intr = gwtrunc[ intersect(getRsids(gwtrunc), rson6) ]
-    sort(table(getTraits(intr)), decreasing=TRUE)[1:10]
-
-    # --- Lkexp [] ---
-    # Key functions: GRanges, ifelse, IRanges, mcols, seqlevels, chr, function, suppressWarnings
-    #gr6.0 = GRanges(seqnames=ifelse(is.na(locon6$chrom),0,locon6$chrom), 
-    #       IRanges(ifelse(is.na(locon6$phys),1,locon6$phys), width=1))
-    #S4Vectors::mcols(gr6.0)$rsid = as.character(locon6$dbsnp_rs_id)
-    #seqlevels(gr6.0) = paste("chr", seqlevels(gr6.0), sep="")
-    data(gr6.0_hg38)
-    ag = function(x) as(x, "GRanges")
-    ovraw = suppressWarnings(subsetByOverlaps(ag(gwtrunc), gr6.0_hg38))
-    length(ovraw)
-    ovaug = suppressWarnings(subsetByOverlaps(ag(gwtrunc+500), gr6.0_hg38))
-    length(ovaug)
-    rawrs = mcols(ovraw)$SNPS
-    augrs = mcols(ovaug)$SNPS
-    gwtrunc[augrs]
-    nn = setdiff( getTraits(gwtrunc[augrs]), getTraits(gwtrunc[rawrs]) )
-    length(nn)
-    head(nn)
-    tail(nn)
-    data(gg17N) # translated from GGdata chr 17 calls using ABmat2nuc
-    gg17N[1:5,1:5]
-
-    # --- Dorun [] ---
-    # Key functions: riskyAlleleCount, ch17, mcols, DataFrame, unlist, mget, mappedkeys, match
-    h17 = riskyAlleleCount(gg17N, matIsAB=FALSE, chr="ch17",
-     gwwl = gwtrunc)
-    h17[1:5,1:5]
-    table(as.numeric(h17))
-    gwr = gwtrunc
-    gwr = gwr[colnames(h17),]
-    S4Vectors::mcols(gwr) = cbind(mcols(gwr), DataFrame(t(h17)))
-    sn = rownames(h17)
-    gwr[,c("DISEASE/TRAIT", sn[1:4])]
-    library(DO.db)
-    DO()
-    alltob = unlist(mget(mappedkeys(DOTERM), DOTERM))
-    allt = sapply(alltob, Term)
-    allt[1:5]
-    cattra = mcols(gwtrunc)$`DISEASE/TRAIT`
-    mat = match(tolower(cattra), tolower(allt))
-    catDO = names(allt)[mat]
-    na.omit(catDO)[1:50]
-    mean(is.na(catDO))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gwascat_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gwascat_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("S4Vectors", "dplyr", "GenomeInfoDb", "ggbio", "Gviz", "gwascat", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gwascat_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(gwascat)
+        library(S4Vectors)
+        library(GenomeInfoDb)
+        
+        # 1. Load genotype data from the working directory
+        if (file.exists("locon6.rds")) {
+          locon6 <- readRDS("locon6.rds")
+        } else if (file.exists("locon6.csv")) {
+          locon6 <- read.csv("locon6.csv", check.names = FALSE)
+        } else if (file.exists("locon6")) {
+          locon6 <- readRDS("locon6")
+        } else {
+          stop("Required input file 'locon6' (RDS or CSV format) not found in the working directory.")
+        }
+        
+        # Load GWAS catalog dynamically to avoid forbidden data() or bundled datasets
+        gwcat <- get_cached_gwascat()
+        gwtrunc <- as_GRanges(gwcat)
+        
+        # 2. Filter standard chromosomes and query traits
+        gwtrunc <- keepStandardChromosomes(gwtrunc, pruning="coarse")
+        tt <- topTraits(gwtrunc)
+        result_subset <- subsetByTraits(gwtrunc, tr=names(tt)[1])
+        
+        # 3. Find overlaps with a SNP chip
+        gr6.0 <- GRanges(seqnames=ifelse(is.na(locon6[[2]]), 0, locon6[[2]]),
+                         IRanges(ifelse(is.na(locon6[[3]]), 1, locon6[[3]]), width=1))
+        S4Vectors::mcols(gr6.0)\$rsid <- as.character(locon6[[1]])
+        
+        ag <- function(x) as(x, "GRanges")
+        overlaps <- suppressWarnings(subsetByOverlaps(ag(gwtrunc), gr6.0))
+        
+        # Write named output files
+        saveRDS(gwtrunc, "gwtrunc.rds")
+        write.csv(as.data.frame(S4Vectors::mcols(result_subset)), "result_subset.csv", row.names = TRUE)
+        write.csv(as.data.frame(overlaps), "overlaps.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GWASCAT:", paste0("    gwascat: ", packageVersion("gwascat"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG":',
+        paste0('    gwascat: ', as.character(packageVersion('gwascat')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gwascat_results.csv
-    touch ${prefix}_gwascat_output.rds
-    echo "BIOC_GWASCAT:" > versions.yml
-    echo "    gwascat: 0.0.0" >> versions.yml
+    touch ${prefix}_query_and_subset_gwas_catalog.csv versions.yml
     """
 }
 
-
-workflow BIOC_GWASCAT_WORKFLOW {
+workflow BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ locon6 ] ]
 
     main:
-    BIOC_GWASCAT(ch_input)
+    BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG(ch_input)
 
     emit:
-    results  = BIOC_GWASCAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GWASCAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GWASCAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GWASCAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG.out.tables
+    plots    = BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG.out.plots
+    objects  = BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG.out.objects
+    versions = BIOC_GWASCAT_QUERY_AND_SUBSET_GWAS_CATALOG.out.versions
 }

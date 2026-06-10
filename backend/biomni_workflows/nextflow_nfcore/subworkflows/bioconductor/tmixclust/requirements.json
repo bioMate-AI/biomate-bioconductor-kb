@@ -1,0 +1,16 @@
+{
+  "package": "tmixclust",
+  "requirements": [
+    "Biobase",
+    "TMixClust"
+  ],
+  "by_workflow": {
+    "expressionset_time_series_clustering.nf": [
+      "Biobase",
+      "TMixClust"
+    ],
+    "main.nf": [
+      "TMixClust"
+    ]
+  }
+}

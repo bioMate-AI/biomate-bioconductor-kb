@@ -4,6 +4,8 @@
 // Identify changes in gene expression mean, over-dispersion, and residual over-dispersion between two groups of cells.
 // Input: chain1.RData, chain2.RData
 // Container: quay.io/biocontainers/bioconductor-basics:2.22.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: BASiCS, SingleCellExperiment
 // Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -40,14 +42,16 @@ process BIOC_BASICS_TWO_GROUP_DIFFERENTIAL_EXPRESSION {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         
         # Load required libraries
         library(BASiCS)
-        library(SingleCellExperiment)
         
         # Check for user input files
         if (!file.exists("chain1.RData") || !file.exists("chain2.RData")) {

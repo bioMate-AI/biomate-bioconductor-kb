@@ -1,0 +1,17 @@
+{
+  "package": "sitadela",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "sitadela"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "sitadela"
+    ]
+  }
+}

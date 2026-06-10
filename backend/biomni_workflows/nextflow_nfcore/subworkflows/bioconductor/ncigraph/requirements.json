@@ -1,0 +1,15 @@
+{
+  "package": "ncigraph",
+  "requirements": [
+    "NCIgraph",
+    "Rgraphviz",
+    "graph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "NCIgraph",
+      "Rgraphviz",
+      "graph"
+    ]
+  }
+}

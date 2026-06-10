@@ -1,0 +1,21 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: targetRegions=Data.frame or GRanges object containing target regions (bed-format: chr, 0-based start, 1-based end) used in filterTarget ;; caller_indels_pm=Logical indicating if deletions/insertions are reported with +/- in normalize ;; caller_mnvs=Logical indicating if MNVs are reported in normalize ;; locations=Vector of genomic locations of interest (e.g., \"coding\", \"spliceSite\") in annotate ;; consequences=Vector of consequences of interest (e.g., \"nonsynonymous\", \"frameshift\") in annotate ;; bam_folder=Folder containing BAM and BAI files matching sample names in evaluateCovAndBQ ;; predict=Prediction tool to use (\"SIFT\", \"Provean\", \"PolyPhen2\") in determineCharacteristics ;; damaging_safe=Score threshold for identifying reliably damaging calls in finalFiltration ;; tolerated_safe=Score threshold for identifying reliably tolerated calls in finalFiltration ;; overlapTools=Vector of tool names to reward if they overlappingly report a variant in finalFiltration\n- alternatives: The Shiny GUI appreci8Rshiny() can be used as an alternative to the command-line workflow for easier execution, checkpointing, and configuration export/import.\n- when_to_use: Use when combining SNV and short indel calls from multiple variant calling tools (up to 13) to achieve high sensitivity and high positive predictive value (PPV), especially for low variant allele frequency (VAF) variants.\n- pitfalls: Currently, only hg19 is supported. BAM and BAI file names must exactly match the sample names derived from the variant caller files. For indels, Rsamtools pileup sums them up as \"+\", so base quality cannot be determined for them. Values above 44 for bq are not recommended.",
+  "workflows": [
+    {
+      "name": "appreci8_variant_filtration_pipeline",
+      "intent": "Combine, annotate, and filter variant calls from multiple tools using the 7-step appreci8 algorithm to classify variants as probably true, polymorphism, or artifact.",
+      "input": [
+        "Sample1.rawMutations.vcf (raw variant calls from caller 1)",
+        "Sample2.rawMutations.vcf (raw variant calls from caller 2)",
+        "Sample1.bam (alignment file for sample 1)",
+        "Sample1.bai (index file for sample 1)",
+        "Sample2.bam (alignment file for sample 2)",
+        "Sample2.bai (index file for sample 2)",
+        "target (bed-like data frame or GRanges of target regions)"
+      ],
+      "stages": "1. Target filtration (filterTarget) ;; 2. Normalization (normalize) ;; 3. Annotation (annotate) ;; 4. Output combination (combineOutput) ;; 5. Coverage and Base Quality evaluation (evaluateCovAndBQ) ;; 6. Characteristics determination (determineCharacteristics) ;; 7. Final filtration and classification (finalFiltration)",
+      "code": "filterTarget(output_folder, \"GATK\", caller_folder, \".rawMutations\",\n             \".vcf\", TRUE, \"\", \"\", targetRegions = target)\n\nnormalized <- appreci8R::normalize(output_folder, caller_name, input,\n                                   TRUE, TRUE)\n\nannotated <- annotate(output_folder, caller_name, input,\n             locations = c(\"coding\",\"spliceSite\"),\n             consequences = c(\"nonsynonymous\",\"frameshift\",\"nonsense\"))\n\ncombined<-combineOutput(\"\", c(\"GATK\",\"VarScan\"), annotated)\n\nfiltered<-evaluateCovAndBQ(output_folder, combined, bam_folder, bq_diff = 20,\n                           vaf = 0.001)\n\ncharacteristics <- determineCharacteristics(output_folder, filtered,\n                                            predict = \"Provean\")\n\nfinal<-finalFiltration(output_folder, frequency_calls = filtered,\n                       database_calls = characteristics,\n                       combined_calls = combined, damaging_safe = -3,\n                       tolerated_safe = -1.5, overlapTools = c(\"VarScan\"),\n                       bq_diff = 20,vaf = 0.001)"
+    }
+  ]
+}

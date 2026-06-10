@@ -1,90 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: messina
-// Messina is a collection of algorithms for constructing optimally robust single-gene classifiers, and
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/messina/inst/doc/messina.R
-// Upstream  : antiProfilesData, ggplot2, survival
-// Downstream: none
-//
-// Install: BiocManager::install("messina")
+// Bioconductor workflow: messina — binary_classification_messina
+// Construct optimal single-gene threshold classifiers to distinguish between two distinct sample classes (e.g., normal vs. tumor).
+// Input: expression_matrix.csv, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-messina:1.46.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: messina
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the expression data and class labels
+//  * 2. [Core Analysis] Subset the data to the two classes of interest
+//  * 3. [Core Analysis] Fit the Messina classification model using the messina function with specified sensitivity and specificity thresholds
+//  * 4. [Core Analysis] Inspect the S4 result object to identify features passing performance requirements
+//  * 5. [Visualization & Output] Plot the classifier fits, thresholds, and margins using the plot function
 
 nextflow.enable.dsl = 2
 
-process BIOC_MESSINA {
+process BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-messina"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-messina:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-messina:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_messina_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_messina_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_messina_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(messina)
-    library(jsonlite)
-
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot
-    library(ggplot2)
-    temp.x = rep(c(0, 1), each = 6)
-    set.seed(12345)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_messina_results.csv", row.names = TRUE)
+    
+    # 1. Load the expression data and class labels from user input files
+    x_raw = as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+    metadata_raw = read.csv("sample_metadata.csv", check.names = FALSE)
+    
+    # Align metadata to expression matrix columns
+    sample_ids = colnames(x_raw)
+    match_idx = match(sample_ids, metadata_raw[[1]])
+    if (all(is.na(match_idx))) {
+      match_idx = match(sample_ids, rownames(metadata_raw))
+    }
+    
+    # Filter to matched samples
+    valid_samples = !is.na(match_idx)
+    x_raw = x_raw[, valid_samples, drop = FALSE]
+    match_idx = match_idx[valid_samples]
+    aligned_metadata = metadata_raw[match_idx, ]
+    
+    # Extract class labels
+    if ("SubType" %in% colnames(aligned_metadata)) {
+      raw_class = aligned_metadata\$SubType
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_messina_results.csv")
+      raw_class = aligned_metadata[[2]]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_messina_output.rds")
+    
+    # Map the user's binary classes to "normal" and "tumor" to ensure compatibility with the documented code
+    unique_classes = unique(na.omit(raw_class))
+    if (length(unique_classes) < 2) {
+      stop("Metadata must contain at least two distinct classes for binary classification.")
     }
+    
+    mapped_class = rep(NA, length(raw_class))
+    mapped_class[raw_class == unique_classes[1]] = "normal"
+    mapped_class[raw_class == unique_classes[2]] = "tumor"
+    
+    x = x_raw
+    y = mapped_class
+    
+    # 2. Subset the data to the two classes of interest
+    sel = y %in% c("normal", "tumor")
+    x = x[,sel]
+    y = y[sel]
+    
+    # 3. Fit the Messina classification model using the messina function
+    fit.apColon = messina(x, y == "tumor", min_sens = 0.95, min_spec = 0.85, seed = 1234, silent = TRUE)
+    
+    # 4. Inspect the S4 result object to identify features passing performance requirements
+    print(fit.apColon)
+    
+    # Save the S4 result object and top results table
+    saveRDS(fit.apColon, "messina_fit.rds")
+    top_results = messinaTopResults(fit.apColon)
+    write.csv(top_results, "messina_top_results.csv", row.names = TRUE)
+    
+    # 5. Plot the classifier fits, thresholds, and margins using the plot function
+    pdf("messina_best_feature_plot.pdf")
+    plot(fit.apColon, i = 1, plot_type = "point")
+    dev.off()
+    
+    pdf("messina_multiple_features_plot.pdf")
+    plot(fit.apColon, i = c(1, 2, 10, 50)[c(1, 2, 10, 50) <= nrow(x)], plot_type = "point")
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MESSINA:", paste0("    messina: ", packageVersion("messina"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA":',
+        paste0('    messina: ', as.character(packageVersion('messina')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_messina_results.csv
-    touch ${prefix}_messina_output.rds
-    echo "BIOC_MESSINA:" > versions.yml
-    echo "    messina: 0.0.0" >> versions.yml
+    touch ${prefix}_binary_classification_messina.csv versions.yml
     """
 }
 
-
-workflow BIOC_MESSINA_WORKFLOW {
+workflow BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, sample_metadata.csv ] ]
 
     main:
-    BIOC_MESSINA(ch_input)
+    BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA(ch_input)
 
     emit:
-    results  = BIOC_MESSINA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MESSINA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MESSINA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MESSINA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA.out.tables
+    plots    = BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA.out.plots
+    objects  = BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA.out.objects
+    versions = BIOC_MESSINA_BINARY_CLASSIFICATION_MESSINA.out.versions
 }

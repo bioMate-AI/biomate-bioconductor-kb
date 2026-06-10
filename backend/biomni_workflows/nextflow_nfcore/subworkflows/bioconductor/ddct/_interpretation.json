@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: inputFile=Path to the SDS input file containing individual Ct values ;; referenceGene=Housekeeping gene(s) to use for normalization ;; referenceSample=Calibration/reference sample(s) to use ;; threshold=Upper boundary for Ct values (values above this are treated as undetermined) ;; mode=Summarization method for replicates (\"mean\" or \"median\") ;; efficiencies=Optional amplification efficiencies for each gene ;; ttestPerform=Logical indicating whether to perform t-test/Wilcoxon test\n- alternatives: Writing custom R scripts using low-level functions (like ddCtExpression or ddCtwithE) instead of the high-level ddCtExec wrapper for greater flexibility.\n- when_to_use: Appropriate for relative quantification of qRT-PCR data using the 2^-ddCt method when technical replicates, housekeeping genes, and reference/calibration samples are present.\n- pitfalls: If gene or sample names are renamed using aliases, the new names must be used for all subsequent parameters ;; If efficiencies are used, no dCt or ddCt values are calculated, and no t-test can be performed ;; The first column of the sample annotation file must be named exactly 'Sample' ;; Plot legends can sometimes distort the plot layout, requiring legende=FALSE ;; Individual Ct values must be exported from the PCR software, not pre-combined replicates.",
+  "workflows": [
+    {
+      "name": "ddct_high_level_pipeline",
+      "intent": "Run the end-to-end ddCt analysis pipeline using a single parameter list and the high-level wrapper function ddCtExec.",
+      "input": [
+        "Experiment1.txt (SDS input file with Ct values)",
+        "SampleAnno.txt (optional sample annotation file)",
+        "ddCt.conf (optional configuration file)"
+      ],
+      "stages": "1. Load the ddCt script and set up the parameter list ;; 2. Specify input/output paths and files ;; 3. Define housekeeping genes, reference samples, threshold, and calculation mode ;; 4. Configure optional plotting and t-test parameters ;; 5. Execute the pipeline using ddCtExec.",
+      "code": "source(system.file(\"scripts\", \"ddCt.R\", package=\"ddCt\"))\nparams <- list(loadPath = system.file(\"extdata\", package=\"ddCt\"), savePath = getwd())  \nparams$confFile <- system.file(\"scripts\", \"ddCt.conf\", package=\"ddCt\")\nparams$inputFile <- c(\"Experiment1.txt\")\nparams$sampleAnnotationFile = NULL\nparams$columnForGrouping    = NULL\nparams$onlyFromAnnotation   = FALSE\nparams$referenceGene <- c(\"Gene1\", \"Gene2\")\nparams$referenceSample <- c(\"Sample1\")\nparams$threshold <- 40\nparams$mode = \"median\"\nparams$plotMode = c(\"level\",\"Ct\")\nparams$genesRemainInOutput   = NULL\nparams$samplesRemainInOutput = NULL\nparams$genesNotInOutput   = NULL\nparams$samplesNotInOutput = NULL\nparams$groupingBySamples = FALSE\nparams$plotPerObject = TRUE\nparams$legende  = TRUE\nparams$ttestPerform = FALSE\nddCtExec(params)"
+    },
+    {
+      "name": "ddct_step_by_step_analysis",
+      "intent": "Perform step-by-step qRT-PCR data loading, filtering, relative expression calculation, and visualization using low-level functions.",
+      "input": [
+        "Experiment1.txt (SDS input file with Ct values)",
+        "sampleData.txt (optional sample annotation file)"
+      ],
+      "stages": "1. Load data into an SDMFrame object ;; 2. Read sample annotation metadata ;; 3. Calculate relative expression using ddCtExpression ;; 4. Export results using elistWrite ;; 5. Visualize results using errBarchart.",
+      "code": "library(Biobase)\nlibrary(lattice)\nlibrary(RColorBrewer)\nlibrary(ddCt)\nCtData <- SDMFrame(file.names)\nsampleInformation <- read.AnnotatedDataFrame(info,header=TRUE, row.names=NULL)\nresult <- ddCtExpression(CtData, calibrationSample=name.reference.sample, housekeepingGene=name.reference.gene, sampleInformation=sampleInformation, warningStream=warningFile)\nelistWrite(result,file=savedir(\"allValues.txt\"))\nbr <- errBarchart(result)\nprint(br)"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - X: Gene expression data matrix with genes as rows and perturbations/samples as columns.\n    - restK: Vector indicating the maximum number of non-zero connections for each gene in A. High values increase computation time; 20% to 30% of the number of genes is recommended.\n    - topD: Number of branches kept in each level of the grid algorithm tree. 20% to 30% of the number of genes is recommended.\n    - topK: Number of potential target genes in each perturbation, used to pre-estimate the perturbation matrix P. 10% to 20% of the number of genes is recommended.\n    - P.known: Known perturbation matrix with the same dimensions as X (optional).\n    - cFlag: Regression method to use: \"geo\" (geometric mean / error-in-variable), \"sse\" (ordinary linear regression), or \"ml\" (maximum likelihood).\n    - pred.net: Prior gene association network matrix (optional).\n    - sup.drop: Pattern for using prior network information: 1 for forward pattern, -1 for backward pattern (referred to as sub.drop in some text descriptions).\n    - numP: Maximum number of times a gene can be directly targeted by perturbations across all experiments. Suggested to be 25% of the number of genes.\n    - noiseLevel: Noise level in each perturbed experiment (only used in \"ml\" method).\n    - cMM.corrected: Flag used in single-row estimation functions; must be set to 1 to specify a prior network (pred.net).\n- alternatives: The documentation mentions other ODE-based gene-network reconstruction methods (Gardner et al. and Nelander et al.), but NTW is preferred when the transcriptional perturbation matrix P is unknown, as NTW can estimate both A and P simultaneously.\n- when_to_use: Use this package when you have steady-state gene expression profiles (from RT-PCR, microarrays, RNA-seq, etc.) from perturbation experiments and want to reconstruct the gene-gene interaction network and/or identify the direct targets of the perturbations.\n- pitfalls:\n    - Setting high values for restK leads to significantly longer running times.\n    - If no prior network is provided (pred.net = NULL), the backward method is used as default (assuming a full prior network).\n    - The prior network matrix (pred.net) can only be specified in single-row estimation functions if cMM.corrected is set to 1.",
+  "workflows": [
+    {
+      "name": "network_and_perturbation_prediction",
+      "intent": "Estimate the entire gene interaction network (A) and the perturbation targets matrix (P) from gene expression data, with or without prior network knowledge.",
+      "input": [
+        "gene_expression.csv (matrix of gene expression values with genes as rows and perturbations as columns)",
+        "prior_network.csv (optional matrix of prior gene-gene interactions)"
+      ],
+      "stages": "1. Load the gene expression data and convert to a matrix ;; 2. Set algorithm parameters (restK, topD, topK, numP) ;; 3. Define or generate a prior network matrix (optional) ;; 4. Run the main NTW function to estimate the interaction network and perturbation targets.",
+      "code": "library(NTW)\nlibrary(mvtnorm)\ndata(sos.data)\nX<-sos.data\nX<-as.matrix(X)\nrestK=rep(ncol(X)-1, nrow(X))\ntopD = round(0.6*nrow(X))\ntopK = round(0.5*nrow(X))\nnumP = round(0.25*nrow(X))\npred.net<-matrix(round(runif(nrow(X)*nrow(X), min=0, max=1)), nrow(X), nrow(X))\nresult<-NTW(X, restK, topD, topK, P.known=NULL, cFlag=\"sse\", pred.net = NULL, sup.drop = -1,numP, noiseLevel=0.1)\nresult<-NTW(X, restK, topD, topK, P.known=NULL, cFlag=\"sse\", pred.net =pred.net, sup.drop = 1,numP, noiseLevel=0.1)"
+    },
+    {
+      "name": "single_row_prediction_unknown_p",
+      "intent": "Estimate a single row of the gene interaction matrix (A) and the perturbation targets matrix (P) when the perturbation matrix is unknown (useful for parallelizing computations across genes).",
+      "input": [
+        "gene_expression.csv (matrix of gene expression values with genes as rows and perturbations as columns)",
+        "prior_network.csv (optional matrix of prior gene-gene interactions)"
+      ],
+      "stages": "1. Load the gene expression data and convert to a matrix ;; 2. Set algorithm parameters (restK, topD, topK, numP) ;; 3. Pre-estimate the perturbation matrix using P.preestimation ;; 4. Estimate a single row of A and P using AP.estimation.Srow.",
+      "code": "library(NTW)\nlibrary(mvtnorm)\ndata(sos.data)\nX<-sos.data\nX<-as.matrix(X)\nrestK=rep(ncol(X)-1, nrow(X))\ntopD = round(0.6*nrow(X))\ntopK = round(0.5*nrow(X))\nnumP = round(0.25*nrow(X))\npred.net<-matrix(round(runif(nrow(X)*nrow(X), min=0, max=1)), nrow(X), nrow(X))\nIX<-P.preestimation(X, topK= round(2*nrow(X)))\nresult.Srow<-AP.estimation.Srow(r=1,cMM.corrected = 1, pred.net,X, IX,topD, restK, cFlag=\"sse\",sup.drop = -1, numP, noiseLevel=0.1)"
+    },
+    {
+      "name": "single_row_prediction_known_p",
+      "intent": "Estimate a single row of the gene interaction matrix (A) when the perturbation matrix (P) is already known.",
+      "input": [
+        "gene_expression.csv (matrix of gene expression values with genes as rows and perturbations as columns)",
+        "known_perturbations.csv (matrix of known perturbation targets)",
+        "prior_network.csv (optional matrix of prior gene-gene interactions)"
+      ],
+      "stages": "1. Load the gene expression data and convert to a matrix ;; 2. Set algorithm parameters (restK, topD, topK) ;; 3. Load or define the known perturbation matrix P.known ;; 4. Estimate a single row of A using A.estimation.Srow.",
+      "code": "library(NTW)\nlibrary(mvtnorm)\ndata(sos.data)\nX<-sos.data\nX<-as.matrix(X)\nrestK=rep(ncol(X)-1, nrow(X))\ntopD = round(0.6*nrow(X))\npred.net<-matrix(round(runif(nrow(X)*nrow(X), min=0, max=1)), nrow(X), nrow(X))\nP.known<-matrix(round(runif(nrow(X)*ncol(X), min=0, max=1)), nrow(X), ncol(X))\nresult.Srow<-A.estimation.Srow(r=1,cMM.corrected = 1, pred.net, X, P.known, topD, restK, cFlag=\"ml\",sup.drop = -1, noiseLevel=0.1)"
+    }
+  ]
+}

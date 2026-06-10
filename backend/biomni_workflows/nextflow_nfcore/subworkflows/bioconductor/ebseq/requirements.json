@@ -1,0 +1,20 @@
+{
+  "package": "ebseq",
+  "requirements": [
+    "EBSeq"
+  ],
+  "by_workflow": {
+    "gene_de_multi_conditions.nf": [
+      "EBSeq"
+    ],
+    "isoform_de_multi_conditions.nf": [
+      "EBSeq"
+    ],
+    "isoform_de_two_conditions.nf": [
+      "EBSeq"
+    ],
+    "main.nf": [
+      "EBSeq"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=A SeqExpressionSet or matrix containing the raw gene-level read counts ;; controlGenes=Character vector specifying the gene names to be used as negative controls (e.g., spike-ins, housekeeping genes, or empirical controls) ;; k=The number of factors of unwanted variation to estimate ;; differences=A matrix specifying which samples are replicates, typically generated using makeGroups ;; residuals=A matrix of residuals (e.g., deviance residuals) from a first-pass GLM regression of counts on the covariates of interest\n- alternatives: betweenLaneNormalization=Used for upper-quartile (UQ) normalization, which can be performed prior to RUV but does not correct for complex batch effects on its own ;; edgeR / DESeq2=Standard differential expression packages that are used after RUV factor estimation to perform the actual statistical testing, incorporating the estimated W factors into their design formulas\n- when_to_use: Use when RNA-Seq data contains unwanted technical variation (e.g., batch effects, library preparation effects, or other nuisance covariates) that could confound differential expression analysis, and when negative control genes, replicate samples, or first-pass residuals are available to estimate these factors.\n- pitfalls: Subsequent differential expression analysis must be performed on the original raw counts (with the estimated W factors included in the design matrix), not on the normalized counts returned by RUV. Using normalized counts directly in DE packages can remove part of the biological signal of interest and invalidate statistical assumptions ;; If no negative control genes are known a priori, empirical controls must be carefully selected (e.g., by excluding the top most significantly DE genes from a first-pass analysis) to avoid bias.",
+  "workflows": [
+    {
+      "name": "ruvg_control_genes",
+      "intent": "Estimate factors of unwanted variation using negative control genes (e.g., spike-ins or empirical controls) and perform differential expression.",
+      "input": [
+        "counts_matrix.csv (raw RNA-Seq read counts)",
+        "control_genes.txt (list of negative control gene identifiers)"
+      ],
+      "stages": "1. Filter low-expressed genes ;; 2. Create a SeqExpressionSet object ;; 3. Perform optional upper-quartile normalization ;; 4. Estimate unwanted variation factors using RUVg with control genes ;; 5. Build a design matrix including the estimated factors (W_1) ;; 6. Perform differential expression analysis using edgeR or DESeq2",
+      "code": "filter <- apply(zfGenes, 1, function(x) length(x[x>5])>=2)\nfiltered <- zfGenes[filter,]\ngenes <- rownames(filtered)[grep(\"^ENS\", rownames(filtered))]\nspikes <- rownames(filtered)[grep(\"^ERCC\", rownames(filtered))]\nx <- as.factor(rep(c(\"Ctl\", \"Trt\"), each=3))\nset <- newSeqExpressionSet(as.matrix(filtered),\n                           phenoData = data.frame(x, row.names=colnames(filtered)))\nset <- betweenLaneNormalization(set, which=\"upper\")\nset1 <- RUVg(set, spikes, k=1)\ndesign <- model.matrix(~x + W_1, data=pData(set1))\ny <- DGEList(counts=counts(set1), group=x)\ny <- calcNormFactors(y, method=\"upperquartile\")\ny <- estimateGLMCommonDisp(y, design)\ny <- estimateGLMTagwiseDisp(y, design)\nfit <- glmFit(y, design)\nlrt <- glmLRT(fit, coef=2)\ntopTags(lrt)\nlibrary(DESeq2)\ndds <- DESeqDataSetFromMatrix(countData = counts(set1),\n                              colData = pData(set1),\n                              design = ~ W_1 + x)\ndds <- DESeq(dds)\nres <- results(dds)"
+    },
+    {
+      "name": "ruvs_replicate_samples",
+      "intent": "Estimate factors of unwanted variation using replicate samples where the covariates of interest are constant.",
+      "input": [
+        "counts_matrix.csv (raw RNA-Seq read counts)",
+        "sample_groups.csv (replicate group annotations)"
+      ],
+      "stages": "1. Filter and create a SeqExpressionSet object ;; 2. Define replicate groups using makeGroups ;; 3. Estimate unwanted variation factors using RUVs",
+      "code": "differences <- makeGroups(x)\nset3 <- RUVs(set, genes, k=1, differences)\npData(set3)"
+    },
+    {
+      "name": "ruvr_residuals",
+      "intent": "Estimate factors of unwanted variation using residuals from a first-pass GLM regression.",
+      "input": [
+        "counts_matrix.csv (raw RNA-Seq read counts)",
+        "sample_groups.csv (experimental design covariates)"
+      ],
+      "stages": "1. Perform a first-pass GLM regression without RUV ;; 2. Extract deviance residuals from the GLM fit ;; 3. Estimate unwanted variation factors using RUVr with the residuals",
+      "code": "design <- model.matrix(~x, data=pData(set))\ny <- DGEList(counts=counts(set), group=x)\ny <- calcNormFactors(y, method=\"upperquartile\")\ny <- estimateGLMCommonDisp(y, design)\ny <- estimateGLMTagwiseDisp(y, design)\nfit <- glmFit(y, design)\nres <- residuals(fit, type=\"deviance\")\nset4 <- RUVr(set, genes, k=1, res)"
+    }
+  ]
+}

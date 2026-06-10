@@ -1,0 +1,13 @@
+{
+  "package": "isocorrectorgui",
+  "requirements": [
+    "IsoCorrectoR",
+    "IsoCorrectoRGUI"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IsoCorrectoR",
+      "IsoCorrectoRGUI"
+    ]
+  }
+}

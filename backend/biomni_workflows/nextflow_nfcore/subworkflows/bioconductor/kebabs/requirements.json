@@ -1,0 +1,29 @@
+{
+  "package": "kebabs",
+  "requirements": [
+    "Biostrings",
+    "kebabs"
+  ],
+  "by_workflow": {
+    "annotation_specific_classification.nf": [
+      "Biostrings",
+      "kebabs"
+    ],
+    "grid_search_and_model_selection.nf": [
+      "Biostrings",
+      "kebabs"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "kebabs"
+    ],
+    "prediction_profiling.nf": [
+      "Biostrings",
+      "kebabs"
+    ],
+    "sequence_regression_and_feature_weights.nf": [
+      "Biostrings",
+      "kebabs"
+    ]
+  }
+}

@@ -1,120 +1,115 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: trigger
-// This R package provides tools for the statistical analysis of integrative genomic data that involve 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/trigger/inst/doc/trigger.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("trigger")
+// Bioconductor workflow: trigger — causal_network_inference
+// Reconstruct causal transcriptional regulatory networks from matched genotype and gene expression data using eQTL-directed graphical models.
+// Input: genotypes.txt, expression.txt, marker_positions.txt, gene_positions.txt
+// Container: quay.io/biocontainers/bioconductor-trigger:1.52.0--r44h3df3fcb_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: trigger
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Build the trigger object using trigger.build
+//  * 2. [Core Analysis] Compute local linkage (eQTLs) using trigger.loclink
+//  * 3. [Core Analysis] Estimate the posterior probabilities of causal regulation using trigger.prob
+//  * 4. [Core Analysis] Reconstruct the causal network using trigger.net
+//  * 5. [Visualization & Output] Export the network using trigger.export
 
 nextflow.enable.dsl = 2
 
-process BIOC_TRIGGER {
+process BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-trigger"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-trigger:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-trigger:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_trigger_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_trigger_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_trigger_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(trigger)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load the required Bioconductor package
+        library(trigger)
+        
+        # Read the user input files from the working directory
+        # genotypes.txt: matrix of marker genotypes (rows = markers, columns = individuals)
+        gact <- as.matrix(read.table("genotypes.txt", header = TRUE, row.names = 1, check.names = FALSE))
+        
+        # expression.txt: matrix of gene expression levels (rows = genes, columns = individuals)
+        gexp <- as.matrix(read.table("expression.txt", header = TRUE, row.names = 1, check.names = FALSE))
+        
+        # marker_positions.txt: data frame containing marker physical positions (name, chromosome, physical position)
+        gpos <- read.table("marker_positions.txt", header = TRUE, stringsAsFactors = FALSE)
+        
+        # gene_positions.txt: data frame containing gene physical positions (name, chromosome, start, end)
+        ppos <- read.table("gene_positions.txt", header = TRUE, stringsAsFactors = FALSE)
+        
+        # Stage 1: Build the trigger object
+        trig <- trigger.build(marker = gact, exp = gexp, marker.pos = gpos, exp.pos = ppos)
+        
+        # Stage 2: Compute local linkage (eQTLs)
+        trig.loc <- trigger.loclink(trig, window.size = 100000)
+        
+        # Stage 3: Estimate the posterior probabilities of causal regulation
+        trig.prob <- trigger.prob(trig.loc, logratio = TRUE)
+        
+        # Stage 4: Reconstruct the causal network
+        trig.net <- trigger.net(trig.prob, prob.cutoff = 0.9)
+        
+        # Stage 5: Export the network to the specified file
+        trigger.export(trig.net, file = "causal_network.txt")
+        
+        # Save intermediate and final R objects for downstream analysis
+        saveRDS(trig, "trigger_build.rds")
+        saveRDS(trig.loc, "trigger_loclink.rds")
+        saveRDS(trig.prob, "trigger_prob.rds")
+        saveRDS(trig.net, "trigger_net.rds")
 
-    # --- Import [] ---
-    # Key functions: sample, attach
-    library(trigger)
-     data(yeast)
-     names(yeast)
-    #reduce data size for vignette run time
-    set.seed(123)
-    # --- Build [] ---
-    # Key functions: build, detach
-    trig.obj <- trigger.build(marker=marker, exp=exp,
-    	marker.pos=marker.pos, exp.pos=exp.pos)
-    trig.obj
-    detach(yeast)
-    # --- Link [] ---
-    # Key functions: link
-    trig.obj = trigger.link(trig.obj, norm = TRUE)
-    # --- Mlink [] ---
-    # Key functions: loclink, mlink
-    trig.obj = trigger.loclink(trig.obj)
-    trig.obj = trigger.mlink(trig.obj, B = 10, idx = NULL)
-    # --- Eigenr2 [] ---
-    # Key functions: eigenR2
-    trig.obj = trigger.eigenR2(trig.obj, adjust = FALSE)
-    # --- loclink [] ---
-    # Key functions: loclink, net
-    trig.obj = trigger.loclink(trig.obj, window.size = 10000)
-    trig.prob = trigger.net(trig.obj, Bsec = 100, idx = NULL)
-     dim(trig.prob)
-    # --- export2cross [] ---
-    # Key functions: export2cross
-    cross = trigger.export2cross(trig.obj, plotarg = FALSE, verbose = FALSE)
-    # --- Trait Trigger [] ---
-    # Key functions: trait
-    causreg = trigger.trait(trig.obj, trait = "DSE1", cross = cross, addplot = TRUE, thr = 3)
-    causreg
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_trigger_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_trigger_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_trigger_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TRIGGER:", paste0("    trigger: ", packageVersion("trigger"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE":',
+        paste0('    trigger: ', as.character(packageVersion('trigger')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_trigger_results.csv
-    touch ${prefix}_trigger_output.rds
-    echo "BIOC_TRIGGER:" > versions.yml
-    echo "    trigger: 0.0.0" >> versions.yml
+    touch ${prefix}_causal_network_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_TRIGGER_WORKFLOW {
+workflow BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ genotypes.txt, expression.txt, marker_positions.txt, gene_positions.txt ] ]
 
     main:
-    BIOC_TRIGGER(ch_input)
+    BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_TRIGGER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TRIGGER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TRIGGER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TRIGGER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE.out.tables
+    plots    = BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE.out.plots
+    objects  = BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE.out.objects
+    versions = BIOC_TRIGGER_CAUSAL_NETWORK_INFERENCE.out.versions
 }

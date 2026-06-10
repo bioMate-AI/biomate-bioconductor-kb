@@ -1,104 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DeconRNASeq
-// DeconSeq is an R package for deconvolution of heterogeneous tissues based on mRNA-Seq data. It model
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DeconRNASeq/inst/doc/DeconRNASeq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("DeconRNASeq")
+// Bioconductor workflow: DeconRNASeq — decon_rna_seq_analysis
+// Deconvolve heterogeneous tissue mRNA-Seq samples to estimate cell type proportions.
+// Input: mixture_expression.csv, signature_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-deconrnaseq:1.48.0--r44hdfd78af_0
+// R packages: DeconRNASeq
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DeconRNASeq
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the deconvolution analysis using the main package function to estimate cell type fractions
 
 nextflow.enable.dsl = 2
 
-process BIOC_DECONRNASEQ {
+process BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-deconrnaseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-deconrnaseq:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-deconrnaseq:1.48.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_deconrnaseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_deconrnaseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_deconrnaseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DeconRNASeq)
-    library(jsonlite)
-
-    # --- Packageload [] ---
-    # Key functions: data
-    library(DeconRNASeq)
-    ## multi_tissue: expression profiles for 10 mixing samples from
-    ## multiple tissues
-    data(multi_tissue)
-    datasets <- x.data[,2:11]
-    # --- Expression Signature [] ---
-    # Key functions: attributes
-    signatures <- x.signature.filtered.optimal[,2:6]
-    attributes(signatures)[c(1,2)]
-    # --- Deconolution [] ---
-    # Key functions: DeconRNASeq
-    DeconRNASeq(datasets, signatures, proportions, checksig=FALSE,
-    			known.prop = TRUE, use.scale = TRUE, fig = TRUE)
-    # --- Condition Num [] ---
-    # Key functions: DeconRNASeq
-    DeconRNASeq(datasets, signatures, proportions, checksig=TRUE,
-    			known.prop = TRUE, use.scale = TRUE, fig = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_deconrnaseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_deconrnaseq_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DeconRNASeq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_deconrnaseq_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(DeconRNASeq)
+        
+        # Define input file paths
+        mixture_file <- "mixture_expression.csv"
+        signature_file <- "signature_matrix.csv"
+        
+        # Check if input files exist
+        if (!file.exists(mixture_file)) {
+          stop(paste("Error: Input file not found:", mixture_file))
+        }
+        if (!file.exists(signature_file)) {
+          stop(paste("Error: Input file not found:", signature_file))
+        }
+        
+        # Read the input datasets
+        # DeconRNASeq expects data frames where the first column contains gene symbols/IDs
+        message("Reading mixture expression profiles...")
+        datasets <- read.csv(mixture_file, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+        
+        message("Reading signature matrix...")
+        signatures <- read.csv(signature_file, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+        
+        # Run the deconvolution analysis
+        message("Running DeconRNASeq deconvolution...")
+        
+        # Open a PDF device to capture the plots generated by DeconRNASeq
+        pdf("deconvolution_plots.pdf", width = 10, height = 8)
+        
+        # Execute DeconRNASeq
+        results <- DeconRNASeq(
+          datasets = datasets,
+          signatures = signatures,
+          use.scale = TRUE,
+          fig = TRUE
+        )
+        
+        # Close the PDF device
+        dev.off()
+        
+        # Save the full results object as an RDS file
+        message("Saving results...")
+        saveRDS(results, "decon_results.rds")
+        
+        # Extract and save the estimated cell type proportions
+        if (is.list(results) && "estimates" %in% names(results)) {
+          proportions <- results\$estimates
+        } else if (is.list(results)) {
+          proportions <- results[[1]]
+        } else {
+          proportions <- results
+        }
+        
+        write.csv(proportions, "estimated_proportions.csv", row.names = TRUE)
+        message("Deconvolution completed successfully. Outputs saved to 'deconvolution_plots.pdf', 'decon_results.rds', and 'estimated_proportions.csv'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DECONRNASEQ:", paste0("    deconrnaseq: ", packageVersion("DeconRNASeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS":',
+        paste0('    DeconRNASeq: ', as.character(packageVersion('DeconRNASeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_deconrnaseq_results.csv
-    touch ${prefix}_deconrnaseq_output.rds
-    echo "BIOC_DECONRNASEQ:" > versions.yml
-    echo "    deconrnaseq: 0.0.0" >> versions.yml
+    touch ${prefix}_decon_rna_seq_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DECONRNASEQ_WORKFLOW {
+workflow BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mixture_expression.csv, signature_matrix.csv ] ]
 
     main:
-    BIOC_DECONRNASEQ(ch_input)
+    BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DECONRNASEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DECONRNASEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DECONRNASEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DECONRNASEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS.out.tables
+    plots    = BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS.out.plots
+    objects  = BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS.out.objects
+    versions = BIOC_DECONRNASEQ_DECON_RNA_SEQ_ANALYSIS.out.versions
 }

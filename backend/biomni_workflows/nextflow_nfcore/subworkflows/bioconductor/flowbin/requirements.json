@@ -1,0 +1,15 @@
+{
+  "package": "flowbin",
+  "requirements": [
+    "flowBin",
+    "flowCore",
+    "flowFP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowBin",
+      "flowCore",
+      "flowFP"
+    ]
+  }
+}

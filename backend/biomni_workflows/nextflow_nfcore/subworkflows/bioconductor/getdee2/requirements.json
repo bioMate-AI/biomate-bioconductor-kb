@@ -1,0 +1,15 @@
+{
+  "package": "getdee2",
+  "requirements": [
+    "S4Vectors",
+    "SummarizedExperiment",
+    "getDEE2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "SummarizedExperiment",
+      "getDEE2"
+    ]
+  }
+}

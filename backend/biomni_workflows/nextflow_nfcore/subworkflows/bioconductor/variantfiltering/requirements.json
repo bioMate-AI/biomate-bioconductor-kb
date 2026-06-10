@@ -1,0 +1,18 @@
+{
+  "package": "variantfiltering",
+  "requirements": [
+    "Rsamtools",
+    "VariantAnnotation",
+    "VariantFiltering"
+  ],
+  "by_workflow": {
+    "inheritance_model_analysis.nf": [
+      "VariantFiltering"
+    ],
+    "main.nf": [
+      "Rsamtools",
+      "VariantAnnotation",
+      "VariantFiltering"
+    ]
+  }
+}

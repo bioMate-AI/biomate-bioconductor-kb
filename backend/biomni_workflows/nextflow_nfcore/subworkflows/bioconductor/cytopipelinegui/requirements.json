@@ -1,0 +1,21 @@
+{
+  "package": "cytopipelinegui",
+  "requirements": [
+    "CytoPipeline",
+    "CytoPipelineGUI",
+    "EBImage",
+    "flowCore",
+    "jsonlite",
+    "patchwork"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CytoPipeline",
+      "CytoPipelineGUI",
+      "EBImage",
+      "flowCore",
+      "jsonlite",
+      "patchwork"
+    ]
+  }
+}

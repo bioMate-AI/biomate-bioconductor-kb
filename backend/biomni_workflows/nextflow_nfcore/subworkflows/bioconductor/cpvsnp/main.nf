@@ -1,111 +1,124 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cpvSNP
-// Gene set analysis methods exist to combine SNP-level association p-values into gene sets, calculatin
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cpvSNP/inst/doc/cpvSNP.R
-// Upstream  : ReportingTools
-// Downstream: none
-//
-// Install: BiocManager::install("cpvSNP")
+// Bioconductor workflow: cpvSNP — glossi_analysis
+// Perform gene set analysis on independent (LD-pruned) SNP p-values using the GLOSSI method.
+// Input: arrayData.csv, gene_sets.gmt, independent_snps.txt
+// Container: quay.io/biocontainers/bioconductor-cpvsnp:1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSEABase, TxDb.Hsapiens.UCSC.hg19.knownGene, cpvSNP
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Convert GWAS data frame to a GRanges object using createArrayData. 2. Map gene IDs in the GeneSetCollection to SNP IDs using geneT
 
 nextflow.enable.dsl = 2
 
-process BIOC_CPVSNP {
+process BIOC_CPVSNP_GLOSSI_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cpvsnp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cpvsnp:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cpvsnp:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cpvsnp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cpvsnp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cpvsnp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(cpvSNP)
-    library(HTMLReport)
-    library(jsonlite)
-
-    # --- Gene to SNP Mapping [] ---
-    # Key functions: geneToSNPList
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    genesHg19 <- GenomicFeatures::genes(txdb)
-    geneSets <- geneSetAnalysis[["geneSets"]]
+    library(GSEABase)
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    
+    # 1. Read user input files from the working directory
+    arrayData <- read.csv("arrayData.csv", stringsAsFactors = FALSE)
+    geneSets <- getGmt("gene_sets.gmt")
+    indep <- read.table("independent_snps.txt", header = FALSE, stringsAsFactors = FALSE)
+    
+    # 2. Convert GWAS data frame to a GRanges object using createArrayData
+    arrayDataGR <- createArrayData(arrayData, positionName = "Position")
+    
+    # 3. Map gene IDs in the GeneSetCollection to SNP IDs using geneToSNPList and a transcript database
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+    genesHg19 <- genes(txdb)
     snpsGSC <- geneToSNPList(geneSets, arrayDataGR, genesHg19)
-
-
-    # --- Gene Set Association Analysis [] ---
-    # Key functions: glossi, pValue, degreesOfFreedom, statistic
-    indep <- geneSetAnalysis[["indepSNPs"]]
-    pvals <- arrayDataGR$P[is.element(arrayDataGR$SNP, indep$V1)]
-    names(pvals) <- arrayDataGR$SNP[is.element(arrayDataGR$SNP, indep$V1)]
+    
+    # 4. Subset the GWAS GRanges to independent SNPs and extract named p-values
+    pvals <- arrayDataGR\$P[is.element(arrayDataGR\$SNP, indep\$V1)]
+    names(pvals) <- arrayDataGR\$SNP[is.element(arrayDataGR\$SNP, indep\$V1)]
+    
+    # 5. Run GLOSSI using glossi
     gRes <- glossi(pvals, snpsGSC)
-    gRes_p <- pValue(gRes)
-    gRes_df <- degreesOfFreedom(gRes)
-    gRes_stat <- statistic(gRes)
-
-
-    # --- Visualisation of Association P-values [] ---
-    # Key functions: plotPvals, assocPvalBySetPlot
-    plotPvals(gRes, main = "GLOSSI P-values")
-    all_pvals <- arrayDataGR$P
-    names(all_pvals) <- arrayDataGR$SNP
-    assocPvalBySetPlot(all_pvals, snpsGSC[[2]])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cpvsnp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cpvsnp_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cpvsnp_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CPVSNP:", paste0("    cpvsnp: ", packageVersion("cpvSNP"))),
-        "versions.yml"
+    
+    # 6. Extract results using pValue, degreesOfFreedom, and statistic
+    p_values <- pValue(gRes)
+    dfs <- degreesOfFreedom(gRes)
+    stats <- statistic(gRes)
+    
+    # Create a summary data frame and write to a CSV file
+    results_df <- data.frame(
+      GeneSet = names(p_values),
+      PValue = unlist(p_values),
+      DegreesOfFreedom = unlist(dfs),
+      Statistic = unlist(stats),
+      row.names = NULL,
+      stringsAsFactors = FALSE
     )
+    write.csv(results_df, "glossi_results.csv", row.names = FALSE)
+    
+    # Save the GLOSSIResultCollection object as an RDS file
+    saveRDS(gRes, "glossi_results.rds")
+    
+    # 7. Visualize results using plotPvals and save to a PDF file
+    pdf("glossi_pvals_plot.pdf")
+    plotPvals(gRes, main = "GLOSSI P-values")
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_CPVSNP_GLOSSI_ANALYSIS":',
+        paste0('    cpvSNP: ', as.character(packageVersion('cpvSNP')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cpvsnp_results.csv
-    touch ${prefix}_cpvsnp_output.rds
-    echo "BIOC_CPVSNP:" > versions.yml
-    echo "    cpvsnp: 0.0.0" >> versions.yml
+    touch ${prefix}_glossi_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CPVSNP_WORKFLOW {
+workflow BIOC_CPVSNP_GLOSSI_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ arrayData.csv, gene_sets.gmt, independent_snps.txt ] ]
 
     main:
-    BIOC_CPVSNP(ch_input)
+    BIOC_CPVSNP_GLOSSI_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CPVSNP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CPVSNP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CPVSNP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CPVSNP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CPVSNP_GLOSSI_ANALYSIS.out.tables
+    plots    = BIOC_CPVSNP_GLOSSI_ANALYSIS.out.plots
+    objects  = BIOC_CPVSNP_GLOSSI_ANALYSIS.out.objects
+    versions = BIOC_CPVSNP_GLOSSI_ANALYSIS.out.versions
 }

@@ -1,0 +1,23 @@
+{
+  "package": "scmet",
+  "requirements": [
+    "SingleCellExperiment",
+    "cowplot",
+    "data.table",
+    "ggplot2",
+    "scMET"
+  ],
+  "by_workflow": {
+    "differential_methylation_analysis.nf": [
+      "data.table",
+      "scMET"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "cowplot",
+      "data.table",
+      "ggplot2",
+      "scMET"
+    ]
+  }
+}

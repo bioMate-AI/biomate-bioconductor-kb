@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=The isobaric labeling type (e.g., \"iTRAQ4plexSpectra\", \"TMT6plexSpectra\") ;; direction=Direction for subsetting spectra (\"exclude\" or \"include\") ;; combine=Logical indicating whether to combine peptide ratios into a single protein ratio or return individual ratios ;; cl=Class labels for channels to define groups for comparison ;; combn.method=Method to combine channel ratios (e.g., \"interclass\") ;; min.delta.score=Minimum delta score threshold for filtering peptide identifications ;; min.prob=Minimum PhosphoRS probability threshold for peptide isoform quantification\n- alternatives: MSnbase (coercion is supported via as(ibspectra, \"MSnSet\") and as(msnset, \"IBSpectra\") when integrating with MSnbase workflows)\n- when_to_use: Use when analyzing quantitative proteomics datasets generated using isobaric labeling tags (iTRAQ or TMT) to perform rigorous isotope correction, normalization, noise modeling, and ratio estimation. It is also highly appropriate for phosphoproteomics workflows requiring PTM site localization validation.\n- pitfalls: Failing to correct for isotope impurities before performing normalization (always run correctIsotopeImpurities before normalize). Not accounting for shared peptides across multiple proteins (use shared.ratios to properly model and visualize shared peptide ratios).",
+  "workflows": [
+    {
+      "name": "isobaric_quantification",
+      "intent": "Preprocess, normalize, model noise, and estimate protein ratios for standard isobaric-labeled proteomics data.",
+      "input": [
+        "identifications.id.csv (peptide identification file)",
+        "peaklist.mgf (MS2 peaklist file)"
+      ],
+      "stages": "1. Read raw identification and peaklist files into an IBSpectra object ;; 2. Correct isotope impurities ;; 3. Normalize reporter intensities ;; 4. Subset background proteins and fit a NoiseModel ;; 5. Estimate protein ratios and define class labels ;; 6. Fit ratio distributions and identify significant ratios.",
+      "code": "ib <- readIBSpectra(\"iTRAQ4plexSpectra\",list.files(pattern=\".id.csv\"),\n        list.files(pattern=\".mgf\"))\nibspiked_set1 <- correctIsotopeImpurities(ibspiked_set1)\nibspiked_set1 <- normalize(ibspiked_set1)\nib.background <- subsetIBSpectra(ibspiked_set1,protein=ceru.proteins,direction=\"exclude\")\nnoise.model <- NoiseModel(ib.background)\n10^estimateRatio(ibspiked_set1,noise.model,\n                 channel1=\"114\",channel2=\"115\",\n                 protein=ceru.proteins)['lratio']\nprotein.ratios <- proteinRatios(ibspiked_set1,noise.model,cl=c(\"1\",\"0\",\"0\",\"0\"))\nclassLabels(ibspiked_set1) <- c(\"T\",\"T\",\"C\",\"C\")\nproteinRatios(ibspiked_set1,noise.model,protein=ceru.proteins,\n              cl=classLabels(ibspiked_set1),combn.method=\"interclass\",\n              summarize=T)[,c(\"ac\",\"lratio\",\"variance\")]\nprotein.ratiodistr.cauchy <- fitCauchy(protein.ratios[,\"lratio\"])\nrat.list <-\n  estimateRatio(ibspiked_set1,noise.model=noise.model,channel1=\"114\",channel2=\"115\",\n                protein=reporterProteins(proteinGroup(ibspiked_set1)),combine=F,\n                ratiodistr=protein.ratiodistr.cauchy)"
+    },
+    {
+      "name": "ptm_localization_quantification",
+      "intent": "Filter and quantify post-translational modifications (PTMs) using PhosphoRS localization probabilities and delta scores.",
+      "input": [
+        "identifications.id.csv (peptide identification file)",
+        "peaklist.mgf (MS2 peaklist file)"
+      ],
+      "stages": "1. Read raw data and filter spectra using delta score or PhosphoRS probability ;; 2. Estimate peptide ratios using a pre-calculated noise model ;; 3. Fit a Cauchy distribution to peptide ratios ;; 4. Retrieve PTM annotations from external databases.",
+      "code": "ib <- readIBSpectra(\"identifications.id.csv\",\"peaklist.mgf\",\n                      annotate.spectra.f=function(...) \n                        filterSpectraDeltaScore(...,min.delta.score=10))\n\nib <- readIBSpectra(\"identifications.id.csv\",\"peaklist.mgf\",\n                      annotate.spectra.f=\n                        function(...) filterSpectraPhosphoRS(...,min.prob=0.9,\n                           phosphors.cmd=\"java -jar PhosphoRS.jar\"))\n10^estimateRatio(ib_phospho,noise.model.hcd,peptide=\"SPLSPTETFSWPDVR\")\npeptide.ratios <- peptideRatios(ib_phospho,noise.model=noise.model.hcd,\n                                  cmbn=matrix(c(\"114\",\"116\"),ncol=1))\npeptide.distr.cauchy <- fitCauchy(peptide.ratios$lratio)\nptm.info <- getPtmInfoFromPhosphoSitePlus(proteinGroup(ib_phospho),modif=\"PHOS\")\nptm.info <- getPtmInfoFromNextprot(proteinGroup(ib_phospho))"
+    }
+  ]
+}

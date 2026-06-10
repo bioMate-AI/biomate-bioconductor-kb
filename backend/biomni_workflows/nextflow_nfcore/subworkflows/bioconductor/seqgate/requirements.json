@@ -1,0 +1,13 @@
+{
+  "package": "seqgate",
+  "requirements": [
+    "SeqGate",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SeqGate",
+      "SummarizedExperiment"
+    ]
+  }
+}

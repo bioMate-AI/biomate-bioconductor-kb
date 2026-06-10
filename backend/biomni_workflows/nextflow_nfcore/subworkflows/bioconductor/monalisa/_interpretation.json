@@ -1,0 +1,69 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: binmode=Method used to bin regions (e.g., \"equalN\" to have an equal number of elements per bin) ;; nElement=The target number of elements per bin ;; minAbsX=Minimum absolute value to define a \"no-change\" (zero) bin ;; background=Defines the background sequences (default is \"otherBins\", can be set to \"genome\" to sample from the genome) ;; genome=A BSgenome object used when background is set to \"genome\" ;; genome.oversample=Oversampling factor for matching GC composition when sampling background from the genome ;; pwmL=A PWMatrixList object containing the position weight matrices of motifs to scan ;; cutoff=Selection probability cutoff for stability selection (typically in [0.6, 0.9]) ;; weakness=Weakness parameter to vary the lasso penalty term in randomized Lasso (lower values make selection more stringent) ;; directional=Logical indicating whether to multiply selection probabilities by the sign of the correlation to the response vector in plotSelectionProb\n- alternatives: calcBinnedMotifEnrHomer=Requires a local installation of Homer; calcBinnedMotifEnrR is recommended as it is implemented more efficiently in R without external dependencies ;; REDUCE, AME, ISMARA=Other approaches addressing motif enrichment/association ;; nullranges=Recommended for selecting matched background ranges controlling for confounding covariates before running a binary motif enrichment analysis\n- when_to_use: Use binned motif enrichment when you have genomic regions associated with a continuous numerical value (e.g., log-fold change in expression, accessibility, or methylation) and want to find motifs enriched in specific bins ;; Use binary motif enrichment when comparing exactly two sets of sequences (e.g., unchanged vs. up-regulated) ;; Use single-set motif enrichment when comparing a single set of sequences against a genomic background ;; Use randomized Lasso stability selection when you want motifs to compete against each other to explain a continuous response vector, allowing the inclusion of non-motif predictors (like GC content) to control for sequence composition biases\n- pitfalls: Sequence composition bias=Bins with different GC content (e.g., GC-poor bins) can lead to false-positive enrichments of AT-rich motifs. Always check diagnostics with plotBinDiagnostics and verify robust signals using background = \"genome\" ;; Collinearity in regression=Highly correlated motifs (sharing similar binding sites) can cause Lasso to arbitrarily select one and set others to zero. Consider clustering motifs beforehand (e.g., using RSAT) or use the binned approach if interested in all correlated motifs ;; Small bin sizes=Having fewer than ~100 sequences per bin may lead to small motif counts and unstable enrichments ;; Stochasticity=randLassoStabSel is stochastic; when running in parallel, a multi-stream random number generator (like \"L'Ecuyer-CMRG\") and seed must be set for reproducibility",
+  "workflows": [
+    {
+      "name": "binned_motif_enrichment",
+      "intent": "Identify enriched motifs in genomic regions grouped into multiple bins based on a continuous numerical value (e.g., methylation changes).",
+      "input": [
+        "peaks.bed (genomic coordinates of regions of interest)",
+        "methylation_changes.tsv (numerical values associated with each peak)",
+        "motifs.jaspar (transcription factor binding motifs)"
+      ],
+      "stages": "1. Load genomic regions and select subset ;; 2. Bin genomic regions based on numerical values using bin ;; 3. Prepare motifs (get PFMs and convert to PWMs) ;; 4. Resize genomic regions to equal width and extract sequences ;; 5. Run diagnostics on sequence composition across bins using plotBinDiagnostics ;; 6. Run binned motif enrichment using calcBinnedMotifEnrR ;; 7. Filter and plot results using plotMotifHeatmaps ;; 8. Cluster motifs by similarity using motifSimilarity and plot",
+      "code": "lmrfile <- system.file(\"extdata\", \"LMRsESNPmerged.gr.rds\", package = \"monaLisa\")\nlmr <- readRDS(lmrfile)\nset.seed(1)\nlmrsel <- lmr[ sample(x = length(lmr), size = 10000, replace = FALSE) ]\nbins <- bin(x = lmrsel$deltaMeth, binmode = \"equalN\", nElement = 800, minAbsX = 0.3)\npwms <- getMatrixSet(JASPAR2020, opts = list(matrixtype = \"PWM\", tax_group = \"vertebrates\"))\nlmrsel <- trim(resize(lmrsel, width = median(width(lmrsel)), fix = \"center\"))\nlmrseqs <- getSeq(BSgenome.Mmusculus.UCSC.mm10, lmrsel)\nplotBinDiagnostics(seqs = lmrseqs, bins = bins, aspect = \"GCfrac\")\nplotBinDiagnostics(seqs = lmrseqs, bins = bins, aspect = \"dinucfreq\")\nse <- calcBinnedMotifEnrR(seqs = lmrseqs, bins = bins, pwmL = pwms)\nsel <- apply(assay(se, \"negLog10Padj\"), 1, function(x) max(abs(x), 0, na.rm = TRUE)) > 4.0\nseSel <- se[sel, ]\nplotMotifHeatmaps(x = seSel, which.plots = c(\"log2enr\", \"negLog10Padj\"), width = 2.0, cluster = TRUE, maxEnr = 2, maxSig = 10, show_motif_GC = TRUE)\nSimMatSel <- motifSimilarity(rowData(seSel)$motif.pfm)\nhcl <- hclust(as.dist(1 - SimMatSel), method = \"average\")\nplotMotifHeatmaps(x = seSel, which.plots = c(\"log2enr\", \"negLog10Padj\"), width = 1.8, cluster = hcl, maxEnr = 2, maxSig = 10, show_dendrogram = TRUE, show_seqlogo = TRUE, width.seqlogo = 1.2)"
+    },
+    {
+      "name": "binary_motif_enrichment",
+      "intent": "Compare motif enrichment between exactly two sets of sequences (e.g., unchanged vs. up-regulated).",
+      "input": [
+        "unchanged_peaks.bed (genomic coordinates of control regions)",
+        "upregulated_peaks.bed (genomic coordinates of upregulated regions)",
+        "motifs.jaspar (transcription factor binding motifs)"
+      ],
+      "stages": "1. Define two sets of genomic regions ;; 2. Combine regions and extract sequences ;; 3. Create a manual binning factor ;; 4. Run binned motif enrichment using calcBinnedMotifEnrR ;; 5. Filter and plot results using plotMotifHeatmaps",
+      "code": "lmr.unchanged <- lmrsel[abs(lmrsel$deltaMeth) < 0.05]\nlmr.up <- lmrsel[lmrsel$deltaMeth > 0.6]\nlmrsel2 <- c(lmr.unchanged, lmr.up)\nlmrseqs2 <- getSeq(BSgenome.Mmusculus.UCSC.mm10, lmrsel2)\nbins2 <- rep(c(\"unchanged\", \"up\"), c(length(lmr.unchanged), length(lmr.up)))\nbins2 <- factor(bins2)\nse2 <- calcBinnedMotifEnrR(seqs = lmrseqs2, bins = bins2, pwmL = pwms[rownames(seSel)])\nsel2 <- apply(assay(se2, \"negLog10Padj\"), 1, function(x) max(abs(x), 0, na.rm = TRUE)) > 4.0\nplotMotifHeatmaps(x = se2[sel2,], which.plots = c(\"log2enr\", \"negLog10Padj\"), width = 1.8, cluster = TRUE, maxEnr = 2, maxSig = 10, show_seqlogo = TRUE)"
+    },
+    {
+      "name": "single_set_motif_enrichment",
+      "intent": "Identify enriched motifs in a single set of sequences by comparing it to a GC-matched genomic background.",
+      "input": [
+        "foreground_peaks.bed (genomic coordinates of interest)",
+        "motifs.jaspar (transcription factor binding motifs)"
+      ],
+      "stages": "1. Extract sequences for the foreground set ;; 2. Run calcBinnedMotifEnrR with background = \"genome\", specifying the genome and oversampling parameters ;; 3. Filter and plot results using plotMotifHeatmaps",
+      "code": "lmrseqs3 <- lmrseqs[bins == levels(bins)[1]]\nse3 <- calcBinnedMotifEnrR(seqs = lmrseqs3, pwmL = pwms[rownames(seSel)], background = \"genome\", genome = BSgenome.Mmusculus.UCSC.mm10, genome.regions = NULL, genome.oversample = 2, BPPARAM = BiocParallel::SerialParam(RNGseed = 42), verbose = TRUE)\nsel3 <- assay(se3, \"negLog10Padj\")[, 1] > 4.0\nplotMotifHeatmaps(x = se3[sel3,], which.plots = c(\"log2enr\", \"negLog10Padj\"), width = 1.8, maxEnr = 2, maxSig = 10, show_seqlogo = TRUE)"
+    },
+    {
+      "name": "binned_kmer_enrichment",
+      "intent": "Perform an unbiased sequence enrichment analysis using k-mers instead of annotated motifs.",
+      "input": [
+        "peaks.bed (genomic coordinates of regions of interest)",
+        "methylation_changes.tsv (numerical values associated with each peak)"
+      ],
+      "stages": "1. Run calcBinnedKmerEnr to find enriched k-mers ;; 2. Filter enriched k-mers ;; 3. Calculate similarity between enriched k-mers and known motifs using motifKmerSimilarity ;; 4. Plot similarity heatmap with sequence logos",
+      "code": "sekm <- calcBinnedKmerEnr(seqs = lmrseqs, bins = bins, kmerLen = 6, includeRevComp = TRUE)\nselkm <- apply(assay(sekm, \"negLog10Padj\"), 1, function(x) max(abs(x), 0, na.rm = TRUE)) > 4\nsekmSel <- sekm[selkm, ]\npfmSel <- rowData(seSel)$motif.pfm\nsims <- motifKmerSimilarity(x = pfmSel, kmers = rownames(sekmSel), includeRevComp = TRUE)\nmaxwidth <- max(sapply(TFBSTools::Matrix(pfmSel), ncol))\nseqlogoGrobs <- lapply(pfmSel, seqLogoGrob, xmax = maxwidth)\nhmSeqlogo <- rowAnnotation(logo = annoSeqlogo(seqlogoGrobs, which = \"row\"), annotation_width = unit(1.5, \"inch\"), show_annotation_name = FALSE )\nHeatmap(sims, show_row_names = TRUE, row_names_gp = gpar(fontsize = 8), show_column_names = TRUE, column_names_gp = gpar(fontsize = 8), name = \"Similarity\", column_title = \"Selected TFs and enriched k-mers\", col = colorRamp2(c(0, 1), c(\"white\", \"red\")), right_annotation = hmSeqlogo)"
+    },
+    {
+      "name": "randomized_lasso_stability_selection",
+      "intent": "Identify transcription factor motifs that explain continuous experimental measurements using a regression-based approach with stability selection.",
+      "input": [
+        "atac_peaks.bed (genomic coordinates of enhancers)",
+        "accessibility_changes.tsv (log2 fold changes of accessibility)",
+        "motifs.jaspar (transcription factor binding motifs)"
+      ],
+      "stages": "1. Load genomic regions and response vector ;; 2. Scan regions for motif hits using findMotifHits to build a predictor matrix ;; 3. Calculate additional sequence composition predictors (GC fraction, CpG observed/expected ratio) and append to the predictor matrix ;; 4. Run randomized Lasso stability selection using randLassoStabSel ;; 5. Plot stability paths using plotStabilityPaths ;; 6. Plot selection probabilities using plotSelectionProb ;; 7. Visualize correlation structure of selected motifs using Heatmap",
+      "code": "gr_path <- system.file(\"extdata\", \"atac_liver_vs_lung.rds\", package = \"monaLisa\")\ngr <- readRDS(gr_path)\npfms <- getMatrixSet(JASPAR2020, list(matrixtype = \"PFM\", tax_group = \"vertebrates\"))\nset.seed(4563)\npfms <- pfms[sample(length(pfms), size = 300)]\npwms <- toPWM(pfms)\npeakSeq <- getSeq(BSgenome.Mmusculus.UCSC.mm10, gr)\nsuppressWarnings({\n  hits <- findMotifHits(query = pwms, subject = peakSeq, min.score = 10.0, BPPARAM = BiocParallel::SerialParam())\n})\nTFBSmatrix <- unclass(table(factor(seqnames(hits), levels = seqlevels(hits)), factor(hits$pwmname, levels = name(pwms))))\nzero_TF <- colSums(TFBSmatrix) == 0\nTFBSmatrix <- TFBSmatrix[, !zero_TF]\nfMono <- oligonucleotideFrequency(peakSeq, width = 1L, as.prob = TRUE)\nfDi <- oligonucleotideFrequency(peakSeq, width = 2L, as.prob = TRUE)\nfracGC <- fMono[, \"G\"] + fMono[, \"C\"]\noeCpG <- (fDi[, \"CG\"] + 0.01) / (fMono[, \"G\"] * fMono[, \"C\"] + 0.01)\nTFBSmatrix <- cbind(fracGC, oeCpG, TFBSmatrix)\nset.seed(123)\nse <- randLassoStabSel(x = TFBSmatrix, y = gr$logFC_liver_vs_lung, cutoff = 0.8)\nplotStabilityPaths(se)\nset.seed(123)\nplotStabilityPaths(se, labelPaths = TRUE)\nplotSelectionProb(se, directional = TRUE, ylimext = 0.5)\nsel <- colnames(se)[se$selected]\nse_sub <- se[, sel]\nexcl <- colnames(se_sub) %in% c(\"oeCpG\", \"fracGC\")\nse_sub <- se_sub[, !excl]\nTFBSmatrixCorSel <- cor(TFBSmatrix[, colnames(se_sub)], method = \"pearson\")\npfmsSel <- pfms[match(colnames(TFBSmatrixCorSel), name(pfms))]\nmaxwidth <- max(sapply(TFBSTools::Matrix(pfmsSel), ncol))\nseqlogoGrobs <- lapply(pfmsSel, seqLogoGrob, xmax = maxwidth)\nhmSeqlogo <- rowAnnotation(logo = annoSeqlogo(seqlogoGrobs, which = \"row\"), annotation_width = unit(2, \"inch\"), show_annotation_name = FALSE )\ncolAnn <- HeatmapAnnotation(AUC = se_sub$selAUC, selProb = se_sub$selProb, show_legend = TRUE, show_annotation_name = TRUE, col = list( AUC = colorRamp2(c(0, 1), c(\"white\", \"brown\")), selProb = colorRamp2(c(0, 1), c(\"white\", \"steelblue\"))) )\nHeatmap(TFBSmatrixCorSel, show_row_names = TRUE, show_column_names = TRUE, name = \"Pear. Cor.\", column_title = \"Selected TFs\", col = colorRamp2(c(-1, 0, 1), c(\"blue\", \"white\", \"red\")), right_annotation = hmSeqlogo, top_annotation = colAnn)"
+    },
+    {
+      "name": "annotate_genomic_regions",
+      "intent": "Scan genomic sequences for predicted transcription factor binding motif hits.",
+      "input": [
+        "promoters.bed (genomic coordinates of promoters)",
+        "motifs.jaspar (transcription factor binding motifs)"
+      ],
+      "stages": "1. Define genomic regions and extract sequences ;; 2. Load motifs and convert to PWMs ;; 3. Scan sequences for motif hits using findMotifHits ;; 4. Create a motif hit matrix (counts of motifs per sequence)",
+      "code": "library(TxDb.Mmusculus.UCSC.mm10.knownGene)\ngr <- trim(promoters(TxDb.Mmusculus.UCSC.mm10.knownGene, upstream = 1000, downstream = 500)[c(1, 4, 5, 10)])\nlibrary(BSgenome.Mmusculus.UCSC.mm10)\nseqs <- getSeq(BSgenome.Mmusculus.UCSC.mm10, gr)\nlibrary(JASPAR2020)\nlibrary(TFBSTools)\npfms <- getMatrixByID(JASPAR2020, c(\"MA0885.1\", \"MA0099.3\", \"MA0033.2\", \"MA0037.3\", \"MA0158.1\"))\npwms <- toPWM(pfms)\nres <- findMotifHits(query = pwms, subject = seqs, min.score = 6.0, method = \"matchPWM\", BPPARAM = BiocParallel::SerialParam())\nm <- table(factor(seqnames(res), levels = names(seqs)), factor(res$pwmname, levels = name(pwms)))"
+    }
+  ]
+}

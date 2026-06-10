@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=The input dataset (matrix, data.frame, SingleCellExperiment, or SpatialExperiment) ;; markers=A vector of marker names of interest to use for clustering (defaults to all columns if not provided) ;; numClusters=The number of clusters to generate ;; assay=The assay name in SingleCellExperiment/SpatialExperiment where expression data is stored (e.g., 'counts') ;; verbose=Logical indicating whether to print progress messages ;; kSeq=Sequence of cluster numbers to evaluate in estimateNumCluster (e.g., 2:25) ;; method=Method(s) for cluster estimation in estimateNumCluster (e.g., \"Discriminant\", \"Distance\") or for plotting in optiPlot (e.g., 'slope', 'jump', 'wcd', 'gap', 'silhouette') ;; clusters=Vector of cluster labels for markerHeatmap ;; clusterMarkers=Logical indicating whether to cluster markers in markerHeatmap\n- alternatives: The documentation notes that FuseSOM does not perform quality control (QC) or feature selection, and advises users to use other specialized tools for QC and feature selection prior to running FuseSOM.\n- when_to_use: Use when you have preprocessed, quality-controlled, and normalized expression data from highly multiplexed in situ imaging cytometry assays and want to perform robust, correlation-based unsupervised clustering to identify and characterize cell types.\n- pitfalls: FuseSOM does not perform QC or feature selection; running it on raw, un-QCed, or un-normalized data will lead to poor results. Additionally, running runFuseSOM again on the same SingleCellExperiment/SpatialExperiment object with the same cluster column name will overwrite the previous cluster column, and it will overwrite the SOM field in the metadata.",
+  "workflows": [
+    {
+      "name": "matrix_or_dataframe_input",
+      "intent": "Run FuseSOM clustering, estimate the optimal number of clusters, and visualize results using a standard matrix or data frame.",
+      "input": [
+        "risom_dat (data.frame or matrix of normalized expression data where columns are markers and rows are cell observations)"
+      ],
+      "stages": "1. Run FuseSOM clustering using runFuseSOM ;; 2. Generate a marker expression heatmap using markerHeatmap ;; 3. Estimate the optimal number of clusters using estimateNumCluster ;; 4. Plot cluster estimation metrics using optiPlot",
+      "code": "risomRes <- runFuseSOM(data = risom_dat, markers = risomMarkers, \n                        numClusters = 23)\ntable(risomRes$clusters)/sum(table(risomRes$clusters))\nrisomHeat <- FuseSOM::markerHeatmap(data = risom_dat, markers = risomMarkers,\n                            clusters = risomRes$clusters, clusterMarkers = TRUE)\nrisomKest <- estimateNumCluster(data = risomRes$model, kSeq = 2:25, \n                                  method = c(\"Discriminant\", \"Distance\"))\nrisomKest$Discriminant \npSlope <- optiPlot(risomKest, method = 'slope')\npSlope\npJump <- optiPlot(risomKest, method = 'jump')\npJump\npWcd <- optiPlot(risomKest, method = 'wcd')\npWcd\npGap <- optiPlot(risomKest, method = 'gap')\npGap\npSil <- optiPlot(risomKest, method = 'silhouette')\npSil"
+    },
+    {
+      "name": "sce_or_spe_input",
+      "intent": "Run FuseSOM clustering, estimate the optimal number of clusters, and visualize results using a SingleCellExperiment or SpatialExperiment object.",
+      "input": [
+        "sce (SingleCellExperiment or SpatialExperiment object containing normalized expression data in an assay)"
+      ],
+      "stages": "1. Run FuseSOM clustering on the SCE/SPE object using runFuseSOM ;; 2. Generate a marker expression heatmap using markerHeatmap ;; 3. Estimate the optimal number of clusters on the SCE/SPE object using estimateNumCluster ;; 4. Plot cluster estimation metrics using optiPlot",
+      "code": "risomRessce <- runFuseSOM(sce, markers = risomMarkers, assay = 'counts', \n                      numClusters = 23, verbose = FALSE)\ncolnames(colData(risomRessce))\nnames(metadata(risomRessce))\ndata <- risom_dat[, risomMarkers] # get the original data used\nclusters <- colData(risomRessce)$clusters # extract the clusters from the sce object\nrisomHeatsce <- markerHeatmap(data = risom_dat, markers = risomMarkers,\n                            clusters = clusters, clusterMarkers = TRUE)\nrisomRessce <- estimateNumCluster(data = risomRessce, kSeq = 2:25, \n                                  method = c(\"Discriminant\", \"Distance\"))\nnames(metadata(risomRessce))\nmetadata(risomRessce)$clusterEstimation$Discriminant \npSlope <- optiPlot(risomRessce, method = 'slope')\npSlope\npJump <- optiPlot(risomRessce, method = 'jump')\npJump\npWcd <- optiPlot(risomRessce, method = 'wcd')\npWcd\npGap <- optiPlot(risomRessce, method = 'gap')\npGap\npSil <- optiPlot(risomRessce, method = 'silhouette')\npSil"
+    }
+  ]
+}

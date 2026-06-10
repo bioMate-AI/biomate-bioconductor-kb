@@ -1,0 +1,32 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nr_studies=The number of studies being meta-analysed ;; S_XY=A list of data frames (one for each study) containing univariate summary statistics with columns for alleles, beta coefficients (traitID_b), and standard errors (traitID_se) ;; std_info=A vector of indicators (one for each study) where 1 means univariate analysis was performed on standardised data and 0 means non-standardised data ;; S_YY=A list of phenotypic correlation matrices (one for each study) estimated using estimateSyy ;; N=A vector containing the number of individuals in each study ;; analysis_type=Indicator of the analysis type (1 for single-SNP--multi-trait with a specific SNP, 2 for multi-SNP--multi-trait) ;; SNP_id=ID of the SNP of interest (a single string for analysis_type=1, or a vector of strings for analysis_type=2) ;; S_XX=A list of data frames (one for each study) containing correlations between SNPs, required only for multi-SNP--multi-trait analysis\n- alternatives: metaCcaPlusGp (metaCCA+) is an alternative to metaCcaGp (metaCCA) that shrinks the covariance matrix beyond the level guaranteeing its positive semidefinite property, which can be preferred to handle potential mathematical instabilities in the covariance structure.\n- when_to_use: Use when individual-level genotype-phenotype data are restricted or unavailable across cohorts, but univariate GWAS summary statistics are available, and you want to perform multivariate association testing of multiple traits and/or multiple SNPs jointly to increase statistical power.\n- pitfalls: Do not use underscores in trait IDs outside of the '_b' and '_se' suffixes in S_XY column names (e.g., use 'trait1_b', not 'trait_1_b') to ensure correct parsing ;; To ensure high-quality estimation of S_YY using estimateSyy, summary statistics of at least one full chromosome should be used rather than a small subset of SNPs ;; Traits and SNPs included in the meta-analysis must be identical across all studies being analysed together ;; S_XX is required for multi-SNP--multi-trait analysis but must be omitted or is not needed for single-SNP--multi-trait analysis.",
+  "workflows": [
+    {
+      "name": "single_snp_multi_trait_analysis",
+      "intent": "Test individual genetic variants one by one (or a specific selected SNP) for association with a set of phenotypic traits across one or more studies.",
+      "input": [
+        "S_XY_full_study1 (univariate summary statistics across a large number of SNPs for study 1)",
+        "S_XY_full_study2 (univariate summary statistics across a large number of SNPs for study 2)",
+        "S_XY_study1 (univariate summary statistics across the target SNPs for study 1)",
+        "S_XY_study2 (univariate summary statistics across the target SNPs for study 2)"
+      ],
+      "stages": "1. Estimate the phenotypic correlation structure (S_YY) for each study using estimateSyy ;; 2. Run the single-SNP--multi-trait association analysis using metaCcaGp or metaCcaPlusGp",
+      "code": "S_YY_study1 = estimateSyy( S_XY = S_XY_full_study1 )\nS_YY_study2 = estimateSyy( S_XY = S_XY_full_study2 )\nmetaCCA_res1 = metaCcaGp( nr_studies = 2,\n                          S_XY = list( S_XY_study1, S_XY_study2 ),\n                          std_info = c( 0, 0 ),\n                          S_YY = list( S_YY_study1, S_YY_study2 ),\n                          N = c( N1, N2) )\nmetaCCApl_res1 = metaCcaPlusGp( nr_studies = 2,\n                                S_XY = list( S_XY_study1, S_XY_study2 ),\n                                std_info = c( 0, 0 ),\n                                S_YY = list( S_YY_study1, S_YY_study2 ),\n                                N = c( N1, N2 ) )"
+    },
+    {
+      "name": "multi_snp_multi_trait_analysis",
+      "intent": "Test a set of genetic variants jointly for association with a set of phenotypic traits across one or more studies.",
+      "input": [
+        "S_XY_full_study1 (univariate summary statistics across a large number of SNPs for study 1)",
+        "S_XY_full_study2 (univariate summary statistics across a large number of SNPs for study 2)",
+        "S_XY_study1 (univariate summary statistics across the target SNPs for study 1)",
+        "S_XY_study2 (univariate summary statistics across the target SNPs for study 2)",
+        "S_XX_study1 (correlations between target SNPs for study 1)",
+        "S_XX_study2 (correlations between target SNPs for study 2)"
+      ],
+      "stages": "1. Estimate the phenotypic correlation structure (S_YY) for each study using estimateSyy ;; 2. Run the multi-SNP--multi-trait association analysis using metaCcaGp or metaCcaPlusGp with analysis_type = 2 and providing the S_XX correlation structures",
+      "code": "S_YY_study1 = estimateSyy( S_XY = S_XY_full_study1 )\nS_YY_study2 = estimateSyy( S_XY = S_XY_full_study2 )\nmetaCCA_res3 = metaCcaGp( nr_studies = 2,\n                          S_XY = list( S_XY_study1, S_XY_study2 ),\n                          std_info = c( 0, 0 ),\n                          S_YY = list( S_YY_study1, S_YY_study2 ),\n                          N = c( N1, N2 ),\n                          analysis_type = 2,\n                          SNP_id = c( 'rs10', 'rs80', 'rs140',\n                                      'rs170', 'rs172' ),\n                          S_XX = list( S_XX_study1, S_XX_study2 ) )\nmetaCCApl_res3 = metaCcaPlusGp( nr_studies = 2,\n                                S_XY = list( S_XY_study1, S_XY_study2 ),\n                                std_info = c( 0, 0 ),\n                                S_YY = list( S_YY_study1, S_YY_study2 ),\n                                N = c( N1, N2 ),\n                                analysis_type = 2,\n                                SNP_id = c( 'rs10', 'rs80', 'rs140',\n                                            'rs170', 'rs172' ),\n                                S_XX = list( S_XX_study1, S_XX_study2 ))"
+    }
+  ]
+}

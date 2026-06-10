@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maNormNN input=An object of class marrayRaw containing the two-channel microarray data to be normalized. ;; maNormNN output=An object of class marrayNorm containing the normalized log ratios.\n- alternatives: Print-tip loess normalization (for simpler univariate intensity-only normalization). limma package (RGList or MAList objects can be used but must be converted to marrayRaw using the convert package).\n- when_to_use: When analyzing two-color DNA microarray data (or paired single-channel data) that exhibit spatial and intensity-dependent biases.\n- pitfalls: The package requires input data to be in marrayRaw format; users with limma RGList or MAList objects must convert them first using the convert package.",
+  "workflows": [
+    {
+      "name": "microarray_spatial_intensity_normalization",
+      "intent": "Detect and correct spatial and intensity biases in two-channel microarray data using robust neural networks.",
+      "input": [
+        "microarray_data.marrayRaw (two-channel raw microarray data object)"
+      ],
+      "stages": "1. Load the raw microarray data ;; 2. Perform neural network normalization using maNormNN to obtain normalized log ratios",
+      "code": "library(marray)\ndata(swirl)\nlibrary(nnNorm)\nswirl_n<-maNormNN(swirl[,1:2])"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "package": "decoupler",
+  "requirements": [
+    "Seurat",
+    "decoupleR",
+    "dplyr",
+    "ggplot2",
+    "ggrepel",
+    "pheatmap",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Seurat",
+      "decoupleR",
+      "dplyr",
+      "ggplot2",
+      "pheatmap",
+      "tibble",
+      "tidyr"
+    ],
+    "pathway_activity_bulk_rnaseq.nf": [
+      "decoupleR",
+      "dplyr",
+      "ggplot2",
+      "ggrepel",
+      "pheatmap",
+      "tibble",
+      "tidyr"
+    ],
+    "tf_activity_scrnaseq.nf": [
+      "Seurat",
+      "decoupleR",
+      "dplyr",
+      "pheatmap",
+      "tibble",
+      "tidyr"
+    ]
+  }
+}

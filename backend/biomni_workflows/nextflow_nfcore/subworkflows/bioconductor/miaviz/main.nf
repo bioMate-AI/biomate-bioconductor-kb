@@ -1,134 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: miaViz
-// The miaViz package implements functions to visualize TreeSummarizedExperiment objects especially in 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/miaViz/inst/doc/miaViz.R
-// Upstream  : dplyr, mia, miaTime, scater
-// Downstream: none
-//
-// Install: BiocManager::install("miaViz")
+// Bioconductor workflow: miaViz — abundance_plotting
+// Plot taxonomic abundance by rank, subset by prevalence, and combine with sample metadata.
+// Input: GlobalPatterns
+// Container: quay.io/biocontainers/bioconductor-miaviz:1.18.0--r45hdfd78af_0
+// R packages: dplyr, ggplot2, mia, miaTime, miaViz, patchwork, scater
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, mia, miaViz, patchwork
+// Visualizations: abundance plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Transform assay to relative abundance
+//  * 2. [Visualization & Output] Plot abundance by taxonomic rank
+//  * 3. [Visualization & Output] Agglomerate and plot abundance
+//  * 4. [Visualization & Output] Filter by prevalent taxa and plot
+//  * 5. [Visualization & Output] Combine abundance plot with sample metadata using patchwork
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIAVIZ {
+process BIOC_MIAVIZ_ABUNDANCE_PLOTTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-miaviz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-miaviz:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-miaviz:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_miaviz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_miaviz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_miaviz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("dplyr", "ggplot2", "mia", "miaTime", "miaViz", "patchwork", "scater")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(mia)
     library(miaViz)
-    library(jsonlite)
+    library(patchwork)
+    library(ggplot2)
+    
+    # 1. Read the input TreeSummarizedExperiment object from the working directory
+    # The user-provided file is expected to be named "GlobalPatterns.rds"
+    GlobalPatterns <- readRDS("GlobalPatterns.rds")
+    
+    # 2. Transform assay to relative abundance
+    GlobalPatterns <- transformAssay(GlobalPatterns, method = "relabundance")
+    
+    # 3. Plot abundance by taxonomic rank (Kingdom)
+    p1 <- plotAbundance(GlobalPatterns, rank = "Kingdom", assay.type = "relabundance")
+    ggsave("abundance_kingdom.pdf", plot = p1, width = 10, height = 7)
+    
+    # 4. Agglomerate and plot abundance
+    GlobalPatterns_king <- agglomerateByRank(GlobalPatterns, "Kingdom")
+    p2 <- plotAbundance(GlobalPatterns_king, assay.type = "relabundance")
+    ggsave("abundance_king_agglomerated.pdf", plot = p2, width = 10, height = 7)
+    
+    # 5. Filter by prevalent taxa and plot
+    prev_phylum <- getPrevalent(GlobalPatterns, rank = "Phylum", detection = 0.01)
+    
+    # Save the list of prevalent phyla to a CSV file
+    write.csv(data.frame(Phylum = prev_phylum), "prevalent_phyla.csv", row.names = FALSE)
+    
+    p3 <- plotAbundance(
+        GlobalPatterns[rowData(GlobalPatterns)\$Phylum %in% prev_phylum],
+        rank = "Phylum",
+        assay.type = "relabundance")
+    ggsave("abundance_prevalent_phylum.pdf", plot = p3, width = 10, height = 7)
+    
+    # 6. Combine abundance plot with sample metadata using patchwork
+    plots <- plotAbundance(
+        GlobalPatterns[rowData(GlobalPatterns)\$Phylum %in% prev_phylum],
+        features = "SampleType",
+        rank = "Phylum",
+        assay.type = "relabundance")
+    
+    p4 <- plots\$abundance / plots\$SampleType + plot_layout(heights = c(9, 1))
+    ggsave("abundance_combined_patchwork.pdf", plot = p4, width = 12, height = 8)
+    
+    # Save the transformed TreeSummarizedExperiment object
+    saveRDS(GlobalPatterns, "GlobalPatterns_transformed.rds")
 
-    # --- Prevalence and Feature Analysis [] ---
-    # Key functions: plotFeaturePrevalence, plotPrevalentAbundance, plotPrevalence
-    p_feat <- plotFeaturePrevalence(GlobalPatterns, rank = "Phylum",
-                                    detections = c(0, 0.001, 0.01, 0.1, 0.2))
-    p_prev_abund <- plotPrevalentAbundance(GlobalPatterns, rank = "Family",
-                                           colour_by = "Phylum")
-    p_prev <- plotPrevalence(GlobalPatterns,
-                             rank = "Phylum",
-                             detections = c(0.01, 0.1, 1, 2, 5, 10, 20)/100,
-                             prevalences = seq(0.1, 1, 0.1))
-
-
-    # --- Phylogenetic Tree Visualization [] ---
-    # Key functions: plotRowTree
-    genus_se <- mia::agglomerateByRank(GlobalPatterns, "Genus")
-    genus_se <- scater::addPerFeatureQC(genus_se)
-    SummarizedExperiment::rowData(genus_se)$log_mean <- log(
-        SummarizedExperiment::rowData(genus_se)$mean
-    )
-    SummarizedExperiment::rowData(genus_se)$detected <- (
-        SummarizedExperiment::rowData(genus_se)$detected / 100
-    )
-    top_taxa <- mia::getTop(genus_se, method = "mean", top = 100L,
-                            assay.type = "counts")
-    p_tree <- plotRowTree(genus_se[top_taxa, ],
-                          tip_colour_by = "log_mean",
-                          tip_size_by = "detected",
-                          show_label = TRUE)
-
-
-    # --- Column Graph Visualization [] ---
-    # Key functions: plotColGraph
-    data(col_graph)
-    genus_se <- mia::agglomerateByRank(GlobalPatterns, "Genus")
-    p_graph <- plotColGraph(col_graph,
-                            genus_se,
-                            colour_by = "SampleType",
-                            edge_colour_by = "weight",
-                            edge_width_by = "weight",
-                            show_label = TRUE)
-
-
-    # --- Metadata and Model Fit Visualization [] ---
-    # Key functions: plotColTile, plotDMNFit
-    data(dmn_se, package = "mia")
-    p_tile <- plotColTile(GlobalPatterns,
-                          x = "SampleType",
-                          y = "Primer")
-    p_dmn <- plotDMNFit(dmn_se, type = "laplace")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_miaviz_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_miaviz_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_miaviz_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIAVIZ:", paste0("    miaviz: ", packageVersion("miaViz"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MIAVIZ_ABUNDANCE_PLOTTING":',
+        paste0('    miaViz: ', as.character(packageVersion('miaViz')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_miaviz_results.csv
-    touch ${prefix}_miaviz_output.rds
-    echo "BIOC_MIAVIZ:" > versions.yml
-    echo "    miaviz: 0.0.0" >> versions.yml
+    touch ${prefix}_abundance_plotting.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIAVIZ_WORKFLOW {
+workflow BIOC_MIAVIZ_ABUNDANCE_PLOTTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GlobalPatterns ] ]
 
     main:
-    BIOC_MIAVIZ(ch_input)
+    BIOC_MIAVIZ_ABUNDANCE_PLOTTING(ch_input)
 
     emit:
-    results  = BIOC_MIAVIZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIAVIZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIAVIZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIAVIZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIAVIZ_ABUNDANCE_PLOTTING.out.tables
+    plots    = BIOC_MIAVIZ_ABUNDANCE_PLOTTING.out.plots
+    objects  = BIOC_MIAVIZ_ABUNDANCE_PLOTTING.out.objects
+    versions = BIOC_MIAVIZ_ABUNDANCE_PLOTTING.out.versions
 }

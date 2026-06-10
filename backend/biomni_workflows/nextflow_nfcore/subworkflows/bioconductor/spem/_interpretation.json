@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <TS_eSet=An ExpressionSet containing the time-series expression matrix in assayData and exact time points in the 'time' column of phenoData ;; n=Positive integer specifying how many times SPEM will randomly guess the initial beta parameter to improve stability ;; sparsity=A positive threshold value below which estimated interactions (kinetic orders) are set to zero to enforce biological network sparsity ;; lbH, ubH=Lower and upper boundaries for the kinetic order parameters h ;; lbB, ubB=Lower and upper boundaries for the scale parameter beta ;; S=A vector representing the calculated slope of the target gene row (used in row_optimize) ;; beta=A single initial beta value used to start the optimization process (used in row_optimize)>\n- alternatives: <Alternating regression (Chou et al., 2006) and S-system parameter optimization (Vilela et al., 2008)=SPEM is preferred because it addresses the multiple-solution bottleneck in noisy data, includes built-in slope calculation (s_diff), and supports simultaneous multi-gene parameter estimation>\n- when_to_use: <When reconstructing directed, signed (activating or inhibiting) gene regulatory networks from longitudinal/time-series gene expression data using power-law S-system formalisms>\n- pitfalls: <Biological time-series data is highly noisy, which can lead to unstable optimization solutions. It is recommended to run SPEM multiple times (e.g., 10 runs) and average or round the resulting parameters to the first decimal point to define the final network topology ;; The initial beta is generated randomly, meaning exact results can vary between runs unless n is set to a sufficiently large value>",
+  "workflows": [
+    {
+      "name": "entire_network_reconstruction",
+      "intent": "Reconstruct the entire gene regulatory network parameters (alpha, G, beta, H) from a time-series ExpressionSet.",
+      "input": [
+        "user_expression_data.csv (matrix of gene expression values over time)",
+        "user_timepoints_metadata.csv (metadata mapping samples to exact time points)"
+      ],
+      "stages": "1. Prepare the expression matrix and phenoData ;; 2. Create an ExpressionSet object ;; 3. Set optimization parameters (n, sparsity, boundaries) ;; 4. Run the main SPEM function to estimate all parameters.",
+      "code": "library(\"Biobase\")\ntoy_expression_data<-matrix(data=abs(rnorm(12)),nrow=3,ncol=4,\n\tdimnames=list(paste(\"G\",c(1:3),sep=''),\n\tpaste(\"tp\",c(0,2,4,6),sep=\"_\")))\ntoy_timepoints_data<-data.frame(index=c(1:4),\n\tlabel=paste(\"tp\",c(0,2,4,6),sep='_'),\n\ttime=c(0,2,4,6),row.names=paste(\"tp\",c(0,2,4,6),sep='_'))\ntoy_varMetadata<-data.frame(labelDescription=c(\"Index number\",\"Label Detail\",\n\t\"Time points values\"),row.names=c(\"index\",\"label\",\"time\"))\ntoy_phenoData<-new(\"AnnotatedDataFrame\",\n\tdata=toy_timepoints_data,varMetadata=toy_varMetadata)\ntoy_ExpressionSet<-new(\"ExpressionSet\",\n\texprs=toy_expression_data,phenoData=toy_phenoData)\nlibrary(SPEM)\nlibrary(Rsolnp)\nlibrary(Biobase)\ndata(sos) \nn<- 1\nsparsity<- 0.2\nlbH<- -3\nubH<- 3\nlbB<- 0\nubB<- 10\nresult<-SPEM(sos,n,sparsity,lbH,ubH,lbB,ubB)"
+    },
+    {
+      "name": "row_by_row_reconstruction",
+      "intent": "Estimate S-system parameters for a single gene row using calculated slopes and row-wise optimization.",
+      "input": [
+        "user_expression_data.csv (matrix of gene expression values over time)",
+        "user_timepoints_metadata.csv (metadata mapping samples to exact time points)"
+      ],
+      "stages": "1. Load the time-series ExpressionSet ;; 2. Calculate the slope matrix using s_diff ;; 3. Extract the slope vector for the target gene ;; 4. Set optimization parameters and generate an initial random beta ;; 5. Run row_optimize to estimate parameters for the target gene.",
+      "code": "library(SPEM)\nlibrary(Rsolnp)\nlibrary(Biobase)\ndata(sos)\nSlope<- s_diff(sos)\nS<-Slope[1,]\nsparsity<- 0.2\nlbH<- -3\nubH<- 3\nlbB<- 0\nubB<- 10\nbeta<-runif(n=1,min=lbB,max=ubB)\nresult<-row_optimize(sos,S,beta,sparsity,lbH,ubH,lbB,ubB)"
+    }
+  ]
+}

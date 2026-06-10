@@ -1,138 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: twilight
-// In a typical microarray setting with gene expression data observed under two conditions, the local f
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/twilight/inst/doc/tr_2004_01.R
-// Upstream  : golubEsets, splines, stats, vsn
-// Downstream: OrderedList
-//
-// Install: BiocManager::install("twilight")
+// Bioconductor workflow: twilight — differential_expression_analysis
+// Test for differential gene expression between two conditions and estimate local false discovery rates.
+// Input: expression_matrix.csv, phenotype_labels.csv
+// Container: quay.io/biocontainers/bioconductor-twilight:1.86.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: twilight
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute permutation-based p-values and q-values using twilight.pval
+//  * 2. [Core Analysis] Estimate local false discovery rates and bootstrap confidence intervals using twilight
+//  * 3. [Visualization & Output] Plot expected vs observed scores, q-values, local FDR curve, volcano plot, and effect size distribution
 
 nextflow.enable.dsl = 2
 
-process BIOC_TWILIGHT {
+process BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-twilight"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-twilight:1.82.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-twilight:1.82.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_twilight_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_twilight_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_twilight_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(twilight)
-    library(jsonlite)
-
-    # --- Exit [] ---
-    # Key functions: exit
-    library(splines)
-    library(stats)
-    library(golubEsets)
-    library(vsn)
-    oldopt <- options(digits=3)
-    # --- Data [] ---
-    # Key functions: justvsn
-    data(Golub_Train)
-    golubNorm <- justvsn(Golub_Train)
-    id <- as.numeric(Golub_Train$ALL.AML) #$
-    # --- Pval [] ---
-    # Key functions: pval
-    library(twilight)
-    pval <- twilight.pval(golubNorm, id, B=100)
-    # --- Bitmap [] ---
-    # Key functions: bitmap, off
-    bitmap(file="tr_2004_01-scores.png",width=6,height=4.5,pointsize=10)
-    plot(expval,which="scores",grayscale=F,legend=F)
-    dev.off()
-    bitmap(file="tr_2004_01-qvalues.png",width=6,height=4.5,pointsize=10)
-    plot(expval,which="qvalues")
-    # --- Exprs [] ---
-    # Key functions: exprs, pval
-    gene <- exprs(golubNorm)[pval$result$index[1],]
-    corr <- twilight.pval(golubNorm,gene,method="spearman",quant.ci=0.99,B=100)
-    corr
-    # --- Bitmap [] ---
-    # Key functions: bitmap, off
-    bitmap(file="tr_2004_01-corr.png",width=6,height=4.5,pointsize=10)
-    plot(corr,which="scores",grayscale=F,legend=F)
-    dev.off()
-    # --- Filtering [] ---
-    # Key functions: filtering
-    yperm <- twilight.filtering(golubNorm,id,method="fc",num.perm=50,num.take=10)
-    dim(yperm)
-    # --- Pval [] ---
-    # Key functions: pval
-    yperm <- yperm[-1,]
-    b <- twilight.pval(golubNorm,yperm[1,],method="fc",yperm=yperm)
-    hist(b$result$pvalue,col="gray",br=20)
-    # --- Bitmap [] ---
-    # Key functions: bitmap, off
-    bitmap(file="tr_2004_01-hist.png",width=6,height=4.5,pointsize=10)
-    hist(b$result$pvalue,col="gray",br=20,main="",xlab="P-value")
-    dev.off()
-    # --- Combi [] ---
-    # Key functions: combi
-    twilight.combi(x,pin=FALSE,bin=FALSE)
-    # --- Pair [] ---
-    # Key functions: pair
-    twilight.permute.pair(y,7,bal=TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_twilight_results.csv", row.names = TRUE)
+    
+    # Validate presence of user input files
+    if (!file.exists("expression_matrix.csv") || !file.exists("phenotype_labels.csv")) {
+      stop("Required input files 'expression_matrix.csv' and/or 'phenotype_labels.csv' are missing in the working directory.")
+    }
+    
+    # Read user input files
+    # expression_matrix.csv: normalized gene expression matrix on additive scale (genes in rows, samples in columns)
+    expr_mat <- as.matrix(read.csv("expression_matrix.csv", row.names=1, check.names=FALSE))
+    
+    # phenotype_labels.csv: binary condition labels for samples
+    pheno <- read.csv("phenotype_labels.csv", check.names=FALSE)
+    
+    # Align phenotype labels with expression matrix columns if sample IDs are provided
+    if (ncol(pheno) >= 2 && any(pheno[[1]] %in% colnames(expr_mat))) {
+      rownames(pheno) <- pheno[[1]]
+      pheno <- pheno[colnames(expr_mat), ]
+      id <- as.numeric(as.factor(pheno[[2]]))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_twilight_results.csv")
+      id <- as.numeric(as.factor(pheno[[1]]))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_twilight_output.rds")
-    }
+    
+    # Map to the variable name used in the documented code
+    golubNorm <- expr_mat
+    
+    # Stage 1: Compute permutation-based p-values and q-values using twilight.pval
+    pval <- twilight.pval(golubNorm, id, B=100)
+    expval <- pval
+    
+    # Stage 2: Estimate local false discovery rates and bootstrap confidence intervals using twilight
+    exfdr <- twilight(expval, B=100)
+    
+    # Stage 3: Plot expected vs observed scores, q-values, local FDR curve, volcano plot, and effect size distribution
+    pdf("twilight_plots.pdf", width=8, height=6)
+    
+    plot(expval,which="scores",grayscale=F,legend=F)
+    plot(expval,which="qvalues")
+    plot(exfdr,which="fdr",grayscale=F,legend=T)
+    plot(exfdr,which="volcano")
+    plot(exfdr,which="effectsize",legend=T)
+    tab <- plot(exfdr,which="table")
+    
+    dev.off()
+    
+    # Write meaningful results to output files
+    write.csv(expval\$result, "twilight_pval_results.csv", row.names=TRUE)
+    write.csv(exfdr\$result, "twilight_fdr_results.csv", row.names=TRUE)
+    write.csv(tab, "twilight_effectsize_table.csv", row.names=TRUE)
+    saveRDS(exfdr, "twilight_fdr_object.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TWILIGHT:", paste0("    twilight: ", packageVersion("twilight"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS":',
+        paste0('    twilight: ', as.character(packageVersion('twilight')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_twilight_results.csv
-    touch ${prefix}_twilight_output.rds
-    echo "BIOC_TWILIGHT:" > versions.yml
-    echo "    twilight: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_expression_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_TWILIGHT_WORKFLOW {
+workflow BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, phenotype_labels.csv ] ]
 
     main:
-    BIOC_TWILIGHT(ch_input)
+    BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_TWILIGHT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TWILIGHT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TWILIGHT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TWILIGHT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.tables
+    plots    = BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.plots
+    objects  = BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.objects
+    versions = BIOC_TWILIGHT_DIFFERENTIAL_EXPRESSION_ANALYSIS.out.versions
 }

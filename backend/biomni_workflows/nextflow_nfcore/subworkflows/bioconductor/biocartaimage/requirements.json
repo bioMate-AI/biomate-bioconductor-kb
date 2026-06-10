@@ -1,0 +1,13 @@
+{
+  "package": "biocartaimage",
+  "requirements": [
+    "BioCartaImage",
+    "EBImage"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioCartaImage",
+      "EBImage"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "redseq",
+  "requirements": [
+    "BSgenome.Celegans.UCSC.ce2",
+    "REDseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Celegans.UCSC.ce2",
+      "REDseq"
+    ]
+  }
+}

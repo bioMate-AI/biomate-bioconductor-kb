@@ -1,0 +1,18 @@
+{
+  "package": "annaffy",
+  "requirements": [
+    "annaffy",
+    "hgu95av2.db",
+    "multtest"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "annaffy",
+      "multtest"
+    ],
+    "metadata_search.nf": [
+      "annaffy",
+      "hgu95av2.db"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: countData=The filtered and normalized expression matrix (e.g., voom-transformed expression values) with genes in rows and cells in columns ;; condition=A vector of cell-annotation/condition groupings for the single cells ;; numCores=The number of cores to be used for parallel processing based on hardware specifications\n- alternatives: The documentation notes that users are free to use alternative preprocessing strategies with different filtering/normalization methods instead of the demonstrated edgeR/limma pipeline.\n- when_to_use: Use when performing differential expression analysis on single-cell RNA-Seq (scRNA-Seq) data, particularly when a noise-tolerant, rank-based modeling approach is desired to compare two contrasting groups of cells.\n- pitfalls: The input to the ROSeq function must be a filtered and normalized read count matrix (specifically, the documentation uses voom-transformed expression values, i.e., countData=samples$count$E). Passing raw, unfiltered, or unnormalized counts directly to ROSeq without proper preprocessing may lead to incorrect results.",
+  "workflows": [
+    {
+      "name": "roseq_de_analysis",
+      "intent": "Perform rank-based differential expression analysis on single-cell RNA-Seq data.",
+      "input": [
+        "count_matrix.csv (raw read count matrix with genes in rows and cells in columns)",
+        "cell_metadata.csv (cell-annotation/condition mapping cells to contrasting groups)"
+      ],
+      "stages": "1. Load required libraries ;; 2. Filter cells and genes based on expression thresholds ;; 3. Perform TMM normalization using ROSeq::TMMnormalization ;; 4. Apply voom transformation using limma::voom ;; 5. Run differential expression analysis using ROSeq",
+      "code": "library(ROSeq)\nlibrary(edgeR)\nlibrary(limma)\nsamples<-list()\nsamples$count<-ROSeq::L_Tung_single$NA19098_NA19101_count\nsamples$group<-ROSeq::L_Tung_single$NA19098_NA19101_group\ngene_names<-rownames(samples$count)\nsamples$count<-apply(samples$count,2,function(x) as.numeric(x))\nrownames(samples$count)<-gene_names\nsamples$count<-samples$count[,colSums(samples$count> 0) > 2000]\ngkeep<-apply(samples$count,1,function(x) sum(x>2)>=3)\nsamples$count<-samples$count[gkeep,]\nsamples$count<-limma::voom(ROSeq::TMMnormalization(samples$count))\noutput<-ROSeq(countData=samples$count$E, condition = samples$group, numCores=1)"
+    }
+  ]
+}

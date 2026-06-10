@@ -1,0 +1,15 @@
+{
+  "package": "bicare",
+  "requirements": [
+    "BicARE",
+    "Biobase",
+    "GSEABase"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BicARE",
+      "Biobase",
+      "GSEABase"
+    ]
+  }
+}

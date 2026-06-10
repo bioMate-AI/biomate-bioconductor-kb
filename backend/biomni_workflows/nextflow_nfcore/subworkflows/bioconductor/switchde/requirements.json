@@ -1,0 +1,17 @@
+{
+  "package": "switchde",
+  "requirements": [
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "switchde"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "ggplot2",
+      "switchde"
+    ]
+  }
+}

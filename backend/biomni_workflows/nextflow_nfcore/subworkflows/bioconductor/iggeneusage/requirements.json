@@ -1,0 +1,26 @@
+{
+  "package": "iggeneusage",
+  "requirements": [
+    "IgGeneUsage",
+    "ggplot2",
+    "ggrepel",
+    "patchwork",
+    "reshape2",
+    "rstan"
+  ],
+  "by_workflow": {
+    "leave_one_out_robustness_analysis.nf": [
+      "IgGeneUsage",
+      "ggplot2",
+      "rstan"
+    ],
+    "main.nf": [
+      "IgGeneUsage",
+      "ggplot2",
+      "ggrepel",
+      "patchwork",
+      "reshape2",
+      "rstan"
+    ]
+  }
+}

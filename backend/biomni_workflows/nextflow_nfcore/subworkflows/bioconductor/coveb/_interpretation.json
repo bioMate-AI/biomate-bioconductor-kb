@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: samplecov=The sample covariance matrix passed as the first argument to EBsingle ;; startlambda=A thresholding parameter used to determine the block diagonal structure of the matrix when groups are unknown ;; n=The number of samples used to calculate the covariance matrix ;; groups=A list of character vectors specifying the elements in each block when the block structure is known\n- alternatives: Standard sample covariance (cov) and correlation (cov2cor) without shrinkage, which are prone to high false-positive rates at small sample sizes\n- when_to_use: When estimating gene co-expression networks or correlation matrices from transcriptomics data with small sample sizes, where reducing false positives and computational demand is critical\n- pitfalls: Setting an inappropriate startlambda threshold may lead to incorrect block diagonal structure estimation. The method assumes a block diagonal structure; if the true covariance matrix does not exhibit block-like behavior, the shrinkage prior may be misspecified.",
+  "workflows": [
+    {
+      "name": "cov_estimation_unknown_blocks",
+      "intent": "Estimate a shrunk covariance matrix from gene expression data when gene groupings/blocks are unknown, using thresholding to determine block structure.",
+      "input": [
+        "Edata (matrix of gene expression values, genes as rows, samples as columns)"
+      ],
+      "stages": "1. Filter genes based on variance across samples ;; 2. Compute the sample covariance matrix ;; 3. Estimate the shrunk covariance matrix using EBsingle with a starting threshold parameter ;; 4. Threshold the estimated covariance matrix to identify significant correlations and extract network subgraphs",
+      "code": "variances<-apply(Edata,1,var)\nedata<-Edata[which(variances>quantile(variances,0.8)),]\ncovmat<-cov(t(edata))\ncormat<-cov2cor(covmat)\nout<-EBsingle(covmat,startlambda=0.5,n=40)\noutmat<-out\noutmat[abs(out)<0.5]<-0\noutmat[abs(out)>=0.5]<-1\nclusth<-clusters(graph.adjacency(outmat))\nsel<-which(clusth$membership==6)\nsubgraphEB<-outmat[sel,sel]\nsubgraph<-cormat[sel,sel]\nsubgraph[subgraph<0.5]<-0\nsubgraph[subgraph>=0.5]<-1\ndiag(subgraph)<-0\ndiag(subgraphEB)<-0"
+    },
+    {
+      "name": "cov_estimation_known_blocks",
+      "intent": "Estimate a shrunk covariance matrix when the groupings of variables (e.g., genes in pathways) are known beforehand.",
+      "input": [
+        "samplecov (sample covariance matrix with row and column names)",
+        "groups (list of character vectors defining the variable groups/blocks)"
+      ],
+      "stages": "1. Define the known groups of variables as a list of character vectors ;; 2. Run EBsingle with the groups argument and sample size n to estimate the block-diagonal covariance matrix",
+      "code": "sigma <- matrix(c(4,2,0.5,0.5,2,3,0.5,0.5,0.5,0.5,3,2.5,0.5,0.5,2.5,4), ncol=4)\nx <- rmvnorm(n=500, mean=c(1,2,1.5,2.5), sigma=sigma)\nsamplecov<-cov(x)\nvnames<-paste(\"a\",1:4,sep=\"\")\nrownames(samplecov)<-vnames\ncolnames(samplecov)<-vnames\ntest2<-EBsingle(samplecov,groups=list(c(\"a1\",\"a2\"),c(\"a3\",\"a4\")),n=500)"
+    }
+  ]
+}

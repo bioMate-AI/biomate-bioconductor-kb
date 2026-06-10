@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: censor_val=value below which qPCR data is censored (e.g., limit of detection) ;; censor_range=uncertainty range for censored values ;; missing_range=range for missing value model ;; distance=distance metric to use, such as 'euclidean', 'cosine', or 'rankcor' ;; knn_params=list of parameters for nearest neighbor approximation (e.g., list(method = 'covertree')) ;; n_eigs/n.eigs=number of diffusion components to return (set to 0 if only DPT is needed) ;; k=limit on transitions calculated/stored to save memory/time on large datasets ;; tips=specify tip cells for DPT calculation ;; col_by=metadata column or gene name to color plots by ;; divide=branch number to further divide in DPT plots ;; dcs=diffusion components to visually spread out branches in DPT plots\n- alternatives: PCA (prcomp or princomp) should be used first for \"large-p-small-n\" data (like scRNA-Seq) to calculate diffusion components from the top PCs (typically top 50) ;; scran is recommended for preprocessing scRNA-seq data before running destiny\n- when_to_use: Use when analyzing single-cell gene expression data (qPCR or scRNA-seq) to visualize non-linear differentiation trajectories, identify branching events, calculate pseudotime, and find key driving genes.\n- pitfalls: Strong dependency of variance on mean (requires variance-stabilizing transformation like log or rlog first) ;; Outliers strongly separating a DC (consider removing outliers or selecting different DCs) ;; Large datasets causing memory issues (decrease k or downsample) ;; ExpressionSet does not support readxl's tibbles directly (convert to data.frame first)",
+  "workflows": [
+    {
+      "name": "qpcr_diffusion_map_and_dpt",
+      "intent": "Preprocess single-cell qPCR Ct data, build a diffusion map with censoring, calculate diffusion pseudotime, and visualize lineage branching.",
+      "input": [
+        "mmc4.xls (Excel sheet containing raw Ct values and cell annotations)",
+        "mmc6.xls (Excel sheet containing dilution series to calculate Limit of Detection)"
+      ],
+      "stages": "1. Import raw Ct data and convert to ExpressionSet ;; 2. Clean data by filtering out undivided cells and high Ct values ;; 3. Normalize data using housekeeper genes ;; 4. Calculate Limit of Detection (LoD) from dilution series ;; 5. Create DiffusionMap with censoring model ;; 6. Calculate Diffusion Pseudo Time (DPT) ;; 7. Plot diffusion maps and DPT branching paths.",
+      "code": "library (readxl)\nraw_ct <- read_xls ( 'mmc4.xls' , 'Sheet1' )\nlibrary (destiny)\nlibrary (Biobase)\nct <- as.ExpressionSet ( as.data.frame (raw_ct))\nnum_cells <- gsub ( '^( \\\\ d+)C.*$' , ' \\\\ 1' , ct $ Cell)\nct $ num_cells <- as.integer (num_cells)\nhave_duplications <- ct $ num_cells > 1\nnormal_vals <- apply ( exprs (ct), 2 , function (smp) all (smp <= 28 ))\ncleaned_ct <- ct[, have_duplications & normal_vals]\nhousekeepers <- c ( 'Actb' , 'Gapdh' )\nnormalizations <- colMeans ( exprs (cleaned_ct)[housekeepers, ])\nguo_norm <- cleaned_ct\nexprs (guo_norm) <- exprs (guo_norm) - normalizations\ndilutions <- read_xls ( 'mmc6.xls' , 1L)\ndilutions $ Cell <- NULL\nget_lod <- function (gene) gene[[ max ( which (gene != 28 ))]]\nlods <- apply (dilutions, 2 , get_lod)\nlod <- ceiling ( median (lods))\nlod_norm <- ceiling ( median (lods) - mean (normalizations))\nmax_cycles_norm <- ceiling ( 40 - mean (normalizations))\nguo <- guo_norm\nexprs (guo)[ exprs (cleaned_ct) >= 28 ] <- lod_norm\nthresh_dm <- DiffusionMap (guo, censor_val = lod_norm, censor_range = c (lod_norm, max_cycles_norm), verbose = FALSE )\nplot (thresh_dm, 1 : 2 , col_by = 'num_cells' , legend_main = 'Cell stage' )\ndpt <- DPT (thresh_dm)\nplot (dpt)\nplot (dpt, root = 2 , paths_to = c ( 1 , 3 ), col_by = 'branch' )\nplot (dpt, col_by = 'branch' , divide = 3 , dcs = c ( - 1 , -3 , 2 ), pch = 20 )"
+    },
+    {
+      "name": "scrna_seq_gene_relevance",
+      "intent": "Build diffusion maps from scRNA-seq data using different distance metrics and identify key driving genes via gene relevance.",
+      "input": [
+        "allen_hvg (SingleCellExperiment object containing preprocessed highly variable genes)"
+      ],
+      "stages": "1. Create DiffusionMap objects using multiple distance metrics (euclidean, cosine, rankcor) ;; 2. Calculate gene relevance for each diffusion map ;; 3. Plot gene relevance to identify top driving genes.",
+      "code": "library (destiny)\nlibrary (purrr)\nlibrary (ggplot2)\nlibrary (SingleCellExperiment)\nset.seed ( 1 )\ndms <- c ( 'euclidean' , 'cosine' , 'rankcor' ) %>% set_names () %>% map ( ~ DiffusionMap (allen_hvg, distance = ., knn_params = list ( method = 'covertree' )))\ngrs <- map (dms, gene_relevance)\ngms <- imap (grs, function (gr, dist) plot (gr, iter_smooth = 0 ) + ggtitle (dist))"
+    },
+    {
+      "name": "diffusion_map_prediction",
+      "intent": "Project new cell samples into an existing reference diffusion map.",
+      "input": [
+        "guo (Reference ExpressionSet containing cell stage annotations)"
+      ],
+      "stages": "1. Subset reference data and build a reference DiffusionMap ;; 2. Subset new query data ;; 3. Project query data into the reference map using dm_predict ;; 4. Plot reference and projected data together.",
+      "code": "ct64 <- guo[, guo $ num_cells == 64 ]\ndm64 <- DiffusionMap (ct64)\nct32 <- guo[, guo $ num_cells == 32 ]\npred32 <- dm_predict (dm64, ct32)\nplot (dm64, 1 : 2 , col = palette ()[[ 6 ]], new_dcs = pred32, col_new = palette ()[[ 4 ]])"
+    }
+  ]
+}

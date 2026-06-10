@@ -1,0 +1,15 @@
+{
+  "package": "mineica",
+  "requirements": [
+    "Biobase",
+    "MineICA",
+    "fastICA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "MineICA",
+      "fastICA"
+    ]
+  }
+}

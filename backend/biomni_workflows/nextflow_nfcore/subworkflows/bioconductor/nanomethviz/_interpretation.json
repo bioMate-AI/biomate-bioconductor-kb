@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: methy=Path to the tabix-indexed bgzipped methylation data file or a ModBamFiles object ;; samples=A data frame containing sample names and experimental groups ;; exons=A data frame containing exon annotations with specific columns (gene_id, chr, strand, start, end, transcript_id, symbol) ;; heatmap=Logical, whether to plot a read-level heatmap in plot_gene() ;; anno_regions=A data frame of genomic regions (e.g., DMRs) to highlight in plots ;; labels=Labels for samples in MDS/PCA plots (set to NULL to plot without labels) ;; groups=Grouping factor for coloring samples in MDS/PCA plots ;; NanoMethViz.site_filter=Global option to filter out low-coverage sites (default is 3) ;; NanoMethViz.highlight_col=Global option to change the highlight color of annotated regions (default is \"grey50\")\n- alternatives: ModBamResult/ModBamFiles can be used instead of NanoMethResult when working directly with modBAM files (from dorado or Megalodon) to avoid converting to tabix format ;; bsseq/DSS (via methy_to_bsseq()) should be preferred for formal differential methylation testing ;; edgeR (via bsseq_to_edger()) should be preferred for count-based differential methylation analysis over sites or regions\n- when_to_use: Use this package when you have single-read methylation calls (5mC CpG or other modifications) from ONT sequencing (dorado, modkit, Megalodon, Nanopolish, f5c) and want to visualize average methylation profiles alongside single-read heatmaps and gene annotations, or perform exploratory dimensionality reduction.\n- pitfalls: Do not use read.table() on full tabix datasets as it decompresses all data and will take a very long time ;; Modkit BED files are not supported because they do not contain read-level information, only position-aggregated data ;; Windows users will have sorting performed in-memory (which can be highly memory-intensive), whereas Linux/macOS use the memory-efficient bash sort utility ;; In modBAM files, sequencing errors can produce false modification calls; use the NanoMethViz.site_filter option to remove low-coverage sites to reduce noise.",
+  "workflows": [
+    {
+      "name": "tabular_data_import_and_plotting",
+      "intent": "Import tabular methylation calls, convert them to tabix format, construct a NanoMethResult object, and plot gene-level methylation.",
+      "input": [
+        "methy_calls.tsv.gz (tabular methylation calls from Nanopolish, f5c, Megalodon, or Modkit)",
+        "sample_anno.csv (sample annotation table with sample and group columns)"
+      ],
+      "stages": "1. Convert tabular files to tabix format using create_tabix_file() ;; 2. Retrieve exon annotations using get_exons_mm10() or get_exons_hg19() ;; 3. Define sample annotations ;; 4. Construct the NanoMethResult object ;; 5. Plot methylation patterns using plot_gene()",
+      "code": "methy_calls <- system.file(package = \"NanoMethViz\",\n    c(\"sample1_nanopolish.tsv.gz\", \"sample2_nanopolish.tsv.gz\"))\nmethy_tabix <- file.path(tempdir(), \"methy_data.bgz\")\nsamples <- c(\"sample1\", \"sample2\")\ncreate_tabix_file(methy_calls, methy_tabix, samples)\nexon_tibble <- get_exons_mm10()\nsample <- c(\n  \"B6Cast_Prom_1_bl6\", \"B6Cast_Prom_1_cast\",\n  \"B6Cast_Prom_2_bl6\", \"B6Cast_Prom_2_cast\",\n  \"B6Cast_Prom_3_bl6\", \"B6Cast_Prom_3_cast\"\n)\ngroup <- c(\"bl6\", \"cast\", \"bl6\", \"cast\", \"bl6\", \"cast\")\nsample_anno <- data.frame(sample, group, stringsAsFactors = FALSE)\nnmr <- NanoMethResult(methy, sample_anno, exon_tibble)\nplot_gene(nmr, \"Peg3\")\nbsseq_dmr <- read.table(\n    system.file(package = \"NanoMethViz\", \"dmr_subset.tsv.gz\"),\n    sep = \"\\t\",\n    header = TRUE,\n    stringsAsFactors = FALSE\n)\nplot_gene(nmr, \"Peg3\", anno_regions = bsseq_dmr)"
+    },
+    {
+      "name": "modbam_direct_plotting",
+      "intent": "Directly visualize methylation from modBAM files without converting to tabix format.",
+      "input": [
+        "peg3.bam (modBAM file containing modification tags)",
+        "sample_anno.csv (sample annotation table)"
+      ],
+      "stages": "1. Define ModBamFiles with sample names and BAM paths ;; 2. Construct ModBamResult object ;; 3. Plot methylation patterns using plot_gene()",
+      "code": "mbr <- ModBamResult(\n    methy = ModBamFiles(\n        samples = \"sample1\",\n        system.file(package = \"NanoMethViz\", \"peg3.bam\")\n    ),\n    samples = data.frame(\n        sample = \"sample1\",\n        group = 1\n    ),\n    exons = exon_tibble\n)\nplot_gene(mbr, \"Peg3\", heatmap = TRUE)"
+    },
+    {
+      "name": "downstream_export_and_dim_reduction",
+      "intent": "Export methylation data to BSseq and edgeR formats, and perform dimensionality reduction (MDS/PCA).",
+      "input": [
+        "nmr (NanoMethResult object)"
+      ],
+      "stages": "1. Convert NanoMethResult to BSseq using methy_to_bsseq() ;; 2. Convert BSseq to edgeR format using bsseq_to_edger() ;; 3. Convert BSseq to log-methylation-ratio matrix using bsseq_to_log_methy_ratio() ;; 4. Plot MDS using plot_mds() or PCA using plot_pca()",
+      "code": "nmr <- load_example_nanomethresult()\nbss <- methy_to_bsseq(nmr)\ngene_regions <- exons_to_genes(NanoMethViz::exons(nmr))\nedger_mat <- bsseq_to_edger(bss, gene_regions)\ngene_anno <- exons_to_genes(NanoMethViz::exons(nmr))\nlmr <- bsseq_to_log_methy_ratio(bss, regions = gene_anno)\nplot_mds(lmr) +\n    ggtitle(\"MDS Plot\")\nplot_pca(lmr) +\n    ggtitle(\"PCA Plot\")\nnew_labels <- gsub(\"B6Cast_Prom_\", \"\", colnames(lmr))\nnew_labels <- gsub(\"(\\\\d)_(.*)\", \"\\\\2 \\\\1\", new_labels)\ngroups <- gsub(\" \\\\d\", \"\", new_labels)\nplot_mds(lmr, labels = new_labels, groups = groups) +\n    ggtitle(\"MDS Plot\") +\n    scale_colour_brewer(palette = \"Set1\")\nplot_mds(lmr, labels = NULL, groups = groups) +\n    ggtitle(\"MDS Plot\") +\n    scale_colour_brewer(palette = \"Set1\")"
+    }
+  ]
+}

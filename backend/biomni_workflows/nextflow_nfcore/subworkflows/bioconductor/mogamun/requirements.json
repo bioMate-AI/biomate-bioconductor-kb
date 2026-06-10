@@ -1,0 +1,11 @@
+{
+  "package": "mogamun",
+  "requirements": [
+    "MOGAMUN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MOGAMUN"
+    ]
+  }
+}

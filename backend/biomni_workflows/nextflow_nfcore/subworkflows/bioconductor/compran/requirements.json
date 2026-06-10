@@ -1,0 +1,16 @@
+{
+  "package": "compran",
+  "requirements": [
+    "ComPrAn",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComPrAn"
+    ],
+    "protein_only_workflow.nf": [
+      "ComPrAn",
+      "data.table"
+    ]
+  }
+}

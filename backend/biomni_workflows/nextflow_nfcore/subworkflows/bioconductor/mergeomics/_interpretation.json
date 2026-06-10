@@ -1,0 +1,55 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: permtype=Permutation type, \"gene\" (recommended for robust performance) or \"locus\" ;; nperm=Number of permutations, default is 100 in examples but 20000 is recommended ;; mingenes=Minimum gene size for pathways, default is 10 ;; maxgenes=Maximum gene size for pathways, default is 500 ;; rmax=Overlapping ratio threshold for merging pathways, default and recommended is 0.33 ;; edgefactor=Factor for considering edge weights in wKDA, default is 0.5 ;; depth=Searching depth for KDA, default is 1 ;; direction=Directionality of regulatory interactions in wKDA, 0 for non-directional (default) and 1 for directional\n- alternatives: MDPrune (an external C++ program) is recommended for removing marker dependency (linkage disequilibrium) before running the pipeline. Locus permutation (permtype=\"locus\") can be used instead of gene permutation.\n- when_to_use: Use when integrating summary-level disease association data (GWAS, TWAS, EWAS) with functional genomics (eQTLs, ENCODE), biological pathways, and gene regulatory networks to identify causal subnetworks and key driver genes.\n- pitfalls: Marker dependency (e.g., Linkage Disequilibrium in GWAS) can cause artifacts and biases; preprocessing with MDPrune is highly recommended. Pathway size variation introduces bias; users must set mingenes and maxgenes to filter out extremely small or large pathways. Redundancy in pathways from different sources should be addressed by merging overlapping pathways using ssea2kda or tool.coalesce before running KDA.",
+  "workflows": [
+    {
+      "name": "one_step_mergeomics",
+      "intent": "Run both Marker Set Enrichment Analysis (MSEA) and Weighted Key Driver Analysis (wKDA) in a single pipeline.",
+      "input": [
+        "genes.txt (Marker-to-Gene mapping file with GENE and MARKER columns)",
+        "marker.txt (Disease association data file with MARKER and VALUE columns)",
+        "modules.txt (Pathway/module information file with MODULE and GENE columns)",
+        "coexpr.info.txt (Pathway description file with MODULE, SOURCE, and DESCR columns)",
+        "network.txt (Gene regulatory network file with HEAD, TAIL, and WEIGHT columns)"
+      ],
+      "stages": "1. Define pipeline parameters in a list ;; 2. Run the one-step pipeline using MSEA.KDA.onestep",
+      "code": "plan <- list()\nplan$label <- \"hdlc\"\nplan$folder <- \"Results\"\nplan$genfile <- system.file(\"extdata\", \n\"genes.hdlc_040kb_ld70.human_eliminated.txt\", package=\"Mergeomics\")\nplan$marfile <- system.file(\"extdata\", \n\"marker.hdlc_040kb_ld70.human_eliminated.txt\", package=\"Mergeomics\")\nplan$modfile <- system.file(\"extdata\", \n\"modules.mousecoexpr.liver.human.txt\", package=\"Mergeomics\")\nplan$inffile <- system.file(\"extdata\", \n\"coexpr.info.txt\", package=\"Mergeomics\")\nplan$netfile <- system.file(\"extdata\", \n\"network.mouseliver.mouse.txt\", package=\"Mergeomics\")\n\n## second, define pipeline parameters (e.g. permutation #, seed for random #\n## generator, min and max module sizes, max overlapping ratio, etc.)\nplan$permtype <- \"gene\" ## default setting is gene permutation\nplan$nperm <- 100 ## default value is 20000\nplan$mingenes <- 10   ## default value is 10\nplan$maxgenes <- 500   ## default value is 500\n\n## then, call the one-step pipeline function including both MSEA and KDA steps\nplan <- MSEA.KDA.onestep(plan, apply.MSEA=TRUE, apply.KDA=TRUE, \nmaxoverlap.genesets=0.20, symbol.transfer.needed=TRUE, \nsym.from=c(\"HUMAN\", \"MOUSE\"), sym.to=c(\"HUMAN\", \"MOUSE\"))"
+    },
+    {
+      "name": "step_by_step_mergeomics",
+      "intent": "Run MSEA, merge overlapping pathways, perform weighted KDA, and export visualization files sequentially.",
+      "input": [
+        "genes.txt (Marker-to-Gene mapping file with GENE and MARKER columns)",
+        "marker.txt (Disease association data file with MARKER and VALUE columns)",
+        "modules.txt (Pathway/module information file with MODULE and GENE columns)",
+        "coexpr.info.txt (Pathway description file with MODULE, SOURCE, and DESCR columns)",
+        "network.txt (Gene regulatory network file with HEAD, TAIL, and WEIGHT columns)",
+        "symbols.txt (Gene symbol translation file with HUMAN and MOUSE columns)"
+      ],
+      "stages": "1. Initialize and run MSEA using ssea.start, ssea.prepare, ssea.control, ssea.analyze, and ssea.finish ;; 2. Convert MSEA results and merge overlapping modules for KDA using ssea2kda ;; 3. Configure and run wKDA using kda.configure, kda.start, kda.prepare, kda.analyze, and kda.finish ;; 4. Export network files for Cytoscape using kda2cytoscape",
+      "code": "job.msea <- list()\njob.msea$label <- \"hdlc\"\njob.msea$folder <- \"Results\"\njob.msea$genfile <- system.file(\"extdata\", \n\"genes.hdlc_040kb_ld70.human_eliminated.txt\", package=\"Mergeomics\")\njob.msea$marfile <- system.file(\"extdata\", \n\"marker.hdlc_040kb_ld70.human_eliminated.txt\", package=\"Mergeomics\")\njob.msea$modfile <- system.file(\"extdata\", \n\"modules.mousecoexpr.liver.human.txt\", package=\"Mergeomics\")\njob.msea$inffile <- system.file(\"extdata\", \"coexpr.info.txt\", \npackage=\"Mergeomics\")\njob.msea$nperm <- 100 ## default value is 20000 (this is recommended)\njob.msea <- ssea.start(job.msea)\njob.msea <- ssea.prepare(job.msea)\njob.msea <- ssea.control(job.msea)\njob.msea <- ssea.analyze(job.msea)\njob.msea <- ssea.finish(job.msea)\n#########  Create intermediary datasets for KDA ###########\nsyms <- tool.read(system.file(\"extdata\", \"symbols.txt\", \npackage=\"Mergeomics\"))\nsyms <- syms[,c(\"HUMAN\", \"MOUSE\")]\nnames(syms) <- c(\"FROM\", \"TO\")\n\n## default and recommended rmax=0.33.\n## min.module.count is the number of the pathways to be taken from the MSEA\n## results to merge. If it is not specified (NULL), all the pathways having \n## MSEA-FDR value less than 0.25 will be considered for merging if they are \n## overlapping with the given ratio rmax. \njob.kda <- ssea2kda(job.msea, rmax=0.2, symbols=syms, min.module.count=NULL) \n#######   wKDA (Weighted key driver analysis)    ##########\njob.kda$netfile <- system.file(\"extdata\", \n\"network.mouseliver.mouse.txt\", package=\"Mergeomics\")\njob.kda <- kda.configure(job.kda)\njob.kda <- kda.start(job.kda)\njob.kda <- kda.prepare(job.kda)\njob.kda <- kda.analyze(job.kda)\njob.kda <- kda.finish(job.kda)\n######  Prepare network files for visualization   #########\n## Creates the input files for Cytoscape (http://www.cytoscape.org/)\njob.kda <- kda2cytoscape(job.kda)"
+    },
+    {
+      "name": "manual_module_merge",
+      "intent": "Manually merge and trim overlapping pathways/modules before running KDA.",
+      "input": [
+        "Significant_pathways.txt (Significant pathways file with MODULE and GENE columns)",
+        "Significant_pathways.info.txt (Pathway description file with MODULE, SOURCE, and DESCR columns)",
+        "symbols.txt (Gene symbol translation file with HUMAN and MOUSE columns)"
+      ],
+      "stages": "1. Read pathway and symbol data using tool.read ;; 2. Translate gene symbols using tool.translate ;; 3. Coalesce overlapping modules using tool.coalesce ;; 4. Format and save merged modules and info using tool.save",
+      "code": "job <-list()\njob$folder <- c(\"module_merge\")\n## The moddata and modinfo either come from the significant pathways found in\n## any previous MSEA run or these files can be manually curated by the user.\n## moddata is an obligatory input file; while modinfo is an optional input.\n## It is recommended to merge the overlapping pathways among significant\n## ones before applying KDA to proceed with the independent gene sets.\nmoddata <- tool.read(system.file(\"extdata\", \"Significant_pathways.txt\",\npackage=\"Mergeomics\"), c(\"MODULE\",\"GENE\"))\nmodinfo <- tool.read(system.file(\"extdata\", \"Significant_pathways.info.txt\",\npackage=\"Mergeomics\"),c(\"MODULE\",\"SOURCE\",\"DESCR\"))\n\nsyms <- tool.read(system.file(\"extdata\", \"symbols.txt\", \npackage=\"Mergeomics\"))\nsyms <- syms[,c(\"HUMAN\", \"MOUSE\")]\nnames(syms) <- c(\"FROM\", \"TO\")\nmoddata$GENE <- tool.translate(words=moddata$GENE, from=syms$FROM,\nto=syms$TO)\n\n## Merge and trim overlapping modules.\nrmax <- 0.2\nmoddata$OVERLAP <- moddata$MODULE\nmoddata <- tool.coalesce(items=moddata$GENE, groups=moddata$MODULE, \nrcutoff=rmax)\nmoddata$MODULE <- moddata$CLUSTER\nmoddata$GENE <- moddata$ITEM\nmoddata$OVERLAP <- moddata$GROUPS\nmoddata <- moddata[,c(\"MODULE\", \"GENE\", \"OVERLAP\")]\nmoddata <- unique(moddata)\nmodinfo <- modinfo[which(!is.na(match(modinfo[,1], moddata[,1]))), ]\n\n## Mark modules with overlaps.\nfor(i in which(moddata$MODULE != moddata$OVERLAP)){\n    modinfo[which(modinfo[,\"MODULE\"] == moddata[i,\"MODULE\"]), \n            \"MODULE\"] <- paste(moddata[i,\"MODULE\"], \"..\", sep=\",\")\n    moddata[i,\"MODULE\"] <- paste(moddata[i,\"MODULE\"], \"..\", sep=\",\")\n}\n## Save merged module data and info for KDA.\nmodfile <- \"mergedModules.txt\"\nmodinfofile <- \"mergedModules.info.txt\"\nmoddata$NODE <- moddata$GENE\ntool.save(frame=unique(moddata[,c(\"MODULE\", \"GENE\", \"OVERLAP\", \"NODE\")]),\nfile=modfile, directory=job$folder)\ntool.save(frame=unique(modinfo[,c(\"MODULE\",\"SOURCE\",\"DESCR\")]),\nfile=modinfofile, directory=job$folder)"
+    },
+    {
+      "name": "meta_msea",
+      "intent": "Perform meta-analysis at the pathway or network level across multiple independent MSEA runs.",
+      "input": [
+        "job.msea1 (First completed MSEA job object)",
+        "job.msea2 (Second completed MSEA job object)",
+        "job.msea3 (Third completed MSEA job object)"
+      ],
+      "stages": "1. Combine MSEA job objects into a list ;; 2. Run meta-analysis using ssea.meta",
+      "code": "# job.metamsea = list()\n# job.metamsea$job1 = job.msea1\n# job.metamsea$job2 = job.msea2\n# job.metamsea$job3 = job.msea3\n# job.metamsea = ssea.meta(job.metamsea,\"meta_label\",\n# \"meta_folder\")"
+    }
+  ]
+}

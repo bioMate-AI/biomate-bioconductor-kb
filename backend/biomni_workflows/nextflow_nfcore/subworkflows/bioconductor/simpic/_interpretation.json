@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pm.distr=Distribution for peak means (default is \"weibull\", options include \"gamma\", \"lognormal-gamma\", or \"pareto\") ;; nPeaks=Number of peaks to simulate ;; nCells=Number of cells to simulate ;; method=Simulation method (set to \"groups\" for simulating multiple cell types/groups) ;; nGroups=Number of cell-type groups to simulate ;; group.prob=Vector of proportions for each cell-type group (must sum to 1) ;; nBatches=Number of batches to simulate ;; batchCells=Vector specifying the number of cells in each batch ;; update=A list of parameters to update simultaneously in setsimPICparameters\n- alternatives: PICsnATAC (GitHub package/vignette) is recommended for converting raw scATAC-seq files (barcodes, peaks, fragments) into a Paired-Insertion Count (PIC) matrix format before using simPIC\n- when_to_use: Appropriate when users need to generate realistic synthetic scATAC-seq datasets that mimic the sparsity, library size, and peak mean characteristics of real data, or when testing downstream single-cell ATAC-seq analysis methods under controlled cell-type compositions and batch effects\n- pitfalls: The input count matrix should ideally be a Paired-Insertion Count (PIC) matrix for optimal quantitative information utilization ;; When simulating multiple groups, group.prob must sum to 1 ;; exp.libsize and exp.peakmean in the output metadata represent expected values, not the final simulated counts",
+  "workflows": [
+    {
+      "name": "pic_matrix_generation",
+      "intent": "Generate a Paired-Insertion Count (PIC) matrix from raw single-cell ATAC-seq files.",
+      "input": [
+        "singlecell.csv (cell barcodes with metadata)",
+        "peaks.bed (list of peak regions)",
+        "fragment.tsv.gz (fragment files)"
+      ],
+      "stages": "1. Run PIC counting to generate the PIC matrix using PIC_counting.",
+      "code": "pic_mat <- PIC_counting(\n    cells = cells,\n    fragment_tsv_gz_file_location = fragment_tsv_gz_file_location,\n    peak_sets = peak_sets\n)"
+    },
+    {
+      "name": "scatac_simulation_and_comparison",
+      "intent": "Estimate parameters from a real scATAC-seq count matrix, simulate synthetic datasets with custom parameters (including multiple cell types and batch effects), and compare the simulated data to the real data.",
+      "input": [
+        "test.rds (real scATAC-seq count matrix in dgCMatrix format)"
+      ],
+      "stages": "1. Load the real count matrix ;; 2. Estimate parameters using simPICestimate ;; 3. Simulate synthetic counts using simPICsimulate ;; 4. Customize simulation parameters using setsimPICparameters and simPICgetparameters ;; 5. Simulate multiple cell types (groups) and batch effects ;; 6. Compare simulated datasets using simPICcompare.",
+      "code": "counts <- readRDS(system.file(\"extdata\", \"test.rds\", package = \"simPIC\"))\nest <- simPICestimate(counts)\nsim <- simPICsimulate(est)\nsim.params <- newsimPICcount()\nsim.params <- setsimPICparameters(sim.params, nPeaks = 2000)\nsimPICget(sim.params, \"nPeaks\")\nsim.params <- setsimPICparameters(sim.params,\n    update = list(nPeaks = 8000, nCells = 500)\n)\nparams <- simPICgetparameters(\n    sim.params,\n    c(\"nPeaks\", \"nCells\", \"peak.mean.shape\")\n)\nparams <- setsimPICparameters(sim.params,\n    lib.size.sdlog = 3.5, lib.size.meanlog = 9.07\n)\nnew <- newsimPICcount()\nnew <- simPICestimate(counts)\nsim <- simPICsimulate(new, nCells = 500)\ncounts(sim)[1:5, 1:5]\nhead(rowData(sim))\nhead(colData(sim))\nnames(assays(sim))\nsim1 <- simPICsimulate(nPeaks = 2000, nCells = 500)\nsim2 <- simPICsimulate(nPeaks = 2000, nCells = 500)\ncomparison <- simPICcompare(list(real = sim1, simPIC = sim2))\ncomparison$Plots$Means\nsim <- simPICsimulate(new, method = \"groups\", \n                nGroups = 2, group.prob = c(0.5, 0.5))\nsim_multi <- simPICsimulate(new, method =\"groups\", \n                            nGroups = 2, \n                            group.prob = c(0.7, 0.3))\nsim_batch <- simPICsimulate(new, method=\"groups\",\n                            nGroups=2, nBatches=2,\n                            group.prob=c(0.5, 0.5),\n                            batchCells=c(250,250))"
+    }
+  ]
+}

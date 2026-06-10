@@ -1,110 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: fgsea
-// The package implements an algorithm for fast gene set enrichment analysis. Using the fast algorithm 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/fgsea/inst/doc/fgsea-tutorial.R
-// Upstream  : BiocParallel, GEOquery, Seurat, ggplot2, limma
-// Downstream: gsean, metapone, PPInfer
-//
-// Install: BiocManager::install("fgsea")
+// Bioconductor workflow: fgsea — preranked_gsea
+// Run fast preranked gene set enrichment analysis on a ranked list of genes.
+// Input: naive.vs.th1.rnk, mouse.reactome.gmt
+// Container: quay.io/biocontainers/bioconductor-fgsea:1.36.2--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: data.table, fgsea, ggplot2, org.Mm.eg.db
+// Visualizations: enrichment plot, GSEA table plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load gene ranks from file
+//  * 2. [Input & Preparation] Load pathways from GMT file
+//  * 3. [Core Analysis] Run fgsea with specified size limits and p-value resolution
+//  * 4. [Core Analysis] Collapse redundant pathways to identify independent main pathways
+//  * 5. [Visualization & Output] Plot enrichment curves and GSEA tables
+//  * 6. [Core Analysis] Map gene IDs to symbols for readability
+//  * 7. [Visualization & Output] Save results to a text file
 
 nextflow.enable.dsl = 2
 
-process BIOC_FGSEA {
+process BIOC_FGSEA_PRERANKED_GSEA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fgsea"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fgsea:1.32.4--r44_0' :
-        'quay.io/biocontainers/bioconductor-fgsea:1.32.4--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fgsea_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fgsea_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fgsea_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(fgsea)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data, seed
-    ---------------------------------------------------------------------
-    data(examplePathways)
-    data(exampleRanks)
-    set.seed(42)
-    # --- Fgsea [] ---
-    # Key functions: fgsea
-    ---------------------------------------------------------------------
-    fgseaRes <- fgsea(pathways = examplePathways,
-                      stats    = exampleRanks,
-                      minSize  = 15,
-                      maxSize  = 500)
-    # --- Table [] ---
-    # Key functions: setNames
-    ---------------------------------------------------------------------
-    ranks <- read.table(rnk.file,
-                        header=TRUE, colClasses = c("character", "numeric"))
-    ranks <- setNames(ranks$t, ranks$ID)
-    str(ranks)
-    # --- Gmtpathways [] ---
-    # Key functions: gmtPathways
-    ---------------------------------------------------------------------
+    library(data.table)
+    library(ggplot2)
+    library(org.Mm.eg.db)
+    
+    # 1. Load gene ranks from file
+    rnk.file <- "naive.vs.th1.rnk"
+    ranks <- read.table(rnk.file, header=TRUE, colClasses = c("character", "numeric"))
+    ranks <- setNames(ranks\$t, ranks\$ID)
+    
+    # 2. Load pathways from GMT file
+    gmt.file <- "mouse.reactome.gmt"
     pathways <- gmtPathways(gmt.file)
-    str(head(pathways))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fgsea_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fgsea_results.csv")
+    
+    # 3. Run fgsea with specified size limits and p-value resolution
+    # Run with eps = 0.0 for exact/more accurate p-value estimation
+    fgseaRes <- fgsea(pathways = pathways, stats = ranks, eps = 0.0, minSize = 15, maxSize = 500)
+    
+    # 4. Plot enrichment curves
+    # Identify a valid pathway to plot (preferring Programmed Cell Death if present)
+    target_pathway <- "5991130_Programmed_Cell_Death"
+    if (!(target_pathway %in% names(pathways))) {
+      matches <- grep("5991130|Programmed_Cell_Death", names(pathways), value = TRUE)
+      if (length(matches) > 0) {
+        target_pathway <- matches[1]
+      } else {
+        target_pathway <- names(pathways)[1]
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fgsea_output.rds")
-    }
+    
+    p_enrich <- plotEnrichment(pathways[[target_pathway]], ranks) + labs(title=target_pathway)
+    ggsave("enrichment_plot.pdf", plot = p_enrich, width = 7, height = 5)
+    
+    # 5. Collapse redundant pathways to identify independent main pathways
+    # Use tryCatch to handle cases where no pathways pass the strict padj < 0.01 threshold
+    collapsedPathways <- tryCatch({
+      collapsePathways(fgseaRes[order(pval)][padj < 0.01], pathways, ranks)
+    }, error = function(e) {
+      message("No pathways significant at padj < 0.01, trying padj < 0.05")
+      collapsePathways(fgseaRes[order(pval)][padj < 0.05], pathways, ranks)
+    })
+    
+    mainPathways <- fgseaRes[pathway %in% collapsedPathways\$mainPathways][order(-NES), pathway]
+    
+    # 6. Plot GSEA table for the main independent pathways
+    pdf("gsea_table_plot.pdf", width = 12, height = 8)
+    # Limit to top 30 pathways to ensure the plot remains readable
+    plot_pathways <- head(mainPathways, 30)
+    plotGseaTable(pathways[plot_pathways], ranks, fgseaRes, gseaParam = 0.5)
+    dev.off()
+    
+    # 7. Save full results to a text file
+    fwrite(fgseaRes, file="fgseaRes.txt", sep="\t", sep2=c("", " ", ""))
+    
+    # 8. Map gene IDs to symbols for readability and save main pathways
+    fgseaResMain <- fgseaRes[match(mainPathways, pathway)]
+    fgseaResMain[, leadingEdge := mapIdsList(x=org.Mm.eg.db, keys=leadingEdge, keytype="ENTREZID", column="SYMBOL")]
+    
+    fwrite(fgseaResMain, file="fgseaResMain.txt", sep="\t", sep2=c("", " ", ""))
+    
+    # Save RDS objects for downstream analysis
+    saveRDS(fgseaRes, "fgseaRes.rds")
+    saveRDS(fgseaResMain, "fgseaResMain.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FGSEA:", paste0("    fgsea: ", packageVersion("fgsea"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FGSEA_PRERANKED_GSEA":',
+        paste0('    fgsea: ', as.character(packageVersion('fgsea')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fgsea_results.csv
-    touch ${prefix}_fgsea_output.rds
-    echo "BIOC_FGSEA:" > versions.yml
-    echo "    fgsea: 0.0.0" >> versions.yml
+    touch ${prefix}_preranked_gsea.csv versions.yml
     """
 }
 
-
-workflow BIOC_FGSEA_WORKFLOW {
+workflow BIOC_FGSEA_PRERANKED_GSEA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ naive.vs.th1.rnk, mouse.reactome.gmt ] ]
 
     main:
-    BIOC_FGSEA(ch_input)
+    BIOC_FGSEA_PRERANKED_GSEA(ch_input)
 
     emit:
-    results  = BIOC_FGSEA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FGSEA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FGSEA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FGSEA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FGSEA_PRERANKED_GSEA.out.tables
+    plots    = BIOC_FGSEA_PRERANKED_GSEA.out.plots
+    objects  = BIOC_FGSEA_PRERANKED_GSEA.out.objects
+    versions = BIOC_FGSEA_PRERANKED_GSEA.out.versions
 }

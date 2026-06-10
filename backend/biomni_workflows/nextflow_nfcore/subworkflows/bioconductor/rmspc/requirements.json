@@ -1,0 +1,20 @@
+{
+  "package": "rmspc",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "rmspc",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "granges_input.nf": [
+      "GenomicRanges",
+      "rmspc",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "BiocGenerics",
+      "rmspc"
+    ]
+  }
+}

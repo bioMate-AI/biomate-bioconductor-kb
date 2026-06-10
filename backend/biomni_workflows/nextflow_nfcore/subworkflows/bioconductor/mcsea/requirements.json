@@ -1,0 +1,14 @@
+{
+  "package": "mcsea",
+  "requirements": [
+    "mCSEA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mCSEA"
+    ],
+    "methylation_expression_integration.nf": [
+      "mCSEA"
+    ]
+  }
+}

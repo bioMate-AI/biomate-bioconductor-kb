@@ -1,0 +1,21 @@
+{
+  "package": "lefser",
+  "requirements": [
+    "SummarizedExperiment",
+    "lefser",
+    "mia",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "lefser"
+    ],
+    "phyloseq_integration.nf": [
+      "SummarizedExperiment",
+      "lefser",
+      "mia",
+      "phyloseq"
+    ]
+  }
+}

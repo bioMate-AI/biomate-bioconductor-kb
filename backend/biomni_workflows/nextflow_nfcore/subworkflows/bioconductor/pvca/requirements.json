@@ -1,0 +1,13 @@
+{
+  "package": "pvca",
+  "requirements": [
+    "Biobase",
+    "pvca"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "pvca"
+    ]
+  }
+}

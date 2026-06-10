@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SHAREDOBJECT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-sharedobject"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sharedobject:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sharedobject:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,110 +40,64 @@ process BIOC_SHAREDOBJECT {
     library(SharedObject)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: share
-    ## Create data
+    # --- Create Shared Objects [] ---
+    # Key functions: share, is.shared
     A1 <- matrix(1:9, 3, 3)
-    ## Create a shared object
     A2 <- share(A1)
-    # --- Code Block 2 [] ---
-    # Key functions: makeCluster, clusterExport, clusterEvalQ, shared, stopCluster
-    library(parallel)
-    ## Create a cluster with only 1 worker
-    cl <- makeCluster(1)
-    clusterExport(cl, "A2")
-    ## Check if the object is still a shared object
-    # --- Code Block 3 [] ---
-    # Key functions: share, serialize
-    ## make a larger vector
-    x1 <- rep(0, 10000)
-    x2 <- share(x1)
-    ## This is the actual data that will
-    ## be sent to the other R workers
-    # --- Code Block 4 [] ---
-    # Key functions: symbol, share
-    ## the element `A` is sharable and `B` is not
-    x <- list(A = 1:3, B = as.symbol("x"))
-    ## No error will be given,
-    ## but the element `B` is not shared
-    shared_x <- share(x)
-    # --- Code Block 5 [] ---
+    status_A1 <- is.shared(A1)
+    status_A2 <- is.shared(A2)
+    x1 <- list(A = 1:3, B = as.symbol("x"))
+    shared_x <- share(x1)
+    is_shared_list <- is.shared(shared_x)
+
+    # --- Configure Shared Object Options [] ---
     # Key functions: sharedObjectPkgOptions
-    sharedObjectPkgOptions()
-    #> $mustWork
-    #> [1] FALSE
-    #>
-    #> $sharedAttributes
-    # --- Code Block 6 [] ---
-    # Key functions: share, shared
-    x1 <- share(1:4)
-    x2 <- x1
-    ## x2 becames a regular R object after the change
-    is.shared(x2)
-    #> [1] TRUE
-    # --- Code Block 7 [] ---
-    # Key functions: share, shared
+    opts <- sharedObjectPkgOptions()
+    sharedObjectPkgOptions(mustWork = TRUE)
+    new_opts <- sharedObjectPkgOptions()
+    sharedObjectPkgOptions(mustWork = FALSE)
+
+    # --- Parallel Processing with Shared Objects [] ---
+    # Key functions: share, is.shared
+    large_vec <- share(rep(0, 10000))
+    cl <- parallel::makeCluster(2)
+    parallel::clusterExport(cl, "large_vec")
+    results <- parallel::clusterEvalQ(cl, {
+        SharedObject::is.shared(large_vec)
+    })
+    parallel::stopCluster(cl)
+
+    # --- Manage Shared Memory [] ---
+    # Key functions: share, is.shared, listSharedObjects
     x1 <- share(1:4, copyOnWrite = FALSE)
     x2 <- x1
-    ## x2 will not be duplicated when a change is made
-    is.shared(x2)
-    #> [1] TRUE
-    # --- Code Block 8 [] ---
-    # Key functions: share
-    x <- share(1:4, copyOnWrite = FALSE)
-    x
-    #> [1] 1 2 3 4
-    -x
-    #> [1] -1 -2 -3 -4
-    # --- Code Block 9 [] ---
-    # Key functions: share, setCopyOnWrite
-    ## Create x1 with copy-on-write off
-    x1 <- share(1:4, copyOnWrite = FALSE)
-    x2 <- x1
-    ## change the value of x2
     x2[1] <- 0L
-    # --- Code Block 10 [] ---
-    # Key functions: share, shared
-    x1 <- share(1:4)
-    x2 <- x1
-    ## x2 is not shared after the duplication
-    is.shared(x2)
-    #> [1] TRUE
-    # --- Code Block 11 [] ---
-    # Key functions: listSharedObjects
-    listSharedObjects()
-    #>   Id  size
-    #> 1 53    36
-    #> 2 54 80000
-    #> 3 57    12
-    # --- Code Block 12 [] ---
-    # Key functions: pkgconfig
-    SHARED_OBJECT_LIBS = $(shell echo 'SharedObject:::pkgconfig("PKG_LIBS")'|\
-    "${R_HOME}/bin/R" --vanilla --slave)
-    SHARED_OBJECT_CPPFLAGS = $(shell echo 'SharedObject:::pkgconfig("PKG_CPPFLAGS")'|\
-    "${R_HOME}/bin/R" --vanilla --slave)
-    PKG_LIBS := $(PKG_LIBS) $(SHARED_OBJECT_LIBS)
-    # --- Code Block 13 [] ---
-    # Key functions: 1, namespace
-    sessionInfo()
-    #> R version 4.4.1 (2024-06-14)
-    #> Platform: x86_64-pc-linux-gnu
-    #> Running under: Ubuntu 24.04.1 LTS
-    #>
+    shared_status <- is.shared(x2)
+    shared_list <- listSharedObjects()
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sharedobject_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_sharedobject_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sharedobject_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_sharedobject_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sharedobject_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_sharedobject_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SHAREDOBJECT:", paste0("    sharedobject: ", packageVersion("SharedObject"))),
+        c("BIOC_SHAREDOBJECT:", paste0("    sharedobject: ", as.character(packageVersion("SharedObject")))),
         "versions.yml"
     )
     """

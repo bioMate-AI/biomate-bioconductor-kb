@@ -1,0 +1,20 @@
+{
+  "package": "hiccompare",
+  "requirements": [
+    "BiocParallel",
+    "HiCcompare",
+    "InteractionSet",
+    "knitr"
+  ],
+  "by_workflow": {
+    "genome_wide_parallel_comparison.nf": [
+      "BiocParallel",
+      "HiCcompare"
+    ],
+    "main.nf": [
+      "HiCcompare",
+      "InteractionSet",
+      "knitr"
+    ]
+  }
+}

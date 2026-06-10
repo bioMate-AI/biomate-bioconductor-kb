@@ -1,147 +1,105 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GSCA
-// GSCA takes as input several lists of activated and repressed genes. GSCA then searches through a com
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GSCA/inst/doc/GSCA.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GSCA")
+// Bioconductor workflow: GSCA — gsca_enrichment_analysis
+// Identify and visualize biological contexts (cell types, tissues, or diseases) enriched with a specific gene set activity pattern.
+// Input: genedata.csv, pattern.csv
+// Container: quay.io/biocontainers/bioconductor-gsca:2.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSCA
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Format the gene set data and weights into the required three-column data frame structure
+//  * 2. [Input & Preparation] Define the target activity pattern and cutoffs in a four-column data frame
+//  * 3. [Core Analysis] Run the enrichment search across the selected compendium using GSCA
+//  * 4. [Visualization & Output] Visualize the top-ranked biological contexts using GSCAplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_GSCA {
+process BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gsca"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gsca:2.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gsca:2.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gsca_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gsca_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gsca_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GSCA)
-    library(GSCAeda)
-    library(GSCAplot)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load the required Bioconductor library
+        library(GSCA)
+        
+        # Read user input files from the working directory
+        # genedata.csv must contain columns: gsname, gene (numeric Entrez ID), weight (1 or -1)
+        Octgenedata <- read.csv("genedata.csv", stringsAsFactors = FALSE)
+        
+        # pattern.csv must contain columns: gsname, acttype ("High"/"Low"), cotype ("Norm"/"Quantile"/"Exprs"), cutoff (numeric)
+        Octpattern <- read.csv("pattern.csv", stringsAsFactors = FALSE)
+        
+        # Ensure correct data types for GSCA input requirements
+        Octgenedata\$gene <- as.numeric(Octgenedata\$gene)
+        Octgenedata\$weight <- as.numeric(Octgenedata\$weight)
+        Octpattern\$cutoff <- as.numeric(Octpattern\$cutoff)
+        
+        # Run the enrichment search across the selected compendium (hgu133a)
+        displayoct <- Octoutput <- GSCA(Octgenedata, Octpattern, "hgu133a", Pval.co = 0.05, directory = NULL)
+        
+        # Save the meaningful results to output files
+        # 1. Save the ranking table of biological contexts as a CSV file
+        write.csv(Octoutput[[1]], "gsca_results.csv", row.names = FALSE)
+        
+        # 2. Save the complete GSCA output object as an RDS file
+        saveRDS(Octoutput, "gsca_output.rds")
+        
+        # 3. Visualize the top-ranked biological contexts and save to a PDF file
+        GSCAplot(Octoutput, N = 5, plotfile = "gsca_plot.pdf", Title = "GSCA Plot")
 
-    # --- Gene Set Co-expression Analysis [] ---
-    # Key functions: GSCA
-    Octoutput <- GSCA(
-        Octgenedata,
-        Octpattern,
-        "moe4302",
-        Pval.co = 0.05,
-        directory = NULL
-    )
-    displayoct <- Octoutput
-    displayoct[[1]]$SampleType <- substr(
-        displayoct[[1]]$SampleType, 1, 25
-    )
-
-
-    # --- Visualization [] ---
-    # Key functions: GSCAplot
-    GSCAplot(
-        Octoutput,
-        N = 5,
-        plotfile = NULL,
-        Title = "GSCA plot of Oct4 in ESC"
-    )
-
-
-    # --- GEO Dataset Search [] ---
-    # Key functions: tabSearch
-    GSE7123out <- tabSearch(
-        "GSE7123",
-        "hgu133a"
-    )
-
-
-    # --- Exploratory Data Analysis [] ---
-    # Key functions: GSCAeda
-    data(STAT1_TG)
-    Statgenenum <- length(STAT1_TG)
-    Statgenedata <- data.frame(
-        gsname = c("TF", rep("TG", Statgenenum)),
-        gene = c(6772, STAT1_TG),
-        weight = 1,
-        stringsAsFactors = FALSE
-    )
-    Statpattern <- data.frame(
-        gsname = c("TF", "TG"),
-        acttype = "High",
-        cotype = "Norm",
-        cutoff = 0.1,
-        stringsAsFactors = FALSE
-    )
-    GSE7123followup <- GSCAeda(
-        Statgenedata,
-        Statpattern,
-        "hgu133a",
-        GSE7123out,
-        Pval.co = 0.05,
-        Ordering = "Average",
-        Title = NULL,
-        outputdir = NULL
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gsca_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gsca_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gsca_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GSCA:", paste0("    gsca: ", packageVersion("GSCA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS":',
+        paste0('    GSCA: ', as.character(packageVersion('GSCA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gsca_results.csv
-    touch ${prefix}_gsca_output.rds
-    echo "BIOC_GSCA:" > versions.yml
-    echo "    gsca: 0.0.0" >> versions.yml
+    touch ${prefix}_gsca_enrichment_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GSCA_WORKFLOW {
+workflow BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ genedata.csv, pattern.csv ] ]
 
     main:
-    BIOC_GSCA(ch_input)
+    BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GSCA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GSCA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GSCA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GSCA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS.out.tables
+    plots    = BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS.out.plots
+    objects  = BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS.out.objects
+    versions = BIOC_GSCA_GSCA_ENRICHMENT_ANALYSIS.out.versions
 }

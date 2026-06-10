@@ -1,0 +1,20 @@
+{
+  "package": "isobar",
+  "requirements": [
+    "distr",
+    "ggplot2",
+    "isobar"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "distr",
+      "ggplot2",
+      "isobar"
+    ],
+    "ptm_localization_quant.nf": [
+      "distr",
+      "ggplot2",
+      "isobar"
+    ]
+  }
+}

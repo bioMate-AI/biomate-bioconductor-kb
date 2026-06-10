@@ -1,99 +1,185 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: qpgraph
-// Estimate gene and eQTL networks from high-throughput expression and genotyping assays.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/qpgraph/inst/doc/eQTLnetworks.R
-// Upstream  : graph, grid, qtl
-// Downstream: none
-//
-// Install: BiocManager::install("qpgraph")
+// Bioconductor workflow: qpgraph — eqtl_network_estimation
+// Estimate an eQTL network from genotyping cross data, physical maps, and gene annotations.
+// Input: cross.RData, physical_map.RData, gene_annotation.csv, genome_info.RData
+// Container: quay.io/biocontainers/bioconductor-qpgraph:2.44.0--r45h01b2380_0
+// R packages: GenomeInfoDb, graph, qpgraph, qtl
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomeInfoDb, graph, qpgraph, qtl
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define estimation parameters using eQTLnetworkEstimationParam
+//  * 2. [Core Analysis] Estimate the initial network using eQTLnetworkEstimate with a formula
+//  * 3. [Core Analysis] Apply FDR correction to filter the network
+//  * 4. [Core Analysis] Refine the network using non-rejection rates conditioning on genes
+//  * 5. [Core Analysis] Filter by effect size (epsilon) and select significant associations (alpha)
+//  * 6. [Core Analysis] Extract eQTL associations using alleQTL
+//  * 7. [Visualization & Output] Plot the network using hive plots or standard graphs
 
 nextflow.enable.dsl = 2
 
-process BIOC_QPGRAPH {
+process BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-qpgraph"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-qpgraph:2.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-qpgraph:2.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_qpgraph_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_qpgraph_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_qpgraph_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(qpgraph)
-    library(Seqinfo)
-    library(jsonlite)
-
-    # --- Graphical Model Estimation [] ---
-    # Key functions: qpGraph
-    g <- qpGraph(nrr, threshold = 0.5)
-
-
-    # --- Network Visualization [] ---
-    # Key functions: plot
-    plot(g, main = "Estimated Network")
-
-
-    # --- Hive Plot Visualization [] ---
-    # Key functions: plot
-    plot(eqtlnet.q0.fdr.nrr.sel, type = "hive", chr = 1)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_qpgraph_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_qpgraph_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomeInfoDb", "graph", "qpgraph", "qtl")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_qpgraph_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(qpgraph)
+        library(qtl)
+        library(GenomeInfoDb)
+        library(grid)
+        library(graph)
+        
+        # ==========================================
+        # 1. Load User Input Files
+        # ==========================================
+        
+        # Load cross object
+        env_cross <- new.env()
+        load("cross.RData", envir = env_cross)
+        if ("cross" %in% ls(env_cross)) {
+          cross <- env_cross\$cross
+        } else {
+          cross <- env_cross[[ls(env_cross)[1]]]
+        }
+        
+        # Load physical map
+        env_pmap <- new.env()
+        load("physical_map.RData", envir = env_pmap)
+        if ("pMap" %in% ls(env_pmap)) {
+          pMap <- env_pmap\$pMap
+        } else {
+          pMap <- env_pmap[[ls(env_pmap)[1]]]
+        }
+        
+        # Load gene annotation
+        annot <- read.csv("gene_annotation.csv", row.names=1, stringsAsFactors=FALSE)
+        
+        # Load genome info (Seqinfo object)
+        env_genome <- new.env()
+        load("genome_info.RData", envir = env_genome)
+        if ("genome" %in% ls(env_genome)) {
+          genome <- env_genome\$genome
+        } else {
+          genome <- env_genome[[ls(env_genome)[1]]]
+        }
+        
+        # ==========================================
+        # 2. eQTL Network Estimation Workflow
+        # ==========================================
+        
+        # Stage 1: Define estimation parameters
+        param <- eQTLnetworkEstimationParam(cross, physicalMap=pMap,
+                                            geneAnnotation=annot, genome=genome)
+        
+        # Stage 2: Estimate the initial network using a formula
+        eqtlnet.q0 <- eQTLnetworkEstimate(param, ~ marker + gene, verbose=FALSE)
+        
+        # Stage 3: Apply FDR correction to filter the network
+        eqtlnet.q0.fdr <- eQTLnetworkEstimate(param, estimate=eqtlnet.q0,
+                                              p.value=0.05, method="fdr")
+        
+        # Stage 4: Refine the network using non-rejection rates conditioning on genes
+        eqtlnet.q0.fdr.nrr <- eQTLnetworkEstimate(param, ~ marker + gene | gene(q=3),
+                                                  estimate=eqtlnet.q0.fdr, verbose=FALSE)
+        
+        # Stage 5: Filter by effect size (epsilon)
+        eqtlnet.q0.fdr.nrr <- eQTLnetworkEstimate(param, estimate=eqtlnet.q0.fdr.nrr,
+                                                  epsilon=0.1)
+        
+        # Stage 6: Extract eQTL associations
+        eqtls <- alleQTL(eqtlnet.q0.fdr.nrr)
+        
+        # Stage 7: Select significant associations (alpha)
+        eqtlnet.q0.fdr.nrr.sel <- eQTLnetworkEstimate(param, estimate=eqtlnet.q0.fdr.nrr,
+                                                      alpha=0.05)
+        
+        # ==========================================
+        # 3. Save Outputs and Plotting
+        # ==========================================
+        
+        # Save tabular results
+        write.csv(eqtls, "all_eQTL_associations.csv", row.names=FALSE)
+        
+        # Save network objects
+        saveRDS(eqtlnet.q0.fdr.nrr, "eqtl_network_refined.rds")
+        saveRDS(eqtlnet.q0.fdr.nrr.sel, "eqtl_network_selected.rds")
+        
+        # Plot the network using hive plots for each chromosome
+        pdf("eQTL_hive_plots.pdf", width=8, height=8)
+        chrs <- seqnames(genome)
+        for (chr in chrs) {
+          tryCatch({
+            plot(eqtlnet.q0.fdr.nrr.sel, type="hive", chr=chr)
+            grid.text(paste0("Chromosome: ", chr), x=unit(0.5, "npc"), y=unit(0.95, "npc"), just="centre")
+          }, error = function(e) {
+            warning("Could not plot hive plot for chromosome ", chr, ": ", e\$message)
+          })
+        }
+        dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QPGRAPH:", paste0("    qpgraph: ", packageVersion("qpgraph"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION":',
+        paste0('    qpgraph: ', as.character(packageVersion('qpgraph')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_qpgraph_results.csv
-    touch ${prefix}_qpgraph_output.rds
-    echo "BIOC_QPGRAPH:" > versions.yml
-    echo "    qpgraph: 0.0.0" >> versions.yml
+    touch ${prefix}_eqtl_network_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_QPGRAPH_WORKFLOW {
+workflow BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cross.RData, physical_map.RData, gene_annotation.csv, genome_info.RData ] ]
 
     main:
-    BIOC_QPGRAPH(ch_input)
+    BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_QPGRAPH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QPGRAPH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QPGRAPH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QPGRAPH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION.out.tables
+    plots    = BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION.out.plots
+    objects  = BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION.out.objects
+    versions = BIOC_QPGRAPH_EQTL_NETWORK_ESTIMATION.out.versions
 }

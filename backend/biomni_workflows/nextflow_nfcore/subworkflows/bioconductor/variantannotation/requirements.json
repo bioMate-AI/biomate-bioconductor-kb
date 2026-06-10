@@ -1,0 +1,23 @@
+{
+  "package": "variantannotation",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "PolyPhen.Hsapiens.dbSNP131",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "VariantAnnotation"
+  ],
+  "by_workflow": {
+    "genotype_to_snpmatrix.nf": [
+      "VariantAnnotation"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "PolyPhen.Hsapiens.dbSNP131",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "VariantAnnotation"
+    ],
+    "vcf_filtering.nf": [
+      "VariantAnnotation"
+    ]
+  }
+}

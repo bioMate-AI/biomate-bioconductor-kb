@@ -1,0 +1,15 @@
+{
+  "package": "remp",
+  "requirements": [
+    "GenomicRanges",
+    "REMP",
+    "minfi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "REMP",
+      "minfi"
+    ]
+  }
+}

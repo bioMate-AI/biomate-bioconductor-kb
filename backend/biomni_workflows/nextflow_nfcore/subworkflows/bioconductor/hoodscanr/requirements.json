@@ -1,0 +1,17 @@
+{
+  "package": "hoodscanr",
+  "requirements": [
+    "SpatialExperiment",
+    "ggplot2",
+    "hoodscanR",
+    "scico"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "ggplot2",
+      "hoodscanR",
+      "scico"
+    ]
+  }
+}

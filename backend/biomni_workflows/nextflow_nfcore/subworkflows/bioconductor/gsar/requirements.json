@@ -1,0 +1,16 @@
+{
+  "package": "gsar",
+  "requirements": [
+    "GSAR",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSAR"
+    ],
+    "rnaseq_gsa.nf": [
+      "GSAR",
+      "edgeR"
+    ]
+  }
+}

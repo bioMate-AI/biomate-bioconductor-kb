@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: class=Specifies the BioPAX class (e.g., \"pathway\", \"protein\") to filter instances in listInstances or selectInstances ;; id=The unique identifier of a BioPAX instance used to retrieve properties or components ;; expandSubpathways=Logical parameter in pathway2AdjacancyMatrix to determine whether to expand nested subpathways ;; splitComplexMolecules=Logical parameter in pathway2AdjacancyMatrix and pathway2RegulatoryGraph to split complex molecules into their atomic members so they share the same edges ;; layoutGraph=Logical parameter in plotRegulatoryGraph to control whether to apply a layout before plotting\n- alternatives: None mentioned, though the documentation notes that users can layout and plot graphs themselves instead of using the built-in Rgraphviz-based layoutRegulatoryGraph and plotRegulatoryGraph functions.\n- when_to_use: Use this package when you have biological pathway data in BioPAX format (Level 2 or Level 3) and want to programmatically query, modify, visualize, or convert these pathways into regulatory networks/graphs in R.\n- pitfalls: Regulatory graphs rely solely on BioPAX activation and inhibition information from the \"control\" class; a lack of this information will lead to disconnected or incomplete graphs. Parsing very large BioPAX files (like Reactome) is highly resource-intensive and can take up to an hour. System-level prerequisites (libxml2, libcurl, and graphviz for older Rgraphviz versions) must be installed on the operating system prior to package installation.",
+  "workflows": [
+    {
+      "name": "parse_and_visualize_biopax",
+      "intent": "Parse an existing BioPAX OWL file, extract a specific pathway, convert it to a regulatory graph, and visualize it.",
+      "input": [
+        "file.owl (BioPAX OWL file containing pathway data)"
+      ],
+      "stages": "1. Parse the BioPAX file into R. 2. List and select pathway instances. 3. Convert the selected pathway to a regulatory graph and adjacency matrix. 4. Layout and plot the regulatory graph.",
+      "code": "biopax = readBiopax(file)\nprint(biopax)\npw_list = listInstances(biopax, class=\"pathway\")\npw_complete = selectInstances(biopax, class=\"pathway\")\npwid1 = \"pid_p_100002_wntpathway\"\ngetInstanceProperty(biopax, pwid1, property=\"NAME\")\npw_1 = selectInstances(biopax, class=\"pathway\", id=pwid1)\npw_1_component_list = listPathwayComponents(biopax,pwid1)\npw_1_components = selectInstances(biopax,id=pw_1_component_list$id)\npw_1_adj = pathway2AdjacancyMatrix(biopax, pwid1, expandSubpathways=TRUE, splitComplexMolecules=TRUE, verbose=TRUE)\npw_1_graph = pathway2RegulatoryGraph(biopax, pwid1, splitComplexMolecules=TRUE, verbose=TRUE)\npw_1_graph_laidout = layoutRegulatoryGraph(pw_1_graph)\nplotRegulatoryGraph(pw_1_graph)"
+    },
+    {
+      "name": "create_and_modify_biopax",
+      "intent": "Programmatically build a new BioPAX model from scratch, add physical entities, biochemical reactions, controls, and pathways, and write the model to an OWL file.",
+      "input": [
+        "None (the model is created programmatically)"
+      ],
+      "stages": "1. Initialize a new BioPAX object. 2. Add physical entities, participants, and biochemical reactions. 3. Add control interactions (activations/inhibitions). 4. Define pathways and merge them. 5. Write the model to an OWL file.",
+      "code": "biopax = createBiopax()\nfor(i in LETTERS[1:5]) {\n\tbiopax = addPhysicalEntity(biopax, class=\"protein\",\n\t\tNAME=paste(\"protein\",i,sep=\"_\"), \n\t\tid=paste(\"proteinid\",i,sep=\"_\"))\n\tbiopax = addPhysicalEntityParticipant(biopax,\n\t\treferencedPhysicalEntityID=paste(\"proteinid\",i,sep=\"_\"), \n\t\tid=paste(\"PEPid\",i,sep=\"_\"))\n\tbiopax = addBiochemicalReaction(biopax, LEFT=paste(\"PEPid\",i,sep=\"_\"),\n\t\tRIGHT=paste(\"PEPid\",i,sep=\"_\"),\n\t\tid=paste(\"BCRid\",i,sep=\"_\"))\n}\nbiopax = addControl(biopax, CONTROL_TYPE=\"ACTIVATION\",\n\tCONTROLLER=\"PEPid_A\", CONTROLLED=c(\"BCRid_B\"),id=\"control_1\")\nbiopax = addControl(biopax, CONTROL_TYPE=\"INHIBITION\",\n\tCONTROLLER=\"PEPid_A\", CONTROLLED=c(\"BCRid_C\"),id=\"control_2\")\nbiopax = addControl(biopax, CONTROL_TYPE=\"ACTIVATION\",\n\tCONTROLLER=\"PEPid_C\", CONTROLLED=c(\"BCRid_D\"),id=\"control_3\")\nbiopax = addControl(biopax, CONTROL_TYPE=\"INHIBITION\",\n\tCONTROLLER=\"PEPid_C\", CONTROLLED=c(\"BCRid_E\"), id=\"control_4\")\nbiopax = addPathway(biopax, NAME=\"pw1\",\n\tPATHWAY_COMPONENTS=c(\"control_1\",\"control_2\"), id=\"pwid1\")\nbiopax = addPathway(biopax, NAME=\"pw2\",\n\tPATHWAY_COMPONENTS=c(\"control_3\",\"control_4\"), id=\"pwid2\")\nbiopax = mergePathways(biopax, \"pwid1\", \"pwid2\", NAME=\"pw3\", id=\"pwid3\")\nwriteBiopax(biopax, file=\"test.writeBiopax.owl\")"
+    }
+  ]
+}

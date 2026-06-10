@@ -4,6 +4,8 @@
 // Perform quality control filtering based solely on mitochondrial percentage using a 1D Gaussian mixture model to calculate a single threshold.
 // Input: sce
 // Container: quay.io/biocontainers/bioconductor-miqc:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, ggplot2, miQC, scater
 // Visualizations: plot (ggplot/base)
 // QC: per-cell QC metrics, cell QC metrics
@@ -41,14 +43,16 @@ process BIOC_MIQC_ONE_DIMENSIONAL_MIQC {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries
     suppressPackageStartupMessages({
-        library(SingleCellExperiment)
         library(scater)
         library(miQC)
         library(ggplot2)

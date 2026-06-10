@@ -1,131 +1,178 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: OUTRIDER
-// Identification of aberrant gene expression in RNA-seq data. Read count expectations are modeled by a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/OUTRIDER/inst/doc/OUTRIDER.R
-// Upstream  : AnnotationDbi, RMariaDB, beeswarm, peer
-// Downstream: none
-//
-// Install: BiocManager::install("OUTRIDER")
+// Bioconductor workflow: OUTRIDER — autoencoder_outlier_detection
+// Detect aberrantly expressed genes in RNA-seq data using a denoising autoencoder to control for confounders.
+// Input: ctsTable, annoTable
+// Container: quay.io/biocontainers/bioconductor-outrider:1.28.0--r45ha27e39d_0
+// R packages: AnnotationDbi, beeswarm, OUTRIDER, peer, rmariadb
+// Bioconductor: 3.20 | R: 4.4
+// Requires: OUTRIDER
+// Visualizations: plot (ggplot/base)
+// QC: dispersion/size-factor estimation
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create the OutriderDataSet object. 2. Filter out non-expressed genes using FPKM values. 3. Estimate size factors. 4. Find the opti
 
 nextflow.enable.dsl = 2
 
-process BIOC_OUTRIDER {
+process BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-outrider"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-outrider:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-outrider:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_outrider_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_outrider_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_outrider_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationDbi", "beeswarm", "OUTRIDER", "peer", "rmariadb")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(OUTRIDER)
-    library(OutriderDataSet)
-    library(PEER)
-    library(PEER_setNmax_iterations)
-    library(jsonlite)
-
-    # --- Confounder Correction [] ---
-    # Key functions: estimateSizeFactors, sampleExclusionMask, controlForConfounders, plotCountCorHeatmap
-    ods <- estimateSizeFactors(ods)
-    sampleExclusionMask(ods) <- FALSE
-    ods <- controlForConfounders(
-        ods, 
-        q=21, 
-        iterations=3
-    )
-    ods <- plotCountCorHeatmap(
-        ods, 
-        normalized=TRUE
-    )
-
-
-    # --- Outlier Detection [] ---
-    # Key functions: computePvalues, computeZscores, results, aberrant
-    ods <- computePvalues(
-        ods, 
-        alternative="two.sided", 
-        method="BY"
-    )
-    ods <- computeZscores(ods)
-    res <- results(
-        ods, 
-        padjCutoff=0.05, 
-        zScoreCutoff=2
-    )
-    gene_aberrant <- aberrant(ods, by="gene")
-    sample_aberrant <- aberrant(ods, by="sample")
-
-
-    # --- Visualisation [] ---
-    # Key functions: plotAberrantPerSample, plotVolcano, plotExpressionRank, plotQQ, plotExpectedVsObservedCounts
-    plotAberrantPerSample(ods, padjCutoff=0.05)
-    plotVolcano(ods, "MUC1344", basePlot=TRUE)
-    plotExpressionRank(ods, "TIMMDC1", basePlot=TRUE)
-    plotQQ(ods, "TIMMDC1")
-    plotExpectedVsObservedCounts(
-        ods, 
-        "TIMMDC1", 
-        basePlot=TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_outrider_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 1. Read User Input Files
+    # ==========================================
+    # The pipeline expects 'ctsTable.csv' (or .tsv) and 'annoTable.csv' (or .tsv)
+    # in the current working directory.
+    
+    if (file.exists("ctsTable.csv")) {
+        ctsTable <- read.csv("ctsTable.csv", row.names=1, check.names=FALSE)
+    } else if (file.exists("ctsTable.tsv")) {
+        ctsTable <- read.table("ctsTable.tsv", header=TRUE, row.names=1, check.names=FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_outrider_results.csv")
+        stop("Error: 'ctsTable.csv' or 'ctsTable.tsv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_outrider_output.rds")
+    
+    if (file.exists("annoTable.csv")) {
+        annoTable <- read.csv("annoTable.csv", row.names=1, check.names=FALSE)
+    } else if (file.exists("annoTable.tsv")) {
+        annoTable <- read.table("annoTable.tsv", header=TRUE, row.names=1, check.names=FALSE)
+    } else {
+        stop("Error: 'annoTable.csv' or 'annoTable.tsv' not found in the working directory.")
     }
+    
+    # Ensure count data is a matrix
+    ctsTable <- as.matrix(ctsTable)
+    
+    # ==========================================
+    # 2. OUTRIDER Analysis Pipeline
+    # ==========================================
+    
+    # create OutriderDataSet object
+    ods <- OutriderDataSet(countData=ctsTable, colData=annoTable)
+    
+    # label not expressed genes
+    ods <- filterExpression(ods, minCounts=TRUE, filterGenes=FALSE)
+    
+    # do the actual subsetting based on the filtering labels
+    ods <- ods[mcols(ods)\$passedFilter,]
+    
+    # automatically control for confounders
+    ods <- estimateSizeFactors(ods)
+    
+    # Optimal Hard Thresholding (default)
+    ods <- estimateBestQ(ods)
+    
+    # set exclusion mask
+    sampleExclusionMask(ods) <- FALSE
+    
+    # Control for confounders using the autoencoder
+    ods <- controlForConfounders(ods)
+    
+    # compute P-values (nominal and adjusted)
+    ods <- computePvalues(ods, alternative="two.sided", method="BY")
+    
+    # compute the Z-scores
+    ods <- computeZscores(ods)
+    
+    # get results (default only significant, padj < 0.05)
+    res <- results(ods)
+    
+    # ==========================================
+    # 3. Save Outputs
+    # ==========================================
+    
+    # Save the significant results table
+    write.csv(as.data.frame(res), "outrider_results.csv", row.names=FALSE)
+    
+    # Save the complete OutriderDataSet object
+    saveRDS(ods, "outrider_ods.rds")
+    
+    # Generate and save diagnostic plots
+    pdf("outrider_diagnostic_plots.pdf", width=7, height=7)
+    tryCatch({
+        plotFPKM(ods)
+    }, error = function(e) message("Could not plot FPKM distribution."))
+    
+    tryCatch({
+        plotExpressedGenes(ods)
+    }, error = function(e) message("Could not plot expressed genes summary."))
+    
+    tryCatch({
+        plotCountCorHeatmap(ods, normalized=TRUE)
+    }, error = function(e) message("Could not plot sample correlation heatmap."))
+    
+    tryCatch({
+        plotAberrantPerSample(ods)
+    }, error = function(e) message("Could not plot aberrant events per sample."))
+    dev.off()
+    
+    message("OUTRIDER pipeline completed successfully. Outputs saved to 'outrider_results.csv', 'outrider_ods.rds', and 'outrider_diagnostic_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OUTRIDER:", paste0("    outrider: ", packageVersion("OUTRIDER"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION":',
+        paste0('    OUTRIDER: ', as.character(packageVersion('OUTRIDER')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_outrider_results.csv
-    touch ${prefix}_outrider_output.rds
-    echo "BIOC_OUTRIDER:" > versions.yml
-    echo "    outrider: 0.0.0" >> versions.yml
+    touch ${prefix}_autoencoder_outlier_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_OUTRIDER_WORKFLOW {
+workflow BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ctsTable, annoTable ] ]
 
     main:
-    BIOC_OUTRIDER(ch_input)
+    BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_OUTRIDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OUTRIDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OUTRIDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OUTRIDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION.out.tables
+    plots    = BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION.out.plots
+    objects  = BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION.out.objects
+    versions = BIOC_OUTRIDER_AUTOENCODER_OUTLIER_DETECTION.out.versions
 }

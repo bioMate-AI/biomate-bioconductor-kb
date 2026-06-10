@@ -1,0 +1,17 @@
+{
+  "package": "ribodipa",
+  "requirements": [
+    "RiboDiPA"
+  ],
+  "by_workflow": {
+    "exon_level_analysis.nf": [
+      "RiboDiPA"
+    ],
+    "main.nf": [
+      "RiboDiPA"
+    ],
+    "step_by_step_pipeline.nf": [
+      "RiboDiPA"
+    ]
+  }
+}

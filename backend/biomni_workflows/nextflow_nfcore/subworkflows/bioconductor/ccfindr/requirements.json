@@ -1,0 +1,14 @@
+{
+  "package": "ccfindr",
+  "requirements": [
+    "ccfindR"
+  ],
+  "by_workflow": {
+    "bayesian_nmf.nf": [
+      "ccfindR"
+    ],
+    "main.nf": [
+      "ccfindR"
+    ]
+  }
+}

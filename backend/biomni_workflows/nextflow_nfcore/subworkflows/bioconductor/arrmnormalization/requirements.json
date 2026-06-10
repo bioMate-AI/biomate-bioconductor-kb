@@ -1,0 +1,11 @@
+{
+  "package": "arrmnormalization",
+  "requirements": [
+    "ARRmNormalization"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ARRmNormalization"
+    ]
+  }
+}

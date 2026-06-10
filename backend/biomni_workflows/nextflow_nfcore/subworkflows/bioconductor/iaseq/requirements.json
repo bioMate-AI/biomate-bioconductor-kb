@@ -1,0 +1,11 @@
+{
+  "package": "iaseq",
+  "requirements": [
+    "iASeq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "iASeq"
+    ]
+  }
+}

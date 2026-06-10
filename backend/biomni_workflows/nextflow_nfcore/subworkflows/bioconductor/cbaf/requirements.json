@@ -1,0 +1,16 @@
+{
+  "package": "cbaf",
+  "requirements": [
+    "cbaf",
+    "jsonlite"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cbaf",
+      "jsonlite"
+    ],
+    "multiple_studies_analysis.nf": [
+      "cbaf"
+    ]
+  }
+}

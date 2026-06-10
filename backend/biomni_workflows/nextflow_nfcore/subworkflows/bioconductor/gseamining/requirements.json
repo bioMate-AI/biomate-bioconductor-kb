@@ -1,0 +1,11 @@
+{
+  "package": "gseamining",
+  "requirements": [
+    "GSEAmining"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEAmining"
+    ]
+  }
+}

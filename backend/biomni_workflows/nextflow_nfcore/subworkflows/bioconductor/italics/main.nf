@@ -1,107 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ITALICS
-// A Method to normalize of Affymetrix GeneChip Human Mapping 100K and 500K set
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ITALICS/inst/doc/ITALICS.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ITALICS")
+// Bioconductor workflow: ITALICS — italics_normalization_and_calling
+// Normalize Affymetrix GeneChip Human Mapping chips and call DNA copy number alterations using the iterative ITALICS algorithm.
+// Input: HF0844_Xba.CEL, Xba.QuartetEffect.csv
+// Container: quay.io/biocontainers/bioconductor-italics:2.70.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ITALICS, affy
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read the CEL file header to identify the chip type and platform
+//  * 2. [Input & Preparation] Load the corresponding quartet effect reference data
+//  * 3. [Core Analysis] Retrieve SNP and quartet metadata for the platform
+//  * 4. [Input & Preparation] Read CEL intensities and calculate quartet log ratios
+//  * 5. [Core Analysis] Add quartet effect information and map quartet-level data to SNP-level data
+//  * 6. [Core Analysis] Run the iterative ITALICS normalization and copy number calling
+//  * 7. [Visualization & Output] Plot the normalized genomic profile
 
 nextflow.enable.dsl = 2
 
-process BIOC_ITALICS {
+process BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-italics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-italics:2.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-italics:2.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_italics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_italics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_italics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(I)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(ITALICS)
-    library(jsonlite)
-
-    # --- Attr [] ---
-    # Key functions: attr, environment, search
-    require(ITALICS)
-    ITALICSDataPATH <- attr(as.environment(match("package:ITALICSData",search())),"path")
-    load(paste(ITALICSDataPATH,"/data/snpInfo.RData", sep=""))
-    load(paste(ITALICSDataPATH,"/data/quartetInfo.RData", sep=""))
-    # --- Attr [] ---
-    # Key functions: attr, environment, search, readCelHeader, cleanPlatformName
-    ITALICSDataPATH <- attr(as.environment(match("package:ITALICSData",search())),"path")
-    filename <- paste(ITALICSDataPATH,"/extdata/HF0844_Xba.CEL", sep="")
+    library(affy)
+    library(GLAD)
+    
+    # 1. Read the CEL file header to identify the chip type and platform
+    filename <- "HF0844_Xba.CEL"
     headdetails <- readCelHeader(filename[1])
     pkgname <- cleanPlatformName(headdetails[["chiptype"]])
-    quartetEffectFile <- paste(ITALICSDataPATH,"/extdata/Xba.QuartetEffect.csv", sep="")
-    # --- Italics [] ---
-    # Key functions: ITALICS, I
-    profilSNPXba <- ITALICS(quartet$quartetInfo, snpInfo,
+    
+    # 2. Load the corresponding quartet effect reference data
+    quartetEffectFile <- "Xba.QuartetEffect.csv"
+    quartetEffect <- read.table(quartetEffectFile, sep=";", header=TRUE)
+    
+    # 3. Retrieve SNP and quartet metadata for the platform
+    snpInfo <- getSnpInfo(pkgname)
+    quartet <- getQuartet(pkgname, snpInfo)
+    
+    # 4. Read CEL intensities and calculate quartet log ratios
+    tmpExprs <- readCelIntensities(filename, indices=quartet\$fid)
+    quartet\$quartetInfo\$quartetLogRatio <- readQuartetCopyNb(tmpExprs)
+    
+    # 5. Add quartet effect information and map quartet-level data to SNP-level data
+    quartet\$quartetInfo <- addInfo(quartet, quartetEffect)
+    snpInfo <- fromQuartetToSnp(cIntensity="quartetLogRatio",
+              quartetInfo=quartet\$quartetInfo, snpInfo=snpInfo)
+    
+    # 6. Run the iterative ITALICS normalization and copy number calling
+    profilSNPXba <- ITALICS(quartet\$quartetInfo, snpInfo,
          formule="Smoothing+QuartetEffect+FL+I(FL^2)+I(FL^3)+GC+I(GC^2)+I(GC^3)")
-    # --- Data [] ---
-    # Key functions: plotProfile
-    data(cytoband)
-    plotProfile(profilSNPXba, Smoothing="Smoothing", cytoband=cytoband)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_italics_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_italics_results.csv")
+    
+    # Save the resulting profile object and values
+    saveRDS(profilSNPXba, file = "profilSNPXba.rds")
+    if (!is.null(profilSNPXba\$profileValues)) {
+      write.csv(profilSNPXba\$profileValues, file = "profilSNPXba_values.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_italics_output.rds")
+    
+    # Retrieve cytoband data from GLAD namespace without using data()
+    my_cytoband <- NULL
+    if (exists("cytoband", envir = asNamespace("GLAD"))) {
+      my_cytoband <- get("cytoband", envir = asNamespace("GLAD"))
     }
+    
+    # 7. Plot the normalized genomic profile and save to PDF
+    pdf("profile_plot.pdf", width = 11, height = 8.5)
+    plotProfile(profilSNPXba, Smoothing="Smoothing", cytoband=my_cytoband)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ITALICS:", paste0("    italics: ", packageVersion("ITALICS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING":',
+        paste0('    ITALICS: ', as.character(packageVersion('ITALICS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_italics_results.csv
-    touch ${prefix}_italics_output.rds
-    echo "BIOC_ITALICS:" > versions.yml
-    echo "    italics: 0.0.0" >> versions.yml
+    touch ${prefix}_italics_normalization_and_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_ITALICS_WORKFLOW {
+workflow BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ HF0844_Xba.CEL, Xba.QuartetEffect.csv ] ]
 
     main:
-    BIOC_ITALICS(ch_input)
+    BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING(ch_input)
 
     emit:
-    results  = BIOC_ITALICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ITALICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ITALICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ITALICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING.out.tables
+    plots    = BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING.out.plots
+    objects  = BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING.out.objects
+    versions = BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING.out.versions
 }

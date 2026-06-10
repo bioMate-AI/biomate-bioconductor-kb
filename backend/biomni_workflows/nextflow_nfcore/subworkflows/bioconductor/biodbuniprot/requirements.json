@@ -1,0 +1,13 @@
+{
+  "package": "biodbuniprot",
+  "requirements": [
+    "biodb",
+    "biodbUniprot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biodb",
+      "biodbUniprot"
+    ]
+  }
+}

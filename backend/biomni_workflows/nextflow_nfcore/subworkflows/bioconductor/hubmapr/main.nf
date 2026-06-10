@@ -3,6 +3,8 @@
 // Bioconductor module: HuBMAPR
 // 'HuBMAP' provides an open, global bio-molecular atlas of the human body at the cellular level. The `
 //
+// Input: dataset_uuids.txt (required; one HuBMAP Dataset UUID per line); sample_uuids.txt, donor_uuids.txt, collection_uuids.txt, publication_uuids.txt (optional)
+//
 // Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HuBMAPR/inst/doc/hubmapr_vignettes.R
 // Upstream  : dplyr, ggplot2, pryr, tidyr
 // Downstream: none
@@ -12,14 +14,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_HUBMAPR {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-hubmapr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hubmapr:1.0.8--r44_0' :
-        'quay.io/biocontainers/bioconductor-hubmapr:1.0.8--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,49 +42,100 @@ process BIOC_HUBMAPR {
     library(HuBMAPR)
     library(jsonlite)
 
+    # --- Read user input [] ---
+    # dataset_uuids.txt : one HuBMAP Dataset UUID (32-digit hexadecimal) per
+    #   line. These drive the per-entity metadata, detail and provenance
+    #   queries below. Optional companion files (one ID per line) select the
+    #   entity used for sample / donor / collection / publication queries:
+    #     sample_uuids.txt, donor_uuids.txt, collection_uuids.txt,
+    #     publication_uuids.txt
+    if (!file.exists("dataset_uuids.txt")) {
+        stop("Required input file 'dataset_uuids.txt' not found in the working directory. Provide one HuBMAP Dataset UUID per line.")
+    }
+    .read_ids <- function(path) {
+        if (!file.exists(path)) return(character(0))
+        ids <- trimws(readLines(path, warn = FALSE))
+        ids[nzchar(ids)]
+    }
+    dataset_uuids <- .read_ids("dataset_uuids.txt")
+    if (length(dataset_uuids) == 0) {
+        stop("Input file 'dataset_uuids.txt' is empty. Provide at least one HuBMAP Dataset UUID.")
+    }
+    sample_uuids      <- .read_ids("sample_uuids.txt")
+    donor_uuids       <- .read_ids("donor_uuids.txt")
+    collection_uuids  <- .read_ids("collection_uuids.txt")
+    publication_uuids <- .read_ids("publication_uuids.txt")
+
+    # --- Catalog Retrieval and Exploration [] ---
+    # Key functions: datasets, donors, samples, collections, publications
+    datasets_df <- datasets()
+    donors_df <- donors()
+    samples_df <- samples()
+    collections_df <- collections()
+    publications_df <- publications()
+    female_donors <- donors_df[donors_df\$Sex == "Female", ]
+    kidney_samples <- samples_df[samples_df\$organ == "Kidney (Left)", ]
+
+    # Fall back to catalog-derived IDs when an optional entity file is absent,
+    # so downstream entity queries always have a valid UUID to operate on.
+    if (length(sample_uuids) == 0 && nrow(samples_df) > 0)
+        sample_uuids <- samples_df\$uuid[1]
+    if (length(donor_uuids) == 0 && nrow(donors_df) > 0)
+        donor_uuids <- donors_df\$uuid[1]
+    if (length(collection_uuids) == 0 && nrow(collections_df) > 0)
+        collection_uuids <- collections_df\$uuid[1]
+    if (length(publication_uuids) == 0 && nrow(publications_df) > 0)
+        publication_uuids <- publications_df\$uuid[1]
+
     # --- Metadata and Schema Inspection [] ---
     # Key functions: datasets_default_columns, organ, dataset_metadata, sample_metadata, donor_metadata
     default_cols <- datasets_default_columns(as = "character")
     organs_list <- organ()
-    ds_meta <- dataset_metadata("993bb1d6fa02e2755fd69613bb9d6e08")
-    sm_meta <- sample_metadata("8ecdbdc3e2d04898e2563d666658b6a9")
-    dn_meta <- donor_metadata("b2c75c96558c18c9e13ba31629f541b6")
-
+    ds_meta <- dataset_metadata(dataset_uuids[1])
+    sm_meta <- if (length(sample_uuids)) sample_metadata(sample_uuids[1]) else NULL
+    dn_meta <- if (length(donor_uuids)) donor_metadata(donor_uuids[1]) else NULL
 
     # --- Entity Detail and Provenance Tracking [] ---
     # Key functions: dataset_detail, uuid_provenance, dataset_derived, sample_derived
-    target_uuid <- "3e4c568d9ce8df9d73b8cddcf8d0fec3"
+    target_uuid <- dataset_uuids[1]
     detail_info <- dataset_detail(uuid = target_uuid)
     provenance_info <- uuid_provenance(uuid = target_uuid)
     derived_datasets <- dataset_derived(uuid = target_uuid)
-    derived_samples <- sample_derived(
-        uuid = "35e16f13caab262f446836f63cf4ad42",
+    derived_samples <- if (length(sample_uuids)) sample_derived(
+        uuid = sample_uuids[1],
         entity_type = "Sample"
-    )
-
+    ) else NULL
 
     # --- Collection and Publication Data Association [] ---
     # Key functions: collection_data, publication_data, collection_information, publication_information
-    coll_uuid <- "8ecdbdc3e2d04898e2563d666658b6a9"
-    pub_uuid <- "b2c75c96558c18c9e13ba31629f541b6"
-    coll_data <- collection_data(uuid = coll_uuid)
-    pub_data <- publication_data(uuid = pub_uuid, entity_type = "Dataset")
-    coll_info <- collection_information(uuid = coll_uuid)
-    pub_info <- publication_information(uuid = pub_uuid)
+    coll_data <- if (length(collection_uuids)) collection_data(uuid = collection_uuids[1]) else NULL
+    pub_data  <- if (length(publication_uuids)) publication_data(uuid = publication_uuids[1], entity_type = "Dataset") else NULL
+    coll_info <- if (length(collection_uuids)) collection_information(uuid = collection_uuids[1]) else NULL
+    pub_info  <- if (length(publication_uuids)) publication_information(uuid = publication_uuids[1]) else NULL
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hubmapr_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_hubmapr_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hubmapr_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_hubmapr_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hubmapr_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_hubmapr_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_HUBMAPR:", paste0("    hubmapr: ", packageVersion("HuBMAPR"))),
+        c("BIOC_HUBMAPR:", paste0("    hubmapr: ", as.character(packageVersion("HuBMAPR")))),
         "versions.yml"
     )
     """

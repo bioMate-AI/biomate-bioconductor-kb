@@ -1,0 +1,17 @@
+{
+  "package": "bamsignals",
+  "requirements": [
+    "GenomicRanges",
+    "Rsamtools",
+    "bamsignals",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "Rsamtools",
+      "bamsignals",
+      "rtracklayer"
+    ]
+  }
+}

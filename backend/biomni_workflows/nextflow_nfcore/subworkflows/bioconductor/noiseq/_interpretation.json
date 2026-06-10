@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies the type of exploratory data to compute in dat() (e.g., \"biodetection\", \"countsbio\", \"saturation\", \"lengthbias\", \"GCbias\", \"cd\", \"PCA\") ;; factor=Defines the experimental groups or conditions for comparison, batch correction, or aggregation ;; replicates=Specifies the type of replicates in noiseq() (\"technical\", \"biological\", or \"no\") ;; norm=Normalization method to apply (\"rpkm\", \"tmm\", \"uqua\", or \"n\" for none/already normalized) ;; q=Probability threshold in degenes() for selecting differentially expressed features (e.g., 0.8 or 0.9)\n- alternatives: DESeq=Mentioned as an alternative package whose output objects can be accepted by NOISeq after adding annotations ;; ShortRead=Mentioned as having a conflicting readData function\n- when_to_use: Use when analyzing RNA-seq count data (or similar sequencing data) to perform quality control, identify sequencing biases (length, GC content, RNA composition), normalize counts, correct batch effects, and perform differential expression analysis without making strict parametric distributional assumptions.\n- pitfalls: Incompatibilities with other packages (like ShortRead) that export a function named readData; resolve by using NOISeq::readData ;; The order of elements in the factors data frame must exactly match the column order of the expression data ;; Using reduced datasets for real analysis is discouraged; the whole set of features (e.g., whole genome) should be used ;; Failing to normalize when the RNA composition diagnostic test fails (M median deviates significantly from 0)",
+  "workflows": [
+    {
+      "name": "rna_seq_qc_and_exploration",
+      "intent": "Perform quality control and exploratory analysis on RNA-seq count data to detect biases (biotype, saturation, length, GC, RNA composition, PCA).",
+      "input": [
+        "count_matrix.csv (raw expression counts)",
+        "factors.csv (experimental design factors)",
+        "annotations.csv (optional: length, GC, biotype, chromosome metadata)"
+      ],
+      "stages": "1. Load data and create NOISeq object using readData ;; 2. Add additional annotations if needed using addData ;; 3. Compute exploratory data using dat ;; 4. Generate diagnostic plots using explo.plot ;; 5. Generate a comprehensive PDF quality control report using QCreport.",
+      "code": "mydata <- readData(data=mycounts,length=mylength, gc=mygc, biotype=mybiotypes, chromosome=mychroms, factors=myfactors)\nmydata <- readData(data=mycounts,chromosome=mychroms, factors=myfactors)\nmydata <- addData(mydata, length=mylength, biotype=mybiotypes, gc = mygc)\nmyexplodata <- dat(mydata, type = \"biodetection\")\nexplo.plot(myexplodata, plottype = \"persample\")\nmynicedata <- dat2save(myexplodata)\nmybiodetection <- dat(mydata, k = 0, type = \"biodetection\", factor = NULL)\nexplo.plot(mybiodetection, samples=c(1,2), plottype = \"persample\")\nexplo.plot(mybiodetection, samples=c(1,2), toplot = \"protein_coding\", plottype = \"comparison\")\nmycountsbio = dat(mydata, factor = NULL, type = \"countsbio\")\nexplo.plot(mycountsbio, toplot = 1, samples = 1, plottype = \"boxplot\")\nmysaturation = dat(mydata, k = 0, ndepth = 7, type = \"saturation\")\nexplo.plot(mysaturation, toplot = 1, samples = 1:2, yleftlim = NULL, yrightlim = NULL)\nexplo.plot(mysaturation, toplot = \"protein_coding\", samples = 1:4)\nexplo.plot(mycountsbio, toplot = \"protein_coding\", samples = NULL, plottype = \"boxplot\")\nexplo.plot(mycountsbio, toplot = 1, samples = NULL, plottype = \"barplot\")\nmylengthbias = dat(mydata, factor = \"Tissue\", type = \"lengthbias\")\nexplo.plot(mylengthbias, samples = NULL, toplot = \"global\")\nshow(mylengthbias)\nmyGCbias = dat(mydata, factor = \"Tissue\", type = \"GCbias\")\nexplo.plot(myGCbias, samples = NULL, toplot = \"global\")\nmycd = dat(mydata, type = \"cd\", norm = FALSE, refColumn = 1)\nexplo.plot(mycd)\nmyPCA = dat(mydata2, type = \"PCA\")\nexplo.plot(myPCA, factor = \"Tissue\")\nQCreport(mydata, samples = NULL, factor = \"Tissue\", norm = FALSE)"
+    },
+    {
+      "name": "normalization_filtering_and_batch_correction",
+      "intent": "Normalize count data, filter out low-count features, and correct for batch effects.",
+      "input": [
+        "count_matrix.csv (raw expression counts)",
+        "factors.csv (experimental design factors including batch)",
+        "annotations.csv (feature lengths)"
+      ],
+      "stages": "1. Normalize counts using rpkm, uqua, or tmm ;; 2. Filter low-count features using filtered.data ;; 3. Correct for known or unknown batch effects using ARSyNseq.",
+      "code": "myRPKM = rpkm(assayData(mydata)$exprs, long = mylength, k = 0, lc = 1)\nmyUQUA = uqua(assayData(mydata)$exprs, long = mylength, lc = 0.5, k = 0)\nmyTMM = tmm(assayData(mydata)$exprs, long = 1000, lc = 0)\nmyfilt = filtered.data(mycounts, factor = myfactors$Tissue, norm = FALSE, depth = NULL, method = 1, cv.cutoff = 100, cpm = 1, p.adj = \"fdr\")\nmydata2corr1 = ARSyNseq(mydata2, factor = \"batch\", batch = TRUE, norm = \"rpkm\",  logtransf = FALSE)\nmydata2corr2 = ARSyNseq(mydata2, factor = \"Tissue\", batch = FALSE, norm = \"rpkm\",  logtransf = FALSE)"
+    },
+    {
+      "name": "differential_expression_analysis",
+      "intent": "Identify differentially expressed genes using NOISeq (for technical replicates or no replicates) or NOISeqBIO (for biological replicates), and visualize results.",
+      "input": [
+        "mydata (NOISeq eSet object containing counts and factors)"
+      ],
+      "stages": "1. Run differential expression analysis using noiseq or noiseqbio ;; 2. Extract differentially expressed features using degenes ;; 3. Visualize differential expression results using DE.plot.",
+      "code": "mynoiseq = noiseq(mydata, k = 0.5, norm = \"rpkm\", factor=\"Tissue\", pnr = 0.2, nss = 5, v = 0.02, lc = 1, replicates = \"technical\")\nmynoiseq.tmm = noiseq(mydata, k = 0.5, norm = \"tmm\", factor=\"TissueRun\", conditions = c(\"Kidney_1\",\"Liver_1\"), lc = 0, replicates = \"technical\")\nmyresults <- noiseq(mydata, factor = \"Tissue\", k = NULL, norm=\"n\", pnr = 0.2, nss = 5, v = 0.02, lc = 1, replicates = \"no\")\nmynoiseqbio = noiseqbio(mydata, k = 0.5, norm = \"rpkm\", factor=\"Tissue\", lc = 1, r = 20, adj = 1.5, plot = FALSE, a0per = 0.9, random.seed = 12345, filter = 2)\nmynoiseq.deg = degenes(mynoiseq, q = 0.8, M = NULL)\nmynoiseq.deg1 = degenes(mynoiseq, q = 0.8, M = \"up\")\nmynoiseq.deg2 = degenes(mynoiseq, q = 0.8, M = \"down\")\nDE.plot(mynoiseq, q = 0.9, graphic = \"expr\", log.scale = TRUE)\nDE.plot(mynoiseq, q = 0.8, graphic = \"MD\")\nDE.plot(mynoiseq, chromosomes = c(1,2), log.scale = TRUE, join = FALSE, q = 0.8, graphic = \"chrom\")\nDE.plot(mynoiseq, chromosomes = NULL, q = 0.8, graphic = \"distr\")"
+    }
+  ]
+}

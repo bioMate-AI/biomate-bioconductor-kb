@@ -1,0 +1,13 @@
+{
+  "package": "hicool",
+  "requirements": [
+    "HiCool",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HiCool",
+      "S4Vectors"
+    ]
+  }
+}

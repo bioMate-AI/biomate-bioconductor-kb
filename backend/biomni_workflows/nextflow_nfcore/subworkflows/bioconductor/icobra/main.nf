@@ -1,123 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iCOBRA
-// This package provides functions for calculation and visualization of performance metrics for evaluat
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iCOBRA/inst/doc/iCOBRA.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("iCOBRA")
+// Bioconductor workflow: iCOBRA — performance_evaluation_and_plotting
+// Programmatically calculate and plot performance metrics (TPR, FDR, ROC, overlap) for ranking and binary classification methods.
+// Input: Data frames containing p-values, adjusted p-values, scores, and ground truth
+// Container: quay.io/biocontainers/bioconductor-icobra:1.38.0--r45hdfd78af_0
+// R packages: ggplot2, iCOBRA
+// Bioconductor: 3.20 | R: 4.4
+// Requires: iCOBRA
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and example data (or user data formatted as a COBRAData object)
+//  * 2. [Core Analysis] Calculate adjusted p-values if missing using calculate_adjp
+//  * 3. [Core Analysis] Calculate performance metrics using calculate_performance
+//  * 4. [Visualization & Output] Prepare data for plotting using prepare_data_for_plot
+//  * 5. [Visualization & Output] Generate performance plots using plot_tpr, plot_fdrtprcurve, and plot_overlap
 
 nextflow.enable.dsl = 2
 
-process BIOC_ICOBRA {
+process BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-icobra"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-icobra:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-icobra:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_icobra_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_icobra_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_icobra_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(COBRAData_from_text)
-    library(COBRAData_to_text)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data, class
-    -----------------------------------------------------------------------------------------
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggplot2", "iCOBRA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
     library(iCOBRA)
-    data(cobradata_example)
+    
+    # Read user input files from the working directory
+    pval <- if (file.exists("pval.csv")) read.csv("pval.csv", row.names = 1, check.names = FALSE) else data.frame()
+    padj <- if (file.exists("padj.csv")) read.csv("padj.csv", row.names = 1, check.names = FALSE) else data.frame()
+    score <- if (file.exists("score.csv")) read.csv("score.csv", row.names = 1, check.names = FALSE) else data.frame()
+    truth <- if (file.exists("truth.csv")) read.csv("truth.csv", row.names = 1, check.names = FALSE) else data.frame()
+    
+    # Construct COBRAData object from user input
+    cobradata_example <- COBRAData(pval = pval, padj = padj, score = score, truth = truth)
     class(cobradata_example)
     cobradata_example
-    # --- Calculate Adjp [] ---
-    # Key functions: calculate_adjp
-    -----------------------------------------------------------------------------------------
+    
+    # Calculate adjusted p-values if missing
     cobradata_example <- calculate_adjp(cobradata_example)
-    # --- Calculate Performance [] ---
-    # Key functions: calculate_performance, slotNames
-    -----------------------------------------------------------------------------------------
-    cobraperf <- calculate_performance(cobradata_example, binary_truth = "status",
-                                      cont_truth = "logFC", splv = "none",
+    
+    # Determine truth columns dynamically to avoid hardcoding
+    bin_truth <- if ("status" %in% colnames(truth)) "status" else if (ncol(truth) > 0) colnames(truth)[1] else "status"
+    con_truth <- if ("logFC" %in% colnames(truth)) "logFC" else if (ncol(truth) > 1) colnames(truth)[2] else bin_truth
+    
+    # Calculate performance metrics
+    cobraperf <- calculate_performance(cobradata_example, binary_truth = bin_truth, 
+                                      cont_truth = con_truth, splv = "none",
                                       maxsplit = 4)
     slotNames(cobraperf)
-    # --- Prepare Data For Plot [] ---
-    # Key functions: prepare_data_for_plot
-    -----------------------------------------------------------------------------------------
-    cobraplot <- prepare_data_for_plot(cobraperf, colorscheme = "Dark2",
+    
+    # Prepare data for plotting
+    cobraplot <- prepare_data_for_plot(cobraperf, colorscheme = "Dark2", 
                                       facetted = TRUE)
-    # --- Cobradata To Text [] ---
-    # Key functions: COBRAData_to_text
-    -----------------------------------------------------------------------------------------
-    COBRAData_to_text(cobradata = cobradata_example,
-                      truth_file = "cobradata_truth.txt",
-                      result_files = "cobradata_results.txt",
-                      feature_id = "feature")
-    # --- Cobradata From Text [] ---
-    # Key functions: COBRAData_from_text
-    -----------------------------------------------------------------------------------------
-    cobra <- COBRAData_from_text(truth_file = "cobradata_truth.txt",
-                                 result_files = "cobradata_results.txt",
-                                 feature_id = "feature")
-    cobra
+    
+    # Generate and save performance plots
+    pdf("cobra_performance_plots.pdf", width = 7, height = 5)
+    print(plot_tpr(cobraplot))
+    print(plot_fdrtprcurve(cobraplot))
+    plot_overlap(cobraplot)
+    dev.off()
+    
+    # Save performance and plot objects
+    saveRDS(cobraperf, "cobraperf.rds")
+    saveRDS(cobraplot, "cobraplot.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_icobra_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_icobra_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_icobra_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ICOBRA:", paste0("    icobra: ", packageVersion("iCOBRA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING":',
+        paste0('    iCOBRA: ', as.character(packageVersion('iCOBRA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_icobra_results.csv
-    touch ${prefix}_icobra_output.rds
-    echo "BIOC_ICOBRA:" > versions.yml
-    echo "    icobra: 0.0.0" >> versions.yml
+    touch ${prefix}_performance_evaluation_and_plotting.csv versions.yml
     """
 }
 
-
-workflow BIOC_ICOBRA_WORKFLOW {
+workflow BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Data frames containing p-values, adjusted p-values, scores, and ground truth ] ]
 
     main:
-    BIOC_ICOBRA(ch_input)
+    BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING(ch_input)
 
     emit:
-    results  = BIOC_ICOBRA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ICOBRA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ICOBRA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ICOBRA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING.out.tables
+    plots    = BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING.out.plots
+    objects  = BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING.out.objects
+    versions = BIOC_ICOBRA_PERFORMANCE_EVALUATION_AND_PLOTTING.out.versions
 }

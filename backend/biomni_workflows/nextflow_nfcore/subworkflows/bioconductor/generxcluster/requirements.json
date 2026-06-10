@@ -1,0 +1,11 @@
+{
+  "package": "generxcluster",
+  "requirements": [
+    "geneRxCluster"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "geneRxCluster"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: use.names=TRUE in readGAlignments/readGAlignmentsPairs to load query names (QNAME field) ;; param in readGAlignments/readGAlignmentsPairs to filter reads using ScanBamParam (e.g., duplicates, quality controls, or loading specific fields like \"seq\") ;; mode in summarizeOverlaps to specify the overlap resolution mode (\"Union\", \"IntersectionStrict\", or \"IntersectionNotEmpty\") ;; ignore.strand in findOverlaps/summarizeOverlaps to control strand-specific overlap counting ;; flip.query.if.wrong.strand=TRUE in encodeOverlaps to automatically handle strand alignment during overlap encoding.\n- alternatives: VariantTools and VariantAnnotation packages should be preferred for a complete variant calling toolbox (including variant calling capabilities) ;; other packages in the GeneticVariability and SNP Bioconductor views should be preferred for higher-level genetic variation analysis.\n- when_to_use: Use when you have aligned RNA-seq or DNA-seq reads in BAM format and need to count overlaps with genomic features (e.g., exons, transcripts, genes) for differential expression, or when you need to analyze splicing compatibility and transcript-level overlap encodings.\n- pitfalls: cigarOpTable() is formally deprecated in GenomicAlignments >= 1.45.5 and replaced with the tabulate_cigar_ops() function from the cigarillo package ;; BAM format reverse-complements read sequences when they align to the minus strand, requiring them to be reverse-complemented again to restore original query sequences ;; query names (QNAMEs) are not unique if the aligner reports multiple alignments per read ;; isProperPair criteria are determined by the aligner, not GenomicAlignments itself.",
+  "workflows": [
+    {
+      "name": "read_counting_for_differential_expression",
+      "intent": "Count aligned reads overlapping genomic features to prepare a count matrix for downstream differential expression analysis.",
+      "input": [
+        "bamfiles (aligned reads in BAM format)",
+        "features (genomic features as a GRanges or GRangesList object)"
+      ],
+      "stages": "1. Load GenomicAlignments and downstream analysis packages ;; 2. Define genomic features of interest ;; 3. Count overlaps between reads and features using summarizeOverlaps ;; 4. Convert the overlap object into a DESeqDataSet or DGEList for differential expression analysis.",
+      "code": "library(GenomicAlignments)\nlibrary(DESeq2)\nlibrary(edgeR)\n\nfls <- list.files(system.file(\"extdata\", package=\"GenomicAlignments\"),\n    recursive=TRUE, pattern=\"*bam$\", full=TRUE)\n\nfeatures <- GRanges(\n    seqnames = c(rep(\"chr2L\", 4), rep(\"chr2R\", 5), rep(\"chr3L\", 2)),\n    ranges = IRanges(c(1000, 3000, 4000, 7000, 2000, 3000, 3600, 4000, \n        7500, 5000, 5400), width=c(rep(500, 3), 600, 900, 500, 300, 900, \n        300, 500, 500)), \"-\",\n    group_id=c(rep(\"A\", 4), rep(\"B\", 5), rep(\"C\", 2)))\n\nolap <- summarizeOverlaps(features, fls)\ndeseq <- DESeqDataSet(olap, design= ~ 1)\nedger <- DGEList(assay(olap), group=rownames(colData(olap)))"
+    },
+    {
+      "name": "overlap_encoding_and_splicing_compatibility",
+      "intent": "Analyze the compatibility of aligned reads with transcript structures (splicing junctions, skipped exons) using overlap encodings.",
+      "input": [
+        "bamfile (aligned reads in BAM format)",
+        "txdb (transcript database or TxDb object)"
+      ],
+      "stages": "1. Load aligned reads (single-end or paired-end) from BAM files ;; 2. Extract exons grouped by transcript from the transcript database ;; 3. Find overlaps between alignments and transcripts ;; 4. Convert alignments to a GRangesList object ;; 5. Encode overlaps and identify splice-compatible alignments.",
+      "code": "library(pasillaBamSubset)\nlibrary(GenomicAlignments)\nflag0 <- scanBamFlag(isDuplicate=FALSE, isNotPassingQualityControls=FALSE)\nparam0 <- ScanBamParam(flag=flag0)\nU1.GAL <- readGAlignments(untreated1_chr4(), use.names=TRUE, param=param0)\nlibrary(TxDb.Dmelanogaster.UCSC.dm3.ensGene)\ntxdb <- TxDb.Dmelanogaster.UCSC.dm3.ensGene\nexbytx <- exonsBy(txdb, by=\"tx\", use.names=TRUE)\nU1.OV00 <- findOverlaps(U1.GAL, exbytx, ignore.strand=TRUE)\nU1.grl <- grglist(U1.GAL, order.as.in.query=TRUE)\nU1.ovenc <- encodeOverlaps(U1.grl, exbytx, hits=U1.OV00, flip.query.if.wrong.strand=TRUE)\nU1.OV00_is_comp <- isCompatibleWithSplicing(U1.ovenc)\nU1.compOV00 <- U1.OV00[U1.OV00_is_comp]"
+    }
+  ]
+}

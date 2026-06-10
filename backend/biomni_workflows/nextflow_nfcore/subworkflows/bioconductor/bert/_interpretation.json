@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=The input dataframe, matrix, or SummarizedExperiment to adjust. Must contain at least two samples per batch and 2 features ;; cores=Number of cores for parallelization via BiocParallel. Default is NULL (uses BiocParallel::bpparam()) ;; combatmode=Integer (1 to 4) encoding ComBat parameters (par.prior and mean.only). Ignored if method is not \"ComBat\" ;; corereduction=Positive integer indicating the factor by which the number of processes should be reduced when no further adjustment is possible for the current number of batches ;; stopParBatches=Positive integer indicating the minimum number of batches required at a hierarchy level to proceed with parallelized adjustment ;; backend=The backend to use for inter-process communication ('default' or 'file') ;; method=The underlying batch effect correction method ('ComBat', 'limma', or 'ref') ;; qualitycontrol=A boolean to (de)activate the ASW (average silhouette score) computation ;; verify=A boolean to (de)activate the initial format check of the input data ;; labelname=A string containing the name of the column to use as class labels (default \"Label\") ;; batchname=A string containing the name of the column to use as batch labels (default \"Batch\") ;; referencename=A string containing the name of the column to use as reference labels (default \"Reference\") ;; covariatename=A vector containing the names of columns with categorical covariables (default NULL) ;; BPPARAM=An instance of BiocParallelParam to be used for parallelization ;; assayname=The name of the assay to apply BERT to if the input is a SummarizedExperiment object\n- alternatives: HarmonizR is a Bioconductor package addressing similar data integration challenges, but BERT provides better execution time, better data coverage, a more user-friendly design, and a less error-prone input format.\n- when_to_use: Use BERT when you need to perform batch-effect correction on high-dimensional omics datasets (especially proteomics) that contain missing values (NAs) and require fast, parallelized processing across multiple batches.\n- pitfalls: Each batch must contain at least two samples ;; Missing values (NA) are not allowed in Label, Cov_x, or Reference columns ;; BERT requires at least two numeric values per batch and unique covariate level to adjust a feature, otherwise the feature is set to NA for that batch ;; Reference-based adjustment requires at least two references of common class per adjustment step ;; The Reference column is mutually exclusive with covariate columns.",
+  "workflows": [
+    {
+      "name": "standard_batch_correction",
+      "intent": "Perform batch-effect correction on a data frame or matrix using ComBat or limma, with optional parallel processing.",
+      "input": [
+        "expression_data.csv (A tabular file with samples in rows, features in columns, and a mandatory 'Batch' column indicating batch membership)"
+      ],
+      "stages": "1. Load the expression data ;; 2. Run BERT batch correction specifying the method (ComBat or limma) and parallelization cores",
+      "code": "library(BERT)\n# generate test data with 10% missing values as provided by the BERT library\ndataset_raw <- generate_dataset(features=60, batches=10, samplesperbatch=10, mvstmt=0.1, classes=2)\n# apply BERT\ndataset_adjusted <- BERT(dataset_raw)\n\n# Alternative: Sequential adjustment with limma\ndataset_adjusted <- BERT(dataset_raw, method=\"limma\")\n\n# Alternative: Parallel batch effect correction with ComBat\ndataset_adjusted <- BERT(dataset_raw, cores=2)"
+    },
+    {
+      "name": "summarized_experiment_correction",
+      "intent": "Perform batch-effect correction directly on a SummarizedExperiment object.",
+      "input": [
+        "summarized_experiment.rds (A SummarizedExperiment object containing an assay matrix and colData with Batch metadata)"
+      ],
+      "stages": "1. Load the SummarizedExperiment object ;; 2. Run BERT batch correction by specifying the target assay name",
+      "code": "nrows <- 200\nncols <- 8\n# SummarizedExperiments store samples in columns and features in rows (in contrast to BERT).\n# BERT will automatically account for this.\nexpr_values <- matrix(runif(nrows * ncols, 1, 1e4), nrows)\n# colData also takes further metadata information, such as Label, Sample,\n# Reference or Covariables\ncolData <- data.frame(\"Batch\"=c(1,1,1,1,2,2,2,2), \"Label\"=c(1,2,1,2,1,2,1,2), \"Sample\"=c(1,2,3,4,5,6,7,8))\ndataset_raw = SummarizedExperiment::SummarizedExperiment(assays=list(expr=expr_values), colData=colData)\ndataset_adjusted = BERT(dataset_raw, assayname = \"expr\")"
+    },
+    {
+      "name": "covariate_batch_correction",
+      "intent": "Perform batch-effect correction while preserving biological variation of interest by specifying categorical covariates.",
+      "input": [
+        "expression_data_with_covariates.csv (A tabular file containing expression values, a 'Batch' column, and one or more covariate columns prefixed with 'Cov_')"
+      ],
+      "stages": "1. Load the expression data containing covariate columns ;; 2. Run BERT batch correction (covariates are automatically detected or specified via covariatename)",
+      "code": "# import BERT\nlibrary(BERT)\n# set seed for reproducibility\nset.seed(1)\n# generate data with 5 batches, 60 features, 30 samples per batch, 15% missing values and 2 classes\ndataset_raw <- generate_dataset(features=60, batches=5, samplesperbatch=30, mvstmt=0.15, classes=2)\n# create covariable column with 2 possible values, e.g. male/female condition\ndataset_raw[\"Cov_1\"] = sample(c(1,2), size=dim(dataset_raw)[1], replace=TRUE)\n# BERT\ndataset_adjusted <- BERT(dataset_raw)"
+    },
+    {
+      "name": "reference_based_correction",
+      "intent": "Perform batch-effect correction using reference samples (bridges) when class distributions are severely skewed across batches.",
+      "input": [
+        "expression_data_with_references.csv (A tabular file containing expression values, a 'Batch' column, and a 'Reference' column indicating reference classes or 0 for co-adjusted samples)"
+      ],
+      "stages": "1. Load the expression data containing the Reference column ;; 2. Run BERT batch correction with method set to \"ref\"",
+      "code": "# import BERT\nlibrary(BERT)\n# generate data with 4 batches, 6 features, 15 samples per batch, 15% missing values and 2 classes\ndataset_raw <- generate_dataset(features=6, batches=4, samplesperbatch=15, mvstmt=0.15, classes=2)\n# create reference column with default value 0.  The 0 indicates, that the respective sample should be co-adjusted only.\ndataset_raw[, \"Reference\"] <- 0\n# randomly select 2 references per batch and class - in practice, this choice will be determined by external requirements (e.g. class known for only these samples)\nbatches <- unique(dataset_raw$Batch) # all the batches\nfor(b in batches){ # iterate over all batches\n    # references from class 1\n    ref_idx = sample(which((dataset_raw$Batch==b)&(dataset_raw$Label==1)), size=2, replace=FALSE)\n    dataset_raw[ref_idx, \"Reference\"] <- 1\n    # references from class 2\n    ref_idx = sample(which((dataset_raw$Batch==b)&(dataset_raw$Label==2)), size=2, replace=FALSE)\n    dataset_raw[ref_idx, \"Reference\"] <- 2\n}\n# BERT\ndataset_adjusted <- BERT(dataset_raw, method=\"ref\")"
+    }
+  ]
+}

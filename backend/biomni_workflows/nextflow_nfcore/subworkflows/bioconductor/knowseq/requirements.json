@@ -1,0 +1,14 @@
+{
+  "package": "knowseq",
+  "requirements": [
+    "KnowSeq"
+  ],
+  "by_workflow": {
+    "automated_report.nf": [
+      "KnowSeq"
+    ],
+    "main.nf": [
+      "KnowSeq"
+    ]
+  }
+}

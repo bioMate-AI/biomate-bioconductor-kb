@@ -1,0 +1,15 @@
+{
+  "package": "seqarchr",
+  "requirements": [
+    "Biostrings",
+    "ggplot2",
+    "seqArchR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "ggplot2",
+      "seqArchR"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "package": "easylift",
+  "requirements": [
+    "BiocFileCache",
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "easylift",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocFileCache",
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "easylift",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "chopsticks",
+  "requirements": [
+    "chopsticks"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "chopsticks"
+    ]
+  }
+}

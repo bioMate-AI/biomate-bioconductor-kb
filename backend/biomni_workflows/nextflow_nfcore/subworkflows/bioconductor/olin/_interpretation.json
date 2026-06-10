@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <object=An object of class marrayRaw or marrayNorm containing the microarray data ;; X=Matrix of spot x-coordinates; if NA, spotted columns are used as proxies ;; Y=Matrix of spot y-coordinates; if NA, spotted rows are used as proxies ;; alpha=Vector of local regression smoothing parameters tested in GCV (default seq(0.05,1,0.1)) ;; iter=Number of iterations in the OLIN/OSLIN procedure (default 3) ;; OSLIN=Logical; if TRUE, performs subsequent optimized scaling of the range of M across the array ;; scale=Vector of scale parameters s tested in GCV to control multi-dimensional smoothing ;; weights=Matrix of prior spot weights; spots with zero or negative weights can be excluded from regression ;; genepix=Logical; if TRUE, adjusts GenePix-derived weights so that negative weights are excluded and non-negative weights are set to one ;; bg.corr=Background correction method for marrayRaw objects (e.g., \"none\", \"sub\", \"movingmin\", \"minimum\", \"edwards\", \"normexp\") ;; mode=Scaling method in bas (\"var\" for variance, \"mad\" for median absolute deviation, or \"quantile\")>\n- alternatives: <Global linear normalization (fails to correct for non-linear dye bias) ;; Standard non-linear normalization methods like lowess/loess (rely on default parameters and require manual parameter tuning rather than automated GCV optimization) ;; OLINgui package (provides a graphical user interface for OLIN)>\n- when_to_use: <When normalizing two-color cDNA microarray data affected by non-linear intensity-dependent and spatial (location-dependent) dye biases, provided that most genes are not differentially expressed (or up- and down-regulation is balanced) and genes are randomly spotted across the array.>\n- pitfalls: <Violations of underlying assumptions (e.g., non-random spotting of genes or highly unbalanced differential expression) can lead to local regression over-adjusting the data and underestimating true differential expression ;; OSLIN is particularly sensitive to these violations, though sensitivity can be reduced by setting the minimum alpha parameter to larger values ;; OLIN/OSLIN is highly efficient and can make normalized data look clean and balanced regardless of the true underlying data quality ;; Local regression assumes smoothness of bias, meaning localized artifacts (scratches, bubbles, edge effects) must be flagged and masked using sig.mask prior to normalization to prevent them from distorting the fit>",
+  "workflows": [
+    {
+      "name": "within_array_normalization",
+      "intent": "Perform optimized local intensity- and location-dependent normalization (OLIN/OSLIN) on a two-color microarray slide and visually inspect the results.",
+      "input": [
+        "raw_microarray_data.RData (marrayRaw object containing spot intensities and layout)",
+        "spot_coordinates.RData (list or dataframe containing physical X and Y coordinates of the spots)"
+      ],
+      "stages": "1. Load raw microarray data and spot coordinates ;; 2. Visually inspect raw foreground/background intensities and spatial/intensity-dependent dye biases ;; 3. Perform optimized local regression normalization (OLIN or OSLIN) ;; 4. Plot normalized data to verify the removal of systematic biases.",
+      "code": "data(sw)\nfgbg.visu(sw[,3])\nplot(maA(sw[,3]),maM(sw[,3]),xlab=\"A\",ylab=\"M\",pch='.')\nmxy.plot(maM(sw)[,3],Ngc=maNgc(sw),Ngr=maNgr(sw),\n                 Nsc=maNsc(sw),Nsr=maNsr(sw))\ndata(sw.xy)\nmxy.abs.plot(maM(sw)[,3],Ngc=maNgc(sw),Ngr=maNgr(sw),Nsc=maNsc(sw),Nsr=maNsr(sw))\nmxy2.plot(maM(sw)[,3],X=sw.xy$X[,3],sw.xy$Y[,3],\n          Ngc=maNgc(sw),Ngr=maNgr(sw),Nsc=maNsc(sw),Nsr=maNsr(sw))\nnorm.olin <- olin(sw[,3],X=sw.xy$X[,3],Y=sw.xy$Y[,3])\nplot(maA(norm.olin),maM(norm.olin),main=\"OLIN\",pch=\".\")\nmxy.plot(norm.olin,Ngc=maNgc(norm.olin),Ngr=maNgr(norm.olin),\n                Nsc=maNsc(norm.olin),Nsr=maNsr(norm.olin),main=\"OLIN\")\nnorm.oslin <- olin(sw[,3],X=sw.xy$X[,3],Y=sw.xy$Y[,3],alpha=c(0.1,1,0.1),OSLIN=TRUE)\nplot(maA(norm.oslin),maM(norm.oslin),main=\"OSLIN\",pch=\".\")\nmxy.plot(norm.oslin,Ngc=maNgc(norm.oslin),Ngr=maNgr(norm.oslin),\n                Nsc=maNsc(norm.oslin),Nsr=maNsr(norm.oslin),main=\"OSLIN\")"
+    },
+    {
+      "name": "between_array_scaling",
+      "intent": "Scale the log ratios (M) across multiple normalized microarray slides in a batch to achieve a similar overall distribution.",
+      "input": [
+        "normalized_microarray_data.RData (marrayNorm object containing within-array normalized data)"
+      ],
+      "stages": "1. Load normalized microarray data ;; 2. Plot density distributions of log ratios for all arrays before scaling ;; 3. Perform between-array scaling using variance, MAD, or quantile methods ;; 4. Plot density distributions after scaling to confirm alignment.",
+      "code": "data(sw.olin)\ncol <- c(\"red\",\"blue\",\"green\",\"orange\")\nM <- maM(sw.olin)\nplot(density(M[,4]),col=col[4],xlim=c(-2,2))\nfor (i in 1:3){\n  lines(density(M[,i]),col=col[i])\n}\nsw.olin.s <- bas(sw.olin,mode=\"var\")\nM <- maM(sw.olin.s)\nplot(density(M[,4]),col=col[4],xlim=c(-2,2))\nfor (i in 1:3){\n  lines(density(M[,i]),col=col[i])\n}"
+    },
+    {
+      "name": "statistical_bias_assessment",
+      "intent": "Statistically assess and detect intensity-dependent, spatial, pin-dependent, and plate-dependent biases in microarray data using ANOVA and permutation tests.",
+      "input": [
+        "microarray_data.RData (marrayRaw or marrayNorm object)"
+      ],
+      "stages": "1. Calculate neighborhood correlation on intensity and spatial scales ;; 2. Perform ANOVA to test for intensity-dependent bias ;; 3. Perform ANOVA to test for spatial block-wise bias ;; 4. Perform ANOVA to test for pin- and plate-dependent biases ;; 5. Run permutation tests to calculate False Discovery Rates (FDR) for intensity and spatial biases and plot the significant biased regions.",
+      "code": "A <- maA(sw[,3])\nM <- maM(sw[,3])\nMav <- ma.vector(A,M,av=\"median\",delta=50)\ncor(Mav,M,use=\"pairwise.complete.obs\")\nMM <-  v2m(maM(sw)[,3],Ngc=maNgc(sw),Ngr=maNgr(sw),Nsc=maNsc(sw),Nsr=maNsr(sw),visu=FALSE)\nMMav <- ma.matrix(MM,av=\"median\",delta= 2,edgeNA=FALSE)\nMav <- m2v(MMav,Ngc=maNgc(sw),Ngr=maNgr(sw),Nsc=maNsc(sw),Nsr=maNsr(sw),visu=FALSE)\ncor(Mav,M,use=\"pairwise.complete.obs\")\nprint(anovaint(sw,index=3,N=10))\ns <-  anovaspatial(sw,index=3,xN=8,yN=8,visu=TRUE)\nprint(anovapin(sw.olin,index=3))\nprint(anovaplate(sw.olin,index=3))\nFDR <- fdr.int(maA(sw)[,3],maM(sw)[,3],delta=50,N=10,av=\"median\")\nsigint.plot(maA(sw)[,3],maM(sw)[,3],FDR$FDRp,FDR$FDRn,c(-5,-5))\nM <- v2m(maM(sw)[,3],Ngc=maNgc(sw),Ngr=maNgr(sw),\n                Nsc=maNsc(sw),Nsr=maNsr(sw),main=\"MXY plot of SW-array 1\")\nFDR <- fdr.spatial(M,delta=2,N=10,av=\"median\",edgeNA=TRUE)\nsigxy.plot(FDR$FDRp,FDR$FDRn,color.lim=c(-5,5),main=\"FDR\")"
+    }
+  ]
+}

@@ -1,149 +1,138 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: banocc
-// BAnOCC is a package designed for compositional data, where each sample sums to one. It infers the ap
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/banocc/inst/doc/banocc-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("banocc")
+// Bioconductor workflow: banocc — compositional_covariance_analysis
+// Infer the correlation and covariance of the unconstrained log-basis from compositional data using a Bayesian GLASSO model.
+// Input: compositions_null
+// Container: quay.io/biocontainers/bioconductor-banocc:1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: banocc, rstan
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compile the BAnOCC Stan model. 2. Run the MCMC sampler on the compositional data. 3. Extract posterior estimates, credible interva
 
 nextflow.enable.dsl = 2
 
-process BIOC_BANOCC {
+process BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-banocc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-banocc:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-banocc:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_banocc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_banocc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_banocc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(banocc)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+        # Load required libraries
+        library(banocc)
+        library(rstan)
+        
+        # Read the input file 'compositions_null' from the working directory
+        if (file.exists("compositions_null")) {
+          df <- read.csv("compositions_null", header = TRUE, check.names = FALSE)
+        } else if (file.exists("compositions_null.csv")) {
+          df <- read.csv("compositions_null.csv", header = TRUE, check.names = FALSE)
+        } else {
+          stop("Required input file 'compositions_null' or 'compositions_null.csv' not found in the working directory.")
+        }
+        
+        # If the first column is non-numeric (e.g., sample IDs), set it as row names
+        if (!is.numeric(df[[1]])) {
+          rownames(df) <- df[[1]]
+          df <- df[-1]
+        }
+        compositions_null <- as.matrix(df)
+        
+        # Ensure row sums are strictly less than 1 as required by BAnOCC
+        row_sums <- rowSums(compositions_null)
+        if (any(row_sums >= 1)) {
+          # Scale rows down so they sum to 0.95
+          compositions_null <- (compositions_null / row_sums) * 0.95
+        }
+        
+        # 1. Compile the BAnOCC Stan model
+        compiled_banocc_model <- rstan::stan_model(model_code = banocc::banocc_model) 
+        
+        # 2. Run the MCMC sampler on the compositional data
+        b_fit     <- banocc::run_banocc(C = compositions_null, compiled_banocc_model=compiled_banocc_model)
+        
+        # 3. Extract posterior estimates, credible intervals, and optional statistics
+        b_output <- banocc::get_banocc_output(banoccfit=b_fit)
+        b_out_nec <- banocc::get_banocc_output(banoccfit=b_fit, eval_convergence = FALSE)
+        b_out_min_width <- banocc::get_banocc_output(banoccfit=b_fit, get_min_width = TRUE)
+        b_out_snc <- banocc::get_banocc_output(banoccfit=b_fit, calc_snc = TRUE)
+        
+        # 4. Assess model convergence using traceplots and Rhat statistics
+        pdf("traceplot.pdf", width = 10, height = 8)
+        if (ncol(compositions_null) >= 2) {
+          print(rstan::traceplot(b_fit\$Fit, pars=paste0("O[1,", 2:ncol(compositions_null), "]")))
+        }
+        dev.off()
+        
+        rhat_all <- rstan::summary(b_fit\$Fit)\$summary[, "Rhat"]
+        
+        # Save meaningful results to output files
+        saveRDS(b_fit, "banocc_fit.rds")
+        saveRDS(b_output, "banocc_output.rds")
+        saveRDS(b_out_nec, "banocc_output_no_eval_convergence.rds")
+        saveRDS(b_out_min_width, "banocc_output_min_width.rds")
+        saveRDS(b_out_snc, "banocc_output_snc.rds")
+        
+        # Save Rhat statistics
+        write.csv(as.data.frame(rhat_all), "rhat_statistics.csv", row.names = TRUE)
+        
+        # Save median estimates (from the non-evaluated convergence run to ensure values are present)
+        if (!is.null(b_out_nec\$Estimates.median)) {
+          write.csv(as.data.frame(b_out_nec\$Estimates.median), "estimates_median.csv", row.names = TRUE)
+        }
 
-    # --- Fitting with Custom Hyperparameters [] ---
-    # Key functions: run_banocc
-    data(compositions_null)
-    p <- ncol(compositions_null)
-    compiled_banocc_model <- rstan::stan_model(
-        model_code = banocc::banocc_model
-    )
-    b_fit_hp <- banocc::run_banocc(
-        C = compositions_null,
-        compiled_banocc_model = compiled_banocc_model,
-        n = rep(0, p),
-        L = 10 * diag(p),
-        a = 0.5,
-        b = 0.01
-    )
-
-
-    # --- Advanced MCMC Sampling Configuration [] ---
-    # Key functions: run_banocc
-    data(compositions_null)
-    p <- ncol(compositions_null)
-    compiled_banocc_model <- rstan::stan_model(
-        model_code = banocc::banocc_model
-    )
-    init_list <- list(
-        list(m = rep(0, p), O = diag(p), lambda = 0.02),
-        list(m = rep(0.1, p), O = 10 * diag(p), lambda = 0.5)
-    )
-    b_fit_init <- banocc::run_banocc(
-        C = compositions_null,
-        compiled_banocc_model = compiled_banocc_model,
-        chains = 2,
-        init = init_list
-    )
-
-
-    # --- Posterior Inference and Credible Intervals [] ---
-    # Key functions: get_banocc_output
-    b_out_90 <- banocc::get_banocc_output(
-        banoccfit = b_fit,
-        conf_alpha = 0.1
-    )
-    b_out_99 <- banocc::get_banocc_output(
-        banoccfit = b_fit,
-        conf_alpha = 0.01
-    )
-    b_out_snc <- banocc::get_banocc_output(
-        banoccfit = b_fit,
-        calc_snc = TRUE,
-        get_min_width = TRUE
-    )
-
-
-    # --- Convergence Evaluation [] ---
-    # Key functions: get_banocc_output
-    b_out_ec <- banocc::get_banocc_output(
-        banoccfit = b_fit,
-        eval_convergence = TRUE
-    )
-    b_out_nec <- banocc::get_banocc_output(
-        banoccfit = b_fit,
-        eval_convergence = FALSE
-    )
-    estimates_median <- b_out_nec$Estimates.median
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_banocc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_banocc_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_banocc_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BANOCC:", paste0("    banocc: ", packageVersion("banocc"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS":',
+        paste0('    banocc: ', as.character(packageVersion('banocc')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_banocc_results.csv
-    touch ${prefix}_banocc_output.rds
-    echo "BIOC_BANOCC:" > versions.yml
-    echo "    banocc: 0.0.0" >> versions.yml
+    touch ${prefix}_compositional_covariance_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_BANOCC_WORKFLOW {
+workflow BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ compositions_null ] ]
 
     main:
-    BIOC_BANOCC(ch_input)
+    BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_BANOCC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BANOCC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BANOCC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BANOCC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS.out.tables
+    plots    = BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS.out.plots
+    objects  = BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS.out.objects
+    versions = BIOC_BANOCC_COMPOSITIONAL_COVARIANCE_ANALYSIS.out.versions
 }

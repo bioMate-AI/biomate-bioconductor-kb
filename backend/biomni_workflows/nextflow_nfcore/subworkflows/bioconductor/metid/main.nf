@@ -1,99 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MetID
-// This package uses an innovative network-based approach that will enhance our ability to determine th
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/MetID/inst/doc/Introduction_to_MetID.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MetID")
+// Bioconductor workflow: MetID — lc_ms_metabolite_id_scoring
+// Score and prioritize putative metabolite identifications from LC-MS data using a network-based probabilistic framework.
+// Input: metabolomics_data.csv
+// Container: quay.io/biocontainers/bioconductor-metid:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MetID
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the MetID package and the input dataset
+//  * 2. [Core Analysis] Format the column names of the dataset to meet the package's strict requirements
+//  * 3. [Input & Preparation] Run get_scores_for_LC_MS to build the network, perform random sampling, and calculate identification scores
 
 nextflow.enable.dsl = 2
 
-process BIOC_METID {
+process BIOC_METID_LC_MS_METABOLITE_ID_SCORING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-metid"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-metid:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-metid:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_metid_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_metid_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_metid_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Bis)
-    library(jsonlite)
-
-    # --- Code Block 1 [] ---
-    # Key functions: bis, Bis
-    data("demo1")
-    dim(demo1)
-    #> [1] 20  6
-    head(demo1)
-    #>   Query.Mass                                                   Name     Formula
-    # --- Code Block 2 [] ---
-    # Key functions: get_scores_for_LC_MS, bis, Bis
-    colnames(demo1) <- c('query_m.z','name','formula','exact_m.z','pubchem_cid','kegg_id')
-    out <- get_scores_for_LC_MS(demo1, type = 'data.frame', na='-', mode='POS')
-    #> Start building network: it may take several minutes......
-    #> Start getting random samples: it may take several minutes......
-    #> Start writing scores......
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_metid_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_metid_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load MetID package
+    library(MetID)
+    
+    # Read the user input file
+    input_file <- "metabolomics_data.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_metid_output.rds")
+    
+    raw_data <- read.csv(input_file, stringsAsFactors = FALSE, check.names = FALSE)
+    
+    # Helper to find column by name (case-insensitive, ignoring punctuation)
+    find_col <- function(names_list, patterns) {
+      for (pat in patterns) {
+        idx <- grep(pat, names_list, ignore.case = TRUE)
+        if (length(idx) > 0) return(idx[1])
+      }
+      return(NULL)
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METID:", paste0("    metid: ", packageVersion("MetID"))),
-        "versions.yml"
+    
+    q_idx <- find_col(colnames(raw_data), c("query_m.z", "query.mass", "query", "m.z", "mz"))
+    name_idx <- find_col(colnames(raw_data), c("name"))
+    form_idx <- find_col(colnames(raw_data), c("formula"))
+    e_idx <- find_col(colnames(raw_data), c("exact_m.z", "exact.mass", "exact"))
+    pub_idx <- find_col(colnames(raw_data), c("pubchem_cid", "pubchem", "cid"))
+    kegg_idx <- find_col(colnames(raw_data), c("kegg_id", "kegg"))
+    metid_idx <- find_col(colnames(raw_data), c("metid", "peak", "id"))
+    
+    # Construct demo1 with exactly 6 columns to match the documented code's renaming step
+    demo1 <- data.frame(
+      Query.Mass = if (!is.null(q_idx)) as.numeric(raw_data[[q_idx]]) else rep(NA, nrow(raw_data)),
+      Name = if (!is.null(name_idx)) as.character(raw_data[[name_idx]]) else rep("", nrow(raw_data)),
+      Formula = if (!is.null(form_idx)) as.character(raw_data[[form_idx]]) else rep("", nrow(raw_data)),
+      Exact.Mass = if (!is.null(e_idx)) as.numeric(raw_data[[e_idx]]) else rep(NA, nrow(raw_data)),
+      PubChem.CID = if (!is.null(pub_idx)) as.character(raw_data[[pub_idx]]) else rep("-", nrow(raw_data)),
+      KEGG.ID = if (!is.null(kegg_idx)) as.character(raw_data[[kegg_idx]]) else rep("-", nrow(raw_data)),
+      stringsAsFactors = FALSE
     )
+    
+    # Handle missing values for PubChem and KEGG IDs to match the na='-' parameter
+    demo1\$PubChem.CID[is.na(demo1\$PubChem.CID) | demo1\$PubChem.CID == "" | demo1\$PubChem.CID == "NA"] <- "-"
+    demo1\$KEGG.ID[is.na(demo1\$KEGG.ID) | demo1\$KEGG.ID == "" | demo1\$KEGG.ID == "NA"] <- "-"
+    
+    # Format the column names of the dataset to meet the package's strict requirements
+    colnames(demo1) <- c('query_m.z','name','formula','exact_m.z','pubchem_cid','kegg_id')
+    
+    # If peak IDs (metid) were provided, add them to the formatted data frame
+    if (!is.null(metid_idx)) {
+      demo1\$metid <- as.character(raw_data[[metid_idx]])
+    }
+    
+    # Run get_scores_for_LC_MS to build the network, perform random sampling, and calculate identification scores
+    out <- get_scores_for_LC_MS(demo1, type = 'data.frame', na='-', mode='POS')
+    
+    # Print head of the output to console
+    head(out)
+    
+    # Save the results to output files
+    write.csv(out, "metabolite_scores.csv", row.names = FALSE)
+    saveRDS(out, "metabolite_scores.rds")
+
+    writeLines(c(
+        '"BIOC_METID_LC_MS_METABOLITE_ID_SCORING":',
+        paste0('    MetID: ', as.character(packageVersion('MetID')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_metid_results.csv
-    touch ${prefix}_metid_output.rds
-    echo "BIOC_METID:" > versions.yml
-    echo "    metid: 0.0.0" >> versions.yml
+    touch ${prefix}_lc_ms_metabolite_id_scoring.csv versions.yml
     """
 }
 
-
-workflow BIOC_METID_WORKFLOW {
+workflow BIOC_METID_LC_MS_METABOLITE_ID_SCORING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ metabolomics_data.csv ] ]
 
     main:
-    BIOC_METID(ch_input)
+    BIOC_METID_LC_MS_METABOLITE_ID_SCORING(ch_input)
 
     emit:
-    results  = BIOC_METID.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METID.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METID.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METID.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METID_LC_MS_METABOLITE_ID_SCORING.out.tables
+    plots    = BIOC_METID_LC_MS_METABOLITE_ID_SCORING.out.plots
+    objects  = BIOC_METID_LC_MS_METABOLITE_ID_SCORING.out.objects
+    versions = BIOC_METID_LC_MS_METABOLITE_ID_SCORING.out.versions
 }

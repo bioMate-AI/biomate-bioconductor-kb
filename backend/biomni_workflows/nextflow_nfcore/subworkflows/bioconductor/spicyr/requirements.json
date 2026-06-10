@@ -1,0 +1,25 @@
+{
+  "package": "spicyr",
+  "requirements": [
+    "EBImage",
+    "S4Vectors",
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "ggplot2",
+    "imcRtools",
+    "spicyR",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "S4Vectors",
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "ggplot2",
+      "imcRtools",
+      "spicyR",
+      "survival"
+    ]
+  }
+}

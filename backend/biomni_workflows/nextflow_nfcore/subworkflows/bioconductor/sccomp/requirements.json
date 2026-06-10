@@ -1,0 +1,40 @@
+{
+  "package": "sccomp",
+  "requirements": [
+    "Seurat",
+    "dplyr",
+    "forcats",
+    "ggplot2",
+    "loo",
+    "readr",
+    "sccomp",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "differential_variability_analysis.nf": [
+      "Seurat",
+      "dplyr",
+      "ggplot2",
+      "sccomp"
+    ],
+    "main.nf": [
+      "dplyr",
+      "forcats",
+      "ggplot2",
+      "sccomp",
+      "tidyr"
+    ],
+    "model_comparison_loo.nf": [
+      "Seurat",
+      "loo",
+      "sccomp"
+    ],
+    "random_effects_modeling.nf": [
+      "Seurat",
+      "dplyr",
+      "ggplot2",
+      "readr",
+      "sccomp"
+    ]
+  }
+}

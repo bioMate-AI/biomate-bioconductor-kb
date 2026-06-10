@@ -1,0 +1,13 @@
+{
+  "package": "bioqc",
+  "requirements": [
+    "BioQC",
+    "Biobase"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioQC",
+      "Biobase"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: eset1/eset2=Lists containing the ExpressionSet/AffyBatch data, comparison name, phenodata variable, outcome levels (bad outcome first), and pairing status ;; mapping=Data frame or matrix mapping probe IDs between different platforms ;; B=Number of internal sub-samples or permutations to optimize alpha or estimate empirical p-values ;; test=Test statistic to rank genes, one of \"fc\" (log fold change), \"t\" (t-test), or \"z\" (regularized t-test) ;; beta=1 if class labels match in orientation, 0.5 if orientation is unclear ;; percent=The percentage contribution to the overall similarity score used to define the final list of overlapping genes ;; two.sided=Logical, whether to consider both ends of the list (two-sided) or just the top members (one-sided) ;; invar.q=Fraction of list elements expected to be invariant (default 0.5), excluded from shuffling\n- alternatives: None mentioned; the package provides internal options for different test statistics (\"fc\", \"t\", \"z\") and comparison directions (one-sided vs two-sided)\n- when_to_use: Use when comparing two distinct gene expression studies (e.g., different platforms or cohorts comparing similar clinical states) or when comparing two pre-ranked gene lists to find significant overlap in top/bottom ranks\n- pitfalls: Both expression datasets must be pre-processed beforehand (either together or independently) and must be on an additive scale (logarithmic or log-like) ;; The order of the two levels in the \"out\" parameter must be identical for all studies (ideally bad outcome first, then good outcome) ;; If data are paired, the paired samples must be in successive order ;; When comparing lists without expression data, an optimal alpha cannot be automatically tuned via sub-sampling, so the user must evaluate different alphas or choose one leading to a significant similarity",
+  "workflows": [
+    {
+      "name": "compare_expression_studies",
+      "intent": "Compare two gene expression studies to detect similarities and identify overlapping genes.",
+      "input": [
+        "eset1 (ExpressionSet or AffyBatch for study 1)",
+        "eset2 (ExpressionSet or AffyBatch for study 2)",
+        "mapping (Data frame mapping probe IDs between studies, optional)"
+      ],
+      "stages": "1. Combine and prepare the two expression datasets using prepareData ;; 2. Compute the similarity score and optimize alpha using OrderedList ;; 3. Plot the results (pAUC, scores, overlap) using plot ;; 4. Extract the intersecting genes from the resulting object",
+      "code": "library(Biobase)\nlibrary(twilight)\nlibrary(OrderedList)\ndata(OL.data)\nA <- prepareData(\neset1=list(data=OL.data$prostate,name=\"prostate\",var=\"outcome\",out=c(\"Rec\",\"NRec\"),paired=FALSE),\neset2=list(data=OL.data$breast,name=\"breast\",var=\"Risk\",out=c(\"high\",\"low\"),paired=FALSE),\nmapping=OL.data$map\n)\nx <- OrderedList(A, empirical=TRUE)\nx\nx$intersect[1:5]\nplot(x,\"pauc\")\nplot(x,\"scores\")\nplot(x,\"overlap\")"
+    },
+    {
+      "name": "compare_ordered_lists",
+      "intent": "Compare two pre-ordered gene lists directly without underlying expression data.",
+      "input": [
+        "list1 (Character vector of ordered gene identifiers)",
+        "list2 (Character vector of ordered gene identifiers)"
+      ],
+      "stages": "1. Compare the two ordered lists using compareLists ;; 2. Extract the overlapping genes at a specific rank/percentage using getOverlap ;; 3. Plot the overlap and score distributions using plot",
+      "code": "library(OrderedList)\ndata(OL.data)\nlist1 <- as.character(OL.data$map$prostate)\nlist2 <- c(sample(list1[1:500]),sample(list1[501:1000]))\ny <- compareLists(list1,list2)\ny\nz <- getOverlap(y)\nz\nz$intersect[1:5]\nplot(z)\nplot(z,\"scores\")"
+    }
+  ]
+}

@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_BASESPACER {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-basespacer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-basespacer:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-basespacer:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -53,12 +52,12 @@ process BIOC_BASESPACER {
     # Key functions: Users
     u <- Users()
     u
-    u$Id
-    u$UserOwnedBy
+    u\$Id
+    u\$UserOwnedBy
     # --- Listgenomes [] ---
     # Key functions: listGenomes
     g <- listGenomes(aAuth, Limit = 100)
-    g$SpeciesName
+    g\$SpeciesName
     # --- Listgenomes [] ---
     # Key functions: listGenomes, TotalCount
     listGenomes(aAuth, Limit = 2)
@@ -114,18 +113,27 @@ process BIOC_BASESPACER {
     bamFiles
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_basespacer_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_basespacer_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_basespacer_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_basespacer_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_basespacer_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_basespacer_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_BASESPACER:", paste0("    basespacer: ", packageVersion("BaseSpaceR"))),
+        c("BIOC_BASESPACER:", paste0("    basespacer: ", as.character(packageVersion("BaseSpaceR")))),
         "versions.yml"
     )
     """

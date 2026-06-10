@@ -1,0 +1,16 @@
+{
+  "package": "blma",
+  "requirements": [
+    "BLMA",
+    "ROntoTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BLMA"
+    ],
+    "network_based_integrative_analysis.nf": [
+      "BLMA",
+      "ROntoTools"
+    ]
+  }
+}

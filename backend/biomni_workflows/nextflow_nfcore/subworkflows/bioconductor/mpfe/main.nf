@@ -1,100 +1,153 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MPFE
-// Estimate distribution of methylation patterns from a table of counts from a bisulphite sequencing ex
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MPFE/inst/doc/MPFE.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MPFE")
+// Bioconductor workflow: MPFE — methylation_pattern_estimation
+// Estimate and visualize the distribution of DNA methylation patterns from bisulfite sequencing count data, correcting for non-conversion and sequencing errors.
+// Input: table_of_counts.txt
+// Container: quay.io/biocontainers/bioconductor-mpfe:1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MPFE
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the count data
+//  * 2. [Core Analysis] Estimate methylation pattern distributions using estimatePatterns(), specifying non-conversion (epsilon) and sequencing error (eta
+//  * 3. [Visualization & Output] Plot the comparison between observed and estimated distributions using plotPatterns()
+//  * 4. [Visualization & Output] Visualize the patterns and their frequencies as a grid map using patternMap()
 
 nextflow.enable.dsl = 2
 
-process BIOC_MPFE {
+process BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mpfe"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mpfe:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mpfe:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mpfe_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mpfe_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mpfe_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MPFE)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required library
+        library(MPFE)
+        
+        # 1. Load the count data
+        # The pipeline reads EXACTLY 'table_of_counts.txt' from the working directory.
+        # This file must contain a header, with the first column listing the methylation patterns
+        # (e.g., "m00000") and subsequent columns containing read counts for each sample.
+        if (!file.exists("table_of_counts.txt")) {
+          stop("Error: Required input file 'table_of_counts.txt' not found in the working directory.")
+        }
+        
+        patternsExample <- read.table("table_of_counts.txt", header = TRUE, stringsAsFactors = FALSE)
+        
+        # 2. Estimate methylation pattern distributions using estimatePatterns()
+        # Specifying non-conversion (epsilon) and sequencing error (eta) rates.
+        
+        # First, run estimation on column 2 only (as in the documented code)
+        est_col2 <- estimatePatterns(patternsExample, epsilon=0.01, column=2)
+        
+        # Save the single-column estimation result
+        write.csv(est_col2[[1]], "estimates_column2_only.csv", row.names = FALSE)
+        
+        # Second, run estimation on all columns with site-dependent sequencing error rates (eta)
+        # Dynamically determine the number of CpG sites from the pattern string length
+        n_cpg <- nchar(gsub("^m", "", as.character(patternsExample[1, 1])))
+        eta_array <- rep(0.01, n_cpg)
+        if (n_cpg > 0) eta_array[1] <- 0.008
+        if (n_cpg > 1) eta_array[n_cpg] <- 0.008
+        
+        estimates <- estimatePatterns(patternsExample,
+                                      epsilon=0.01,
+                                      eta=eta_array)
+        
+        # Save the complete estimates object and individual tables
+        saveRDS(estimates, "estimates.rds")
+        for (i in seq_along(estimates)) {
+          write.csv(estimates[[i]], paste0("estimates_sample_", i, ".csv"), row.names = FALSE)
+        }
+        
+        # 3. Plot the comparison between observed and estimated distributions using plotPatterns()
+        pdf("plot_patterns_sample2.pdf", width = 8, height = 10)
+        # Safely select the second sample if available, otherwise fallback to the first
+        plot_idx <- min(2, length(estimates))
+        plotPatterns(estimates[[plot_idx]])
+        dev.off()
+        
+        # 4. Visualize the patterns and their frequencies as a grid map using patternMap()
+        pdf("pattern_maps.pdf", width = 10, height = 10)
+        par(mfrow=c(2, 2))
+        
+        patternMap(estimates[[1]],
+                   maxFreq=0.5,
+                   main='Estimated frequencies')
+        
+        patternMap(estimates[[1]],
+                   estimatedDistribution=FALSE,
+                   maxFreq=0.5,
+                   topDown=FALSE,
+                   main='Observed frequencies')
+        
+        patternMap(estimates[[1]],
+                   maxFreq=0.5,
+                   methCol=colorRampPalette(c('red', 'blue')),
+                   unMethCol='lightgrey',
+                   main='Estimated frequencies')
+        
+        patternMap(estimates[[1]],
+                   estimatedDistribution=FALSE,
+                   maxFreq=0.5,
+                   methCol=c('bisque4', 'azure4'),
+                   unMethCol=c('beige', 'azure'),
+                   main='Observed frequencies')
+        
+        dev.off()
 
-    # --- Data [] ---
-    # Key functions: estimatePatterns
-    library(MPFE)
-    data(patternsExample)
-    patternsExample
-    estimatePatterns(patternsExample, epsilon=0.01, column=2)
-    # --- Estimatepatterns [] ---
-    # Key functions: estimatePatterns
-    estimates <- estimatePatterns(patternsExample,
-                                  epsilon=0.01,
-                                  eta=c(0.008, 0.01, 0.01, 0.01, 0.008))
-    estimates
-    # --- Plotpatterns [] ---
-    # Key functions: plotPatterns
-    plotPatterns(estimates[[2]])
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mpfe_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mpfe_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mpfe_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MPFE:", paste0("    mpfe: ", packageVersion("MPFE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION":',
+        paste0('    MPFE: ', as.character(packageVersion('MPFE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mpfe_results.csv
-    touch ${prefix}_mpfe_output.rds
-    echo "BIOC_MPFE:" > versions.yml
-    echo "    mpfe: 0.0.0" >> versions.yml
+    touch ${prefix}_methylation_pattern_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_MPFE_WORKFLOW {
+workflow BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ table_of_counts.txt ] ]
 
     main:
-    BIOC_MPFE(ch_input)
+    BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_MPFE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MPFE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MPFE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MPFE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION.out.tables
+    plots    = BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION.out.plots
+    objects  = BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION.out.objects
+    versions = BIOC_MPFE_METHYLATION_PATTERN_ESTIMATION.out.versions
 }

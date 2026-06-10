@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sd=Vector of standard deviations for each gene, typically estimated from control samples of existing studies on the log scale ;; n=Sample size per group (for power and delta calculations) ;; delta=Minimum effect size (log of fold-change, e.g., log2(fold.change)) ;; sig.level=Significance level (Type I error rate) ;; power=Desired statistical power (1 - beta) ;; alpha.correct=Multiple comparison adjustment method, defaults to \"Bonferonni\"\n- alternatives: The documentation mentions substituting False Discovery Rate (FDR) for the Bonferroni multiple comparison adjustment (referencing Benjamini & Hochberg 1995, Storey 2002). Users can also modify the code to replace power.t.test in pow, ssize, and delta with other experimental design calculations if a 2-sample pooled t-test is not appropriate.\n- when_to_use: Appropriate when designing a two-group (treatment vs. control) microarray experiment and pilot or historical control data is available to estimate gene-specific standard deviations. It assumes normalized and log-transformed data where a standard 2-sample pooled-variance t-test is valid.\n- pitfalls: Using standard deviations that are not on the log scale (microarray data must be normalized and log-transformed, e.g., RMA). Failing to account for multiple testing (the package defaults to Bonferroni, which can be conservative). Assuming equal sample sizes between groups when the experimental design might be unbalanced (the formulas assume n1 = n2 = n).",
+  "workflows": [
+    {
+      "name": "sample_size_calculation",
+      "intent": "Calculate and plot the sample size required to achieve a specified power and fold-change for a given proportion of genes.",
+      "input": [
+        "control_expression_data.csv (microarray expression matrix of control samples to calculate gene standard deviations)"
+      ],
+      "stages": "1. Load the package and calculate gene-specific standard deviations from control samples ;; 2. Compute the required sample sizes using ssize ;; 3. Plot the cumulative proportion of genes achieving the target power using ssize.plot",
+      "code": "library(ssize)\nlibrary(xtable)\nlibrary(gdata) # for nobs()\noptions(width=30)\n\n# Load the example data\ndata(exp.sd)\n\n# Use only the first 1000, \n# so examples run faster\nexp.sd <- exp.sd[1:1000] \n\nn<-6\nfold.change<-2.0\npower<-0.8\nsig.level<-0.05\n\nall.size  <- ssize(sd=exp.sd, delta=log2(fold.change),\n                   sig.level=sig.level, power=power)\npar(cex=1)\nssize.plot(all.size, lwd=2, col=\"magenta\", xlim=c(1,20))"
+    },
+    {
+      "name": "power_calculation",
+      "intent": "Calculate and plot the statistical power achieved by a fixed sample size and fold-change across all genes.",
+      "input": [
+        "control_expression_data.csv (microarray expression matrix of control samples to calculate gene standard deviations)"
+      ],
+      "stages": "1. Load the package and calculate gene-specific standard deviations from control samples ;; 2. Compute power for a fixed sample size using pow ;; 3. Plot the cumulative proportion of genes achieving power thresholds using power.plot",
+      "code": "library(ssize)\nlibrary(xtable)\nlibrary(gdata) # for nobs()\noptions(width=30)\n\n# Load the example data\ndata(exp.sd)\n\n# Use only the first 1000, \n# so examples run faster\nexp.sd <- exp.sd[1:1000] \n\nn<-6\nfold.change<-2.0\npower<-0.8\nsig.level<-0.05\n\nall.power <- pow(sd=exp.sd, n=n, delta=log2(fold.change),\n                 sig.level=sig.level)\n\npar(cex=1)\npower.plot(all.power, lwd=2, col=\"blue\")"
+    },
+    {
+      "name": "delta_calculation",
+      "intent": "Calculate and plot the minimum detectable fold-change (delta) required to achieve a specified power at a fixed sample size.",
+      "input": [
+        "control_expression_data.csv (microarray expression matrix of control samples to calculate gene standard deviations)"
+      ],
+      "stages": "1. Load the package and calculate gene-specific standard deviations from control samples ;; 2. Compute the minimum detectable delta using delta ;; 3. Plot the cumulative proportion of genes achieving the target power across fold-changes using delta.plot",
+      "code": "library(ssize)\nlibrary(xtable)\nlibrary(gdata) # for nobs()\noptions(width=30)\n\n# Load the example data\ndata(exp.sd)\n\n# Use only the first 1000, \n# so examples run faster\nexp.sd <- exp.sd[1:1000] \n\nn<-6\nfold.change<-2.0\npower<-0.8\nsig.level<-0.05\n\nall.delta  <- delta(sd=exp.sd, power=power, n=n,\n                    sig.level=sig.level)\npar(cex=1, mar=c(5.1,5.1,4,2))\ndelta.plot(all.delta, lwd=2, col=\"magenta\", xlim=c(1,10),\n\t   ylab = paste(\"Proportion of Genes with \",\n\t        \t\"Power >= 80% \\n\",\n\t\t\t\"at Fold Change of delta\")\n)"
+    }
+  ]
+}

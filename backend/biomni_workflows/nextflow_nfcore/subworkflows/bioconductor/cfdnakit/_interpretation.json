@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: apply_blacklist=Logical parameter in read_bamfile to filter out blacklisted genomic regions ;; maximum_length=Maximum length of cfDNA to plot in plot_fragment_dist (Default 550) ;; minimum_length=Minimum length of cfDNA to plot in plot_fragment_dist (Default 20) ;; sample_id=Character string to identify the sample in get_fragment_profile ;; ylim=Y-axis limits for plot_transformed_sl (Default c(-20,20)) ;; selected_solution=Integer specifying which CNV solution rank to plot in plot_cnv_solution (Default 1)\n- alternatives: QDNAseq=Complementary Bioconductor package for further downstream copy-number analysis ;; Rsamtools=Complementary package for low-level BAM file manipulation ;; GenomicRanges=Complementary package for genomic interval operations\n- when_to_use: Use this package when analyzing shallow whole-genome sequencing data (~0.3X or more) of cfDNA from liquid biopsy sources (e.g., blood-plasma, CSF, urine) mapped to human (GRCh37/hg19, GRCh38/hg38) or mouse (GRCm38/mm10) reference genomes to quantify ctDNA and call CNVs.\n- pitfalls: Ensure sequencing coverage reaches the threshold before starting the analysis ;; Input BAM files must be coordinate-sorted and have a corresponding index (.bai) file ;; CNV calling and tumor fraction estimation are performed only on autosomal chromosomes ;; S.L.Ratio values can be highly variable and GC-bias correction should be considered (S.L.Ratio_corrected)",
+  "workflows": [
+    {
+      "name": "cfdna_cnv_and_ces_analysis",
+      "intent": "Extract fragment length profiles from a patient BAM file, normalize against a Panel of Normals, perform CNV calling, estimate tumor fraction, and calculate the ctDNA estimation score (CES).",
+      "input": [
+        "patient_sample.bam (coordinate-sorted BAM file of patient cfDNA)",
+        "PoN.rds (Panel of Normals profile RDS file)"
+      ],
+      "stages": "1. Read and bin the BAM file using read_bamfile ;; 2. Plot fragment length distribution using plot_fragment_dist ;; 3. Extract genome-wide fragment-length profile using get_fragment_profile ;; 4. Plot genome-wide short-fragment ratio using plot_sl_ratio ;; 5. Normalize short-fragmented ratio against PoN using get_zscore_profile ;; 6. Perform Circular Binary Segmentation (CBS) using segmentByPSCB ;; 7. Plot transformed short-to-long ratio and segmentation using plot_transformed_sl ;; 8. Call CNVs and estimate tumor fraction using call_cnv ;; 9. Plot distance matrix of solutions using plot_distance_matrix ;; 10. Retrieve solution table using get_solution_table ;; 11. Plot optimal CNV profile using plot_cnv_solution ;; 12. Calculate ctDNA estimation score (CES) using calculate_CES_score",
+      "code": "library(cfdnakit)\nsample_bamfile <- system.file(\"extdata\",\n                             \"ex.plasma.bam\",\n                package = \"cfdnakit\")\nplasma_SampleBam <- read_bamfile(sample_bamfile,\n                                apply_blacklist = FALSE)\nplot_fragment_dist(list(\"Plasma.Sample\"=plasma_SampleBam))\nexample_RDS <- \"example_patientcfDNA_SampleBam.RDS\"\nexample_RDS_file <-\n    system.file(\"extdata\",example_RDS,\n                package = \"cfdnakit\")\nsample_bins <- readRDS(example_RDS_file)\ncontrol_rds<-\"BH01_CHR15.SampleBam.rds\"\ncontrol_RDS_file <-\n    system.file(\"extdata\",control_rds,\n                package = \"cfdnakit\")\ncontrol_bins <-\n    readRDS(control_RDS_file)\ncomparing_list <- list(\"Healthy.cfDNA\"=control_bins,\n                      \"Patient.1\"=sample_bins)\nplot_fragment_dist(comparing_list)\nsample_profile <- \n  get_fragment_profile(sample_bins,\n                       sample_id = \"Patient.1\")\npatient.SampleFragment.file <-\n    system.file(\"extdata\",\n                \"example_patientcfDNA_SampleFragment.RDS\",\n                package = \"cfdnakit\")\npatient.SampleFragment <- readRDS(patient.SampleFragment.file)\nplot_sl_ratio(patient.SampleFragment)\nPoN_rdsfile <- system.file(\"extdata\",\n                          \"ex.PoN.rds\",\n                          package = \"cfdnakit\")\nPoN.profiles <- readRDS(PoN_rdsfile)\nsample_zscore <- \n  get_zscore_profile(patient.SampleFragment,\n                     PoN.profiles)\nsample_zscore_segment <- segmentByPSCB(sample_zscore)\nplot_transformed_sl(sample_zscore,sample_zscore_segment)\nsample_cnv <- call_cnv(sample_zscore_segment,sample_zscore)\nplot_distance_matrix(sample_cnv)\nsolution_table <- get_solution_table(sample_cnv)\nplot_cnv_solution(sample_cnv,selected_solution = 1)\ncalculate_CES_score(sample_zscore_segment)"
+    },
+    {
+      "name": "create_panel_of_normals",
+      "intent": "Create a Panel of Normals (PoN) profile from a list of healthy control SampleFragment RDS files.",
+      "input": [
+        "Pon-list.txt (A text file containing paths to healthy control SampleFragment RDS files)"
+      ],
+      "stages": "1. Generate PoN profile using create_PoN ;; 2. Save the PoN profile to an RDS file",
+      "code": "library(cfdnakit)\nPoN.profiles <- create_PoN(\"Path.to/Pon-list.txt\")\nsaveRDS(PoN.profiles, \"PoN.rds\")"
+    }
+  ]
+}

@@ -17,9 +17,7 @@ process BIOC_TFUTILS {
     label 'process_medium'
 
     conda "bioconductor-tfutils"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tfutils:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tfutils:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,26 +39,98 @@ process BIOC_TFUTILS {
     library(TFutils)
     library(jsonlite)
 
-    # --- Target and Trait Association Analysis [] ---
-    # Key functions: topTraitsOfTargets, directHitsInCISBP
-    data(cisbpTFcat)
-    load(system.file("legacy/ebicat37.rda", package="gwascat"))
-    direct_hits <- directHitsInCISBP("Rheumatoid arthritis", ebicat37)
-    top_traits <- topTraitsOfTargets("MTF1", TFutils::tftColl, ebicat37)
+    # --- TF Catalog Construction [TFCatalog, HGNCmap] ---
+    # Key functions: TFCatalog, HGNCmap
+    data(cisbpTFcat, package = "TFutils")
+    data(hocomoco.mono.sep2018, package = "TFutils")
+    TFs_CISBP <- TFCatalog(
+        name = "CISBP.info",
+        nativeIds = cisbpTFcat[, 1],
+        HGNCmap = cisbpTFcat
+    )
+    TFs_HOCO <- TFCatalog(
+        name = "hocomoco11",
+        nativeIds = hocomoco.mono.sep2018[, 1],
+        HGNCmap = hocomoco.mono.sep2018
+    )
+    cis_map <- HGNCmap(TFs_CISBP)
+    hoco_map <- HGNCmap(TFs_HOCO)
+
+    # --- Catalog Intersection Analysis [TFCatalog, HGNCmap] ---
+    # Key functions: TFCatalog, HGNCmap
+    data(tftCollMap, package = "TFutils")
+    data(tftColl, package = "TFutils")
+    TFs_MSIG <- TFCatalog(
+        name = "MsigDb.TFT",
+        nativeIds = names(tftColl),
+        HGNCmap = data.frame(tftCollMap, stringsAsFactors = FALSE)
+    )
+    msig_syms <- HGNCmap(TFs_MSIG)[, 2]
+    cis_syms <- HGNCmap(TFs_CISBP)[, 2]
+    common_symbols <- intersect(msig_syms, cis_syms)
+    overlap_ratio <- length(common_symbols) / length(cis_syms)
+
+    # --- TF Family Classification [HGNCmap] ---
+    # Key functions: HGNCmap
+    cismap <- HGNCmap(TFs_CISBP)
+    scis <- split(cismap, cismap\$HGNC)
+    uf <- vapply(scis, function(x) x\$Family_Name[1], "character")
+    CISTOP <- sort(table(uf), decreasing = TRUE)[1:10]
+    hoc <- HGNCmap(TFs_HOCO)
+    shoc <- split(hoc, hoc\$HGNC)
+    sfam <- vapply(shoc, function(x) x\$`TF family`[1], "character")
+    HOTOP <- sort(table(sfam), decreasing = TRUE)[1:10]
+
+    # --- Genomic Motif Scan Processing [reduceByFile] ---
+    # Key functions: reduceByFile
+    data(fimo16, package = "TFutils")
+    if (.Platform\$OS.type != "windows") {
+        BiocParallel::register(BiocParallel::SerialParam())
+        GenomicRanges::rowRanges(fimo16) <- GenomicRanges::GRanges(
+            "chr17",
+            BiocGenerics::IRanges(38.077e6, 38.084e6)
+        )
+        rr <- GenomicFiles::reduceByFile(
+            fimo16,
+            MAP = function(r, f) Rsamtools::scanTabix(f, param = r)
+        )
+    } else {
+        f_path <- system.file("fimoser/fimo16rr.rds", package = "TFutils")
+        rr <- readRDS(f_path)
+    }
+
+    # --- GWAS Trait Association [directHitsInCISBP, topTraitsOfTargets] ---
+    # Key functions: directHitsInCISBP, topTraitsOfTargets
+    gwas_file <- system.file("legacy/ebicat37.rda", package = "gwascat")
+    load(gwas_file)
+    hits <- directHitsInCISBP("Rheumatoid arthritis", ebicat37)
+    tt <- topTraitsOfTargets("MTF1", TFutils::tftColl, ebicat37)
+    top_traits <- head(tt)
+    trait_counts <- table(tt[, 1])
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tfutils_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_tfutils_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tfutils_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_tfutils_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tfutils_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_tfutils_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_TFUTILS:", paste0("    tfutils: ", packageVersion("TFutils"))),
+        c("BIOC_TFUTILS:", paste0("    tfutils: ", as.character(packageVersion("TFutils")))),
         "versions.yml"
     )
     """

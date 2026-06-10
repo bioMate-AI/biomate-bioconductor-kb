@@ -1,0 +1,17 @@
+{
+  "package": "spillr",
+  "requirements": [
+    "cowplot",
+    "dplyr",
+    "ggplot2",
+    "spillR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cowplot",
+      "dplyr",
+      "ggplot2",
+      "spillR"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "ctc",
+  "requirements": [
+    "ctc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ctc"
+    ]
+  }
+}

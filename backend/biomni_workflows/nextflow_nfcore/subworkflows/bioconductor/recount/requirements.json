@@ -1,0 +1,15 @@
+{
+  "package": "recount",
+  "requirements": [
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "recount"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "recount"
+    ]
+  }
+}

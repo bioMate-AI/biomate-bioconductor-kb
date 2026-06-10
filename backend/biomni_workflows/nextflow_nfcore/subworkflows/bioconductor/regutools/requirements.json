@@ -1,0 +1,17 @@
+{
+  "package": "regutools",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "regutools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "regutools"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=A GRanges object containing the peak calling results or RBP binding sites ;; annotation=Path to a GFF3 annotation file downloaded from GENCODE (required for most profiling functions) or a GRanges object (for windowProfile) ;; include_intron=Logical; if TRUE, calculates relative position in the genomic feature including introns (recommended to be FALSE for polyA+ data) ;; group=Character; the metadata column name in the input GRanges object used to group and compare multiple conditions ;; exlevel=Numeric/integer; specifies which GENCODE level to exclude from the annotation ;; extranscript_support_level=Numeric vector; specifies which transcript support levels to exclude (use 6 to exclude NA) ;; split=Logical; if TRUE, splits the metagene profile into 5'UTR, CDS, and 3'UTR separately ;; maxLength=Numeric; filters introns by maximum length in intronProfile ;; minLength=Numeric; filters introns by minimum length in intronProfile ;; motif=Character; IUPAC motif sequence (e.g., \"DRACH\") to check for enrichment in motifProfile ;; genome=Character; name of the BSgenome package containing the genomic sequence (e.g., \"BSgenome.Mmusculus.UCSC.mm10\") ;; flanking=Numeric; size of the window around the peak center to check for motifs or splice sites ;; fraction=Logical; if TRUE, changes the y-axis of the motif profile from frequency to fraction ;; bin=Numeric; bin size for splice site profiling\n- alternatives: windowProfile should be preferred over metaGeneProfile, intronProfile, and exonProfile when working with non-human/non-mouse species or customized annotations that are not in the GENCODE GFF3 format.\n- when_to_use: Use this package when you have CLIP-seq peak coordinates (or RNA modification sites) and want to understand their spatial distribution, enrichment, and sequence context across different transcript regions, splice junctions, or gene types.\n- pitfalls: Setting include_intron = TRUE for polyA+ data is not recommended ;; Attempting to use GENCODE-specific profiling functions (metaGeneProfile, intronProfile, exonProfile, geneTypeProfile, spliceSiteProfile) with non-GENCODE or non-human/mouse GFF3 files will fail ;; When excluding transcript support level NA using extranscript_support_level, you must use the integer 6 instead of NA ;; For motifProfile, the correct BSgenome package for the target species must be installed and loaded in advance.",
+  "workflows": [
+    {
+      "name": "transcript_feature_profiling",
+      "intent": "Profile and visualize CLIP-seq peaks across standard transcript features (metagene, introns, exons, gene types, and splice sites) using GENCODE GFF3 annotations.",
+      "input": [
+        "peaks.rds (GRanges object of peak coordinates)",
+        "annotation.gff3 (GENCODE GFF3 annotation file)"
+      ],
+      "stages": "1. Load peak data and GFF3 annotation ;; 2. Generate metagene profile using metaGeneProfile ;; 3. Generate intron profile using intronProfile ;; 4. Generate exon profile using exonProfile ;; 5. Generate gene type profile using geneTypeProfile ;; 6. Generate splice site profile using spliceSiteProfile",
+      "code": "testpath <- system.file(\"extdata\", package = \"cliProfiler\")\ntest <- readRDS(file.path(testpath, \"test.rds\"))\ntest_gff3 <- file.path(testpath, \"annotation_test.gff3\")\nmeta <- metaGeneProfile(object = test, annotation = test_gff3)\nmeta[[1]]\nlibrary(ggplot2)\nmeta[[2]] + ggtitle(\"Meta Profile 2\")\nmeta <- metaGeneProfile(object = test, annotation = test_gff3, include_intron = TRUE)\nmeta[[2]]\ntest$Treat <- c(rep(\"Treatment 1\",50), rep(\"Treatment 2\", 50))\nmeta <- metaGeneProfile(object = test, annotation = test_gff3, group = \"Treat\")\nmeta[[2]]\nmetaGeneProfile(object = test, annotation = test_gff3, exlevel = 3, extranscript_support_level = c(4,5,6))\nmeta <- metaGeneProfile(object = test, annotation = test_gff3, split = TRUE)\nmeta[[2]]\nintron <-  intronProfile(test, test_gff3)\nintron[[1]]\nintron[[2]]\nintron <-  intronProfile(test, test_gff3, group = \"Treat\")\nintron[[2]]\nintronProfile(test, test_gff3, group = \"Treat\", exlevel = 3, extranscript_support_level = c(4,5,6))\nintronProfile(test, test_gff3, group = \"Treat\", maxLength = 10000, minLength = 50)\nexon <- exonProfile(test, test_gff3)\nexon[[1]]\nexon[[2]]\ngeneTP <- geneTypeProfile(test, test_gff3)\ngeneTP[[1]]\ngeneTP[[2]]\nSSprofile <- spliceSiteProfile(test, test_gff3, flanking=200, bin=40)\nSSprofile[[1]]\nSSprofile[[2]]\nspliceSiteProfile(test, test_gff3, flanking=200, bin=40, exlevel=3, extranscript_support_level = 6, title = \"Splice Site Profile\")"
+    },
+    {
+      "name": "custom_window_profiling",
+      "intent": "Profile CLIP-seq peaks against customized genomic annotations or non-model organism annotations stored in a GRanges object.",
+      "input": [
+        "peaks.rds (GRanges object of peak coordinates)",
+        "custom_annotation.gff3 (Custom annotation file)"
+      ],
+      "stages": "1. Load peak data and custom annotation ;; 2. Extract target features (e.g., exons) into a GRanges object ;; 3. Run windowProfile to calculate relative positions and generate the profile plot",
+      "code": "testpath <- system.file(\"extdata\", package = \"cliProfiler\")\ntest <- readRDS(file.path(testpath, \"test.rds\"))\ntest_gff3 <- file.path(testpath, \"annotation_test.gff3\")\nlibrary(rtracklayer)\ntest_anno <- rtracklayer::import.gff3(test_gff3)\ntest_anno <- test_anno[test_anno$type == \"exon\"]\nwindow_profile <- windowProfile(test, test_anno)\nwindow_profile[[1]]\nwindow_profile[[2]]"
+    },
+    {
+      "name": "motif_enrichment_profiling",
+      "intent": "Analyze and visualize sequence motif enrichment around the center of CLIP-seq peaks using a reference genome.",
+      "input": [
+        "peaks.rds (GRanges object of peak coordinates)"
+      ],
+      "stages": "1. Load peak data ;; 2. Run motifProfile specifying the IUPAC motif, reference BSgenome, and flanking window size",
+      "code": "testpath <- system.file(\"extdata\", package = \"cliProfiler\")\ntest <- readRDS(file.path(testpath, \"test.rds\"))\nmotif <- motifProfile(test, motif = \"DRACH\",\n    genome = \"BSgenome.Mmusculus.UCSC.mm10\",\n    fraction = TRUE, title = \"Motif Profile\",\n    flanking = 10)\nmotif[[1]]\nmotif[[2]]"
+    }
+  ]
+}

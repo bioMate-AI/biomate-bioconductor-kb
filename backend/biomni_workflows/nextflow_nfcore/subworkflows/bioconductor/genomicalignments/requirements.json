@@ -1,0 +1,20 @@
+{
+  "package": "genomicalignments",
+  "requirements": [
+    "DESeq2",
+    "GenomicAlignments",
+    "TxDb.Dmelanogaster.UCSC.dm3.ensGene",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "GenomicAlignments",
+      "edgeR"
+    ],
+    "splice_junction_overlap_encoding.nf": [
+      "GenomicAlignments",
+      "TxDb.Dmelanogaster.UCSC.dm3.ensGene"
+    ]
+  }
+}

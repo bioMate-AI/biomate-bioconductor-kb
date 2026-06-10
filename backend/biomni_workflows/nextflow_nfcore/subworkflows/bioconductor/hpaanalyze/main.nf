@@ -1,101 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HPAanalyze
-// Provide functions for retrieving, exploratory analyzing and visualizing the Human Protein Atlas data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HPAanalyze/inst/doc/a_HPAanalyze_quick_start.R
-// Upstream  : BiocStyle, dplyr, ggplot2, tibble
-// Downstream: none
-//
-// Install: BiocManager::install("HPAanalyze")
+// Bioconductor workflow: HPAanalyze — download_subset_export_hpa
+// Download full HPA histology datasets, filter them for specific genes, tissues, and cancers of interest, and export the results to an Excel file.
+// Input: geneList, tissueList, cancerList
+// Container: quay.io/biocontainers/bioconductor-hpaanalyze:1.28.0--r45hdfd78af_0
+// R packages: BiocStyle, dplyr, ggplot2, HPAanalyze, tibble
+// Bioconductor: 3.20 | R: 4.4
+// Requires: HPAanalyze
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Download HPA datasets using hpaDownload()
+//  * 2. [Core Analysis] Subset the downloaded data using hpaSubset()
+//  * 3. [Visualization & Output] Export the subsetted data to an Excel file using hpaExport()
 
 nextflow.enable.dsl = 2
 
-process BIOC_HPAANALYZE {
+process BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hpaanalyze"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hpaanalyze:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hpaanalyze:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hpaanalyze_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hpaanalyze_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hpaanalyze_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HPAanalyze)
-    library(jsonlite)
-
-    # --- hpaVis eg [] ---
-    # Key functions: hpaVis
-    hpaVis(targetGene = c("GCH1", "PTS", "SPR", "DHFR"),
-    targetTissue = c("cerebellum", "cerebral cortex", "hippocampus"),
-    targetCancer = c("glioma"))
-    # --- hpaVis eg3 [] ---
-    # Key functions: hpaVis
-    hpaVis(visType = "Patho",
-    targetGene = c("GCH1", "PTS", "SPR", "DHFR"),
-    targetCancer = c("glioma", "breast cancer"))
-    # --- hpaVisPatho eg [] ---
-    # Key functions: hpaVisPatho
-    hpaVisPatho(targetGene = c("GCH1", "PTS", "SPR", "DHFR"))
-    # --- listParam ex2 [] ---
-    # Key functions: hpaListParam
-    hpaListParam() %>% glimpse()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hpaanalyze_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hpaanalyze_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocStyle", "dplyr", "ggplot2", "HPAanalyze", "tibble")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hpaanalyze_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(HPAanalyze)
+        
+        # Helper function to robustly read user input files from the working directory
+        read_input <- function(filename) {
+          if (file.exists(filename)) {
+            lines <- readLines(filename, warn = FALSE)
+            lines <- trimws(lines)
+            return(lines[lines != ""])
+          } else if (file.exists(paste0(filename, ".txt"))) {
+            lines <- readLines(paste0(filename, ".txt"), warn = FALSE)
+            lines <- trimws(lines)
+            return(lines[lines != ""])
+          } else if (file.exists(paste0(filename, ".csv"))) {
+            df <- read.csv(paste0(filename, ".csv"), header = FALSE, stringsAsFactors = FALSE)
+            return(as.character(df[[1]]))
+          } else {
+            stop(paste("Error: Required input file", filename, "not found in the working directory."))
+          }
+        }
+        
+        # Read user inputs
+        geneList <- read_input("geneList")
+        tissueList <- read_input("tissueList")
+        cancerList <- read_input("cancerList")
+        
+        # 1. Download HPA datasets using hpaDownload()
+        downloadedData <- hpaDownload(downloadList = 'histology')
+        
+        # 2. Subset the downloaded data using hpaSubset()
+        subsetData <- hpaSubset(data = downloadedData, targetGene = geneList, targetTissue = tissueList, targetCancer = cancerList)
+        
+        # 3. Export the subsetted data to an Excel file using hpaExport()
+        hpaExport(subsetData, fileName = 'subset.xlsx', fileType = 'xlsx')
+        
+        # Additional outputs for robustness and downstream analysis
+        saveRDS(subsetData, file = "subsetData.rds")
+        
+        if (is.list(subsetData)) {
+          for (name in names(subsetData)) {
+            if (is.data.frame(subsetData[[name]])) {
+              write.csv(subsetData[[name]], file = paste0("subset_", name, ".csv"), row.names = FALSE)
+            }
+          }
+        }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HPAANALYZE:", paste0("    hpaanalyze: ", packageVersion("HPAanalyze"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA":',
+        paste0('    HPAanalyze: ', as.character(packageVersion('HPAanalyze')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hpaanalyze_results.csv
-    touch ${prefix}_hpaanalyze_output.rds
-    echo "BIOC_HPAANALYZE:" > versions.yml
-    echo "    hpaanalyze: 0.0.0" >> versions.yml
+    touch ${prefix}_download_subset_export_hpa.csv versions.yml
     """
 }
 
-
-workflow BIOC_HPAANALYZE_WORKFLOW {
+workflow BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ geneList, tissueList, cancerList ] ]
 
     main:
-    BIOC_HPAANALYZE(ch_input)
+    BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA(ch_input)
 
     emit:
-    results  = BIOC_HPAANALYZE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HPAANALYZE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HPAANALYZE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HPAANALYZE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA.out.tables
+    plots    = BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA.out.plots
+    objects  = BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA.out.objects
+    versions = BIOC_HPAANALYZE_DOWNLOAD_SUBSET_EXPORT_HPA.out.versions
 }

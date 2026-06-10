@@ -1,0 +1,19 @@
+{
+  "package": "consensusseeker",
+  "requirements": [
+    "GenomicRanges",
+    "consensusSeekeR",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "consensusSeekeR",
+      "rtracklayer"
+    ],
+    "nucleosome_position_consensus.nf": [
+      "GenomicRanges",
+      "consensusSeekeR"
+    ]
+  }
+}

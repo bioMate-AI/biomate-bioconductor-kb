@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <which=Specifies the pathway view: \"mixed\" (proteins and metabolites), \"metabolites\" (metabolites only, propagated through proteins), or default (proteins only, propagated through metabolites) ;; species=The species name (e.g., \"hsapiens\") passed to pathways() ;; database=The pathway database name (e.g., \"kegg\", \"reactome\", \"smpdb\") passed to pathways() ;; Ncpus=Global option options(Ncpus = X) to enable parallel processing for convertIdentifiers, runClipper, and runTopologyGSA>\n- alternatives: <SPIA=Use for signaling pathway impact analysis when direction and type of interaction are critical (protein-only networks) ;; topologyGSA=Uses graphical models to test pathway deregulation (means and variances) on protein-only networks ;; clipper=Identifies specific altered signal paths; it is the only method that can handle metabolomics or mixed (gene + metabolite) data>\n- when_to_use: <When performing pathway analysis that incorporates topological structure (edges, directions, types of interactions) rather than simple gene set enrichment, or when integrating transcriptomic and metabolomic data into a single pathway analysis>\n- pitfalls: <Identifier Prefixes=Since version 1.24, all node IDs are prefixed with their type (e.g., \"ENTREZID:7157\", \"SYMBOL:TP53\", \"CAS:56-85-9\"). User data rownames must be formatted with these exact prefixes to match ;; Parallelism=To exploit parallelism, pass the entire list of pathways to convertIdentifiers rather than using manual loops like lapply ;; SPIA Working Directory=prepareSPIA saves .RData files in the current working directory. If the working directory changes, prepareSPIA must be re-run>",
+  "workflows": [
+    {
+      "name": "spia_analysis",
+      "intent": "Run Signaling Pathway Impact Analysis (SPIA) on differential gene expression data using graphite pathways.",
+      "input": [
+        "top.txt (data frame of differential expression results with probe IDs and logFC)",
+        "hgu133plus2.db (Bioconductor annotation package for probe-to-Entrez mapping)"
+      ],
+      "stages": "1. Map probe IDs to Entrez IDs and format with the \"ENTREZID:\" prefix ;; 2. Extract logFC for significant genes and define the background gene list ;; 3. Load KEGG pathways and convert identifiers to \"ENTREZID\" ;; 4. Prepare SPIA input files using prepareSPIA ;; 5. Run SPIA using runSPIA",
+      "code": "top$ENTREZ <- mapIds(hgu133plus2.db,\n                     top$ID, \"ENTREZID\", \"PROBEID\", multiVals = \"first\")\ntop <- top[!is.na(top$ENTREZ) & !duplicated(top$ENTREZ), ]\ntop$ENTREZ <- paste(\"ENTREZID\", top$ENTREZ, sep = \":\")\ntg1 <- top[top$adj.P.Val < 0.05, ]\n\nDE_Colorectal = tg1$logFC\nnames(DE_Colorectal) <- tg1$ENTREZ\nALL_Colorectal <- top$ENTREZ\n\nkegg <- pathways(\"hsapiens\", \"kegg\")\nkegg <- convertIdentifiers(kegg, \"ENTREZID\")\nkegg <- kegg[c(\"Bladder cancer\", \"Cytosolic DNA-sensing pathway\")]\nprepareSPIA(kegg, \"keggEx\")\nres <- runSPIA(de = DE_Colorectal, all = ALL_Colorectal, \"keggEx\")"
+    },
+    {
+      "name": "topology_gsa_analysis",
+      "intent": "Test pathway deregulation using graphical models (topologyGSA) on gene expression data.",
+      "input": [
+        "y1.txt (gene expression matrix for condition 1)",
+        "y2.txt (gene expression matrix for condition 2)"
+      ],
+      "stages": "1. Format expression matrix column names with the \"SYMBOL:\" prefix ;; 2. Load KEGG pathways and convert identifiers to \"SYMBOL\" ;; 3. Run topologyGSA variance test using runTopologyGSA",
+      "code": "colnames(y1) <- paste(\"SYMBOL\", colnames(y1), sep = \":\")\ncolnames(y2) <- paste(\"SYMBOL\", colnames(y2), sep = \":\")\n\nkegg <- pathways(\"hsapiens\", \"kegg\")\np <- convertIdentifiers(kegg[[\"Fc epsilon RI signaling pathway\"]], \"SYMBOL\")\nrunTopologyGSA(p, \"var\", y1, y2, 0.05)"
+    },
+    {
+      "name": "clipper_gene_expression",
+      "intent": "Identify significant pathways and find the most relevant altered gene signal paths using clipper.",
+      "input": [
+        "ALL.rds (ExpressionSet of gene expression data)"
+      ],
+      "stages": "1. Define sample classes (1 and 2) based on phenotype ;; 2. Extract expression matrix and format rownames with the \"ENTREZID:\" prefix ;; 3. Load KEGG pathways and select target pathways ;; 4. Run clipper analysis using runClipper",
+      "code": "pheno <- as(phenoData(ALL), \"data.frame\")\nsamples <- unlist(lapply(c(\"NEG\", \"BCR/ABL\"), function(t) {\n  which(grepl(\"^B\\\\d*\", pheno$BT) & (pheno$mol.biol == t))[1:10]\n}))\nclasses <- c(rep(1,10), rep(2,10))\n\nexpr <- exprs(ALL)[,samples]\nrownames(expr) <- paste(\"ENTREZID\",\n                        featureData(addGeneInfo(ALL))$ENTREZID,\n                        sep = \":\")\n\nk <- as.list(pathways(\"hsapiens\", \"kegg\"))\nselection <- c(\"Bladder cancer\", \"Hippo signaling pathway - multiple species\")\nselected <- k[selection]\nnames(selected) <- c(\"Bladder cancer\", \"Hippo signaling\")\n\nclipped <- runClipper(selected, expr, classes, \"mean\", pathThr = 0.1)"
+    },
+    {
+      "name": "clipper_mixed_metabolomics",
+      "intent": "Perform integrated pathway analysis on mixed gene expression and metabolomics data using clipper.",
+      "input": [
+        "Terunuma_gene_expr.txt (gene expression matrix)",
+        "Terunuma_metabolite_expr.txt (metabolite abundance matrix)"
+      ],
+      "stages": "1. Load and clean gene and metabolite expression matrices ;; 2. Format metabolite rownames with \"CAS:\" prefix and gene rownames with \"ENSEMBL:\" prefix ;; 3. Merge matrices and log-transform metabolite levels ;; 4. Load pathways and convert identifiers to ENSEMBL and CAS ;; 5. Filter pathways based on coverage of measured genes/metabolites ;; 6. Define sample classes and run clipper with which = \"mixed\"",
+      "code": "gene_url <-\n   url(\"https://romualdi.bio.unipd.it/wp-uploads/2018/04/Terunuma_gene_expr.txt\")\ngexpr <- read.table(gene_url, header = TRUE, sep = \"\\t\", row.names = 1,\n                          stringsAsFactors = FALSE)\n\nmetab_url <-\n  url(\"https://romualdi.bio.unipd.it/wp-uploads/2018/04/Terunuma_metabolite_expr.txt\")\nmexpr <- read.table(metab_url, header = TRUE, sep = \"\\t\", row.names = NULL,\n                    stringsAsFactors = FALSE)\n\ndexpr <- mexpr[nas_by_row < 0.5,]\niexpr <- cbind(dexpr[,idcols],\n                impute.knn(data.matrix(dexpr[,-idcols]))$data,\n                stringsAsFactors = FALSE)\niexpr$CAS <- sub(\"\\\\s*;.*$\", \"\", iexpr$CAS)\niexpr[,idcols][iexpr[,idcols] == \"\"] <- NA\nvalid_cas <- !is.na(iexpr$CAS)\ncas_col <- which(names(iexpr) == \"CAS\")\ncexpr <- iexpr[valid_cas, c(cas_col, seq.int(5, ncol(iexpr)))]\n\nmexpr <- data.matrix(cexpr[,-1])\nrownames(mexpr) <- paste(\"CAS\", cexpr$CAS, sep = \":\")\ncolnames(mexpr) <- colnames(gexpr)\n\nfexpr <- rbind(data.matrix(gexpr), log(mexpr))\n\nkpaths <- pathways(\"hsapiens\", \"kegg\")\nrpaths <- convertIdentifiers(convertIdentifiers(kpaths, \"ENSEMBL\"), \"CAS\")\n\nfilter_pathways <- function(pathways, expr, min_edge_num) {\n  node_names <- rownames(expr)\n  pred <- function(p) {\n    ns <- nodes(p, \"mixed\")\n         if (length(ns) == 0) {\n           return(FALSE)\n         }\n         frac <- length(grep(\"^CAS:\", ns)) / length(ns)\n         if (frac < 0.3) {\n           return(FALSE)\n         }\n         es <- edges(p, \"mixed\")\n         mask <- (paste(es$src_type, es$src, sep = \":\") %in% node_names) &\n                 (paste(es$dest_type, es$dest, sep = \":\") %in% node_names)\n         sum(mask) >= min_edge_num\n     }\n     Filter(pred, pathways)\n}\n\nfpaths <- filter_pathways(rpaths, fexpr, 10)\n\npos_indices <- grep(\"^POS\", colnames(fexpr))\nneg_indices <- grep(\"^NEG\", colnames(fexpr))\nclasses <- numeric(length = ncol(fexpr))\nclasses[neg_indices] <- 1\nclasses[pos_indices] <- 2\n\nout <- runClipper(fpaths, fexpr, classes, \"mean\", \"mixed\",\n                  maxNodes = 150, seed = 42)"
+    }
+  ]
+}

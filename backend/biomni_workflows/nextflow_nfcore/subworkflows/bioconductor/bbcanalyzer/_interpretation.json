@@ -1,0 +1,31 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sample_names=Path to a text file containing sample names (one per line, without .bam suffix) ;; bam_input=Path to the folder containing BAM and BAI files ;; target_regions=Path to a text file containing target regions (chr, start, end) or single positions (chr, position) ;; vcf_input=Path to a folder containing VCF files for the samples (optional) ;; output=Path to the folder where output text files will be saved ;; output_pictures=Path to the folder where output plots will be saved ;; known_file=Path to a tabix file containing known polymorphisms (e.g., dbSNP VCF) ;; genome=A BSgenome object representing the reference genome ;; MQ_threshold=Mapping quality threshold; reads below this are excluded ;; BQ_threshold=Base quality threshold; bases below this are excluded and counted separately ;; frequency_threshold=Frequency threshold below which minor variants are not reported in calling files ;; qual_lower_bound & qual_upper_bound=Bounds for mean quality visualization (darker/lighter bars) ;; marks=Numeric vector of relative frequencies to draw as horizontal lines in the plots ;; relative=Logical; whether to plot relative frequencies (TRUE) or absolute read counts (FALSE) ;; per_sample=Logical; whether to output one plot per sample (TRUE) or one plot per target position (FALSE) ;; output_list=For analyzeBasesPlotOnly, the list returned by analyzeBases\n- alternatives: GATK or SAMtools (standard variant callers that apply complex filtration steps and do not report unfiltered reads or analyze non-variant positions) ;; Integrative Genomics Viewer (IGV) (good for manual visualization of alignments but time-consuming for multiple samples and lacks automated summing/visualization of base counts)\n- when_to_use: Use when comparing different sequencing techniques (e.g., IonTorrent vs 454) at specific locations, investigating the background/unfiltered read counts at positions where a variant is expected but not called, or visualizing base composition, deletions, and insertions across multiple samples at specific target regions.\n- pitfalls: Target regions file must contain either regions (chr, start, end) or single positions (chr, position); a mixture of both is not supported ;; BAM and BAI files must be in the same folder and their names must exactly match the sample names in the sample names file (without .bam suffix) ;; VCF files (if used) must have one file per sample, named matching the sample names ;; Requires specific packages like VariantAnnotation, Rsamtools, and a BSgenome package to be loaded.",
+  "workflows": [
+    {
+      "name": "complete_base_analysis",
+      "intent": "Run the complete pipeline to analyze BAM files at target regions, output frequency and calling text files, and generate visual barplots.",
+      "input": [
+        "SampleNames.txt (text file with sample names, one per line)",
+        "targetRegions.txt (text file with target regions or positions)",
+        "[Sample].bam and [Sample].bai (alignment files in a folder)",
+        "[Sample].vcf (optional VCF files in a folder)",
+        "dbsnp_138.part.vcf.gz (optional tabix file of known polymorphisms)"
+      ],
+      "stages": "1. Load reference genome ;; 2. Run analyzeBases to determine target positions, analyze reads (CIGAR strings, mapping/base qualities), sum up frequencies, report variants, and generate plots.",
+      "code": "library(\"BSgenome.Hsapiens.UCSC.hg19\")\nref_genome<-BSgenome.Hsapiens.UCSC.hg19\n\noutput1<-analyzeBases(sample_names=sample_file,\n            bam_input=system.file(\"extdata\",package=\"BBCAnalyzer\"),\n            target_regions=target_file,\n            vcf_input=\"\",\n            output=system.file(\"extdata\",package=\"BBCAnalyzer\"),\n            output_pictures=\"\",\n            known_file=system.file(\"extdata\",\"dbsnp_138.part.vcf.gz\",package=\"BBCAnalyzer\"),\n            genome=ref_genome,\n            MQ_threshold=60,\n            BQ_threshold=50,\n            frequency_threshold=0.01,\n            qual_lower_bound=58,\n            qual_upper_bound=63,\n            marks=c(0.01),\n            relative=TRUE,\n            per_sample=TRUE)"
+    },
+    {
+      "name": "plot_only_analysis",
+      "intent": "Regenerate or customize barplots using the pre-calculated analysis list from analyzeBases without re-running the BAM parsing.",
+      "input": [
+        "SampleNames.txt (text file with sample names)",
+        "output_list (R list object returned by analyzeBases)",
+        "[Sample].vcf (optional VCF files in a folder)",
+        "dbsnp_138.part.vcf.gz (optional tabix file of known polymorphisms)"
+      ],
+      "stages": "1. Run analyzeBasesPlotOnly using the output list from a previous analyzeBases run to generate customized plots (e.g., absolute counts, per-target plots).",
+      "code": "analyzeBasesPlotOnly(sample_names=sample_file,\n            vcf_input=system.file(\"extdata\",package=\"BBCAnalyzer\"),\n            output=\"\",\n            known_file=system.file(\"extdata\",\"dbsnp_138.part.vcf.gz\",package=\"BBCAnalyzer\"),            \n            output_list=output_list,\n            qual_lower_bound=58,\n            qual_upper_bound=63,\n            marks=c(0.2,0.4,0.6,0.8,1),\n            relative=FALSE,\n            per_sample=FALSE)"
+    }
+  ]
+}

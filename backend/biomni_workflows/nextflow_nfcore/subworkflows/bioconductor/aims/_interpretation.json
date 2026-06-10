@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: D=A numerical matrix or ExpressionSet of positive-only, non-gene-centered expression values where rows represent genes and columns represent samples ;; EntrezID=A character vector of Entrez IDs corresponding to the rows of the expression matrix D (AIMS automatically handles duplicate Entrez IDs)\n- alternatives: PAM50-based predictors (such as Prosigna ROR)=PAM50 requires cohort-based gene-centering and normalization, making it sensitive to cohort composition and batch effects. AIMS should be preferred when subtyping single samples, small cohorts, or datasets with highly imbalanced subtype frequencies.\n- when_to_use: Use when assigning breast cancer intrinsic molecular subtypes (Luminal A, Luminal B, Her2-enriched, Basal-like, Normal-like) to gene expression datasets (microarray or RNA-Seq) without the need for cohort-level normalization or gene-centering.\n- pitfalls: Do not use gene-centered or log-transformed expression values that contain negative numbers; AIMS requires positive-only expression values (e.g., use only the Cy5 channel for two-color arrays) ;; Do not use gene symbols as identifiers; AIMS strictly requires Entrez IDs to avoid annotation instability.",
+  "workflows": [
+    {
+      "name": "absolute_breast_cancer_subtyping",
+      "intent": "Assign absolute breast cancer intrinsic molecular subtypes to a gene expression dataset or a single sample using Entrez IDs.",
+      "input": [
+        "expression_matrix.csv (non-gene-centered, positive-only gene expression matrix or ExpressionSet)",
+        "gene_annotations.csv (mapping of expression features to Entrez IDs)"
+      ],
+      "stages": "1. Load the AIMS package and the expression dataset ;; 2. Convert the expression matrix to an ExpressionSet if necessary ;; 3. Run applyAIMS using the expression data and Entrez IDs ;; 4. Retrieve the assigned subtypes and posterior probabilities",
+      "code": "library(AIMS)\ndata(mcgillExample)\nmcgillExample$D <- ExpressionSet(assayData=mcgillExample$D)\nmcgill.subtypes <- applyAIMS(mcgillExample$D,\n                             mcgillExample$EntrezID)\nnames(mcgill.subtypes)\nhead(mcgill.subtypes$cl)\nhead(mcgill.subtypes$prob)\ntable(mcgill.subtypes$cl)"
+    }
+  ]
+}

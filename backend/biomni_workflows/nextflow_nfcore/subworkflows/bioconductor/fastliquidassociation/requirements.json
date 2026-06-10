@@ -1,0 +1,13 @@
+{
+  "package": "fastliquidassociation",
+  "requirements": [
+    "doParallel",
+    "fastLiquidAssociation"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "doParallel",
+      "fastLiquidAssociation"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: hpSet1=The first set of HP terms (e.g., candidate gene HPs) ;; hpSet2=The second set of HP terms (e.g., HPs of interest) ;; IC=Information content of HP terms, computed using computeHpIC ;; ancestors=List of ancestor HP terms for each HP term (e.g., hp_ancestors) ;; method=Method for semantic similarity (e.g., \"Resnik\" in compareHPSets, \"bma\" in hpSetCompSummary) ;; direction=Direction of comparison in hpSetCompSummary (e.g., \"symSim\") ;; BPPARAM=Parallelization backend parameter (e.g., SerialParam() or MulticoreParam()) ;; geneList=Vector of genes in the pathway/network to compare in hpGeneListComp ;; ssMatByGene=List of semantic similarity matrices grouped by gene ;; geneSSScore=Vector of symmetric semantic similarity scores for all genes\n- alternatives: Custom prior knowledge databases (clinVar, MedGen, HPO, Orphanet) can be used instead of the default package data.\n- when_to_use: Use when you have a candidate gene (or list of genes) and a set of clinical phenotypes (HPO terms) and want to assess the relevance of the gene to the phenotypes, especially when the gene has no known disease associations (using the pathway/interaction consensus approach).\n- pitfalls: Direct comparison is impossible if the candidate gene has no known disease associations; in this case, the pathway consensus approach must be used. Computing semantic similarity between HP of interest and all HP terms (compareHPSets) is time-consuming and should be parallelized using BPPARAM if possible. Rebuilding geneByHp is necessary if you want to exclude a known association to simulate a discovery use-case or use custom/updated association data.",
+  "workflows": [
+    {
+      "name": "direct_phenotype_comparison",
+      "intent": "Compare a candidate gene's associated phenotypes directly to a set of phenotypes of interest to calculate a relative relevance rank.",
+      "input": [
+        "hpOfInterest (vector of HPO terms representing the phenotype of interest)",
+        "genId (Entrez ID of the candidate gene)",
+        "geneByTrait (data frame of gene-to-trait associations)",
+        "hpByTrait (data frame of trait-to-HPO associations)"
+      ],
+      "stages": "1. Map candidate gene to its associated HPO terms.\n2. Compute Information Content (IC) for all HPO terms using computeHpIC.\n3. Compute semantic similarity matrix between candidate gene HPs and HPs of interest using compareHPSets.\n4. Summarize the similarity matrix into a single score using hpSetCompSummary.\n5. Compute similarity scores for all genes to rank the candidate gene.",
+      "code": "hpOfInterest <- c(\"HP:0000483\", \"HP:0000510\", \"HP:0000518\", \"HP:0000639\", \"HP:0001249\", \"HP:0001250\", \"HP:0002119\", \"HP:0002419\")\ndata(geneByTrait, package=\"PCAN\")\ngeneByTrait <- geneByTrait[\n    which(geneByTrait$id!=disId | geneByTrait$entrez!=genId),\n]\ngeneByHp <- unique(merge(\n    geneByTrait,\n    hpByTrait,\n    by=\"id\"\n)[,c(\"entrez\", \"hp\")])\ngenHpDef <- hpDef[\n    match(\n        geneByHp[which(geneByHp$entrez==genId), \"hp\"],\n        hpDef$id\n    ),\n]\ngenHp <- genHpDef$id\ninfo <- unstack(geneByHp, entrez~hp)\nic <- computeHpIC(info, hp_descendants)\ncompMat <- compareHPSets(\n    hpSet1=genHp, hpSet2=hpOfInterest,\n    IC=ic,\n    ancestors=hp_ancestors,\n    method=\"Resnik\",\n    BPPARAM=SerialParam()\n)\nhpSetCompSummary(compMat, method=\"bma\", direction=\"symSim\")\nhpGeneResnik <- compareHPSets(\n    hpSet1=names(ic), hpSet2=hpOfInterest,\n    IC=ic,\n    ancestors=hp_ancestors,\n    method=\"Resnik\",\n    BPPARAM=SerialParam()\n)\nhpByGene <- unstack(geneByHp, hp~entrez)\nhpMatByGene <- lapply(\n    hpByGene,\n    function(x){\n        hpGeneResnik[x, , drop=FALSE]\n    }\n)\nresnSss <- unlist(lapply(\n    hpMatByGene,\n    hpSetCompSummary,\n    method=\"bma\", direction=\"symSim\"\n))\ncandScore <- resnSss[genId]\ncandRank <- sum(resnSss >= candScore)\ncandRelRank <- candRank/length(resnSss)"
+    },
+    {
+      "name": "pathway_consensus",
+      "intent": "Assess the relevance of a candidate gene to a set of phenotypes based on the consensus of genes belonging to the same biological pathway.",
+      "input": [
+        "genId (Entrez ID of the candidate gene)",
+        "hsEntrezByRPath (list of genes per Reactome pathway)",
+        "rPath (pathway definitions)",
+        "hpMatByGene (list of semantic similarity matrices per gene)",
+        "resnSss (vector of similarity scores for all genes)"
+      ],
+      "stages": "1. Identify the pathway(s) containing the candidate gene.\n2. Compare the pathway gene list against the phenotypes of interest using hpGeneListComp.\n3. Plot the distribution of scores and generate a heatmap of gene-phenotype matches using hpGeneHeatmap.",
+      "code": "candPath <- names(hsEntrezByRPath)[which(unlist(lapply(\n    hsEntrezByRPath,\n    function(x) genId %in% x\n)))]\nrPathRes <- hpGeneListComp(\n    geneList=hsEntrezByRPath[[candPath]],\n    ssMatByGene = hpMatByGene,\n    geneSSScore = resnSss\n)\npathSss <- rPathRes$scores[which(!is.na(rPathRes$scores))]\nnames(pathSss) <- geneDef[match(names(pathSss), geneDef$entrez), \"symbol\"]\nbarplot(\n    sort(pathSss),\n    las=2,\n    ylab=expression(Sim[sym]),\n    main=rPath[which(rPath$Pathway %in% candPath),\"Pathway_name\"]\n)\ngeneLabels <- geneDef$symbol[which(!duplicated(geneDef$entrez))]\nnames(geneLabels) <- geneDef$entrez[which(!duplicated(geneDef$entrez))]\nhpLabels <- hpDef$name\nnames(hpLabels) <- hpDef$id\nhpGeneHeatmap(\n    rPathRes,\n    genesOfInterest=genId,\n    geneLabels=geneLabels,\n    hpLabels=hpLabels,\n    clustByGene=TRUE,\n    clustByHp=TRUE,\n    palFun=colorRampPalette(c(\"white\", \"red\")),\n    goiCol=\"blue\",\n    main=rPath[which(rPath$Pathway %in% candPath),\"Pathway_name\"]\n)"
+    },
+    {
+      "name": "network_consensus",
+      "intent": "Assess the relevance of a candidate gene to a set of phenotypes based on the consensus of its interacting neighbors in a protein-protein interaction network.",
+      "input": [
+        "genId (Entrez ID of the candidate gene)",
+        "hqStrNw (data frame of high-quality STRING network interactions)",
+        "hpMatByGene (list of semantic similarity matrices per gene)",
+        "resnSss (vector of similarity scores for all genes)"
+      ],
+      "stages": "1. Identify the direct neighbors of the candidate gene in the interaction network.\n2. Compare the neighbor gene list against the phenotypes of interest using hpGeneListComp.",
+      "code": "neighbors <- unique(c(\n    hqStrNw$gene1[which(hqStrNw$gene2==genId)],\n    hqStrNw$gene2[which(hqStrNw$gene1==genId)],\n    genId\n))\nneighRes <- hpGeneListComp(\n    geneList=neighbors,\n    ssMatByGene = hpMatByGene,\n    geneSSScore = resnSss\n)"
+    }
+  ]
+}

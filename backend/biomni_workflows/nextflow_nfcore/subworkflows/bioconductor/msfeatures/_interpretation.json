@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: param=A parameter object defining the grouping algorithm, such as SimilarRtimeParam(10) (with a retention time difference threshold in seconds) or AbundanceSimilarityParam(threshold = 0.7, transform = log2) (with similarity threshold and transformation function) ;; rtime=Character string specifying the column in rowData containing retention times (e.g., \"rtmed\") ;; i=Integer or character specifying the assay in the SummarizedExperiment containing feature abundances (e.g., i = 1) ;; simFun=Function to calculate feature similarities (defaults to cor for Pearson's correlation) ;; transform=Function to transform feature abundances prior to similarity calculation (e.g., log2)\n- alternatives: xcms=Mentioned as a package where additional grouping methodology with more LC-MS related information (such as XCMSnExp objects) is expected to be implemented ;; QFeatures=Recommended for aggregating grouped feature abundances into a single signal after feature groups are defined\n- when_to_use: Use when you have LC-MS or GC-MS feature data (m/z, retention times, and abundances across samples) and want to group features representing different adducts, isotopes, or fragments of the same originating compound to reduce dataset complexity and aid annotation.\n- pitfalls: By default, groupFeatures refines previous feature grouping results rather than overwriting them. If you want to repeat or reset a grouping, you must manually drop the \"feature_group\" column (e.g., rowData(se)$feature_group <- NULL or featureGroups(se) <- NA_character_) ;; Abundance correlation approaches can suffer from low sample sizes (e.g., fewer than 8 samples) and work best for features with high biological or technical variance across samples ;; Features with NA values in their feature group column are skipped during refinement.",
+  "workflows": [
+    {
+      "name": "stepwise_feature_grouping",
+      "intent": "Group mass spectrometry features stepwise based on retention time similarity and refine them using abundance correlation across samples.",
+      "input": [
+        "SummarizedExperiment (containing feature abundances in assay and retention times in rowData)"
+      ],
+      "stages": "1. Group features by similar retention times using groupFeatures and SimilarRtimeParam ;; 2. Refine the retention time-based groups by abundance correlation using groupFeatures and AbundanceSimilarityParam",
+      "code": "library(MsFeatures)\nlibrary(SummarizedExperiment)\n\ndata(\"se\")\nse <- groupFeatures(se, param = SimilarRtimeParam(10), rtime = \"rtmed\")\nse <- groupFeatures(se, AbundanceSimilarityParam(threshold = 0.7,\n                                                 transform = log2), i = 1)"
+    },
+    {
+      "name": "subset_feature_grouping",
+      "intent": "Perform feature grouping on a manually selected subset of features.",
+      "input": [
+        "SummarizedExperiment (containing feature abundances in assay and retention times in rowData)"
+      ],
+      "stages": "1. Initialize feature groups to NA and assign a placeholder group to the subset of interest ;; 2. Group the subset of features by similar retention times using groupFeatures and SimilarRtimeParam",
+      "code": "featureGroups(se) <- NA_character_\nfeatureGroups(se)[30:60] <- \"FG\"\n\nse <- groupFeatures(se, SimilarRtimeParam(10), rtime = \"rtmed\")"
+    }
+  ]
+}

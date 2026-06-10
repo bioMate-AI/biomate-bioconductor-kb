@@ -1,0 +1,13 @@
+{
+  "package": "oncomix",
+  "requirements": [
+    "ggplot2",
+    "oncomix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "oncomix"
+    ]
+  }
+}

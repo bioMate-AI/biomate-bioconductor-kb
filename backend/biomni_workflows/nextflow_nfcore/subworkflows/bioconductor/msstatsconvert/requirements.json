@@ -1,0 +1,14 @@
+{
+  "package": "msstatsconvert",
+  "requirements": [
+    "MSstatsConvert"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSstatsConvert"
+    ],
+    "tmt_openms_workflow.nf": [
+      "MSstatsConvert"
+    ]
+  }
+}

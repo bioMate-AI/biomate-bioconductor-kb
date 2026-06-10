@@ -1,0 +1,13 @@
+{
+  "package": "erssa",
+  "requirements": [
+    "ERSSA",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ERSSA",
+      "ggplot2"
+    ]
+  }
+}

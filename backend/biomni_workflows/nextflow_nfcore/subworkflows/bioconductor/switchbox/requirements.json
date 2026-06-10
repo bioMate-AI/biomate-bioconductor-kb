@@ -1,0 +1,14 @@
+{
+  "package": "switchbox",
+  "requirements": [
+    "switchBox"
+  ],
+  "by_workflow": {
+    "legacy_ktsp_workflow.nf": [
+      "switchBox"
+    ],
+    "main.nf": [
+      "switchBox"
+    ]
+  }
+}

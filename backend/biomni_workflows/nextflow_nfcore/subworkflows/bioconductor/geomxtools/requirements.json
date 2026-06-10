@@ -1,0 +1,23 @@
+{
+  "package": "geomxtools",
+  "requirements": [
+    "GeomxTools",
+    "Seurat",
+    "SpatialExperiment",
+    "readxl",
+    "writexl"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GeomxTools",
+      "Seurat",
+      "SpatialExperiment",
+      "readxl",
+      "writexl"
+    ],
+    "protein_geomx_workflow.nf": [
+      "GeomxTools",
+      "readxl"
+    ]
+  }
+}

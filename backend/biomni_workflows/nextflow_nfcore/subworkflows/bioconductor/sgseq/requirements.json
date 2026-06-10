@@ -1,0 +1,32 @@
+{
+  "package": "sgseq",
+  "requirements": [
+    "AnnotationDbi",
+    "BSgenome",
+    "GenomeInfoDb",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "Rsamtools",
+    "SGSeq"
+  ],
+  "by_workflow": {
+    "de_novo_splice_analysis.nf": [
+      "AnnotationDbi",
+      "BSgenome",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "SGSeq"
+    ],
+    "main.nf": [
+      "AnnotationDbi",
+      "GenomeInfoDb",
+      "GenomicFeatures",
+      "Rsamtools",
+      "SGSeq"
+    ],
+    "step_by_step_splice_analysis.nf": [
+      "GenomicRanges",
+      "SGSeq"
+    ]
+  }
+}

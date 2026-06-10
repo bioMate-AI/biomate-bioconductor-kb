@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: file=Path to the input BAM file ;; reads=A GAlignments object containing aligned reads ;; mc.cores=Integer specifying the number of cores to use for parallel processing ;; verbose=Logical indicating whether to print progress messages ;; names.input=Character vector of names for the input samples or subsets in plots ;; depth.values=Sequence of minimum read depths to consider for region composition and FSR distribution plots ;; quantiles=Numeric vector of quantiles to plot in the FSR distribution plot ;; which.param=Character specifying which parameter to plot (\"beta1\" or \"beta2\") ;; sample.depth=Numeric vector of sequencing depths to subsample in ExoDataSubsampling\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you have ChIP-exo or ChIP-nexus sequencing data and want to assess library complexity, enrichment, strand imbalance, and overall sample quality.\n- pitfalls: Ensure that index files (.bai) are excluded when listing BAM files for processing. For deeply sequenced experiments, standard quality metrics may look poor unless subsampling is performed using ExoDataSubsampling to control for library depth.",
+  "workflows": [
+    {
+      "name": "standard_qc_pipeline",
+      "intent": "Perform standard quality control, enrichment, and strand imbalance analysis on ChIP-exo/nexus BAM files.",
+      "input": [
+        "file.bam (aligned ChIP-exo/nexus reads)",
+        "reads.rds (GAlignments object of aligned reads)"
+      ],
+      "stages": "1. Load BAM files or GAlignments into ExoData objects using ExoData ;; 2. Retrieve total read counts using nreads ;; 3. Generate ARC vs URC plots using ARCvURCplot ;; 4. Generate Region Composition plots using regionCompplot ;; 5. Generate Forward Strand Ratio (FSR) distribution plots using FSRDistplot ;; 6. Fit a linear model and visualize parameter distributions using paramDistBoxplot ;; 7. Extract median parameter values using beta1 and beta2",
+      "code": "ex1 = ExoData(file = files[1],mc.cores = 2L,verbose = FALSE)\nreads = readGAlignments(files[1],param = NULL)\nex2 = ExoData(reads = reads,mc.cores = 2L,verbose = FALSE)\nidentical(GRanges(ex1),GRanges(ex2))\nexampleExoData = lapply(files,ExoData,mc.cores = 2L,verbose = FALSE)\nsapply(exampleExoData,nreads)\nARCvURCplot(exampleExoData,names.input = paste(\"Rep\",1:3,sep = \"-\"))\np1 = regionCompplot(exampleExoData,names.input = paste(\"Rep\",1:3,\n    sep = \"-\"),depth.values = seq_len(50))\np2 = FSRDistplot(exampleExoData,names.input = paste(\"Rep\",1:3,sep = \"-\"),\n    quantiles = c(.25,.5,.75),depth.values = seq_len(100))\ngridExtra::grid.arrange(p1,p2,nrow = 1)\nARCvURCplot(exampleExoData[[1]],\n             subset(exampleExoData[[1]],uniquePos > 10),\n             subset(exampleExoData[[1]],uniquePos > 20),\n             names.input = c(\"All\", \"uniquePos > 10\", \"uniquePos > 20\"))\np1 = paramDistBoxplot(exampleExoData,which.param = \"beta1\", names.input = paste(\"Rep\",1:3,sep = \"-\"))\np2 = paramDistBoxplot(exampleExoData,which.param = \"beta2\", names.input = paste(\"Rep\",1:3,sep = \"-\"))\ngridExtra::grid.arrange(p1,p2,nrow = 1)\nsapply(exampleExoData,function(x)median(beta1(x)))\nsapply(exampleExoData,function(x)median(-beta2(x)))"
+    },
+    {
+      "name": "subsampling_qc_pipeline",
+      "intent": "Assess quality of deeply sequenced ChIP-exo/nexus experiments by subsampling reads to controlled depths.",
+      "input": [
+        "file.bam (aligned ChIP-exo/nexus reads)"
+      ],
+      "stages": "1. Subsample reads at specified depths using ExoDataSubsampling ;; 2. Plot parameter distributions across subsampled depths using paramDistBoxplot",
+      "code": "sample.depth = seq(1e5,2e5,5e4)\nexoList = ExoDataSubsampling(file = files[3],sample.depth = sample.depth, verbose=FALSE)\np1 = paramDistBoxplot(exoList,which.param = \"beta1\")\np2 = paramDistBoxplot(exoList,which.param = \"beta2\")\ngridExtra::grid.arrange(p1,p2,nrow = 1)"
+    }
+  ]
+}

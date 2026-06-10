@@ -1,0 +1,11 @@
+{
+  "package": "cormotif",
+  "requirements": [
+    "Cormotif"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Cormotif"
+    ]
+  }
+}

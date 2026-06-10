@@ -1,0 +1,13 @@
+{
+  "package": "basicstan",
+  "requirements": [
+    "BASiCStan",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BASiCStan",
+      "SingleCellExperiment"
+    ]
+  }
+}

@@ -4,6 +4,8 @@
 // Perform degradation normalization on bulk RNA-seq BAM files using a GTF annotation to obtain degradation-normalized read counts and visualize degradation indice
 // Input: bam_files, gtf_file
 // Container: quay.io/biocontainers/bioconductor-degnorm:1.20.0--r45ha27e39d_0
+// R packages: DegNorm
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,24 +34,34 @@ process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("degnorm")
+    .bm_deps <- c("DegNorm")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
     library(DegNorm)
     
     # 1. Identify and list BAM and GTF files from the working directory
-    bam_file_list = list.files(path=".", pattern="\\.bam\$", full.names=TRUE)
+    bam_file_list = list.files(path=".", pattern="\\\\.bam\$", full.names=TRUE)
     if (length(bam_file_list) == 0) {
       stop("Error: No BAM files found in the working directory.")
     }
     
-    gtf_files = list.files(path=".", pattern="\\.gtf\$", full.names=TRUE)
+    gtf_files = list.files(path=".", pattern="\\\\.gtf\$", full.names=TRUE)
     if (length(gtf_files) == 0) {
       stop("Error: No GTF files found in the working directory.")
     }

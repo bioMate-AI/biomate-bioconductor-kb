@@ -4,6 +4,8 @@
 // Track flowing blood cells in time-lapse microscopy images and analyze their kinematic properties.
 // Input: image.files
 // Container: quay.io/biocontainers/bioconductor-flowcatchr:1.44.0--r45hdfd78af_0
+// R packages: flowcatchR
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("flowcatchr")
+    .bm_deps <- c("flowcatchR")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -51,7 +63,7 @@ process BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS {
     
     # Load raw images into a Frames object
     if (dir.exists(input_path)) {
-      files <- list.files(input_path, pattern = "\\.(tiff|tif|png|jpg|jpeg)\$", ignore.case = TRUE, full.names = TRUE)
+      files <- list.files(input_path, pattern = "\\\\.(tiff|tif|png|jpg|jpeg)\$", ignore.case = TRUE, full.names = TRUE)
       if (length(files) == 0) {
         stop("No TIFF/JPG/PNG images found in 'image.files' directory.")
       }

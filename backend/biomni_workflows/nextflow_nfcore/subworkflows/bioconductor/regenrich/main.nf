@@ -1,124 +1,209 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RegEnrich
-// This package is a pipeline to identify the key gene regulators in a biological process, for example 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RegEnrich/inst/doc/RegEnrich.R
-// Upstream  : BiocParallel, GEOquery, affy, annotate
-// Downstream: none
-//
-// Install: BiocManager::install("RegEnrich")
+// Bioconductor workflow: RegEnrich — regenrich_regulator_analysis
+// Identify key gene regulators from expression data and sample metadata using the RegEnrich pipeline, performing differential expression, network inference, enric
+// Input: counts.csv, coldata.csv
+// Container: 1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RegEnrich, S4Vectors
+// Visualizations: enrichment plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_REGENRICH {
+process BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-regenrich"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-regenrich:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-regenrich:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_regenrich_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_regenrich_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_regenrich_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(RegEnrich)
-    library(jsonlite)
-
-    # --- Differential Expression Analysis [] ---
-    # Key functions: regenrich_diffExpr, results_DEA
+    library(S4Vectors)
+    
+    message("Stage 1: Reading and preprocessing input data...")
+    
+    # Read user input files
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align sample names between counts and coldata
+    if ("sample" %in% colnames(coldata)) {
+      rownames(coldata) <- coldata\$sample
+    }
+    common_samples <- intersect(colnames(counts), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("No common samples found between counts.csv and coldata.csv")
+    }
+    
+    counts <- counts[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    expr_data <- as.matrix(counts)
+    
+    # Log-transform if the input data contains raw counts (heuristic check)
+    if (max(expr_data, na.rm = TRUE) > 50) {
+      message("Raw counts detected. Applying log2(counts + 1) transformation...")
+      expr_data <- log2(expr_data + 1)
+    }
+    
+    message("Stage 2: Dynamically defining candidate regulators...")
+    # To avoid forbidden demo datasets, we identify candidate regulators directly from the input data.
+    # We select the top 15% of genes with the highest expression variance as candidate regulators.
+    gene_vars <- apply(expr_data, 1, var)
+    gene_vars[is.na(gene_vars)] <- 0
+    n_reg <- min(max(round(nrow(expr_data) * 0.15), 10), 100)
+    regulators <- names(sort(gene_vars, decreasing = TRUE))[1:n_reg]
+    
+    message("Stage 3: Initializing RegenrichSet object...")
+    # Set up design matrix and contrast dynamically based on the 'condition' column
+    coldata\$condition <- as.factor(coldata\$condition)
+    design_matrix <- model.matrix(~ condition, data = coldata)
+    contrast_vector <- rep(0, ncol(design_matrix))
+    contrast_vector[ncol(design_matrix)] <- 1 # Compare the last level to the baseline level
+    
+    object <- RegenrichSet(
+      expr = expr_data,
+      colData = coldata,
+      method = "limma",
+      design = ~ condition,
+      contrast = contrast_vector,
+      reg = regulators,
+      networkConstruction = "COEN",
+      enrichTest = "FET"
+    )
+    
+    message("Stage 4: Running the RegEnrich pipeline...")
+    
+    # 1. Differential expression analysis
+    message("Step 4.1: Running differential expression analysis...")
     object <- regenrich_diffExpr(object)
-    dea_results <- results_DEA(object)
-    object_limma <- regenrich_diffExpr(
-        object,
-        method = "limma",
-        coef = "week3"
-    )
-    dea_limma_results <- results_DEA(object_limma)
-
-
-    # --- Network Construction [] ---
-    # Key functions: regenrich_network, results_topNet, regenrich_network<-
+    
+    # 2. Regulator-target network inference
+    message("Step 4.2: Inferring regulator-target network...")
     object <- regenrich_network(object)
-    top_net <- results_topNet(object)
-    net_edges <- slot(top_net, "elementset")
-    object_user_net <- object
-    regenrich_network(object_user_net) <- as.data.frame(net_edges)
-
-
-    # --- Enrichment Analysis [] ---
-    # Key functions: regenrich_enrich, results_enrich
+    
+    # 3. Enrichment analysis
+    message("Step 4.3: Performing enrichment analysis...")
     object <- regenrich_enrich(object)
-    enrich_res <- results_enrich(object)
-    enrich_fet <- slot(enrich_res, "allResult")
-    object_gsea <- regenrich_enrich(
-        object,
-        enrichTest = "GSEA",
-        nperm = 1000
-    )
-    enrich_gsea <- slot(results_enrich(object_gsea), "allResult")
-
-
-    # --- Regulator Ranking and Scoring [] ---
-    # Key functions: regenrich_rankScore, results_score
+    
+    # 4. Regulator scoring and ranking
+    message("Step 4.4: Scoring and ranking regulators...")
     object <- regenrich_rankScore(object)
-    final_scores <- results_score(object)
-    top_regulators <- head(final_scores, n = 20)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_regenrich_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_regenrich_results.csv")
+    
+    message("Stage 5: Extracting and saving results...")
+    
+    # Extract results using RegEnrich accessor functions
+    res_score <- results_score(object)
+    res_dea <- results_DEA(object)
+    res_enrich <- results_enrich(object)
+    res_topnet <- results_topNet(object)
+    
+    # Save main tables
+    write.csv(as.data.frame(res_score), "reg_enrich_results.csv", row.names = FALSE)
+    write.csv(as.data.frame(res_dea), "differential_expression_results.csv", row.names = TRUE)
+    
+    # Safely extract and save enrichment results
+    if (!is.null(res_enrich)) {
+      enrich_df <- tryCatch({
+        as.data.frame(slot(res_enrich, "allResult"))
+      }, error = function(e) {
+        as.data.frame(res_enrich)
+      })
+      write.csv(enrich_df, "enrichment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_regenrich_output.rds")
+    
+    # Safely extract and save network edges
+    if (!is.null(res_topnet)) {
+      topnet_df <- tryCatch({
+        as.data.frame(slot(res_topnet, "elementset"))
+      }, error = function(e) {
+        as.data.frame(res_topnet)
+      })
+      write.csv(topnet_df, "top_network_edges.csv", row.names = FALSE)
     }
+    
+    message("Stage 6: Generating diagnostic and results plots...")
+    pdf("regenrich_plots.pdf", width = 7, height = 6)
+    
+    # Plot expression of the top-ranked regulator and its targets
+    if (nrow(res_score) > 0) {
+      top_regulator <- res_score\$reg[1]
+      message(paste("Plotting expression profiles for top regulator:", top_regulator))
+      tryCatch({
+        plotRegTarExpr(object, reg = top_regulator)
+      }, error = function(e) {
+        warning("Could not plot regulator-target expression: ", e\$message)
+      })
+    }
+    
+    # Plot enrichment results
+    if (!is.null(res_enrich)) {
+      message("Plotting enrichment results...")
+      tryCatch({
+        plot_Enrich(res_enrich)
+      }, error = function(e) {
+        warning("Could not plot enrichment results: ", e\$message)
+      })
+    }
+    
+    dev.off()
+    
+    message("RegEnrich analysis pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REGENRICH:", paste0("    regenrich: ", packageVersion("RegEnrich"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS":',
+        paste0('    RegEnrich: ', as.character(packageVersion('RegEnrich')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_regenrich_results.csv
-    touch ${prefix}_regenrich_output.rds
-    echo "BIOC_REGENRICH:" > versions.yml
-    echo "    regenrich: 0.0.0" >> versions.yml
+    touch ${prefix}_regenrich_regulator_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_REGENRICH_WORKFLOW {
+workflow BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_REGENRICH(ch_input)
+    BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_REGENRICH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REGENRICH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REGENRICH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REGENRICH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS.out.tables
+    plots    = BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS.out.plots
+    objects  = BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS.out.objects
+    versions = BIOC_REGENRICH_REGENRICH_REGULATOR_ANALYSIS.out.versions
 }

@@ -1,0 +1,13 @@
+{
+  "package": "pfamanalyzer",
+  "requirements": [
+    "dplyr",
+    "pfamAnalyzeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "pfamAnalyzeR"
+    ]
+  }
+}

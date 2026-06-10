@@ -1,0 +1,16 @@
+{
+  "package": "mait",
+  "requirements": [
+    "MAIT",
+    "faahKO"
+  ],
+  "by_workflow": {
+    "external_peak_data_analysis.nf": [
+      "MAIT"
+    ],
+    "main.nf": [
+      "MAIT",
+      "faahKO"
+    ]
+  }
+}

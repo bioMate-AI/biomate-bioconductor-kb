@@ -1,0 +1,13 @@
+{
+  "package": "igc",
+  "requirements": [
+    "data.table",
+    "iGC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "data.table",
+      "iGC"
+    ]
+  }
+}

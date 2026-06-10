@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: evcodes=Character vector of evidence codes to filter annotations (e.g., c(\"EXP\", \"IC\")) ;; specify.ont=Logical indicating whether a custom ontology file is provided ;; myont=Path to the custom ontology file ;; specify.annotations=Logical indicating whether a custom annotations file is provided ;; annotfile=Path to the custom annotations file ;; IAccr=Pre-calculated or custom information accretion values to use in RU-MI calculations ;; add.prec.rec=Logical to include precision, recall, and specificity in the RUMIcurve output ;; add.weighted=Logical to include weighted remaining uncertainty, misinformation, and semantic similarity in the RUMIcurve output\n- alternatives: GOSemSim is mentioned as a package whose source code partly inspired SemDist, but SemDist is preferred specifically for information-theoretic evaluation (RU, MI, and semantic distance) of multi-label classifiers.\n- when_to_use: Use this package when evaluating and comparing the performance of computational protein function prediction algorithms or other classifiers that assign hierarchical, multi-label ontological terms to entities.\n- pitfalls: Using a version of the ontology other than the one associated with the AnnotationData annotations may result in terms not being found. If the ontology is specified but annotations are not, annotations are taken from the specified organism, which may require installing external Bioconductor annotation databases (e.g., org.Hs.eg.db).",
+  "workflows": [
+    {
+      "name": "calculate_information_accretion",
+      "intent": "Calculate information accretion values for a custom ontology and annotation set.",
+      "input": [
+        "mfo_ontology.txt (tab-delimited parent-child ontology file)",
+        "MFO_LABELS_TEST.txt (tab-delimited true annotations file)"
+      ],
+      "stages": "1. Define paths to the custom ontology and annotation files ;; 2. Compute information accretion values using computeIA with custom specifications.",
+      "code": "ontfile <- system.file(\"extdata\", \"mfo_ontology.txt\",\n                        package=\"SemDist\")\nannotations <- system.file(\"extdata\", \"MFO_LABELS_TEST.txt\", \n                            package=\"SemDist\")\nIAccr <- computeIA(\"my\", \"values\", specify.ont=TRUE, \n                myont=ontfile, specify.annotations=TRUE, \n                annotfile=annotations)"
+    },
+    {
+      "name": "evaluate_predictions_rumi",
+      "intent": "Evaluate multi-label annotation predictions by calculating remaining uncertainty, misinformation, and semantic distance across thresholds.",
+      "input": [
+        "MFO_LABELS_TEST.txt (tab-delimited true annotations file)",
+        "MFO_PREDS_TEST.txt (tab-delimited predicted annotations with probabilities)"
+      ],
+      "stages": "1. Load true and predicted annotation files ;; 2. Calculate RU and MI at a single threshold using findRUMI ;; 3. Generate a RU-MI curve across multiple thresholds using RUMIcurve ;; 4. Calculate semantic distance from the RU-MI curve ;; 5. Generate weighted metrics and precision/recall curves using RUMIcurve with additional flags.",
+      "code": "truefile <- system.file(\"extdata\", \"MFO_LABELS_TEST.txt\", \n                        package=\"SemDist\")\npredfile <- system.file(\"extdata\", \"MFO_PREDS_TEST.txt\", \n                        package=\"SemDist\")\npredictions <- read.table(predfile, colClasses = \"character\")\nhead(predictions)\nrumiTable <- findRUMI(\"MF\", \"human\", 0.75, truefile, predfile)\navgRU <- mean(rumiTable$RU)\navgMI <- mean(rumiTable$MI)\navgRUMIvals <- RUMIcurve(\"MF\", \"human\", 0.05, truefile, predfile)\nfirstset <- avgRUMIvals[[1]]\nplot(firstset$RU, firstset$MI)\nsemdist <- min(sqrt(firstset$MI^2 + firstset$RU^2))\nsemdist\nrumiout <- RUMIcurve(\"MF\", \"human\", 0.05, truefile, predfile,\n                     add.prec.rec=TRUE, add.weighted=TRUE)\nfirstset <- rumiout[[1]]\nplot(firstset$WRU, firstset$WMI)"
+    }
+  ]
+}

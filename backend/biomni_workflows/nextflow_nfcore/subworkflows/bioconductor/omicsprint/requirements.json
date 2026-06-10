@@ -1,0 +1,18 @@
+{
+  "package": "omicsprint",
+  "requirements": [
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "omicsPrint"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "omicsPrint"
+    ],
+    "methylation_relationship_verification.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "omicsPrint"
+    ]
+  }
+}

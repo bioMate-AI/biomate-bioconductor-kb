@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dataTable=The input gene expression matrix (e.g., from a SummarizedExperiment) where rows are genes and columns are samples ;; y=A numeric vector of class labels for the samples ;; K=The number of classes/categories ;; gene_no_list=The number of top differentially expressed genes to select ;; type=Method for estimating prior probabilities, options include \"mle\", \"deseq\", and \"quantile\" ;; rho=Tuning parameter for ZIPLDA, optimized via cross-validation\n- alternatives: None mentioned\n- when_to_use: Use when you need to identify differentially expressed feature genes from high-throughput count data (like RNA-seq) and perform classification while accounting for intra-category variation\n- pitfalls: Ensure the input data orientation is correct; CAEN expects genes as rows and samples as columns, whereas ZIPLDA expects samples as rows and genes as columns (requiring transposition). Features with 0 total counts are automatically removed during processing.",
+  "workflows": [
+    {
+      "name": "caen_feature_selection_and_classification",
+      "intent": "Select differentially expressed feature genes from count data and perform classification using ZIPLDA.",
+      "input": [
+        "realData (A SummarizedExperiment object containing gene expression count data)",
+        "y (A numeric vector of class labels for the samples)"
+      ],
+      "stages": "1. Estimate prior probabilities using estimatep ;; 2. Select top feature genes using CAEN ;; 3. Subset and transpose the expression data for classification ;; 4. Perform cross-validation to find the best tuning parameter using ZIPLDA.cv ;; 5. Classify samples using ZIPLDA",
+      "code": "prob <- estimatep(x = x, y = y, xte = x, beta = 1, type = \"mle\", prior = NULL)     \nprob0 <- estimatep(x = x, y = y, xte = xte, beta = 1, type = \"mle\", \n                   prior = NULL)   \nmyscore <- CAEN(dataTable = x, y = y, K = 2, gene_no_list = 100)\nddd <- myscore$np\ndatx <- t(assay(x)[ddd,])\ndatxte <- t(assay(xte)[ddd,])\nprobb <- prob[ddd,]\nprobb0 <- prob0[ddd,]\n\nzipldacv.out <- ZIPLDA.cv(x = datx, y = y, prob0 = t(probb))\nZIPLDA.out <- ZIPLDA(x = datx, y = y, xte = datxte, transform = FALSE, \n                     prob0 = t(probb0),rho = zipldacv.out$bestrho)\nclassResult <- ZIPLDA.out$ytehat"
+    }
+  ]
+}

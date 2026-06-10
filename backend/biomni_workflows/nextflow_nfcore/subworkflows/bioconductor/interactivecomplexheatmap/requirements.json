@@ -1,0 +1,17 @@
+{
+  "package": "interactivecomplexheatmap",
+  "requirements": [
+    "ComplexHeatmap",
+    "InteractiveComplexHeatmap",
+    "htmlwidgets",
+    "shiny"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "InteractiveComplexHeatmap",
+      "htmlwidgets",
+      "shiny"
+    ]
+  }
+}

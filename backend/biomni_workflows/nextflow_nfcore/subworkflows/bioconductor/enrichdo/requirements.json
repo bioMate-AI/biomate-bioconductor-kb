@@ -1,0 +1,15 @@
+{
+  "package": "enrichdo",
+  "requirements": [
+    "EnrichDO",
+    "GenomicRanges",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EnrichDO",
+      "GenomicRanges",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,122 +1,203 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: clusterProfiler
-// This package supports functional characteristics of both coding and non-coding genomics data for tho
-//
-// Source : https://yulab-smu.top/biomedical-knowledge-mining-book/021-go.html
-// Upstream  : none
-// Downstream: maEndToEnd
-//
-// Install: BiocManager::install("clusterProfiler")
+// Bioconductor workflow: clusterProfiler — over_representation_analysis
+// Identify over-represented biological terms and pathways in a list of genes of interest.
+// Input: gene_list.txt
+// Container: quay.io/biocontainers/bioconductor-clusterprofiler:4.18.4--r45hdfd78af_0
+// R packages: clusterProfiler, enrichplot, org.Hs.eg.db
+// Bioconductor: 3.20 | R: 4.4
+// Requires: clusterProfiler, enrichplot, org.Hs.eg.db
+// Visualizations: dot plot, gene-concept network, enrichment map, GO DAG plot, bar plot, network plot, enrichment plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import the gene list
+//  * 2. [Core Analysis] Perform enrichment analysis using functions like enrichGO, enrichKEGG, enricher, enrichMKEGG, enrichWP, or enrichDAVID
+//  * 3. [Core Analysis] Map gene IDs to readable symbols using setReadable
+//  * 4. [Core Analysis] Simplify GO terms to reduce redundancy using simplify
+//  * 5. [Visualization & Output] Visualize results using barplot, dotplot, cnetplot, emapplot, or goplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLUSTERPROFILER {
+process BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clusterprofiler"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clusterprofiler:4.14.6--r44_0' :
-        'quay.io/biocontainers/bioconductor-clusterprofiler:4.14.6--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clusterprofiler_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clusterprofiler_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clusterprofiler_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("clusterProfiler", "enrichplot", "org.Hs.eg.db")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(clusterProfiler)
-    library(jsonlite)
-
-    # --- GO Functional Classification [] ---
-    # Key functions: groupGO
-    entrez_ids <- c("4312", "8318", "10874", "55143", "55388", "991")
-    ggo_res <- groupGO(
-        gene = entrez_ids,
-        OrgDb = "org.Hs.eg.db",
-        ont = "CC",
-        level = 3,
-        readable = TRUE
+    library(org.Hs.eg.db)
+    library(enrichplot)
+    
+    # 1. Import the gene list
+    if (!file.exists("gene_list.txt")) {
+      stop("Error: 'gene_list.txt' not found in the working directory.")
+    }
+    
+    gene_list <- readLines("gene_list.txt")
+    gene_list <- trimws(gene_list)
+    gene_list <- gene_list[gene_list != ""]
+    
+    if (length(gene_list) == 0) {
+      stop("Error: 'gene_list.txt' is empty.")
+    }
+    
+    # Determine keyType based on input format (Entrez ID vs Symbol)
+    is_numeric <- all(grepl("^\\\\d+\$", gene_list))
+    key_type <- if (is_numeric) "ENTREZID" else "SYMBOL"
+    
+    # 2. Perform enrichment analysis using enrichGO
+    ego <- enrichGO(
+      gene          = gene_list,
+      OrgDb         = org.Hs.eg.db,
+      keyType       = key_type,
+      ont           = "BP",
+      pAdjustMethod = "BH",
+      pvalueCutoff  = 0.05,
+      qvalueCutoff  = 0.2
     )
-
-
-    # --- GO Over-Representation Analysis [] ---
-    # Key functions: enrichGO
-    entrez_ids <- c("4312", "8318", "10874", "55143", "55388", "991")
-    ego_res <- enrichGO(
-        gene = entrez_ids,
-        OrgDb = "org.Hs.eg.db",
-        ont = "CC",
-        pAdjustMethod = "BH",
-        pvalueCutoff = 0.01,
-        qvalueCutoff = 0.05,
-        readable = TRUE
-    )
-
-
-    # --- Custom Annotation Enrichment [] ---
-    # Key functions: buildGOmap, enricher
-    gomap_data <- data.frame(
-        GeneID = c("4312", "8318", "10874"),
-        GOID = c("GO:0000775", "GO:0000779", "GO:0072686")
-    )
-    gomap_with_ancestors <- buildGOmap(gomap_data)
-    custom_enrich <- enricher(
-        gene = c("4312", "8318"),
-        TERM2GENE = gomap_with_ancestors
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clusterprofiler_results.csv", row.names = TRUE)
+    
+    # 3. Map gene IDs to readable symbols using setReadable
+    ego_readable <- ego
+    if (key_type != "SYMBOL") {
+      ego_readable <- tryCatch({
+        setReadable(ego, OrgDb = org.Hs.eg.db, keyType = key_type)
+      }, error = function(e) {
+        warning("setReadable failed: ", e\$message)
+        ego
+      })
+    }
+    
+    # 4. Simplify GO terms to reduce redundancy using simplify
+    ego_simplified <- tryCatch({
+      simplify(ego_readable, cutoff = 0.7, by = "p.adjust", select_fun = min)
+    }, error = function(e) {
+      warning("simplify failed: ", e\$message)
+      ego_readable
+    })
+    
+    # Save tabular results
+    write.csv(as.data.frame(ego), "enrichGO_results_full.csv", row.names = FALSE)
+    write.csv(as.data.frame(ego_simplified), "enrichGO_results_simplified.csv", row.names = FALSE)
+    
+    # Save RDS objects
+    saveRDS(ego, "ego_object.rds")
+    saveRDS(ego_simplified, "ego_simplified_object.rds")
+    
+    # 5. Visualize results
+    # Only attempt plotting if there are enriched terms
+    if (!is.null(ego_simplified) && nrow(as.data.frame(ego_simplified)) > 0) {
+      
+      # Barplot
+      tryCatch({
+        pdf("barplot.pdf", width = 8, height = 6)
+        print(barplot(ego_simplified, showCategory = 20))
+        dev.off()
+      }, error = function(e) {
+        warning("Failed to generate barplot: ", e\$message)
+      })
+    
+      # Dotplot
+      tryCatch({
+        pdf("dotplot.pdf", width = 8, height = 6)
+        print(dotplot(ego_simplified, showCategory = 20))
+        dev.off()
+      }, error = function(e) {
+        warning("Failed to generate dotplot: ", e\$message)
+      })
+    
+      # Cnetplot
+      tryCatch({
+        pdf("cnetplot.pdf", width = 10, height = 8)
+        print(cnetplot(ego_simplified, categorySize = "pvalue"))
+        dev.off()
+      }, error = function(e) {
+        warning("Failed to generate cnetplot: ", e\$message)
+      })
+    
+      # Emapplot
+      tryCatch({
+        # Modern enrichplot requires pairwise_termsim for emapplot
+        ego_sim <- enrichplot::pairwise_termsim(ego_simplified)
+        pdf("emapplot.pdf", width = 10, height = 8)
+        print(emapplot(ego_sim))
+        dev.off()
+      }, error = function(e) {
+        warning("Failed to generate emapplot: ", e\$message)
+      })
+    
+      # Goplot
+      tryCatch({
+        pdf("goplot.pdf", width = 10, height = 10)
+        print(goplot(ego_simplified))
+        dev.off()
+      }, error = function(e) {
+        warning("Failed to generate goplot: ", e\$message)
+      })
+    
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clusterprofiler_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clusterprofiler_output.rds")
+      message("No significantly enriched terms found. Skipping visualization plots.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLUSTERPROFILER:", paste0("    clusterprofiler: ", packageVersion("clusterProfiler"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS":',
+        paste0('    clusterProfiler: ', as.character(packageVersion('clusterProfiler')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clusterprofiler_results.csv
-    touch ${prefix}_clusterprofiler_output.rds
-    echo "BIOC_CLUSTERPROFILER:" > versions.yml
-    echo "    clusterprofiler: 0.0.0" >> versions.yml
+    touch ${prefix}_over_representation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLUSTERPROFILER_WORKFLOW {
+workflow BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_list.txt ] ]
 
     main:
-    BIOC_CLUSTERPROFILER(ch_input)
+    BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CLUSTERPROFILER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLUSTERPROFILER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLUSTERPROFILER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLUSTERPROFILER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS.out.tables
+    plots    = BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS.out.plots
+    objects  = BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS.out.objects
+    versions = BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS.out.versions
 }

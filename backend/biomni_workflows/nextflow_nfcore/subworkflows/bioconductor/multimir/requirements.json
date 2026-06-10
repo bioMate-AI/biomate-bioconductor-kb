@@ -1,0 +1,13 @@
+{
+  "package": "multimir",
+  "requirements": [
+    "edgeR",
+    "multiMiR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "edgeR",
+      "multiMiR"
+    ]
+  }
+}

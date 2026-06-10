@@ -1,0 +1,29 @@
+{
+  "package": "spotlight",
+  "requirements": [
+    "SPOTlight",
+    "SingleCellExperiment",
+    "SpatialExperiment",
+    "ggplot2",
+    "scater",
+    "scran"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SPOTlight",
+      "SingleCellExperiment",
+      "SpatialExperiment",
+      "ggplot2",
+      "scater",
+      "scran"
+    ],
+    "two_step_deconvolution.nf": [
+      "SPOTlight",
+      "SingleCellExperiment",
+      "SpatialExperiment",
+      "ggplot2",
+      "scater",
+      "scran"
+    ]
+  }
+}

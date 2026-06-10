@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies whether the NGS experiment contains \"paired\" or \"single\" end read fragments ;; fragmentLen=Maximum length of reads to keep (e.g., 200bp to discard extra long reads in paired-end mononucleosome data) ;; trim=Number of bases to keep around the dyad (e.g., trim=40) to increase sharpness ;; pcKeepComp=Percentage of components to keep in Fourier space (e.g., 0.01 for Tiling Arrays, 0.02 for NGS) to remove noise ;; threshold=Threshold value for detecting peaks (e.g., \"25%\") ;; width=Width of the nucleosome (e.g., 140) to account for fuzziness/sharpness in scoring\n- alternatives: Hidden Markov Models (HMMs), Support Vector Machines (SVMs), or higher-order Bayesian Networks are mentioned as complex alternatives for dealing with noise and fuzzy positioning, whereas nucleR offers a simpler, faster FFT-based peak calling method.\n- when_to_use: Use when analyzing nucleosome positioning experiments (ChIP-seq or ChIP-on-Chip) to identify, score, and visualize well-positioned and fuzzy nucleosomes.\n- pitfalls: Avoid simple sliding window averages for smoothing as they can shift peak positions and shapes; do not set threshold to 0 in peakDetection to avoid detecting minor noise fluctuations; note that coverage.rpm can yield extremely high values on small subset datasets because it scales to millions of reads.",
+  "workflows": [
+    {
+      "name": "ngs_nucleosome_calling",
+      "intent": "Process NGS BAM files to call, score, and plot nucleosome positions.",
+      "input": [
+        "cellCycleM_chrII_5000-25000.bam (BAM file containing mapped NGS reads)"
+      ],
+      "stages": "1. Import BAM file using readBAM ;; 2. Process and trim reads using processReads ;; 3. Calculate normalized coverage using coverage.rpm ;; 4. Smooth coverage signal using filterFFT ;; 5. Detect and score peaks using peakDetection ;; 6. Plot peaks using plotPeaks",
+      "code": "sample.file <- system.file(\"extdata\", \"cellCycleM_chrII_5000-25000.bam\",\n    package=\"nucleR\")\nreads <- readBAM(sample.file, type=\"paired\")\nreads_pair <- processReads(nucleosome_htseq, type=\"paired\", fragmentLen=200)\nreads_trim <- processReads(nucleosome_htseq, type=\"paired\", fragmentLen=200,\n    trim=40)\ncover_pair <- coverage.rpm(reads_pair)\ncover_trim <- coverage.rpm(reads_trim)\nhtseq_raw <- as.vector(cover_trim[[1]])\nhtseq_fft <- filterFFT(htseq_raw, pcKeepComp=0.02)\npeaks <- peakDetection(htseq_fft, threshold=\"25%\", score=FALSE)\nplotPeaks(peaks, htseq_fft, threshold=\"25%\", ylab=\"coverage\")\npeaks <- peakDetection(htseq_fft, threshold=\"25%\", score=TRUE)\nplotPeaks(peaks, htseq_fft, threshold=\"25%\")\npeaks <- peakDetection(htseq_fft, threshold=\"25%\", score=TRUE, width=140)\nplotPeaks(peaks, htseq_fft, threshold=\"25%\")"
+    },
+    {
+      "name": "tiling_array_nucleosome_calling",
+      "intent": "Process Tiling Array fluorescence intensities to call and score nucleosome positions.",
+      "input": [
+        "tiling_data.RData (ExpressionSet or numeric vector of normalized fluorescence intensities)"
+      ],
+      "stages": "1. Process tiling array data to 1bp resolution using processTilingArray ;; 2. Smooth signal using filterFFT ;; 3. Detect peaks using peakDetection",
+      "code": "processTilingArray(data, exprName, chrPattern, inferLen=50)\ndata(nucleosome_tiling)\nfft_ta <- filterFFT(nucleosome_tiling, pcKeepComp=0.01, showPowerSpec=TRUE)\ntiling_raw <- nucleosome_tiling\ntiling_fft <- filterFFT(tiling_raw, pcKeepComp=0.01)"
+    },
+    {
+      "name": "mnase_bias_correction",
+      "intent": "Correct nucleosomal DNA coverage profiles using a mock control sample of naked DNA digested with MNase.",
+      "input": [
+        "nucleosomal_coverage.RData (RleList of nucleosomal DNA coverage)",
+        "control_coverage.RData (RleList of control DNA coverage)"
+      ],
+      "stages": "1. Correct coverage using controlCorrection",
+      "code": "map <- syntheticNucMap(as.ratio=TRUE, wp.num=50, fuz.num=25)\nexp <- coverage(map$syn.reads)\nctr <- coverage(map$ctr.reads)\ncorrected <- controlCorrection(exp, ctr)"
+    }
+  ]
+}

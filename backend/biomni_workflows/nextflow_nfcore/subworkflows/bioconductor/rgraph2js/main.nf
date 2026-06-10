@@ -1,127 +1,244 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RGraph2js
-// Generator of web pages which display interactive network/graph visualizations with D3js, jQuery and 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RGraph2js/inst/doc/RGraph2js.R
-// Upstream  : graph, sna, xtable
-// Downstream: none
-//
-// Install: BiocManager::install("RGraph2js")
+// Bioconductor workflow: RGraph2js — interactive_correlation_network
+// Build an interactive correlation network from feature-by-sample expression data with customized node/edge properties and in-node barplots.
+// Input: input.csv
+// Container: 1.38.0--r45hdfd78af_0
+// R packages: graph, RGraph2js, sna, xtable
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RGraph2js
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RGRAPH2JS {
+process BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rgraph2js"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rgraph2js:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rgraph2js:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rgraph2js_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rgraph2js_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rgraph2js_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("graph", "RGraph2js", "sna", "xtable")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(RGraph2js)
-    library(jsonlite)
-
-    # --- Layout Configuration [] ---
-    # Key functions: graph2js
-    v <- c(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0)
-    a35 <- matrix(v, 3, 5)
-    colnames(a35) <- LETTERS[1:5]
-    rownames(a35) <- LETTERS[1:3]
-    r <- 100
-    sector <- 2 * pi / 5
-    n_prop <- data.frame(
-        x=c(r*cos(1*sector), r*cos(2*sector), r*cos(3*sector),
-            r*cos(4*sector), r*cos(5*sector)),
-        y=c(r*sin(1*sector), r*sin(2*sector), r*sin(3*sector),
-            r*sin(4*sector), r*sin(5*sector)),
-        fixed=c(TRUE, TRUE, TRUE, TRUE, TRUE)
-    )
-    rownames(n_prop) <- c("A", "B", "C", "D", "E")
-    out_dir <- file.path(tempdir(), "RGraph2js_fixedNodes")
-    g <- graph2js(a35, nodesProp=n_prop, outputDir=out_dir)
-
-
-    # --- Visual Customization [] ---
-    # Key functions: graph2js, getDefaultOptions
-    v <- c(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0)
-    a35 <- matrix(v, 3, 5)
-    colnames(a35) <- LETTERS[1:5]
-    rownames(a35) <- LETTERS[1:3]
-    numnodes <- 5
-    inner_values <- matrix(runif(numnodes * 8), numnodes, 8)
-    rownames(inner_values) <- LETTERS[1:5]
-    inner_colors <- matrix(rainbow(numnodes * 8), numnodes, 8)
-    rownames(inner_colors) <- LETTERS[1:5]
-    opts <- getDefaultOptions()
-    opts$displayBarPlotsInsideNodes <- FALSE
-    opts$barplotInNodeTooltips <- TRUE
-    out_dir <- file.path(tempdir(), "RGraph2js_barplots")
-    g <- graph2js(
-        a35,
-        opts=opts,
-        innerValues=inner_values,
-        innerColors=inner_colors,
-        outputDir=out_dir
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rgraph2js_results.csv", row.names = TRUE)
+    library(grDevices)
+    
+    # ==========================================
+    # Stage 1: Robust Input Loading & Filtering
+    # ==========================================
+    
+    if (!file.exists("input.csv")) {
+        stop("Required input file 'input.csv' not found.")
+    }
+    
+    # Read input defensively
+    raw_data <- read.csv("input.csv", stringsAsFactors = FALSE, check.names = FALSE)
+    
+    # Determine feature identifier column and set row names
+    if ("feature_id" %in% colnames(raw_data)) {
+        rownames(raw_data) <- raw_data\$feature_id
+        raw_data\$feature_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rgraph2js_results.csv")
+        rownames(raw_data) <- raw_data[, 1]
+        raw_data <- raw_data[, -1, drop = FALSE]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rgraph2js_output.rds")
+    
+    # Convert to numeric matrix
+    mat <- as.matrix(raw_data)
+    class(mat) <- "numeric"
+    
+    # Handle missing values by replacing with row means
+    if (any(is.na(mat))) {
+        row_means <- rowMeans(mat, na.rm = TRUE)
+        na_idx <- which(is.na(mat), arr.ind = TRUE)
+        mat[na_idx] <- row_means[na_idx[, 1]]
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RGRAPH2JS:", paste0("    rgraph2js: ", packageVersion("RGraph2js"))),
-        "versions.yml"
+    
+    # Filter to top N most variable features to keep the network readable and performant
+    top_n <- 30
+    if (nrow(mat) > top_n) {
+        row_vars <- apply(mat, 1, var, na.rm = TRUE)
+        # Handle potential zero variance
+        row_vars[is.na(row_vars)] <- 0
+        top_idx <- order(row_vars, decreasing = TRUE)[1:top_n]
+        mat <- mat[top_idx, , drop = FALSE]
+    }
+    
+    # ==========================================
+    # Stage 2: Network Construction (Correlation)
+    # ==========================================
+    
+    # Compute pairwise Pearson correlation matrix
+    adj_mat <- cor(t(mat), use = "pairwise.complete.obs")
+    adj_mat[is.na(adj_mat)] <- 0
+    
+    # Apply threshold to define edges
+    threshold <- 0.4
+    adj_mat[abs(adj_mat) < threshold] <- 0
+    
+    # Remove self-loops
+    diag(adj_mat) <- 0
+    
+    # Ensure there is at least one edge; if not, force-connect the top correlated pair
+    if (all(adj_mat == 0) && nrow(adj_mat) > 1) {
+        temp_cor <- cor(t(mat), use = "pairwise.complete.obs")
+        diag(temp_cor) <- 0
+        max_idx <- which(abs(temp_cor) == max(abs(temp_cor)), arr.ind = TRUE)[1, ]
+        adj_mat[max_idx[1], max_idx[2]] <- temp_cor[max_idx[1], max_idx[2]]
+        adj_mat[max_idx[2], max_idx[1]] <- temp_cor[max_idx[2], max_idx[1]]
+    }
+    
+    # ==========================================
+    # Stage 3: Node and Edge Customization
+    # ==========================================
+    
+    # Calculate node metrics
+    node_names <- rownames(adj_mat)
+    node_degrees <- rowSums(adj_mat != 0)
+    mean_expr <- rowMeans(mat)
+    
+    # Map mean expression to a color gradient (blue to red)
+    color_palette <- colorRampPalette(c("#3182bd", "#e6550d"))(100)
+    scaled_expr <- round((mean_expr - min(mean_expr)) / (max(mean_expr) - min(mean_expr) + 1e-5) * 99) + 1
+    node_colors <- color_palette[scaled_expr]
+    
+    # Map degree to node shapes (high degree = rectangle, low degree = circle)
+    node_shapes <- ifelse(node_degrees > mean(node_degrees), "rect", "circle")
+    
+    # Create node properties data frame
+    nodes_prop <- data.frame(
+        color = node_colors,
+        shape = node_shapes,
+        tooltip = paste0("<strong>Feature:</strong> ", node_names, 
+                         "<br/><strong>Mean Expr:</strong> ", round(mean_expr, 2),
+                         "<br/><strong>Degree:</strong> ", node_degrees),
+        stringsAsFactors = FALSE
     )
+    rownames(nodes_prop) <- node_names
+    
+    # Create edge properties data frame
+    edges_base <- getEdgesDataFrame(adj_mat)
+    edges_prop <- data.frame(
+        from = edges_base\$from,
+        to = edges_base\$to,
+        width = abs(edges_base\$type) * 4, # Scale width by correlation strength
+        color = ifelse(edges_base\$type > 0, "#3182bd", "#de2d26"), # Blue for positive, Red for negative
+        stringsAsFactors = FALSE
+    )
+    
+    # ==========================================
+    # Stage 4: In-Node Barplot Data Preparation
+    # ==========================================
+    
+    # Scale sample values to [0, 1] for barplot rendering inside nodes
+    inner_values <- t(apply(mat, 1, function(x) {
+        if (max(x) == min(x)) return(rep(0.5, length(x)))
+        (x - min(x)) / (max(x) - min(x))
+    }))
+    rownames(inner_values) <- node_names
+    
+    # Generate a color palette for the samples
+    sample_colors <- rainbow(ncol(mat))
+    inner_colors <- matrix(sample_colors, nrow = nrow(mat), ncol = ncol(mat), byrow = TRUE)
+    rownames(inner_colors) <- node_names
+    
+    # ==========================================
+    # Stage 5: Interactive HTML Generation
+    # ==========================================
+    
+    # Set up output directory
+    output_dir <- "interactive_network"
+    if (!dir.exists(output_dir)) {
+        dir.create(output_dir, recursive = TRUE)
+    }
+    
+    # Configure visualization options
+    opts <- getDefaultOptions()
+    opts\$displayBarPlotsInsideNodes <- TRUE
+    opts\$barplotInNodeTooltips <- TRUE
+    opts\$displayNodeLabels <- TRUE
+    opts\$layout_forceCharge <- -800
+    
+    # Generate the interactive web page
+    g <- graph2js(
+        A = adj_mat,
+        nodesProp = nodes_prop,
+        edgesProp = edges_prop,
+        innerValues = inner_values,
+        innerColors = inner_colors,
+        opts = opts,
+        outputDir = output_dir,
+        filename = "index.html"
+    )
+    
+    # ==========================================
+    # Stage 6: Export Summary Tables
+    # ==========================================
+    
+    # Write node properties summary
+    write.csv(nodes_prop, file = "network_nodes.csv", row.names = TRUE)
+    
+    # Write edge properties summary
+    write.csv(edges_prop, file = "network_edges.csv", row.names = FALSE)
+    
+    cat("Pipeline completed successfully. Interactive network generated in 'interactive_network/index.html'.\n")
+
+    writeLines(c(
+        '"BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK":',
+        paste0('    RGraph2js: ', as.character(packageVersion('RGraph2js')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rgraph2js_results.csv
-    touch ${prefix}_rgraph2js_output.rds
-    echo "BIOC_RGRAPH2JS:" > versions.yml
-    echo "    rgraph2js: 0.0.0" >> versions.yml
+    touch ${prefix}_interactive_correlation_network.csv versions.yml
     """
 }
 
-
-workflow BIOC_RGRAPH2JS_WORKFLOW {
+workflow BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_RGRAPH2JS(ch_input)
+    BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK(ch_input)
 
     emit:
-    results  = BIOC_RGRAPH2JS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RGRAPH2JS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RGRAPH2JS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RGRAPH2JS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK.out.tables
+    plots    = BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK.out.plots
+    objects  = BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK.out.objects
+    versions = BIOC_RGRAPH2JS_INTERACTIVE_CORRELATION_NETWORK.out.versions
 }

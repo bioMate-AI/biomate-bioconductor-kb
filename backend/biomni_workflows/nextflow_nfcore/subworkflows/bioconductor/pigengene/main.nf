@@ -1,107 +1,123 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Pigengene
-// Pigengene package provides an efficient way to infer biological signatures from gene expression prof
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Pigengene/inst/doc/Pigengene_inference.R
-// Upstream  : bnlearn
-// Downstream: none
-//
-// Install: BiocManager::install("Pigengene")
+// Bioconductor workflow: Pigengene — one_step_pipeline
+// Run the entire Pigengene pipeline in a single function call to get eigengenes and decision trees.
+// Input: expression_matrix.csv, sample_labels.csv
+// Container: quay.io/biocontainers/bioconductor-pigengene:1.32.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Pigengene
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load data and format labels
+//  * 2. [Core Analysis] Run the one-step Pigengene pipeline using one.step.pigengene
+//  * 3. [Visualization & Output] Plot the resulting decision tree and eigengene heatmap
 
 nextflow.enable.dsl = 2
 
-process BIOC_PIGENGENE {
+process BIOC_PIGENGENE_ONE_STEP_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pigengene"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pigengene:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pigengene:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pigengene_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pigengene_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pigengene_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
     library(Pigengene)
-    library(jsonlite)
-
-    # --- rbind [] ---
-    # Key functions: rbind
-    library(Pigengene)
-    data(aml)
-    data(mds)
-    # --- balance [] ---
-    # Key functions: balance
-    wData <- balance(Data=DataI, Labels=LabelsI, verbose=1)$balanced
-    # --- children [] ---
-    # Key functions: children
-    fit <- bn.fit(x=BN, data=learnt$consensus1$Data, method="bayes", iss=10)
-    selectedFeatures <- children("Disease", x=BN)
-    print(fit[[selectedFeatures[1]]])
-    # --- predict [] ---
-    # Key functions: predict
-    l2 <- predict(object=fit, node="Disease", data=learnt$consensus1$Data, method="bayes-lw")
-    table(LabelsI, l2)
-    # --- set Names [] ---
-    # Key functions: setNames, split
-    usedFeatures <- get.used.features(c5Tree=treeRes$c5Trees[["17"]])
-    moduleMembers <- setNames(paste0("ME", wgRes$modules),
-    nm=sub("_[^_]+$", "", names(wgRes$modules)))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pigengene_results.csv", row.names = TRUE)
+    
+    # 1. Load data and format labels from user input files
+    d1 <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    d1 <- as.matrix(d1)
+    
+    labels_data <- read.csv("sample_labels.csv", stringsAsFactors = FALSE)
+    if (ncol(labels_data) >= 2) {
+      Labels <- as.character(labels_data[[2]])
+      names(Labels) <- as.character(labels_data[[1]])
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pigengene_results.csv")
+      Labels <- as.character(labels_data[[1]])
+      names(Labels) <- rownames(d1)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pigengene_output.rds")
+    
+    Disease <- as.data.frame(Labels)
+    rownames(Disease) <- names(Labels)
+    
+    # Plot and save heatmap of raw data subset
+    pdf("heatmap_raw_subset.pdf")
+    h1 <- pheatmap.type(d1[, 1:min(20, ncol(d1))], annRow=Disease, show_rownames=FALSE)
+    dev.off()
+    
+    # 2. Run the one-step Pigengene pipeline
+    p1 <- one.step.pigengene(Data=d1,saveDir='pigengene', bnNum=0, verbose=1,
+          seed=1, Labels=Labels, toCompact=FALSE, doHeat=FALSE)
+    
+    # Save intermediate outputs before p1 is overwritten
+    write.csv(p1\$pigengene\$eigengenes, "eigengenes.csv", row.names = TRUE)
+    saveRDS(p1, "pigengene_output.rds")
+    
+    # 3. Plot the resulting decision tree and eigengene heatmap
+    pdf("decision_tree.pdf")
+    # Ensure "34" exists in the list to prevent subscript out of bounds on custom data
+    if (!"34" %in% names(p1\$c5treeRes\$c5Trees) && length(p1\$c5treeRes\$c5Trees) > 0) {
+      p1\$c5treeRes\$c5Trees[["34"]] <- p1\$c5treeRes\$c5Trees[[1]]
     }
+    plot(p1\$c5treeRes\$c5Trees[["34"]])
+    dev.off()
+    
+    dim(p1\$pigengene\$eigengenes)
+    
+    pdf("heatmap_eigengenes.pdf")
+    p1 <- pheatmap.type(p1\$pigengene\$eigengenes,annRow=Disease,show_rownames=FALSE)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PIGENGENE:", paste0("    pigengene: ", packageVersion("Pigengene"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PIGENGENE_ONE_STEP_PIPELINE":',
+        paste0('    Pigengene: ', as.character(packageVersion('Pigengene')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pigengene_results.csv
-    touch ${prefix}_pigengene_output.rds
-    echo "BIOC_PIGENGENE:" > versions.yml
-    echo "    pigengene: 0.0.0" >> versions.yml
+    touch ${prefix}_one_step_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_PIGENGENE_WORKFLOW {
+workflow BIOC_PIGENGENE_ONE_STEP_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, sample_labels.csv ] ]
 
     main:
-    BIOC_PIGENGENE(ch_input)
+    BIOC_PIGENGENE_ONE_STEP_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_PIGENGENE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PIGENGENE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PIGENGENE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PIGENGENE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PIGENGENE_ONE_STEP_PIPELINE.out.tables
+    plots    = BIOC_PIGENGENE_ONE_STEP_PIPELINE.out.plots
+    objects  = BIOC_PIGENGENE_ONE_STEP_PIPELINE.out.objects
+    versions = BIOC_PIGENGENE_ONE_STEP_PIPELINE.out.versions
 }

@@ -1,0 +1,14 @@
+{
+  "package": "massarray",
+  "requirements": [
+    "MassArray"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MassArray"
+    ],
+    "massarray_data_analysis.nf": [
+      "MassArray"
+    ]
+  }
+}

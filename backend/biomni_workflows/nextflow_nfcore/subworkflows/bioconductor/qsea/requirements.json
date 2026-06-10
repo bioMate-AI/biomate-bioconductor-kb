@@ -1,0 +1,15 @@
+{
+  "package": "qsea",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GenomicRanges",
+    "qsea"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicRanges",
+      "qsea"
+    ]
+  }
+}

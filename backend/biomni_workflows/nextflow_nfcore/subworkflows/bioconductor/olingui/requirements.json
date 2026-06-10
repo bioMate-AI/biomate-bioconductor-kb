@@ -1,0 +1,13 @@
+{
+  "package": "olingui",
+  "requirements": [
+    "OLINgui",
+    "marray"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OLINgui",
+      "marray"
+    ]
+  }
+}

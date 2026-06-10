@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: random_state=Integer seed (e.g., 42L) passed to fitsne to ensure reproducibility of the t-SNE embedding ;; new=Matrix of new data points to project into the existing embedding in project() ;; old=Matrix of original data points used to create the embedding in project()\n- alternatives: openTSNE Python package (which this package wraps) ;; FI-tSNE algorithm by Linderman et al. (2018)\n- when_to_use: Appropriate for dimensionality reduction of high-dimensional datasets (such as single-cell RNA-seq principal components) and when there is a need to map new query samples onto a pre-existing reference t-SNE visualization.\n- pitfalls: t-SNE embeddings are stochastic and can be unstable, so it is good practice to run the algorithm multiple times to ensure robustness ;; Ensure random_state is specified as an integer (with L) for exact reproducibility.",
+  "workflows": [
+    {
+      "name": "run_fitsne",
+      "intent": "Run fast interpolated t-SNE (FI-tSNE) on a high-dimensional matrix to generate 2D coordinates.",
+      "input": [
+        "counts (a matrix of high-dimensional data, such as principal components or normalized gene expression counts, where rows are samples and columns are features)"
+      ],
+      "stages": "1. Run FI-tSNE using the fitsne function ;; 2. Visualize the resulting 2D coordinates",
+      "code": "fit <- fitsne(counts, random_state = 42L)"
+    },
+    {
+      "name": "project_new_data",
+      "intent": "Project new, unseen test data into an existing t-SNE embedding.",
+      "input": [
+        "train_mat (matrix of training data used to build the initial embedding)",
+        "test_mat (matrix of new test data to project into the embedding)"
+      ],
+      "stages": "1. Generate the reference t-SNE embedding on training data using fitsne ;; 2. Project the new test data into the reference embedding using project",
+      "code": "embedding <- fitsne(train_mat, random_state = 42L)\nnew_coords <- project(embedding, new = test_mat, old = train_mat)"
+    }
+  ]
+}

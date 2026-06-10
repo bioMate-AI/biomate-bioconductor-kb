@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - TFID: The Entrez GeneID of the transcription factor of interest, specified as a character string.\n    - ChIP: A character vector of predicted TF bound genes from ChIPx data, sorted from most to least likely to be bound (typically based on peak caller rankings).\n    - DB: A processed and normalized gene expression database in big.matrix format, where rows represent unique Gene IDs and columns represent samples.\n    - GPL_id: The NCBI GEO platform ID (e.g., 'GPL1261') used to download all matching samples when building a custom database.\n    - GSMfiles: A character vector of specific GSM sample IDs from NCBI GEO used to build a custom database (alternative to GPL_id).\n    - SaveDir: The directory path where the downloaded and processed database files will be saved during database construction. Must be already created and empty.\n    - SaveFile: The filename prefix for the output of the cleanDatabase function.\n    - SavePath: The directory path where the cleaned database files will be saved.\n- alternatives:\n    - Pre-built databases (DB_GPL1261 for mouse, DB_GPL570 for human) from the ChIPXpressData package are highly preferred over building custom databases due to the extreme download and processing times (which can take up to 2 weeks for entire platforms).\n- when_to_use:\n    - Use this package when you have genome-wide TF binding data (ChIP-seq or ChIP-chip) but lack corresponding TF perturbation gene expression data, and want to identify which bound genes are most likely to be functional transcriptional targets.\n- pitfalls:\n    - The save directory specified in buildDatabase must be already created and empty before running the function.\n    - Converting probe IDs to Entrez Gene IDs (or alternative gene IDs) is a manual step that must be performed by the user using appropriate annotation packages (e.g., mouse4302.db) after buildDatabase and before cleanDatabase.\n    - The gene ID format of the ChIP input vector must exactly match the row name format of the DB database (default is Entrez GeneID).",
+  "workflows": [
+    {
+      "name": "rank_targets_prebuilt_db",
+      "intent": "Rank predicted TF bound genes using a pre-built gene expression database from the ChIPXpressData package.",
+      "input": [
+        "Oct4ESC_ChIPgenes (dataframe containing ranked ChIP-seq predicted target genes with EntrezID column)",
+        "DB_GPL1261.bigmemory.desc (descriptor file for the pre-built mouse GPL1261 big.matrix database)"
+      ],
+      "stages": "1. Load the ChIPXpress and ChIPXpressData packages ;; 2. Attach the pre-built big.matrix database using attach.big.matrix ;; 3. Run ChIPXpress with the TF Entrez ID, the ranked ChIP target Entrez IDs, and the attached database ;; 4. Map the ranked output back to gene symbols using the original annotation data.",
+      "code": "library(ChIPXpress)\ndata(Oct4ESC_ChIPgenes)\nhead(Oct4ESC_ChIPgenes)\nlibrary(ChIPXpressData)\nlibrary(bigmemory)\npath <- system.file(\"extdata\",  package=\"ChIPXpressData\")\nDB_GPL1261 <- attach.big.matrix(\"DB_GPL1261.bigmemory.desc\", path=path)\nOutput <- ChIPXpress(TFID=\"18999\",ChIP=Oct4ESC_ChIPgenes$EntrezID,DB=DB_GPL1261)\nhead(Output[[1]])\nhead(Output[[2]])\nGeneNames <- Oct4ESC_ChIPgenes$Annotation[match(names(Output[[1]]),\n                                          Oct4ESC_ChIPgenes$EntrezID)]\nResult <- data.frame(1:length(Output[[1]]),GeneNames,names(Output[[1]]),Output[[1]])\ncolnames(Result) <- c(\"Rank\",\"GeneNames\",\"EntrezID\",\"ChIPXpressScore\")\nhead(Result)"
+    },
+    {
+      "name": "build_custom_database",
+      "intent": "Build, annotate, clean, and normalize a custom gene expression database from NCBI GEO raw data for use in ChIPXpress.",
+      "input": [
+        "GPL_id (NCBI GEO platform ID) or GSMfiles (vector of specific GSM sample IDs)",
+        "mouse4302.db (annotation package for mapping probe IDs to Entrez Gene IDs)"
+      ],
+      "stages": "1. Download and process raw CEL files from GEO using buildDatabase ;; 2. Manually map probe IDs to Entrez Gene IDs using platform-specific annotation packages ;; 3. Resolve multi-mapped probes and normalize the database using cleanDatabase ;; 4. Run ChIPXpress using the newly created custom database.",
+      "code": "library(bigmemory)\nlibrary(biganalytics)\nlibrary(ChIPXpress)\nlibrary(GEOquery)\nlibrary(affy)\nlibrary(frma)\nlibrary(mouse4302frmavecs)\n\nDB <- buildDatabase(GPL_id='GPL1261',SaveDir=tempdir())\n\nGSM_ids <- c(\"GSM24056\",\"GSM24058\",\"GSM24060\",\"GSM24061\",\n             \"GSM94856\",\"GSM94857\",\"GSM94858\",\"GSM94859\")\nDB <- buildDatabase(GSMfiles=GSM_ids,SaveDir=tempdir())\n\nlibrary(mouse4302.db)\nEntrezID <- mget(as.character(rownames(DB)),mouse4302ENTREZID)\nrownames(DB) <- as.character(EntrezID)\n\ncleanDB <- cleanDatabase(DB,SaveFile=\"newDB_GPL1261.bigmemory\",\n                         SavePath=tempdir())\nhead(cleanDB)\n\nout <- ChIPXpress(TFID=\"18999\",ChIP=Oct4ESC_ChIPgenes,DB=cleanDB)\nhead(out[[1]])\nhead(out[[2]])\n\ncleanDB <- attach.big.matrix(\"newDB_GPL1261.bigmemory.desc\",path=tempdir())\nhead(cleanDB)"
+    }
+  ]
+}

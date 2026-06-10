@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: singleEnd=speeds up calculations if library layout is already known ;; strandMode=speeds up calculations if library protocol is already known ;; verbose=set to FALSE to suppress progress messages ;; BPPARAM=sets parallel execution threads via BiocParallel to speed up calculations for many BAM files ;; group=colors samples by experimental groups (e.g., gDNA contamination levels) in plot() and plotAlnOrigins() ;; path=specifies the filesystem directory where filtered BAM files will be saved in gDNAtx() and filterBAMtx() ;; txflag=fine-tunes filtering strategy using flags created by filterBAMtxFlag()\n- alternatives: RSeQC tool infer_experiment.py for strandedness estimation ;; Integrative Genomics Viewer (IGV) for visual inspection of alignment data\n- when_to_use: Appropriate for quality control of RNA-seq datasets (especially total RNA-seq) to check for genomic DNA (gDNA) contamination before downstream expression quantification and analysis.\n- pitfalls: Using unstranded libraries can result in NA values for strandedness estimation and classification ;; gDNAx attempts to use at least 200,000 alignments overlapping exonic regions to estimate strandedness, so datasets with fewer exonic alignments may yield less robust estimations ;; gDNA contamination is less of an issue in poly(A) selected RNA-seq libraries but remarkably affects total RNA-seq libraries.",
+  "workflows": [
+    {
+      "name": "diagnose_and_filter_gdna_contamination",
+      "intent": "Diagnose genomic DNA contamination in RNA-seq BAM files and filter out reads of potential gDNA origin.",
+      "input": [
+        "bamfiles (character vector of paths to BAM files)",
+        "txdb (TxDb annotation object or package name)"
+      ],
+      "stages": "1. Load BAM files and TxDb annotation ;; 2. Run diagnostics using gDNAdx() ;; 3. Plot diagnostics using plot(), plotFrgLength(), and plotAlnOrigins() ;; 4. Retrieve diagnostic values using getDx(), getIgc(), and getInt() ;; 5. Estimate and classify strandedness using strandedness() and classifyStrandMode() ;; 6. Filter BAM files to remove gDNA contamination using gDNAtx() or filterBAMtx()",
+      "code": "library(gDNAinRNAseqData)\nbamfiles <- LiYu22subsetBAMfiles()\npdat <- LiYu22phenoData(bamfiles)\nlibrary(TxDb.Hsapiens.UCSC.hg38.knownGene)\ntxdb <- TxDb.Hsapiens.UCSC.hg38.knownGene\nlibrary(gDNAx)\ngdnax <- gDNAdx(bamfiles, txdb)\npar(mar=c(4, 5, 2, 1))\nplot(gdnax, group=pdat$gDNA, pch=19)\ndx <- getDx(gdnax)\nplotFrgLength(gdnax)\nplotAlnOrigins(gdnax, group=pdat$gDNA)\nigcann <- getIgc(gdnax)\nintann <- getInt(gdnax)\nstrandedness(gdnax)\nclassifyStrandMode(strandedness(gdnax))\ntmpdir <- tempdir()\nfstats <- gDNAtx(gdnax, path=tmpdir)"
+    }
+  ]
+}

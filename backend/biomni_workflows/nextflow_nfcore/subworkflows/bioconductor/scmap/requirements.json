@@ -1,0 +1,17 @@
+{
+  "package": "scmap",
+  "requirements": [
+    "SingleCellExperiment",
+    "scmap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "scmap"
+    ],
+    "scmap_cell.nf": [
+      "SingleCellExperiment",
+      "scmap"
+    ]
+  }
+}

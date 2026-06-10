@@ -1,0 +1,19 @@
+{
+  "package": "lionessr",
+  "requirements": [
+    "SummarizedExperiment",
+    "igraph",
+    "limma",
+    "lionessR",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "igraph",
+      "limma",
+      "lionessR",
+      "reshape2"
+    ]
+  }
+}

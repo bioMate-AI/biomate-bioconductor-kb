@@ -1,135 +1,180 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Cormotif
-// It fits correlation motif model to multiple studies to detect study specific differential expression
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Cormotif/inst/doc/CormotifVignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Cormotif")
+// Bioconductor workflow: Cormotif — correlation_motif_analysis
+// Fit correlation motif models to multiple gene expression studies to identify shared and study-specific differential expression patterns, handle missing data, an
+// Input: exprs.simu2, simu2_groupid, simu2_compgroup
+// Container: quay.io/biocontainers/bioconductor-cormotif:1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Cormotif
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Prepare expression matrix, group IDs, and comparison group matrix. 2. Fit correlation motif models for a range of motif numbers (K
 
 nextflow.enable.dsl = 2
 
-process BIOC_CORMOTIF {
+process BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cormotif"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cormotif:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cormotif:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cormotif_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cormotif_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cormotif_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(Cormotif)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    library(Cormotif)
-    data(simudata2)
-    colnames(simudata2)
-    exprs.simu2<-as.matrix(simudata2[,2:25])
-    data(simu2_groupid)
-    # --- Cormotiffit [] ---
-    # Key functions: cormotiffit
-    motif.fitted<-cormotiffit(exprs.simu2,simu2_groupid,simu2_compgroup,
-    			 K=1:5,max.iter=1000,BIC=TRUE)
-    # --- Plotic [] ---
-    # Key functions: plotIC
-    motif.fitted$bic
-    plotIC(motif.fitted)
-    # --- Plotmotif [] ---
-    # Key functions: plotMotif
-    plotMotif(motif.fitted)
-    # --- Generank [] ---
-    # Key functions: generank
-    topgenelist<-generank(motif.fitted$bestmotif$p.post)
-    head(topgenelist)
-    # --- Nrow [] ---
-    # Key functions: sample
-    fullindex<-1:nrow(exprs.simu2)
-    ##sample index to mimic the merging of studies from different platforms
-    mis_index1<-sample(fullindex,misprop*length(fullindex))
-    mis_index2<-sample(fullindex[-mis_index1],misprop*length(fullindex))
-    exprs.simu2.missing<-exprs.simu2
-    # --- Cormotiffit [] ---
-    # Key functions: cormotiffit, plotIC, plotMotif
-    motif.fitted.missing<-cormotiffit(exprs.simu2.missing,simu2_groupid,simu2_compgroup,
-    				  K=1:5,max.iter=1000,BIC=TRUE)
-    plotIC(motif.fitted.missing)
-    plotMotif(motif.fitted.missing)
-    # --- Plotic [] ---
-    # Key functions: plotIC
-    plotIC(motif.fitted.missing)
-    # --- Plotmotif [] ---
-    # Key functions: plotMotif
-    plotMotif(motif.fitted.missing)
-    # --- Cormotiffitall [] ---
-    # Key functions: cormotiffitall
-    motif.fitted.all<-cormotiffitall(exprs.simu2,simu2_groupid,simu2_compgroup,max.iter=1)
-    # --- Cormotiffitsep [] ---
-    # Key functions: cormotiffitsep
-    motif.fitted.sep<-cormotiffitsep(exprs.simu2,simu2_groupid,simu2_compgroup,max.iter=1)
-    # --- Cormotiffitfull [] ---
-    # Key functions: cormotiffitfull
-    motif.fitted.full<-cormotiffitfull(exprs.simu2,simu2_groupid,simu2_compgroup,max.iter=1)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cormotif_results.csv", row.names = TRUE)
+    
+    # Helper function to robustly read input files with various extensions and formats
+    read_file <- function(base_name) {
+      extensions <- c("", ".rds", ".csv", ".tsv", ".txt")
+      for (ext in extensions) {
+        path <- paste0(base_name, ext)
+        if (file.exists(path)) {
+          # Try reading as RDS
+          out <- tryCatch(readRDS(path), error = function(e) NULL)
+          if (!is.null(out)) return(out)
+          
+          # Try reading as table/matrix with row names
+          out <- tryCatch({
+            df <- read.table(path, header = TRUE, sep = "", row.names = 1, check.names = FALSE)
+            as.matrix(df)
+          }, error = function(e) NULL)
+          if (!is.null(out)) return(out)
+          
+          # Try reading as CSV with row names
+          out <- tryCatch({
+            df <- read.csv(path, header = TRUE, row.names = 1, check.names = FALSE)
+            as.matrix(df)
+          }, error = function(e) NULL)
+          if (!is.null(out)) return(out)
+          
+          # Try reading as table without row names
+          out <- tryCatch({
+            df <- read.table(path, header = TRUE, sep = "", check.names = FALSE)
+            if (ncol(df) == 1) as.vector(df[[1]]) else as.matrix(df)
+          }, error = function(e) NULL)
+          if (!is.null(out)) return(out)
+          
+          # Try reading as scan vector
+          out <- tryCatch(scan(path, quiet = TRUE), error = function(e) NULL)
+          if (!is.null(out)) return(out)
+        }
+      }
+      stop(paste("File not found or could not be read:", base_name))
+    }
+    
+    # 1. Prepare expression matrix, group IDs, and comparison group matrix
+    exprs.simu2 <- read_file("exprs.simu2")
+    exprs.simu2 <- as.matrix(exprs.simu2)
+    
+    simu2_groupid <- read_file("simu2_groupid")
+    if (is.matrix(simu2_groupid) || is.data.frame(simu2_groupid)) {
+      if (nrow(simu2_groupid) == 1) {
+        simu2_groupid <- as.vector(simu2_groupid[1, ])
+      } else if (ncol(simu2_groupid) == 1) {
+        simu2_groupid <- as.vector(simu2_groupid[, 1])
+      } else {
+        simu2_groupid <- as.vector(as.matrix(simu2_groupid))
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cormotif_results.csv")
+      simu2_groupid <- as.vector(simu2_groupid)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cormotif_output.rds")
-    }
+    
+    simu2_compgroup <- read_file("simu2_compgroup")
+    simu2_compgroup <- as.matrix(simu2_compgroup)
+    
+    # 2. Fit correlation motif models for a range of motif numbers (K) using cormotiffit
+    motif.fitted <- cormotiffit(exprs.simu2, simu2_groupid, simu2_compgroup,
+                                K=1:5, max.iter=1000, BIC=TRUE)
+    
+    # 3. Evaluate model fit using BIC/AIC values and plot information criteria using plotIC
+    motif.fitted\$bic
+    write.csv(motif.fitted\$bic, "motif_fitted_bic.csv", row.names = FALSE)
+    
+    pdf("plot_ic.pdf")
+    plotIC(motif.fitted)
+    dev.off()
+    
+    # 4. Visualize the discovered correlation motifs and their frequencies using plotMotif
+    pdf("plot_motif.pdf")
+    plotMotif(motif.fitted)
+    dev.off()
+    
+    # 5. Extract posterior probabilities of differential expression and identify active patterns
+    head(motif.fitted\$bestmotif\$p.post)
+    write.csv(motif.fitted\$bestmotif\$p.post, "posterior_probabilities.csv", row.names = TRUE)
+    
+    dif.pattern.simu2 <- (motif.fitted\$bestmotif\$p.post > 0.5)
+    head(dif.pattern.simu2)
+    write.csv(dif.pattern.simu2, "differential_patterns.csv", row.names = TRUE)
+    
+    # 6. Rank genes in each study based on posterior probabilities using generank
+    topgenelist <- generank(motif.fitted\$bestmotif\$p.post)
+    head(topgenelist)
+    write.csv(topgenelist, "top_gene_list.csv", row.names = FALSE)
+    
+    # Save the main fitted model object
+    saveRDS(motif.fitted, "motif_fitted.rds")
+    
+    # 7. Fit alternative models (all, separate, or full motifs) using cormotiffitall, cormotiffitsep, or cormotiffitfull
+    motif.fitted.all <- cormotiffitall(exprs.simu2, simu2_groupid, simu2_compgroup, max.iter=1)
+    saveRDS(motif.fitted.all, "motif_fitted_all.rds")
+    
+    motif.fitted.sep <- cormotiffitsep(exprs.simu2, simu2_groupid, simu2_compgroup, max.iter=1)
+    saveRDS(motif.fitted.sep, "motif_fitted_sep.rds")
+    
+    motif.fitted.full <- cormotiffitfull(exprs.simu2, simu2_groupid, simu2_compgroup, max.iter=1)
+    saveRDS(motif.fitted.full, "motif_fitted_full.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CORMOTIF:", paste0("    cormotif: ", packageVersion("Cormotif"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS":',
+        paste0('    Cormotif: ', as.character(packageVersion('Cormotif')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cormotif_results.csv
-    touch ${prefix}_cormotif_output.rds
-    echo "BIOC_CORMOTIF:" > versions.yml
-    echo "    cormotif: 0.0.0" >> versions.yml
+    touch ${prefix}_correlation_motif_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CORMOTIF_WORKFLOW {
+workflow BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprs.simu2, simu2_groupid, simu2_compgroup ] ]
 
     main:
-    BIOC_CORMOTIF(ch_input)
+    BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CORMOTIF.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CORMOTIF.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CORMOTIF.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CORMOTIF.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS.out.tables
+    plots    = BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS.out.plots
+    objects  = BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS.out.objects
+    versions = BIOC_CORMOTIF_CORRELATION_MOTIF_ANALYSIS.out.versions
 }

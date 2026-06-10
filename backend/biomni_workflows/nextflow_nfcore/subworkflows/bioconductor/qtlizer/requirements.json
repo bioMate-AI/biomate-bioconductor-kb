@@ -1,0 +1,13 @@
+{
+  "package": "qtlizer",
+  "requirements": [
+    "GenomicRanges",
+    "Qtlizer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "Qtlizer"
+    ]
+  }
+}

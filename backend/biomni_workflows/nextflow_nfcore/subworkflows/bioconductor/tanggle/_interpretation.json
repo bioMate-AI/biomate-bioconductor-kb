@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: layout=For ggevonet, specifies the layout style of the explicit network, with options \"rectangular\" or \"slanted\" ;; col=In geom_tiplab2, sets the color of the tip labels ;; font=In geom_tiplab2, sets the font style (e.g., 4 for bold italics) ;; hjust=In geom_tiplab2, controls horizontal alignment of tip labels ;; color=In geom_nodepoint, sets the color of internal nodes ;; alpha=In geom_nodepoint, sets the transparency of node points ;; size=In geom_nodepoint, sets the size of node points\n- alternatives: ape and phangorn plotting functions are mentioned as alternatives. tanggle is preferred when users want to leverage the ggplot2 syntax, customize plots with ggtree layers, or integrate phylogenetic networks with other tidyverse data visualization workflows.\n- when_to_use: Use when you need to visualize unrooted, undirected split networks (such as consensus networks or neighbor-nets) or explicit, rooted phylogenetic networks with reticulation events (e.g., from extended Newick format).\n- pitfalls: Tip labels may overlap or be cut off by default plot boundaries, requiring manual adjustment of xlim and ylim. Reticulation lines in explicit networks can cross over excessively, which can be mitigated using the minimize_overlap function.",
+  "workflows": [
+    {
+      "name": "split_networks",
+      "intent": "Visualize unrooted, undirected split networks (such as consensus networks or neighbor-nets) from Nexus files.",
+      "input": [
+        "woodmouse.nxs (Nexus format split network file)"
+      ],
+      "stages": "1. Read the split network Nexus file using phangorn::read.nexus.networx ;; 2. Generate the base split network plot using ggsplitnet and add tip labels with geom_tiplab2 ;; 3. Adjust x and y axis limits to ensure labels are fully visible ;; 4. Optionally rename tip labels and customize tip/node aesthetics using geom_tiplab2, geom_nodepoint, or geom_point.",
+      "code": "fdir <- system.file(\"extdata/trees\", package = \"phangorn\")\nNnet <- phangorn::read.nexus.networx(file.path(fdir,\"woodmouse.nxs\"))\np <- ggsplitnet(Nnet) + geom_tiplab2()\np\np <- p + xlim(-0.019, .003) + ylim(-.01, .012) \np\nNnet$translate$label <- seq_along(Nnet$tip.label)\nggsplitnet(Nnet) + geom_tiplab2(col = \"blue\", font = 4, hjust = -0.15) + \n    geom_nodepoint(col = \"green\", size = 0.25)\nggsplitnet(Nnet) + geom_point(aes(shape = isTip, color = isTip), size = 2)"
+    },
+    {
+      "name": "explicit_networks",
+      "intent": "Visualize explicit, rooted phylogenetic networks with reticulations from extended Newick format.",
+      "input": [
+        "network_text (Extended Newick format string or file representing a reticulated tree)"
+      ],
+      "stages": "1. Read the explicit network using read.evonet ;; 2. Plot the network using ggevonet with a rectangular layout and add tip and node labels ;; 3. Plot the network using a slanted layout and customize tip label colors and node point aesthetics.",
+      "code": "z <- read.evonet(text = \"((1,((2,(3,(4)Y#H1)g)e,(((Y#H1,5)h,6)f)X#H2)c)a,\n                 ((X#H2,7)d,8)b)r;\")\nggevonet(z, layout = \"rectangular\") + geom_tiplab() + geom_nodelab()\np <- ggevonet(z, layout = \"slanted\") + geom_tiplab() + geom_nodelab()\np + geom_tiplab(size=3, color=\"purple\")\np + geom_nodepoint(color=\"#b5e521\", alpha=1/4, size=10)"
+    }
+  ]
+}

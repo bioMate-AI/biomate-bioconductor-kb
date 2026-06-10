@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SPECTRAQL {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-spectraql"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spectraql:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-spectraql:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,76 +40,67 @@ process BIOC_SPECTRAQL {
     library(SpectraQL)
     library(jsonlite)
 
-    # --- Table [] ---
-    # Key functions: msLevel, rtime
-    ---------------------------------------------------------------------
-    #' Number of MS1 and MS2 spectra
-    table(msLevel(dda))
-    #' retention time range
-    range(rtime(dda))
-    # --- Query [] ---
+    # --- Spectra Filtering by Properties [] ---
     # Key functions: query
-    ---------------------------------------------------------------------
     dda_rt <- query(dda, "QUERY * WHERE RTMIN = 200 AND RTMAX = 300")
-    dda_rt
-    # --- Range [] ---
-    # Key functions: rtime
-    ---------------------------------------------------------------------
-    range(rtime(dda_rt))
-    # --- Query [] ---
-    # Key functions: query
-    ---------------------------------------------------------------------
     dda_pmz <- query(
         dda,
-        "query * where ms2prec = 278.093:toleancemz=0:toleranceppm=30")
-    length(dda_pmz)
-    # --- Precursormz [] ---
-    # Key functions: precursorMz
-    ---------------------------------------------------------------------
-    precursorMz(dda_pmz)
-    # --- Query [] ---
+        "query * where ms2prec = 278.093:tolerancemz=0:toleranceppm=30"
+    )
+    dda_combined <- query(
+        dda,
+        paste0("query * where rtmin = 200 and rtmax = 300 and ",
+               "ms2prec = 278.093:toleranceppm = 30")
+    )
+
+    # --- Peak Data Extraction [] ---
     # Key functions: query
-    ---------------------------------------------------------------------
-    dda_rt <- query(dda,
-                    paste0("query * where rtmin = 200 and rtmax = 300 and ",
-                           "ms2prec = 278.093:toleranceppm = 30"))
-    dda_rt
-    # --- Query [] ---
-    # Key functions: query, scansum
-    ---------------------------------------------------------------------
+    pks <- query(dda, "query ms2data where rtmin = 200 and rtmax = 300")
+    first_peak_matrix <- pks[[1L]]
+
+    # --- Total Ion Chromatogram Generation [] ---
+    # Key functions: query
     tic <- query(dda, "query scansum(ms1data)")
-    # --- Query [] ---
-    # Key functions: query, scaninfo
-    ---------------------------------------------------------------------
-    si <- query(dda, "query scaninfo(*) where rtmin = 300 and rtmax = 500")
-    si
-    # --- Query [] ---
-    # Key functions: query, scansum
-    ---------------------------------------------------------------------
+
+    # --- Extracted Ion Chromatogram Generation [] ---
+    # Key functions: query
     ic <- query(
-        dda, "query scansum(ms1data) filter ms1mz = 219.095:tolerancemz=0.1")
-    plot(ic, type = "l", xlab = "scan index")
-    # --- Filtermslevel [] ---
-    # Key functions: filterMsLevel, filterRt, filterMzValues, ionCount
-    ---------------------------------------------------------------------
-    res <- dda |>
-        filterMsLevel(1L) |>
-        filterRt(c(235, 250)) |>
-        filterMzValues(219.095, tolerance = 0.1) |>
+        dda,
+        "query scansum(ms1data) filter ms1mz = 219.095:tolerancemz=0.1"
+    )
+    ic_rt_filtered <- query(
+        dda,
+        paste0("query scansum(ms1data) where rtmin = 235 and rtmax = 250",
+               " filter ms1mz = 219.095:tolerancemz=0.1")
+    )
+
+    # --- Scan Information Retrieval [] ---
+    # Key functions: query
+    si <- query(dda, "query scaninfo(*) where rtmin = 300 and rtmax = 500")
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spectraql_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_spectraql_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spectraql_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_spectraql_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spectraql_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_spectraql_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SPECTRAQL:", paste0("    spectraql: ", packageVersion("SpectraQL"))),
+        c("BIOC_SPECTRAQL:", paste0("    spectraql: ", as.character(packageVersion("SpectraQL")))),
         "versions.yml"
     )
     """

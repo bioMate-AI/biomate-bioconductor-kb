@@ -1,0 +1,11 @@
+{
+  "package": "rgsepd",
+  "requirements": [
+    "rgsepd"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rgsepd"
+    ]
+  }
+}

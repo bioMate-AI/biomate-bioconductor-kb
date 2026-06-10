@@ -1,0 +1,18 @@
+{
+  "package": "rtn",
+  "requirements": [
+    "RTN",
+    "SummarizedExperiment",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RTN"
+    ],
+    "regulon_activity_profiling_and_cohort_projection.nf": [
+      "RTN",
+      "SummarizedExperiment",
+      "pheatmap"
+    ]
+  }
+}

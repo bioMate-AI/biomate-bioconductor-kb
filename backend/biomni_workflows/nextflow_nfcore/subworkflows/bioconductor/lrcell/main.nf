@@ -1,136 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: LRcell
-// The goal of LRcell is to identify specific sub-cell types that drives the changes observed in a bulk
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/LRcell/inst/doc/LRcell-vignette.R
-// Upstream  : ExperimentHub
-// Downstream: none
-//
-// Install: BiocManager::install("LRcell")
+// Bioconductor workflow: LRcell — lrcell_preloaded_markers
+// Run cell-type enrichment analysis on bulk RNA-seq differential expression results using pre-loaded marker genes from ExperimentHub.
+// Input: example_gene_pvals.RData
+// Container: quay.io/biocontainers/bioconductor-lrcell:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: LRcell
+// Visualizations: enrichment plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load bulk DE p-values
+//  * 2. [Core Analysis] Run LRcell using linear regression with specified species and brain region
+//  * 3. [Visualization & Output] Exclude leading genes for clean visualization
+//  * 4. [Visualization & Output] Plot the enrichment results using a Manhattan plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_LRCELL {
+process BIOC_LRCELL_LRCELL_PRELOADED_MARKERS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-lrcell"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-lrcell:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-lrcell:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_lrcell_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_lrcell_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_lrcell_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ExperimentHub)
-    library(LRcell)
-    library(LRcellCore)
-    library(LRcell_gene_enriched_scores)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(LRcell)
+        
+        # 1. Load bulk DE p-values from the user-provided RData file
+        if (!file.exists("example_gene_pvals.RData")) {
+          stop("Error: Input file 'example_gene_pvals.RData' not found in the working directory.")
+        }
+        
+        # Load the RData file which contains the 'example_gene_pvals' object
+        load("example_gene_pvals.RData")
+        
+        # Verify that the expected object is loaded
+        if (!exists("example_gene_pvals")) {
+          # If the object inside has a different name, attempt to find it
+          loaded_objects <- ls()
+          loaded_objects <- loaded_objects[loaded_objects != "loaded_objects"]
+          if (length(loaded_objects) > 0) {
+            example_gene_pvals <- get(loaded_objects[1])
+          } else {
+            stop("Error: No objects found in 'example_gene_pvals.RData'.")
+          }
+        }
+        
+        # Ensure it is a named numeric vector
+        if (!is.numeric(example_gene_pvals) || is.null(names(example_gene_pvals))) {
+          stop("Error: Loaded object must be a named numeric vector of p-values.")
+        }
+        
+        # 2. Run LRcell using linear regression with specified species and brain region
+        res <- LRcell(gene.p = example_gene_pvals,
+                      marker.g = NULL,
+                      species = "mouse",
+                      region = "FC",
+                      method = "LiR")
+        
+        FC_res <- res\$FC
+        
+        # Save the raw results object
+        saveRDS(res, "LRcell_raw_results.rds")
+        
+        # 3. Exclude leading genes for clean visualization and export table
+        sub_FC_res <- subset(FC_res, select=-lead_genes)
+        write.csv(sub_FC_res, "LRcell_FC_results_no_lead_genes.csv", row.names = FALSE)
+        
+        # Print the head of the cleaned results to console
+        cat("Head of LRcell Frontal Cortex enrichment results (excluding leading genes):\n")
+        print(head(sub_FC_res))
+        
+        # 4. Plot the enrichment results using a Manhattan plot and save to PDF
+        pdf("LRcell_manhattan_enrichment_plot.pdf", width = 10, height = 6)
+        print(plot_manhattan_enrich(FC_res, sig.cutoff = .05, label.topn = 5))
+        dev.off()
+        
+        cat("\nPipeline completed successfully. Outputs written:\n")
+        cat("- 'LRcell_raw_results.rds' (Full results object)\n")
+        cat("- 'LRcell_FC_results_no_lead_genes.csv' (Enrichment table without lead genes column)\n")
+        cat("- 'LRcell_manhattan_enrichment_plot.pdf' (Manhattan plot of enrichment results)\n")
 
-    # --- Marker Gene Identification [] ---
-    # Key functions: LRcell_gene_enriched_scores, get_markergenes
-    sim_expr <- matrix(
-        c(3, 0, 2, 8, 10, 6, 1, 0, 0, 2,
-          7, 5, 8, 1, 0, 5, 2, 3, 2, 1,
-          8, 10, 6, 7, 8, 9, 5, 8, 6, 8),
-        nrow = 3, byrow = TRUE
-    )
-    rownames(sim_expr) <- paste0("gene", 1:3)
-    colnames(sim_expr) <- paste0("cell", 1:10)
-    sim_annot <- c(rep("celltype1", 3), rep("celltype2", 3), rep("celltype3", 4))
-    names(sim_annot) <- colnames(sim_expr)
-    enriched_res <- LRcell_gene_enriched_scores(
-        expr = sim_expr, annot = sim_annot, parallel = FALSE
-    )
-    marker_res <- get_markergenes(
-        enriched.g = enriched_res, method = "LR", topn = 1
-    )
-
-    # --- Standard Cell Type Enrichment [] ---
-    # Key functions: LRcell
-    data("example_gene_pvals")
-    res <- LRcell(
-        gene.p = example_gene_pvals,
-        marker.g = NULL,
-        species = "mouse",
-        region = "FC",
-        method = "LiR"
-    )
-    FC_res <- res$FC
-    sub_FC_res <- subset(FC_res, select = -lead_genes)
-
-    # --- Visualization of Enrichment Results [] ---
-    # Key functions: plot_manhattan_enrich
-    data("example_gene_pvals")
-    res <- LRcell(
-        gene.p = example_gene_pvals,
-        marker.g = NULL,
-        species = "mouse",
-        region = "FC",
-        method = "LiR"
-    )
-    plot_manhattan_enrich(
-        res$FC,
-        sig.cutoff = 0.05,
-        label.topn = 5
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_lrcell_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_lrcell_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_lrcell_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LRCELL:", paste0("    lrcell: ", packageVersion("LRcell"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LRCELL_LRCELL_PRELOADED_MARKERS":',
+        paste0('    LRcell: ', as.character(packageVersion('LRcell')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_lrcell_results.csv
-    touch ${prefix}_lrcell_output.rds
-    echo "BIOC_LRCELL:" > versions.yml
-    echo "    lrcell: 0.0.0" >> versions.yml
+    touch ${prefix}_lrcell_preloaded_markers.csv versions.yml
     """
 }
 
-
-workflow BIOC_LRCELL_WORKFLOW {
+workflow BIOC_LRCELL_LRCELL_PRELOADED_MARKERS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ example_gene_pvals.RData ] ]
 
     main:
-    BIOC_LRCELL(ch_input)
+    BIOC_LRCELL_LRCELL_PRELOADED_MARKERS(ch_input)
 
     emit:
-    results  = BIOC_LRCELL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LRCELL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LRCELL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LRCELL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LRCELL_LRCELL_PRELOADED_MARKERS.out.tables
+    plots    = BIOC_LRCELL_LRCELL_PRELOADED_MARKERS.out.plots
+    objects  = BIOC_LRCELL_LRCELL_PRELOADED_MARKERS.out.objects
+    versions = BIOC_LRCELL_LRCELL_PRELOADED_MARKERS.out.versions
 }

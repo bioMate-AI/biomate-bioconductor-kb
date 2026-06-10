@@ -1,0 +1,13 @@
+{
+  "package": "tcseq",
+  "requirements": [
+    "SummarizedExperiment",
+    "TCseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "TCseq"
+    ]
+  }
+}

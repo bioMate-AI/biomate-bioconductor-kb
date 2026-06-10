@@ -1,127 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: coGPS
-// Gene Set Enrichment Analysis of P-value based statistics for outlier gene detection in dataset merge
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/coGPS/inst/doc/coGPS.R
-// Upstream  : limma
-// Downstream: none
-//
-// Install: BiocManager::install("coGPS")
+// Bioconductor workflow: coGPS — outlier_detection_and_gsea
+// Identify outlier genes across multiple genomic datasets using PCOPA, calculate permutation-based p-values, visualize top results, and perform gene set enrichmen
+// Input: gene_expression.csv, methylation.csv, cnv.csv, class_labels.csv
+// Container: quay.io/biocontainers/bioconductor-cogps:1.54.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: coGPS, limma
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Prepare input list of matrices and class labels
+//  * 2. [Core Analysis] Run PCOPA to calculate outlier statistics (subtype or uniform)
+//  * 3. [Visualization & Output] Plot top-ranked outlier genes using PlotTopPCOPA
+//  * 4. [Core Analysis] Run permutation tests using permCOPA to calculate p-values
+//  * 5. [Core Analysis] Perform downstream gene set enrichment analysis using Wilcoxon rank sum test (wilcoxGST from limma)
 
 nextflow.enable.dsl = 2
 
-process BIOC_COGPS {
+process BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cogps"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cogps:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cogps:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cogps_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cogps_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cogps_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PCOPA)
-    library(PatientSpecificGeneList)
-    library(PlotTopPCOPA)
-    library(jsonlite)
-
-    # --- Loading [] ---
-    # Key functions: data
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(coGPS)
-    data(Exon_exprs_matched)
-    data(Methy_exprs_matched)
-    data(CNV_exprs_matched)
-    data(Exon_classlab_matched)
-    # --- Transforming [] ---
-    # Key functions: unlist
-    #exprslist[[i]]$exprs should be in matrix format
-    Exon_exprs<-as.matrix(Exon_exprs_matched)
-    Methy_exprs<-as.matrix(Methy_exprs_matched)
-    CNV_exprs<-as.matrix(CNV_exprs_matched)
-    #exprslist[[i]]$classlab should be in vector format
-    # --- Subtypeanalysis [] ---
-    # Key functions: PCOPA
-    a7<-PCOPA(trylist,0.05,side=c("up","down","up"),type="subtype")
-    # --- Uniformanalysis [] ---
-    # Key functions: PCOPA
-    a8<-PCOPA(trylist,0.05,side=c("up","down","up"),type="uniform")
-    # --- Plotpcopa [] ---
-    # Key functions: PlotTopPCOPA
-    PlotTopPCOPA(trylist,a8,topcut=1,typelist=c("Exon","Methy","CNV"))
-    # --- Plottoppcopa [] ---
-    # Key functions: PlotTopPCOPA
-    PlotTopPCOPA(trylist,a8,topcut=1,typelist=c("Exon","Methy","CNV"))
-    # --- Permutation [] ---
-    # Key functions: permCOPA
-    perma7<-permCOPA(trylist,0.05,side=c("up","down","up"),type="subtype",perms=2)
-    # --- Gsa [] ---
-    # Key functions: na
     library(limma)
-    data(human_c1)
-    genename<-rownames(Exon_exprs)
-    test_set1_a7<-rep(1,length(Hs.gmtl.c1))
-    for(i in 1:length(Hs.gmtl.c1))
-    # --- Patientspecific [] ---
-    # Key functions: PatientSpecificGeneList
-    IndividualList7<-PatientSpecificGeneList(trylist,0.05,side=c("down","up","down"),
-    type="subtype",TopGeneNum=100)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cogps_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cogps_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cogps_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COGPS:", paste0("    cogps: ", packageVersion("coGPS"))),
-        "versions.yml"
+    
+    # 1. Prepare matched and identically ordered input list of matrices and class labels
+    # Read user input files from the working directory
+    Exon_exprs_matched <- read.csv("gene_expression.csv", row.names=1, check.names=FALSE)
+    Methy_exprs_matched <- read.csv("methylation.csv", row.names=1, check.names=FALSE)
+    CNV_exprs_matched <- read.csv("cnv.csv", row.names=1, check.names=FALSE)
+    class_labels <- read.csv("class_labels.csv", header=TRUE)
+    
+    # Convert expression data to matrices as required by coGPS
+    Exon_exprs <- as.matrix(Exon_exprs_matched)
+    Methy_exprs <- as.matrix(Methy_exprs_matched)
+    CNV_exprs <- as.matrix(CNV_exprs_matched)
+    
+    # Extract class labels dynamically based on column names or indices
+    col_names <- colnames(class_labels)
+    exon_idx <- grep("exon|expression|exprs", col_names, ignore.case=TRUE)
+    if(length(exon_idx) == 0) exon_idx <- 1
+    methy_idx <- grep("methy|methylation", col_names, ignore.case=TRUE)
+    if(length(methy_idx) == 0) methy_idx <- 2
+    cnv_idx <- grep("cnv|copy", col_names, ignore.case=TRUE)
+    if(length(cnv_idx) == 0) cnv_idx <- 3
+    
+    Exon_classlab <- unlist(class_labels[, exon_idx])
+    Methy_classlab <- unlist(class_labels[, methy_idx])
+    CNV_classlab <- unlist(class_labels[, cnv_idx])
+    
+    # Construct the trylist object
+    trylist <- list()
+    trylist[[1]] <- list(exprs=Exon_exprs, classlab=Exon_classlab)
+    trylist[[2]] <- list(exprs=Methy_exprs, classlab=Methy_classlab)
+    trylist[[3]] <- list(exprs=CNV_exprs, classlab=CNV_classlab)
+    
+    # 2. Run PCOPA to calculate outlier statistics
+    a7 <- PCOPA(trylist, 0.05, side=c("up","down","up"), type="subtype")
+    
+    # 3. Plot top-ranked outlier genes using PlotTopPCOPA
+    pdf("PlotTopPCOPA.pdf")
+    PlotTopPCOPA(trylist, a7, topcut=1, typelist=c("Exon","Methy","CNV"))
+    dev.off()
+    
+    # 4. Run permutation tests using permCOPA
+    perma7 <- permCOPA(trylist, 0.05, side=c("up","down","up"), type="subtype", perms=2)
+    
+    pvaluea7 <- sapply(1:length(a7), function(i) 
+      length(which(perma7[i,] > a7[i])) / ncol(perma7))
+    
+    # 5. Perform downstream gene set enrichment analysis using wilcoxGST from limma
+    # Using a subset of genes as a proxy for a gene set
+    index <- 1:min(50, length(a7))
+    gsea_result <- wilcoxGST(index, a7)
+    cat("GSEA Wilcoxon GST p-value for the selected gene set:\n")
+    print(gsea_result)
+    
+    # Save the complete results as an RDS object
+    saveRDS(list(PCOPA=a7, pvalue=pvaluea7, GSEA=gsea_result), "pcopa_results.rds")
+    
+    # Format and save the results as a structured CSV table
+    outlier_df <- data.frame(
+      Gene = rownames(Exon_exprs),
+      PCOPA_Score = a7,
+      P_Value = pvaluea7,
+      stringsAsFactors = FALSE
     )
+    write.csv(outlier_df, "pcopa_results.csv", row.names=FALSE)
+
+    writeLines(c(
+        '"BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA":',
+        paste0('    coGPS: ', as.character(packageVersion('coGPS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cogps_results.csv
-    touch ${prefix}_cogps_output.rds
-    echo "BIOC_COGPS:" > versions.yml
-    echo "    cogps: 0.0.0" >> versions.yml
+    touch ${prefix}_outlier_detection_and_gsea.csv versions.yml
     """
 }
 
-
-workflow BIOC_COGPS_WORKFLOW {
+workflow BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_expression.csv, methylation.csv, cnv.csv, class_labels.csv ] ]
 
     main:
-    BIOC_COGPS(ch_input)
+    BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA(ch_input)
 
     emit:
-    results  = BIOC_COGPS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COGPS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COGPS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COGPS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA.out.tables
+    plots    = BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA.out.plots
+    objects  = BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA.out.objects
+    versions = BIOC_COGPS_OUTLIER_DETECTION_AND_GSEA.out.versions
 }

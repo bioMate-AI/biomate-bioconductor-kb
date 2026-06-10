@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: snpMapping=A data frame mapping SNPs to genes, required for GM and GI networks ;; ppi=A data frame containing protein-protein interaction data, required for GI networks ;; ngenes=The number of interconnected genes to select for causal SNP simulation ;; pcausal=The proportion of SNPs in the selected genes that are causal ;; h2=The heritability of the simulated trait (between 0 and 1) ;; qualitative=Logical indicating whether to simulate a case-control (qualitative) phenotype ;; ncases=The number of cases to simulate in qualitative phenotypes ;; ncontrols=The number of controls to simulate in qualitative phenotypes ;; prevalence=The disease prevalence in the population for qualitative phenotype simulation\n- alternatives: None mentioned, but the package relies on the SConES algorithm for network-guided association mapping and GCTA-based additive models for phenotype simulation.\n- when_to_use: Use when you want to perform GWAS association mapping that leverages genomic structure, gene membership, or protein-protein interaction networks to find clusters of explanatory SNPs, or when you need to simulate network-guided phenotypes.\n- pitfalls: Using a GWAS dataset that is too homogeneous for phenotype simulation (requires simulating or providing a diverse genotype matrix first); ensuring the affected column in the fam element of the GWAS list uses 1 for control and 2 for case.",
+  "workflows": [
+    {
+      "name": "gwas_network_association",
+      "intent": "Find connected explanatory SNPs (ConES) using GWAS data and a SNP network.",
+      "input": [
+        "minigwas (a list equivalent to snpStats::read.pedfile output containing fam, map, and genotypes)",
+        "minisnpMapping (a data frame mapping SNPs to genes)",
+        "minippi (a data frame containing protein-protein interactions)"
+      ],
+      "stages": "1. Load the package ;; 2. Create genomic structure (GS), gene-membership (GM), or gene-interaction (GI) networks ;; 3. Run SConES with grid search cross-validation ;; 4. Inspect the selected explanatory SNPs",
+      "code": "library(martini)\ngs <- get_GS_network(minigwas)\ngm <- get_GM_network(minigwas, snpMapping = minisnpMapping)\ngi <- get_GI_network(minigwas, snpMapping = minisnpMapping, ppi = minippi)\ncones <- scones.cv(minigwas, gi)\nhead(cones)"
+    },
+    {
+      "name": "simulate_network_phenotypes",
+      "intent": "Simulate quantitative or qualitative phenotypes based on causal SNPs interconnected in a network.",
+      "input": [
+        "minigwas (a list equivalent to snpStats::read.pedfile output containing fam, map, and genotypes)",
+        "minisnpMapping (a data frame mapping SNPs to genes)",
+        "minippi (a data frame containing protein-protein interactions)"
+      ],
+      "stages": "1. Load the package and construct the SNP network ;; 2. Simulate causal SNPs within the network ;; 3. Recreate or modify the genotype matrix if the original is too homogeneous ;; 4. Simulate a quantitative phenotype ;; 5. Simulate a qualitative (case-control) phenotype",
+      "code": "library(martini)\ngi <- get_GI_network(minigwas, snpMapping = minisnpMapping, ppi = minippi)\ncausal <- simulate_causal_snps(gi, ngenes = 2, pcausal = 0.3)\nX <- lapply(seq_len(100), function(i) { sample(c(0,1,2), 25, replace = TRUE) })\nX <- do.call(rbind, X)\ncolnames(X) <- minigwas$map$snp.name\nrownames(X) <- 1:nrow(X)\nX <- X + 1\nmode(X) <- \"raw\"\nminigwas$genotypes <- new(\"SnpMatrix\", X)\nsimulated <- simulate_phenotype(minigwas, snps = causal, h2 = 0.9)\nsimulated <- simulate_phenotype(minigwas, snps = causal, h2 = 0.9, qualitative = TRUE,\n                                ncases = 10, ncontrols = 40, prevalence = 0.2)"
+    }
+  ]
+}

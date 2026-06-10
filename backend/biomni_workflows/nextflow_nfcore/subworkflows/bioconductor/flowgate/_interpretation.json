@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filterId=The unique name/identifier assigned to the drawn gate ;; dims=A list of channel/detector names or marker names to plot and gate on ;; subset=The parent population/gate to subset the data before gating ;; regate=Logical indicating whether to overwrite an existing gate with the same filterId ;; gating_strategy=A tibble defining sequential gates to apply in batch\n- alternatives: ncdfFlow (read.ncdfFlowSet)=Use when working with very large flowSets to access data directly from the hard drive and save RAM ;; flowWorkspace/flowCore=Use for automatic, data-driven gating or importing pre-gated FlowJo workspaces ;; FlowJo/Kaluza=Commercial GUI-based software for manual gating\n- when_to_use: Use when you want to perform manual, GUI-based gating of flow cytometry data entirely within R to maintain reproducibility, version control, and avoid expensive commercial software.\n- pitfalls: Drawing a gate before selecting the gate type in the Shiny UI can cause errors or result in an empty 0% gate ;; Exiting the Shiny window without clicking 'Done' can leave the app running in the background, blocking the R console ;; Applying polygon gates to very large, untransformed datasets can cause data points to shift during gating ;; load_gs() can fail on Windows unless the file path is wrapped in file.path() ;; Using 'color' instead of 'colour' in ggcyto will cause silent failures or errors ;; Adding a flowjo_biex scale to a ggcyto plot can make quadrant gates disappear, requiring manual geom_hline/geom_vline workarounds.",
+  "workflows": [
+    {
+      "name": "interactive_manual_gating",
+      "intent": "Import FCS files, convert to a GatingSet, apply compensation, interactively draw manual gates (polygon, span, quadrant), and export plots and statistics.",
+      "input": [
+        "path_to_fcs (directory containing raw .FCS files)",
+        "compmatrix (compensation matrix file)"
+      ],
+      "stages": "1. Read FCS files into a flowSet ;; 2. Convert the flowSet to a GatingSet ;; 3. Read and apply compensation ;; 4. Interactively draw gates (Leukocytes, CD45, CD33/CD15) ;; 5. Visualize gates and export population statistics ;; 6. Save the GatingSet",
+      "code": "library (flowGate)\nlibrary (flowCore)\npath_to_fcs <- system.file ( \"extdata\" , package = \"flowGate\" )\nfs <- read.flowSet ( path = path_to_fcs, pattern = \".FCS$\" , full.names = TRUE )\nlibrary (flowWorkspace)\ngs <- GatingSet (fs)\npath_to_comp <- system.file ( \"extdata\" , \"compdata\" , \"compmatrix\" , package = \"flowCore\" )\ncomp_matrix <- read.table (path_to_comp, header = TRUE , skip = 2 , check.names = FALSE )\ncomp <- compensation (comp_matrix)\ngs <- compensate (gs, comp)\ncolnames (gs)\nmarkernames (gs)\ngs_gate_interactive (gs, filterId = \"Leukocytes\" , dims = list ( \"FSC-H\" , \"SSC-H\" ))\nautoplot (gs[[ 1 ]], gate = \"Leukocytes\" )\ngs_gate_interactive (gs, filterId = \"CD45\" , dims = \"CD45\" , subset = \"Leukocytes\" )\nggcyto (gs[[ 1 ]], aes ( \"CD45\" )) + geom_density () + geom_gate ( \"CD45\" ) + geom_stats ()\ngs_gate_interactive (gs[[ 1 ]], filterId = \"CD33 CD15\" , dims = list ( \"CD33\" , \"CD15\" ), subset = \"CD45\" )\ngs_get_pop_paths (gs)\nggcyto (gs[[ 1 ]], aes ( \"CD33\" , \"CD15\" )) + geom_hex ( bins = 128 ) + scale_x_flowjo_biexp ( maxValue = 252245 , widthBasis = -29 , pos = 4 ) + scale_y_flowjo_biexp ( maxValue = 250000 , widthBasis = -12 , pos = 5 ) + geom_gate ( c ( \"CD33 APC-CD15 FITC+\" , \"CD33 APC+CD15 FITC+\" , \"CD33 APC+CD15 FITC-\" , \"CD33 APC-CD15 FITC-\" )) + geom_hline ( yintercept = 80.2426 ) + geom_vline ( xintercept = 97.42192 ) + geom_stats ()\nsave_gs (gs, \"GvHD GatingSet.gs\" )\ngs <- load_gs ( file.path ( \"GvHD GatingSet.gs\" ))\ngs_pop_get_count_fast (gs)\ngs_pop_get_stats (gs, type = \"percent\" )\ngs_pop_get_stats (gs, type = \"percent\" , nodes = \"CD45\" )\ngs_pop_get_stats (gs, type = pop.MFI)"
+    },
+    {
+      "name": "gating_strategy_application",
+      "intent": "Define a multi-gate gating strategy in a tibble and apply it sequentially to a GatingSet using batch interactive gating.",
+      "input": [
+        "path_to_fcs (directory containing raw .FCS files)",
+        "compmatrix (compensation matrix file)"
+      ],
+      "stages": "1. Import FCS files and create a compensated GatingSet ;; 2. Define a gating strategy tibble ;; 3. Apply the gating strategy sequentially",
+      "code": "library (flowGate)\nlibrary (flowCore)\nlibrary (flowWorkspace)\npath_to_fcs <- system.file ( \"extdata\" , package = \"flowGate\" )\nfs <- read.flowSet ( path = path_to_fcs, pattern = \".FCS$\" , full.names = TRUE )\ngs <- GatingSet (fs)\npath_to_comp <- system.file ( \"extdata\" , \"compdata\" , \"compmatrix\" , package = \"flowCore\" )\ncomp_matrix <- read.table (path_to_comp, header = TRUE , skip = 2 , check.names = FALSE )\ncomp <- compensation (comp_matrix)\ngs <- compensate (gs, comp)\nstrategy <- tibble :: tribble (\n  ~ filterId, ~ dims, ~ subset, ~ bins,\n  \"Leukocytes\" , list ( \"FSC-H\" , \"SSC-H\" ), \"root\" , 256 ,\n  \"CD45\" , list ( \"CD45\" ), \"Leukocytes\" , 256 ,\n  \"CD33 CD15\" , list ( \"CD33\" , \"CD15\" ), \"CD45\" , 64\n)\ngs_apply_gating_strategy (gs, gating_strategy = strategy)"
+    }
+  ]
+}

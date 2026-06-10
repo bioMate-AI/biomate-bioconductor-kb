@@ -1,0 +1,23 @@
+{
+  "package": "affycoretools",
+  "requirements": [
+    "AnnotationDbi",
+    "ReportingTools",
+    "affycoretools",
+    "hgu95av2.db",
+    "limma"
+  ],
+  "by_workflow": {
+    "interactive_venn_diagram_generation.nf": [
+      "affycoretools",
+      "limma"
+    ],
+    "main.nf": [
+      "AnnotationDbi",
+      "ReportingTools",
+      "affycoretools",
+      "hgu95av2.db",
+      "limma"
+    ]
+  }
+}

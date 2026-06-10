@@ -1,0 +1,30 @@
+{
+  "package": "a4",
+  "requirements": [
+    "Biobase",
+    "GOstats",
+    "Rgraphviz",
+    "a4",
+    "nlcv"
+  ],
+  "by_workflow": {
+    "log_ratio_analysis.nf": [
+      "Biobase",
+      "a4"
+    ],
+    "main.nf": [
+      "Biobase",
+      "a4"
+    ],
+    "microarray_class_prediction.nf": [
+      "Biobase",
+      "a4",
+      "nlcv"
+    ],
+    "pathway_enrichment_mlp.nf": [
+      "GOstats",
+      "Rgraphviz",
+      "a4"
+    ]
+  }
+}

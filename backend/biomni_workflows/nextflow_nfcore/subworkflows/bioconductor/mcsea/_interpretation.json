@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: refGroup=Specifies the reference group for the linear model in rankProbes() ;; typeInput=Set to \"M\" in rankProbes() if the input matrix already contains M-values (default is \"beta\") ;; typeAnalysis=Set to \"beta\" in rankProbes() to use beta-values for models, though \"M\" is recommended ;; paired=Logical in rankProbes() to indicate paired samples ;; pairColumn=Column name in pheno containing pairing information ;; regionsTypes=Specifies genomic regions to test in mCSEATest() (e.g., \"promoters\", \"genebodies\", \"CGI\") ;; platform=Array platform in mCSEATest(), either \"450k\" or \"EPIC\" ;; minCpGs=Minimum number of CpGs in a region to be considered in mCSEATest() (default is 5) ;; nproc=Number of processors for parallel execution in mCSEATest() ;; customAnnotation=A custom list associating CpG probes to regions in mCSEATest() ;; transcriptAnnotation=Transcript annotation type in mCSEAPlot() (e.g., \"symbol\") ;; geneIDs=Gene identifier type in mCSEAIntegrate() (e.g., \"ENSEMBL\", \"SYMBOL\") to match expression data\n- alternatives: minfi or ChAMP packages are recommended for preprocessing raw .idat files to obtain the beta or M-value matrix before running mCSEA ;; FlowSorted.Blood.450k (or other reference packages) with estimateCellCounts() can be used to estimate cell type proportions to correct for cell-type heterogeneity\n- when_to_use: Use this package when you have Illumina 450k or EPIC human methylation microarray data and want to identify differentially methylated regions (DMRs) across predefined genomic features (promoters, gene bodies, CpG islands) or custom regions using a GSEA-based approach.\n- pitfalls: Using beta-values directly for linear modeling is discouraged because M-values better satisfy the statistical assumptions of limma (rankProbes converts beta to M by default) ;; Failing to correct for cell-type heterogeneity in tissues like blood or saliva can introduce major bias ;; mCSEAPlot() connects to online servers to retrieve genomic information, which can take several minutes to execute, especially on the first run ;; In mCSEAIntegrate(), specifying the incorrect gene identifier type (geneIDs parameter) will prevent successful matching with expression data",
+  "workflows": [
+    {
+      "name": "dmr_identification_and_visualization",
+      "intent": "Rank CpG probes, identify differentially methylated regions (DMRs) using GSEA, and visualize the genomic context and enrichment curves of top candidates.",
+      "input": [
+        "beta_values.matrix (Matrix of beta-values or M-values with CpG probes as rows and samples as columns)",
+        "phenotype_data.csv (Dataframe of sample phenotypes containing explanatory variables and covariates)"
+      ],
+      "stages": "1. Rank CpG probes using rankProbes() ;; 2. Run GSEA-based DMR detection using mCSEATest() ;; 3. Plot the genomic context of a specific DMR using mCSEAPlot() ;; 4. Plot the GSEA enrichment score curve for a specific DMR using mCSEAPlotGSEA()",
+      "code": "myRank <- rankProbes(betaTest, phenoTest, refGroup = \"Control\")\nmyResults <- mCSEATest(myRank, betaTest, phenoTest, \n                        regionsTypes = \"promoters\", platform = \"EPIC\")\nmCSEAPlot(myResults, regionType = \"promoters\", \n           dmrName = \"CLIC6\",\n           transcriptAnnotation = \"symbol\", makePDF = FALSE)\nmCSEAPlotGSEA(myRank, myResults, regionType = \"promoters\", dmrName = \"CLIC6\")"
+    },
+    {
+      "name": "methylation_expression_integration",
+      "intent": "Integrate DMR results with gene expression data to identify significant correlations between regional methylation and nearby gene expression.",
+      "input": [
+        "mCSEATest_results.rds (GSEA results list from mCSEATest)",
+        "gene_expression.matrix (Matrix of gene expression values with genes as rows and samples as columns)"
+      ],
+      "stages": "1. Run integration and correlation analysis using mCSEAIntegrate()",
+      "code": "resultsInt <- mCSEAIntegrate(myResults, exprTest, \"promoters\", \"ENSEMBL\")"
+    }
+  ]
+}

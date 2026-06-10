@@ -1,98 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: snm
-// SNM is a modeling strategy especially designed for normalizing high-throughput genomic data. The und
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/snm/inst/doc/snm.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("snm")
+// Bioconductor workflow: snm — single_channel_normalization
+// Normalize single-channel microarray data (e.g., Affymetrix) by modeling biological variables, probe-specific adjustment variables (e.g., batch, age), and intens
+// Input: raw.data, bio.var, adj.var, int.var
+// Container: quay.io/biocontainers/bioconductor-snm:1.58.0--r45hdfd78af_0
+// R packages: snm
+// Bioconductor: 3.20 | R: 4.4
+// Requires: snm
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the snm function with raw data and design matrices
+//  * 2. [Visualization & Output] Perform diagnostic checks on the output (e.g., Kolmogorov-Smirnov test on null p-values or plotting the snm object)
 
 nextflow.enable.dsl = 2
 
-process BIOC_SNM {
+process BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-snm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-snm:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-snm:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_snm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_snm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_snm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("snm")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(snm)
-    library(jsonlite)
-
-    # --- single Channel [] ---
-    # Key functions: singleChannel
-    singleChannel <- sim.singleChannel(12345)
-    str(singleChannel)
-    # --- snm [] ---
-    # Key functions: snm
-    snm.obj1 <- snm(singleChannel$raw.data,
-    				singleChannel$bio.var,
-    				singleChannel$adj.var,
-    			        singleChannel$int.var)
-    # --- test [] ---
-    # Key functions: test
-    ks.test(snm.obj1$pval[singleChannel$true.nulls],"punif")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_snm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_snm_results.csv")
+    
+    # Helper function to read input files with various extensions
+    read_file <- function(name, as_matrix = FALSE, as_df = FALSE) {
+      exts <- c(".rds", ".csv", ".tsv", ".txt", "")
+      for (ext in exts) {
+        file_path <- paste0(name, ext)
+        if (file.exists(file_path)) {
+          if (grepl("\\\\.rds\$", file_path)) {
+            obj <- readRDS(file_path)
+            if (as_matrix) obj <- as.matrix(obj)
+            if (as_df) obj <- as.data.frame(obj)
+            return(obj)
+          } else {
+            sep <- if (grepl("\\\\.tsv\$", file_path)) "\t" else ","
+            df <- tryCatch({
+              read.table(file_path, header = TRUE, sep = sep, row.names = 1, check.names = FALSE)
+            }, error = function(e) {
+              read.table(file_path, header = TRUE, sep = sep, check.names = FALSE)
+            })
+            if (as_matrix) {
+              return(as.matrix(df))
+            } else if (as_df) {
+              return(as.data.frame(df))
+            } else {
+              return(df)
+            }
+          }
+        }
+      }
+      stop(paste("Required input file not found:", name))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_snm_output.rds")
+    
+    # Construct the singleChannel list from user input files
+    singleChannel <- list()
+    singleChannel\$raw.data <- read_file("raw.data", as_matrix = TRUE)
+    singleChannel\$bio.var <- read_file("bio.var", as_matrix = TRUE)
+    singleChannel\$adj.var <- read_file("adj.var", as_matrix = TRUE)
+    singleChannel\$int.var <- read_file("int.var", as_df = TRUE)
+    
+    # Attempt to read true.nulls if available, otherwise default to all probes
+    singleChannel\$true.nulls <- tryCatch({
+      tn <- read_file("true.nulls")
+      if (is.data.frame(tn) || is.matrix(tn)) {
+        tn <- as.vector(as.matrix(tn))
+      }
+      as.integer(tn)
+    }, error = function(e) {
+      seq_len(nrow(singleChannel\$raw.data))
+    })
+    
+    # 1. Run the snm function with raw data and design matrices
+    snm.obj1 <- snm(singleChannel\$raw.data,
+    				singleChannel\$bio.var,
+    				singleChannel\$adj.var,
+    			        singleChannel\$int.var)
+    
+    # 2. Perform diagnostic checks on the output
+    # Kolmogorov-Smirnov test on null p-values
+    ks_res <- ks.test(snm.obj1\$pval[singleChannel\$true.nulls],"punif")
+    capture.output(print(ks_res), file = "ks_test_results.txt")
+    
+    # Plotting the snm object
+    pdf("snm_diagnostics.pdf")
+    plot(snm.obj1)
+    dev.off()
+    
+    # Write named output files for the meaningful results
+    write.csv(snm.obj1\$norm.dat, file = "normalized_data.csv", row.names = TRUE)
+    saveRDS(snm.obj1\$norm.dat, file = "normalized_data.rds")
+    
+    probe_names <- rownames(singleChannel\$raw.data)
+    if (is.null(probe_names)) {
+      probe_names <- seq_len(nrow(singleChannel\$raw.data))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SNM:", paste0("    snm: ", packageVersion("snm"))),
-        "versions.yml"
+    pvals_df <- data.frame(
+      probe = probe_names,
+      pvalue = snm.obj1\$pval,
+      stringsAsFactors = FALSE
     )
+    write.csv(pvals_df, file = "pvalues.csv", row.names = FALSE)
+    
+    saveRDS(snm.obj1, file = "snm_object.rds")
+
+    writeLines(c(
+        '"BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION":',
+        paste0('    snm: ', as.character(packageVersion('snm')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_snm_results.csv
-    touch ${prefix}_snm_output.rds
-    echo "BIOC_SNM:" > versions.yml
-    echo "    snm: 0.0.0" >> versions.yml
+    touch ${prefix}_single_channel_normalization.csv versions.yml
     """
 }
 
-
-workflow BIOC_SNM_WORKFLOW {
+workflow BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw.data, bio.var, adj.var, int.var ] ]
 
     main:
-    BIOC_SNM(ch_input)
+    BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION(ch_input)
 
     emit:
-    results  = BIOC_SNM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SNM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SNM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SNM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION.out.tables
+    plots    = BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION.out.plots
+    objects  = BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION.out.objects
+    versions = BIOC_SNM_SINGLE_CHANNEL_NORMALIZATION.out.versions
 }

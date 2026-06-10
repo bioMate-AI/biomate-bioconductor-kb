@@ -1,0 +1,21 @@
+{
+  "package": "goseq",
+  "requirements": [
+    "AnnotationDbi",
+    "GO.db",
+    "goseq"
+  ],
+  "by_workflow": {
+    "count_bias_corrected_analysis.nf": [
+      "goseq"
+    ],
+    "custom_category_analysis.nf": [
+      "AnnotationDbi",
+      "goseq"
+    ],
+    "main.nf": [
+      "GO.db",
+      "goseq"
+    ]
+  }
+}

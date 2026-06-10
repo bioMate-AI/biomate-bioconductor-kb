@@ -1,0 +1,11 @@
+{
+  "package": "msstatstmt",
+  "requirements": [
+    "MSstatsTMT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSstatsTMT"
+    ]
+  }
+}

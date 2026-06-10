@@ -1,0 +1,33 @@
+{
+  "package": "deseq2",
+  "requirements": [
+    "DESeq2",
+    "RColorBrewer",
+    "pheatmap",
+    "readr",
+    "tximport",
+    "vsn"
+  ],
+  "by_workflow": {
+    "de_from_transcript_abundance.nf": [
+      "DESeq2",
+      "readr",
+      "tximport"
+    ],
+    "likelihood_ratio_test.nf": [
+      "DESeq2"
+    ],
+    "main.nf": [
+      "DESeq2"
+    ],
+    "multi_factor_analysis.nf": [
+      "DESeq2"
+    ],
+    "transformation_and_qc.nf": [
+      "DESeq2",
+      "RColorBrewer",
+      "pheatmap",
+      "vsn"
+    ]
+  }
+}

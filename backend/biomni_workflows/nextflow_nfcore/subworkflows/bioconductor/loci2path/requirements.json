@@ -1,0 +1,17 @@
+{
+  "package": "loci2path",
+  "requirements": [
+    "GenomicRanges",
+    "loci2path"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "loci2path"
+    ],
+    "tissue_specificity_enrichment.nf": [
+      "GenomicRanges",
+      "loci2path"
+    ]
+  }
+}

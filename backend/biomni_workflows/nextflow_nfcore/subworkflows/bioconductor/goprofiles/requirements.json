@@ -1,0 +1,21 @@
+{
+  "package": "goprofiles",
+  "requirements": [
+    "goProfiles",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "equivalence_testing.nf": [
+      "goProfiles",
+      "org.Hs.eg.db"
+    ],
+    "main.nf": [
+      "goProfiles",
+      "org.Hs.eg.db"
+    ],
+    "statistical_comparison_and_fisher_test.nf": [
+      "goProfiles",
+      "org.Hs.eg.db"
+    ]
+  }
+}

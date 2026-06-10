@@ -1,0 +1,36 @@
+{
+  "package": "meal",
+  "requirements": [
+    "Biobase",
+    "GenomicRanges",
+    "MEAL",
+    "MultiDataSet",
+    "ggplot2",
+    "minfi"
+  ],
+  "by_workflow": {
+    "expression_analysis.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "MEAL",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "MEAL",
+      "ggplot2"
+    ],
+    "methylation_expression_integration.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "MEAL",
+      "MultiDataSet",
+      "minfi"
+    ],
+    "regional_rda.nf": [
+      "GenomicRanges",
+      "MEAL",
+      "minfi"
+    ]
+  }
+}

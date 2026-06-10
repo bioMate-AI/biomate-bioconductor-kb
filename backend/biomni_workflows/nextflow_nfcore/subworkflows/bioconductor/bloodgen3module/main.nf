@@ -1,123 +1,179 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BloodGen3Module
-// The BloodGen3Module package provides functions for R user performing module repertoire analyses and 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BloodGen3Module/inst/doc/BloodGen3Module.R
-// Upstream  : knitr, ExperimentHub, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("BloodGen3Module")
+// Bioconductor workflow: BloodGen3Module — group_comparison_repertoire
+// Perform group-level modular transcriptional repertoire comparison and visualize the fingerprint grid.
+// Input: counts.csv, coldata.csv
+// Container: 1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BloodGen3Module, SummarizedExperiment
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BLOODGEN3MODULE {
+process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bloodgen3module"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bloodgen3module:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bloodgen3module:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bloodgen3module_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bloodgen3module_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bloodgen3module_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(BloodGen3Module)
-    library(Groupcomparison)
-    library(Groupcomparisonlimma)
-    library(jsonlite)
-
-    # --- Grid Visualisation [] ---
-    # Key functions: gridplot
-    gridplot(
-        Group_df,
-        cutoff = 15,
-        Ref_group = "Control",
-        filename = tempfile()
+    
+    # 1. Load and validate inputs
+    message("Loading input files...")
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    
+    if (!"sample" %in% colnames(coldata) || !"condition" %in% colnames(coldata)) {
+      stop("coldata.csv must contain 'sample' and 'condition' columns.")
+    }
+    rownames(coldata) <- coldata\$sample
+    
+    # Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(counts), rownames(coldata))
+    if (length(common_samples) == 0) {
+      stop("No common samples found between counts.csv and coldata.csv")
+    }
+    counts <- counts[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, drop = FALSE]
+    
+    # Determine comparison groups dynamically
+    groups <- unique(coldata\$condition)
+    if (length(groups) < 2) {
+      stop("At least two groups in the 'condition' column are required for comparison.")
+    }
+    ref_group <- if ("Control" %in% groups) "Control" else if ("control" %in% groups) "control" else groups[1]
+    test_group <- setdiff(groups, ref_group)[1]
+    
+    message("Reference group: ", ref_group)
+    message("Test group: ", test_group)
+    
+    # Create SummarizedExperiment object
+    se <- SummarizedExperiment(
+      assays = list(counts = as.matrix(counts)),
+      colData = coldata
     )
-
-
-    # --- Individual Single Sample Analysis [] ---
-    # Key functions: Individualcomparison
-    Individual_df <- Individualcomparison(
-        GSE13015,
+    
+    # 2. Run Group Comparison Analysis
+    message("Running group comparison using limma...")
+    Group_df <- tryCatch({
+      Groupcomparisonlimma(
+        se,
         sample_info = NULL,
         FC = 1.5,
-        DIFF = 10,
-        Group_column = "Group_test",
-        Ref_group = "Control",
+        pval = 0.1,
+        FDR = TRUE,
+        Group_column = "condition",
+        Test_group = test_group,
+        Ref_group = ref_group,
         SummarizedExperiment = TRUE
-    )
-
-
-    # --- Fingerprint Visualisation [] ---
-    # Key functions: fingerprintplot
-    fingerprintplot(
-        Individual_df,
-        sample_info = NULL,
-        cutoff = 15,
-        rowSplit = TRUE,
-        Group_column = "Group_test",
-        show_ref_group = FALSE,
-        Ref_group = "Control",
-        Aggregate = "A28",
-        filename = tempfile()
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bloodgen3module_results.csv", row.names = TRUE)
+      )
+    }, error = function(e) {
+      message("Limma group comparison failed, attempting standard t-test comparison: ", e\$message)
+      tryCatch({
+        Groupcomparison(
+          se,
+          sample_info = NULL,
+          FC = 1.5,
+          pval = 0.1,
+          FDR = TRUE,
+          Group_column = "condition",
+          Test_group = test_group,
+          Ref_group = ref_group,
+          SummarizedExperiment = TRUE
+        )
+      }, error = function(e2) {
+        message("Both group comparison methods failed: ", e2\$message)
+        NULL
+      })
+    })
+    
+    # 3. Save results and generate visualization
+    if (!is.null(Group_df)) {
+      write.csv(Group_df, "group_comparison_results.csv", row.names = TRUE)
+      
+      message("Generating fingerprint grid plot...")
+      tryCatch({
+        gridplot(
+          Group_df,
+          cutoff = 15,
+          Ref_group = ref_group,
+          filename = "fingerprint_grid"
+        )
+        # Handle potential file naming variations from gridplot
+        if (file.exists("fingerprint_grid")) {
+          file.rename("fingerprint_grid", "fingerprint_grid.pdf")
+        }
+      }, error = function(e) {
+        message("Error generating grid plot: ", e\$message)
+        pdf("fingerprint_grid.pdf")
+        plot.new()
+        text(0.5, 0.5, "Error generating grid plot")
+        dev.off()
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bloodgen3module_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bloodgen3module_output.rds")
+      # Fallback outputs in case of failure
+      write.csv(data.frame(Error = "Analysis failed"), "group_comparison_results.csv")
+      pdf("fingerprint_grid.pdf")
+      plot.new()
+      text(0.5, 0.5, "Analysis failed")
+      dev.off()
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BLOODGEN3MODULE:", paste0("    bloodgen3module: ", packageVersion("BloodGen3Module"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE":',
+        paste0('    BloodGen3Module: ', as.character(packageVersion('BloodGen3Module')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bloodgen3module_results.csv
-    touch ${prefix}_bloodgen3module_output.rds
-    echo "BIOC_BLOODGEN3MODULE:" > versions.yml
-    echo "    bloodgen3module: 0.0.0" >> versions.yml
+    touch ${prefix}_group_comparison_repertoire.csv versions.yml
     """
 }
 
-
-workflow BIOC_BLOODGEN3MODULE_WORKFLOW {
+workflow BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BLOODGEN3MODULE(ch_input)
+    BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE(ch_input)
 
     emit:
-    results  = BIOC_BLOODGEN3MODULE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BLOODGEN3MODULE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BLOODGEN3MODULE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BLOODGEN3MODULE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE.out.tables
+    plots    = BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE.out.plots
+    objects  = BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE.out.objects
+    versions = BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE.out.versions
 }

@@ -1,140 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CBNplot
-// This package provides the visualization of bayesian network inferred from gene expression data. The 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CBNplot/inst/doc/CBNplot_basic_usage.R
-// Upstream  : bnlearn
-// Downstream: none
-//
-// Install: BiocManager::install("CBNplot")
+// Bioconductor workflow: CBNplot — gene_level_bayesian_network
+// Infer and plot a Bayesian network of genes within a specific enriched pathway using expression data.
+// Input: enrichResult.rds, expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-cbnplot:1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CBNplot, bnlearn, igraph
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Visualize the gene-level Bayesian network for a specific pathway using bngeneplot
+//  * 2. [Core Analysis] Extract the underlying network structure, strength, and direction by setting returnNet=TRUE
+//  * 3. [Core Analysis] Convert the averaged network to an igraph object for centrality analysis
+//  * 4. [Visualization & Output] Customize the gene network visualization using bngeneplotCustom
 
 nextflow.enable.dsl = 2
 
-process BIOC_CBNPLOT {
+process BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cbnplot"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cbnplot:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cbnplot:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(character)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cbnplot_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cbnplot_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cbnplot_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CBNplot)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(CBNplot)
+        library(bnlearn)
+        library(igraph)
+        
+        # 1. Load User Inputs
+        # Read the enrichment analysis result object (e.g., clusterProfiler or ReactomePA result)
+        pway <- readRDS("enrichResult.rds")
+        
+        # Read the normalized gene expression matrix (genes as rows, samples as columns)
+        counts <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+        
+        # 2. Visualize the gene-level Bayesian network for the first pathway
+        pdf("bngeneplot_pathway1.pdf", width = 10, height = 10)
+        print(bngeneplot(results = pway, exp = counts, pathNum = 1, expRow="ENTREZID"))
+        dev.off()
+        
+        # 3. Extract the underlying network structure, strength, and direction
+        ret <- bngeneplot(results = pway, exp = counts, pathNum = 1, returnNet=TRUE, expRow="ENTREZID")
+        
+        # Save the network strength and structure data frame
+        write.csv(ret\$str, "network_strength.csv", row.names = FALSE)
+        saveRDS(ret, "network_results.rds")
+        
+        # 4. Convert the averaged network to an igraph object and perform centrality analysis
+        g <- bnlearn::as.igraph(ret\$av)
+        saveRDS(g, "network_igraph.rds")
+        
+        # Calculate eigenvector centrality
+        ev_centrality <- tryCatch({
+          igraph::evcent(g)\$vector
+        }, error = function(e) {
+          # Fallback to eigen_centrality if evcent is completely removed/fails
+          igraph::eigen_centrality(g)\$vector
+        })
+        
+        # Save centrality metrics
+        centrality_df <- data.frame(
+          Gene = names(ev_centrality),
+          EigenvectorCentrality = ev_centrality,
+          stringsAsFactors = FALSE
+        )
+        write.csv(centrality_df, "gene_centrality.csv", row.names = FALSE)
+        
+        # 5. Customize the gene network visualization
+        pdf("bngeneplot_custom.pdf", width = 10, height = 10)
+        print(bngeneplotCustom(results = pway, exp = counts, expRow="ENTREZID",
+                         pathNum=1, fontFamily="sans", glowEdgeNum=NULL, hub=1))
+        dev.off()
 
-    # --- Network Structure Extraction [] ---
-    # Key functions: bngeneplot
-    net_data <- bngeneplot(
-        results = pway,
-        exp = counts,
-        pathNum = 1,
-        returnNet = TRUE,
-        expRow = "ENTREZID"
-    )
-    network_structure <- net_data$str
-
-
-    # --- Pathway Network Plotting [] ---
-    # Key functions: bnpathplot
-    path_net <- bnpathplot(
-        results = pway,
-        exp = counts,
-        nCategory = 5,
-        shadowText = TRUE,
-        expRow = "ENTREZID"
-    )
-
-
-    # --- Custom Network Visualization [] ---
-    # Key functions: bnpathplotCustom, bngeneplotCustom
-    custom_path <- bnpathplotCustom(
-        results = pway,
-        exp = counts,
-        expRow = "ENTREZID",
-        fontFamily = "serif",
-        glowEdgeNum = 1,
-        hub = 1
-    )
-    custom_gene <- bngeneplotCustom(
-        results = pway,
-        exp = counts,
-        expRow = "ENTREZID",
-        pathNum = 1,
-        fontFamily = "sans",
-        glowEdgeNum = NULL,
-        hub = 1
-    )
-
-
-    # --- Network Centrality Analysis [] ---
-    # Key functions: bngeneplot
-    net_data <- bngeneplot(
-        results = pway,
-        exp = counts,
-        pathNum = 1,
-        returnNet = TRUE,
-        expRow = "ENTREZID"
-    )
-    g <- bnlearn::as.igraph(net_data$av)
-    centrality_scores <- igraph::evcent(g)$vector
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cbnplot_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cbnplot_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cbnplot_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CBNPLOT:", paste0("    cbnplot: ", packageVersion("CBNplot"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK":',
+        paste0('    CBNplot: ', as.character(packageVersion('CBNplot')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cbnplot_results.csv
-    touch ${prefix}_cbnplot_output.rds
-    echo "BIOC_CBNPLOT:" > versions.yml
-    echo "    cbnplot: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_level_bayesian_network.csv versions.yml
     """
 }
 
-
-workflow BIOC_CBNPLOT_WORKFLOW {
+workflow BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(character) ]
+    ch_input  // channel: [ val(meta), [ enrichResult.rds, expression_matrix.csv ] ]
 
     main:
-    BIOC_CBNPLOT(ch_input)
+    BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK(ch_input)
 
     emit:
-    results  = BIOC_CBNPLOT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CBNPLOT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CBNPLOT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CBNPLOT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK.out.tables
+    plots    = BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK.out.plots
+    objects  = BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK.out.objects
+    versions = BIOC_CBNPLOT_GENE_LEVEL_BAYESIAN_NETWORK.out.versions
 }

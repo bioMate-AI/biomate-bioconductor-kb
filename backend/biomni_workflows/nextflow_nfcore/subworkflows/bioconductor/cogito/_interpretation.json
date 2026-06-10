@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ranges=A list of GRanges or GRangesList objects representing different technologies (e.g., ChIP, RNA, RRBS) ;; organism=A TxDb object (e.g., TxDb.Mmusculus.UCSC.mm9.knownGene) used as the reference genome for aggregation ;; name=A character string specifying the name of the dataset/analysis ;; configfile=Optional configuration file to customize parameters like the maximum distance for assigning ranges to genes (default is 100,000 bp) ;; aggregated.ranges=The output list from aggregateRanges containing the aggregated GRanges and configuration ;; outputFormat=Format of the output report (e.g., pdf or html)\n- alternatives: None mentioned. The documentation notes that Cogito is not meant for detailed genetic or epigenetic analysis, but rather for a reproducible and clear overview report.\n- when_to_use: When a biological study consists of multiple conditions examined with different laboratory setups (e.g., RNA-seq, ChIP-seq, RRBS) and the user wants an automated, complete overview/report and basic comparisons across all samples.\n- pitfalls: Genes with exons on both strands or multiple reference sequences are dropped during aggregation (a warning is shown). The automatically generated configuration lists (aggregated.ranges$config$technologies and aggregated.ranges$config$conditions) should be carefully checked and corrected if necessary before running summarizeRanges.",
+  "workflows": [
+    {
+      "name": "compare_annotated_genomic_intervals",
+      "intent": "Aggregate multi-omics genomic interval data across conditions and generate a comprehensive summary report.",
+      "input": [
+        "ranges (A list of GRanges/GRangesList objects containing genomic intervals and metadata columns for different technologies)",
+        "organism (A TxDb object for the reference genome)"
+      ],
+      "stages": "1. Load the reference genome TxDb object ;; 2. Combine the genomic interval datasets into a named list ;; 3. Aggregate the genomic intervals to genes using aggregateRanges ;; 4. Inspect and optionally correct the automatically generated configuration lists for technologies and conditions ;; 5. Generate the summary report, Rmd, and RData files using summarizeRanges",
+      "code": "mm9 <- TxDb.Mmusculus.UCSC.mm9.knownGene::TxDb.Mmusculus.UCSC.mm9.knownGene\n\nexample.dataset <- list(ChIP = MurEpi.ChIP.small, \n                        RNA = MurEpi.RNA.small,\n                        RRBS = MurEpi.RRBS.small)\n\naggregated.ranges <- aggregateRanges(ranges = example.dataset,\n                                        organism = mm9,\n                                        name = \"murine.example\")\n\nlapply(aggregated.ranges$config$technologies, head, 3)\nhead(lapply(aggregated.ranges$config$conditions, head, 3), 3)\n\nsummarizeRanges(aggregated.ranges = aggregated.ranges)"
+    }
+  ]
+}

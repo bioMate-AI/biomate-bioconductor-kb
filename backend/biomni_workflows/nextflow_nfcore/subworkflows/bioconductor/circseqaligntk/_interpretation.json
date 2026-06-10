@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: input=Path to the genome sequence in FASTA format for indexing, or path to the FASTQ file for alignment ;; output=Directory path to save index files, intermediate alignment files, or final BAM/FASTQ outputs ;; aligner=Specifies the alignment tool, either 'hisat2' (default, uses Rhisat2) or 'bowtie2' (uses Rbowtie2) ;; n_mismatch=Maximum number of mismatches allowed per read during alignment filtering (default is 1) ;; n_threads=Number of threads to use for parallelizing the alignment process ;; add_args=Additional command-line arguments passed directly to the underlying aligner (e.g., '--no-spliced-alignment') ;; read_lengths=Vector of specific read lengths (e.g., c(21, 22)) to filter coverage visualization in plot() ;; mismatch_prob=Probability of introducing mismatches in generate_reads(); can be a vector to simulate multiple mismatches\n- alternatives: Standard linear aligners (like standalone Bowtie2 or HISAT2) without the two-stage wrapper, which fail to align reads spanning the artificial junction of linearized circular genomes\n- when_to_use: Appropriate when analyzing small RNA-Seq data (typically 21-24 nt) or standard RNA-Seq data derived from circular genomes (such as viroids, circular RNAs, or organelles) where reads may span the artificial linear sequence boundaries\n- pitfalls: Failing to trim adapter sequences before alignment, which prevents short reads from aligning properly ;; Decompressing gzipped FASTQ files before running adapter trimming (e.g., remove_adapters) to avoid potential errors ;; Specifying an aligner in align_reads() that does not match the index type built by build_index()",
+  "workflows": [
+    {
+      "name": "circular_genome_alignment_and_coverage",
+      "intent": "Align small RNA-Seq reads to a circular reference genome using a two-stage alignment process, calculate strand-specific coverage, and visualize the coverage profile.",
+      "input": [
+        "genome_seq.fa (circular genome reference sequence in FASTA format)",
+        "trimmed_reads.fq (cleaned/trimmed small RNA-Seq reads in FASTQ format)"
+      ],
+      "stages": "1. Build circular-aware index files (Type 1 and Type 2 references) using build_index() ;; 2. Align trimmed reads to the generated index using align_reads() ;; 3. Calculate strand-specific coverage from the alignment results using calc_coverage() ;; 4. Visualize the coverage profile across the circular genome using plot()",
+      "code": "ref_index <- build_index(input = genome_seq, \n                         output = file.path(ws, 'index'))\naln <- align_reads(input = trimmed_fq, \n                   index = ref_index,\n                   output = file.path(ws, 'align_results'))\nalncov <- calc_coverage(aln)\nhead(slot(alncov, 'forward'))  # alignment coverage in forward strand \nhead(slot(alncov, 'reverse'))  # alignment coverage in reverse strand \nplot(alncov)"
+    },
+    {
+      "name": "synthetic_read_generation_and_evaluation",
+      "intent": "Generate synthetic circular RNA-Seq reads with custom peak and length distributions, align them, and evaluate workflow accuracy by calculating RMSE against the true simulated coverage.",
+      "input": [
+        "genome_seq.fa (circular genome reference sequence in FASTA format)"
+      ],
+      "stages": "1. Generate synthetic reads with custom peaks, lengths, and mismatches using generate_reads() ;; 2. Build circular-aware index files using build_index() ;; 3. Align the synthetic reads using align_reads() ;; 4. Calculate predicted coverage using calc_coverage() ;; 5. Extract true coverage from the simulation object and calculate RMSE for both strands",
+      "code": "sim <- generate_reads(adapter = NA,\n                      mismatch_prob = 0,\n                      output = file.path(ws, 'synthetic_reads.fq.gz'))\n\ngenome_seq <- system.file(package = 'CircSeqAlignTk', 'extdata', 'FR851463.fa')\nref_index <- build_index(input = genome_seq, \n                         output = file.path(ws, 'index'))\naln <- align_reads(input = file.path(ws, 'synthetic_reads.fq.gz'),\n                   index = ref_index, \n                   output = file.path(ws, 'align_results'))\nalncov <- calc_coverage(aln)\nfwd_pred <- slot(alncov, 'forward')\nfwd_true <- slot(slot(sim, 'coverage'), 'forward')\nsqrt(sum((fwd_pred - fwd_true) ^ 2) / length(fwd_true))\nrev_pred <- slot(alncov, 'reverse')\nrev_true <- slot(slot(sim, 'coverage'), 'reverse')\nsqrt(sum((rev_pred - rev_true) ^ 2) / length(rev_true))"
+    }
+  ]
+}

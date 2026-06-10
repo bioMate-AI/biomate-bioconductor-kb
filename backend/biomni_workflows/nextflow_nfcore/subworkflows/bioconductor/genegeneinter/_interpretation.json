@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=numeric or factor vector of phenotype values (0/1 for case-control) ;; snps1=SnpMatrix object or data.frame containing the SNPs of the first gene ;; snps2=SnpMatrix object or data.frame containing the SNPs of the second gene ;; method=character string specifying the GGI method to use (e.g., \"PCA\", \"CCA\", \"PLSPM\", \"U\", \"minP\", \"maxT\") ;; nperm=number of permutations for permutation-based methods\n- alternatives: PLINK=preferred for fast, genome-wide single SNP-SNP interaction screening ;; GBIGM=preferred for entropy-based gene-gene interaction analysis\n- when_to_use: When analyzing case-control genomic data to detect statistical interactions between pairs of genes, aggregating multiple SNP-SNP interactions into a single gene-level test statistic.\n- pitfalls: Using high-dimensional methods like CCA or PLSPM on genes with very few SNPs or high collinearity without checking model assumptions ;; High computational overhead when running permutation tests (nperm) on large cohorts ;; Missing data in SnpMatrix objects which must be imputed beforehand.",
+  "workflows": [
+    {
+      "name": "gene_gene_interaction_testing",
+      "intent": "Test for statistical interaction between two genes represented by sets of SNPs in a case-control study.",
+      "input": [
+        "gene1_snps.csv (genotype matrix for SNPs in Gene 1)",
+        "gene2_snps.csv (genotype matrix for SNPs in Gene 2)",
+        "phenotype.csv (case-control status vector)"
+      ],
+      "stages": "1. Load the genotype data and phenotype vector ;; 2. Run the gene-gene interaction test using the GGI function ;; 3. Print and plot the interaction results",
+      "code": "library(GeneGeneInteR)\ndata(GGI.data)\nresult <- GGI(Y = response, snps1 = gene1, snps2 = gene2, method = \"CCA\")\nprint(result)"
+    }
+  ]
+}

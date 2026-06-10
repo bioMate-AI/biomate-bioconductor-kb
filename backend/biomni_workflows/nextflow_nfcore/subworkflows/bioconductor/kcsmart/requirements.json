@@ -1,0 +1,14 @@
+{
+  "package": "kcsmart",
+  "requirements": [
+    "KCsmart"
+  ],
+  "by_workflow": {
+    "comparative_kc_smart.nf": [
+      "KCsmart"
+    ],
+    "main.nf": [
+      "KCsmart"
+    ]
+  }
+}

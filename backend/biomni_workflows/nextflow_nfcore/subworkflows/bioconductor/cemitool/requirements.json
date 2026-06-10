@@ -1,0 +1,16 @@
+{
+  "package": "cemitool",
+  "requirements": [
+    "CEMiTool",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "diagnostic_and_troubleshooting_analysis.nf": [
+      "CEMiTool"
+    ],
+    "main.nf": [
+      "CEMiTool",
+      "ggplot2"
+    ]
+  }
+}

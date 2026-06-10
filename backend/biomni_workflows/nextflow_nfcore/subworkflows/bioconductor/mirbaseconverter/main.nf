@@ -1,157 +1,241 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: miRBaseConverter
-// A comprehensive tool for converting and retrieving the miRNA Name, Accession, Sequence, Version, His
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/miRBaseConverter/inst/doc/miRBaseConverter-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("miRBaseConverter")
+// Bioconductor workflow: miRBaseConverter — mirna_annotation_conversion
+// Perform comprehensive miRNA version detection, accession/name conversion, sequence retrieval, family classification, and precursor mapping for a miRNA expressio
+// Input: counts.csv, coldata.csv
+// Container: 1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: miRBaseConverter
+// Visualizations: bar plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIRBASECONVERTER {
+process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mirbaseconverter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mirbaseconverter:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mirbaseconverter:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mirbaseconverter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mirbaseconverter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mirbaseconverter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(miRBaseConverter)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: miRNA_AccessionToName
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    data(miRNATest)
-    Accessions = miRNATest$Accession
-    #### 1. Convert to the Accessions to miRNA names in miRBase version 13
-    # --- Data [] ---
-    # Key functions: miRNA_NameToAccession
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    data(miRNATest)
-    miRNANames = miRNATest$miRNA_Name
-    result1 = miRNA_NameToAccession(miRNANames,version = "v18")
-    # --- Data [] ---
-    # Key functions: miRNA_MatureToPrecursor
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    data(miRNATest)
-    miRNANames=miRNATest$miRNA_Name
-    result1=miRNA_MatureToPrecursor(miRNANames)
-    # --- Checkmirnafamily [] ---
-    # Key functions: checkMiRNAFamily, checkMiRNAVersion, miRNA_NameToAccession
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    ## The input is miRNA Accessions
-    Accessions=miRNATest$Accession
-    Family_Info1=checkMiRNAFamily(Accessions)
-    # --- Data [] ---
-    # Key functions: getMiRNASequence
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    data(miRNATest)
-    Accessions = miRNATest$Accession
-    result1 = getMiRNASequence(Accessions,targetVersion = "v13")
-    # --- Getallversioninfo [] ---
-    # Key functions: getAllVersionInfo
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    getAllVersionInfo()
-    # --- Getallspecies [] ---
-    # Key functions: getAllSpecies
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    allSpecies=getAllSpecies()
-    head(allSpecies)
-    # --- Getallmirnas [] ---
-    # Key functions: getAllMiRNAs
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    miRNAs=getAllMiRNAs(version="v22", type="all", species="hsa")
-    head(miRNAs)
-    # --- Mirna Nametoaccession [] ---
-    # Key functions: miRNA_NameToAccession, getMiRNAHistory
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    #### 1. The input is a miRNA Name
-    name = "hsa-miR-26b-5p"
-    result1 = miRNA_NameToAccession(name)
-    Accession = result1$Accession
-    # --- Getmirnahistory [] ---
-    # Key functions: getMiRNAHistory
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    #### 2. The input is miRNA Accession Id
-    Accession = "MIMAT0000765"
-    result3 = getMiRNAHistory(Accession)
-    result3
-    # --- Getmirnatable [] ---
-    # Key functions: getMiRNATable
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    library(miRBaseConverter)
-    miRNA_Tab=getMiRNATable(version="v22",species="hsa")
-    head(miRNA_Tab)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mirbaseconverter_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 1: Load Input Data
+    # ==========================================
+    message("Loading input expression data...")
+    counts <- read.csv("counts.csv", check.names = FALSE)
+    
+    # Handle case where 'gene_id' is a column or row names
+    if ("gene_id" %in% colnames(counts)) {
+        rownames(counts) <- counts\$gene_id
+        counts\$gene_id <- NULL
+    }
+    mirna_identifiers <- rownames(counts)
+    message(paste("Loaded", length(mirna_identifiers), "miRNA identifiers."))
+    
+    # ==========================================
+    # Stage 2: Identify Identifier Type & Version
+    # ==========================================
+    message("Checking identifier types (Accessions vs Names)...")
+    # Accessions typically start with MIMAT (mature) or MI (precursor)
+    is_accession <- all(grepl("^(MIMAT|MI)[0-9]+", mirna_identifiers))
+    
+    if (!is_accession) {
+        message("Identifiers detected as miRNA Names. Checking miRBase version...")
+        # Check the most likely miRBase version of the input names
+        version_info <- checkMiRNAVersion(mirna_identifiers, verbose = FALSE)
+        message(paste("Recommended input miRBase version:", version_info))
+        
+        # Convert Names to Accessions using the detected version
+        message("Converting miRNA Names to Accessions...")
+        accession_df <- miRNA_NameToAccession(mirna_identifiers, version = version_info)
+        colnames(accession_df) <- c("OriginalName", "Accession")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mirbaseconverter_results.csv")
+        message("Identifiers detected as miRBase Accessions.")
+        accession_df <- data.frame(
+            OriginalName = mirna_identifiers,
+            Accession = mirna_identifiers,
+            stringsAsFactors = FALSE
+        )
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mirbaseconverter_output.rds")
+    
+    # ==========================================
+    # Stage 3: Retrieve Comprehensive Annotations
+    # ==========================================
+    message("Retrieving target version (v22) names...")
+    valid_accs <- accession_df\$Accession[!is.na(accession_df\$Accession) & accession_df\$Accession != ""]
+    
+    if (length(valid_accs) > 0) {
+        # 1. Convert Accessions to Target Version Names
+        v22_names_df <- miRNA_AccessionToName(valid_accs, targetVersion = "v22")
+        
+        # 2. Retrieve Sequences
+        message("Retrieving miRNA sequences...")
+        seq_df <- getMiRNASequence(valid_accs, targetVersion = "v22")
+        
+        # 3. Retrieve Family Information
+        message("Retrieving miRNA family classifications...")
+        family_df <- checkMiRNAFamily(valid_accs)
+        
+        # 4. Map Mature to Precursor
+        message("Mapping mature miRNAs to precursors...")
+        valid_names <- v22_names_df\$TargetName[!is.na(v22_names_df\$TargetName)]
+        if (length(valid_names) > 0) {
+            precursor_df <- miRNA_MatureToPrecursor(valid_names)
+            colnames(precursor_df) <- c("TargetName", "Precursor")
+        } else {
+            precursor_df <- data.frame(TargetName = character(), Precursor = character(), stringsAsFactors = FALSE)
+        }
+    } else {
+        v22_names_df <- data.frame(Accession = character(), TargetName = character(), stringsAsFactors = FALSE)
+        seq_df <- data.frame(Accession = character(), miRNASequence_v22 = character(), stringsAsFactors = FALSE)
+        family_df <- data.frame(Accession = character(), FamilyAccession = character(), Family = character(), stringsAsFactors = FALSE)
+        precursor_df <- data.frame(TargetName = character(), Precursor = character(), stringsAsFactors = FALSE)
     }
+    
+    # ==========================================
+    # Stage 4: Merge and Compile Annotations
+    # ==========================================
+    message("Compiling annotation database...")
+    annot <- accession_df
+    annot <- merge(annot, v22_names_df, by = "Accession", all.x = TRUE)
+    annot <- merge(annot, seq_df, by = "Accession", all.x = TRUE)
+    annot <- merge(annot, family_df[, c("Accession", "FamilyAccession", "Family")], by = "Accession", all.x = TRUE)
+    annot <- merge(annot, precursor_df, by = "TargetName", all.x = TRUE)
+    
+    # Reorder columns for readability
+    annot <- annot[, c("OriginalName", "Accession", "TargetName", "miRNASequence_v22", "FamilyAccession", "Family", "Precursor")]
+    write.csv(annot, "mirna_annotations.csv", row.names = FALSE)
+    
+    # Merge annotations with expression counts
+    annotated_counts <- merge(annot, counts, by.x = "OriginalName", by.y = "row.names", all.y = TRUE)
+    write.csv(annotated_counts, "annotated_counts.csv", row.names = FALSE)
+    
+    # ==========================================
+    # Stage 5: Retrieve History for Top Expressed miRNAs
+    # ==========================================
+    message("Retrieving historical version mappings for top expressed miRNAs...")
+    mean_expr <- rowMeans(counts, na.rm = TRUE)
+    top_mirnas <- names(sort(mean_expr, decreasing = TRUE))[1:min(5, length(mean_expr))]
+    top_accs <- annot\$Accession[annot\$OriginalName %in% top_mirnas]
+    top_accs <- top_accs[!is.na(top_accs) & top_accs != ""]
+    
+    history_list <- list()
+    for (acc in top_accs) {
+        tryCatch({
+            hist_df <- getMiRNAHistory(acc)
+            hist_df\$Accession <- acc
+            history_list[[acc]] <- hist_df
+        }, error = function(e) {
+            message(paste("Could not retrieve history for accession:", acc))
+        })
+    }
+    
+    if (length(history_list) > 0) {
+        history_all <- do.call(rbind, history_list)
+        write.csv(history_all, "top_mirna_history.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(Message = "No history retrieved or available"), "top_mirna_history.csv", row.names = FALSE)
+    }
+    
+    # ==========================================
+    # Stage 6: Visualizations and Diagnostics
+    # ==========================================
+    message("Generating diagnostic plots...")
+    
+    # 1. Plot miRNA Family Distribution
+    pdf("mirna_families_distribution.pdf", width = 8, height = 6)
+    if ("Family" %in% colnames(annot) && any(!is.na(annot\$Family))) {
+        family_counts <- table(annot\$Family, useNA = "no")
+        if (length(family_counts) > 0) {
+            family_counts <- sort(family_counts, decreasing = TRUE)
+            top_families <- head(family_counts, 15)
+            par(mar = c(10, 4, 4, 2))
+            barplot(top_families, las = 2, col = "skyblue", 
+                    main = "Top 15 Represented miRNA Families", 
+                    ylab = "Number of miRNAs")
+        } else {
+            plot.new()
+            text(0.5, 0.5, "No Family Information Available")
+        }
+    } else {
+        plot.new()
+        text(0.5, 0.5, "No Family Information Available")
+    }
+    dev.off()
+    
+    # 2. Plot Sequence Length Distribution
+    pdf("mirna_sequence_lengths.pdf", width = 8, height = 6)
+    if ("miRNASequence_v22" %in% colnames(annot)) {
+        seq_lengths <- nchar(annot\$miRNASequence_v22)
+        seq_lengths <- seq_lengths[!is.na(seq_lengths)]
+        if (length(seq_lengths) > 0) {
+            hist(seq_lengths, col = "lightgreen", 
+                 main = "Distribution of miRNA Sequence Lengths (v22)",
+                 xlab = "Sequence Length (bp)", ylab = "Frequency", breaks = 10)
+        } else {
+            plot.new()
+            text(0.5, 0.5, "No Sequence Information Available")
+        }
+    } else {
+        plot.new()
+        text(0.5, 0.5, "No Sequence Information Available")
+    }
+    dev.off()
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIRBASECONVERTER:", paste0("    mirbaseconverter: ", packageVersion("miRBaseConverter"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION":',
+        paste0('    miRBaseConverter: ', as.character(packageVersion('miRBaseConverter')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mirbaseconverter_results.csv
-    touch ${prefix}_mirbaseconverter_output.rds
-    echo "BIOC_MIRBASECONVERTER:" > versions.yml
-    echo "    mirbaseconverter: 0.0.0" >> versions.yml
+    touch ${prefix}_mirna_annotation_conversion.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIRBASECONVERTER_WORKFLOW {
+workflow BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MIRBASECONVERTER(ch_input)
+    BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION(ch_input)
 
     emit:
-    results  = BIOC_MIRBASECONVERTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIRBASECONVERTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIRBASECONVERTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIRBASECONVERTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION.out.tables
+    plots    = BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION.out.plots
+    objects  = BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION.out.objects
+    versions = BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION.out.versions
 }

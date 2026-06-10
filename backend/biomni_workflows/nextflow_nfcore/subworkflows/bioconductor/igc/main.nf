@@ -1,109 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iGC
-// This package is intended to identify differentially expressed genes driven by Copy Number Alteration
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iGC/inst/doc/Introduction.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("iGC")
+// Bioconductor workflow: iGC — cna_driven_gene_analysis
+// Identify differentially expressed genes driven by copy number alterations from paired gene expression and CNA data.
+// Input: sample_desc.csv, CNA files, GE files
+// Container: quay.io/biocontainers/bioconductor-igc:1.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: data.table, iGC
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create sample description table using create_sample_desc
+//  * 2. [Input & Preparation] Read and join gene expression data across samples using create_gene_exp
+//  * 3. [Input & Preparation] Read, map, and categorize CNA data into gain/loss/neutral states using create_gene_cna
+//  * 4. [Core Analysis] Identify CNA-driven differentially expressed genes using find_cna_driven_gene
 
 nextflow.enable.dsl = 2
 
-process BIOC_IGC {
+process BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-igc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-igc:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-igc:1.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_igc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_igc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_igc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(iGC)
-    library(jsonlite)
-
-    # --- Gene Expression and Copy Number Profile Extraction [] ---
-    # Key functions: create_gene_exp, create_gene_cna
-    gene_exp <- create_gene_exp(
-        sample_desc = sample_desc,
-        progress = FALSE
-    )
+    library(data.table)
+    
+    # 1. Create sample description table using create_sample_desc
+    # The user must provide 'sample_desc.csv' in the working directory.
+    # This file maps sample names to CNA and gene expression file paths.
+    sample_desc_pth <- "sample_desc.csv"
+    sample_desc <- create_sample_desc(sample_desc_pth)
+    
+    # 2. Read and join gene expression data across samples using create_gene_exp
+    gene_exp <- create_gene_exp(sample_desc, progress = FALSE)
+    
+    # 3. Read, map, and categorize CNA data into gain/loss/neutral states using create_gene_cna
+    my_cna_reader <- function(cna_filepath) {
+      cna <- data.table::fread(cna_filepath, sep = '\t', header = TRUE)
+      cna[, .(Chromosome, Start, End, Segment_Mean)]
+    }
+    
+    gain_loss = log2(c(2.4, 1.6)) - 1
+    
     gene_cna <- create_gene_cna(
-        sample_desc = sample_desc,
-        gain_threshold = 0.263,
-        loss_threshold = -0.322,
-        progress = FALSE
+      sample_desc,
+      gain_threshold = gain_loss[1], loss_threshold = gain_loss[2],
+      read_fun = my_cna_reader,
+      progress = FALSE
     )
-
-
-    # --- CNA Driven Gene Identification [] ---
-    # Key functions: find_cna_driven_gene
+    
+    # 4. Identify CNA-driven differentially expressed genes using find_cna_driven_gene
     cna_driven_genes <- find_cna_driven_gene(
-        gene_cna = gene_cna,
-        gene_exp = gene_exp,
-        gain_prop = 0.15,
-        loss_prop = 0.15,
-        progress = FALSE,
-        parallel = FALSE
+      gene_cna, gene_exp,
+      gain_prop = 0.15, loss_prop = 0.15,
+      progress = FALSE, parallel = FALSE
     )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_igc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_igc_results.csv")
+    
+    # Write outputs to the working directory
+    # Save the complete results object
+    saveRDS(cna_driven_genes, file = "cna_driven_genes.rds")
+    
+    # Save individual tables as CSV files
+    if (!is.null(cna_driven_genes\$gain_driven)) {
+      data.table::fwrite(cna_driven_genes\$gain_driven, file = "gain_driven_genes.csv")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_igc_output.rds")
+    
+    if (!is.null(cna_driven_genes\$loss_driven)) {
+      data.table::fwrite(cna_driven_genes\$loss_driven, file = "loss_driven_genes.csv")
+    }
+    
+    if (!is.null(cna_driven_genes\$both)) {
+      data.table::fwrite(cna_driven_genes\$both, file = "both_driven_genes.csv")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IGC:", paste0("    igc: ", packageVersion("iGC"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS":',
+        paste0('    iGC: ', as.character(packageVersion('iGC')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_igc_results.csv
-    touch ${prefix}_igc_output.rds
-    echo "BIOC_IGC:" > versions.yml
-    echo "    igc: 0.0.0" >> versions.yml
+    touch ${prefix}_cna_driven_gene_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_IGC_WORKFLOW {
+workflow BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample_desc.csv, CNA files, GE files ] ]
 
     main:
-    BIOC_IGC(ch_input)
+    BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_IGC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IGC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IGC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IGC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS.out.tables
+    plots    = BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS.out.plots
+    objects  = BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS.out.objects
+    versions = BIOC_IGC_CNA_DRIVEN_GENE_ANALYSIS.out.versions
 }

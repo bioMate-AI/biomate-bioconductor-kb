@@ -1,0 +1,19 @@
+{
+  "package": "spsimseq",
+  "requirements": [
+    "SPsimSeq",
+    "SingleCellExperiment",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SPsimSeq",
+      "edgeR"
+    ],
+    "simulate_single_cell_rna_seq.nf": [
+      "SPsimSeq",
+      "SingleCellExperiment",
+      "edgeR"
+    ]
+  }
+}

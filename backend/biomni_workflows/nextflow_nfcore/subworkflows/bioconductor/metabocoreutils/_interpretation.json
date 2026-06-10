@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <adduct=Character vector specifying ESI adducts (e.g., \"[M+H]+\") used in mass2mz, mz2mass, formula2mz, and adductFormula ;; minVals=Minimum number of non-missing values required in QC samples to fit a linear model in fit_lm (defaults to 75% of samples) ;; y=Log2-transformed abundance matrix of QC samples passed to fit_lm ;; lm=List of fitted linear models (or NA) passed to adjust_lm to perform feature-wise drift correction>\n- alternatives: <None mentioned in the documentation, though Broadhurst et al. 2018 is referenced for D-ratio guidelines and Wehrens et al. 2016 for batch correction.>\n- when_to_use: <Use when performing low-level metabolomics preprocessing, including converting chemical formulas to m/z, calculating Kendrick mass defects for lipid homologous series, indexing retention times across different LC-MS runs, correcting injection-order-dependent signal drift using QC samples, or filtering features based on quality control metrics (CV, D-ratio, missingness, blank contamination).>\n- pitfalls: <Do not blindly apply linear model adjustments; users should evaluate and visually inspect estimated signal drifts (especially border cases) to avoid adjusting features where the model does not fit well (e.g., high p-values or low R-squared). Setting minVals too low in fit_lm can make model fitting unstable. Ensure study samples are injected in random order to minimize technical bias. Blank detection (rowBlank) flags features where the mean of test samples is lower than twice the mean of blank samples, which indicates potential solvent contamination.>",
+  "workflows": [
+    {
+      "name": "retention_time_indexing",
+      "intent": "Convert and correct retention times to retention indices using reference standards and apply a two-point linear correction.",
+      "input": [
+        "metabolites.txt (measured retention times of metabolites)",
+        "rti.txt (measured retention times and reference indices of indexing standards)"
+      ],
+      "stages": "1. Read retention time and indexing standard data ;; 2. Index retention times using indexRtime ;; 3. Correct retention indices using reference standards with correctRindex.",
+      "code": "rti <- read.table(system.file(\"retentionIndex\",\n                              \"rti.txt\",\n                              package = \"MetaboCoreUtils\"),\n                  header = TRUE,\n                  sep = \"\\t\")\n\nrtime <- read.table(system.file(\"retentionIndex\",\n                                \"metabolites.txt\",\n                                package = \"MetaboCoreUtils\"),\n                    header = TRUE,\n                    sep = \"\\t\")\nrtime$rindex_r <- indexRtime(rtime$rtime, rti)\nref <- data.frame(rindex = c(1709.8765, 553.7975),\n                  refindex = c(1700, 550))\n\nrtime$rindex_cor <- correctRindex(rtime$rindex_r, ref)"
+    },
+    {
+      "name": "signal_drift_adjustment",
+      "intent": "Model and adjust for injection-order-dependent signal drift in LC-MS feature abundances using linear models fitted on QC samples.",
+      "input": [
+        "feature_values.txt (matrix of feature abundances across samples)"
+      ],
+      "stages": "1. Load abundance matrix and define injection index and QC sample indices ;; 2. Fit row-wise linear models on log2-transformed QC abundances using fit_lm ;; 3. Filter out unstable models (e.g., p-value > 0.05) ;; 4. Adjust all sample abundances using adjust_lm and convert back to natural scale.",
+      "code": "vals <- read.table(system.file(\"txt\", \"feature_values.txt\",\n                               package = \"MetaboCoreUtils\"), sep = \"\\t\")\nvals <- as.matrix(vals)\n#' Define a data frame with the injection index\nsdata <- data.frame(injection_index = seq_len(ncol(vals)))\n\n#' Identify columns representing QC samples\nqc_index <- grep(\"^POOL\", colnames(vals))\nqc_lm <- fit_lm(y ~ injection_index,\n                data = sdata[qc_index, , drop = FALSE],\n                y = log2(vals[, qc_index]),\n                minVals = 9)\nqc_lm_summary <- lapply(qc_lm, function(z) {\n    if (length(z) > 1) {\n        s <- summary(z)\n        c(slope = coefficients(s)[2, \"Estimate\"],\n          p.value = coefficients(s)[2, 4],\n          adj.r.squared = s$adj.r.squared)\n    } else c(slope = NA_real_, F = NA_real_,\n             adj.r.squared = NA_real_) # returning NA for skipped models\n}) |> do.call(what = rbind)\nqc_lm[qc_lm_summary[, \"p.value\"] > 0.05] <- NA\n#' Adjust the data for the estimated signal drift\nvals_adj <- adjust_lm(log2(vals), data = sdata, lm = qc_lm)\n\n#' Transform data again into natural scale\nvals_adj <- 2^vals_adj"
+    },
+    {
+      "name": "quality_assessment_and_filtering",
+      "intent": "Calculate quality control metrics (coefficient of variation, D-ratio, missing value percentage, blank contamination) and filter out low-quality features.",
+      "input": [
+        "metabolomics_data (matrix of feature abundances in biological samples)",
+        "qc_samples (matrix of feature abundances in QC samples)",
+        "blank_samples (matrix of feature abundances in blank samples)"
+      ],
+      "stages": "1. Calculate coefficient of variation using rowRsd ;; 2. Calculate dispersion ratio (D-ratio) using rowDratio ;; 3. Calculate percentage of missing values using rowPercentMissing ;; 4. Detect solvent contamination using rowBlank ;; 5. Filter the feature matrix based on defined thresholds.",
+      "code": "# Define sample data for metabolomics analysis\nset.seed(123)\nmetabolomics_data <- matrix(rnorm(100), nrow = 10)\ncolnames(metabolomics_data) <- paste0(\"Sample\", 1:10)\nrownames(metabolomics_data) <- paste0(\"Feature\", 1:10)\n# Calculate and display the coefficient of variation\ncv_result <- rowRsd(metabolomics_data)\n# Generate QC samples\nqc_samples <- matrix(rnorm(40), nrow = 10)\ncolnames(qc_samples) <- paste0(\"QC\", 1:4)\n\n# Calculate D-ratio and display the result\ndratio_result <- rowDratio(metabolomics_data, qc_samples)\n# Introduce missing values in the data\nmetabolomics_data[sample(1:100, 10)] <- NA\n\n# Calculate and display the percentage of missing values\nmissing_result <- rowPercentMissing(metabolomics_data)\n# Generate blank samples\nblank_samples <- matrix(rnorm(30), nrow = 10)\ncolnames(blank_samples) <- paste0(\"Blank\", 1:3)\n\n# Detect rows where mean(test) > 2 * mean(blank)\nblank_detection_result <- rowBlank(metabolomics_data, blank_samples)\n# Set filtering thresholds\ncv_threshold <- 8\ndratio_threshold <- 0.8\n\n# Apply filters\nfiltered_data <- metabolomics_data[\n  cv_result <= cv_threshold &\n  dratio_result <= dratio_threshold &\n  missing_result <= 10 &\n  !blank_detection_result, , drop = FALSE]"
+    }
+  ]
+}

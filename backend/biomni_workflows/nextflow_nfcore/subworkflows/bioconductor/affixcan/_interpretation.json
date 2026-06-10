@@ -1,0 +1,31 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprMatrix=A SummarizedExperiment object containing real expression values used for training ;; assay=Character string specifying the name of the assay in exprMatrix containing the expression matrix (e.g., \"values\") ;; tbaPaths=Path(s) to RDS file(s) containing TBA matrices as MultiAssayExperiment objects ;; regionAssoc=Data frame containing the association between expressed genes and regulatory regions ;; cov=Optional data frame containing population structure covariates to include in the models ;; varExplained=Minimum percentage of variance to be explained by the selected principal components of TBA (e.g., 80) ;; scale=Logical indicating whether to center and scale TBA values before PCA ;; kfold=Integer specifying the number of folds for cross-validation (if > 0, performs cross-validation instead of training a final model) ;; affiXcanTraining=The trained model object returned by affiXcanTrain() and used as input for affiXcanImpute() ;; BPPARAM=Optional BiocParallelParam object for parallel evaluation\n- alternatives: Multiple-SNP prediction method (e.g., PrediXcan by Gamazon et al.) which uses an additive model of individual SNPs. AffiXcan is preferred when genes lack SNPs with large effect sizes, as it aggregates small additive effects of all variants in a regulatory region using Total Binding Affinity (TBA) scores.\n- when_to_use: When performing Transcriptome-Wide Association Studies (TWAS) where actual total expression profiles are unknown or cannot be measured (e.g., in inaccessible tissues like the brain, or in ancient genomes), or to estimate genetic susceptibility to a condition influenced by gene expression.\n- pitfalls: The output of affiXcanTrain() in cross-validation mode (kfold > 0) cannot be used by affiXcanImpute() to make GReX imputation on new data, as it only outputs a performance evaluation report ;; TBA matrices for the imputation phase must be calculated on the same regions and using the same PWM set as the training phase, and region IDs must match exactly ;; The associations table (regionAssoc) must contain the exact column headers \"REGULATORY_REGION\" and \"EXPRESSED_REGION\" ;; Expressed genes' names in the association table must match those in the expression matrix.",
+  "workflows": [
+    {
+      "name": "grex_training_and_imputation",
+      "intent": "Train GReX models using expression and TBA data, then impute GReX values on a test dataset.",
+      "input": [
+        "exprMatrix (SummarizedExperiment containing real expression values)",
+        "training.tba.toydata.rds (RDS file containing training TBA matrices as a MultiAssayExperiment)",
+        "regionAssoc (data.frame containing gene-region associations)",
+        "trainingCovariates (data.frame containing population covariates)",
+        "testing.tba.toydata.rds (RDS file containing testing TBA matrices as a MultiAssayExperiment)"
+      ],
+      "stages": "1. Train the GReX models using affiXcanTrain() ;; 2. Impute GReX values on the test dataset using affiXcanImpute() ;; 3. Extract the imputed GReX matrix from the resulting SummarizedExperiment",
+      "code": "trainingTbaPaths <- system.file(\"extdata\",\"training.tba.toydata.rds\",\n    package=\"AffiXcan\")\ndata(exprMatrix)\ndata(regionAssoc)\ndata(trainingCovariates)\nassay <- \"values\"\n\ntraining <- affiXcanTrain(exprMatrix=exprMatrix, assay=assay,\n    tbaPaths=trainingTbaPaths, regionAssoc=regionAssoc, cov=trainingCovariates,\n    varExplained=80, scale=TRUE)\n\ntestingTbaPaths <- system.file(\"extdata\",\"testing.tba.toydata.rds\",\n    package=\"AffiXcan\")\nexprmatrix <- affiXcanImpute(tbaPaths=testingTbaPaths,\n    affiXcanTraining=training, scale=TRUE)\n\ngrexMatrix <- assays(exprmatrix)$GReX\nas.data.frame(grexMatrix)[,1:5]"
+    },
+    {
+      "name": "k_fold_cross_validation",
+      "intent": "Evaluate the predictive performance of GReX models using k-fold cross-validation.",
+      "input": [
+        "exprMatrix (SummarizedExperiment containing real expression values)",
+        "training.tba.toydata.rds (RDS file containing training TBA matrices as a MultiAssayExperiment)",
+        "regionAssoc (data.frame containing gene-region associations)",
+        "trainingCovariates (data.frame containing population covariates)"
+      ],
+      "stages": "1. Run affiXcanTrain() with the kfold parameter set to the desired number of folds to perform cross-validation and generate a performance report.",
+      "code": "trainingTbaPaths <- system.file(\"extdata\",\"training.tba.toydata.rds\",\npackage=\"AffiXcan\")\n\ndata(exprMatrix)\ndata(regionAssoc)\ndata(trainingCovariates)\n\nassay <- \"values\"\n\ntraining <- affiXcanTrain(exprMatrix=exprMatrix, assay=assay,\ntbaPaths=trainingTbaPaths, regionAssoc=regionAssoc, cov=trainingCovariates,\nvarExplained=80, scale=TRUE, kfold=5)"
+    }
+  ]
+}

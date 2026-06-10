@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None specified in the provided documentation.\n- alternatives: None mentioned in the provided documentation.\n- when_to_use: When analyzing a gene list or genomic regions to identify upstream transcription factors and their potential target genes.\n- pitfalls: The package is deprecated or removed in Bioconductor 3.23, so users must refer to the last stable release version.",
+  "workflows": [
+    {
+      "name": "tfbs_motif_enrichment",
+      "intent": "Identify enriched transcription factor binding motifs and predict candidate target genes from a gene list.",
+      "input": [
+        "gene_list.txt (a list of gene symbols or genomic regions)",
+        "motif_rankings.db (genome-wide cross-species rankings database for motifs)"
+      ],
+      "stages": "1. Identify DNA motifs over-represented near the transcription start site (TSS) using the ranking database ;; 2. Filter and retain motifs annotated to TFs with a high Normalized Enrichment Score (NES) ;; 3. Predict candidate target genes ranked above the leading edge for each enriched motif.",
+      "code": "# No code is provided in the source documentation text."
+    }
+  ]
+}

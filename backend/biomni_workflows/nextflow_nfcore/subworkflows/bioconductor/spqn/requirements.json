@@ -1,0 +1,17 @@
+{
+  "package": "spqn",
+  "requirements": [
+    "SummarizedExperiment",
+    "ggplot2",
+    "matrixStats",
+    "spqn"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "matrixStats",
+      "spqn"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bam=Path to BAM file or preprocessed BAM data object ;; targets=BED file path or GRanges object to subset reads of interest in preprocessBam ;; threshold.reads=Logical; if TRUE (default in generateCytosineReport), counts methylated cytosines from hypomethylated reads as unmethylated (VEF report). Set to FALSE for conventional beta value reports ;; filter.reads=Logical; if TRUE (default), drops reads with too few cytosines or high out-of-context methylation (recommended for short-read bisulfite/enzymatic sequencing to remove incomplete conversion) ;; min.mapq=Minimum mapping quality (recommended 30 for high quality) ;; min.baseq=Minimum base quality (recommended 13 or 20 for high quality) ;; min.prob=Minimum probability threshold for long-read base modifications (e.g., 178 for ONT) ;; nthreads=Number of decompression threads to speed up BAM/FASTA I/O ;; bed=BED file path or GRanges object for region-guided reports ;; vcf=Path to VCF file or VCF object for SNV association testing\n- alternatives: Bismark / Illumina DRAGEN / BSMAP / bwa-meth=Short-read alignment and methylation calling tools. epialleleR can call methylation via callMethylation if BAM lacks XG/XM tags (like bwa-meth or BSMAP outputs) ;; Modkit=Oxford Nanopore's tool for pileup of modified bases. epialleleR is shown to have slightly higher accuracy on true positive/negative sites using the same thresholds\n- when_to_use: Appropriate for next-generation sequencing (NGS) DNA methylation data (short-read bisulfite/EM-seq or long-read native DNA sequencing) to detect low-frequency hypermethylated epialleles (mosaic epimutations) at single-cytosine or region levels (amplicon, capture, BED).\n- pitfalls: Paired-end BAM files must be sorted by QNAME (unsorted) instead of genomic location to perform read merging ;; Default generateVcfReport uses min.baseq=0 which can cause false SNVs due to misalignments; users should increase min.baseq (e.g., to 20) ;; Bisulfite conversion makes counting C->T variants on the \"+\" strand and G->A on the \"-\" strand impossible, resulting in NA values in VCF reports ;; Subsetting reads via targets in preprocessBam is currently performed without using a BAM index, which might be slow for very large files",
+  "workflows": [
+    {
+      "name": "short_read_methylation_analysis",
+      "intent": "Preprocess short-read BAM files and generate cytosine-level or region-level (BED/capture) methylation reports.",
+      "input": [
+        "capture.bam (short-read BAM file with XM/XG tags)",
+        "capture.bed (BED file of target regions)"
+      ],
+      "stages": "1. Preprocess BAM file using preprocessBam with target regions ;; 2. Generate cytosine-level VEF report using generateCytosineReport ;; 3. Generate conventional cytosine report (beta values) by setting threshold.reads=FALSE ;; 4. Generate region-level capture report using generateCaptureReport or generateBedReport ;; 5. Generate linearized Methylated Haplotype Load (lMHL) report using generateMhlReport",
+      "code": "capture.bam <- system.file(\"extdata\", \"capture.bam\", package=\"epialleleR\")\ncapture.bed <- system.file(\"extdata\", \"capture.bed\", package=\"epialleleR\")\nbam.data    <- preprocessBam(capture.bam, targets=capture.bed)\ngenerateCytosineReport(bam.data)\ncg.vef.report <- generateCytosineReport(bam.data)\ncg.report <- generateCytosineReport(bam.data, threshold.reads=FALSE)\ncx.report <- generateCytosineReport(bam.data, threshold.reads=FALSE, report.context=\"CX\")\ncapture.report <- generateCaptureReport(bam=system.file(\"extdata\", \"capture.bam\", package=\"epialleleR\"), bed=system.file(\"extdata\", \"capture.bed\", package=\"epialleleR\"))\nbed.report <- generateBedReport(bam=system.file(\"extdata\", \"capture.bam\", package=\"epialleleR\"), bed=system.file(\"extdata\", \"capture.bed\", package=\"epialleleR\"), bed.type=\"capture\")\nmhl.report <- generateMhlReport(bam=system.file(\"extdata\", \"capture.bam\", package=\"epialleleR\"))"
+    },
+    {
+      "name": "long_read_methylation_analysis",
+      "intent": "Preprocess long-read BAM files (with MM/ML tags) and generate cytosine-level reports and methylation patterns.",
+      "input": [
+        "longread.bam (long-read BAM file with MM/ML tags)",
+        "long.bed (GRanges or BED target region)"
+      ],
+      "stages": "1. Preprocess long-read BAM using preprocessBam with quality and probability filters ;; 2. Generate cytosine-level report using generateCytosineReport with threshold.reads=FALSE ;; 3. Extract and plot methylation patterns using extractPatterns and plotPatterns",
+      "code": "longread.data <- preprocessBam(system.file(\"extdata\", \"longread.bam\", package=\"epialleleR\"), min.mapq=30, min.baseq=20, min.prob=178)\ngenerateCytosineReport(longread.data, threshold.reads=FALSE)\nlong.bam <- system.file(\"extdata\", \"longread.bam\", package=\"epialleleR\")\nlong.bed <- as(\"chr17:43124909-43125554\", \"GRanges\")\nlong.data <- preprocessBam(bam=long.bam, targets=long.bed, clip.to.targets=TRUE, min.mapq=30, min.baseq=20, min.prob=178)\nplotPatterns(extractPatterns(bam=long.data, bed=long.bed), npatterns.per.bin=Inf)"
+    },
+    {
+      "name": "methylation_calling_unannotated_bams",
+      "intent": "Call cytosine methylation and add XG/XM tags to BAM files lacking them (e.g., from bwa-meth or BSMAP).",
+      "input": [
+        "input.bam (BAM file without XG/XM tags)",
+        "reference.fasta.gz (Reference genome FASTA file)"
+      ],
+      "stages": "1. Preprocess reference genome using preprocessGenome ;; 2. Call methylation and write to a new BAM file using callMethylation",
+      "code": "input.bam <- system.file(\"extdata\", \"test\", \"bwameth-se-unsort-yd.bam\", package=\"epialleleR\")\noutput.bam <- tempfile(pattern=\"output-\", fileext=\".bam\")\ngenome <- preprocessGenome(system.file(\"extdata\", \"test\", \"reference.fasta.gz\", package=\"epialleleR\"))\ncallMethylation(input.bam, output.bam, genome)"
+    },
+    {
+      "name": "sequence_variant_association",
+      "intent": "Test the association between single nucleotide variants (SNVs) and epiallelic status.",
+      "input": [
+        "amplicon010meth.bam (BAM file)",
+        "amplicon.bed (BED file)",
+        "amplicon.vcf.gz (VCF file of variants)"
+      ],
+      "stages": "1. Generate VCF report using generateVcfReport with specified mapping/base quality thresholds and style ;; 2. Sort or filter the report by Fisher's exact test p-values (FEp- or FEp+)",
+      "code": "vcf.report <- generateVcfReport(bam=system.file(\"extdata\", \"amplicon010meth.bam\", package=\"epialleleR\"), bed=system.file(\"extdata\", \"amplicon.bed\", package=\"epialleleR\"), vcf=system.file(\"extdata\", \"amplicon.vcf.gz\", package=\"epialleleR\"), min.mapq=30, min.baseq=20, vcf.style=\"NCBI\")\nhead(vcf.report[order(`FEp-`, na.last=TRUE)])\nhead(vcf.report[order(`FEp+`, na.last=TRUE)])"
+    },
+    {
+      "name": "methylation_bimodality_ecdf",
+      "intent": "Visualize per-read beta value distributions and empirical cumulative distribution functions (eCDFs) to assess bimodality.",
+      "input": [
+        "amplicon010meth.bam (BAM file)",
+        "amplicon.bed (BED file)"
+      ],
+      "stages": "1. Compute eCDFs for within- and out-of-context per-read beta values using generateBedEcdf ;; 2. Plot the eCDFs for context and out-of-context",
+      "code": "amplicon.ecdfs <- generateBedEcdf(bam=system.file(\"extdata\", \"amplicon010meth.bam\", package=\"epialleleR\"), bed=system.file(\"extdata\", \"amplicon.bed\", package=\"epialleleR\"), bed.rows=NULL)"
+    }
+  ]
+}

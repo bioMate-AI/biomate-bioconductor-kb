@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: peaks=Path to the BED file containing genomic regions of interest (e.g., peaks, exons, UTRs) ;; bigwigs=Vector of paths to bigWig files containing mapped reads ;; labels=Character vector of labels for the datasets ;; splines=Number of splines to use for functional data analysis (a low number is recommended for heavy smoothing) ;; nbins=Number of bins (can be low, e.g., 50, for narrow peaks/TFs and increased for broad domain chromatin marks) ;; ncan=Number of canonical correlations to compute (limited by the number of splines used and the number of genomic regions to analyze) ;; bar=Progress bar parameter (set to NULL to disable) ;; main=Title for the analysis and plots\n- alternatives: Basic processing of NGS data can be performed using Bioconductor packages such as CSAR, csaw, ChIPseeker, and ChIPQC. rtracklayer is used to read bigWig files.\n- when_to_use: Use this package when you need to evaluate reproducibility across biological or technical replicates of NGS datasets, or when comparing different datasets to identify potential correlations using functional canonical correlation analysis.\n- pitfalls: rtracklayer is unable to read bigWig format files in Windows, meaning fccac is restricted to Unix/Linux/macOS platforms ;; Heavy smoothing is suggested for functional CCA, so using too many splines relative to the total length of the genomic regions is discouraged ;; The number of canonical correlations (ncan) is strictly limited by the number of splines and the number of genomic regions.",
+  "workflows": [
+    {
+      "name": "fccac_covariance_analysis",
+      "intent": "Evaluate covariance and reproducibility across multiple NGS datasets using functional canonical correlation analysis and visualize the results as a heatmap.",
+      "input": [
+        "peakFile.bed (BED file containing genomic regions of interest)",
+        "bigwig1.bw, bigwig2.bw, bigwig3.bw (bigWig files of mapped reads for each dataset/replicate)"
+      ],
+      "stages": "1. Load the fCCAC package and define paths to the bigWig and peak files ;; 2. Run the functional canonical correlation analysis using fccac() ;; 3. Inspect the resulting correlation and F-value data frame ;; 4. Plot a heatmap of the F-values using heatmapfCCAC()",
+      "code": "library(fCCAC)\n\nbigwig1 <- \"chr21_H3K4me3_1.bw\"\nbigwig2 <- \"chr21_H3K4me3_2.bw\"\nbigwig3 <- \"chr21_H3K4me3_3.bw\"\npeakFile <- \"chr21_merged_ACT_K4.bed\"\nlabels <- c( \"H3K4me3\", \"H3K4me3\",\"H3K4me3\" )\n\nr1 <- system.file(\"extdata\", bigwig1,  package=\"fCCAC\",mustWork = TRUE)\nr2 <- system.file(\"extdata\", bigwig2,  package=\"fCCAC\",mustWork = TRUE)\nr3 <- system.file(\"extdata\", bigwig3,  package=\"fCCAC\",mustWork = TRUE)\nr4 <- system.file(\"extdata\", peakFile, package=\"fCCAC\",mustWork = TRUE)\nti <- \"H3K4me3 peaks (chr21)\"\n\nfc <- fccac(bar=NULL, main=ti, peaks=r4, bigwigs=c(r1,r2,r3), labels=labels, splines=15, nbins=100, ncan=15)\n\nhead(fc)\n\nheatmapfCCAC(fc)"
+    }
+  ]
+}

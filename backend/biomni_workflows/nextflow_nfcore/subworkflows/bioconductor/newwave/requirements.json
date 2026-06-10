@@ -1,0 +1,17 @@
+{
+  "package": "newwave",
+  "requirements": [
+    "NewWave",
+    "Rtsne",
+    "SingleCellExperiment",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "NewWave",
+      "Rtsne",
+      "SingleCellExperiment",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "limmagui",
+  "requirements": [
+    "limmaGUI",
+    "tcltk"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "limmaGUI",
+      "tcltk"
+    ]
+  }
+}

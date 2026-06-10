@@ -17,9 +17,7 @@ process BIOC_OMICSVIEWER {
     label 'process_medium'
 
     conda "bioconductor-omicsviewer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-omicsviewer:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-omicsviewer:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -42,51 +40,72 @@ process BIOC_OMICSVIEWER {
     library(NS)
     library(jsonlite)
 
-    # --- Data Preparation [] ---
-    # Key functions: prepOmicsViewer
-    expr <- matrix(runif(100), 10, 10)
-    rownames(expr) <- paste0("G", 1:10)
-    colnames(expr) <- paste0("S", 1:10)
-    pd <- data.frame(Origin = rep(c("RE", "ME"), each = 5),
-                     row.names = colnames(expr))
-    fd <- data.frame(Protein.ID = paste0("P", 1:10),
-                     row.names = rownames(expr))
-    tests <- rbind(c("Origin", "RE", "ME"))
-    d <- prepOmicsViewer(expr = expr, pData = pd, fData = fd,
-                         PCA = TRUE, pca.fillNA = TRUE,
-                         t.test = tests, ttest.fillNA = FALSE,
-                         SummarizedExperiment = FALSE)
+    # --- Gene Set Annotation [] ---
+    # Key functions: read_gmt, gsAnnotIdList
+    packdir <- system.file("extdata", package = "omicsViewer")
+    fd <- read.delim(file.path(packdir, "featureGeneral.tsv"))
+    genesets <- read_gmt(
+        file.path(packdir, "geneset.gmt"),
+        data.frame = TRUE
+    )
+    gsannot <- gsAnnotIdList(
+        idList = rownames(fd),
+        gsIdMap = genesets,
+        data.frame = FALSE
+    )
 
-
-    # --- Correlation Analysis [] ---
+    # --- Correlation Analysis and Metadata Extension [] ---
     # Key functions: correlationAnalysis, extendMetaData
-    expr <- matrix(runif(100), 10, 10)
-    rownames(expr) <- paste0("G", 1:10)
-    colnames(expr) <- paste0("S", 1:10)
-    pd <- data.frame(Origin = rep(c("RE", "ME"), each = 5),
-                     row.names = colnames(expr))
-    fd <- data.frame(Protein.ID = paste0("P", 1:10),
-                     row.names = rownames(expr))
-    d <- prepOmicsViewer(expr = expr, pData = pd, fData = fd,
-                         PCA = TRUE, SummarizedExperiment = FALSE)
-    drugData <- data.frame(DrugA = runif(10), DrugB = runif(10),
-                           row.names = colnames(expr))
-    drugcor <- correlationAnalysis(expr, pheno = drugData[, 1:2])
-    d <- extendMetaData(d, drugcor, where = "fData")
+    packdir <- system.file("extdata", package = "omicsViewer")
+    drugData <- read.delim(file.path(packdir, "sampleDrug.tsv"))
+    expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"))
+    drugcor <- correlationAnalysis(
+        as.matrix(expr),
+        pheno = drugData[, 1:2]
+    )
+    d <- readRDS("dtest.RDS")
+    d_extended <- extendMetaData(
+        d,
+        drugcor,
+        where = "fData"
+    )
+
+    # --- Shiny App Interface Setup [] ---
+    # Key functions: app_ui, app_module
+    ui <- shiny::fluidPage(
+        app_ui("app")
+    )
+    server <- function(input, output, session) {
+        shiny::callModule(
+            app_module,
+            id = "app",
+            dir = shiny::reactive("path/to/obj")
+        )
+    }
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_omicsviewer_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_omicsviewer_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_omicsviewer_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_omicsviewer_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_omicsviewer_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_omicsviewer_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_OMICSVIEWER:", paste0("    omicsviewer: ", packageVersion("omicsViewer"))),
+        c("BIOC_OMICSVIEWER:", paste0("    omicsviewer: ", as.character(packageVersion("omicsViewer")))),
         "versions.yml"
     )
     """

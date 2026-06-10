@@ -1,89 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: sccomp
-// A robust and outlier-aware method for testing differential tissue composition from single-cell data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/sccomp/inst/doc/introduction.R
-// Upstream  : bayesplot, cmdstanr, dplyr, forcats, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("sccomp")
+// Bioconductor workflow: sccomp — differential_composition_analysis
+// Estimate and test differences in cell type composition across groups from single-cell count data, with optional outlier removal and visualization.
+// Input: user_counts_df.rds
+// Container: quay.io/biocontainers/bioconductor-sccomp:2.2.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: dplyr, forcats, ggplot2, sccomp, tidyr
+// Visualizations: box plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Estimate composition coefficients using sccomp_estimate()
+//  * 2. [Core Analysis] Probabilistically identify and remove outliers using sccomp_remove_outliers()
+//  * 3. [Core Analysis] Test for significant differences using sccomp_test()
+//  * 4. [Visualization & Output] Visualize results using sccomp_boxplot() and other plotting functions
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCCOMP {
+process BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sccomp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sccomp:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sccomp:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sccomp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sccomp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sccomp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(dplyr)
     library(sccomp)
-    library(jsonlite)
+    library(ggplot2)
+    library(forcats)
+    library(tidyr)
+    
+    # 1. Read the user input file
+    # The input file must be a data frame containing cell group counts, sample IDs, and metadata covariates.
+    # Expected columns: "sample", "cell_group", "count", and "type" (or covariates matching the formula).
+    counts_obj <- readRDS("user_counts_df.rds")
+    
+    # 2. Run the sccomp pipeline: Estimate, Remove Outliers, and Test
+    sccomp_result =
+      counts_obj |>
+      sccomp_estimate(
+        formula_composition = ~ type,
+        sample = "sample",
+        cell_group = "cell_group",
+        abundance = "count",
+        cores = 1, verbose = FALSE
+      ) |>
+    
+      # max_sampling_iterations is used here to not exceed the maximum file size for GitHub action of 100Mb
+      sccomp_remove_outliers(cores = 1, verbose = FALSE, max_sampling_iterations = 2000) |> # Optional
+      sccomp_test()
+    
+    # 3. Save the results to disk
+    saveRDS(sccomp_result, "sccomp_result.rds")
+    
+    # Remove the nested list column 'count_data' before writing to CSV to avoid 'unimplemented type list' error
+    sccomp_result |> 
+      select(-count_data) |> 
+      write.csv("sccomp_result.csv", row.names = FALSE)
+    
+    # 4. Generate and save the documented visualizations
+    pdf("sccomp_boxplot.pdf", width = 8, height = 6)
+    p1 <- sccomp_result |> sccomp_boxplot(factor = "type")
+    print(p1)
+    dev.off()
+    
+    pdf("sccomp_boxplot_adjusted.pdf", width = 8, height = 6)
+    p2 <- sccomp_result |> sccomp_boxplot(factor = "type", remove_unwanted_effects = TRUE)
+    print(p2)
+    dev.off()
+    
+    pdf("plot_1D_intervals.pdf", width = 8, height = 6)
+    p3 <- sccomp_result |> plot_1D_intervals()
+    print(p3)
+    dev.off()
+    
+    pdf("plot_2D_intervals.pdf", width = 8, height = 6)
+    p4 <- sccomp_result |> plot_2D_intervals()
+    print(p4)
+    dev.off()
+    
+    pdf("plot_all.pdf", width = 10, height = 8)
+    p5 <- sccomp_result |> plot()
+    # plot() returns a list of ggplot objects; iterate over them to print each to the PDF
+    lapply(p5, print)
+    dev.off()
 
-    # --- As Tibble [] ---
-    # Key functions: as_tibble
-    ---------------------------------------------------------------------
-    seurat_obj[[]] |> as_tibble()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sccomp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sccomp_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sccomp_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCCOMP:", paste0("    sccomp: ", packageVersion("sccomp"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS":',
+        paste0('    sccomp: ', as.character(packageVersion('sccomp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sccomp_results.csv
-    touch ${prefix}_sccomp_output.rds
-    echo "BIOC_SCCOMP:" > versions.yml
-    echo "    sccomp: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_composition_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCCOMP_WORKFLOW {
+workflow BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ user_counts_df.rds ] ]
 
     main:
-    BIOC_SCCOMP(ch_input)
+    BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCCOMP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCCOMP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCCOMP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCCOMP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS.out.tables
+    plots    = BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS.out.plots
+    objects  = BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS.out.objects
+    versions = BIOC_SCCOMP_DIFFERENTIAL_COMPOSITION_ANALYSIS.out.versions
 }

@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: GLCP_vec=Vector of gene-level colocalization probabilities ;; z_vec=Vector of TWAS scan z-scores ;; twas_BFs=Numeric vector of TWAS Bayes factors (alternative to z_vec) ;; twas_priors=Vector of gene-specific TWAS priors ;; prior_fun=Prior function to use (INTACT::linear (default), INTACT::expit, INTACT::step, or INTACT::hybrid) ;; t=Truncation threshold (default is 0.5 for step prior, 0.05 for others) ;; D=Curvature shrinkage parameter for expit and hybrid priors (default is 0.1) ;; alpha=Target control level for Bayesian FDR control in fdr_rst (default 0.05) ;; gene_data=Data frame for intactGSE containing columns \"gene\", \"GLCP\", and \"TWAS_z\" (or \"TWAS_BFs\"/\"TWAS_priors\") ;; gene_sets=Named list of gene sets containing character vectors of gene IDs ;; df=Data frame for multi_intact containing columns GLCP_1, GLCP_2, z_1, z_2, and chisq ;; return_model_posteriors=Boolean to return model posteriors in multi_intact ;; em_algorithm=Boolean to run EM algorithm for GPRPs in multi_intact\n- alternatives: TWAS scan methods include PTWAS, PrediXcan, and SMR. Colocalization analysis is recommended to be performed with fastENLOC. Multivariate Wald chi-square statistics can be generated using the wald.test function from the aod package if individual-level data are available.\n- when_to_use: Use when you want to integrate TWAS scan results and colocalization probabilities to implicate causal genes, perform gene set enrichment analysis on the integrated probabilities, or jointly analyze multiple molecular gene products (like RNA and protein) to determine direct molecular mechanisms.\n- pitfalls: INTACT is not robust to scenarios where a causal gene impacts the complex trait but not through gene expression (use Multi-INTACT instead). Some datasets are not informative for gene set enrichment, causing the intactGSE algorithm to fail to converge (CONVERGED = 0); this failure does not imply a lack of enrichment. Multi-INTACT is currently limited to jointly considering up to 2 molecular gene products at a time.",
+  "workflows": [
+    {
+      "name": "intact_integration_and_fdr",
+      "intent": "Integrate TWAS scan z-scores and colocalization probabilities to compute posterior probabilities of gene causality, followed by Bayesian FDR control.",
+      "input": [
+        "GLCP_vec (numeric vector of gene-level colocalization probabilities)",
+        "z_vec (numeric vector of TWAS scan z-scores)"
+      ],
+      "stages": "1. Integrate TWAS and colocalization results using INTACT::intact. 2. Perform Bayesian FDR control on the posterior probabilities using fdr_rst.",
+      "code": "rst <- INTACT::intact(GLCP_vec=simdat$GLCP, z_vec=simdat$TWAS_z)\nrst1 <- INTACT::intact(GLCP_vec=simdat$GLCP, prior_fun=INTACT::expit, z_vec = simdat$TWAS_z, t = 0.02,D = 0.09)\nfdr_example <- fdr_rst(rst1, alpha = 0.05)"
+    },
+    {
+      "name": "intact_gse",
+      "intent": "Perform gene set enrichment estimation and inference using integrated TWAS scan z-scores and colocalization probabilities.",
+      "input": [
+        "gene_data (data frame containing columns \"gene\", \"GLCP\", and \"TWAS_z\")",
+        "gene_sets (named list of gene sets where list items are character vectors of gene IDs)"
+      ],
+      "stages": "1. Run INTACT::intactGSE to estimate enrichment parameters, standard errors, z-scores, and p-values for each gene set.",
+      "code": "INTACT::intactGSE(gene_data = simdat,gene_sets = gene_set_list)\nINTACT::intactGSE(gene_data = simdat,prior_fun = INTACT::step, t = 0.45,gene_sets = gene_set_list)"
+    },
+    {
+      "name": "multi_intact",
+      "intent": "Jointly integrate GWAS results and QTL data for two molecular gene products to compute gene probabilities of putative causality (GPPCs) and gene product relevance probabilities (GPRPs).",
+      "input": [
+        "z_sumstats (TWAS/PWAS z-scores)",
+        "exprwt_sumstats (expression prediction weights)",
+        "protwt_sumstats (protein prediction weights)",
+        "ld_sumstats (LD correlation matrix)",
+        "multi_simdat (data frame containing columns GLCP_1, GLCP_2, z_1, z_2, and chisq)"
+      ],
+      "stages": "1. Estimate the multivariate Wald chi-square statistic from summary-level data using INTACT::chisq_sumstat. 2. Run INTACT::multi_intact to compute GPPCs and GPRPs. 3. Optionally run INTACT::multi_intact with model posteriors or without the EM algorithm.",
+      "code": "INTACT::chisq_sumstat(z_vec = z_sumstats, w = cbind(protwt_sumstats,exprwt_sumstats), R = ld_sumstats)\nrst <- INTACT::multi_intact(df = multi_simdat)\nrst <- INTACT::multi_intact(df = multi_simdat,return_model_posteriors = TRUE)\nrst <- INTACT::multi_intact(df = multi_simdat,em_algorithm = FALSE)"
+    }
+  ]
+}

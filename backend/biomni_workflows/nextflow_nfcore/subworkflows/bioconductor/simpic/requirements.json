@@ -1,0 +1,24 @@
+{
+  "package": "simpic",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "SingleCellExperiment",
+    "ggplot2",
+    "scater",
+    "simPIC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "simPIC"
+    ],
+    "scatac_simulation_and_comparison.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scater",
+      "simPIC"
+    ]
+  }
+}

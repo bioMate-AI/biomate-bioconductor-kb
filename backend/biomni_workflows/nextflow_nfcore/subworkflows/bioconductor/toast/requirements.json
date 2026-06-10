@@ -1,0 +1,27 @@
+{
+  "package": "toast",
+  "requirements": [
+    "EpiDISH",
+    "TOAST",
+    "gplots"
+  ],
+  "by_workflow": {
+    "complete_geometric_deconvolution.nf": [
+      "TOAST"
+    ],
+    "correlated_differential_analysis_cedar.nf": [
+      "TOAST"
+    ],
+    "main.nf": [
+      "TOAST"
+    ],
+    "partial_reference_free_deconvolution.nf": [
+      "TOAST"
+    ],
+    "reference_free_deconvolution.nf": [
+      "EpiDISH",
+      "TOAST",
+      "gplots"
+    ]
+  }
+}

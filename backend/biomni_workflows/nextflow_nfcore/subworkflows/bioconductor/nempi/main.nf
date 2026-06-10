@@ -1,122 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: nempi
-// Takes as input an incomplete perturbation profile and differential gene expression in log odds and i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/nempi/inst/doc/nempi.R
-// Upstream  : mnem
-// Downstream: none
-//
-// Install: BiocManager::install("nempi")
+// Bioconductor workflow: nempi — unsupervised_perturbation_inference
+// Infer unobserved perturbations and reconstruct causal networks from gene expression data with partially missing perturbation labels.
+// Input: data
+// Container: quay.io/biocontainers/bioconductor-nempi:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: mnem, nempi
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run network-based perturbation inference using nempi
+//  * 2. [Core Analysis] Evaluate inference accuracy using pifit
+//  * 3. [Visualization & Output] Plot the inferred perturbation profiles and network
+//  * 4. [Core Analysis] Compute the final transitive-closed perturbation matrix Omega
 
 nextflow.enable.dsl = 2
 
-process BIOC_NEMPI {
+process BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nempi"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nempi:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nempi:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nempi_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nempi_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nempi_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(nempi)
-    library(jsonlite)
-
-    # --- Supervised Perturbation Classification [] ---
-    # Key functions: classpi
-    # Classify unlabelled cells using supervised machine learning methods
-    # such as Support Vector Machines, Neural Networks, or Random Forests.
-    res_svm <- classpi(data, method = "svm")
-    res_nnet <- classpi(data, method = "nnet")
-    res_rf <- classpi(data, method = "randomForest")
-
-
-    # --- Model Performance Evaluation [] ---
-    # Key functions: pifit
-    # Evaluate the accuracy of the inferred perturbation profiles
-    # against a ground truth simulation or known benchmark.
-    fit_nempi <- pifit(res_nempi, simmini, data)
-    fit_svm <- pifit(res_svm, simmini, data, propagate = FALSE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
     
-    # Collect Area Under the Curve (AUC) metrics for comparison
-    auc_results <- list(
-        nempi = fit_nempi$auc,
-        svm = fit_svm$auc
-    )
-
-
-    # --- Visualisation of Inferred Profiles [] ---
-    # Key functions: plot
-    # Visualise the inferred perturbation matrix and network structure
-    # using custom color gradients for the heatmaps and barplots.
-    col_grad <- rgb(
-        seq(0, 1, length.out = 10),
-        seq(1, 0, length.out = 10),
-        seq(1, 0, length.out = 10)
-    )
-    plot(
-        res_nempi,
-        heatlist = list(col = "RdBu"),
-        barlist = list(col = col_grad)
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nempi_results.csv", row.names = TRUE)
+    # Load required libraries
+    library(nempi)
+    library(mnem)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 0: Read User Input
+    # -----------------------------------------------------------------------------
+    # Read the gene expression log odds matrix 'data' from the working directory.
+    # We support both RDS and CSV formats.
+    if (file.exists("data.rds")) {
+      data <- readRDS("data.rds")
+    } else if (file.exists("data.csv")) {
+      data <- as.matrix(read.csv("data.csv", row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nempi_results.csv")
+      stop("Required input file 'data.rds' or 'data.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nempi_output.rds")
+    
+    # Read 'simmini' (ground truth simulation object) if available.
+    # If not available, we skip pifit evaluation.
+    if (file.exists("simmini.rds")) {
+      simmini <- readRDS("simmini.rds")
+    } else {
+      warning("simmini.rds not found. Skipping pifit evaluation.")
+      simmini <- NULL
     }
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Run network-based perturbation inference using nempi
+    # -----------------------------------------------------------------------------
+    res <- nempi(data)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Evaluate inference accuracy using pifit
+    # -----------------------------------------------------------------------------
+    if (!is.null(simmini)) {
+      fit <- pifit(res, simmini, data)
+      print(fit\$auc)
+    }
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Plot the inferred perturbation profiles and network
+    # -----------------------------------------------------------------------------
+    col <- rgb(seq(0,1,length.out=10),seq(1,0,length.out=10),
+               seq(1,0,length.out=10))
+    
+    pdf("inferred_perturbation_plot.pdf", width = 10, height = 8)
+    plot(res,heatlist=list(col="RdBu"),barlist=list(col=col))
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Compute the final transitive-closed perturbation matrix Omega
+    # -----------------------------------------------------------------------------
+    Omega <- t(mnem::transitive.closure(res\$res\$adj))%*%res\$Gamma
+    
+    # -----------------------------------------------------------------------------
+    # Stage 5: Save meaningful results to files
+    # -----------------------------------------------------------------------------
+    saveRDS(res, "nempi_results.rds")
+    if (!is.null(simmini)) {
+      saveRDS(fit, "pifit_results.rds")
+      writeLines(as.character(fit\$auc), "auc.txt")
+    }
+    write.csv(Omega, "omega_matrix.csv", row.names = TRUE)
+    saveRDS(Omega, "omega_matrix.rds")
+    
+    cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NEMPI:", paste0("    nempi: ", packageVersion("nempi"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE":',
+        paste0('    nempi: ', as.character(packageVersion('nempi')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nempi_results.csv
-    touch ${prefix}_nempi_output.rds
-    echo "BIOC_NEMPI:" > versions.yml
-    echo "    nempi: 0.0.0" >> versions.yml
+    touch ${prefix}_unsupervised_perturbation_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_NEMPI_WORKFLOW {
+workflow BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data ] ]
 
     main:
-    BIOC_NEMPI(ch_input)
+    BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_NEMPI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NEMPI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NEMPI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NEMPI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE.out.tables
+    plots    = BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE.out.plots
+    objects  = BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE.out.objects
+    versions = BIOC_NEMPI_UNSUPERVISED_PERTURBATION_INFERENCE.out.versions
 }

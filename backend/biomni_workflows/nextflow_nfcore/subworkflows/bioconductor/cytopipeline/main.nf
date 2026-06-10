@@ -4,6 +4,8 @@
 // Build, execute, and visualize a flow cytometry preprocessing pipeline using PeacoQC for quality control via step-by-step S4 object construction.
 // Input: sampleFiles
 // Container: quay.io/biocontainers/bioconductor-cytopipeline:1.10.0--r45hdfd78af_0
+// R packages: CytoPipeline, ggplot2, reshape2
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("cytopipeline", "ggplot2", "reshape2")
+    .bm_deps <- c("CytoPipeline", "ggplot2", "reshape2")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -48,7 +60,7 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
     # 1. Handle User Input
     # The pipeline expects a vector of paths to raw .fcs files named 'sampleFiles'
     if (!exists("sampleFiles")) {
-        sampleFiles <- list.files(path = ".", pattern = "\\.fcs\$", full.names = TRUE)
+        sampleFiles <- list.files(path = ".", pattern = "\\\\.fcs\$", full.names = TRUE)
     }
     
     if (length(sampleFiles) == 0) {

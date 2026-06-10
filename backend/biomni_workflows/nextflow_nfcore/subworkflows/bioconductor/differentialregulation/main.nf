@@ -4,6 +4,8 @@
 // Detect cell-type specific differentially regulated genes between two groups of samples using single-cell RNA-seq data.
 // Input: quants_mat.mtx, quants_mat_rows.txt, quants_mat_cols.txt, geqc_counts.mtx, gene_eqclass.txt.gz, DF_cell_types.txt
 // Container: quay.io/biocontainers/bioconductor-differentialregulation:2.8.0--r45ha27e39d_0
+// R packages: DifferentialRegulation
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("differentialregulation")
+    .bm_deps <- c("DifferentialRegulation")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load the package
@@ -66,7 +78,7 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     # Robustness fallback: if cell IDs in DF_cell_types do not contain the sample prefix,
     # strip the prefix from colnames(sce) to perform matching.
     if (all(is.na(matches))) {
-      cell_ids_clean = sub("^[^\\.]+\\.", "", colnames(sce))
+      cell_ids_clean = sub("^[^\\\\.]+\\\\.", "", colnames(sce))
       matches = match(cell_ids_clean, DF_cell_types\$cell_id)
     }
     sce\$cell_type = DF_cell_types\$cell_type[matches]

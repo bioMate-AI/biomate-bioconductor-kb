@@ -1,0 +1,13 @@
+{
+  "package": "rmmquant",
+  "requirements": [
+    "Rmmquant",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rmmquant",
+      "SummarizedExperiment"
+    ]
+  }
+}

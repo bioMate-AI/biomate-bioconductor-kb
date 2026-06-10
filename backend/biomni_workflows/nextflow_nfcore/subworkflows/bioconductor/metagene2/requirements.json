@@ -1,0 +1,28 @@
+{
+  "package": "metagene2",
+  "requirements": [
+    "GenomicRanges",
+    "ggplot2",
+    "metagene2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "large_dataset_analysis.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "metagene2",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "metagene2"
+    ],
+    "metagene_heatmap.nf": [
+      "metagene2"
+    ],
+    "rnaseq_metagene_analysis.nf": [
+      "GenomicRanges",
+      "metagene2"
+    ]
+  }
+}

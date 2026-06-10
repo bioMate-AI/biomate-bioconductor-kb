@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - vol.normal=logical indicating whether to plot normalized tumor volume (e.g., in plotPDX)\n  - SE.plot=character specifying the error visualization type for replicate plots (\"errorbar\" or \"ribbon\")\n  - response.measure / res.measure=character specifying the metric for drug response (e.g., \"mRECIST\", \"best.average.response\", \"angle\", \"lmm\", \"slope\")\n  - mDataType=character specifying the type of molecular data to use (e.g., \"RNASeq\", \"mutation\", \"cnv\")\n  - fit=character specifying the statistical method for association calculation in drugSensitivitySig (\"lm\", \"pearson\", \"spearman\", \"concordance index\")\n  - features=vector of indices or names of genomic features (genes) to test in drugSensitivitySig\n- alternatives:\n  - None mentioned in the documentation.\n- when_to_use:\n  - Use this package when you have PDX tumor volume tracking data over time across control and treatment arms, and you want to analyze drug responses, visualize growth curves, or correlate these responses with molecular profiling data (transcriptomics, genomics) to find biomarkers.\n- pitfalls:\n  - Ensure that model.id values are consistent and match exactly across the model metadata, experiment data, and the mapping table (modToBiobaseMap).\n  - The expDesign list must contain elements with exactly three components: batch.name, treatment, and control.\n  - Be aware that some ggplot2 aesthetics (like size for lines) are handled internally but may trigger deprecation warnings depending on the installed ggplot2 version.",
+  "workflows": [
+    {
+      "name": "pdx_growth_and_response_analysis",
+      "intent": "Visualize PDX tumor growth curves and compute drug response metrics from a XevaSet object.",
+      "input": [
+        "brca (XevaSet object containing breast cancer PDX data)",
+        "repdx (XevaSet object containing replicate-based PDX experiments)"
+      ],
+      "stages": "1. Load the XevaSet dataset.\n2. Retrieve model metadata and individual experiment time-volume data.\n3. Retrieve batch design information.\n4. Plot tumor growth curves for batches or patients (with options for normalization and error bars).\n5. Summarize drug response using mRECIST, angle, or linear mixed-effects models.\n6. Generate waterfall plots of drug responses.",
+      "code": "data(brca)\nprint(brca)\nbrca.mod <- modelInfo(brca)\ndim(brca.mod)\nbrca.mod[1:4, ]\nmodel.data <- getExperiment(brca, model.id = \"X.1004.BG98\")\nhead(model.data)\nbatch.name <- batchInfo(brca)\nbatch.name[1:4]\nbatchInfo(brca, batch = \"X-1004.binimetinib\")\nplotPDX(brca, batch = \"X-4567.BKM120\")\nplotPDX(brca, batch = \"X-4567.BKM120\", vol.normal = TRUE, control.col = \"#a6611a\", treatment.col = \"#018571\", major.line.size = 1, max.time = 40)\nplotPDX(brca, patient.id=\"X-3078\", drug=\"paclitaxel\",control.name = \"untreated\")\ndata(\"repdx\")\nplotPDX(repdx, vol.normal = TRUE, batch = \"P1\")\nplotPDX(repdx, batch = \"P3\", SE.plot = \"errorbar\")\nplotPDX(repdx, batch = \"P4\", vol.normal = TRUE,  SE.plot = \"ribbon\")\nbrca.mr <- summarizeResponse(brca, response.measure = \"mRECIST\")\nbrca.mr[1:5, 1:4]\nwaterfall(brca, drug=\"binimetinib\", res.measure=\"best.average.response\")\nmut <- summarizeMolecularProfiles(brca,drug = \"BYL719\", mDataType=\"mutation\")\nmodel.type <- Biobase::exprs(mut)[\"CDK13\", ]\nmodel.type[grepl(\"Mut\", model.type)] <- \"mutation\"\nmodel.type[model.type!=\"mutation\"] <- \"wild type\"\nmodel.color <- list(\"mutation\"=\"#b2182b\", \"wild type\"=\"#878787\")\nwaterfall(brca, drug=\"BYL719\", res.measure=\"best.average.response\", model.id=names(model.type), model.type= model.type, type.color = model.color)\ndata(\"repdx\")\nresponse(repdx, batch=\"P1\", res.measure=\"angle\")\ndata(\"repdx\")\nresponse(repdx, batch=\"P1\", res.measure=\"lmm\")\n<<<ENDWORKFLOW"
+    },
+    {
+      "name": "gene_drug_association",
+      "intent": "Compute the univariate association between PDX molecular features (e.g., gene expression) and drug response to identify biomarkers.",
+      "input": [
+        "brca (XevaSet object containing molecular profiles and drug response data)"
+      ],
+      "stages": "1. Load the XevaSet dataset.\n2. Run drugSensitivitySig specifying the drug, molecular data type, features, sensitivity measure, and statistical fit method.",
+      "code": "data(brca)\ndrugSensitivitySig(object=brca, drug=\"tamoxifen\", mDataType=\"RNASeq\", features=c(1,2,3,4,5), sensitivity.measure=\"slope\", fit=\"lm\")\ndata(brca)\ndrugSensitivitySig(object=brca, drug=\"tamoxifen\", mDataType=\"RNASeq\", features=c(1,2,3,4,5), sensitivity.measure=\"best.average.response\", fit = \"lm\")\ndata(brca)\ndrugSensitivitySig(object=brca, drug=\"tamoxifen\", mDataType=\"RNASeq\", features=c(1,2,3,4,5), sensitivity.measure=\"best.average.response\", fit=\"pearson\")\n<<<ENDWORKFLOW"
+    },
+    {
+      "name": "create_xeva_object",
+      "intent": "Create a new custom XevaSet object from raw experimental, metadata, and molecular profiling tables.",
+      "input": [
+        "model.csv (model metadata)",
+        "drug.csv (drug metadata)",
+        "experiments.csv (time vs volume data)",
+        "batch_list.rds (experimental design list)",
+        "rnaseq.rds (ExpressionSet of molecular profiles)",
+        "modelToExpressionMap.csv (mapping table)"
+      ],
+      "stages": "1. Read model metadata, drug metadata, and time-volume experiment data.\n2. Read experimental design batch list.\n3. Read molecular profiles (ExpressionSet).\n4. Read the mapping table between model IDs and molecular sample IDs.\n5. Construct the XevaSet using createXevaSet.",
+      "code": "model=read.csv(system.file(\"extdata\", \"model.csv\", package = \"Xeva\"))\nhead(model)\ndrug=read.csv(system.file(\"extdata\", \"drug.csv\", package = \"Xeva\"))\nhead(drug)\nexperiment=read.csv(system.file(\"extdata\",\"experiments.csv\",package=\"Xeva\"))\nhead(experiment)\nexpDesign=readRDS(system.file(\"extdata\",\"batch_list.rds\",package=\"Xeva\"))\nexpDesign[[1]]\nRNASeq=readRDS(system.file(\"extdata\", \"rnaseq.rds\", package = \"Xeva\"))\nprint(RNASeq)\nmodToBiobaseMap=read.csv(system.file(\"extdata\",\"modelToExpressionMap.csv\", package = \"Xeva\"))\nhead(modToBiobaseMap)\nxeva.set=createXevaSet(name=\"example xevaSet\", model=model, drug=drug, experiment=experiment, expDesign=expDesign, molecularProfiles=list(RNASeq = RNASeq), modToBiobaseMap = modToBiobaseMap)\nprint(xeva.set)\n<<<ENDWORKFLOW"
+    }
+  ]
+}

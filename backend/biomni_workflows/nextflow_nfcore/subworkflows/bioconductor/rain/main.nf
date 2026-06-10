@@ -1,111 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rain
-// This package uses non-parametric methods to detect rhythms in time series. It deals with outliers, m
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rain/inst/doc/rain.R
-// Upstream  : lattice
-// Downstream: none
-//
-// Install: BiocManager::install("rain")
+// Bioconductor workflow: rain — rhythm_detection_analysis
+// Detect rhythmic and asymmetric oscillations in time-series expression data.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-rain:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: lattice, rain
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Transpose the input matrix so that time points are rows and genes/series are columns
+//  * 2. [Core Analysis] Run the rain function specifying the period, sampling interval (deltat), repeats (nr.series or measure.sequence), and peak asymmet
+//  * 3. [Core Analysis] Sort or filter results by p-value to identify top rhythmic candidates
 
 nextflow.enable.dsl = 2
 
-process BIOC_RAIN {
+process BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rain"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rain:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rain:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rain_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rain_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rain_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(rain)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(rain)
+        library(lattice)
+        
+        # 1. Read the user input file and construct the input matrix
+        # The input file 'expression_matrix.csv' is expected to have genes as rows and samples/timepoints as columns.
+        menetRNASeqMouseLiver <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+        menetRNASeqMouseLiver <- as.matrix(menetRNASeqMouseLiver)
+        
+        # 2. Run the rain function specifying the period, sampling interval (deltat), 
+        # repeats (nr.series), and peak asymmetry borders.
+        # Note: t(menetRNASeqMouseLiver) transposes the matrix so that time points are rows and genes are columns.
+        results <- rain(t(menetRNASeqMouseLiver), deltat=1, period=ncol(menetRNASeqMouseLiver), nr.series=1,
+                        peak.border=c(0.3, 0.7), verbose=FALSE) 
+        
+        # 3. Sort results by p-value to identify top rhythmic candidates
+        best <- head(order(results\$pVal), 10)
+        
+        # 4. Write named output files for the results
+        write.csv(results, "rain_results_all.csv", row.names = TRUE)
+        write.csv(results[best, ], "rain_results_top10.csv", row.names = TRUE)
+        saveRDS(results, "rain_results.rds")
+        
+        # 5. Generate and save the visualization plot
+        pdf("rhythmic_genes_plot.pdf", width = 10, height = 8)
+        tryCatch({
+          # Attempt to plot using the exact vignette layout (requires specific dimensions)
+          print(xyplot(as.vector(menetRNASeqMouseLiver[best, , drop=FALSE]) 
+                  ~rep(seq_len(ncol(menetRNASeqMouseLiver)), each = length(best)) |rownames(menetRNASeqMouseLiver)[best], 
+                  scales = list(y = list(relation = 'free')),
+                  layout = c(2, max(1, ceiling(length(best) / 2))), type = 'b', pch = 16, xlab = 'time', 
+                  ylab = 'expression value', cex.lab = 1))
+        }, error = function(e) {
+          # Fallback robust plotting if the input dimensions differ from the vignette dataset
+          top_data <- menetRNASeqMouseLiver[best, , drop=FALSE]
+          df_list <- list()
+          for (i in seq_len(nrow(top_data))) {
+            df_list[[i]] <- data.frame(
+              Gene = rownames(top_data)[i],
+              Time = seq_len(ncol(top_data)),
+              Expression = as.numeric(top_data[i, ])
+            )
+          }
+          plot_df <- do.call(rbind, df_list)
+          print(xyplot(Expression ~ Time | Gene, data = plot_df,
+                       scales = list(y = list(relation = 'free')),
+                       layout = c(2, max(1, ceiling(length(best) / 2))), type = 'b', pch = 16,
+                       xlab = 'Sample Index', ylab = 'Expression Value'))
+        })
+        dev.off()
 
-    # --- Rhythmicity Analysis [] ---
-    # Key functions: rain
-    data("menetRNASeqMouseLiver", package = "rain")
-    rain_results <- rain(
-        x = t(menetRNASeqMouseLiver[1:100, ]),
-        deltat = 4,
-        period = 24,
-        nr.series = 2,
-        peak.border = c(0.3, 0.7),
-        verbose = FALSE
-    )
-
-
-    # --- Significance Filtering [] ---
-    # Key functions: rain
-    data("menetRNASeqMouseLiver", package = "rain")
-    rain_results <- rain(
-        x = t(menetRNASeqMouseLiver[1:100, ]),
-        deltat = 4,
-        period = 24,
-        nr.series = 2,
-        verbose = FALSE
-    )
-    p_values <- rain_results$pVal
-    ordered_indices <- order(p_values)
-    top_rhythmic_genes <- rain_results[ordered_indices[1:10], ]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rain_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rain_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rain_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RAIN:", paste0("    rain: ", packageVersion("rain"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS":',
+        paste0('    rain: ', as.character(packageVersion('rain')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rain_results.csv
-    touch ${prefix}_rain_output.rds
-    echo "BIOC_RAIN:" > versions.yml
-    echo "    rain: 0.0.0" >> versions.yml
+    touch ${prefix}_rhythm_detection_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_RAIN_WORKFLOW {
+workflow BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_RAIN(ch_input)
+    BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_RAIN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RAIN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RAIN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RAIN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS.out.tables
+    plots    = BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS.out.plots
+    objects  = BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS.out.objects
+    versions = BIOC_RAIN_RHYTHM_DETECTION_ANALYSIS.out.versions
 }

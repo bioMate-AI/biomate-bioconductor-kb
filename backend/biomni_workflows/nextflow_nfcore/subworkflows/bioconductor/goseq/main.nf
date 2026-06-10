@@ -1,161 +1,164 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: goseq
-// Detects Gene Ontology and/or other user defined categories which are over/under represented in RNA-s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/goseq/inst/doc/goseq.R
-// Upstream  : edgeR
-// Downstream: rgsepd
-//
-// Install: BiocManager::install("goseq")
+// Bioconductor workflow: goseq — standard_go_analysis
+// Perform GO enrichment analysis on RNA-seq DE genes while correcting for gene length bias using the default Wallenius approximation.
+// Input: assayed.genes, de.genes
+// Container: quay.io/biocontainers/bioconductor-goseq:1.62.0--r45hdfd78af_0
+// R packages: GO.db, edgeR, goseq
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GO.db, goseq
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Format gene vector
+//  * 2. [Core Analysis] Fit the Probability Weighting Function (PWF) using nullp
+//  * 3. [Core Analysis] Run GO enrichment analysis using goseq
+//  * 4. [Core Analysis] Extract and interpret enriched categories using GO.db
 
 nextflow.enable.dsl = 2
 
-process BIOC_GOSEQ {
+process BIOC_GOSEQ_STANDARD_GO_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-goseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-goseq:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-goseq:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_goseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_goseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_goseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DGEList)
-    library(jsonlite)
-
-    # --- Supported Genomes [] ---
-    # Key functions: supportedOrganisms
-    ## supportedOrganisms()
-    # --- Getlengthdatafromucsc [] ---
-    # Key functions: transcriptsBy, width
-    ## txsByGene <- transcriptsBy(txdb, "gene")
-    ## lengthData <- median(width(txsByGene))
-    # --- Edger 1 [] ---
-    # Key functions: factor, DGEList
-    library(edgeR)
-    table.summary <- read.table(system.file("extdata", "Li_sum.txt", package = "goseq"),
-      sep = "\t", header = TRUE, stringsAsFactors = FALSE
-    )
-    counts <- table.summary[, -1]
-    # --- Edger 2 [] ---
-    # Key functions: estimateCommonDisp, exactTest, topTags
-    disp <- estimateCommonDisp(summarized)
-    disp$common.dispersion
-    tested <- exactTest(disp)
-    topTags(tested)
-    # --- Edger 3 [] ---
-    # Key functions: adjust
-    genes <- as.integer(p.adjust(tested$table$PValue[tested$table$logFC != 0],
-      method = "BH"
-    ) < .05)
-    names(genes) <- row.names(tested$table[tested$table$logFC != 0, ])
-    table(genes)
-    # --- Head Organisms [] ---
-    # Key functions: supportedOrganisms
-    head(supportedOrganisms())
-    # --- Head Geneids [] ---
-    # Key functions: supportedOrganisms
-    supportedOrganisms()[supportedOrganisms()$Genome == "hg19", ]
-    # --- Pwf [] ---
-    # Key functions: nullp
-    pwf <- nullp(genes, "hg19", "ensGene")
-    head(pwf)
-    # --- goseq [] ---
-    # Key functions: goseq
-    GO.wall <- goseq(pwf, "hg19", "ensGene")
-    head(GO.wall)
-    # --- Enriched Go [] ---
-    # Key functions: adjust
-    enriched.GO <- GO.wall$category[p.adjust(GO.wall$over_represented_pvalue,
-      method = "BH"
-    ) < .05]
-    head(enriched.GO)
-    # --- Getlength [] ---
-    # Key functions: getlength
-    len <- getlength(names(genes), "hg19", "ensGene")
-    length(len)
-    length(genes)
-    head(len)
-    # --- Getgo [] ---
-    # Key functions: getgo
-    go <- getgo(names(genes), "hg19", "ensGene")
-    length(go)
-    length(genes)
-    head(go)
-    # --- Norm Analysis [] ---
-    # Key functions: nullp, goseq
-    ## pwf <- nullp(genes, "hg19", "ensGene")
-    ## go <- goseq(pwf, "hg19", "ensGene")
-    # --- Verbose Analysis [] ---
-    # Key functions: getlength, nullp, getgo, goseq
-    ## gene_lengths <- getlength(names(genes), "hg19", "ensGene")
-    ## pwf <- nullp(genes, bias.data = gene_lengths)
-    ## go_map <- getgo(names(genes), "hg19", "ensGene")
-    ## go <- goseq(pwf, "hg19", "ensGene", gene2cat = go_map)
-    # --- Kegg Mappings [] ---
-    # Key functions: unlist
-    ## # Get the mapping from ENSEMBL 2 Entrez
-    ## en2eg <- as.list(org.Hs.egENSEMBL2EG)
-    ## # Get the mapping from Entrez 2 KEGG
-    ## eg2kegg <- as.list(org.Hs.egPATH)
-    ## # Define a function which gets all unique KEGG IDs
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_goseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_goseq_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GO.db", "edgeR", "goseq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_goseq_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(goseq)
+        library(GO.db)
+        
+        # Parse command line arguments for genome and gene identifier
+        args <- commandArgs(trailingOnly = TRUE)
+        genome <- if (length(args) >= 1) args[1] else "hg19"
+        id <- if (length(args) >= 2) args[2] else "ensGene"
+        
+        # Read user input files from the working directory
+        assayed.genes <- readLines("assayed.genes")
+        de.genes <- readLines("de.genes")
+        
+        # Clean input vectors (remove empty lines and whitespace)
+        assayed.genes <- trimws(assayed.genes)
+        assayed.genes <- assayed.genes[assayed.genes != ""]
+        de.genes <- trimws(de.genes)
+        de.genes <- de.genes[de.genes != ""]
+        
+        # 1. Format gene vector
+        gene.vector <- as.integer(assayed.genes %in% de.genes)
+        names(gene.vector) <- assayed.genes
+        
+        # Bridge to the documented variable name 'genes'
+        genes <- gene.vector
+        
+        # 2. Fit the Probability Weighting Function (PWF) using nullp
+        # Capture the diagnostic plot generated by nullp into a PDF
+        pdf("pwf_plot.pdf", width = 7, height = 7)
+        pwf <- nullp(genes, genome, id)
+        dev.off()
+        
+        # Save PWF results
+        saveRDS(pwf, "pwf.rds")
+        write.csv(pwf, "pwf_data.csv", row.names = TRUE)
+        
+        # 3. Run GO enrichment analysis using goseq
+        GO.wall <- goseq(pwf, genome, id)
+        
+        # Save enrichment results
+        saveRDS(GO.wall, "GO_wall_results.rds")
+        write.csv(GO.wall, "GO_wall_results.csv", row.names = FALSE)
+        
+        # 4. Extract and interpret enriched categories using GO.db
+        enriched.GO <- GO.wall\$category[p.adjust(GO.wall\$over_represented_pvalue,
+          method = "BH"
+        ) < .05]
+        
+        # Save the list of enriched GO terms
+        writeLines(as.character(enriched.GO), "enriched_go_categories.txt")
+        
+        # Print the top 10 enriched GO terms to standard output and capture to file
+        sink("enriched_go_details.txt")
+        for (go in enriched.GO[1:10]) {
+          tryCatch({
+            if (!is.na(go)) {
+              print(GOTERM[[go]])
+              cat("--------------------------------------\n")
+            }
+          }, error = function(e) {
+            # Handle cases where GO term is not found or index is out of bounds gracefully
+          })
+        }
+        sink()
+        
+        # Also output to console as in the original vignette
+        for (go in enriched.GO[1:10]) {
+          tryCatch({
+            if (!is.na(go)) {
+              print(GOTERM[[go]])
+              cat("--------------------------------------\n")
+            }
+          }, error = function(e) {
+            # Handle cases where GO term is not found or index is out of bounds gracefully
+          })
+        }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GOSEQ:", paste0("    goseq: ", packageVersion("goseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GOSEQ_STANDARD_GO_ANALYSIS":',
+        paste0('    goseq: ', as.character(packageVersion('goseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_goseq_results.csv
-    touch ${prefix}_goseq_output.rds
-    echo "BIOC_GOSEQ:" > versions.yml
-    echo "    goseq: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_go_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GOSEQ_WORKFLOW {
+workflow BIOC_GOSEQ_STANDARD_GO_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ assayed.genes, de.genes ] ]
 
     main:
-    BIOC_GOSEQ(ch_input)
+    BIOC_GOSEQ_STANDARD_GO_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GOSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GOSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GOSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GOSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GOSEQ_STANDARD_GO_ANALYSIS.out.tables
+    plots    = BIOC_GOSEQ_STANDARD_GO_ANALYSIS.out.plots
+    objects  = BIOC_GOSEQ_STANDARD_GO_ANALYSIS.out.objects
+    versions = BIOC_GOSEQ_STANDARD_GO_ANALYSIS.out.versions
 }

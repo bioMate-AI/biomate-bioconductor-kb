@@ -1,0 +1,13 @@
+{
+  "package": "countsimqc",
+  "requirements": [
+    "DESeq2",
+    "countsimQC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "countsimQC"
+    ]
+  }
+}

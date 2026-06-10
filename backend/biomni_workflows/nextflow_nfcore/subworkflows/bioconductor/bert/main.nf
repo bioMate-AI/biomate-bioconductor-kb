@@ -1,119 +1,112 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BERT
-// Provides efficient batch-effect adjustment of data with missing values. BERT orders all batch effect
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BERT/inst/doc/BERT-Vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("BERT")
+// Bioconductor workflow: BERT — standard_batch_correction
+// Perform batch-effect correction on a data frame or matrix using ComBat or limma, with optional parallel processing.
+// Input: expression_data.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BERT
+// QC: batch-effect correction
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the expression data
+//  * 2. [Core Analysis] Run BERT batch correction specifying the method (ComBat or limma) and parallelization cores
 
 nextflow.enable.dsl = 2
 
-process BIOC_BERT {
+process BIOC_BERT_STANDARD_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bert"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bert:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bert:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bert_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bert_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bert_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
     library(BERT)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Frame [] ---
-    # Key functions: frame, rnorm
-    ---------------------------------------------------------------------
-    example = data.frame(feature_1 = stats::rnorm(5), feature_2 = stats::rnorm(5), Batch=c(1,1,2,2,2))
-    example
-    # --- Matrix [] ---
-    # Key functions: runif, frame, SummarizedExperiment
-    ---------------------------------------------------------------------
-    nrows <- 200
-    ncols <- 8
-    expr_values <- matrix(runif(nrows * ncols, 1, 1e4), nrows)
-    # colData also takes all other metadata information, such as Label, Sample,
-    # --- Generate Dataset [] ---
-    # Key functions: generate_dataset, BERT
-    ---------------------------------------------------------------------
-    library(BERT)
-    # generate test data with 10% missing values as provided by the BERT library
-    dataset_raw <- generate_dataset(features=60, batches=10, samplesperbatch=10, mvstmt=0.1, classes=2)
-    # apply BERT
-    # --- Rows [] ---
-    # Key functions: rows, runif, frame, SummarizedExperiment, BERT
-    ---------------------------------------------------------------------
-    nrows <- 200
-    ncols <- 8
-    # SummarizedExperiments store samples in columns and features in rows (in contrast to BERT).
-    # BERT will automatically account for this.
-    # --- Generate Dataset [] ---
-    # Key functions: generate_dataset, requirements, sample, BERT
-    ---------------------------------------------------------------------
-    # import BERT
-    library(BERT)
-    # generate data with 4 batches, 6 features, 15 samples per batch, 15% missing values and 2 classes
-    dataset_raw <- generate_dataset(features=6, batches=4, samplesperbatch=15, mvstmt=0.15, classes=2)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bert_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bert_results.csv")
+    
+    # 1. Load the expression data
+    # The file is expected to be in the working directory, with samples in rows,
+    # features in columns, and a mandatory 'Batch' column.
+    if (!file.exists("expression_data.csv")) {
+      stop("Error: 'expression_data.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bert_output.rds")
-    }
+    
+    dataset_raw <- read.csv("expression_data.csv", check.names = FALSE)
+    
+    # 2. Run BERT batch correction specifying the method (ComBat or limma) and parallelization cores
+    
+    # (a) Standard BERT (uses ComBat by default)
+    message("Running standard BERT batch correction...")
+    dataset_adjusted <- BERT(dataset_raw)
+    write.csv(dataset_adjusted, "dataset_adjusted_standard.csv", row.names = FALSE)
+    
+    # (b) Sequential adjustment with limma
+    message("Running BERT batch correction with limma...")
+    dataset_adjusted_limma <- BERT(dataset_raw, method="limma")
+    write.csv(dataset_adjusted_limma, "dataset_adjusted_limma.csv", row.names = FALSE)
+    
+    # (c) Parallel batch effect correction with ComBat (using 2 cores)
+    message("Running parallel BERT batch correction with ComBat (2 cores)...")
+    dataset_adjusted_parallel <- tryCatch({
+      BERT(dataset_raw, cores=2)
+    }, error = function(e) {
+      message("Parallel execution with 2 cores failed or is not supported on this system. Falling back to sequential.")
+      BERT(dataset_raw, cores=1)
+    })
+    write.csv(dataset_adjusted_parallel, "dataset_adjusted_parallel.csv", row.names = FALSE)
+    
+    message("Batch correction completed successfully. Outputs saved to CSV files.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BERT:", paste0("    bert: ", packageVersion("BERT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BERT_STANDARD_BATCH_CORRECTION":',
+        paste0('    BERT: ', as.character(packageVersion('BERT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bert_results.csv
-    touch ${prefix}_bert_output.rds
-    echo "BIOC_BERT:" > versions.yml
-    echo "    bert: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_batch_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_BERT_WORKFLOW {
+workflow BIOC_BERT_STANDARD_BATCH_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_data.csv ] ]
 
     main:
-    BIOC_BERT(ch_input)
+    BIOC_BERT_STANDARD_BATCH_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_BERT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BERT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BERT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BERT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BERT_STANDARD_BATCH_CORRECTION.out.tables
+    plots    = BIOC_BERT_STANDARD_BATCH_CORRECTION.out.plots
+    objects  = BIOC_BERT_STANDARD_BATCH_CORRECTION.out.objects
+    versions = BIOC_BERT_STANDARD_BATCH_CORRECTION.out.versions
 }

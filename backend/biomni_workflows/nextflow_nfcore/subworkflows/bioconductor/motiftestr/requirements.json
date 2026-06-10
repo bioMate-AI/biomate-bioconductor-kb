@@ -1,0 +1,33 @@
+{
+  "package": "motiftestr",
+  "requirements": [
+    "BSgenome",
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biostrings",
+    "GenomicRanges",
+    "ggplot2",
+    "motifTestR",
+    "patchwork"
+  ],
+  "by_workflow": {
+    "clustered_motif_analysis.nf": [
+      "Biostrings",
+      "motifTestR"
+    ],
+    "main.nf": [
+      "BSgenome",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicRanges",
+      "ggplot2",
+      "motifTestR",
+      "patchwork"
+    ],
+    "motif_enrichment_analysis.nf": [
+      "BSgenome",
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "Biostrings",
+      "GenomicRanges",
+      "motifTestR"
+    ]
+  }
+}

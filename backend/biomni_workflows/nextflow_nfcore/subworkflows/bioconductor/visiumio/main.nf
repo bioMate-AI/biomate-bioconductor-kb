@@ -17,9 +17,7 @@ process BIOC_VISIUMIO {
     label 'process_medium'
 
     conda "bioconductor-visiumio"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-visiumio:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-visiumio:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -43,45 +41,58 @@ process BIOC_VISIUMIO {
     library(TENxVisiumList)
     library(jsonlite)
 
-    # --- Multi-Sample Visium Configuration [] ---
-    # Key functions: TENxVisiumList
-    vlist_config <- TENxVisiumList(
-        sampleFolders = sample_dirs,
-        sample_ids = basename(sample_dirs),
+    # --- Single Sample Import [Importing a single Visium sample] ---
+    # Key functions: TENxVisium, import
+    vis <- TENxVisium(
+        spacerangerOut = "path/to/10x/visium/sample/folder",
         processing = "raw",
         images = "lowres"
     )
+    spe <- import(vis)
 
+    # --- Multi-Sample Import [Importing multiple Visium samples] ---
+    # Key functions: TENxVisiumList, import
+    vlist <- TENxVisiumList(
+        sampleFolders = c("path/to/sample01", "path/to/sample02"),
+        sample_ids = c("sample01", "sample02"),
+        processing = "raw",
+        images = "lowres"
+    )
+    spe_list <- import(vlist)
 
-    # --- Spatial Data Import [] ---
-    # Key functions: import
-    spe_single <- import(vis_config)
-    spe_multi <- import(vlist_config)
-
-
-    # --- High-Definition Visium Import [] ---
+    # --- Visium HD Import [Importing high-definition Visium HD data] ---
     # Key functions: TENxVisiumHD, import
-    hd_config <- TENxVisiumHD(
-        spacerangerOut = visfold,
+    hd_vis <- TENxVisiumHD(
+        spacerangerOut = "path/to/visium_hd_folder",
         images = "lowres",
         bin_size = "002",
         format = "h5"
     )
-    spe_hd <- import(hd_config)
+    spe_hd <- import(hd_vis)
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_visiumio_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_visiumio_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_visiumio_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_visiumio_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_visiumio_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_visiumio_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_VISIUMIO:", paste0("    visiumio: ", packageVersion("VisiumIO"))),
+        c("BIOC_VISIUMIO:", paste0("    visiumio: ", as.character(packageVersion("VisiumIO")))),
         "versions.yml"
     )
     """

@@ -1,0 +1,24 @@
+{
+  "package": "msnid",
+  "requirements": [
+    "Biostrings",
+    "MSnID",
+    "MSnbase",
+    "dplyr",
+    "ggplot2",
+    "xtable"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnID",
+      "MSnbase",
+      "ggplot2"
+    ],
+    "peptide_modification_mapping.nf": [
+      "Biostrings",
+      "MSnID",
+      "dplyr",
+      "xtable"
+    ]
+  }
+}

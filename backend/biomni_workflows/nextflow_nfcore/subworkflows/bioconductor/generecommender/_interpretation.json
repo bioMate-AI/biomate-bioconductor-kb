@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: normalized.data=An expression matrix where genes are rows and experiments are columns, normalized such that gene expression values are distributed uniformly between -1 and 1 ;; query=A character vector of gene or probeset identifiers representing the query genes of interest ;; ngenes=The number of top-ranked genes to return in the main result ;; fun=A scoring function applied to the ranks of the query genes to determine how many experiments to include (defaults to median) ;; extra=A logical value; if TRUE, the output includes additional metrics such as fifty.percent.recall, experiments.included, experiments.excluded, s.g.i (biological significance), z.g.i (statistical significance), and contribution (experiment-wise contribution)\n- alternatives: Alternative normalization can be performed by applying qnorm((normalized.data + 1)/2) to the output of gr.normalize to obtain a standard normal distribution instead of a uniform distribution. The original algorithm from Owen et al. (2003) is an alternative, but this package is preferred as it uses a more accurate incremental method instead of a grid approach and uses median instead of mean for robustness.\n- when_to_use: Use this package when you have a list of genes known to be functionally related (the query) and want to discover new, functionally related genes from microarray expression data, even in the presence of significant missing data.\n- pitfalls: Running the algorithm on unnormalized expression data (always use gr.normalize first) ;; including query genes that are regulated differently from the rest of the query (use gr.cv to identify these; a very large rank indicates a query gene that may not belong) ;; expecting identical results to the original Owen et al. paper (results differ slightly due to the incremental experiment selection and the use of median instead of mean).",
+  "workflows": [
+    {
+      "name": "targeted_gene_recommendation",
+      "intent": "Identify and rank genes coexpressed with a query set of genes in microarray data, with options for cross-validation and custom scoring.",
+      "input": [
+        "geneData (microarray expression matrix with genes as rows and experiments as columns)",
+        "my.query (character vector of query gene/probeset IDs)"
+      ],
+      "stages": "1. Normalize the expression matrix using gr.normalize (and optionally transform with qnorm). ;; 2. Perform targeted clustering and ranking using gr.main. ;; 3. Validate the query genes using leave-one-out cross-validation with gr.cv.",
+      "code": "library(geneRecommender)\ndata(geneData)\nmy.query <- c(\"31613_at\", \"31712_at\", \"31497_at\")\nnormalized.data <- gr.normalize(geneData)\ngr.main(normalized.data, my.query, ngenes = 10)\ngr.cv(normalized.data, my.query)\nnormal.normalized.data <- qnorm((normalized.data + 1)/2)\ngr.main(normal.normalized.data, my.query, ngenes = 10)\nmy.fun.1 <- function(input.vector){\n  sum(input.vector^(1/2), na.rm = T)\n}\ngr.main(normalized.data, my.query, ngenes = 10, fun = my.fun.1)\ngr.main(normalized.data, my.query, ngenes = 10, extra = T)"
+    }
+  ]
+}

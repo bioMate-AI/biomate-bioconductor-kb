@@ -1,0 +1,17 @@
+{
+  "package": "diffbind",
+  "requirements": [
+    "DiffBind"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DiffBind"
+    ],
+    "multi_factor_analysis.nf": [
+      "DiffBind"
+    ],
+    "occupancy_and_consensus.nf": [
+      "DiffBind"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "beaddatapackr",
+  "requirements": [
+    "BeadDataPackR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BeadDataPackR"
+    ]
+  }
+}

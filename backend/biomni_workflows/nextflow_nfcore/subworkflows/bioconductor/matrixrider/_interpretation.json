@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sequence=A DNAString object containing the nucleotide sequence to analyze ;; pfm=A PFMatrix object representing the binding preferences of a single transcription factor ;; pfms=A PFMatrixList object representing multiple transcription factors ;; cutoff=A numeric value between 0 and 1 (0 calculates total affinity by summing all subsequences; 1 sums only perfect matches; intermediate values represent trade-offs)\n- alternatives: Classical single-site analysis (which uses a binary threshold to classify sites as binding or non-binding), which fails to capture low-affinity transient binding events.\n- when_to_use: Use when you want to model transcription factor binding as a thermodynamic process, taking into account the cumulative effect of both high- and low-affinity sites across a whole sequence.\n- pitfalls: Custom PFMs must contain integer count values and background frequencies ;; The perfect match sequence of a matrix can change depending on the background nucleotide distribution ;; A pseudocount of 1 is automatically added to zero counts in the PFM, which may slightly alter expected ratios.",
+  "workflows": [
+    {
+      "name": "tf_sequence_occupancy",
+      "intent": "Calculate the total binding affinity or occupancy of single or multiple transcription factors on a target DNA sequence.",
+      "input": [
+        "sequence.fasta (DNA sequence of interest)",
+        "jaspar_db (JASPAR database or custom PFM counts)"
+      ],
+      "stages": "1. Load the target DNA sequence into a DNAString object ;; 2. Retrieve or define the transcription factor PFMatrix or PFMatrixList ;; 3. Calculate the sequence occupancy or total affinity using getSeqOccupancy with a specified cutoff",
+      "code": "library(MatrixRider)\nlibrary(JASPAR2014)\nlibrary(TFBSTools)\nlibrary(Biostrings)\npfm <- getMatrixByID(JASPAR2014,\"MA0004.1\")\nsequence <- DNAString(\"CACGTG\")\ngetSeqOccupancy(sequence, pfm, 0.1)\ngetSeqOccupancy(sequence, pfm, 1)\npfm2 <- getMatrixByID(JASPAR2014,\"MA0005.1\")\npfms <- PFMatrixList(pfm, pfm2)\nnames(pfms) <- c(name(pfm), name(pfm2))\ngetSeqOccupancy(sequence, pfms, 0)"
+    }
+  ]
+}

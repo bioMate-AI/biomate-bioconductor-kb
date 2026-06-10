@@ -1,121 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: QUBIC
-// The core function of this R package is to provide the implementation of the well-cited and well-revi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/QUBIC/inst/doc/qubic_vignette.R
-// Upstream  : QUBICdata, RColorBrewer
-// Downstream: none
-//
-// Install: BiocManager::install("QUBIC")
+// Bioconductor workflow: QUBIC — standard_biclustering
+// Perform standard qualitative biclustering on a gene expression matrix, visualize results with heatmaps, and construct co-expression networks.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-qubic:1.38.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: QUBIC, RColorBrewer
+// Visualizations: heatmap, cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Discretize the expression matrix
+//  * 2. [Core Analysis] Run the QUBIC algorithm
+//  * 3. [Visualization & Output] Visualize specific biclusters using heatmaps
+//  * 4. [Input & Preparation] Construct co-expression networks
+//  * 5. [Visualization & Output] Export networks to XGMML format
 
 nextflow.enable.dsl = 2
 
-process BIOC_QUBIC {
+process BIOC_QUBIC_STANDARD_BICLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-qubic"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-qubic:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-qubic:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(deseqresults)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_qubic_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_qubic_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_qubic_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(QUBIC)
-    library(jsonlite)
-
-    # --- Biclustering [] ---
-    # Key functions: BCQU
-    biclust_results <- biclust::biclust(
-        test_matrix,
-        method = BCQU(),
-        r = 1,
-        q = 0.06,
-        c = 0.95,
-        o = 100,
-        f = 0.25
-    )
-
-
-    # --- Heatmap Visualisation [] ---
-    # Key functions: quheatmap
-    palette_colors <- colorRampPalette(
-        c("#D73027", "#FC8D59", "#FEE090", "#FFFFBF", "#4575B4")
-    )(100)
-    quheatmap(
-        test_matrix,
-        biclust_results,
-        number = c(1, 2),
-        col = palette_colors,
-        showlabel = TRUE
-    )
-
-
-    # --- Network Construction [] ---
-    # Key functions: qunetwork
-    biclust_net <- qunetwork(
-        test_matrix,
-        biclust_results,
-        number = c(1, 2),
-        group = c(1, 2),
-        method = "spearman"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_qubic_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_qubic_results.csv")
+    library(RColorBrewer)
+    
+    # 1. Read the user input file
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Required input file 'expression_matrix.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_qubic_output.rds")
-    }
+    
+    # Read the expression matrix (genes as rows, conditions as columns)
+    ecoli_df <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    ecoli <- as.matrix(ecoli_df)
+    
+    # 2. Discretize the expression matrix
+    # Discretize the full expression matrix instead of a subset
+    matrix2 <- qudiscretize(ecoli)
+    
+    # Save discretized matrix
+    write.csv(matrix2, "discretized_subset.csv")
+    
+    # 3. Run the QUBIC algorithm
+    # Exact call:
+    res <- qubiclust(ecoli, r = 1, q = 0.06, c = 0.95, o = 100, f = 0.25, k = max(ncol(ecoli)%/%20, 2))
+    
+    # Save the biclustering result object
+    saveRDS(res, "qubic_biclust_result.rds")
+    
+    # Write a summary of the biclusters to a text file
+    sink("biclust_summary.txt")
+    print(summary(res))
+    sink()
+    
+    # 4. Visualize specific biclusters using heatmaps
+    paleta <- colorRampPalette(rev(brewer.pal(11, "RdYlBu")))(11)
+    
+    pdf("bicluster_heatmap.pdf", width = 10, height = 8)
+    # Exact call wrapped in tryCatch for robustness (dynamically selecting index 1)
+    tryCatch({
+      quheatmap(ecoli, res, number = 1, showlabel = TRUE, col = paleta)
+    }, error = function(e) {
+      message("Note: Heatmap for bicluster 1 could not be plotted. Error: ", e\$message)
+    })
+    dev.off()
+    
+    # 5. Construct co-expression networks
+    # Exact call wrapped in tryCatch
+    net <- NULL
+    tryCatch({
+      net <- qunetwork(ecoli, res, number = 1, group = 1, method = "spearman")
+      saveRDS(net, "coexpression_network.rds")
+    }, error = function(e) {
+      message("Note: Network construction for bicluster 1 failed. Error: ", e\$message)
+    })
+    
+    # 6. Export networks to XGMML format
+    # Exact call wrapped in tryCatch and sinked to a file
+    sink("network.xml")
+    tryCatch({
+      if (!is.null(net)) {
+        qunet2xml(net, minimum = 0.6, color = cbind(rainbow(length(net[[2]]) - 1), "gray"))
+      } else {
+        message("No network available to export.")
+      }
+    }, error = function(e) {
+      message("Note: Exporting network to XML failed. Error: ", e\$message)
+    })
+    sink()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QUBIC:", paste0("    qubic: ", packageVersion("QUBIC"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_QUBIC_STANDARD_BICLUSTERING":',
+        paste0('    QUBIC: ', as.character(packageVersion('QUBIC')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_qubic_results.csv
-    touch ${prefix}_qubic_output.rds
-    echo "BIOC_QUBIC:" > versions.yml
-    echo "    qubic: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_biclustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_QUBIC_WORKFLOW {
+workflow BIOC_QUBIC_STANDARD_BICLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(deseqresults) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_QUBIC(ch_input)
+    BIOC_QUBIC_STANDARD_BICLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_QUBIC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QUBIC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QUBIC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QUBIC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QUBIC_STANDARD_BICLUSTERING.out.tables
+    plots    = BIOC_QUBIC_STANDARD_BICLUSTERING.out.plots
+    objects  = BIOC_QUBIC_STANDARD_BICLUSTERING.out.objects
+    versions = BIOC_QUBIC_STANDARD_BICLUSTERING.out.versions
 }

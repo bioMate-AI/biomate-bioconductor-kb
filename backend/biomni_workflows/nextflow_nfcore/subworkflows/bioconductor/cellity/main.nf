@@ -1,92 +1,101 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cellity
-// A support vector machine approach to identifying and filtering low quality cells from single-cell RN
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cellity/inst/doc/cellity_vignette.R
-// Upstream  : caret, ggplot2, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("cellity")
+// Bioconductor workflow: cellity — pca_based_quality_assessment
+// Identify low-quality cells using unsupervised PCA-based outlier detection on extracted biological and technical features.
+// Input: gene_counts.tsv, read_stats.tsv
+// Container: quay.io/biocontainers/bioconductor-cellity:1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cellity
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Normalize gene expression counts using normalise_by_factor
+//  * 2. [Core Analysis] Extract biological and technical features using extract_features
+//  * 3. [Core Analysis] Assess cell quality and detect outliers using assess_cell_quality_PCA
 
 nextflow.enable.dsl = 2
 
-process BIOC_CELLITY {
+process BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cellity"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cellity:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cellity:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cellity_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cellity_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cellity_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(cellity)
-    library(jsonlite)
+    
+    # Read user input files
+    sample_counts <- as.matrix(read.delim("gene_counts.tsv", row.names = 1, header = TRUE, check.names = FALSE))
+    sample_stats <- as.matrix(read.delim("read_stats.tsv", row.names = 1, header = TRUE, check.names = FALSE))
+    
+    # 1. Normalize gene expression counts
+    sample_counts_nm <- normalise_by_factor(sample_counts, colSums(sample_counts))
+    
+    # 2. Extract biological and technical features
+    sample_features <- extract_features(sample_counts_nm, sample_stats)
+    sample_features_all <- sample_features[[1]]
+    
+    # 3. Assess cell quality and detect outliers using PCA with PDF output
+    sample_qual_pca <- assess_cell_quality_PCA(sample_features_all, file = "./training_quality_PCA_allF.pdf")
+    
+    # Map the output to the training variable to preserve expected output files
+    training_quality_PCA_allF <- sample_qual_pca
+    
+    # Save outputs
+    write.csv(sample_qual_pca, "sample_qual_pca.csv", row.names = TRUE)
+    write.csv(training_quality_PCA_allF, "training_quality_PCA_allF.csv", row.names = TRUE)
+    saveRDS(sample_features, "sample_features.rds")
 
-    # --- Knitr Options [] ---
-    # Key functions: render, set, theme_set, theme_bw
-    -----------------------------
-    ## To render an HTML version that works nicely with github and web pages, do:
-    ## rmarkdown::render("vignettes/vignette.Rmd", "all")
-    library(knitr)
-    opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cellity_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cellity_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cellity_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CELLITY:", paste0("    cellity: ", packageVersion("cellity"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT":',
+        paste0('    cellity: ', as.character(packageVersion('cellity')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cellity_results.csv
-    touch ${prefix}_cellity_output.rds
-    echo "BIOC_CELLITY:" > versions.yml
-    echo "    cellity: 0.0.0" >> versions.yml
+    touch ${prefix}_pca_based_quality_assessment.csv versions.yml
     """
 }
 
-
-workflow BIOC_CELLITY_WORKFLOW {
+workflow BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_counts.tsv, read_stats.tsv ] ]
 
     main:
-    BIOC_CELLITY(ch_input)
+    BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT(ch_input)
 
     emit:
-    results  = BIOC_CELLITY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CELLITY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CELLITY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CELLITY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT.out.tables
+    plots    = BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT.out.plots
+    objects  = BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT.out.objects
+    versions = BIOC_CELLITY_PCA_BASED_QUALITY_ASSESSMENT.out.versions
 }

@@ -1,0 +1,23 @@
+{
+  "package": "rhinotyper",
+  "requirements": [
+    "Biostrings",
+    "msa",
+    "rhinotypeR"
+  ],
+  "by_workflow": {
+    "amino_acid_visualization.nf": [
+      "Biostrings",
+      "msa",
+      "rhinotypeR"
+    ],
+    "genotyping_with_in_r_alignment.nf": [
+      "Biostrings",
+      "rhinotypeR"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "rhinotypeR"
+    ]
+  }
+}

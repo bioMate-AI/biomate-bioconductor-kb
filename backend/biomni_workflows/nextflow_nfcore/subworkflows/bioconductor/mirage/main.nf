@@ -1,142 +1,115 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MiRaGE
-// The package contains functions for inferece of target gene regulation by miRNA, based on only target
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MiRaGE/inst/doc/MiRaGE.R
-// Upstream  : Biobase, beadarrayExampleData, humanStemCell
-// Downstream: none
-//
-// Install: BiocManager::install("MiRaGE")
+// Bioconductor workflow: MiRaGE — mirna_regulation_inference
+// Infer miRNA target gene regulation from mRNA expression profiles and identify significantly active miRNAs.
+// Input: x_all_7a.csv
+// Container: quay.io/biocontainers/bioconductor-mirage:1.52.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, MiRaGE
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the gene expression data and format it into an ExpressionSet object with required sample_name and gene_id metadata
+//  * 2. [Core Analysis] Run the MiRaGE analysis to compute P-values for miRNA target regulation
+//  * 3. [Core Analysis] Perform multiple comparison correction on the resulting P-values to identify significantly active miRNAs
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIRAGE {
+process BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mirage"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mirage:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mirage:1.48.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mirage_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mirage_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mirage_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MiRaGE)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(MiRaGE)
+        library(Biobase)
+        
+        # 1. Load the gene expression data and format it into an ExpressionSet object
+        # Read the user input file from the working directory
+        x_gene <- read.csv("x_all_7a.csv", sep="\t")
+        
+        # Construct the ExpressionSet object with required metadata
+        gene_exp <- new("ExpressionSet", exprs=data.matrix(x_gene[,-1]))
+        fData(gene_exp)[["gene_id"]] <- x_gene[,1]
+        pData(gene_exp)[["sample_name"]] <- colnames(x_gene)[-1]
+        
+        # 2. Run the MiRaGE analysis to compute P-values for miRNA target regulation
+        result <- MiRaGE(gene_exp, location="web", species="HS")
+        
+        # 3. Perform multiple comparison correction on the resulting P-values
+        p_adj <- p.adjust(result\$P1[,2], method="BH")
+        sig_mirnas <- result\$P1[,1][p.adjust(result\$P1[,2], method="BH")<0.05]
+        
+        # Write outputs
+        # Save the raw results for both P0 (upregulation) and P1 (downregulation)
+        write.csv(result\$P0, "mirage_P0_upregulation.csv", row.names=FALSE)
+        write.csv(result\$P1, "mirage_P1_downregulation.csv", row.names=FALSE)
+        
+        # Save adjusted P-values summary for downregulation (P1)
+        p1_summary <- data.frame(
+          miRNA = result\$P1[,1],
+          P_value = result\$P1[,2],
+          Adjusted_P_value = p_adj
+        )
+        write.csv(p1_summary, "mirage_P1_adjusted_results.csv", row.names=FALSE)
+        
+        # Save the list of significantly active miRNAs (adjusted P < 0.05)
+        writeLines(as.character(sig_mirnas), "significant_active_mirnas.txt")
+        
+        # Save the complete result object as an RDS file
+        saveRDS(result, "mirage_results.rds")
 
-    # --- Data [] ---
-    # Key functions: MiRaGE
-    library(MiRaGE)
-    data(gene_exp)
-    library(Biobase)
-    result <- MiRaGE(gene_exp,species="HS")
-    # --- Unevaluatedcode [] ---
-    # Key functions: MiRaGE
-    ## result <- MiRaGE(gene_exp,location="web",species="HS")
-    # --- Data [] ---
-    # Key functions: data
-    data(gene_exp)
-    gene_exp
-    # --- Csv [] ---
-    # Key functions: csv
-    x_gene <- read.csv(system.file("extdata/x_all_7a.csv",package="MiRaGE"),sep="\t")
-    x_gene[101:103,]
-    # --- Data [] ---
-    # Key functions: data
-    require(humanStemCell)
-    data(fhesc)
-    # --- Pdata [] ---
-    # Key functions: pData, fData, exprs
-    pData(fhesc)[["sample_name"]] <- c("neg.1","neg.2","neg.3",
-    "pos.1","pos.2","pos.3")
-    fData(fhesc)[["gene_id"]] <-rownames(exprs(fhesc))
-    # --- Mirage [] ---
-    # Key functions: MiRaGE
-    require(MiRaGE)
-    result <- MiRaGE(fhesc,species="HS",ID="affy_hg_u133a_2")
-    # --- Data [] ---
-    # Key functions: data
-    require(beadarrayExampleData)
-    data(exampleBLData)
-    data(exampleSummaryData)
-    # --- Fdata [] ---
-    # Key functions: fData, pData, MiRaGE
-    vv <- exampleSummaryData[,1:12]
-     fData(vv)[["gene_id"]] <- fData(exampleSummaryData)[["IlluminaID"]]
-     pData(vv)[["sample_name"]] <- c("neg.1","neg.2","neg.3","neg.4",
-    "neg.5","neg.6","brain.1","brain.2","brain.3","brain.4","brain.5","brain.6")
-    result <- MiRaGE(vv,species="HS",ID="illumina_humanwg_6_v3")
-    # --- Mirage [] ---
-    # Key functions: MiRaGE
-    ## result <- MiRaGE(...,species_force=F)
-    # --- Data [] ---
-    # Key functions: MiRaGE
-    library(MiRaGE)
-    data(gene_exp)
-    library(Biobase)
-    result <- MiRaGE(gene_exp,species="HS")
-    # --- Unevaluatedcode [] ---
-    # Key functions: id_conv_gen
-    ## id_conv_gen(SP="MM")
-    # --- Adjust [] ---
-    # Key functions: adjust
-    p.adjust(result$P1[,2],method="BH")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mirage_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mirage_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mirage_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIRAGE:", paste0("    mirage: ", packageVersion("MiRaGE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE":',
+        paste0('    MiRaGE: ', as.character(packageVersion('MiRaGE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mirage_results.csv
-    touch ${prefix}_mirage_output.rds
-    echo "BIOC_MIRAGE:" > versions.yml
-    echo "    mirage: 0.0.0" >> versions.yml
+    touch ${prefix}_mirna_regulation_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIRAGE_WORKFLOW {
+workflow BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ x_all_7a.csv ] ]
 
     main:
-    BIOC_MIRAGE(ch_input)
+    BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_MIRAGE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIRAGE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIRAGE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIRAGE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE.out.tables
+    plots    = BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE.out.plots
+    objects  = BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE.out.objects
+    versions = BIOC_MIRAGE_MIRNA_REGULATION_INFERENCE.out.versions
 }

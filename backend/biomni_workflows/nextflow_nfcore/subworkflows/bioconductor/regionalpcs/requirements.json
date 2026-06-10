@@ -1,0 +1,25 @@
+{
+  "package": "regionalpcs",
+  "requirements": [
+    "AnnotationDbi",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "dplyr",
+    "minfi",
+    "regionalpcs",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "dplyr",
+      "minfi",
+      "regionalpcs",
+      "tibble",
+      "tidyr"
+    ]
+  }
+}

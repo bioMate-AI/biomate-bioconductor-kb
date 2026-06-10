@@ -1,0 +1,20 @@
+{
+  "package": "ssize",
+  "requirements": [
+    "gdata",
+    "ssize",
+    "xtable"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gdata",
+      "ssize",
+      "xtable"
+    ],
+    "power_calculation.nf": [
+      "gdata",
+      "ssize",
+      "xtable"
+    ]
+  }
+}

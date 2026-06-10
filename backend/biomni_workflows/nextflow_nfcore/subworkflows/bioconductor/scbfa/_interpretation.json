@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: scData=The input single-cell data object, typically a SingleCellExperiment object containing raw counts ;; numFactors=The number of latent dimensions (factors) to project the gene detection matrix onto (e.g., numFactors = 2)\n- alternatives: BinaryPCA is provided as an alternative to scBFA for performing binary principal component analysis on the gene detection matrix.\n- when_to_use: Use this package when you want to perform dimensionality reduction, visualization, or cell type classification on scRNA-seq data specifically by modeling the binary gene detection pattern (whether a gene is detected or not) rather than continuous expression levels.\n- pitfalls: The documentation does not explicitly list pitfalls, but users should perform standard quality control and gene filtering (such as selecting highly variable genes) before running the models to ensure meaningful low-dimensional embeddings.",
+  "workflows": [
+    {
+      "name": "binary_factor_analysis",
+      "intent": "Perform dimensionality reduction on scRNA-seq gene detection patterns using Binary Factor Analysis (BFA).",
+      "input": [
+        "exprdata (raw counts matrix with genes as rows and cells as columns)"
+      ],
+      "stages": "1. Construct a SingleCellExperiment object from the raw count matrix ;; 2. Run the scBFA model to compute the low-dimensional embedding ;; 3. Extract the embedding matrix (ZZ) for downstream visualization or analysis",
+      "code": "sce <- SingleCellExperiment(assay = list(counts = exprdata))\nbfa_model = scBFA(scData = sce, numFactors = 2) \ndf = as.data.frame(bfa_model$ZZ)"
+    },
+    {
+      "name": "binary_pca",
+      "intent": "Perform dimensionality reduction on scRNA-seq gene detection patterns using Binary PCA.",
+      "input": [
+        "exprdata (raw counts matrix with genes as rows and cells as columns)"
+      ],
+      "stages": "1. Construct a SingleCellExperiment object from the raw count matrix ;; 2. Run the BinaryPCA model to compute the principal components ;; 3. Extract the low-dimensional coordinates (x) for downstream visualization or analysis",
+      "code": "sce <- SingleCellExperiment(assay = list(counts = exprdata))\nbpca = BinaryPCA(scData = sce) \ndf = as.data.frame(bpca$x[,c(1:2)])"
+    }
+  ]
+}

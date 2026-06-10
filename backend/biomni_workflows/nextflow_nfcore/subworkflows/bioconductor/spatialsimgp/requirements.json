@@ -1,0 +1,15 @@
+{
+  "package": "spatialsimgp",
+  "requirements": [
+    "SpatialExperiment",
+    "ggplot2",
+    "spatialSimGP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "ggplot2",
+      "spatialSimGP"
+    ]
+  }
+}

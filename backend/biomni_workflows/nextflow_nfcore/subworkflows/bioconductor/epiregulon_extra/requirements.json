@@ -1,0 +1,19 @@
+{
+  "package": "epiregulon_extra",
+  "requirements": [
+    "S4Vectors",
+    "SingleCellExperiment",
+    "epiregulon",
+    "epiregulon.extra",
+    "epiregulon_extra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "SingleCellExperiment",
+      "epiregulon",
+      "epiregulon.extra",
+      "epiregulon_extra"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "mircomp",
+  "requirements": [
+    "miRcomp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "miRcomp"
+    ]
+  }
+}

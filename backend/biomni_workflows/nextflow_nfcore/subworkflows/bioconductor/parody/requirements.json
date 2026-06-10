@@ -1,0 +1,14 @@
+{
+  "package": "parody",
+  "requirements": [
+    "parody"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "parody"
+    ],
+    "multivariate_outlier_detection.nf": [
+      "parody"
+    ]
+  }
+}

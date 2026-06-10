@@ -1,117 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SeqGate
-// Filtering of lowly expressed features (e.g. genes) is a common step before performing statistical an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SeqGate/inst/doc/Seqgate-html-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SeqGate")
+// Bioconductor workflow: SeqGate — seqgate_filtering
+// Filter lowly expressed features from a transcriptomics count dataset using replicate-based thresholding.
+// Input: counts_matrix.csv, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-seqgate:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SeqGate, SummarizedExperiment
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the SeqGate package and prepare the SummarizedExperiment object from the count matrix and condition metadata
+//  * 2. [Core Analysis] Apply the SeqGate filtering method using applySeqGate with default parameters
+//  * 3. [Core Analysis] Extract the kept features and the applied threshold
+//  * 4. [Core Analysis] Optionally apply SeqGate with custom parameters (prop0, percentile, propUpThresh) to refine filtering
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEQGATE {
+process BIOC_SEQGATE_SEQGATE_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seqgate"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seqgate:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seqgate:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seqgate_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seqgate_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seqgate_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(SeqGate)
-    library(DataFrame)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Basic Filtering [] ---
-    # Key functions: applySeqGate
-    counts_strub <- applySeqGate(
-        counts_strub,
-        assayName = "counts",
-        colName = "Conditions"
-    )
-
-
-    # --- Custom Filtering [] ---
-    # Key functions: applySeqGate
-    counts_strub_custom <- applySeqGate(
-        counts_strub,
-        assayName = "counts",
-        colName = "Conditions",
-        prop0 = 1/3,
-        percentile = 0.8,
-        propUpThresh = 0.5
-    )
-
-
-    # --- Feature Extraction [] ---
-    # Key functions: assay, rowData, metadata
-    kept_genes <- assay(
-        counts_strub[rowData(counts_strub)$onFilter == TRUE, ]
-    )
-    filtered_out <- assay(
-        counts_strub[rowData(counts_strub)$onFilter == FALSE, ]
-    )
-    gate_threshold <- metadata(counts_strub)$threshold
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seqgate_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seqgate_results.csv")
+    
+    # 1. Read User Input Files
+    if (!file.exists("counts_matrix.csv")) {
+      stop("Error: 'counts_matrix.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seqgate_output.rds")
+    if (!file.exists("sample_metadata.csv")) {
+      stop("Error: 'sample_metadata.csv' not found in the working directory.")
     }
+    
+    counts_data <- read.csv("counts_matrix.csv", row.names = 1, check.names = FALSE)
+    metadata_data <- read.csv("sample_metadata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align counts and metadata columns/rows
+    common_samples <- intersect(colnames(counts_data), rownames(metadata_data))
+    if (length(common_samples) == 0) {
+      # Try matching if sample names are in a column instead of row names
+      for (col in colnames(metadata_data)) {
+        if (any(colnames(counts_data) %in% metadata_data[[col]])) {
+          rownames(metadata_data) <- metadata_data[[col]]
+          break
+        }
+      }
+      common_samples <- intersect(colnames(counts_data), rownames(metadata_data))
+    }
+    
+    if (length(common_samples) == 0) {
+      stop("Error: No matching sample identifiers found between counts_matrix.csv and sample_metadata.csv.")
+    }
+    
+    counts_data <- counts_data[, common_samples, drop = FALSE]
+    metadata_data <- metadata_data[common_samples, , drop = FALSE]
+    
+    # Identify the biological conditions column
+    cond_col <- "Conditions"
+    if (!cond_col %in% colnames(metadata_data)) {
+      potential_cols <- grep("cond|group|treatment|class", colnames(metadata_data), ignore.case = TRUE, value = TRUE)
+      if (length(potential_cols) > 0) {
+        cond_col <- potential_cols[1]
+      } else {
+        cond_col <- colnames(metadata_data)[1]
+      }
+    }
+    
+    cond <- metadata_data[[cond_col]]
+    
+    # 2. Prepare the SummarizedExperiment Object
+    rowData <- DataFrame(row.names = rownames(counts_data))
+    colData <- DataFrame(Conditions = cond, row.names = colnames(counts_data))
+    counts_strub <- SummarizedExperiment(
+                      assays = list(counts = as.matrix(counts_data)),
+                      rowData = rowData,
+                      colData = colData)
+    
+    # 3. Apply SeqGate Filtering with Default Parameters
+    counts_strub_default <- applySeqGate(counts_strub, "counts", "Conditions")
+    
+    # Extract results for default run
+    keptGenes_default <- assay(counts_strub_default[rowData(counts_strub_default)\$onFilter == TRUE,])
+    thresh_default <- metadata(counts_strub_default)\$threshold
+    filteredOut_default <- assay(counts_strub_default[rowData(counts_strub_default)\$onFilter == FALSE,])
+    
+    # Write default outputs
+    write.csv(as.data.frame(keptGenes_default), "kept_genes_default.csv", row.names = TRUE)
+    write.csv(as.data.frame(filteredOut_default), "filtered_genes_default.csv", row.names = TRUE)
+    writeLines(as.character(thresh_default), "threshold_default.txt")
+    
+    # 4. Apply SeqGate Filtering with Custom Parameters
+    counts_strub_custom <- applySeqGate(counts_strub, "counts", "Conditions",
+                                        prop0 = 1/3,
+                                        percentile = 0.8,
+                                        propUpThresh = 0.5)
+    
+    # Extract results for custom run
+    keptGenes_custom <- assay(counts_strub_custom[rowData(counts_strub_custom)\$onFilter == TRUE,])
+    thresh_custom <- metadata(counts_strub_custom)\$threshold
+    filteredOut_custom <- assay(counts_strub_custom[rowData(counts_strub_custom)\$onFilter == FALSE,])
+    
+    # Write custom outputs
+    write.csv(as.data.frame(keptGenes_custom), "kept_genes_custom.csv", row.names = TRUE)
+    write.csv(as.data.frame(filteredOut_custom), "filtered_genes_custom.csv", row.names = TRUE)
+    writeLines(as.character(thresh_custom), "threshold_custom.txt")
+    
+    # Save the final SummarizedExperiment object
+    saveRDS(counts_strub_custom, "counts_strub_final.rds")
+    
+    cat("SeqGate filtering completed successfully.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEQGATE:", paste0("    seqgate: ", packageVersion("SeqGate"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SEQGATE_SEQGATE_FILTERING":',
+        paste0('    SeqGate: ', as.character(packageVersion('SeqGate')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seqgate_results.csv
-    touch ${prefix}_seqgate_output.rds
-    echo "BIOC_SEQGATE:" > versions.yml
-    echo "    seqgate: 0.0.0" >> versions.yml
+    touch ${prefix}_seqgate_filtering.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEQGATE_WORKFLOW {
+workflow BIOC_SEQGATE_SEQGATE_FILTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts_matrix.csv, sample_metadata.csv ] ]
 
     main:
-    BIOC_SEQGATE(ch_input)
+    BIOC_SEQGATE_SEQGATE_FILTERING(ch_input)
 
     emit:
-    results  = BIOC_SEQGATE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEQGATE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEQGATE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEQGATE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEQGATE_SEQGATE_FILTERING.out.tables
+    plots    = BIOC_SEQGATE_SEQGATE_FILTERING.out.plots
+    objects  = BIOC_SEQGATE_SEQGATE_FILTERING.out.objects
+    versions = BIOC_SEQGATE_SEQGATE_FILTERING.out.versions
 }

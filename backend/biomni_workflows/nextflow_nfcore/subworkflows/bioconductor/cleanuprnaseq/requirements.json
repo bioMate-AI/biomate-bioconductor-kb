@@ -1,0 +1,25 @@
+{
+  "package": "cleanuprnaseq",
+  "requirements": [
+    "Biostrings",
+    "CleanUpRNAseq",
+    "GenomeInfoDb",
+    "GenomicRanges",
+    "R.utils",
+    "ensembldb",
+    "ggplotify",
+    "patchwork"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "CleanUpRNAseq",
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "R.utils",
+      "ensembldb",
+      "ggplotify",
+      "patchwork"
+    ]
+  }
+}

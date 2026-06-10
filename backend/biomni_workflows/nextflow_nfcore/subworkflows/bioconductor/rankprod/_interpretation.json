@@ -1,0 +1,57 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=Matrix or data frame containing expression data where rows are features and columns are samples ;; cl=Vector of class labels (0 and 1 for two-class, or all 1s for one-class/paired/ratio data) ;; origin=Vector of origin labels (1 to L) indicating the source laboratory or batch for multi-origin datasets ;; logged=Logical indicating if the input data is already log-transformed (default is TRUE) ;; gene.names=Vector of gene or feature names to be displayed in the output ;; plot=Logical to control the graphical display of estimated pfp vs. number of identified genes ;; rand=Integer setting the random seed for reproducible permutation/pairing results ;; calculateProduct=Logical; if TRUE (default), performs Rank Product (RP) analysis; if FALSE, performs Rank Sum (RS) analysis ;; cutoff=The pfp or p-value threshold used to select significant features ;; method=Selection criterion in topGene, either \"pfp\" (percentage of false prediction, default) or \"pval\" (p-value) ;; num.gene=The number of top genes to identify if cutoff is not specified\n- alternatives: SAM (from siggenes package)=Mentioned as having identical input arguments (data and cl) for two-class analysis ;; limma=Mentioned as an alternative for cDNA arrays that explicitly handles complex designs like dye swaps, whereas RankProd simplifies these designs ;; vsn=Mentioned and used for variance stabilization and normalization of cDNA and metabolomics data prior to RankProd analysis\n- when_to_use: Use when identifying differentially expressed genes or metabolites across replicated experiments under weak assumptions (e.g., only a minority of features change, measurements are independent, and variance is roughly equal) ;; Use when combining datasets from different origins (e.g., different laboratories or drug dosages) where raw values are not directly comparable ;; Use when looking for features with consistent up- or down-regulation, or complex rank-based patterns (e.g., up in one condition and down in another)\n- pitfalls: Inputting non-log-transformed data without setting logged=FALSE ;; Failing to apply variance stabilization (like vsn) to metabolomics data where the equal variance assumption is violated ;; Calling topGene without specifying either cutoff or num.gene, which results in an error ;; Relying on the old unpaired procedure which had a higher False Discovery Rate (the package now defaults to a more principled random pairing approach)",
+  "workflows": [
+    {
+      "name": "single_origin_analysis",
+      "intent": "Identify differentially expressed genes from a single-origin dataset using the Rank Product method.",
+      "input": [
+        "normalized_expression_matrix.tsv (RMA or normalized expression matrix)",
+        "class_labels.txt (Vector of class labels, e.g., 0 for control and 1 for treatment)"
+      ],
+      "stages": "1. Run RankProducts to perform the Rank Product analysis ;; 2. Plot the estimated pfp vs. number of identified genes using plotRP ;; 3. Extract significant up- and down-regulated genes using topGene.",
+      "code": "RP.out <- RankProducts(arab.sub,arab.cl.sub, logged=TRUE,\nna.rm=FALSE,plot=FALSE,  rand=123)\nplotRP(RP.out, cutoff=0.05)\ntopGene(RP.out,cutoff=0.05,method=\"pfp\",\nlogged=TRUE,logbase=2,gene.names=arab.gnames)"
+    },
+    {
+      "name": "multi_origin_analysis",
+      "intent": "Combine datasets from multiple laboratories or origins to perform an overall differential expression analysis.",
+      "input": [
+        "multi_origin_expression_matrix.tsv (Combined expression matrix)",
+        "class_labels.txt (Vector of class labels across all samples)",
+        "origin_labels.txt (Vector of origin labels indicating sample source)"
+      ],
+      "stages": "1. Run RP.advance to perform multi-origin Rank Product analysis ;; 2. Plot the estimated pfp vs. number of identified genes using plotRP ;; 3. Extract significant genes across all origins using topGene.",
+      "code": "RP.adv.out <-  RP.advance(arab,arab.cl,arab.origin,\nlogged=TRUE,gene.names=arab.gnames,rand=123)\nplotRP(RP.adv.out, cutoff=0.05)\ntopGene(RP.adv.out,cutoff=0.05,method=\"pfp\",logged=TRUE,logbase=2,\n        gene.names=arab.gnames)"
+    },
+    {
+      "name": "cdna_common_reference",
+      "intent": "Identify differentially expressed genes from cDNA microarray data using a common reference design.",
+      "input": [
+        "cdna_intensities.tsv (Matrix containing red and green intensities for reference and sample channels)"
+      ],
+      "stages": "1. Normalize intensities (e.g., using vsn) ;; 2. Calculate log-ratios by subtracting reference intensities from sample intensities ;; 3. Run RankProducts on the log-ratios with class labels ;; 4. Extract significant genes using topGene.",
+      "code": "refrs <- (1:8)*2-1\nsamps <- (1:8)*2\nM <- lym.exp[,samps]-lym.exp[,refrs]\ncl <- c(rep(0,4),rep(1,4))\nRP.out <- RankProducts(M,cl, logged=TRUE, rand=123)\ntopGene(RP.out,cutoff=0.05,logged=TRUE,logbase=exp(1))"
+    },
+    {
+      "name": "metabolomics_rank_sum",
+      "intent": "Identify differentially expressed metabolites from LC/MS data using the Rank Sum method.",
+      "input": [
+        "metabolite_intensity_matrix.tsv (Basepeak intensity matrix of identified metabolites)",
+        "class_labels.txt (Vector of class labels for spiked/control samples)"
+      ],
+      "stages": "1. Normalize and stabilize variance of the intensity matrix (e.g., using vsn) ;; 2. Run RankProducts with calculateProduct=FALSE to perform Rank Sum analysis ;; 3. Extract significant metabolites using topGene.",
+      "code": "RS.apples<-RankProducts(apples.data.vsn, apples.cl,\n                        gene.names = rownames(apples.data.vsn), \n                        calculateProduct = FALSE, rand=123)\ntopGene(RS.apples,cutoff = 0.05, method = \"pfp\",\n        gene.names = rownames(apples.data.vsn))\nselected <- which(RS.apples$pfp[,1]<= 0.05)"
+    },
+    {
+      "name": "multi_condition_contrast",
+      "intent": "Simultaneously identify genes up-regulated under one condition and down-regulated under another by switching class labels.",
+      "input": [
+        "multi_origin_expression_matrix.tsv (Expression matrix from two origins/conditions)",
+        "class_labels.txt (Vector of class labels)",
+        "origin_labels.txt (Vector of origin labels)"
+      ],
+      "stages": "1. Modify class labels for one of the origins to invert the comparison direction ;; 2. Run RP.advance with calculateProduct=FALSE to perform Rank Sum analysis ;; 3. Extract significant genes using topGene ;; 4. Plot the results using plotRP.",
+      "code": "arab.cl2 <- arab.cl\narab.cl2[arab.cl==0 &arab.origin==2] <- 1\narab.cl2[arab.cl==1 &arab.origin==2] <- 0\nRsum.adv.out <- RP.advance(arab,arab.cl2,arab.origin,calculateProduct=FALSE,\nlogged=TRUE,gene.names=arab.gnames,rand=123)\ntopGene(Rsum.adv.out,cutoff=0.05,gene.names=arab.gnames)\nplotRP(Rsum.adv.out,cutoff=0.05)"
+    }
+  ]
+}

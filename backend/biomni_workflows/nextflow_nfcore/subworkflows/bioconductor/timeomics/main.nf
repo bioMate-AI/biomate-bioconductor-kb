@@ -1,166 +1,163 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: timeOmics
-// timeOmics is a generic data-driven framework to integrate multi-Omics longitudinal data measured on 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/timeOmics/inst/doc/vignette.R
-// Upstream  : tidyverse
-// Downstream: none
-//
-// Install: BiocManager::install("timeOmics")
+// Bioconductor workflow: timeOmics — single_omic_longitudinal_clustering
+// Model and cluster longitudinal features from a single omics dataset to find groups of features with similar temporal profiles.
+// Input: sim.data, time
+// Container: quay.io/biocontainers/bioconductor-timeomics:1.22.0--r45h575d39b_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: lmms, mixOmics, timeOmics
+// Visualizations: PCA plot, cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter low-variation features using a coefficient of variation threshold
+//  * 2. [Core Analysis] Model features as a function of time using linear mixed model splines
+//  * 3. [Core Analysis] Filter out noisy or straight-line profiles
+//  * 4. [Core Analysis] Perform PCA and optimize the number of components
+//  * 5. [Visualization & Output] Extract clusters and plot longitudinal profiles
+//  * 6. [Core Analysis] Optimize feature selection using sparse PCA to identify a cluster signature
 
 nextflow.enable.dsl = 2
 
-process BIOC_TIMEOMICS {
+process BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-timeomics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-timeomics:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-timeomics:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_timeomics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_timeomics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_timeomics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(timeOmics)
-    library(jsonlite)
-
-    # --- Longitudinal PCA [] ---
-    # Key functions: pca, getNcomp, getCluster, plotLong
-    pca.res <- pca(
-        X = profile.filtered, ncomp = 5,
-        scale = FALSE, center = FALSE
-    )
-    pca.ncomp <- getNcomp(
-        pca.res, max.ncomp = 5, X = profile.filtered,
-        scale = FALSE, center = FALSE
-    )
-    pca.final <- pca(
-        X = profile.filtered, ncomp = pca.ncomp$choice.ncomp,
-        scale = FALSE, center = FALSE
-    )
-    pca.cluster <- getCluster(pca.final)
-    plotLong(pca.final, scale = FALSE, center = FALSE)
-
-
-    # --- Sparse PCA Feature Selection [] ---
-    # Key functions: tuneCluster.spca, spca, getCluster, plotLong
-    tune.spca.res <- tuneCluster.spca(
-        X = profile.filtered, ncomp = 2,
-        test.keepX = c(2:10)
-    )
-    spca.res <- spca(
-        X = profile.filtered, ncomp = 2,
-        keepX = tune.spca.res$choice.keepX, scale = FALSE
-    )
-    spca.cluster <- getCluster(spca.res)
-    plotLong(spca.res)
-
-
-    # --- Partial Least Squares Integration [] ---
-    # Key functions: pls, getNcomp, getCluster, plotLong
-    Y <- timeOmics.simdata$Y
-    pls.res <- pls(profile.filtered, Y, ncomp = 5, scale = FALSE)
-    pls.ncomp <- getNcomp(
-        pls.res, max.ncomp = 5, X = profile.filtered,
-        Y = Y, scale = FALSE
-    )
-    pls.final <- pls(
-        profile.filtered, Y, ncomp = pls.ncomp$choice.ncomp,
-        scale = FALSE
-    )
-    pls.cluster <- getCluster(pls.final)
-    plotLong(pls.final, title = "PLS longitudinal clustering")
-
-
-    # --- Sparse PLS Integration [] ---
-    # Key functions: tuneCluster.spls, spls, getCluster, plotLong
-    Y <- timeOmics.simdata$Y
-    tune.spls <- tuneCluster.spls(
-        profile.filtered, Y, ncomp = 2,
-        test.keepX = c(4:10), test.keepY = c(2,4,6)
-    )
-    spls.res <- spls(
-        profile.filtered, Y, ncomp = 2, scale = FALSE,
-        keepX = tune.spls$choice.keepX, keepY = tune.spls$choice.keepY
-    )
-    spls.cluster <- getCluster(spls.res)
-    plotLong(spls.res, title = "sPLS clustering")
-
-
-    # --- Multi-Omics Block PLS [] ---
-    # Key functions: block.pls, getNcomp, getCluster, plotLong
-    X_list <- list("X" = profile.filtered, "Z" = timeOmics.simdata$Z)
-    Y_mat <- as.matrix(timeOmics.simdata$Y)
-    block.pls.res <- block.pls(
-        X = X_list, Y = Y_mat, ncomp = 5,
-        scale = FALSE, mode = "canonical"
-    )
-    block.ncomp <- getNcomp(
-        block.pls.res, X = X_list, Y = Y_mat,
-        scale = FALSE, mode = "canonical"
-    )
-    block.final <- block.pls(
-        X = X_list, Y = Y_mat, ncomp = block.ncomp$choice.ncomp,
-        scale = FALSE, mode = "canonical"
-    )
-    block.cluster <- getCluster(block.final)
-    plotLong(block.final)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_timeomics_results.csv", row.names = TRUE)
+    library(mixOmics)
+    library(lmms)
+    
+    # Read user input files from the working directory
+    if (file.exists("sim.data.rds")) {
+      sim.data <- readRDS("sim.data.rds")
+    } else if (file.exists("sim.data.csv")) {
+      sim.data <- as.matrix(read.csv("sim.data.csv", row.names = 1))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_timeomics_results.csv")
+      stop("Error: 'sim.data' (RDS or CSV) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_timeomics_output.rds")
+    
+    if (file.exists("time.rds")) {
+      time <- readRDS("time.rds")
+    } else if (file.exists("time.csv")) {
+      time <- as.numeric(unlist(read.csv("time.csv", header = FALSE)))
+    } else {
+      stop("Error: 'time' (RDS or CSV) not found in the working directory.")
     }
+    
+    # Stage 1: Filtering
+    remove.low.cv <- function(X, cutoff = 0.5){
+      # var.coef
+      cv <- unlist(lapply(as.data.frame(X), function(x) abs(sd(x)/mean(x))))
+      return(X[,cv > cutoff])
+    }
+    data.filtered <- remove.low.cv(sim.data, 0.5)
+    
+    # Stage 2: LMMS modeling
+    lmms.output <- lmms::lmmSpline(data = data.filtered, time = time,
+                                   sampleID = rownames(data.filtered), deri = FALSE,
+                                   basis = "p-spline", numCores = 1, timePredict = sort(unique(time)),
+                                   keepModels = TRUE)
+    
+    # Stage 3: Profile filtering
+    filter.res <- lmms.filter.lines(data = data.filtered, lmms.obj = lmms.output, time = time)
+    profile.filtered <- filter.res\$filtered
+    
+    # Stage 4: PCA
+    pca.res <- pca(X = profile.filtered, ncomp = 5, scale = FALSE, center = FALSE)
+    pca.ncomp <- getNcomp(pca.res, max.ncomp = 5, X = profile.filtered, scale = FALSE, center = FALSE)
+    
+    # Use the optimized ncomp from getNcomp
+    opt.ncomp <- pca.ncomp\$choice.ncomp
+    
+    pca.res <- pca(X = profile.filtered, ncomp = opt.ncomp, scale = FALSE, center = FALSE)
+    pca.cluster <- getCluster(pca.res)
+    
+    # Save PCA longitudinal clustering plot
+    pdf("pca_longitudinal_clustering.pdf")
+    plotLong(pca.res, scale = FALSE, center = FALSE, title = "PCA longitudinal clustering")
+    dev.off()
+    
+    # Stage 5 & 6: sparse PCA
+    # Dynamically set test.keepX based on the number of features available
+    max_k <- min(10, ncol(profile.filtered))
+    test.keepX.vals <- if (max_k >= 2) 2:max_k else max_k
+    
+    tune.spca.res <- tuneCluster.spca(X = profile.filtered, ncomp = opt.ncomp, test.keepX = test.keepX.vals)
+    spca.res <- spca(X = profile.filtered, ncomp = opt.ncomp, keepX = tune.spca.res\$choice.keepX, scale = FALSE)
+    spca.cluster <- getCluster(spca.res)
+    
+    # Save sPCA longitudinal clustering plot
+    pdf("spca_longitudinal_clustering.pdf")
+    plotLong(spca.res, title = "sPCA clustering")
+    dev.off()
+    
+    # Save additional outputs
+    write.csv(pca.cluster, "pca_clusters.csv", row.names = FALSE)
+    write.csv(spca.cluster, "spca_clusters.csv", row.names = FALSE)
+    
+    saveRDS(pca.res, "pca_res.rds")
+    saveRDS(pca.ncomp, "pca_ncomp.rds")
+    saveRDS(tune.spca.res, "tune_spca.rds")
+    saveRDS(spca.res, "spca_res.rds")
+    
+    # Save PCA ncomp plot
+    pdf("pca_ncomp_plot.pdf")
+    plot(pca.ncomp)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TIMEOMICS:", paste0("    timeomics: ", packageVersion("timeOmics"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING":',
+        paste0('    timeOmics: ', as.character(packageVersion('timeOmics')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_timeomics_results.csv
-    touch ${prefix}_timeomics_output.rds
-    echo "BIOC_TIMEOMICS:" > versions.yml
-    echo "    timeomics: 0.0.0" >> versions.yml
+    touch ${prefix}_single_omic_longitudinal_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_TIMEOMICS_WORKFLOW {
+workflow BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sim.data, time ] ]
 
     main:
-    BIOC_TIMEOMICS(ch_input)
+    BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_TIMEOMICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TIMEOMICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TIMEOMICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TIMEOMICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING.out.tables
+    plots    = BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING.out.plots
+    objects  = BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING.out.objects
+    versions = BIOC_TIMEOMICS_SINGLE_OMIC_LONGITUDINAL_CLUSTERING.out.versions
 }

@@ -4,6 +4,8 @@
 // Perform quality control on Ribo-Seq BAM files, estimate the P-site offset, and check reading frame alignment.
 // Input: bamfile, txdb, genome
 // Container: quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0
+// R packages: Biostrings, Rsamtools, AnnotationDbi, AnnotationHub, biocmanager, ChIPpeakAnno, GenomicFeatures, ribosomeProfilingQC
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("Biostrings", "Rsamtools", "annotationdbi", "annotationhub", "biocmanager", "chippeakanno", "genomicfeatures", "ribosomeprofilingqc")
+    .bm_deps <- c("Biostrings", "Rsamtools", "AnnotationDbi", "AnnotationHub", "biocmanager", "ChIPpeakAnno", "GenomicFeatures", "ribosomeProfilingQC")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -58,7 +70,7 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
       if (file.exists("bamfile.bam")) {
         bamfilename <- "bamfile.bam"
       } else {
-        bam_files <- list.files(pattern = "\\.bam\$")
+        bam_files <- list.files(pattern = "\\\\.bam\$")
         if (length(bam_files) > 0) {
           bamfilename <- bam_files[1]
         } else {
@@ -69,7 +81,7 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     message("Using BAM file: ", bamfilename)
     
     # Ensure BAM index exists
-    if (!file.exists(paste0(bamfilename, ".bai")) && !file.exists(sub("\\.bam\$", ".bai", bamfilename))) {
+    if (!file.exists(paste0(bamfilename, ".bai")) && !file.exists(sub("\\\\.bam\$", ".bai", bamfilename))) {
       message("BAM index not found. Creating index...")
       Rsamtools::indexBam(bamfilename)
     }
@@ -90,9 +102,9 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
       txdb <- AnnotationDbi::loadDb("txdb.sqlite")
     }
     if (is.null(txdb)) {
-      db_files <- list.files(pattern = "\\.(sqlite|sqlite3|db|rds)\$")
+      db_files <- list.files(pattern = "\\\\.(sqlite|sqlite3|db|rds)\$")
       for (f in db_files) {
-        obj <- tryCatch(if (grepl("\\.rds\$", f)) readRDS(f) else AnnotationDbi::loadDb(f), error = function(e) NULL)
+        obj <- tryCatch(if (grepl("\\\\.rds\$", f)) readRDS(f) else AnnotationDbi::loadDb(f), error = function(e) NULL)
         if (!is.null(obj) && (inherits(obj, "TxDb") || inherits(obj, "GenomicFeatures"))) {
           txdb <- obj
           break
@@ -116,13 +128,13 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
       genome <- readRDS("genome.rds")
     }
     if (is.null(genome)) {
-      fa_files <- list.files(pattern = "\\.(fa|fasta|fna)\$")
+      fa_files <- list.files(pattern = "\\\\.(fa|fasta|fna)\$")
       if (length(fa_files) > 0) {
         genome <- Biostrings::readDNAStringSet(fa_files[1])
       }
     }
     if (is.null(genome)) {
-      rds_files <- list.files(pattern = "\\.rds\$")
+      rds_files <- list.files(pattern = "\\\\.rds\$")
       for (f in rds_files) {
         obj <- tryCatch(readRDS(f), error = function(e) NULL)
         if (!is.null(obj) && (inherits(obj, "BSgenome") || inherits(obj, "DNAStringSet"))) {

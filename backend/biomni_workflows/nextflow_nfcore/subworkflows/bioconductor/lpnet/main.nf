@@ -1,120 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: lpNet
-// lpNet aims at infering biological networks, in particular signaling and gene networks. For that it t
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/lpNet/inst/doc/vignette_lpNet.R
-// Upstream  : KEGGgraph
-// Downstream: none
-//
-// Install: BiocManager::install("lpNet")
+// Bioconductor workflow: lpNet — steady_state_network_inference
+// Infer a signaling network from steady-state perturbation data using integer linear programming.
+// Input: expression_matrix.csv, perturbation_design.csv
+// Container: quay.io/biocontainers/bioconductor-lpnet:2.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: lpNet
+// Visualizations: image plot, heatmap, network plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define network size and perturbation vector
+//  * 2. [Core Analysis] Compute delta thresholds
+//  * 3. [Core Analysis] Generate edge annotations using getEdgeAnnot
+//  * 4. [Core Analysis] Run ILP network reconstruction using doILP
+//  * 5. [Core Analysis] Convert the LP result to an adjacency matrix using getAdja
 
 nextflow.enable.dsl = 2
 
-process BIOC_LPNET {
+process BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-lpnet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-lpnet:2.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-lpnet:2.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_lpnet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_lpnet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_lpnet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(lpNet)
-    library(jsonlite)
-
-    # --- Network Inference via ILP [] ---
-    # Key functions: doILP, getAdja, getEdgeAnnot
-    res1 <- doILP(obs, delta, lambda = 1, b, n, K, T_ = NULL,
-                  annot = annot, delta_type)
+    
+    # Read user input files
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Error: expression_matrix.csv not found in the working directory.")
+    }
+    if (!file.exists("perturbation_design.csv")) {
+      stop("Error: perturbation_design.csv not found in the working directory.")
+    }
+    
+    obs_df <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    obs <- as.matrix(obs_df)
+    
+    b_df <- read.csv("perturbation_design.csv", row.names = 1, check.names = FALSE)
+    
+    # Validate dimensions
+    if (nrow(b_df) != nrow(obs) || ncol(b_df) != ncol(obs)) {
+      stop("Error: Dimensions of expression_matrix.csv and perturbation_design.csv do not match.")
+    }
+    
+    # 1. Define network size and perturbation vector
+    n <- nrow(obs) # number of genes
+    K <- ncol(obs) # number of perturbation experiments
+    b <- as.vector(as.matrix(b_df))
+    
+    # 2. Compute delta thresholds
+    delta <- apply(obs, 1, mean, na.rm = TRUE)
+    delta_type <- "perGene"
+    
+    # 3 & 4. Generate edge annotations using getEdgeAnnot and run ILP network reconstruction using doILP
+    res1 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,
+                  annot=getEdgeAnnot(n), delta_type)
+    
+    # 5. Convert the LP result to an adjacency matrix using getAdja
     adja1 <- getAdja(res1, n)
-    res_pos <- doILP(obs, delta, lambda = 1, b, n, K, T_ = NULL,
-                     annot = getEdgeAnnot(n, allpos = TRUE), delta_type,
-                     all.pos = TRUE)
-    adja_pos <- getAdja(res_pos, n)
-
-
-    # --- Cross Validation and Parameter Tuning [] ---
-    # Key functions: calcRangeLambda, loocv, getSampleAdjaMAD
-    times <- 5
-    annot_node <- seq(1, n)
-    active_mu <- 1.1
-    inactive_mu <- 0.9
-    active_sd <- 0.01
-    inactive_sd <- 0.01
-    mu_type <- "single"
-    lambda_range <- calcRangeLambda(obs, delta, delta_type)
-    loocv_res <- loocv(kfold = NULL, times, obs, delta, 
-                       lambda = lambda_range[1], b, n, K, T_ = NULL, 
-                       annot = annot, annot_node, active_mu, active_sd,
-                       inactive_mu, inactive_sd, mu_type, delta_type)
-    adja_loocv <- getSampleAdjaMAD(loocv_res$edges_all, n, annot_node)
-
-
-    # --- Network Inference with Prior Knowledge [] ---
-    # Key functions: doILP, getAdja
-    prior <- list(c("w+_1_2", 1, ">", 1))
-    res_prior <- doILP(obs, delta, lambda = 1, b, n, K, T_ = NULL,
-                       annot = annot, delta_type, prior = prior,
-                       sourceNode = 1, sinkNode = 5)
-    adja_prior <- getAdja(res_prior, n)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_lpnet_results.csv", row.names = TRUE)
+    
+    # Assign gene names to the adjacency matrix for clarity
+    gene_names <- rownames(obs_df)
+    if (!is.null(gene_names)) {
+      rownames(adja1) <- gene_names
+      colnames(adja1) <- gene_names
+    }
+    
+    # Write outputs
+    write.csv(adja1, "inferred_adjacency_matrix.csv", row.names = TRUE)
+    saveRDS(res1, "ilp_result.rds")
+    
+    # Generate a PDF plot of the adjacency matrix
+    pdf("network_adjacency_heatmap.pdf", width = 6, height = 6)
+    if (!is.null(gene_names)) {
+      image(t(adja1[nrow(adja1):1, , drop = FALSE]), col = c("white", "blue"),
+            axes = FALSE, main = "Inferred Network Adjacency Matrix")
+      axis(1, at = seq(0, 1, length.out = ncol(adja1)), labels = colnames(adja1), las = 2)
+      axis(2, at = seq(0, 1, length.out = nrow(adja1)), labels = rev(rownames(adja1)), las = 2)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_lpnet_results.csv")
+      image(t(adja1[nrow(adja1):1, , drop = FALSE]), col = c("white", "blue"),
+            axes = FALSE, main = "Inferred Network Adjacency Matrix")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_lpnet_output.rds")
-    }
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LPNET:", paste0("    lpnet: ", packageVersion("lpNet"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE":',
+        paste0('    lpNet: ', as.character(packageVersion('lpNet')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_lpnet_results.csv
-    touch ${prefix}_lpnet_output.rds
-    echo "BIOC_LPNET:" > versions.yml
-    echo "    lpnet: 0.0.0" >> versions.yml
+    touch ${prefix}_steady_state_network_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_LPNET_WORKFLOW {
+workflow BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, perturbation_design.csv ] ]
 
     main:
-    BIOC_LPNET(ch_input)
+    BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_LPNET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LPNET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LPNET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LPNET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE.out.tables
+    plots    = BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE.out.plots
+    objects  = BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE.out.objects
+    versions = BIOC_LPNET_STEADY_STATE_NETWORK_INFERENCE.out.versions
 }

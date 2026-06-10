@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fcol=The feature metadata column name containing marker annotations (defaults to \"markers\") ;; times=The number of runs/replications for cross-validation or optimization (e.g., 50 or 100) ;; xval=The number of folds for cross-validation (typically 5) ;; th=An explicit weight matrix for transfer learning generated via thetas ;; k=The number of nearest neighbours to consider for KNN or kNN-TL (e.g., c(3, 3)) ;; method=The dimensionality reduction method in plot2D (e.g., \"PCA\", \"t-SNE\", \"UMAP\", \"scree\") ;; perplexity=The input parameter for t-SNE balancing global and local aspects (suggested range 5 to 50) ;; n_neighbors=The number of nearest neighbours for UMAP embedding\n- alternatives: pRolocGUI=An interactive web-based Shiny application for exploring spatial proteomics data, preferred for interactive visualization ;; TAGM-MAP / TAGM-MCMC=Bayesian generative mixture models, preferred when proteome-wide uncertainty quantitation is required ;; phenoDisco=A semi-supervised novelty detection algorithm, preferred when discovering new phenotypes/organelles from unlabelled data ;; lpsvm-tl-code repository=An external repository implementing SVM-TL, preferred if SVM-based transfer learning is specifically required as it is not yet in the main pRoloc package\n- when_to_use: Appropriate when analyzing mass-spectrometry-based spatial proteomics data (such as LOPIT, PCP, or discrete fractions) to assign proteins of unknown localization to sub-cellular niches based on their distribution profiles across fractions.\n- pitfalls: Using too low a k value (e.g., k=1) in KNN leads to over-fitting and poor generalization to new data ;; Relying on online servers for pulling auxiliary data (like GO terms via biomaRt) does not guarantee reproducibility over time, so users should save and store versioned annotations (e.g., using GO.db) ;; Empty strings in marker annotations are not treated as unknown, so the explicit tag \"unknown\" must be used for unlabelled proteins ;; Supervised LDA plots should not be used for exploratory data analysis or quality control as they maximize class separation by design, so unsupervised PCA should be used instead ;; Accuracy scores from parameter optimization only reflect performance on well-separated marker clusters, not necessarily the entire proteome",
+  "workflows": [
+    {
+      "name": "supervised_classification_svm",
+      "intent": "Optimize SVM parameters and predict protein sub-cellular localization using supervised machine learning.",
+      "input": [
+        "exprsFile.csv (quantitation data)",
+        "fdataFile.csv (feature metadata)",
+        "pdataFile.csv (sample metadata)"
+      ],
+      "stages": "1. Import quantitative and metadata files into an MSnSet object using readMSnSet or readMSnSet2 ;; 2. Normalize the expression data to sum to 1 using normalise ;; 3. Optimize SVM hyperparameters (cost and sigma) via grid search and cross-validation using svmOptimisation ;; 4. Train the classifier and predict localization of unknown proteins using svmClassification",
+      "code": "tan2009r1 <- readMSnSet(exprsFile = f1, featureDataFile = f2, phenoDataFile = f3, sep = \",\")\nitraqnorm <- normalise(itraqdata, method = \"sum\")\nparams <- svmOptimisation(tan2009r1, times = 10, xval = 5, verbose = FALSE)\ntan2009r1 <- svmClassification(tan2009r1, params)"
+    },
+    {
+      "name": "nearest_neighbour_transfer_learning",
+      "intent": "Combine primary experimental spatial proteomics data with auxiliary data (e.g., GO terms) using weighted k-nearest neighbour transfer learning to predict sub-cellular localization.",
+      "input": [
+        "primary_data.csv (primary quantitative spatial proteomics data)",
+        "auxiliary_data.csv (auxiliary annotation data, e.g., binary GO terms)"
+      ],
+      "stages": "1. Define weight combinations using thetas ;; 2. Optimize class-specific weights using knntlOptimisation ;; 3. Extract the best parameters using getParams ;; 4. Apply the optimal weights and classify unlabelled proteins using knntlClassification ;; 5. Extract predictions and scores using getPredictions",
+      "code": "th <- thetas(length(m), length.out=4)\ntopt <- knntlOptimisation(andy2011, andy2011goCC, th = th, k = c(3, 3), fcol = \"markers.tl\", times = 50)\ngetParams(topt)\nandy2011 <- knntlClassification(andy2011, andy2011goCC, bestTheta = bw, k = c(3, 3), fcol = \"markers.tl\")\nandy2011 <- getPredictions(andy2011, fcol = \"knntl\")"
+    }
+  ]
+}

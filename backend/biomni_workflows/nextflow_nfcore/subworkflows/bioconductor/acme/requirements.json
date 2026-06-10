@@ -1,0 +1,11 @@
+{
+  "package": "acme",
+  "requirements": [
+    "ACME"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ACME"
+    ]
+  }
+}

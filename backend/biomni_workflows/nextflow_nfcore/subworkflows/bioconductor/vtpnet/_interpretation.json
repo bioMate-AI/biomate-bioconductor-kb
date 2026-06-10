@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: chtag=Character string representing the chromosome (e.g., \"21\") to process in altize ;; slpack=Character string naming the SNPlocs package to load in altize ;; hgpack=Character string naming the BSgenome package to load in altize ;; faElFun=Function to generate the FASTA element name based on the chromosome tag in altize ;; faTargFun=Function to generate the target FASTA file name based on the chromosome tag in altize\n- alternatives: matchPWM from Biostrings (parallelized via foreach/doParallel) can be used to generate custom motif-match ranges instead of using pre-computed FIMO-based TFBS.\n- when_to_use: Use when investigating the regulatory impact of GWAS variants by linking them to transcription factor binding sites and phenotypes to construct bipartite VTP networks.\n- pitfalls: Matching motifs to the reference genome without SNP injection (ALT-allele injection) is potentially problematic because variants can create or destroy binding sites ;; Identification of TP links is highly sensitive to the motif matching scheme and threshold used (e.g., 75% vs 85% vs FIMO) ;; Ensure chromosome tags passed to altize do not contain \"ch\" or \"chr\" prefixes, though the function attempts to clear them with a warning.",
+  "workflows": [
+    {
+      "name": "vtp_network_construction",
+      "intent": "Intersect GWAS variants with transcription factor binding sites and filter by disease map to identify phenotype-TF links.",
+      "input": [
+        "gwas_variants.GRanges (GRanges object containing user's GWAS variants)",
+        "tf_binding_sites.GRanges (GRanges object containing transcription factor binding sites)",
+        "disease_map.RData (mapping of phenotypes to broader classes)"
+      ],
+      "stages": "1. Load GWAS variants and TF binding sites ;; 2. Find overlaps between GWAS variants and TF binding sites using overlapsAny ;; 3. Filter the GWAS variants by a disease map using filterGWASbyMap ;; 4. Identify specific hits using getOneHits",
+      "code": "data(pax4_85)\nvp_pax4_85 = maurGWAS[ overlapsAny(maurGWAS, pax4_85) ]\nlength(vp_pax4_85)\ndata(pax4_75)\nvp_pax4_75 = maurGWAS[ overlapsAny(maurGWAS, pax4_75) ]\nlength(vp_pax4_75)\ndata(cancerMap)\nrequireNamespace(\"gwascat\")\nload(system.file(\"legacy/gwrngs19.rda\", package=\"gwascat\"))\ncangw = filterGWASbyMap( gwrngs19, cancerMap )\ngetOneHits( pax4, cangw, \"fimo\" )"
+    },
+    {
+      "name": "motif_match_search",
+      "intent": "Generate custom motif-match ranges across the genome using parallelized PWM matching.",
+      "input": [
+        "motif_query.txt (character string of the transcription factor name to query in MotifDb)",
+        "reference_genome.pkg (BSgenome package for the target species)"
+      ],
+      "stages": "1. Register parallel backend using registerDoParallel ;; 2. Query MotifDb for the target transcription factor ;; 3. Run parallelized matchPWM across chromosomes ;; 4. Combine results into a single GRanges object",
+      "code": "library(foreach)\nlibrary(doParallel)\nregisterDoParallel(cores=12)\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\nlibrary(MotifDb)\nsn = seqnames(Hsapiens)[1:24]\npax4 = query(MotifDb, \"pax4\")[[1]]\nans = foreach(i=1:24) %dopar% {\n cat(i)\n subj = Hsapiens[[ sn[i] ]]\n matchPWM( pax4, subj, \"75%\" )\n}\npax4_75 = \n do.call(c, lapply(1:length(ans), function(x) \n  {GRanges(sn[x], as(ans[[x]], \"IRanges\"))}))\nsave(pax4_75, file=\"pax4_75.rda\")"
+    },
+    {
+      "name": "alt_allele_injection",
+      "intent": "Generate an ALT-allele injected FASTA genome image for a specific chromosome to enable variant-aware motif matching.",
+      "input": [
+        "chromosome_id.txt (character string of the chromosome to modify)",
+        "snps_database.pkg (SNPlocs package containing SNP locations and alleles)",
+        "reference_genome.pkg (BSgenome package containing the reference sequence)"
+      ],
+      "stages": "1. Call altize with the target chromosome tag and package names to replace reference alleles with alternative alleles and write to a FASTA file",
+      "code": "altize = function(chtag = \"21\",\n  slpack=\"SNPlocs.Hsapiens.dbSNP.20120608\",\n  hgpack =\"BSgenome.Hsapiens.UCSC.hg19\",\n  faElFun = function(x) sub(\"%%TAG%%\", x, \"alt%%TAG%%chr\"),\n  faTargFun = function(x) \n     sub(\"%%TAG%%\", x, \"alt%%TAG%%_hg19.fa\")) {\n    require(slpack, character.only=TRUE)\n    require(hgpack, character.only=TRUE)\n    require(\"ShortRead\", character.only=TRUE)\n    chk = grep(\"ch|chr\", chtag)\n    if (length(chk)>0) {\n      warning(\"clearing prefix ch or chr from chtag\")\n      chtag = gsub(\"ch|chr\", \"\", chtag)\n      }\n    snpgettag = paste0(\"ch\", chtag)\n    ggettag = paste0(\"chr\", chtag)\n    cursnps = getSNPlocs(snpgettag, as.GRanges=TRUE)\n    curgenome = unmasked(Hsapiens[[ggettag]])\n    ref_allele = \n     strsplit(as.character(curgenome[start(cursnps)]),\n        NULL, fixed=TRUE)[[1L]]\n    all_alleles = IUPAC_CODE_MAP[cursnps$alleles_as_ambig]\n    alt_alleles = mapply( function(ref,all)\n      sub(ref, \"\", all, fixed=TRUE),\n        ref_allele, all_alleles, USE.NAMES=FALSE)\n    cursnps$ref_allele = ref_allele\n    cursnps$alt_alleles = alt_alleles\n    cursnps$one_alt = substr(cursnps$alt_alleles, 1, 1)\n    altg = list(replaceLetterAt(curgenome, start(cursnps),\n      cursnps$one_alt))\n    names(altg) = faElFun(chtag)\n    writeFasta(DNAStringSet(altg), file=faTargFun(chtag))\n}"
+    }
+  ]
+}

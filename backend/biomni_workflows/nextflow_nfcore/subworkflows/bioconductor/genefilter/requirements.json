@@ -1,0 +1,21 @@
+{
+  "package": "genefilter",
+  "requirements": [
+    "Biobase",
+    "genefilter"
+  ],
+  "by_workflow": {
+    "gene_finding.nf": [
+      "Biobase",
+      "genefilter"
+    ],
+    "independent_filtering_diagnostics.nf": [
+      "Biobase",
+      "genefilter"
+    ],
+    "main.nf": [
+      "Biobase",
+      "genefilter"
+    ]
+  }
+}

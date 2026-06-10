@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: EXP=A matrix of gene expression data where rows represent genes and columns represent samples ;; trait=A matrix of external traits (e.g., clinical data or miRNA) where rows represent traits and columns represent samples (required for supervised analysis) ;; measure=The similarity metric to use, either \"MI\" (mutual information) or \"corr\" (correlation) ;; nflag=An integer flag indicating the analysis type: 1 for Unsupervised (gene-gene) or 2 for Supervised (gene-trait) ;; net.trim=The network trimming method from the minet package (e.g., \"aracne\", \"mrnet\", \"clr\") used when measure is \"MI\" ;; n.replica=The number of permutations to perform for p-value calculation (default is 400) ;; thresh=The significance threshold used to filter associations for predicting the network ;; method.permut=An integer flag (1, 2, or 3) indicating the permutation correction method for multiple hypothesis testing in supervised analysis\n- alternatives: minet=The underlying package used for mutual information computation and network trimming (mrnet/clr/aracne) ;; cor/cor.test=R built-in functions used for correlation-based similarity and exact p-value calculations\n- when_to_use: Use when you want to construct gene co-expression/association networks (unsupervised) or associate gene expression profiles with clinical/external traits (supervised) using either correlation or mutual information, with robust permutation-based p-value correction.\n- pitfalls: High computational cost: Supervised analysis with correction for both genes and traits can be slow (e.g., 2 minutes for a small 50x12 matrix) ;; Correlation limitations: When correlation (\"corr\") is used, only exact p-values are output, and some permutation-based multiple testing corrections are not applicable.",
+  "workflows": [
+    {
+      "name": "unsupervised_gene_association",
+      "intent": "Compute similarity and predict interaction networks among genes (unsupervised analysis) using mutual information.",
+      "input": [
+        "expression_matrix.csv (tabular gene expression data where rows are genes and columns are samples)"
+      ],
+      "stages": "1. Load the expression data and format it as a matrix ;; 2. Run the BUS wrapper function with nflag=1 (unsupervised), specifying the similarity measure, network trimming method, and significance threshold ;; 3. Extract the similarity matrix, single/multiple permutation p-values, and the predicted network.",
+      "code": "library(BUS)\nlibrary(minet)\ndata(copasi)\nmat=as.matrix(copasi)[1:5,]\nrownames(mat)<-paste(\"G\",1:nrow(mat), sep=\"\")\nBUS(EXP=mat,measure=\"MI\",n.replica=400,net.trim=\"aracne\",thresh=0.05,nflag=1)"
+    },
+    {
+      "name": "supervised_gene_trait_association",
+      "intent": "Compute similarity and identify associations between genes and external traits (supervised analysis) using mutual information.",
+      "input": [
+        "expression_matrix.csv (tabular gene expression data)",
+        "trait_matrix.csv (tabular external trait data, e.g., clinical or miRNA profiles, where columns match the expression samples)"
+      ],
+      "stages": "1. Load the gene expression data and external trait data, formatting both as matrices with matching columns (samples) ;; 2. Run the BUS wrapper function with nflag=2 (supervised), specifying the similarity measure ;; 3. Extract the similarity matrix and single/multiple permutation p-values.",
+      "code": "data(tumors.mRNA)\nexp<- as.matrix(tumors.mRNA)[11:15,]\nrownames(exp)<-rownames(tumors.mRNA)[11:15]\ndata(tumors.miRNA)\ntrait<- as.matrix(tumors.miRNA)[11:15,]\nrownames(trait)<-rownames(tumors.miRNA)[11:15]\nBUS(EXP=exp,trait=trait,measure=\"MI\",nflag=2)"
+    }
+  ]
+}

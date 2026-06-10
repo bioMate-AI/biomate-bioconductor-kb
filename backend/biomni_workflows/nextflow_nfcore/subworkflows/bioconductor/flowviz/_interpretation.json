@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filter=An object of class filter, filterResult, or filterResultList specifying the gate(s) to plot ;; smooth=Logical; if TRUE, plots a smoothed 2D density representation with geometric gate outlines; if FALSE, plots individual events as points ;; xbin=Numeric; sets the bin size for hexbin scatter plots when smooth=FALSE to speed up rendering ;; stat=Logical; if TRUE, adds population statistics (e.g., percentage) to the plot ;; pos=Numeric; controls the label position of the statistics ;; abs=Logical; specifies whether the stat label position is absolute or relative to the filter boundary ;; outline=Logical; if TRUE in non-smoothed plots, draws the outline of the gate ;; channels=Character vector; specifies which channels to display in multi-panel density plots ;; par.settings=A named list of graphical parameters (e.g., gate, gate.density, gate.text, flow.symbol) to customize plot appearance ;; names=Logical or character vector; controls whether and how population names are displayed on the plot\n- alternatives: lattice=The base visualization package upon which flowViz is built, which can be used for general plotting but lacks native flow cytometry gate rendering ;; flowCore=The core package used for data manipulation, transformation, and filtering before visualization\n- when_to_use: Use flowViz when you need to visualize flow cytometry data (flowFrame or flowSet objects) and overlay geometric gates (e.g., rectangle, ellipsoid, polygon) or data-driven gates (e.g., norm2Filter, curv2Filter) to inspect populations.\n- pitfalls: Avoid using complex R expressions in the formula interface as they can change the scale of raw data, making gate representations invalid ;; Computing data-driven filters (like curv2Filter) inside the plot call is computationally expensive; compute the filterResult once and pass it instead ;; Non-smoothed plots (smooth=FALSE) can be extremely slow for large datasets; use xbin (hexbin) or smoothed plots instead ;; Overplotting in non-smoothed scatter plots can hide underlying structure; partial transparency (alpha) can help but has scalability limits on some graphics devices",
+  "workflows": [
+    {
+      "name": "two_dimensional_scatter_plots",
+      "intent": "Visualize flow cytometry data in 2D scatter plots with geometric or data-driven gates.",
+      "input": [
+        "GvHD (flowSet object containing flow cytometry data)"
+      ],
+      "stages": "1. Subset the flowSet to the patient of interest ;; 2. Transform fluorescence channels using asinh ;; 3. Define geometric gates (rectangleGate) or data-driven gates (norm2Filter, curv2Filter) ;; 4. Plot using xyplot with the filter argument (smoothed, non-smoothed, hexbin, or with statistics)",
+      "code": "GvHD <- GvHD[pData(GvHD)$Patient==6]\ntf <- transformList(from=colnames(GvHD)[3:7], tfun=asinh)\nGvHD <- tf %on% GvHD\nrgate <- rectangleGate(\"FSC-H\"=c(0, 400),\"SSC-H\"=c(-50, 300))\nxyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate)\nrgate2 <- rgate * rectangleGate(\"FL1-H\"=c(2, 4))\nxyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate2)\nxyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE)\nxyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE,xbin=128)\nxyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE, stat=TRUE,pos=0.5,abs=TRUE)\nrecGate1<-rectangleGate(\"FL4-H\"=c(3.3,5.3),\"FL2-H\"=c(2.5,5))\nrecGate2<-rectangleGate(\"FL4-H\"=c(4,6),\"FL2-H\"=c(6,8))\nfilters1<-filters(list(recGate1,recGate2))\nxyplot(`FL2-H` ~ `FL4-H` ,data=GvHD[[1]] ,filter=filters1 ,stat=TRUE ,margin=FALSE )\nn2Filter <- norm2Filter(\"SSC-H\", \"FSC-H\", scale=2, filterId=\"Lymphocytes\")\nn2Filter.results <- filter(GvHD, n2Filter)\nxyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=n2Filter.results)\nc2f <- curv2Filter(\"FSC-H\", \"FL4-H\", bwFac=1.8)\nc2f.results <- filter(GvHD, c2f)\nxyplot(`FL4-H` ~ `FSC-H` | Visit, data=GvHD, filter=c2f.results)"
+    },
+    {
+      "name": "one_dimensional_density_plots",
+      "intent": "Visualize 1D kernel density estimates of flow cytometry channels with gate boundaries.",
+      "input": [
+        "GvHD (flowSet object containing flow cytometry data)"
+      ],
+      "stages": "1. Define 1D filters (e.g., curv1Filter) ;; 2. Plot single-channel density with gate boundaries using densityplot ;; 3. Plot multi-channel density with a list of filters using densityplot",
+      "code": "densityplot(~ `FSC-H`, GvHD, filter=curv1Filter(\"FSC-H\"))\ndensityplot(~ ., GvHD, channels=c(\"FSC-H\", \"SSC-H\", \"FL1-H\"), filter=list(curv1Filter(\"FSC-H\"), NULL, rgate2))"
+    },
+    {
+      "name": "parallel_coordinate_plots",
+      "intent": "Visualize multi-dimensional flow cytometry data using parallel coordinate plots grouped by filter results.",
+      "input": [
+        "GvHD (flowSet object containing flow cytometry data)"
+      ],
+      "stages": "1. Compute filter results (e.g., norm2Filter) ;; 2. Plot using parallel with the filter argument",
+      "code": "parallel(~ . | Visit, GvHD, filter=n2Filter.results, alpha = 0.01)"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filterPerc=Minimum percentage of samples with an expression value of 0 to remove genes during RNA-seq filtering (default is 0.75) ;; database=The pathway database to use, such as \"KEGG\", \"reactome\", or a file path to a custom MSigDB GMT file ;; analysis=The type of expression data being analyzed, either \"microarray\" or \"RNAseq\" ;; databaseGeneFormat=The gene identifier format used in the custom database (e.g., \"ENTREZID\") ;; expressionSetGeneFormat=The gene identifier format used in the ExpressionSet (e.g., \"PROBEID\", \"ENSEMBL\", \"SYMBOL\") ;; limma.cutoff=The significance threshold for the LIMMA model to filter out flat genes (default is 0.05) ;; cor.cutoff=The correlation threshold used to identify highly correlated partner genes (default is 0.85)\n- alternatives: Custom MSigDB gene sets (provided via a GMT file) can be used as an alternative to the default KEGG or Reactome pathway databases.\n- when_to_use: Use this package when analyzing transcriptomics data (microarray or RNA-seq) across multiple distinct cell types, stem cell lines, or experimental groups to identify core driving pathways, co-expressed gene modules, and their functional roles.\n- pitfalls: When using RNA-seq datasets, the expressionSetGeneFormat argument in findAttractors must always be explicitly declared (e.g., \"ENSEMBL\", \"ENTREZID\", or \"SYMBOL\") ;; The cellTypeTag argument must exactly match one of the column names in the phenoData of the ExpressionSet (colnames(pData(eSet))).",
+  "workflows": [
+    {
+      "name": "microarray_attractor_analysis",
+      "intent": "Identify core attractor pathways, synexpression groups, correlated partner genes, and functional enrichment from microarray gene expression data.",
+      "input": [
+        "exprs.dat (matrix of microarray expression data)",
+        "samp.info (data frame of sample and cell type annotations)"
+      ],
+      "stages": "1. Load data and construct ExpressionSet ;; 2. Find core attractor pathway modules ;; 3. Filter out flat or uninformative genes ;; 4. Find synexpression groups for a pathway or top pathways ;; 5. Plot synexpression group profiles ;; 6. Find correlated partner genes across the genome ;; 7. Calculate functional enrichment of synexpression groups",
+      "code": "library(attract)\ndata(exprs.dat) \ndata(samp.info)\nloring.eset <- new(\"ExpressionSet\")\nloring.eset@assayData <- new.env()\nassign(\"exprs\", exprs.dat, loring.eset@assayData)\np.eset <- new(\"AnnotatedDataFrame\", data=samp.info)\nloring.eset@phenoData <- p.eset\nattractor.states <- findAttractors(loring.eset, \"celltype\", \n                                   annotation=\"illuminaHumanv1.db\", \n                                   database=\"KEGG\",analysis=\"microarray\",\n                                   databaseGeneFormat=NULL, expressionSetGeneFormat=NULL)\nremove.these.genes <- removeFlatGenes(loring.eset, \"celltype\", \n                                      contrasts=NULL, limma.cutoff=0.05)\nmapk.syn <- findSynexprs(\"04010\", attractor.states, \"celltype\"\n                         , remove.these.genes)\ntop5.syn <- findSynexprs(attractor.states@rankedPathways[1:5,1], \n                         attractor.states, \"celltype\", \n                         removeGenes=remove.these.genes)\npar(mfrow=c(2,2)) \npretty.col <- rainbow(3) \nfor( i in 1:3 ){\n\tplotsynexprs(mapk.syn, tickMarks=c(6, 28, 47, 60), \n               tickLabels=c(\"ESC\", \"PRO\", \"NSC\", \"TER\"), \n               vertLines=c(12.5, 43.5, 51.5), index=i, \n\t\t\tmain=paste(\"Synexpression Group \", i, sep=\"\")\n      ,col=pretty.col[i])\n }\nmapk.cor <- findCorrPartners(mapk.syn, loring.eset, remove.these.genes)\nmapk.func <- calcFuncSynexprs(mapk.syn, attractor.states, \"CC\", \n                              annotation=\"illuminaHumanv1.db\"\n                              ,analysis=\"microarray\",expressionSetGeneFormat=NULL)"
+    },
+    {
+      "name": "rnaseq_custom_gmt_attractor_analysis",
+      "intent": "Filter RNA-seq expression data and identify core attractor pathways using a custom MSigDB GMT file with explicit gene format mapping.",
+      "input": [
+        "data (data frame of RNA-seq expression data)",
+        "c4.cgn.v5.0.entrez.gmt (custom MSigDB gene set file)"
+      ],
+      "stages": "1. Filter RNA-seq data to remove low-expression genes ;; 2. Find core attractor pathway modules using a custom GMT database and explicit gene format specifications",
+      "code": "library(attract)\nfilteredData <- filterDataSet(data, filterPerc=0.75)\nMSigDBpath <- system.file(\"extdata\",\"c4.cgn.v5.0.entrez.gmt\",package=\"attract\")\nattractor.states.cutsom <- findAttractors(loring.eset, \"celltype\", annotation=\"illuminaHumanv1.db\",database=MSigDBpath, analysis=\"microarray\",databaseGeneFormat=\"ENTREZID\", expressionSetGeneFormat=\"PROBEID\")"
+    }
+  ]
+}

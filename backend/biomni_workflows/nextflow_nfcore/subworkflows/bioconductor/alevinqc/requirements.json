@@ -1,0 +1,18 @@
+{
+  "package": "alevinqc",
+  "requirements": [
+    "alevinQC",
+    "ggplot2",
+    "shiny"
+  ],
+  "by_workflow": {
+    "interactive_and_individual_plots.nf": [
+      "alevinQC",
+      "ggplot2",
+      "shiny"
+    ],
+    "main.nf": [
+      "alevinQC"
+    ]
+  }
+}

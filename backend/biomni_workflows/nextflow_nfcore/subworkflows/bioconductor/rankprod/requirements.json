@@ -1,0 +1,26 @@
+{
+  "package": "rankprod",
+  "requirements": [
+    "RankProd",
+    "vsn"
+  ],
+  "by_workflow": {
+    "cdna_common_reference.nf": [
+      "RankProd",
+      "vsn"
+    ],
+    "main.nf": [
+      "RankProd"
+    ],
+    "metabolomics_rank_sum.nf": [
+      "RankProd",
+      "vsn"
+    ],
+    "multi_condition_contrast.nf": [
+      "RankProd"
+    ],
+    "multi_origin_analysis.nf": [
+      "RankProd"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n.sv=The number of surrogate variables to estimate (can be estimated automatically or via num.sv) ;; method=The method used in num.sv to estimate the number of surrogate variables (e.g., \"leek\") ;; vfilter=An integer between 100 and the total number of features to filter by variance and speed up SVA computation for large datasets ;; par.prior=A logical in ComBat indicating whether to use parametric (TRUE) or nonparametric (FALSE) empirical Bayesian adjustments ;; prior.plots=A logical in ComBat indicating whether to plot empirical vs parametric batch effect density plots ;; mean.only=A logical in ComBat that only adjusts the mean of the batch effects across batches (useful when variances differ biologically) ;; ref.batch=A parameter in ComBat to select one batch as a reference to which other batches will be adjusted ;; group=A vector in ComBat_seq or svaseq representing a biological covariate whose signal should be preserved ;; covar_mod=A matrix or data frame in ComBat_seq representing multiple biological covariates to preserve ;; controls=A vector of logicals or probabilities in svaseq indicating negative control genes for supervised SVA\n- alternatives: Direct adjustment using a linear model (e.g., including batch in f.pvalue) is a simplified alternative to ComBat. ComBat is preferred when batch effects are known, whereas SVA is preferred when sources of variation are unknown, unmeasured, or latent. ComBat_seq is preferred over standard ComBat for RNA-Seq count data to preserve integer counts. svaseq is preferred over standard sva for sequencing count data.\n- when_to_use: Use when performing differential expression analysis or prediction on high-throughput transcriptomics data (microarray or RNA-Seq) that contains known batch effects or unknown, unmodeled sources of latent variation.\n- pitfalls: SVA may not be appropriate if the goal is to identify biological heterogeneity in unknown subgroups (e.g., cancer subtypes), as surrogate variables may correlate with and remove these biological subgroups. Running variance filtering (vfilter) with fewer than 1,000 features is not recommended. For categorical adjustment variables in ComBat, users must provide p-1 indicator variables (e.g., using model.matrix) rather than the raw categorical variable.",
+  "workflows": [
+    {
+      "name": "surrogate_variable_analysis",
+      "intent": "Identify and adjust for latent, unknown sources of variation in continuous high-throughput data (e.g., microarrays) during differential expression analysis.",
+      "input": [
+        "expression_matrix.csv (matrix of normalized expression values with features in rows and samples in columns)",
+        "phenotype_data.csv (phenotype data frame containing variables of interest and adjustment variables)"
+      ],
+      "stages": "1. Extract phenotype and expression data ;; 2. Create full and null model matrices ;; 3. Estimate the number of surrogate variables using num.sv ;; 4. Estimate surrogate variables using sva ;; 5. Perform differential expression analysis adjusting for surrogate variables using f.pvalue or limma",
+      "code": "pheno = pData(bladderEset)\nedata = exprs(bladderEset)\nmod = model.matrix(~as.factor(cancer), data=pheno)\nmod0 = model.matrix(~1,data=pheno)\nn.sv = num.sv(edata,mod,method=\"leek\")\nsvobj = sva(edata,mod,mod0,n.sv=n.sv)\npValues = f.pvalue(edata,mod,mod0)\nqValues = p.adjust(pValues,method=\"BH\")\nmodSv = cbind(mod,svobj$sv)\nmod0Sv = cbind(mod0,svobj$sv)\npValuesSv = f.pvalue(edata,modSv,mod0Sv)\nqValuesSv = p.adjust(pValuesSv,method=\"BH\")\nfit = lmFit(edata,modSv)\ncontrast.matrix <- cbind(\"C1\"=c(-1,1,0,rep(0,svobj$n.sv)),\"C2\"=c(0,-1,1,rep(0,svobj$n.sv)),\"C3\"=c(-1,0,1,rep(0,svobj$n.sv)))\nfitContrasts = contrasts.fit(fit,contrast.matrix)\neb = eBayes(fitContrasts)\ntopTableF(eb, adjust=\"BH\")"
+    },
+    {
+      "name": "combat_known_batches",
+      "intent": "Directly adjust for known batch effects in continuous high-throughput data (e.g., microarrays) using an empirical Bayesian framework.",
+      "input": [
+        "expression_matrix.csv (matrix of normalized expression values with features in rows and samples in columns)",
+        "phenotype_data.csv (phenotype data frame containing known batch variables and variables of interest)"
+      ],
+      "stages": "1. Define the batch vector and model matrix for adjustment variables ;; 2. Run ComBat to obtain a batch-adjusted expression matrix ;; 3. Perform downstream differential expression analysis on the adjusted matrix",
+      "code": "batch = pheno$batch\nmodcombat = model.matrix(~1, data=pheno)\ncombat_edata = ComBat(dat=edata, batch=batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE)\npValuesComBat = f.pvalue(combat_edata,mod,mod0)\nqValuesComBat = p.adjust(pValuesComBat,method=\"BH\")"
+    },
+    {
+      "name": "combat_seq_rna_seq",
+      "intent": "Adjust for known batch effects in RNA-Seq count data using a negative binomial model while preserving integer counts and biological covariates.",
+      "input": [
+        "raw_counts.csv (matrix of raw integer RNA-Seq counts with genes in rows and samples in columns)",
+        "sample_metadata.csv (metadata containing batch and biological group/covariate variables)"
+      ],
+      "stages": "1. Define the count matrix, batch vector, and biological covariates ;; 2. Run ComBat_seq to obtain batch-adjusted integer counts",
+      "code": "count_matrix <- matrix(rnbinom(400, size=10, prob=0.1), nrow=50, ncol=8)\nbatch <- c(rep(1, 4), rep(2, 4))\nadjusted <- ComBat_seq(count_matrix, batch=batch, group=NULL)\ngroup <- rep(c(0,1), 4)\nadjusted_counts <- ComBat_seq(count_matrix, batch=batch, group=group)\ncov1 <- rep(c(0,1), 4)\ncov2 <- c(0,0,1,1,0,0,1,1)\ncovar_mat <- cbind(cov1, cov2)\nadjusted_counts <- ComBat_seq(count_matrix, batch=batch, group=NULL, covar_mod=covar_mat)"
+    },
+    {
+      "name": "frozen_sva_prediction",
+      "intent": "Remove batch effects and latent variation in a test dataset using \"frozen\" surrogate variables estimated from a training dataset for prediction tasks.",
+      "input": [
+        "train_expression.csv (training expression matrix)",
+        "test_expression.csv (test expression matrix)",
+        "train_phenotype.csv (training phenotype data containing class labels)"
+      ],
+      "stages": "1. Split data into training and test sets ;; 2. Train a baseline classifier on unadjusted training data and predict on test data ;; 3. Estimate surrogate variables on the training data using sva ;; 4. Adjust both training and test datasets using fsva ;; 5. Train and test a classifier on the adjusted datasets",
+      "code": "set.seed(12354)\ntrainIndicator = sample(1:57,size=30,replace=FALSE)\ntestIndicator = (1:57)[-trainIndicator]\ntrainData = edata[,trainIndicator]\ntestData = edata[,testIndicator]\ntrainPheno = pheno[trainIndicator,]\ntestPheno = pheno[testIndicator,]\nmydata = list(x=trainData,y=trainPheno$cancer)\nmytrain = pamr.train(mydata)\ntable(pamr.predict(mytrain,testData,threshold=2),testPheno$cancer)\ntrainMod = model.matrix(~cancer,data=trainPheno)\ntrainMod0 = model.matrix(~1,data=trainPheno)\ntrainSv = sva(trainData,trainMod,trainMod0)\nfsvaobj = fsva(trainData,trainMod,trainSv,testData)\nmydataSv = list(x=fsvaobj$db,y=trainPheno$cancer)\nmytrainSv = pamr.train(mydataSv)\ntable(pamr.predict(mytrainSv,fsvaobj$new,threshold=1),testPheno$cancer)"
+    },
+    {
+      "name": "sva_sequencing",
+      "intent": "Estimate latent variables in count-based sequencing data using svaseq, optionally incorporating negative control probes (supervised SVA).",
+      "input": [
+        "raw_counts.csv (matrix of raw sequencing counts)",
+        "sample_metadata.csv (metadata containing treatment groups)"
+      ],
+      "stages": "1. Filter low-count genes ;; 2. Define null and alternative model matrices ;; 3. Run svaseq to estimate surrogate variables ;; 4. Optionally run supervised svaseq by providing control probes",
+      "code": "filter = apply(zfGenes, 1, function(x) length(x[x>5])>=2)\nfiltered = zfGenes[filter,]\ngenes = rownames(filtered)[grep(\"^ENS\", rownames(filtered))]\ncontrols = grepl(\"^ERCC\", rownames(filtered))\ngroup = as.factor(rep(c(\"Ctl\", \"Trt\"), each=3))\ndat0 = as.matrix(filtered)\nmod1 = model.matrix(~group)\nmod0 = cbind(mod1[,1])\nsvseq = svaseq(dat0,mod1,mod0,n.sv=1)$sv\nsup_svseq = svaseq(dat0,mod1,mod0,controls=controls,n.sv=1)$sv"
+    }
+  ]
+}

@@ -4,6 +4,8 @@
 // Infer discrete cell cycle stages (G1/S, S, G2, G2/M, M/G1) using the Schwabe et al. (2020) method.
 // Input: sce_normalized.rds
 // Container: quay.io/biocontainers/bioconductor-tricycle:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: SingleCellExperiment, ggplot2, org.Mm.eg.db, scater, tricycle
 // Visualizations: ordination plot
 // QC: cell QC metrics
@@ -39,14 +41,16 @@ process BIOC_TRICYCLE_DISCRETE_STAGE_INFERENCE {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries
     library(tricycle)
-    library(SingleCellExperiment)
     library(ggplot2)
     library(scater)
     library(org.Mm.eg.db) # Required for mouse ENSEMBL to SYMBOL mapping in estimate_Schwabe_stage

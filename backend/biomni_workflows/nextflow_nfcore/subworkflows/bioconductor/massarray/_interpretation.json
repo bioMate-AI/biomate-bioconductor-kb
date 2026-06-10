@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <sequence=A character string representing the amplicon sequence, where primers can be marked with '<' and '>', and required sites with '(' and ')' ;; file=The path to a tab-delimited text file exported from Sequenom's EpiTyper ;; collapse=A logical value in plot() indicating whether to average data across samples ;; bars=A logical value in plot() indicating whether to display error bars representing median absolute deviation ;; scale=A logical value in plot() indicating whether to display bars in a positionally-informative manner scaled to relative nucleotide positions>\n- alternatives: <None mentioned in the documentation; the package is designed specifically to process data from Sequenom's EpiTyper software>\n- when_to_use: <When analyzing DNA methylation and SNP data generated via Sequenom's MassArray platform (base-specific cleavage reactions using the Sequenom workflow and MassCLEAVE assay)>\n- pitfalls: <Data must be exported from Sequenom's EpiTyper in a tab-delimited file format. It is imperative that a single amplicon be exported at a single time, otherwise the import will fail. In EpiTyper, users must enable display of the 'Matched Peaks' tab, both 'T' and 'C' reactions, and 'Show All Matched Peaks' and 'Show All Missing Peaks' options before exporting via 'Export Grid'. Incomplete bisulfite conversion can bias methylation measurements; conversion controls should be evaluated to ensure accuracy.>",
+  "workflows": [
+    {
+      "name": "amplicon_prediction_and_design",
+      "intent": "Predict fragmentation patterns, assayability of CG sites, and identify potential conversion controls for a candidate amplicon sequence.",
+      "input": [
+        "sequence (character string representing the candidate amplicon sequence)"
+      ],
+      "stages": "1. Run in silico prediction using ampliconPrediction() to evaluate fragmentation patterns and CG assayability.",
+      "code": "results <- ampliconPrediction(\"AAAATTTTCCCCTCTGCGTGAGAGAGTTGTCCGACAAAA\")\nresults\nampliconPrediction(\"AAAA>TTTTCCCCTCTGCGTGAGAGAGTTGTC(CG)AC<AAAA\")"
+    },
+    {
+      "name": "massarray_data_analysis",
+      "intent": "Import EpiTyper data, perform quality control, visualize methylation levels, and detect potential SNPs.",
+      "input": [
+        "Example.txt (tab-delimited text file exported from Sequenom's EpiTyper for a single amplicon)",
+        "sequence (character string of the amplicon sequence with primer and required site annotations)"
+      ],
+      "stages": "1. Define the amplicon sequence with primer boundaries and required sites. 2. Import the EpiTyper data file and sequence into a MassArrayData object using new(). 3. Visualize methylation data using plot() with various options (individual, collapsed, or scaled). 4. Evaluate potential SNPs using evaluateSNPs().",
+      "code": "sequence <- \"CCAGGTCCAAAGGTTCAGACCAGTCTGAA>CCTGTCCAGGGGCACTCCATATTTTCC\"\nsequence <- paste(sequence, \"TACCTGTCCCTCTTTGCTTGTAAAAACAAATTAAACAGGGA\", sep=\"\")\nsequence <- paste(sequence, \"TCCCAGCAACTTCGGGGCATGTGTGTAACTGTGCAAGGAGC\", sep=\"\")\nsequence <- paste(sequence, \"GCGAAGCCCAGAGCATCGCCCTAGAGTTCGGGCCGCAGCTG\", sep=\"\")\nsequence <- paste(sequence, \"CAGAGGCACATCTGGAAAAGGGGGAGGGGTCGAAGCGGAGG\", sep=\"\")\nsequence <- paste(sequence, \"GGACAAGAAGCCCCCAAACGACTAGCTTCTGGGTGCAGAGT\", sep=\"\")\nsequence <- paste(sequence, \"CTGTGTCAC(CG)GGGGTTAGTTACCTGTCCTACGTTGATG\", sep=\"\")\nsequence <- paste(sequence, \"AATCCGTACTTGCTGGCTATGCGGTCTGCCTCCGCGAATCC\", sep=\"\")\nsequence <- paste(sequence, \"GC(CG)GC<GATCTTCACTGCCCAGTGGTTGGTGTA\", sep=\"\")\ndata <- new(\"MassArrayData\", sequence, file=\"Example.txt\")\nplot(data, collapse=FALSE, bars=FALSE, scale=FALSE)\nplot(data, collapse=TRUE, bars=TRUE, scale=FALSE)\nplot(data, collapse=TRUE, bars=FALSE, scale=TRUE)\nSNP.results <- evaluateSNPs(data)\nlength(SNP.results)\nSNP.results[[2]]"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "icheck",
+  "requirements": [
+    "Biobase",
+    "gplots",
+    "iCheck",
+    "lumi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "gplots",
+      "iCheck",
+      "lumi"
+    ]
+  }
+}

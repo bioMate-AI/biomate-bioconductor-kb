@@ -1,0 +1,38 @@
+{
+  "package": "quasr",
+  "requirements": [
+    "Biostrings",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "QuasR",
+    "Rsamtools",
+    "rtracklayer",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "bis_seq_analysis.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "QuasR"
+    ],
+    "main.nf": [
+      "GenomicFeatures",
+      "QuasR",
+      "Rsamtools",
+      "rtracklayer",
+      "txdbmaker"
+    ],
+    "rna_seq_analysis.nf": [
+      "GenomicFeatures",
+      "QuasR",
+      "Rsamtools",
+      "rtracklayer",
+      "txdbmaker"
+    ],
+    "smrna_seq_analysis.nf": [
+      "GenomicRanges",
+      "QuasR",
+      "rtracklayer"
+    ]
+  }
+}

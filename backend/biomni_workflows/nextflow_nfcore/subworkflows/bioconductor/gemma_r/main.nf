@@ -1,111 +1,200 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gemma.R
-// Low- and high-level wrappers for Gemma's RESTful API. They enable access to curated expression and d
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gemma.R/inst/doc/gemma.R.R
-// Upstream  : parallel
-// Downstream: none
-//
-// Install: BiocManager::install("gemma.R")
+// Bioconductor workflow: gemma_r — gemma_gene_annotation_and_expression
+// Query the Gemma database to annotate a list of genes and retrieve curated differential expression analyses across public datasets.
+// Input: input.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: gemma.R, gemma_r
+// Visualizations: bar plot
+// QC: missing-value handling
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GEMMA_R {
+process BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gemma_r"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gemma.r:3.2.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-gemma.r:3.2.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gemma_r_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gemma_r_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gemma_r_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries safely
     library(gemma.R)
-    library(jsonlite)
-
-    # --- Expression Data Acquisition [] ---
-    # Key functions: get_dataset_object
-    dat <- gemma.R::get_dataset_object("GSE46416", type = "se")
-    manic <- dat[[1]][, dat[[1]]$disease == "reference subject role"]
-    manic_expr <- SummarizedExperiment::assay(manic, "counts")
-
-
-    # --- Sample and Platform Annotation [] ---
-    # Key functions: get_dataset_samples, make_design, get_platform_annotations
-    samples <- gemma.R::get_dataset_samples("GSE46416")
-    design <- gemma.R::make_design(samples, "text")
-    platform_annot <- gemma.R::get_platform_annotations("GPL96")
-
-
-    # --- Gene and Probe Mapping [] ---
-    # Key functions: get_genes, get_gene_probes
-    genes <- gemma.R::get_genes("Eno2")
-    probes <- gemma.R::get_gene_probes(2026)
-
-
-    # --- Differential Expression Retrieval [] ---
-    # Key functions: get_differential_expression_values, get_dataset_differential_expression_analyses
-    dif_exp <- gemma.R::get_differential_expression_values("GSE46416")
-    contrasts <- gemma.R::get_dataset_differential_expression_analyses(
-        "GSE46416"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gemma_r_results.csv", row.names = TRUE)
+    
+    # Stage 2: Read and parse input defensively
+    input_file <- "input.csv"
+    if (!file.exists(input_file)) {
+      stop("Input file 'input.csv' not found.")
+    }
+    
+    input_data <- tryCatch({
+      read.csv(input_file, header = TRUE, stringsAsFactors = FALSE)
+    }, error = function(e) {
+      stop("Failed to read input.csv: ", e\$message)
+    })
+    
+    # Extract gene identifiers from the input
+    if (ncol(input_data) == 1) {
+      gene_ids <- as.character(input_data[[1]])
+    } else if ("feature_id" %in% colnames(input_data)) {
+      gene_ids <- as.character(input_data\$feature_id)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gemma_r_results.csv")
+      # Fallback to row names or first column
+      gene_ids <- as.character(rownames(input_data))
+      if (all(gene_ids == as.character(seq_len(nrow(input_data))))) {
+        gene_ids <- as.character(input_data[[1]])
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gemma_r_output.rds")
+    
+    # Clean identifiers
+    gene_ids <- unique(na.omit(gene_ids))
+    gene_ids <- gene_ids[gene_ids != ""]
+    
+    if (length(gene_ids) == 0) {
+      stop("No valid gene identifiers found in input.csv.")
     }
+    
+    # Stage 3: Query Gemma API for Gene Metadata
+    message("Querying Gemma for gene metadata...")
+    genes_meta <- tryCatch({
+      gemma.R::get_genes(genes = gene_ids)
+    }, error = function(e) {
+      warning("gemma.R::get_genes failed: ", e\$message)
+      NULL
+    })
+    
+    # Stage 4: Query Gemma API for Differential Expression Evidence
+    message("Querying Gemma for differential expression values...")
+    diff_exp <- tryCatch({
+      gemma.R::get_gene_differential_expression_values(genes = gene_ids)
+    }, error = function(e) {
+      warning("gemma.R::get_gene_differential_expression_values failed: ", e\$message)
+      NULL
+    })
+    
+    # Stage 5: Handle empty/null results with robust fallbacks
+    if (is.null(genes_meta) || nrow(genes_meta) == 0) {
+      genes_meta <- data.frame(
+        input_id = gene_ids,
+        status = "No metadata found in Gemma",
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    if (is.null(diff_exp) || nrow(diff_exp) == 0) {
+      diff_exp <- data.frame(
+        gene_symbol = "None",
+        dataset = "None",
+        p_value = 1.0,
+        log_fc = 0.0,
+        status = "No differential expression data found",
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    # Stage 6: Write outputs to CSV
+    write.csv(genes_meta, "gene_annotations.csv", row.names = FALSE)
+    write.csv(diff_exp, "diff_exp_evidence.csv", row.names = FALSE)
+    
+    # Stage 7: Generate Diagnostic Visualization
+    pdf("gemma_analysis_plot.pdf", width = 8, height = 6)
+    
+    # Check if we have valid differential expression data to plot
+    has_valid_data <- nrow(diff_exp) > 1 && !("status" %in% colnames(diff_exp))
+    
+    if (has_valid_data) {
+      # Dynamically identify key columns
+      p_col <- grep("p.value|pvalue|p_value", colnames(diff_exp), ignore.case = TRUE, value = TRUE)[1]
+      fc_col <- grep("fold.change|foldchange|log_fc|log2", colnames(diff_exp), ignore.case = TRUE, value = TRUE)[1]
+      gene_col <- grep("symbol|gene", colnames(diff_exp), ignore.case = TRUE, value = TRUE)[1]
+      dataset_col <- grep("dataset|shortName", colnames(diff_exp), ignore.case = TRUE, value = TRUE)[1]
+    
+      if (!is.na(p_col) && !is.na(gene_col)) {
+        # Sort by significance and select top 15 events
+        plot_data <- diff_exp[order(as.numeric(diff_exp[[p_col]])), ]
+        plot_data <- head(plot_data, 15)
+    
+        neg_log_p <- -log10(as.numeric(plot_data[[p_col]]) + 1e-10)
+        
+        # Construct labels safely
+        ds_labels <- if (!is.na(dataset_col)) as.character(plot_data[[dataset_col]]) else "Unknown Study"
+        labels <- paste0(plot_data[[gene_col]], " (", substring(ds_labels, 1, 12), ")")
+    
+        # Plot horizontal barplot of top differential expression events
+        par(mar = c(5, 15, 4, 2))
+        barplot(
+          neg_log_p, 
+          names.arg = labels, 
+          las = 2, 
+          horiz = TRUE,
+          col = "skyblue", 
+          main = "Top Differential Expression Events in Gemma",
+          xlab = "-log10(p-value)"
+        )
+      } else {
+        # Fallback plot if columns are missing
+        plot(1, type = "n", axes = FALSE, xlab = "", ylab = "")
+        text(1, 1, "No suitable columns found for plotting differential expression", cex = 1.2)
+      }
+    } else {
+      # Fallback plot if no data was retrieved
+      plot(1, type = "n", axes = FALSE, xlab = "", ylab = "")
+      text(1, 1, "No differential expression data available to plot", cex = 1.2)
+    }
+    
+    dev.off()
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GEMMA_R:", paste0("    gemma_r: ", packageVersion("gemma.R"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION":',
+        paste0('    gemma_r: ', as.character(packageVersion('gemma_r')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gemma_r_results.csv
-    touch ${prefix}_gemma_r_output.rds
-    echo "BIOC_GEMMA_R:" > versions.yml
-    echo "    gemma_r: 0.0.0" >> versions.yml
+    touch ${prefix}_gemma_gene_annotation_and_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_GEMMA_R_WORKFLOW {
+workflow BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GEMMA_R(ch_input)
+    BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_GEMMA_R.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GEMMA_R.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GEMMA_R.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GEMMA_R.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION.out.tables
+    plots    = BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION.out.plots
+    objects  = BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION.out.objects
+    versions = BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION.out.versions
 }

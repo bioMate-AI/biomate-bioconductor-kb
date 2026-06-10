@@ -1,132 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: INTACT
-// This package integrates colocalization probabilities from colocalization analysis with transcriptome
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/INTACT/inst/doc/INTACT.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("INTACT")
+// Bioconductor workflow: INTACT — intact_integration_and_fdr
+// Integrate TWAS scan z-scores and colocalization probabilities to compute posterior probabilities of gene causality, followed by Bayesian FDR control.
+// Input: GLCP_vec, z_vec
+// Container: quay.io/biocontainers/bioconductor-intact:1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: INTACT
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Integrate TWAS and colocalization results using INTACT::intact. 2. Perform Bayesian FDR control on the posterior probabilities usi
 
 nextflow.enable.dsl = 2
 
-process BIOC_INTACT {
+process BIOC_INTACT_INTACT_INTEGRATION_AND_FDR {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-intact"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-intact:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-intact:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_intact_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_intact_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_intact_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(INTACT)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: intact
-    ---------------------------------------------------------------------
-    library(INTACT)
-    data(simdat)
-    rst <- INTACT::intact(GLCP_vec=simdat$GLCP,
-                          z_vec=simdat$TWAS_z)
-    # --- Intact [] ---
-    # Key functions: intact
-    ---------------------------------------------------------------------
-    rst1 <- INTACT::intact(GLCP_vec=simdat$GLCP,
-                           prior_fun=INTACT::expit,
-                           z_vec = simdat$TWAS_z,
-                           t = 0.02,D = 0.09)
-    # --- Fdr Rst [] ---
-    # Key functions: fdr_rst
-    ---------------------------------------------------------------------
+    
+    # Helper function to read input vectors robustly from the working directory
+    read_input_vector <- function(file_base) {
+      if (file.exists(paste0(file_base, ".rds"))) {
+        return(readRDS(paste0(file_base, ".rds")))
+      } else if (file.exists(file_base)) {
+        val <- tryCatch({
+          readRDS(file_base)
+        }, error = function(e) {
+          NULL
+        })
+        if (!is.null(val)) return(val)
+        
+        val <- tryCatch({
+          scan(file_base, quiet = TRUE)
+        }, error = function(e) {
+          NULL
+        })
+        if (!is.null(val)) return(val)
+        
+        val <- tryCatch({
+          read.csv(file_base, header = FALSE)[[1]]
+        }, error = function(e) {
+          NULL
+        })
+        if (!is.null(val)) return(val)
+        
+        stop(paste("Could not parse file:", file_base))
+      } else if (file.exists(paste0(file_base, ".txt"))) {
+        return(scan(paste0(file_base, ".txt"), quiet = TRUE))
+      } else if (file.exists(paste0(file_base, ".csv"))) {
+        return(read.csv(paste0(file_base, ".csv"), header = FALSE)[[1]])
+      } else {
+        stop(paste("Input file not found for:", file_base))
+      }
+    }
+    
+    # Read user inputs
+    GLCP_vec <- read_input_vector("GLCP_vec")
+    z_vec <- read_input_vector("z_vec")
+    
+    # Ensure inputs are numeric vectors
+    GLCP_vec <- as.numeric(GLCP_vec)
+    z_vec <- as.numeric(z_vec)
+    
+    # 1. Integrate TWAS and colocalization results using INTACT::intact (Default Prior)
+    rst <- INTACT::intact(GLCP_vec=GLCP_vec, z_vec=z_vec)
+    
+    # 2. Integrate TWAS and colocalization results using INTACT::intact (Expit Prior)
+    rst1 <- INTACT::intact(GLCP_vec=GLCP_vec, prior_fun=INTACT::expit, z_vec = z_vec, t = 0.02, D = 0.09)
+    
+    # 3. Perform Bayesian FDR control on the posterior probabilities using fdr_rst
     fdr_example <- fdr_rst(rst1, alpha = 0.05)
-    head(fdr_example)
-    # --- Data [] ---
-    # Key functions: intactGSE
-    ---------------------------------------------------------------------
-    data(gene_set_list)
-    INTACT::intactGSE(gene_data = simdat,gene_sets = gene_set_list)
-    # --- Intactgse [] ---
-    # Key functions: intactGSE
-    ---------------------------------------------------------------------
-    INTACT::intactGSE(gene_data = simdat,prior_fun = INTACT::step,
-                      t = 0.45,gene_sets = gene_set_list)
-    INTACT::intactGSE(gene_data = simdat,prior_fun = INTACT::expit,
-                      t = 0.08,D = 0.08, gene_sets = gene_set_list)
-    # --- Data [] ---
-    # Key functions: chisq_sumstat
-    ---------------------------------------------------------------------
-    data(z_sumstats)
-    data(exprwt_sumstats)
-    data(protwt_sumstats)
-    data(ld_sumstats)
-    # --- Data [] ---
-    # Key functions: multi_intact
-    ---------------------------------------------------------------------
-    data(multi_simdat)
-    rst <- INTACT::multi_intact(df = multi_simdat)
-    # --- Multi Intact [] ---
-    # Key functions: multi_intact
-    ---------------------------------------------------------------------
-    rst <- INTACT::multi_intact(df = multi_simdat,return_model_posteriors = TRUE)
+    
+    # Write outputs to the working directory
+    write.csv(data.frame(GLCP = GLCP_vec, z = z_vec, Posterior_Default = rst, Posterior_Expit = rst1), 
+              file = "intact_posterior_probabilities.csv", row.names = FALSE)
+    
+    write.csv(fdr_example, file = "fdr_results.csv", row.names = FALSE)
+    
+    saveRDS(rst, file = "rst_default.rds")
+    saveRDS(rst1, file = "rst_expit.rds")
+    saveRDS(fdr_example, file = "fdr_results.rds")
+    
+    # Generate diagnostic plot
+    pdf("intact_results_plot.pdf", width = 10, height = 5)
+    par(mfrow = c(1, 2))
+    hist(rst, main = "Posterior Probabilities (Default)", xlab = "Posterior Probability", col = "lightblue", border = "white")
+    hist(rst1, main = "Posterior Probabilities (Expit)", xlab = "Posterior Probability", col = "salmon", border = "white")
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_intact_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_intact_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_intact_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_INTACT:", paste0("    intact: ", packageVersion("INTACT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_INTACT_INTACT_INTEGRATION_AND_FDR":',
+        paste0('    INTACT: ', as.character(packageVersion('INTACT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_intact_results.csv
-    touch ${prefix}_intact_output.rds
-    echo "BIOC_INTACT:" > versions.yml
-    echo "    intact: 0.0.0" >> versions.yml
+    touch ${prefix}_intact_integration_and_fdr.csv versions.yml
     """
 }
 
-
-workflow BIOC_INTACT_WORKFLOW {
+workflow BIOC_INTACT_INTACT_INTEGRATION_AND_FDR_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GLCP_vec, z_vec ] ]
 
     main:
-    BIOC_INTACT(ch_input)
+    BIOC_INTACT_INTACT_INTEGRATION_AND_FDR(ch_input)
 
     emit:
-    results  = BIOC_INTACT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_INTACT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_INTACT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_INTACT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_INTACT_INTACT_INTEGRATION_AND_FDR.out.tables
+    plots    = BIOC_INTACT_INTACT_INTEGRATION_AND_FDR.out.plots
+    objects  = BIOC_INTACT_INTACT_INTEGRATION_AND_FDR.out.objects
+    versions = BIOC_INTACT_INTACT_INTEGRATION_AND_FDR.out.versions
 }

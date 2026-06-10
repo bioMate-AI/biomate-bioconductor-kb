@@ -1,89 +1,111 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Pirat
-// Pirat enables the imputation of missing values (either MNARs or MCARs) in bottom-up LC-MS/MS proteom
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Pirat/inst/doc/Pirat.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Pirat")
+// Bioconductor workflow: Pirat — standard_imputation_and_diagnostics
+// Perform diagnostic correlation analysis and standard imputation on proteomics data.
+// Input: subbouyssie, ropers
+// Container: quay.io/biocontainers/bioconductor-pirat:1.4.4--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Pirat
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and dataset
+//  * 2. [Core Analysis] Set seed for reproducibility
+//  * 3. [Core Analysis] Run standard imputation using my_pipeline_llkimpute
+//  * 4. [Core Analysis] Inspect imputed values and parameters
+//  * 5. [Visualization & Output] Run diagnostic correlation analysis using plot_pep_correlations
 
 nextflow.enable.dsl = 2
 
-process BIOC_PIRAT {
+process BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pirat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pirat:1.0.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-pirat:1.0.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pirat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pirat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pirat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(Pirat)
-    library(jsonlite)
-
-    # --- plot_pep_correlations [] ---
-    # Key functions: plot_pep_correlations
-    data(ropers)
+    library(utils)
+    library(grDevices)
+    
+    # Read user input files from the working directory
+    subbouyssie <- readRDS("subbouyssie.rds")
+    ropers <- readRDS("ropers.rds")
+    
+    # Set seed for reproducibility
+    set.seed(12345)
+    
+    # Run standard imputation using my_pipeline_llkimpute
+    imp.res <- my_pipeline_llkimpute(subbouyssie)
+    
+    # Inspect imputed values and parameters
+    print("First 5 columns of imputed data:")
+    print(head(imp.res\$data.imputed[ ,seq(5)]))
+    
+    print("Computed parameters:")
+    print(imp.res\$params)
+    
+    # Save imputation results to output files
+    write.csv(imp.res\$data.imputed, "subbouyssie_imputed.csv", row.names = TRUE)
+    saveRDS(imp.res, "subbouyssie_imputed_results.rds")
+    
+    # Run diagnostic correlation analysis and save plot to PDF
+    pdf("ropers_pep_correlations.pdf", width = 8, height = 6)
     plot_pep_correlations(ropers, titlename = "Ropers2021")
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pirat_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pirat_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pirat_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PIRAT:", paste0("    pirat: ", packageVersion("Pirat"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS":',
+        paste0('    Pirat: ', as.character(packageVersion('Pirat')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pirat_results.csv
-    touch ${prefix}_pirat_output.rds
-    echo "BIOC_PIRAT:" > versions.yml
-    echo "    pirat: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_imputation_and_diagnostics.csv versions.yml
     """
 }
 
-
-workflow BIOC_PIRAT_WORKFLOW {
+workflow BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ subbouyssie, ropers ] ]
 
     main:
-    BIOC_PIRAT(ch_input)
+    BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS(ch_input)
 
     emit:
-    results  = BIOC_PIRAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PIRAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PIRAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PIRAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS.out.tables
+    plots    = BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS.out.plots
+    objects  = BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS.out.objects
+    versions = BIOC_PIRAT_STANDARD_IMPUTATION_AND_DIAGNOSTICS.out.versions
 }

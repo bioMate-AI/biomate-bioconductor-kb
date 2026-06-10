@@ -1,0 +1,11 @@
+{
+  "package": "genomicsupersignature",
+  "requirements": [
+    "GenomicSuperSignature"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicSuperSignature"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "plyxp",
+  "requirements": [
+    "SummarizedExperiment",
+    "dplyr",
+    "plyxp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "dplyr",
+      "plyxp"
+    ]
+  }
+}

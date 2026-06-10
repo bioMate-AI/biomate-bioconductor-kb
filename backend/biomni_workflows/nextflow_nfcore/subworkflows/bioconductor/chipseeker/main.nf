@@ -4,6 +4,8 @@
 // Profile and visualize ChIP peak binding distributions around TSS or gene body regions using heatmaps and average profiles.
 // Input: files[[4]], txdb
 // Container: quay.io/biocontainers/bioconductor-chipseeker:1.46.1--r45hdfd78af_0
+// R packages: ChIPseeker, clusterProfiler, GenomicFeatures, GenomicRanges, ggplot2, ReactomePA
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
@@ -32,12 +34,22 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("chipseeker", "clusterprofiler", "genomicfeatures", "genomicranges", "ggplot2", "reactomepa")
+    .bm_deps <- c("ChIPseeker", "clusterProfiler", "GenomicFeatures", "GenomicRanges", "ggplot2", "ReactomePA")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
-      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
-      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
-      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
     }
     
     # Load required libraries
@@ -48,7 +60,7 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     # 1. Locate the BED file in the working directory
     # The user specified files[[4]] is the BED file.
     # We search for any BED file in the current directory to populate files[[4]].
-    bed_files <- list.files(pattern = "\\.(bed|BED)(\\.gz)?\$")
+    bed_files <- list.files(pattern = "\\\\.(bed|BED)(\\\\.gz)?\$")
     if (length(bed_files) == 0) {
       stop("Error: No BED file found in the working directory.")
     }

@@ -1,0 +1,15 @@
+{
+  "package": "screclassify",
+  "requirements": [
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "scReClassify"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "scReClassify"
+    ]
+  }
+}

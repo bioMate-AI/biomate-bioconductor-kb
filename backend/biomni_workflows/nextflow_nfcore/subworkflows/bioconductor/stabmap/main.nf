@@ -1,110 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: StabMap
-// StabMap performs single cell mosaic data integration by first building a mosaic data topology, and f
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/StabMap/inst/doc/stabMap_PBMC_Multiome.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("StabMap")
+// Bioconductor workflow: StabMap — direct_mosaic_integration
+// Integrate two single-cell datasets with partially overlapping features into a joint embedding, followed by cell type classification and feature imputation.
+// Input: assay_list, referenceLabels
+// Container: quay.io/biocontainers/bioconductor-stabmap:1.4.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: StabMap, magrittr
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Inspect shared features using mosaicDataUpSet
+//  * 2. [Visualization & Output] Build and plot the mosaic data topology using mosaicDataTopology
+//  * 3. [Core Analysis] Generate a joint embedding using stabMap
+//  * 4. [Core Analysis] Impute missing features for query cells using imputeEmbedding
+//  * 5. [Core Analysis] Classify query cells using classifyEmbedding
 
 nextflow.enable.dsl = 2
 
-process BIOC_STABMAP {
+process BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-stabmap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-stabmap:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-stabmap:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_stabmap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_stabmap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_stabmap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(StabMap)
-    library(jsonlite)
-
-    # --- Stabilized Mosaic Integration [] ---
-    # Key functions: stabMap
-    stab <- stabMap(
-        assay_list,
-        reference_list = c("Multiome"),
-        plot = FALSE
+    library(magrittr)
+    
+    # Read user inputs from the working directory
+    # The pipeline expects 'assay_list.rds' (a list of log-normalized expression/accessibility matrices)
+    # and 'referenceLabels.rds' (a named character vector of cell type annotations for the reference cells)
+    assay_list <- readRDS("assay_list.rds")
+    referenceLabels <- readRDS("referenceLabels.rds")
+    
+    # Identify reference and query datasets dynamically based on referenceLabels
+    ref_dataset_names <- names(assay_list)[sapply(assay_list, function(x) any(colnames(x) %in% names(referenceLabels)))]
+    query_dataset_names <- setdiff(names(assay_list), ref_dataset_names)
+    
+    ref_cells <- unlist(lapply(assay_list[ref_dataset_names], colnames), use.names = FALSE)
+    query_cells <- unlist(lapply(assay_list[query_dataset_names], colnames), use.names = FALSE)
+    
+    # 1. Inspect shared features using mosaicDataUpSet
+    upset_res <- mosaicDataUpSet(assay_list, plot = FALSE)
+    saveRDS(upset_res, "mosaic_upset_results.rds")
+    
+    # 2. Build and plot the mosaic data topology using mosaicDataTopology
+    mdt <- mosaicDataTopology(assay_list)
+    saveRDS(mdt, "mosaic_data_topology.rds")
+    
+    pdf("mosaic_data_topology.pdf")
+    plot(mdt)
+    dev.off()
+    
+    # 3. Generate a joint embedding using stabMap
+    stab <- stabMap(assay_list,
+      reference_list = ref_dataset_names,
+      plot = FALSE
     )
-
-
-    # --- Embedding Imputation [] ---
-    # Key functions: imputeEmbedding
+    saveRDS(stab, "stab_embedding.rds")
+    write.csv(as.data.frame(stab), "stab_embedding.csv", row.names = TRUE)
+    
+    # 4. Impute missing features for query cells using imputeEmbedding
     imp <- imputeEmbedding(
-        assay_list,
-        stab,
-        reference = colnames(assay_list[["Multiome"]]),
-        query = colnames(assay_list[["RNA"]])
+      assay_list,
+      stab,
+      reference = ref_cells,
+      query = query_cells
     )
-
-
-    # --- Cell Type Classification [] ---
-    # Key functions: classifyEmbedding
+    saveRDS(imp, "imputed_features.rds")
+    
+    # 5. Classify query cells using classifyEmbedding
     knn_out <- classifyEmbedding(
-        stab,
-        referenceLabels
+      stab,
+      referenceLabels
     )
+    write.csv(as.data.frame(knn_out), "classification_results.csv", row.names = TRUE)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_stabmap_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_stabmap_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_stabmap_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_STABMAP:", paste0("    stabmap: ", packageVersion("StabMap"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION":',
+        paste0('    StabMap: ', as.character(packageVersion('StabMap')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_stabmap_results.csv
-    touch ${prefix}_stabmap_output.rds
-    echo "BIOC_STABMAP:" > versions.yml
-    echo "    stabmap: 0.0.0" >> versions.yml
+    touch ${prefix}_direct_mosaic_integration.csv versions.yml
     """
 }
 
-
-workflow BIOC_STABMAP_WORKFLOW {
+workflow BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ assay_list, referenceLabels ] ]
 
     main:
-    BIOC_STABMAP(ch_input)
+    BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION(ch_input)
 
     emit:
-    results  = BIOC_STABMAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_STABMAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_STABMAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_STABMAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION.out.tables
+    plots    = BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION.out.plots
+    objects  = BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION.out.objects
+    versions = BIOC_STABMAP_DIRECT_MOSAIC_INTEGRATION.out.versions
 }

@@ -1,0 +1,21 @@
+{
+  "package": "visse",
+  "requirements": [
+    "GSEABase",
+    "ggplot2",
+    "igraph",
+    "msigdb",
+    "patchwork",
+    "vissE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "ggplot2",
+      "igraph",
+      "msigdb",
+      "patchwork",
+      "vissE"
+    ]
+  }
+}

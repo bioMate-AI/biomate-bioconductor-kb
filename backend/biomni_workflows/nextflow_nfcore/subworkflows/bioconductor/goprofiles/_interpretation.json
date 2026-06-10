@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - onto: The GO ontology to analyze (\"MF\" for Molecular Function, \"BP\" for Biological Process, \"CC\" for Cellular Component, or \"ANY\" to compute profiles for all three).\n    - level: The specific level of the GO hierarchy to project genes onto (e.g., level 2).\n    - orgPackage: The organism-specific annotation database package (e.g., \"org.Hs.eg.db\").\n    - percentage: Logical indicating whether to print or plot profiles as percentages instead of raw counts.\n    - method: Multiple testing correction method for Fisher's exact test (e.g., \"holm\").\n    - qm: The expanded profile of the second gene list used in equivalence testing.\n    - pqn0: The expanded profile of the intersection of both gene lists used in equivalence testing.\n- alternatives: The documentation does not mention alternative packages, but references the underlying statistical methodologies developed by S\u00e1nchez-Pla et al. (2007) and Salicr\u00fa et al. (2011).\n- when_to_use: Use this package when you have two or more gene lists (e.g., from different transcriptomics studies or differential expression analyses) and want to compare their functional composition at a specific GO level, test if they are functionally different, or test if they are functionally equivalent.\n- pitfalls:\n    - Global comparison using `compareGeneLists` rebuilds the profiles from the raw gene lists, rather than using pre-computed basic profiles.\n    - Equivalence testing requires \"expanded\" profiles generated via `expandedProfile` rather than \"basic\" profiles generated via `basicProfile`.\n    - For equivalence testing, the intersection of the gene lists must be computed and its expanded profile passed as the `pqn0` parameter.",
+  "workflows": [
+    {
+      "name": "basic_profiling_and_visualization",
+      "intent": "Generate functional profiles for gene lists at a specific GO level and visually compare them.",
+      "input": [
+        "list1 (vector of Entrez gene IDs)",
+        "list2 (vector of Entrez gene IDs)"
+      ],
+      "stages": "1. Compute basic profiles for each gene list using `basicProfile` ;; 2. Merge the profiles using `mergeProfilesLists` ;; 3. Print the merged profiles using `printProfiles` ;; 4. Plot individual or merged profiles using `plotProfiles`.",
+      "code": "require(goProfiles)\ndata(prostateIds)\nwelsh.MF <- basicProfile (welsh01EntrezIDs[1:100], onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\") \nsingh.MF <- basicProfile (singh01EntrezIDs[1:100], onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\") \nwelsh.singh.MF <-mergeProfilesLists(welsh.MF, singh.MF, profNames=c(\"Welsh\", \"Singh\"))\nprintProfiles(welsh.singh.MF, percentage=TRUE)\nplotProfiles (welsh.MF, aTitle=\"Welsh (2001). Prostate cancer data\")\nwelsh <- basicProfile (welsh01EntrezIDs[1:100], onto=\"ANY\", level=2, orgPackage=\"org.Hs.eg.db\") \nplotProfiles (welsh.singh.MF, percentage=T,aTitle=\"Welsh vs Singh\", legend=T)"
+    },
+    {
+      "name": "statistical_comparison_and_fisher_test",
+      "intent": "Perform statistical tests to determine if two gene lists are functionally different globally and identify which specific GO categories drive the difference.",
+      "input": [
+        "list1 (vector of Entrez gene IDs)",
+        "list2 (vector of Entrez gene IDs)"
+      ],
+      "stages": "1. Compute global difference between gene lists using `compareGeneLists` ;; 2. Summarize the comparison using `compSummary` ;; 3. Compute the basic profile of the intersection of the gene lists using `basicProfile` ;; 4. Perform category-by-category Fisher's exact tests using `fisherGOProfiles`.",
+      "code": "compared.welsh.singh.01.MF <- compareGeneLists (welsh01EntrezIDs[1:100], singh01EntrezIDs[1:100], onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\")\nprint(compSummary(compared.welsh.singh.01.MF))\nlist1 <- welsh01EntrezIDs[1:100]\nlist2 <- singh01EntrezIDs[1:100]\ncommProf <- basicProfile(intersect(list1, list2), onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\")$MF\nfisherGOProfiles(welsh.MF$MF, singh.MF$MF, commProf, method=\"holm\")"
+    },
+    {
+      "name": "equivalence_testing",
+      "intent": "Test if two gene lists are functionally equivalent (statistically similar) rather than different.",
+      "input": [
+        "list1 (vector of Entrez gene IDs)",
+        "list2 (vector of Entrez gene IDs)"
+      ],
+      "stages": "1. Compute expanded profiles for both gene lists using `expandedProfile` ;; 2. Compute the expanded profile for the intersection of both gene lists using `expandedProfile` ;; 3. Perform equivalence testing using `equivalentGOProfiles` ;; 4. Summarize the equivalence test results using `equivSummary`.",
+      "code": "data(prostateIds)\nexpandedWelsh <- expandedProfile(welsh01EntrezIDs[1:100], onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\")\nexpandedSingh <- expandedProfile(singh01EntrezIDs[1:100], onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\")\ncommonGenes <- intersect(welsh01EntrezIDs[1:100], singh01EntrezIDs[1:100])\ncommonExpanded <- expandedProfile(commonGenes, onto=\"MF\", level=2, orgPackage=\"org.Hs.eg.db\")\nequivMF <-equivalentGOProfiles (expandedWelsh[['MF']], qm = expandedSingh[['MF']], pqn0= commonExpanded[['MF']])\nprint(equivSummary(equivMF, decs=5))"
+    }
+  ]
+}

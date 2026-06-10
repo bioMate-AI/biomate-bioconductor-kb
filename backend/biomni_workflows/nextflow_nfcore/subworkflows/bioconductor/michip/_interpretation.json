@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datadir=Directory containing the hybridization files (defaults to current directory \".\") ;; pat=File extension pattern to search for (defaults to \"gpr\") ;; intensityCutoff=Threshold below which intensities are set to NA in correctForFlags() to avoid near-background false positives ;; minSumlength=Minimum number of present values required to accept a summarized feature in summarizeIntensitiesAsMedian() ;; madAdjust=Logical; if TRUE, sets summarized intensities to NA if the median absolute deviation is greater than the median intensity\n- alternatives: The package parses data into a standard Bioconductor ExpressionSet, allowing users to easily substitute the built-in median normalization with other normalization methods available in Bioconductor (e.g., limma or affy)\n- when_to_use: Use this package when analyzing single-color Cy3 hybridization miRNA expression data generated from the MiChip microarray platform and gridded using GenePix software\n- pitfalls: All hybridization files in the target directory must be of the same chip type, otherwise parseRawData() will throw an error ;; positive but low intensities near background can lead to false positives; use the intensityCutoff parameter in correctForFlags() to filter these out ;; highly variable replicate spots can skew results; set madAdjust=TRUE in summarizeIntensitiesAsMedian() to handle them",
+  "workflows": [
+    {
+      "name": "step_by_step_processing",
+      "intent": "Manually parse, filter, flag-correct, summarize, plot, normalize, and export MiChip miRNA microarray data step-by-step.",
+      "input": [
+        "B_676.gpr (GenePix results file)",
+        "B_677.gpr (GenePix results file)"
+      ],
+      "stages": "1. Parse raw data ;; 2. Filter out empty and unwanted rows ;; 3. Correct for bad flags and low-intensity background ;; 4. Summarize replicate spot intensities ;; 5. Generate diagnostic scatter and box plots ;; 6. Perform per-chip median normalization ;; 7. Export the annotated normalized data matrix",
+      "code": "library(MiChip)\ndatadir <-system.file(\"extdata\", package=\"MiChip\")\ndefaultRawData <- parseRawData(datadir)\nnoEmptiesDataSet <- removeUnwantedRows(defaultRawData, c(\"Empty\"))\nhumanDataSet <- standardRemoveRows(defaultRawData)\nflagCorrectedDataSet <- correctForFlags(humanDataSet)\nflagCorrectedDataSet <- correctForFlags(humanDataSet, intensityCutoff = 50)\nsummedData <- summarizeIntensitiesAsMedian(flagCorrectedDataSet,minSumlength = 0, madAdjust=FALSE)\nplotIntensitiesScatter(exprs(summedData), NULL, \"MiChipDemX\", \"SummarizedScatter\")\nboxplotData(exprs(summedData), \"MiChipDemX\", \"Summarized\")\nmednormedData <- normalizePerChipMedian(summedData)\noutputAnnotatedDataMatrix(mednormedData, \"MiChipDemo\", \"medNormedIntensity\",  \"exprs\")"
+    },
+    {
+      "name": "automated_pipeline",
+      "intent": "Run an automated, all-in-one pipeline that parses, filters, corrects, normalizes, and exports MiChip data and diagnostic plots using a single wrapper function.",
+      "input": [
+        "B_676.gpr (GenePix results file)",
+        "B_677.gpr (GenePix results file)"
+      ],
+      "stages": "1. Execute the automated wrapper function to process files and output results/plots to the working directory",
+      "code": "library(MiChip)\ndatadir <-system.file(\"extdata\", package=\"MiChip\")\nmyNormedEset <- workedExampleMedianNormalize(\"NormedDemo\", intensityCutoff = 50,datadir)"
+    }
+  ]
+}

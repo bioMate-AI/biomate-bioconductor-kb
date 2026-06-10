@@ -1,0 +1,32 @@
+{
+  "package": "fishpond",
+  "requirements": [
+    "EnsDb.Hsapiens.v86",
+    "SummarizedExperiment",
+    "dplyr",
+    "ensembldb",
+    "fishpond",
+    "plyranges",
+    "tximeta"
+  ],
+  "by_workflow": {
+    "allelic_imbalance_seesaw.nf": [
+      "EnsDb.Hsapiens.v86",
+      "SummarizedExperiment",
+      "dplyr",
+      "ensembldb",
+      "fishpond",
+      "plyranges"
+    ],
+    "differential_transcript_usage.nf": [
+      "SummarizedExperiment",
+      "fishpond",
+      "tximeta"
+    ],
+    "main.nf": [
+      "SummarizedExperiment",
+      "fishpond",
+      "tximeta"
+    ]
+  }
+}

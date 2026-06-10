@@ -1,0 +1,14 @@
+{
+  "package": "asics",
+  "requirements": [
+    "ASICS"
+  ],
+  "by_workflow": {
+    "custom_library_creation.nf": [
+      "ASICS"
+    ],
+    "main.nf": [
+      "ASICS"
+    ]
+  }
+}

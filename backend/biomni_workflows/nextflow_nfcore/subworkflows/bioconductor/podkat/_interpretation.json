@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: formula=formula interface defining the trait and covariates in nullModel() ;; type=specifies the model type as \"linear\", \"logistic\", or \"bernoulli\" in nullModel() ;; adj=controls small sample correction and higher moment adjustment for logistic models (\"force\", \"none\", or auto-enabled for N <= 2000) ;; n.resampling=number of resampling repeats for empirical p-values ;; n.resampling.adj=number of bootstrap repeats for higher moment adjustments ;; width=width of genomic windows in partitionRegions() (default 5,000 bp) ;; overlap=relative overlap of windows in partitionRegions() (default 0.5) ;; kernel=kernel function to use in assocTest(), such as \"linear.podkat\" (default) or \"linear.SKAT\" ;; method=multiple testing correction method in p.adjust() (e.g., \"holm\", \"BH\")\n- alternatives: kernel=\"linear.SKAT\" in assocTest() can be used as an alternative to the default position-dependent kernel to perform a standard SKAT association test.\n- when_to_use: Use when conducting association studies on genomic sequence data containing rare or private variants where traditional burden tests lack statistical power, and when adjusting for covariates is necessary.\n- pitfalls: Failing to apply small sample correction and higher moment adjustments (adj) for binary traits with small sample sizes, which leads to inflated, overly optimistic p-values ;; Choosing genomic windows that are too narrow (which reduces statistical power and increases multiple testing burden) or too wide (which dilutes the association signal with non-associated variants) ;; Forgetting to strip strand information from GRanges objects before using split() with unmasked regions, as split() is strand-sensitive.",
+  "workflows": [
+    {
+      "name": "continuous_trait_association_testing",
+      "intent": "Perform association testing between a continuous trait (with covariates) and genotype data across partitioned genomic windows.",
+      "input": [
+        "phenoFileLin.csv (CSV file containing continuous trait and covariates)",
+        "example1.vcf.gz (VCF file containing genotype data)"
+      ],
+      "stages": "1. Load phenotype data and train a linear null model.\n2. Load genomic regions and partition them into overlapping windows.\n3. Load the genotype matrix from the VCF file.\n4. Perform the association test.\n5. Adjust p-values for multiple testing.\n6. Visualize adjusted p-values using a Manhattan plot.",
+      "code": "pheno.c <- read.table(phenoFileLin, header=TRUE, sep=\",\")\nmodel.c <- nullModel(y ~ ., pheno.c)\ndata(hgA)\nwindows <- partitionRegions(hgA)\ngeno <- readGenotypeMatrix(vcfFile)\nres.c <- assocTest(geno, model.c, windows)\nres.c <- p.adjust(res.c)\nplot(res.c, which=\"p.value.adj\")"
+    },
+    {
+      "name": "binary_trait_association_testing",
+      "intent": "Perform association testing between a binary trait (with covariates) and genotype data, applying small sample correction and higher moment adjustments.",
+      "input": [
+        "phenoFileLog.csv (CSV file containing binary trait and covariates)",
+        "example1.vcf.gz (VCF file containing genotype data)"
+      ],
+      "stages": "1. Load phenotype data and train a logistic null model with higher moment adjustments.\n2. Load genomic regions and partition them into overlapping windows.\n3. Perform the association test directly on the VCF file to save memory.\n4. Adjust p-values for multiple testing.\n5. Visualize adjusted p-values using a Manhattan plot.",
+      "code": "pheno.b <- read.table(phenoFileLog, header=TRUE, sep=\",\")\nmodel.b <- nullModel(y ~ ., pheno.b)\ndata(hgA)\nwindows <- partitionRegions(hgA)\nres.b <- assocTest(vcfFile, model.b, windows)\nres.b <- p.adjust(res.b)\nplot(res.b, which=\"p.value.adj\")"
+    },
+    {
+      "name": "post_association_analysis_and_visualization",
+      "intent": "Filter significant association results, compute and plot the contributions of individual variants, and visualize genotypes for the most significant region.",
+      "input": [
+        "res.c (association test results object)",
+        "geno (GenotypeMatrix object)",
+        "model.c (NullModel object)",
+        "vcfFile (VCF file containing genotype data)",
+        "pheno.c (phenotype data frame)"
+      ],
+      "stages": "1. Adjust p-values using the Benjamini-Hochberg method.\n2. Filter association results by adjusted p-value.\n3. Compute variant weights and contributions for the filtered significant regions.\n4. Plot raw variant weights along the genome for the most significant region.\n5. Sort association results, read the genotype matrix for the top region, and plot the genotype matrix against the phenotype.",
+      "code": "res.c.adj <- p.adjust(res.c, method=\"BH\")\nres.c.adj.f <- filterResult(res.c.adj, filterBy=\"p.value.adj\")\nw.res.c.adj <- weights(res.c.adj.f, geno, model.c)\nplot(w.res.c.adj[[1]], \"weight.raw\", alongGenome=TRUE, type=\"b\")\nres.c.adj.sorted <- sort(res.c.adj, sortBy=\"p.value.adj\")\nZi <- readGenotypeMatrix(vcfFile, regions=res.c.adj.sorted[1])\nplot(Zi, y=pheno.c$y, labRow=NA)"
+    }
+  ]
+}

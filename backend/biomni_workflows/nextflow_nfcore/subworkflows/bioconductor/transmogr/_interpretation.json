@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ol_vars=Controls how overlapping InDels are handled during variant cleaning (e.g., 'none' to return no overlapping InDels, 'longest', 'shortest', 'first', or 'last') ;; tag=Optional character tag added to modified transcript names to identify them ;; var_tags=Logical indicating whether to append tags indicating the type of variant incorporated (e.g., 's', 'i', 'd') ;; extra_cols=Character vector of metadata columns from the exons to retain in the splice junction output ;; as=Format of the returned splice junctions, such as 'GInteractions' or default GRanges\n- alternatives: STARconsensus is mentioned for splice-aware alignment or RNA-Seq consensus generation, whereas transmogr is preferred for creating variant-modified reference transcriptomes for pseudo-aligners like salmon. Within the package, transmogrify() directly modifies transcripts but is slow and memory-intensive; the alternative workflow using shiftByVar() and extractTranscriptSeqs() is much faster and less resource-hungry.\n- when_to_use: Use when you need to incorporate personalized or population-level variants (SNVs, insertions, deletions) into a reference genome or transcriptome, particularly to build custom references (e.g., \"gentromes\" and decoy files) for pseudo-aligners like salmon.\n- pitfalls: Input variants must strictly conform to exact types: SNVs must be width 1 with a single replacement base; Insertions must replace a single nucleotide with >1nt replacement; Deletions must replace >1nt with a single replacement base. Non-conforming variants cause errors. transmogrify() can be very slow and memory-intensive when run genome-wide; using shiftByVar() with extractTranscriptSeqs() is recommended for large datasets but still requires significant RAM (HPC recommended). When using the coordinate-shifting approach, variant overlap checking (varTags()) must be performed before shifting coordinates.",
+  "workflows": [
+    {
+      "name": "direct_transcriptome_modification",
+      "intent": "Create a variant-modified reference transcriptome directly from a reference genome, a set of variants, and exon coordinates.",
+      "input": [
+        "reference_genome.fa (FASTA reference genome)",
+        "variants.vcf.gz (VCF file containing genomic variants)",
+        "annotations.gtf.gz (GTF file containing exon coordinates)"
+      ],
+      "stages": "1. Load and clean variants using cleanVariants() ;; 2. Import and split GTF annotations ;; 3. Run transmogrify() to generate modified transcript sequences.",
+      "code": "chr1 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, \"chr1\")\nchr1 <- as(chr1, \"DNAStringSet\")\nnames(chr1) <- \"chr1\"\nsq <- seqinfo(chr1)\ngenome(sq) <- \"GRCh38\"\nvcf <- system.file(\"extdata/1000GP_subset.vcf.gz\", package = \"transmogR\")\nvcf <- VcfFile(vcf)\nvar <- cleanVariants(vcf)\nseqinfo(var) <- sq\nf <- system.file(\"extdata/gencode.v44.subset.gtf.gz\", package = \"transmogR\")\ngtf <- import.gff(f, which = GRanges(sq))\nseqinfo(gtf) <- sq\ngtf <- splitAsList(gtf, gtf$type)\ntrans_mod <- transmogrify(chr1, var, gtf$exon, tag = \"1000GP\", var_tags = TRUE)"
+    },
+    {
+      "name": "genome_modification_and_coordinate_shifting",
+      "intent": "Modify a reference genome and shift exon coordinates to extract modified transcript sequences efficiently.",
+      "input": [
+        "reference_genome.fa (FASTA reference genome)",
+        "variants.vcf.gz (VCF file containing genomic variants)",
+        "annotations.gtf.gz (GTF file containing exon coordinates)"
+      ],
+      "stages": "1. Load and clean variants using cleanVariants() ;; 2. Modify the reference genome using genomogrify() ;; 3. Shift exon coordinates to account for InDels using shiftByVar() ;; 4. Generate variant tags on original coordinates using varTags() ;; 5. Extract modified transcript sequences using extractTranscriptSeqs().",
+      "code": "chr1 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, \"chr1\")\nchr1 <- as(chr1, \"DNAStringSet\")\nnames(chr1) <- \"chr1\"\nsq <- seqinfo(chr1)\ngenome(sq) <- \"GRCh38\"\nvcf <- system.file(\"extdata/1000GP_subset.vcf.gz\", package = \"transmogR\")\nvcf <- VcfFile(vcf)\nvar <- cleanVariants(vcf)\nseqinfo(var) <- sq\nf <- system.file(\"extdata/gencode.v44.subset.gtf.gz\", package = \"transmogR\")\ngtf <- import.gff(f, which = GRanges(sq))\nseqinfo(gtf) <- sq\ngtf <- splitAsList(gtf, gtf$type)\nchr1_mod <- genomogrify(chr1, var)\nref_exons_by_trans <- gtf$exon %>% splitAsList(.$transcript_id) \nnew_exons <- shiftByVar(gtf$exon, var)\nnew_exon_by_trans <- splitAsList(new_exons, new_exons$transcript_id)\ntags <- varTags(ref_exons_by_trans, var, tag = \"1000GP\")\nnames(new_exon_by_trans) <- paste0(names(new_exon_by_trans), tags)\nnew_trans_mod <- extractTranscriptSeqs(chr1_mod, new_exon_by_trans)"
+    },
+    {
+      "name": "splice_junction_extraction",
+      "intent": "Extract and format splice junctions from exon coordinates as GRanges or GInteractions.",
+      "input": [
+        "annotations.gtf.gz (GTF file containing exon coordinates)"
+      ],
+      "stages": "1. Import GTF annotations ;; 2. Extract splice junctions using sjFromExons() ;; 3. Simplify shared junctions using chopMC().",
+      "code": "chr1 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, \"chr1\")\nchr1 <- as(chr1, \"DNAStringSet\")\nnames(chr1) <- \"chr1\"\nsq <- seqinfo(chr1)\ngenome(sq) <- \"GRCh38\"\nf <- system.file(\"extdata/gencode.v44.subset.gtf.gz\", package = \"transmogR\")\ngtf <- import.gff(f, which = GRanges(sq))\nseqinfo(gtf) <- sq\ngtf <- splitAsList(gtf, gtf$type)\nec <- c(\"transcript_id\", \"transcript_name\", \"gene_id\", \"gene_name\")\nsj <- sjFromExons(gtf$exon, extra_cols = ec)\nchopMC(sj)\nsj <- sjFromExons(gtf$exon, extra_cols = ec, as = \"GInteractions\")\nsubset(sj, transcript_name == \"DDX11L17-201\")"
+    }
+  ]
+}

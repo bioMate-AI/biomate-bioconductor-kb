@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: layer=Specifies the assay layer to use in getAverageExpressionMatrix (e.g., 'data') ;; ccTag=Prefix for cell cluster names in tagRowAndColNames ;; gcTag=Prefix for gene cluster names in tagRowAndColNames ;; numTrials=Number of randomizations for significance testing in getObjectSubsetClusteringStatistics (default is 1000) ;; alpha=Edge filtering threshold in getSubsetComponents to identify subclusters ;; radius=Distance threshold for finding neighboring genes in getNearbyGenes or predictAnnotation ;; metric=Embedding metric to use in getNearbyGenes (e.g., 'umap', 'PCA', 'tSNE', or 'NN' for nearest neighbor graph) ;; returnType=Specifies output format in aggregateGeneExpression (e.g., 'sce' for SingleCellExperiment, default is Seurat)\n- alternatives: Standard cell-centric clustering (Seurat/SingleCellExperiment) clusters cells based on gene expression, whereas CatsCradle transposes this matrix to cluster genes based on cell expression. Standard ligand-receptor analysis (like NicheNet) vs. CatsCradle's spatial edge-based ligand-receptor analysis on Delaunay triangulations.\n- when_to_use: Use when you want to identify co-expressed gene modules and visualize them on a gene-centric UMAP, predict functions of unannotated genes based on their embedding proximity to annotated genes, or analyze spatial transcriptomics data to define, cluster, and compare cellular neighborhoods and perform localized ligand-receptor analysis.\n- pitfalls: Combinatorial radius (metric='NN') can grow very quickly and may not correspond closely to UMAP distance. Conversions between Seurat and SingleCellExperiment/SpatialExperiment are lightweight (\"shallow\") and some metadata or specific information might be lost. Feature names in neighborhood Seurat objects cannot have underscores ('_'), they are automatically replaced with dashes ('-').",
+  "workflows": [
+    {
+      "name": "gene_clustering_and_annotation",
+      "intent": "Transpose a cell-by-gene expression matrix to cluster genes, visualize them, and analyze their relationship with cell clusters.",
+      "input": [
+        "cell_seurat_object.rds (Seurat object containing normalized single-cell RNA-seq data with cell clusters)"
+      ],
+      "stages": "1. Transpose the Seurat object using transposeObject ;; 2. Calculate average expression of gene clusters across cell clusters using getAverageExpressionMatrix ;; 3. Tag row and column names using tagRowAndColNames ;; 4. Generate a Sankey graph using sankeyFromMatrix ;; 5. Calculate gene clustering significance using getObjectSubsetClusteringStatistics or getObjectSubsetClusteringPValue ;; 6. Find subclusters within a gene subset using getSubsetComponents ;; 7. Calculate mean z-scores per cluster on UMAP using meanZPerClusterOnUMAP",
+      "code": "STranspose = transposeObject (exSeuratObj)\naverageExpMatrix = getAverageExpressionMatrix (exSeuratObj,STranspose, layer= 'data' )\naverageExpMatrix = tagRowAndColNames (averageExpMatrix, ccTag= 'cellClusters_' , gcTag= 'geneClusters_' )\ncatsCradle = sankeyFromMatrix (averageExpMatrix, disambiguation= c ( 'cells_' , 'genes_' ), plus= 'cyan' , minus= 'pink' , height= 800 )\nstats = getObjectSubsetClusteringStatistics (STranspose, g2mGenes, numTrials= 1000 )\npValue = getObjectSubsetClusteringPValue (STranspose,idx)\nclusters = getSubsetComponents (STranspose,theSubset,alpha)\nmeanZDF = meanZPerClusterOnUMAP (exSeuratObj, STranspose, 'shortName' )"
+    },
+    {
+      "name": "gene_function_prediction",
+      "intent": "Predict annotations/functions of a gene based on its neighbors in the transposed gene embedding.",
+      "input": [
+        "transposed_gene_seurat.rds (Transposed Seurat object with genes as samples)",
+        "gene_sets.rds (List of gene sets/annotations, e.g., Hallmark)"
+      ],
+      "stages": "1. Find geometrically or combinatorially nearby genes using getNearbyGenes ;; 2. Invert gene sets to map genes to annotations using annotateGenesByGeneSet ;; 3. Represent gene annotations as vectors using annotateGeneAsVector ;; 4. Predict annotations using predictAnnotation",
+      "code": "geometricallyNearbyGenes = getNearbyGenes (STranspose,geneSet, radius= 0.2 , metric= 'umap' )\ncombinatoriallyNearbyGenes = getNearbyGenes (STranspose,geneSet, radius= 1 , metric= 'NN' )\nannotatedGenes = annotateGenesByGeneSet (hallmark)\nMyc = annotateGeneAsVector ( 'Myc' ,hallmark)\nMycNormalised = annotateGeneAsVector ( 'Myc' ,hallmark, TRUE )\npredicted = predictAnnotation ( 'Myc' ,hallmark,STranspose, radius= . 5 )"
+    },
+    {
+      "name": "spatial_neighborhood_analysis",
+      "intent": "Define cellular neighborhoods in spatial transcriptomics data, cluster them by cell type composition or aggregate gene expression, and perform ligand-receptor analysis.",
+      "input": [
+        "spatial_seurat.rds (Spatial Seurat or SpatialExperiment object with cell coordinates and cell type annotations)"
+      ],
+      "stages": "1. Compute cell type composition per neighborhood using computeCellTypesPerCellTypeMatrix ;; 2. Visualize neighborhood relationships using cellTypesPerCellTypeGraphFromCellMatrix ;; 3. Aggregate gene expression across neighborhoods using aggregateGeneExpression",
+      "code": "cellTypesPerCellTypeMatrixExtended = computeCellTypesPerCellTypeMatrix (NBHDByCTMatrixExtended,clusters)\ncellTypesPerCellTypeGraphFromCellMatrix (cellTypesPerCellTypeMatrixExtended, minWeight = 0.05 , colours = colours)\nagg = aggregateGeneExpression (smallXenium,extendedNeighbours, verbose= FALSE )\nagg_sce = aggregateGeneExpression (smallXenium,extendedNeighbours, verbose= FALSE , returnType= 'sce' )"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "vasp",
+  "requirements": [
+    "GenomicRanges",
+    "VaSP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "VaSP"
+    ]
+  }
+}

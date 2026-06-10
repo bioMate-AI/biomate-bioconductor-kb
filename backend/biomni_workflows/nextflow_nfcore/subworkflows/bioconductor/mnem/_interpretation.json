@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=An m x n matrix of log odds or discrete values where rows are E-genes (features) and columns are cells (perturbed S-genes) ;; ks=A vector of integers specifying the range of mixture components (k) to test in mnemk ;; k=An integer specifying the exact number of mixture components to fit in mnem ;; search=Search method for the M-step (e.g., \"greedy\") ;; starts=Number of independent starts for the EM algorithm to avoid local optima ;; parallel=Number of threads to use for parallel computation ;; method=Set to \"disc\" for discrete binary input data ;; fpfn=A numeric vector c(alpha, beta) specifying false positive and false negative rates for discrete data ;; multi=Logical indicating whether to handle cells with multiple S-gene perturbations (separating S-genes with \"_\")\n- alternatives: Nested Effects Models (NEM)=Use when only one sample/column is available per perturbed S-gene (bulk data) ;; B-NEM=Use when you want to infer complex logical gate signaling structures from multiple perturbations, whereas mnem uses multiple perturbations only to increase standard NEM accuracy\n- when_to_use: Use when analyzing single-cell transcriptomics data from pooled CRISPR screens where cells have genetic perturbations (S-genes) and downstream transcriptional profiles (E-genes), and you suspect heterogeneous causal signaling behaviors across different cell subpopulations.\n- pitfalls: Using too few EM starts can lead to suboptimal local maxima (more starts are highly recommended) ;; Summation of log odds in large datasets can cause numerical overflow (returning infinity when exponentiated), which mnem addresses by optimizing the expectation of the complete data log odds ;; For discrete data, false positive and false negative rates (fpfn) must be specified carefully, as highly unreasonable values can break down the causal network reconstruction.",
+  "workflows": [
+    {
+      "name": "continuous_log_odds_pipeline",
+      "intent": "Perform simultaneous causal network inference and cell subpopulation clustering on continuous log odds single-cell perturbation data, including model selection for the optimal number of components.",
+      "input": [
+        "data.csv (an m x n matrix of log odds where rows are E-genes and columns are cells/samples with S-gene perturbations)"
+      ],
+      "stages": "1. Perform model selection across multiple component sizes (k) using mnemk ;; 2. Plot the mixture NEM result for the best model using plot ;; 3. Evaluate model selection criteria (raw vs penalized log likelihood) ;; 4. Check EM convergence using plotConvergence ;; 5. Calculate and plot cell responsibilities (affinities) using getAffinity",
+      "code": "starts <- 5\nbestk <- mnemk(data, ks = 1:5, search = \"greedy\", starts = starts,\n                       parallel = NULL)\nplot(bestk$best)\npar(mfrow=c(1,2)) \nplot(bestk$lls, col = \"blue\", main = \"raw log likelihood\", type = \"b\",\n     xlab = \"number of components\", ylab = \"score\")\nplot(bestk$ics, col = \"red\", main = \"penalized log likelihood\", type = \"b\",\n     xlab = \"number of components\", ylab = \"score\")\npar(mfrow=c(2,2))\nplotConvergence(bestk$best, cex.main = 0.7, cex.lab = 0.7)\npostprobs <- getAffinity(bestk$best$probs, mw = bestk$best$mw)\nhist(postprobs, xlab = \"responsibilities\", main = \"\")"
+    },
+    {
+      "name": "discrete_data_pipeline",
+      "intent": "Perform causal network and subpopulation inference on binary/discrete single-cell perturbation data (1 for effect, 0 for no effect) by specifying false positive and false negative error rates.",
+      "input": [
+        "datadisc.csv (an m x n matrix of binary values (0 and 1) representing the presence or absence of downstream effects in perturbed cells)"
+      ],
+      "stages": "1. Run mixture NEM on discrete data using mnem with method = \"disc\" and specified false positive/false negative rates (fpfn) ;; 2. Plot the resulting mixture NEM components and cell assignments using plot",
+      "code": "result_disc <- mnem(datadisc, k = length(mw), search = \"greedy\",\n                    starts = starts, method = \"disc\", fpfn = c(0.1,0.1))\nplot(result_disc)"
+    }
+  ]
+}

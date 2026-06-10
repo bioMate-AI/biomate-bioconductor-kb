@@ -1,0 +1,28 @@
+{
+  "package": "puma",
+  "requirements": [
+    "Biobase",
+    "oligo",
+    "puma",
+    "pumadata"
+  ],
+  "by_workflow": {
+    "exon_array_summarisation.nf": [
+      "oligo",
+      "puma",
+      "pumadata"
+    ],
+    "hta_20_array_summarisation.nf": [
+      "oligo",
+      "puma"
+    ],
+    "main.nf": [
+      "oligo",
+      "puma"
+    ],
+    "pca_and_clustering_with_uncertainty.nf": [
+      "Biobase",
+      "puma"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "package": "voyager",
+  "requirements": [
+    "SFEData",
+    "SpatialExperiment",
+    "SpatialFeatureExperiment",
+    "Voyager",
+    "ggplot2",
+    "pheatmap",
+    "scales",
+    "scater",
+    "scran"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SFEData",
+      "SpatialExperiment",
+      "SpatialFeatureExperiment",
+      "Voyager",
+      "ggplot2",
+      "pheatmap",
+      "scales",
+      "scater",
+      "scran"
+    ]
+  }
+}

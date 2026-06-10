@@ -1,0 +1,16 @@
+{
+  "package": "betahmm",
+  "requirements": [
+    "SummarizedExperiment",
+    "betaHMM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "betaHMM"
+    ],
+    "threshold_estimation.nf": [
+      "betaHMM"
+    ]
+  }
+}

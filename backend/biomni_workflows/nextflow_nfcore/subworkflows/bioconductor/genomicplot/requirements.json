@@ -1,0 +1,17 @@
+{
+  "package": "genomicplot",
+  "requirements": [
+    "GenomicFeatures",
+    "GenomicPlot",
+    "GenomicRanges",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "GenomicPlot",
+      "GenomicRanges",
+      "ggplot2"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "rtrmui",
+  "requirements": [
+    "rTRMui"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rTRMui"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "dce",
+  "requirements": [
+    "dce",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dce",
+      "igraph"
+    ]
+  }
+}

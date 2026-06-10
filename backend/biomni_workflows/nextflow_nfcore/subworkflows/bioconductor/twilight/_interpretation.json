@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Specifies the test statistic variant (\"fc\" for fold change equivalent, \"t\" for t-test, \"z\" for Z-test, \"pearson\" or \"spearman\" for correlation) ;; paired=Logical indicating if the samples are paired ;; B=Number of permutations for estimating the null distribution ;; yperm=Optional user-specified permutation matrix ;; filtering=Logical to enable permutation filtering in twilight.pval ;; lambda=Regularization parameter for the successive exclusion procedure ;; boot.ci=Width of the bootstrap confidence interval\n- alternatives: Classical t-test (method=\"t\") and Z-test (method=\"z\") with a fudge factor are alternatives to the fold change equivalent score (method=\"fc\"). The package also suggests using vsn for variance-stabilizing normalization prior to analysis.\n- when_to_use: Appropriate for two-sample transcriptomics or microarray experiments on an additive scale to identify differentially expressed genes, estimate local false discovery rates, or correlate gene expression with continuous clinical parameters.\n- pitfalls: Input data must be on an additive scale (e.g., log or arsinh) as the package does not perform this transformation automatically. If using a custom permutation matrix yperm, the first row must contain the original labels to ensure correct p-value calculation. Permutation filtering is computationally intensive.",
+  "workflows": [
+    {
+      "name": "differential_expression_analysis",
+      "intent": "Test for differential gene expression between two conditions and estimate local false discovery rates.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix on additive scale)",
+        "phenotype_labels.csv (binary condition labels for samples)"
+      ],
+      "stages": "1. Compute permutation-based p-values and q-values using twilight.pval ;; 2. Estimate local false discovery rates and bootstrap confidence intervals using twilight ;; 3. Plot expected vs observed scores, q-values, local FDR curve, volcano plot, and effect size distribution",
+      "code": "library(twilight)\npval <- twilight.pval(golubNorm, id, B=100)\nplot(expval,which=\"scores\",grayscale=F,legend=F)\nplot(expval,which=\"qvalues\")\nplot(exfdr,which=\"fdr\",grayscale=F,legend=T)\nplot(exfdr,which=\"volcano\")\nplot(exfdr,which=\"effectsize\",legend=T)\ntab <- plot(exfdr,which=\"table\")"
+    },
+    {
+      "name": "correlation_analysis",
+      "intent": "Identify genes whose expression levels correlate with a continuous clinical parameter.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix)",
+        "clinical_parameter.csv (numerical clinical values for samples)"
+      ],
+      "stages": "1. Extract the continuous clinical parameter vector ;; 2. Compute correlation-based p-values and q-values using twilight.pval with Spearman or Pearson method ;; 3. Plot the correlation scores",
+      "code": "gene <- exprs(golubNorm)[pval$result$index[1],]\ncorr <- twilight.pval(golubNorm,gene,method=\"spearman\",quant.ci=0.99,B=100)\nplot(corr,which=\"scores\",grayscale=F,legend=F)"
+    },
+    {
+      "name": "permutation_filtering",
+      "intent": "Filter for a set of permutations whose p-value distributions fit a uniform distribution to improve significance analysis.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix)",
+        "phenotype_labels.csv (binary condition labels)"
+      ],
+      "stages": "1. Run permutation filtering using twilight.filtering to obtain a matrix of filtered permutations ;; 2. Remove the original labeling from the first row of the filtered permutation matrix ;; 3. Compute p-values using twilight.pval with the filtered permutation matrix passed to yperm ;; 4. Plot a histogram of the resulting p-values to verify uniformity",
+      "code": "yperm <- twilight.filtering(golubNorm,id,method=\"fc\",num.perm=50,num.take=10)\nyperm <- yperm[-1,]\nb <- twilight.pval(golubNorm,yperm[1,],method=\"fc\",yperm=yperm)\nhist(b$result$pvalue,col=\"gray\",br=20)"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "package": "rexposome",
+  "requirements": [
+    "ggplot2",
+    "mice",
+    "rexposome"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "rexposome"
+    ],
+    "multiple_imputation_exposome.nf": [
+      "mice",
+      "rexposome"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "ogre",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "OGRE",
+    "S4Vectors",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "OGRE",
+      "S4Vectors",
+      "ggplot2"
+    ]
+  }
+}

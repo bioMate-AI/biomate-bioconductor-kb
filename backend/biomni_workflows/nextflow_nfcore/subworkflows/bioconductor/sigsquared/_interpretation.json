@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: direct=A vector of -1 and 1 values indicating the expected regulatory direction of each gene (e.g., -1 for inhibition/down-regulation, 1 for activation/up-regulation) ;; genes=A character vector of gene names corresponding to the nodes in the pathway ;; dataSet=An ExpressionSet object containing gene expression data and survival covariates ;; iterPerK=The number of optimization iterations per fold in cross-validation ;; k=The number of folds for cross-validation ;; rand=A logical value indicating whether to randomize the optimization process\n- alternatives: Bayesian network inference methods (mentioned as requiring N^2 parameters instead of N parameters, but useful when a priori pathway directionality is unknown)\n- when_to_use: When you have a known linear signaling pathway with a priori information on the general regulatory direction of each interaction, and you want to generate a molecular gene signature predictive of differential survival outcome (e.g., metastasis-free survival) from transcript and survival data.\n- pitfalls: Running too few optimization iterations (the package suggests a minimum of 2,500 optimizations in practice, whereas the vignette uses 100 for demonstration) ;; attempting to use the package without a priori knowledge of the pathway's regulatory directionality.",
+  "workflows": [
+    {
+      "name": "gene_signature_survival_optimization",
+      "intent": "Train threshold parameters for a linear signaling pathway gene signature and apply them to predict patient survival outcomes.",
+      "input": [
+        "dataSet.RData (An ExpressionSet containing gene expression data and survival metadata such as MFS and met)"
+      ],
+      "stages": "1. Create a new geneSignature object ;; 2. Set the gene signature directionality and gene names using setGeneSignature ;; 3. Run the optimization and cross-validation pipeline using analysisPipeline ;; 4. Apply the trained thresholds to the dataset using ensembleAdjustable ;; 5. Plot the survival curves using survfit and plot",
+      "code": "gs <- new(\"geneSignature\")\ngenes <- c(\"RKIP\", \"HMGA2\", \"SPP1\", \"CXCR4\", \"MMP1\", \"MetaLET7\", \"MetaBACH1\")\ngs <- setGeneSignature(gs, direct=c(-1, 1, 1, 1, 1, 1, 1), genes=genes)\ngs <- analysisPipeline(dataSet=BrCa443, geneSig=gs, iterPerK=50, k=2, rand=FALSE)\ns <- ensembleAdjustable(dataSet=BrCa443, geneSig=gs)\nplot(survfit(Surv(MFS, met) ~ s, data=pData(BrCa443)))"
+    }
+  ]
+}

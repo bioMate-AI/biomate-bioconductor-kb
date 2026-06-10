@@ -1,0 +1,29 @@
+{
+  "package": "nullranges",
+  "requirements": [
+    "GenomeInfoDb",
+    "GenomicRanges",
+    "ggplot2",
+    "nullranges",
+    "patchwork",
+    "plyranges",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "block_bootstrap_enrichment.nf": [
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "ggplot2",
+      "nullranges",
+      "plyranges",
+      "tidyr"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "nullranges",
+      "patchwork",
+      "plyranges"
+    ]
+  }
+}

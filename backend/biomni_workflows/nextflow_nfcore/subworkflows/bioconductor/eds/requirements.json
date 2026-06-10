@@ -1,0 +1,15 @@
+{
+  "package": "eds",
+  "requirements": [
+    "Matrix",
+    "SummarizedExperiment",
+    "eds"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Matrix",
+      "SummarizedExperiment",
+      "eds"
+    ]
+  }
+}

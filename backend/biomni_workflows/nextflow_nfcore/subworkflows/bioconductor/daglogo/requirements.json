@@ -1,0 +1,18 @@
+{
+  "package": "daglogo",
+  "requirements": [
+    "UniProt.ws",
+    "biomaRt",
+    "dagLogo"
+  ],
+  "by_workflow": {
+    "fasta_peptide_analysis.nf": [
+      "dagLogo"
+    ],
+    "main.nf": [
+      "UniProt.ws",
+      "biomaRt",
+      "dagLogo"
+    ]
+  }
+}

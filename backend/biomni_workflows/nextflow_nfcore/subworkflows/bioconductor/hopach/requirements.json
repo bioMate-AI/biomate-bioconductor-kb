@@ -1,0 +1,11 @@
+{
+  "package": "hopach",
+  "requirements": [
+    "hopach"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "hopach"
+    ]
+  }
+}

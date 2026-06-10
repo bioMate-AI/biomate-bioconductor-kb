@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: inputMat=A numeric matrix of feature measurements (e.g., gene expression) with features in rows and samples in columns ;; phenoGroup=A factor containing binary phenotypic group labels for the training samples ;; krange=An integer vector specifying the range of the number of TSPs to be used in the classifier ;; FilterFunc=A function used to filter features before training (e.g., SWAP.Filter.Wilcoxon, a custom function, or NULL to use all features) ;; RestrictedPairs=A two-column matrix specifying a pre-defined set of candidate feature pairs to restrict the classifier search ;; featureNo=The number of top features to retain during filtering ;; CombineFunc/DecisionFunc/combineFunc=Functions to aggregate individual TSP votes or make final classification decisions\n- alternatives: KTSP.Train and KTSP.Classify are deprecated legacy functions maintained for backward compatibility, replaced by SWAP.Train.KTSP and SWAP.KTSP.Classify. Support Vector Machines (SVM) are mentioned as a competitive alternative method in literature.\n- when_to_use: When building robust, rank-based binary classifiers from high-dimensional data (like gene expression) where data normalization might vary, and transparent, simple decision rules based on feature pairs are desired.\n- pitfalls: Using deprecated functions KTSP.Train and KTSP.Classify instead of the modern SWAP.Train.KTSP and SWAP.KTSP.Classify (unless reproducing older papers). Setting FilterFunc = NULL can be computationally intensive if the number of features is very large, as it calculates scores for all possible pairs. Restricted pairs must contain valid feature names that exactly match the row names of the input matrix.",
+  "workflows": [
+    {
+      "name": "ktsp_classifier_training_and_prediction",
+      "intent": "Train a KTSP classifier on a training dataset (with optional filtering or restricted pairs) and use it to classify new test samples.",
+      "input": [
+        "matTraining (numeric matrix of training feature profiles, features as rows, samples as columns)",
+        "trainingGroup (factor of training class labels)",
+        "matTesting (numeric matrix of test feature profiles)"
+      ],
+      "stages": "1. Train the KTSP classifier using SWAP.Train.KTSP ;; 2. Compute and aggregate TSP votes/statistics using SWAP.KTSP.Statistics ;; 3. Classify training samples to check resubstitution performance using SWAP.KTSP.Classify ;; 4. Classify new test samples using SWAP.KTSP.Classify ;; 5. Calculate signed TSP scores using SWAP.CalculateSignedScore",
+      "code": "classifier <- SWAP.Train.KTSP(matTraining, trainingGroup, krange=c(3:15))\nclassifier <- SWAP.Train.KTSP(matTraining, trainingGroup, FilterFunc=SWAP.Filter.Wilcoxon, featureNo=4)\nclassifier <- SWAP.Train.KTSP(matTraining, trainingGroup, FilterFunc=NULL)\nclassifier <- SWAP.Train.KTSP(matTraining, trainingGroup, FilterFunc = topRttest, quant = 0.9, krange=c(15:30) )\nclassifier <- SWAP.Train.KTSP(matTraining, trainingGroup, RestrictedPairs = somePairs, krange=3:16)\nktspStatDefault <- SWAP.KTSP.Statistics(inputMat = matTraining, classifier = classifier)\nktspStatSum <- SWAP.KTSP.Statistics(inputMat = matTraining, classifier = classifier, CombineFunc=sum)\nktspStatThreshold <- SWAP.KTSP.Statistics(inputMat = matTraining, classifier = classifier,  CombineFunc = function(x) sum(x) > 2 )\ntrainingPrediction <- SWAP.KTSP.Classify(matTraining, classifier)\ntrainingPrediction <- SWAP.KTSP.Classify(matTraining, classifier, DecisionFunc = function(x) sum(x) > 5.5 )\ntestPrediction <- SWAP.KTSP.Classify(matTesting[ , 1, drop=FALSE], classifier)\ntestPrediction <- SWAP.KTSP.Classify(matTesting, classifier)\ntestPrediction <- SWAP.KTSP.Classify(matTesting, classifier, DecisionFunc = function(x) sum(x) > 5.5 )\nscores <- SWAP.CalculateSignedScore(matTraining,  trainingGroup, FilterFunc=NULL)\nscores <- SWAP.CalculateSignedScore(matTraining, trainingGroup, featureNo=20 )\nscores <- SWAP.CalculateSignedScore(matTraining, trainingGroup, FilterFunc = NULL, RestrictedPairs = somePairs )"
+    },
+    {
+      "name": "legacy_ktsp_workflow",
+      "intent": "Train and classify using the deprecated legacy functions for backward compatibility or reproducing older studies.",
+      "input": [
+        "matTraining (numeric matrix of training feature profiles)",
+        "trainingGroup (factor of training class labels)",
+        "matTesting (numeric matrix of test feature profiles)"
+      ],
+      "stages": "1. Convert factor labels to numeric 0/1 vector ;; 2. Train legacy classifier using KTSP.Train ;; 3. Classify samples using KTSP.Classify with a custom combination function",
+      "code": "trainingGroupNum <- as.numeric(trainingGroup) - 1\nclassifier <- KTSP.Train(matTraining, trainingGroupNum, n=8)\ntrainPrediction <- KTSP.Classify(matTraining, classifier, combineFunc = function(x) sum(x) < 2.5)\ntestingGroupNum <- as.numeric(testingGroup) - 1\ntestPrediction <- KTSP.Classify(matTesting, classifier, combineFunc = function(x) sum(x) < 2.5)"
+    }
+  ]
+}

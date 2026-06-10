@@ -1,0 +1,13 @@
+{
+  "package": "r3cseq",
+  "requirements": [
+    "GenomicAlignments",
+    "r3Cseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicAlignments",
+      "r3Cseq"
+    ]
+  }
+}

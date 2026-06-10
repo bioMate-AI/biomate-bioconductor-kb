@@ -1,0 +1,11 @@
+{
+  "package": "proteomm",
+  "requirements": [
+    "ProteoMM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ProteoMM"
+    ]
+  }
+}

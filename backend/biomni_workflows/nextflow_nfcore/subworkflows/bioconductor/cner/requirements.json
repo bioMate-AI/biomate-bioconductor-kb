@@ -1,0 +1,18 @@
+{
+  "package": "cner",
+  "requirements": [
+    "CNEr",
+    "Gviz",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CNEr",
+      "Gviz"
+    ],
+    "pairwise_whole_genome_alignment.nf": [
+      "CNEr",
+      "rtracklayer"
+    ]
+  }
+}

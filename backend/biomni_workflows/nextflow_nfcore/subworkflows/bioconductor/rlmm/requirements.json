@@ -1,0 +1,11 @@
+{
+  "package": "rlmm",
+  "requirements": [
+    "RLMM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RLMM"
+    ]
+  }
+}

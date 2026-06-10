@@ -1,0 +1,13 @@
+{
+  "package": "cellscore",
+  "requirements": [
+    "Biobase",
+    "CellScore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "CellScore"
+    ]
+  }
+}

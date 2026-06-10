@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genomicVariants=Path to a VCF/MAF file or a VRanges object containing genomic variants ;; aggregateRecords=Logical; set to TRUE when input contains multiple samples to aggregate records ;; minSizeKataegis=Minimum number of variants in a segment to be classified as kataegis (default is 6) ;; IMDcutoff=Intermutation distance cutoff (default is 1000) or a custom function defining the cutoff per segment ;; refSeq=A data frame containing sequence lengths, used when analyzing non-standard reference sequences ;; showSegmentation=Logical; in rainfallPlot(), visualizes detected segments with their mean IMD ;; showKataegis=Logical; in rainfallPlot(), highlights putative kataegis foci ;; showSequence=Character; in rainfallPlot(), displays specific chromosomes or \"Kataegis\" to show chromosomes with detected foci\n- alternatives: maftools, ClusteredMutations, SeqKat, kataegis, and SigProfilerClusters are mentioned as alternative packages for kataegis detection, but katdetectr is preferred for its integration into the Bioconductor ecosystem and its changepoint-based segmentation approach\n- when_to_use: Use this package when analyzing somatic genomic variants (SNVs, InDels) from cancer genomes to identify and visualize localized hypermutation clusters (kataegis)\n- pitfalls: Overlapping genomic variants (e.g., an InDel and SNV) must be reduced, which detectKataegis() handles automatically. For multi-sample files (like MAF), failing to set aggregateRecords = TRUE may lead to incorrect IMD calculations if records are not aggregated. Analyzing non-standard reference sequences (other than hg19/hg38) requires providing a custom sequence length data frame via the refSeq argument to avoid errors.",
+  "workflows": [
+    {
+      "name": "standard_kataegis_detection",
+      "intent": "Detect and visualize kataegis foci from standard genomic variant files (VCF or MAF) or VRanges objects.",
+      "input": [
+        "pathToVCF (VCF file containing genomic variants)",
+        "pathToMAF (MAF file containing genomic variants from single or multiple samples)",
+        "syntheticData (VRanges object containing genomic variants)"
+      ],
+      "stages": "1. Import genomic variants from VCF, MAF, or generate synthetic data using generateSyntheticData() ;; 2. Detect kataegis foci using detectKataegis() ;; 3. Summarize and inspect the KatDetect object using summary(), print(), or show() ;; 4. Extract underlying data (variants, segments, foci, info) using getter functions getGenomicVariants(), getSegments(), getKataegisFoci(), and getInfo() ;; 5. Visualize results using rainfallPlot()",
+      "code": "pathToVCF <- system.file(package = \"katdetectr\", \"extdata/CPTAC_Breast.vcf\")\npathToMAF <- system.file(package = \"katdetectr\", \"extdata/APL_primary.maf\")\nsyntheticData <- generateSyntheticData(nBackgroundVariants = 2500, nKataegisFoci = 1)\nkdVCF <- detectKataegis(genomicVariants = pathToVCF)\nkdMAF <- detectKataegis(genomicVariants = pathToMAF, aggregateRecords = TRUE)\nkdSynthetic <- detectKataegis(genomicVariants = syntheticData)\nsummary(kdVCF)\nprint(kdVCF)\nshow(kdVCF)\nkdVCF\ngetGenomicVariants(kdVCF)\ngetSegments(kdVCF)\ngetKataegisFoci(kdVCF)\ngetInfo(kdVCF)\nrainfallPlot(kdVCF)\nrainfallPlot(kdMAF, showSegmentation = TRUE)\nrainfallPlot(kdSynthetic, showKataegis = TRUE, showSegmentation = TRUE, showSequence = \"Kataegis\")"
+    },
+    {
+      "name": "custom_cutoff_kataegis_detection",
+      "intent": "Detect kataegis foci using a custom user-defined function to calculate segment-specific IMD cutoffs.",
+      "input": [
+        "syntheticData (VRanges object containing genomic variants)"
+      ],
+      "stages": "1. Define custom functions for modeling sample rate and calculating segment-specific IMD cutoffs ;; 2. Run detectKataegis() with the custom function passed to the IMDcutoff parameter",
+      "code": "modelSampleRate <- function(IMDs) {\n    lambda <- log(2) / median(IMDs)\n\n    return(lambda)\n}\n\nnthroot <- function(x, n) {\n    y <- x^(1 / n)\n\n    return(y)\n}\n\nIMDcutoffFun <- function(genomicVariants, segments) {\n    IMDs <- genomicVariants$IMD\n    totalVariants <- segments$totalVariants\n    width <- segments |>\n        dplyr::as_tibble() |>\n        dplyr::pull(width)\n\n    sampleRate <- modelSampleRate(IMDs)\n\n    IMDcutoff <- -log(1 - nthroot(0.01 / width, ifelse(totalVariants != 0, totalVariants - 1, 1))) / sampleRate\n\n    IMDcutoff <- replace(IMDcutoff, IMDcutoff > 1000, 1000)\n\n    return(IMDcutoff)\n}\n\nkdCustom <- detectKataegis(syntheticData, IMDcutoff = IMDcutoffFun)"
+    },
+    {
+      "name": "non_standard_sequence_detection",
+      "intent": "Detect kataegis foci in genomes with non-standard sequences by providing custom sequence lengths.",
+      "input": [
+        "syndata (VRanges object containing variants on non-standard sequences)",
+        "sequenceLength (data frame containing the lengths of the non-standard sequences)"
+      ],
+      "stages": "1. Prepare genomic variants with non-standard sequence names ;; 2. Construct a data frame containing the lengths of the non-standard sequences ;; 3. Run detectKataegis() specifying the refSeq argument",
+      "code": "syndata1 <- generateSyntheticData(seqnames = c(\"chr1_gl000191_random\", \"chr4_ctg9_hap1\"))\nsyndata2 <- generateSyntheticData(seqnames = \"chr1\")\nsyndata <- suppressWarnings(c(syndata1, syndata2))\n\nsequenceLength <- data.frame(\n    chr1 = 249250621,\n    chr1_gl000191_random = 106433,\n    chr4_ctg9_hap1 = 590426\n)\n\nkdNonStandard <- detectKataegis(genomicVariants = syndata, refSeq = sequenceLength)"
+    }
+  ]
+}

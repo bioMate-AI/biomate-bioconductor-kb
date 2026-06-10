@@ -1,0 +1,19 @@
+{
+  "package": "iseeu",
+  "requirements": [
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "iSEE",
+    "iSEEu",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "iSEE",
+      "iSEEu",
+      "limma"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "vsclust",
+  "requirements": [
+    "MultiAssayExperiment",
+    "clusterProfiler",
+    "matrixStats",
+    "vsclust"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "matrixStats",
+      "vsclust"
+    ],
+    "standard_matrix_workflow.nf": [
+      "clusterProfiler",
+      "matrixStats",
+      "vsclust"
+    ]
+  }
+}

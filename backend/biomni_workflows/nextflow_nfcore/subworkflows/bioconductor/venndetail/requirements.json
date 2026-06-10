@@ -1,0 +1,11 @@
+{
+  "package": "venndetail",
+  "requirements": [
+    "VennDetail"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "VennDetail"
+    ]
+  }
+}

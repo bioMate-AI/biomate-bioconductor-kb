@@ -1,0 +1,15 @@
+{
+  "package": "rscudo",
+  "requirements": [
+    "Biobase",
+    "igraph",
+    "rScudo"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "igraph",
+      "rScudo"
+    ]
+  }
+}

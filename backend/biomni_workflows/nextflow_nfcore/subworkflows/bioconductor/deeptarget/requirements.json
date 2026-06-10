@@ -1,0 +1,11 @@
+{
+  "package": "deeptarget",
+  "requirements": [
+    "DeepTarget"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DeepTarget"
+    ]
+  }
+}

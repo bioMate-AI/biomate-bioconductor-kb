@@ -1,0 +1,14 @@
+{
+  "package": "flowmatch",
+  "requirements": [
+    "flowMatch"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowMatch"
+    ],
+    "template_construction_and_metaclustering.nf": [
+      "flowMatch"
+    ]
+  }
+}

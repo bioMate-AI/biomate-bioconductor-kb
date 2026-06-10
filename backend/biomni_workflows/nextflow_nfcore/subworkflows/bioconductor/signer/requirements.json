@@ -1,0 +1,25 @@
+{
+  "package": "signer",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "VariantAnnotation",
+    "rtracklayer",
+    "signeR",
+    "survival"
+  ],
+  "by_workflow": {
+    "downstream_exposure_analysis.nf": [
+      "signeR",
+      "survival"
+    ],
+    "exposure_estimation_to_known_signatures.nf": [
+      "signeR"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "VariantAnnotation",
+      "rtracklayer",
+      "signeR"
+    ]
+  }
+}

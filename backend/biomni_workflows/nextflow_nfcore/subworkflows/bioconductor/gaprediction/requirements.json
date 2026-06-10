@@ -1,0 +1,11 @@
+{
+  "package": "gaprediction",
+  "requirements": [
+    "GAprediction"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GAprediction"
+    ]
+  }
+}

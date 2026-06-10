@@ -1,0 +1,16 @@
+{
+  "package": "celaref",
+  "requirements": [
+    "Matrix",
+    "celaref"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "celaref"
+    ],
+    "scrna_seq_query_vs_microarray_ref.nf": [
+      "Matrix",
+      "celaref"
+    ]
+  }
+}

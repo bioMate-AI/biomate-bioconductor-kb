@@ -1,0 +1,15 @@
+{
+  "package": "sigsquared",
+  "requirements": [
+    "Biobase",
+    "sigsquared",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "sigsquared",
+      "survival"
+    ]
+  }
+}

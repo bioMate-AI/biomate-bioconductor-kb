@@ -1,135 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNVrd2
-// CNVrd2 uses next-generation sequencing data to measure human gene copy number for multiple samples, 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNVrd2/inst/doc/CNVrd2.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CNVrd2")
+// Bioconductor workflow: CNVrd2 — simple_locus_cnv_and_tagging
+// Measure copy number at a simple locus, cluster samples into copy number groups, and identify tagging SNPs/INDELs.
+// Input: BamMXL, chr1.161600000.161611000.vcf.gz, sampleCNV
+// Container: quay.io/biocontainers/bioconductor-cnvrd2:1.48.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNVrd2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define region of interest with a CNVrd2 object
+//  * 2. [Core Analysis] Count reads in windows with countReadInWindow
+//  * 3. [Core Analysis] Segment samples with segmentSamples
+//  * 4. [Core Analysis] Cluster segmentation scores into copy number groups with groupCNVs
+//  * 5. [Visualization & Output] Plot copy number profiles with plotCNVrd2
+//  * 6. [Core Analysis] Identify tag SNPs/INDELs with calculateLDSNPandCNV
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNVRD2 {
+process BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cnvrd2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cnvrd2:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cnvrd2:1.44.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cnvrd2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cnvrd2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cnvrd2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(CNVrd2)
-    library(jsonlite)
-
-    # --- CNV Segmentation ---
-    # Key functions: segmentSamples
-    data(fcgr3bMXL)
-    readCountMatrix <- resultSegment$stdCntMatrix
+    
+    # -----------------------------------------------------------------------------
+    # 1. Input Validation and Reading
+    # -----------------------------------------------------------------------------
+    
+    # Verify BamMXL directory exists
+    if (!dir.exists("BamMXL")) {
+      stop("Error: Directory 'BamMXL' not found in the working directory.")
+    }
+    
+    # Verify VCF file exists
+    vcfFile <- "chr1.161600000.161611000.vcf.gz"
+    if (!file.exists(vcfFile)) {
+      stop("Error: VCF file 'chr1.161600000.161611000.vcf.gz' not found in the working directory.")
+    }
+    
+    # Read sampleCNV data frame
+    if (file.exists("sampleCNV")) {
+      sampleCNV <- tryCatch(readRDS("sampleCNV"), error = function(e) {
+        tryCatch(read.csv("sampleCNV", header = TRUE, stringsAsFactors = FALSE), error = function(e2) {
+          read.table("sampleCNV", header = TRUE, stringsAsFactors = FALSE)
+        })
+      })
+    } else if (file.exists("sampleCNV.csv")) {
+      sampleCNV <- read.csv("sampleCNV.csv", header = TRUE, stringsAsFactors = FALSE)
+    } else if (file.exists("sampleCNV.rds")) {
+      sampleCNV <- readRDS("sampleCNV.rds")
+    } else {
+      stop("Error: Required input file 'sampleCNV' (or sampleCNV.csv/rds) not found in the working directory.")
+    }
+    
+    # Ensure the first column contains sample names as character strings
+    sampleCNV[, 1] <- as.character(sampleCNV[, 1])
+    
+    # -----------------------------------------------------------------------------
+    # 2. CNVrd2 Workflow Execution
+    # -----------------------------------------------------------------------------
+    
+    # Step 1: Define region of interest with a CNVrd2 object
     objectCNVrd2 <- new("CNVrd2", windows = 1000, chr = "chr1",
                         st = 161100001, en = 162100000,
                         dirBamFile = "BamMXL",
                         genes = c(161592986, 161601753),
                         geneNames = "3B")
-    resultSegment <- segmentSamples(Object = objectCNVrd2, 
-                                    stdCntMatrix = readCountMatrix)
-
-    # --- Copy Number Genotyping ---
-    # Key functions: groupCNVs
+    
+    # Step 2: Count reads in windows
+    readCountMatrix <- countReadInWindow(Object = objectCNVrd2, correctGC = TRUE)
+    
+    # Step 3: Segment samples
+    resultSegment <- segmentSamples(Object = objectCNVrd2, stdCntMatrix = readCountMatrix)
+    
+    # Step 4: Cluster segmentation scores into copy number groups
     objectCluster <- new("clusteringCNVs",
-                         x = resultSegment$segmentationScores[, 1], 
-                         k = 3, EV = TRUE)
+                         x = resultSegment\$segmentationScores[, 1], k = 4, EV = TRUE)
+    
+    copynumberGroups <- groupCNVs(Object = objectCluster)
     copynumberGroups <- groupCNVs(Object = objectCluster, rightLimit = 1.5)
-    allGroups <- copynumberGroups$allGroups
-
-    # --- CNV Visualisation and Region Identification ---
-    # Key functions: plotCNVrd2, identifyPolymorphicRegion
-    duplicatedSamples <- rownames(allGroups[allGroups[, 2] > 2, ])
-    fcgr3PolymorphicRegion <- identifyPolymorphicRegion(
-        Object = objectCNVrd2,
-        segmentObject = resultSegment,
-        plotLegend = FALSE
-    )
-    plotCNVrd2(Object = objectCNVrd2,
-               segmentObject = resultSegment,
-               sampleName = duplicatedSamples[1])
-
-    # --- Tag SNP Identification ---
-    # Key functions: calculateLDSNPandCNV
-    vcfFile <- system.file(package = "CNVrd2", "extdata",
-                           "chr1.161600000.161611000.vcf.gz")
-    sampleCNV <- data.frame(
-        copynumberGroups$allGroups[, c(1, 2)],
-        rep("MXL", dim(copynumberGroups$allGroups)[1])
-    )
-    rownames(sampleCNV) <- substr(sampleCNV[, 1], 1, 7)
-    sampleCNV[, 1] <- rownames(sampleCNV)
-    tagSNPs <- calculateLDSNPandCNV(sampleCNV = sampleCNV,
-                                    vcfFile = vcfFile, cnvColumn = 2,
-                                    population = "MXL", popColumn = 3,
-                                    nChunkForVcf = 5, chr = "1",
-                                    st = 161600001, en = 161611000,
-                                    codeSNP = "Three",
-                                    codeCNV = "ThreeGroup")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cnvrd2_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cnvrd2_results.csv")
+    
+    # Step 5: Plot copy number profiles
+    # Identify a sample name to plot (using the first available sample)
+    ii <- rownames(resultSegment\$segmentationScores)[1]
+    if (is.null(ii) || is.na(ii)) {
+      ii <- colnames(readCountMatrix)[1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cnvrd2_output.rds")
-    }
+    
+    pdf("plotCNVrd2_output.pdf", width = 8, height = 6)
+    plotCNVrd2(Object = objectCNVrd2, segmentObject = resultSegment, sampleName = ii)
+    dev.off()
+    
+    # Step 6: Identify tag SNPs/INDELs
+    tagSNPandINDELofMXL <- calculateLDSNPandCNV(sampleCNV = sampleCNV,
+                                                vcfFile = vcfFile, cnvColumn = 2,
+                                                population = "MXL", popColumn = 3,
+                                                nChunkForVcf = 5, chr = "1",
+                                                st = 161600001, en = 161611000,
+                                                codeSNP= "Three", codeCNV = "ThreeGroup")
+    
+    # -----------------------------------------------------------------------------
+    # 3. Export Results
+    # -----------------------------------------------------------------------------
+    
+    write.csv(readCountMatrix, "readCountMatrix.csv", row.names = TRUE)
+    saveRDS(resultSegment, "resultSegment.rds")
+    write.csv(copynumberGroups\$allGroups, "copynumberGroups.csv", row.names = TRUE)
+    write.csv(tagSNPandINDELofMXL, "tagSNPandINDELofMXL.csv", row.names = TRUE)
+    
+    message("Pipeline completed successfully. Outputs written to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNVRD2:", paste0("    cnvrd2: ", packageVersion("CNVrd2"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING":',
+        paste0('    CNVrd2: ', as.character(packageVersion('CNVrd2')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cnvrd2_results.csv
-    touch ${prefix}_cnvrd2_output.rds
-    echo "BIOC_CNVRD2:" > versions.yml
-    echo "    cnvrd2: 0.0.0" >> versions.yml
+    touch ${prefix}_simple_locus_cnv_and_tagging.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNVRD2_WORKFLOW {
+workflow BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ BamMXL, chr1.161600000.161611000.vcf.gz, sampleCNV ] ]
 
     main:
-    BIOC_CNVRD2(ch_input)
+    BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING(ch_input)
 
     emit:
-    results  = BIOC_CNVRD2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNVRD2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNVRD2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNVRD2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING.out.tables
+    plots    = BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING.out.plots
+    objects  = BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING.out.objects
+    versions = BIOC_CNVRD2_SIMPLE_LOCUS_CNV_AND_TAGGING.out.versions
 }

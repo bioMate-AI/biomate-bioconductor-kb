@@ -1,0 +1,14 @@
+{
+  "package": "cogena",
+  "requirements": [
+    "cogena"
+  ],
+  "by_workflow": {
+    "drug_repositioning.nf": [
+      "cogena"
+    ],
+    "main.nf": [
+      "cogena"
+    ]
+  }
+}

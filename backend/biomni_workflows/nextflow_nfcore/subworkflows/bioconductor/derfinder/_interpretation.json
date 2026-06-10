@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cutoff=threshold applied to base-level mean coverage to define expressed regions ;; L=read length used to adjust the coverage matrix ;; totalMapped=number of mapped reads used to normalize coverage data ;; targetSize=target library size for normalization ;; cutoffFstat=F-statistic threshold used to define candidate DERs ;; nPermute=number of permutations to run for calculating empirical p-values ;; mc.cores=controls parallel processing cores ;; smooth=logical indicating whether to smooth F-statistics (useful for ChIP-seq peak finding)\n- alternatives: railMatrix() is preferred over regionMatrix() if pre-computed summary coverage BigWig files (e.g., from the Rail aligner) are available, as it is much faster and more memory-efficient ;; coverageToExon() can be used to perform a standard feature-level analysis at the exon or gene level instead of finding novel expressed regions\n- when_to_use: Appropriate for RNA-seq datasets where you want to identify novel transcribed regions or differentially expressed regions without relying on existing gene models, or for ChIP-seq differential binding analysis using F-statistic smoothing\n- pitfalls: BigWig files are not fully supported on Windows, so Windows users must load data from BAM files ;; Using too many cores (mc.cores) can hit the input/output ceiling of the data network or hard drive speed ;; Running analyzeChr() with a large number of permutations on a rich dataset is computationally intensive, so it is recommended to run one job per chromosome and then merge them using mergeResults() ;; Do not use totalMapped and targetSize twice (e.g., in both fullCoverage() and filterData())",
+  "workflows": [
+    {
+      "name": "expressed_regions_level",
+      "intent": "Identify novel expressed regions (ERs) from raw coverage data, construct a coverage matrix, and find differentially expressed regions (DERs) using DESeq2 or limma.",
+      "input": [
+        "files (BAM or BigWig files containing raw coverage data)",
+        "brainspanPheno (phenotype table containing sample covariates)"
+      ],
+      "stages": "1. Locate raw coverage files using rawFiles() ;; 2. Load coverage data into memory using fullCoverage() ;; 3. Identify expressed regions and calculate the coverage matrix using regionMatrix() (or railMatrix() if pre-computed summary files are available) ;; 4. Perform differential expression analysis using DESeq2 or limma ;; 5. Annotate the identified regions using annotateRegions()",
+      "code": "files <- rawFiles(system.file(\"extdata\", \"AMY\", package = \"derfinderData\"), samplepatt = \"bw\", fileterm = NULL )\nnames(files) <- gsub(\".bw\", \"\", names(files))\nfullCov <- fullCoverage(files = files, chrs = \"chr21\", verbose = FALSE)\nregionMat <- regionMatrix(fullCov, cutoff = 30, L = 76, verbose = FALSE)\npheno <- subset(brainspanPheno, structure_acronym == \"AMY\")\nlibrary(\"DESeq2\")\ncounts <- round(regionMat$chr21$coverageMatrix)\ndse <- DESeqDataSetFromMatrix(counts, pheno, ~ group + gender)\ndse <- DESeq(dse, test = \"LRT\", reduced = ~gender, fitType = \"local\")\nmcols(regionMat$chr21$regions) <- c(mcols(regionMat$chr21$regions), results(dse))\ners <- regionMat$chr21$regions\nannoRegs <- annotateRegions(ers, genomicState$fullGenome, verbose = FALSE)"
+    },
+    {
+      "name": "single_base_level_f_statistics",
+      "intent": "Perform base-level differential expression analysis by calculating F-statistics for every base, defining candidate DERs, and assigning empirical p-values via permutations.",
+      "input": [
+        "files (BAM or BigWig files containing raw coverage data)",
+        "brainspanPheno (phenotype table containing sample covariates)"
+      ],
+      "stages": "1. Locate raw coverage files using rawFiles() ;; 2. Load coverage data into memory using fullCoverage() ;; 3. Filter coverage using filterData() ;; 4. Calculate sample depth adjustments using collapseFullCoverage() and sampleDepth() ;; 5. Define nested alternative and null models using makeModels() ;; 6. Perform base-level F-statistics analysis per chromosome using analyzeChr() (set smooth = TRUE for ChIP-seq peak finding) ;; 7. Merge results across chromosomes using mergeResults()",
+      "code": "files <- rawFiles(system.file(\"extdata\", \"AMY\", package = \"derfinderData\"), samplepatt = \"bw\", fileterm = NULL )\nnames(files) <- gsub(\".bw\", \"\", names(files))\nfullCov <- fullCoverage( files = files, chrs = \"chr21\", totalMapped = rep(1, length(files)), targetSize = 1 )\nfilteredCov <- lapply(fullCov, filterData, cutoff = 2)\nsampleDepths <- sampleDepth(collapseFullCoverage(fullCov), 1)\nmodels <- makeModels(sampleDepths, testvars = pheno$group, adjustvars = pheno[, c(\"gender\")] )\ndir.create(\"analysisResults\")\noriginalWd <- getwd()\nsetwd(file.path(originalWd, \"analysisResults\"))\nresults <- analyzeChr( chr = \"chr21\", filteredCov$chr21, models, groupInfo = pheno$group, writeOutput = TRUE, cutoffFstat = 5e-02, nPermute = 20, seeds = 20140923 + seq_len(20), returnOutput = TRUE )\nsetwd(originalWd)\nmergeResults( chrs = \"chr21\", prefix = \"analysisResults\", genomicState = genomicState$fullGenome, optionsStats = results$optionsStats )"
+    },
+    {
+      "name": "feature_level_analysis",
+      "intent": "Summarize base-level coverage data to a standard count matrix at the exon or gene level using a genomic annotation state.",
+      "input": [
+        "fullCov (loaded coverage data list from fullCoverage())",
+        "genomicState (summarized genomic annotation from makeGenomicState())"
+      ],
+      "stages": "1. Summarize base-level coverage to exon-level counts using coverageToExon()",
+      "code": "exonCov <- coverageToExon(fullCov, genomicState$fullGenome, L = 76)"
+    }
+  ]
+}

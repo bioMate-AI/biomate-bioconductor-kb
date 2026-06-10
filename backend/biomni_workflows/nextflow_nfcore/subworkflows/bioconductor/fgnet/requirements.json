@@ -1,0 +1,24 @@
+{
+  "package": "fgnet",
+  "requirements": [
+    "FGNet",
+    "gage",
+    "org.Sc.sgd.db",
+    "topGO"
+  ],
+  "by_workflow": {
+    "gage_expression_to_network.nf": [
+      "FGNet",
+      "gage"
+    ],
+    "import_david_to_network.nf": [
+      "FGNet",
+      "org.Sc.sgd.db"
+    ],
+    "main.nf": [
+      "FGNet",
+      "org.Sc.sgd.db",
+      "topGO"
+    ]
+  }
+}

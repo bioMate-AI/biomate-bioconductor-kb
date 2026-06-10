@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Object=A matrix of coordinates in a reduced dimension space used in imbalance_score ;; conditions=A vector of condition assignments for each cell ;; k=The number of neighbors to consider for raw imbalance score calculation ;; smooth=Dictates the smoothness of the local smoothed scores in imbalance_score ;; sds=A SlingshotDataSet object representing the inferred trajectory ;; rep=Number of permutations used to generate trajectories under the null in topologyTest ;; methods=Test methods to use in topologyTest (e.g., \"KS_mean\", \"Classifier\", \"wasserstein_permutation\") ;; global=Logical indicating whether to test pooling all lineages/pairs in progressionTest or fateSelectionTest ;; lineages=Logical indicating whether to test every lineage independently in progressionTest ;; pairwise=Logical indicating whether to test every pair of lineages independently in fateSelectionTest\n- alternatives: slingshot=Used for trajectory inference to generate the SlingshotDataSet object ;; tradeSeq=Used downstream for gene-level differential expression analysis along trajectories (using fitGAM and conditionTest)\n- when_to_use: Use this package when analyzing single-cell RNA-seq (or other single-cell 'omics) datasets with multiple conditions to investigate how conditions affect cell differentiation trajectories (topology, progression, and fate selection).\n- pitfalls: The topologyTest can be slow on large datasets; users can adjust the rep parameter or use parallelization (parallel = TRUE with BPPARAM) ;; Multiple comparisons are made across lineages, so p-values should be corrected for multiple testing ;; Trajectory inference is at the end of a long pipeline, so p-values should be treated as suggestions for follow-up rather than absolute statistical truths",
+  "workflows": [
+    {
+      "name": "differential_topology_analysis",
+      "intent": "Perform differential topology, progression, and fate selection analysis on single-cell data across multiple conditions.",
+      "input": [
+        "reduced_dim_matrix (matrix of coordinates in reduced dimension space)",
+        "condition_labels (vector of condition assignments for each cell)",
+        "cluster_labels (vector of cluster assignments for each cell)"
+      ],
+      "stages": "1. Compute imbalance scores using imbalance_score ;; 2. Infer a common trajectory using slingshot ;; 3. Test trajectory topology using topologyTest ;; 4. Test for differential progression along lineages using progressionTest ;; 5. Test for differential fate selection between lineages using fateSelectionTest",
+      "code": "scores <- imbalance_score(Object = df %>% select(Dim1, Dim2) %>% as.matrix(), conditions = df$conditions)\nsds <- slingshot(rd, df$cl)\ntop_res <- topologyTest(sds = sds, conditions = df$conditions)\nprog_res <- progressionTest(sds, conditions = df$conditions, global = TRUE, lineages = TRUE)\ndif_res <- fateSelectionTest(sds, conditions = df$conditions, global = FALSE, pairwise = TRUE)"
+    }
+  ]
+}

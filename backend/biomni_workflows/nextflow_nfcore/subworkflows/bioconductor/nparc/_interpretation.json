@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=Numeric vector of temperatures (independent variable) ;; y=Numeric vector of relative abundances (dependent variable) ;; id=Character vector of unique protein identifiers ;; groupsNull=Grouping factor for the null model (typically NULL to fit a single curve across all conditions) ;; groupsAlt=Grouping factor for the alternative model (typically the treatment/compound concentration) ;; dfType=Character string, either \"theoretical\" (assumes iid residuals) or \"empirical\" (estimates degrees of freedom from the data, highly recommended to avoid anti-conservative p-values) ;; BPPARAM=BiocParallel parameter object (e.g., BiocParallel::SerialParam()) for parallel execution\n- alternatives: None mentioned in the documentation.\n- when_to_use: When analyzing thermal proteome profiling (TPP) or similar temperature-range relative abundance data to find proteins with significant thermal stability shifts upon treatment.\n- pitfalls: Using theoretical degrees of freedom (dfType = \"theoretical\") assumes independent and identically distributed (iid) residuals, which is violated due to the correlated nature of temperature measurements. This leads to anti-conservative p-values (overestimating significance). Use dfType = \"empirical\" instead. Failing to filter for complete curves (measurements at all temperatures across replicates and treatment groups) can bias or break the model fitting.",
+  "workflows": [
+    {
+      "name": "nparc_tpp_analysis",
+      "intent": "Perform non-parametric analysis of response curves on TPP data to identify significantly shifted proteins.",
+      "input": [
+        "stauro_TPP_data_tidy (tidy data frame containing columns for protein ID, temperature, relative abundance, compound concentration, and replicate)"
+      ],
+      "stages": "1. Filter data for complete curves (all temperatures present in all replicates/groups) ;; 2. Fit null and alternative sigmoid models using NPARCfit ;; 3. Compute F-statistics and p-values using NPARCtest with empirical degrees of freedom ;; 4. Filter for significantly shifted proteins based on adjusted p-values",
+      "code": "BPPARAM <- BiocParallel::SerialParam(progressbar = FALSE)\n\nfits <- NPARCfit(x = df$temperature, \n                 y = df$relAbundance, \n                 id = df$uniqueID, \n                 groupsNull = NULL, \n                 groupsAlt = df$compoundConcentration, \n                 BPPARAM = BPPARAM,\n                 returnModels = FALSE)\n\nmodelMetrics <- fits$metrics \nfStats <- NPARCtest(modelMetrics, dfType = \"empirical\")\n\ntopHits <- fStats %>% \n  filter(pAdj <= 0.01) %>%\n  dplyr::select(id, fStat, pVal, pAdj) %>%\n  arrange(-fStat)"
+    }
+  ]
+}

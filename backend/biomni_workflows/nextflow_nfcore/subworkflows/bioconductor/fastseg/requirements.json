@@ -1,0 +1,22 @@
+{
+  "package": "fastseg",
+  "requirements": [
+    "Biobase",
+    "GenomicRanges",
+    "fastseg"
+  ],
+  "by_workflow": {
+    "expressionset_segmentation.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "fastseg"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "fastseg"
+    ],
+    "vector_matrix_segmentation.nf": [
+      "fastseg"
+    ]
+  }
+}

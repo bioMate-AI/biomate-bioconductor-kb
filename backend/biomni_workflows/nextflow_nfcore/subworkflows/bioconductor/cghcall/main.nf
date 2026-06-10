@@ -1,110 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CGHcall
-// Calls aberrations for array CGH data using a six state mixture model as well as several biological c
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CGHcall/inst/doc/CGHcall.R
-// Upstream  : none
-// Downstream: CGHnormaliter, GeneBreak
-//
-// Install: BiocManager::install("CGHcall")
+// Bioconductor workflow: CGHcall — acgh_aberration_calling
+// Preprocess, normalize, segment, and call copy number aberrations from raw array CGH data while correcting for tumor cellularity.
+// Input: Wilting
+// Container: quay.io/biocontainers/bioconductor-cghcall:2.72.0--r45hdfd78af_0
+// R packages: CGHcall
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CGHcall
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert raw data to cghRaw object
+//  * 2. [Core Analysis] Preprocess data to filter missing values and impute
+//  * 3. [Core Analysis] Normalize log2 ratios and smooth outliers
+//  * 4. [Core Analysis] Segment data using DNAcopy wrapper
+//  * 5. [Core Analysis] Perform post-segmentation normalization to adjust zero level
+//  * 6. [Core Analysis] Call copy number aberrations with cellularity correction
+//  * 7. [Core Analysis] Expand the call object for downstream analysis
+//  * 8. [Visualization & Output] Plot individual profiles and summary/frequency plots
 
 nextflow.enable.dsl = 2
 
-process BIOC_CGHCALL {
+process BIOC_CGHCALL_ACGH_ABERRATION_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cghcall"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cghcall:2.68.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cghcall:2.68.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cghcall_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cghcall_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cghcall_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ExpandCGHcall)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: make_cghRaw
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CGHcall")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required library
     library(CGHcall)
-    data(Wilting)
-    Wilting <- make_cghRaw(Wilting)
-    # --- Preprocess [] ---
-    # Key functions: preprocess
-    cghdata <- preprocess(Wilting, maxmiss=30, nchrom=22)
-    # --- Normalize [] ---
-    # Key functions: normalize
-    norm.cghdata <- normalize(cghdata, method="median", smoothOutliers=TRUE)
-    # --- Segmentdata [] ---
-    # Key functions: segmentData
-    norm.cghdata <- norm.cghdata[,1:2]
-    seg.cghdata <- segmentData(norm.cghdata, method="DNAcopy",undo.splits="sdundo",undo.SD=3,
-    clen=10, relSDlong=5)
-    # --- Postsegnormalize [] ---
-    # Key functions: postsegnormalize
-    postseg.cghdata <- postsegnormalize(seg.cghdata)
-    # --- Expandcghcall [] ---
-    # Key functions: ExpandCGHcall
-    result <- ExpandCGHcall(result,postseg.cghdata)
-    # --- Frequencyplotcalls [] ---
-    # Key functions: frequencyPlotCalls
-    frequencyPlotCalls(result)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cghcall_results.csv", row.names = TRUE)
+    
+    # 1. Read the user input file 'Wilting' from the working directory
+    # The input can be in RDS, CSV, TSV, or TXT format.
+    input_file <- "Wilting"
+    if (file.exists("Wilting.rds")) {
+      Wilting <- readRDS("Wilting.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cghcall_results.csv")
+      files <- list.files(pattern = "^Wilting(\\\\..+)?\$")
+      if (length(files) == 0) {
+        stop("Required input file 'Wilting' not found in the working directory.")
+      }
+      file_to_read <- files[1]
+      if (grepl("\\\\.rds\$", file_to_read, ignore.case = TRUE)) {
+        Wilting <- readRDS(file_to_read)
+      } else if (grepl("\\\\.csv\$", file_to_read, ignore.case = TRUE)) {
+        Wilting <- read.csv(file_to_read, header = TRUE, check.names = FALSE)
+      } else {
+        Wilting <- read.table(file_to_read, header = TRUE, sep = "\t", check.names = FALSE)
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cghcall_output.rds")
+    
+    # Ensure Wilting is a data frame
+    Wilting <- as.data.frame(Wilting)
+    
+    # Convert raw data to cghRaw object
+    Wilting <- make_cghRaw(Wilting)
+    
+    # 2. Preprocess data to filter missing values and impute
+    cghdata <- preprocess(Wilting, maxmiss=30, nchrom=22)
+    
+    # 3. Normalize log2 ratios and smooth outliers
+    norm.cghdata <- normalize(cghdata, method="median", smoothOutliers=TRUE)
+    
+    # 4. Segment data using DNAcopy wrapper
+    seg.cghdata <- segmentData(norm.cghdata, method="DNAcopy", undo.splits="sdundo", undo.SD=3, clen=10, relSDlong=5)
+    
+    # 5. Perform post-segmentation normalization to adjust zero level
+    postseg.cghdata <- postsegnormalize(seg.cghdata)
+    
+    # 6. Call copy number aberrations with cellularity correction
+    tumor.prop <- rep(1, ncol(postseg.cghdata))
+    result <- CGHcall(postseg.cghdata, nclass=5, cellularity=tumor.prop)
+    
+    # 7. Expand the call object for downstream analysis
+    result <- ExpandCGHcall(result, postseg.cghdata)
+    
+    # 8. Plot individual profiles and summary/frequency plots to a PDF file
+    pdf("cghcall_plots.pdf", width = 10, height = 8)
+    for (i in seq_len(ncol(result))) {
+      plot(result[,i])
     }
+    summaryPlot(result)
+    frequencyPlotCalls(result)
+    dev.off()
+    
+    # Save meaningful results to output files
+    saveRDS(result, "cghcall_result.rds")
+    write.csv(calls(result), "calls.csv", row.names = TRUE)
+    write.csv(segmented(result), "segmented.csv", row.names = TRUE)
+    write.csv(copynumber(result), "copynumber.csv", row.names = TRUE)
+    write.csv(probloss(result), "probloss.csv", row.names = TRUE)
+    write.csv(probnorm(result), "probnorm.csv", row.names = TRUE)
+    write.csv(probgain(result), "probgain.csv", row.names = TRUE)
+    write.csv(probamp(result), "probamp.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CGHCALL:", paste0("    cghcall: ", packageVersion("CGHcall"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CGHCALL_ACGH_ABERRATION_CALLING":',
+        paste0('    CGHcall: ', as.character(packageVersion('CGHcall')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cghcall_results.csv
-    touch ${prefix}_cghcall_output.rds
-    echo "BIOC_CGHCALL:" > versions.yml
-    echo "    cghcall: 0.0.0" >> versions.yml
+    touch ${prefix}_acgh_aberration_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_CGHCALL_WORKFLOW {
+workflow BIOC_CGHCALL_ACGH_ABERRATION_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Wilting ] ]
 
     main:
-    BIOC_CGHCALL(ch_input)
+    BIOC_CGHCALL_ACGH_ABERRATION_CALLING(ch_input)
 
     emit:
-    results  = BIOC_CGHCALL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CGHCALL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CGHCALL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CGHCALL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CGHCALL_ACGH_ABERRATION_CALLING.out.tables
+    plots    = BIOC_CGHCALL_ACGH_ABERRATION_CALLING.out.plots
+    objects  = BIOC_CGHCALL_ACGH_ABERRATION_CALLING.out.objects
+    versions = BIOC_CGHCALL_ACGH_ABERRATION_CALLING.out.versions
 }

@@ -1,0 +1,13 @@
+{
+  "package": "banocc",
+  "requirements": [
+    "banocc",
+    "rstan"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "banocc",
+      "rstan"
+    ]
+  }
+}

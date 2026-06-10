@@ -1,0 +1,16 @@
+{
+  "package": "cdi",
+  "requirements": [
+    "CDI",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CDI"
+    ],
+    "multi_batch_cdi.nf": [
+      "CDI",
+      "ggplot2"
+    ]
+  }
+}

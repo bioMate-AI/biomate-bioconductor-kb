@@ -1,0 +1,14 @@
+{
+  "package": "acde",
+  "requirements": [
+    "acde"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "acde"
+    ],
+    "time_course_analysis.nf": [
+      "acde"
+    ]
+  }
+}

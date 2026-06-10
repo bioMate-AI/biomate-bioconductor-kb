@@ -1,165 +1,227 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Organism.dplyr
-// This package provides an alternative interface to Bioconductor 'annotation' resources, in particular
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Organism.dplyr/inst/doc/Organism.dplyr.R
-// Upstream  : GenomicRanges, ggplot2
-// Downstream: annotation
-//
-// Install: BiocManager::install("Organism.dplyr")
+// Bioconductor workflow: organism_dplyr — organism_annotation_pipeline
+// Annotate gene identifiers with genomic coordinates, transcript structures, and functional GO terms using a unified Organism.dplyr database.
+// Input: input.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, Organism.dplyr, TxDb.Hsapiens.UCSC.hg38.knownGene, dplyr, ggplot2, org.Hs.eg.db, organism_dplyr
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ORGANISM_DPLYR {
+process BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-organism_dplyr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-organism.dplyr:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-organism.dplyr:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_organism_dplyr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_organism_dplyr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_organism_dplyr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AnnotationFilterList)
-    library(EnsemblFilter)
-    library(GRanges)
-    library(GRangesFilter)
-    library(SymbolFilter)
-    library(TxEndFilter)
-    library(TxStartFilter)
-    library(jsonlite)
-
-    # --- Supportedorganisms [] ---
-    # Key functions: supportedOrganisms
-    ---------------------------------------------------------------------
-    supportedOrganisms()
-    # --- Src Organism [] ---
-    # Key functions: src_organism, hg38light
-    ---------------------------------------------------------------------
-    src <- src_organism(dbpath = hg38light())
-    src
-    # --- Src Tbls [] ---
-    # Key functions: src_tbls
-    ---------------------------------------------------------------------
-    src_tbls(src)
-    # --- Tbl [] ---
-    # Key functions: tbl
-    ---------------------------------------------------------------------
-    tbl(src, "id")
-    # --- Colnames [] ---
-    # Key functions: tbl
-    ---------------------------------------------------------------------
-    colnames(tbl(src, "id"))
-    # --- Tbl [] ---
-    # Key functions: tbl, filter, select, distinct, arrange, collect
-    ---------------------------------------------------------------------
-    tbl(src, "id") %>%
-        filter(symbol %like% "SNORD%") %>%
-        dplyr::select(entrez, map, ensembl, symbol) %>%
-        distinct() %>% arrange(symbol) %>% collect()
-    # --- Inner Join [] ---
-    # Key functions: inner_join, tbl, filter, select
-    ---------------------------------------------------------------------
-    inner_join(tbl(src, "id"), tbl(src, "id_go")) %>%
-        filter(symbol == "ADA") %>%
-        dplyr::select(entrez, ensembl, symbol, go, evidence, ontology)
-    # --- Inner Join [] ---
-    # Key functions: inner_join, tbl, select, group_by, summarize, n, arrange, desc
-    ---------------------------------------------------------------------
-    txcount <- inner_join(tbl(src, "id"), tbl(src, "ranges_tx")) %>%
-        dplyr::select(symbol, tx_id) %>%
-        group_by(symbol) %>%
-        summarize(count = n()) %>%
-    # --- Inner Join [] ---
-    # Key functions: inner_join, tbl, filter, select, collect, GRanges
-    ---------------------------------------------------------------------
-    inner_join(tbl(src, "id"), tbl(src, "ranges_gene")) %>%
-        filter(symbol %in% c("ADA", "NAT2")) %>%
-        dplyr::select(gene_chrom, gene_start, gene_end, gene_strand,
-                      symbol, map) %>%
-    # --- Keytypes [] ---
-    # Key functions: keytypes
-    ---------------------------------------------------------------------
-    keytypes(src)
-    # --- Columns [] ---
-    # Key functions: columns
-    ---------------------------------------------------------------------
-    columns(src)
-    # --- Head [] ---
-    # Key functions: keys
-    ---------------------------------------------------------------------
-    head(keys(src))
-    # --- Mapids [] ---
-    # Key functions: mapIds
-    ---------------------------------------------------------------------
-    mapIds(src, keys, column = "tx_name", keytype)
-    mapIds(src, keys, column = "tx_name", keytype, multiVals="CharacterList")
-    # --- Supportedfilters [] ---
-    # Key functions: supportedFilters
-    ---------------------------------------------------------------------
-    supportedFilters(src)
-    # --- Ensemblfilter [] ---
-    # Key functions: EnsemblFilter, SymbolFilter
-    ---------------------------------------------------------------------
-    EnsemblFilter("ENSG00000196839")
-    SymbolFilter("SNORD", "startsWith")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_organism_dplyr_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(Organism.dplyr)
+    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+    library(org.Hs.eg.db)
+    library(dplyr)
+    library(ggplot2)
+    library(GenomicRanges)
+    
+    # ==========================================
+    # STAGE 1: Read and Parse Input Defensively
+    # ==========================================
+    
+    input_file <- "input.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
+    }
+    
+    # Read input safely
+    input_data <- read.csv(input_file, stringsAsFactors = FALSE, check.names = FALSE)
+    
+    # Extract identifiers (Entrez IDs or Gene Symbols)
+    ids <- NULL
+    if ("feature_id" %in% colnames(input_data)) {
+      ids <- as.character(input_data\$feature_id)
+    } else if (ncol(input_data) >= 1) {
+      # If row names are non-trivial, use them; otherwise use the first column
+      if (!is.null(rownames(input_data)) && any(rownames(input_data) != as.character(1:nrow(input_data)))) {
+        ids <- rownames(input_data)
+      } else {
+        ids <- as.character(input_data[[1]])
+      }
+    }
+    
+    if (is.null(ids) || length(ids) == 0) {
+      stop("Could not extract valid feature identifiers from input.csv")
+    }
+    
+    # Clean identifiers
+    ids <- unique(na.omit(trimws(ids)))
+    ids <- ids[ids != ""]
+    
+    # ==========================================
+    # STAGE 2: Initialize Organism.dplyr Source
+    # ==========================================
+    
+    # Create a temporary SQLite database combining TxDb and OrgDb
+    db_path <- tempfile(fileext = ".sqlite")
+    src <- src_organism(dbpath = db_path,
+                        txdb = TxDb.Hsapiens.UCSC.hg38.knownGene,
+                        orgdb = org.Hs.eg.db)
+    
+    # ==========================================
+    # STAGE 3: Query and Annotate Features
+    # ==========================================
+    
+    # Extract tables from the organism source
+    gene_tbl <- tbl(src, "gene")
+    tx_tbl <- tbl(src, "transcript")
+    
+    # Query matching genes (supporting both Symbol and Entrez ID matching)
+    matched_genes <- gene_tbl %>%
+      filter(symbol %in% ids | gene_id %in% ids) %>%
+      collect()
+    
+    if (nrow(matched_genes) == 0) {
+      warning("No matching genes found in the database. Writing empty outputs.")
+      
+      # Write empty fallback outputs
+      write.csv(data.frame(Message = "No matching genes found"), "annotated_features.csv", row.names = FALSE)
+      write.csv(data.frame(Message = "No GO annotations found"), "go_annotations.csv", row.names = FALSE)
+      
+      pdf("feature_distribution.pdf")
+      plot(0, 0, type = "n", xlab = "", ylab = "", main = "No Data to Plot")
+      text(0, 0, "No matching genes found in database", col = "red")
+      dev.off()
+      
+      q(save = "no", status = 0)
+    }
+    
+    # Join genes with transcripts to get structural details
+    gene_tx_joined <- inner_join(tbl(src, "gene"), tbl(src, "transcript"), by = "gene_id") %>%
+      filter(symbol %in% ids | gene_id %in% ids) %>%
+      collect()
+    
+    # Extract genomic coordinates using GenomicRanges integration
+    # We extract all genes and subset to our matched set
+    all_ranges <- tryCatch({
+      genes(src)
+    }, error = function(e) {
+      warning("Direct GRanges extraction failed, falling back to manual coordinates.")
+      NULL
+    })
+    
+    # Build final annotation table
+    annotated_df <- gene_tx_joined %>%
+      group_by(gene_id, symbol, gene_name) %>%
+      summarise(
+        tx_count = n_distinct(tx_id),
+        tx_ids = paste(unique(tx_id), collapse = ";"),
+        .groups = "drop"
+      )
+    
+    if (!is.null(all_ranges)) {
+      coords_df <- as.data.frame(all_ranges)
+      coords_df\$gene_id <- rownames(coords_df)
+      annotated_df <- left_join(annotated_df, coords_df, by = "gene_id")
+    }
+    
+    # Write annotated features
+    write.csv(annotated_df, "annotated_features.csv", row.names = FALSE)
+    
+    # ==========================================
+    # STAGE 4: Functional Annotation (GO Terms)
+    # ==========================================
+    
+    if ("go" %in% src_tbls(src)) {
+      go_tbl <- tbl(src, "go")
+      gene_go <- inner_join(tbl(src, "gene"), go_tbl, by = "gene_id") %>%
+        filter(symbol %in% ids | gene_id %in% ids) %>%
+        select(gene_id, symbol, go, evidence, ontology) %>%
+        collect()
+      
+      write.csv(gene_go, "go_annotations.csv", row.names = FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_organism_dplyr_results.csv")
+      write.csv(data.frame(Message = "GO table not available"), "go_annotations.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_organism_dplyr_output.rds")
-    }
+    
+    # ==========================================
+    # STAGE 5: Visualization
+    # ==========================================
+    
+    # Plot top 30 genes by transcript count
+    plot_data <- head(annotated_df %>% arrange(desc(tx_count)), 30)
+    
+    pdf("feature_distribution.pdf", width = 10, height = 8)
+    p <- ggplot(plot_data, aes(x = reorder(symbol, tx_count), y = tx_count)) +
+      geom_bar(stat = "identity", fill = "steelblue", width = 0.7) +
+      coord_flip() +
+      theme_minimal(base_size = 12) +
+      labs(
+        title = "Top Annotated Genes by Transcript Count",
+        subtitle = "Extracted via Organism.dplyr",
+        x = "Gene Symbol",
+        y = "Number of Transcripts"
+      ) +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5)
+      )
+    print(p)
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ORGANISM_DPLYR:", paste0("    organism_dplyr: ", packageVersion("Organism.dplyr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE":',
+        paste0('    organism_dplyr: ', as.character(packageVersion('organism_dplyr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_organism_dplyr_results.csv
-    touch ${prefix}_organism_dplyr_output.rds
-    echo "BIOC_ORGANISM_DPLYR:" > versions.yml
-    echo "    organism_dplyr: 0.0.0" >> versions.yml
+    touch ${prefix}_organism_annotation_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_ORGANISM_DPLYR_WORKFLOW {
+workflow BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ORGANISM_DPLYR(ch_input)
+    BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_ORGANISM_DPLYR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ORGANISM_DPLYR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ORGANISM_DPLYR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ORGANISM_DPLYR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE.out.tables
+    plots    = BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE.out.plots
+    objects  = BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE.out.objects
+    versions = BIOC_ORGANISM_DPLYR_ORGANISM_ANNOTATION_PIPELINE.out.versions
 }

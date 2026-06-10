@@ -1,129 +1,105 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TurboNorm
-// A fast scatterplot smoother based on B-splines with second-order difference penalty. Functions for m
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TurboNorm/inst/doc/turbonorm.R
-// Upstream  : lattice, marray
-// Downstream: none
-//
-// Install: BiocManager::install("TurboNorm")
+// Bioconductor workflow: TurboNorm — scatterplot_smoothing
+// Fit a fast piecewise constant P-spline to scatterplot data to estimate the underlying trend.
+// Input: x.txt, y.txt
+// Container: quay.io/biocontainers/bioconductor-turbonorm:1.58.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: TurboNorm
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the TurboNorm library
+//  * 2. [Core Analysis] Fit the trend using turbotrend()
+//  * 3. [Core Analysis] Inspect the fitted model object
 
 nextflow.enable.dsl = 2
 
-process BIOC_TURBONORM {
+process BIOC_TURBONORM_SCATTERPLOT_SMOOTHING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-turbonorm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-turbonorm:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-turbonorm:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_turbonorm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_turbonorm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_turbonorm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(TurboNorm)
-    library(jsonlite)
-
-    # --- Trend Fitting [turbotrend] ---
-    # Key functions: turbotrend
-    x <- seq(0, 1, length = 100)
-    y <- sin(2 * pi * x^3)^3 + rnorm(100, 0, 0.1)
-    fit_orig <- turbotrend(x, y, n = 15, method = "original")
-    fit_fast <- turbotrend(x, y, n = 15, method = "fast")
-
-    # --- Microarray Normalization [pspline] ---
-    # Key functions: pspline
-    data(swirl, package = "marray")
-    normalized_swirl <- pspline(
-        swirl,
-        showArrays = 2,
-        pch = 20,
-        col = "grey"
-    )
-
-    # --- Methylation Data Preparation [normalizeWithinArrays] ---
-    # Key functions: normalizeWithinArrays
-    data(methylation, package = "turbonorm")
-    indices <- methylation$weights[, 1]
-    weights <- rep(1, length(indices))
-    weights[indices] <- length(indices) / sum(indices)
-    ma_data <- marray::normalizeWithinArrays(
-        methylation,
-        method = "none",
-        bc.method = "none"
-    )
-
-    # --- Visualization with Panel Splines [panel.pspline] ---
-    # Key functions: panel.pspline
-    plot_data <- data.frame(
-        M = as.vector(ma_data$M),
-        A = as.vector(ma_data$A)
-    )
-    plot_obj <- lattice::xyplot(
-        M ~ A,
-        data = plot_data,
-        panel = function(x, y) {
-            lattice::panel.xyplot(x, y, col = "grey")
-            panel.pspline(x, y, weights = weights, col = "red", lwd = 2)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_turbonorm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_turbonorm_results.csv")
+    
+    # 1. Load the TurboNorm library
+    library(TurboNorm)
+    
+    # 2. Read the user input files
+    if (!file.exists("x.txt") || !file.exists("y.txt")) {
+      stop("Input files x.txt and/or y.txt not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_turbonorm_output.rds")
-    }
+    
+    x <- scan("x.txt", quiet = TRUE)
+    y <- scan("y.txt", quiet = TRUE)
+    
+    # 3. Fit the trend using turbotrend() exactly as documented
+    fitOrig <- turbotrend(x, y, n=15, method="original")
+    
+    # 4. Inspect the fitted model object and save the console output
+    sink("fit_summary.txt")
+    print(fitOrig)
+    sink()
+    
+    # Save the fitted model object as an RDS file
+    saveRDS(fitOrig, "fitOrig.rds")
+    
+    # 5. Plot the results and save to a PDF file
+    pdf("turbotrend_plot.pdf")
+    plot(x, y, type='p', xlab="", ylab="")
+    lines(fitOrig, col="green", type='b', pch=1)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TURBONORM:", paste0("    turbonorm: ", packageVersion("TurboNorm"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_TURBONORM_SCATTERPLOT_SMOOTHING":',
+        paste0('    TurboNorm: ', as.character(packageVersion('TurboNorm')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_turbonorm_results.csv
-    touch ${prefix}_turbonorm_output.rds
-    echo "BIOC_TURBONORM:" > versions.yml
-    echo "    turbonorm: 0.0.0" >> versions.yml
+    touch ${prefix}_scatterplot_smoothing.csv versions.yml
     """
 }
 
-
-workflow BIOC_TURBONORM_WORKFLOW {
+workflow BIOC_TURBONORM_SCATTERPLOT_SMOOTHING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ x.txt, y.txt ] ]
 
     main:
-    BIOC_TURBONORM(ch_input)
+    BIOC_TURBONORM_SCATTERPLOT_SMOOTHING(ch_input)
 
     emit:
-    results  = BIOC_TURBONORM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TURBONORM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TURBONORM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TURBONORM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TURBONORM_SCATTERPLOT_SMOOTHING.out.tables
+    plots    = BIOC_TURBONORM_SCATTERPLOT_SMOOTHING.out.plots
+    objects  = BIOC_TURBONORM_SCATTERPLOT_SMOOTHING.out.objects
+    versions = BIOC_TURBONORM_SCATTERPLOT_SMOOTHING.out.versions
 }

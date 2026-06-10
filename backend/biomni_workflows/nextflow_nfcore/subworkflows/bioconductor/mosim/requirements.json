@@ -1,0 +1,18 @@
+{
+  "package": "mosim",
+  "requirements": [
+    "MOSim",
+    "Seurat",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MOSim",
+      "ggplot2"
+    ],
+    "single_cell_multi_omics_simulation.nf": [
+      "MOSim",
+      "Seurat"
+    ]
+  }
+}

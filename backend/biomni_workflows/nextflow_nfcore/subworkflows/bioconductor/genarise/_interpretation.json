@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cy3=Column index for Cy3 intensity in read.spot ;; cy5=Column index for Cy5 intensity in read.spot ;; bg.cy3=Column index for Cy3 background in read.spot ;; bg.cy5=Column index for Cy5 background in read.spot ;; ids=Column index for gene identifiers in read.spot ;; nr=Number of rows in each subgrid for grid.norm ;; nc=Number of columns in each subgrid for grid.norm ;; type=Type of Z-score analysis, either \"ri\" (R-I plot) or \"ma\" (M-A plot) ;; Zscore.min=Minimum Z-score threshold for plotting in Zscore.plot ;; output.file=Output file name for genMerge results\n- alternatives: imageLimma is completely based on the imageplot function from the limma package ;; genMerge is completely based on GeneMerge by Cristian I. Castillo-Davis and Daniel L. Hartl\n- when_to_use: Use when analyzing raw dual-color (two-channel) microarray data to perform background correction, normalization, replicate filtering, and identify differentially expressed genes using Z-scores.\n- pitfalls: Grid normalization (grid.norm) can only be applied to the complete dataset, so spots must not be eliminated before running it ;; If spots are eliminated before normalization, global.norm is the only valid normalization option ;; In the normalization procedure, any observation where the R value is zero will be eliminated ;; Input files for genMerge must not have a header row ;; post.analysis requires a list of files with .prj extension and can only be used if results were obtained via the genArise GUI",
+  "workflows": [
+    {
+      "name": "dual_color_microarray_analysis",
+      "intent": "Preprocess raw dual-color microarray data, perform background correction, normalize, filter low-quality spots, resolve replicates, and identify differentially expressed genes using Z-scores.",
+      "input": [
+        "raw_intensities.txt (tab-delimited file containing Cy3/Cy5 intensities, backgrounds, and gene IDs)"
+      ],
+      "stages": "1. Read raw data using read.spot ;; 2. Perform background correction using bg.correct ;; 3. Normalize data using grid.norm or global.norm ;; 4. Filter low-quality spots using filter.spot ;; 5. Handle replicate spots using spotUnique, alter.unique, or meanUnique ;; 6. Calculate Z-scores using Zscore ;; 7. Plot diagnostic and Z-score plots using imageLimma, ri.plot, ma.plot, cys.plot, and Zscore.plot",
+      "code": "my.spot <- read.spot( file.name, cy3 = 1, cy5 = 2, bg.cy3 = 3, bg.cy5 = 4, ids = 5, header = FALSE, sep = \"\\t\", is.ifc = FALSE)\ndata(Simon)\ndatos <- attr(Simon, \"spotData\")\nM <- log(datos$Cy3, 2) - log(datos$Cy5, 2)\nimageLimma(z = M, row = 23, column = 24, meta.row = 2, meta.column = 2, low = NULL, high = NULL)\nR <- log(datos$BgCy3, 2)\nimageLimma(z = R, row = 23, column = 24, meta.row = 2, meta.column = 2, low = \"white\", high = \"red\")\nG <- log(datos$BgCy5, 2)\nimageLimma(z = G, row = 23, column = 24, meta.row = 2, meta.column = 2, low = \"white\", high = \"green\")\nri.plot(Simon)\nma.plot(Simon)\ncys.plot(Simon)\nc.spot <- bg.correct(Simon)\nn.spot <- grid.norm(mySpot = Simon, nr = 23, nc = 24)\nn.spot <- global.norm(mySpot = Simon)\nf.spot <- filter.spot(mySpot = Simon)\nu.spot <- spotUnique(mySpot = Simon)\nu.spot <- alter.unique(mySpot = Simon)\nu.spot <- meanUnique(mySpot = Simon)\ns.spot <- Zscore(Simon, type=\"ri\")\ns.spot <- Zscore(Simon, type=\"ma\")\ndata(WT.dataset)\nZscore.plot(WT.dataset, Zscore.min=1)"
+    },
+    {
+      "name": "functional_enrichment_genmerge",
+      "intent": "Perform functional genomic annotation and statistical over-representation analysis of differentially expressed genes.",
+      "input": [
+        "association.txt (tab-delimited gene-to-GO term association file)",
+        "description.txt (tab-delimited GO term description file)",
+        "population.genes (file containing all gene IDs in the microarray)",
+        "study.genes (file containing the study gene IDs, e.g., up- or down-regulated)"
+      ],
+      "stages": "1. Extract population gene IDs and write to file using write.table ;; 2. Extract study gene IDs (up-regulated, down-regulated, or both) and write to file using write.table ;; 3. Run over-representation analysis using genMerge",
+      "code": "ids <- attr(o.spot, \"spotData\")$Ids\nids <- unique(ids)\nwrite.table(ids, \"population.genes\")\nstudy.ids <- c(s.spot$Id.up, s.spot$Id.down)\nstudy.ids <- unique(study.ids)\nwrite.table(study.ids, \"study.genes\")\nstudy.ids <- s.spot$Id.up\nstudy.ids <- unique(study.ids)\nwrite.table(study.ids, \"study.genes\")\ngenMerge(gene.association, description, population.genes, study.genes, output.file = \"GeneMerge.txt\")"
+    }
+  ]
+}

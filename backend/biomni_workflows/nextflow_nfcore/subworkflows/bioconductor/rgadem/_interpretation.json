@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Sequences=A GRanges object or DNAStringSet containing the genomic regions to analyze ;; genome=A BSgenome object (e.g., Hsapiens) matching the assembly of the input sequences, required if Sequences is a GRanges object ;; pValue=P-value cutoff for declaring a binding site (default is 0.0002) ;; eValue=E-value cutoff for de novo motif discovery (default is 0.0)\n- alternatives: MEME-ChIP for web-based or command-line motif discovery, Homer for motif analysis, or BCRANK for R-based heuristic motif search\n- when_to_use: When analyzing high-throughput sequencing data (like ChIP-seq, ATAC-seq, or DNase-seq) to identify novel DNA binding motifs and their exact binding sites within peak regions\n- pitfalls: Mismatch between the genome assembly of the GRanges input and the loaded BSgenome object ;; High computational cost and memory usage when running on very large sequence sets without filtering or downsampling peaks first",
+  "workflows": [
+    {
+      "name": "de_novo_motif_discovery",
+      "intent": "Identify novel sequence motifs from genomic peak regions using rGADEM and a reference genome.",
+      "input": [
+        "peaks.bed (Genomic coordinates of ChIP-seq or ATAC-seq peaks)"
+      ],
+      "stages": "1. Import peak coordinates as a GRanges object ;; 2. Load the matching BSgenome reference genome ;; 3. Run the GADEM analysis to discover motifs ;; 4. Query the resulting gadem object for identified motifs and consensus sequences",
+      "code": "library(rGADEM)\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\n# peaks is a GRanges object loaded from a BED file\ngadem <- GADEM(peaks, genome = Hsapiens, verbose = 1)\nnMotifs(gadem)\ngetConsensus(gadem)"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "lpnet",
+  "requirements": [
+    "lpNet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "lpNet"
+    ],
+    "parameter_tuning_cross_validation.nf": [
+      "lpNet"
+    ],
+    "time_series_network_inference.nf": [
+      "lpNet"
+    ]
+  }
+}

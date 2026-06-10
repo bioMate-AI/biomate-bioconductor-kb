@@ -1,0 +1,15 @@
+{
+  "package": "fella",
+  "requirements": [
+    "FELLA",
+    "igraph",
+    "org.Mm.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FELLA",
+      "igraph",
+      "org.Mm.eg.db"
+    ]
+  }
+}

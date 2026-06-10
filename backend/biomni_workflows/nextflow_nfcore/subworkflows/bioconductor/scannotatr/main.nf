@@ -1,103 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scAnnotatR
-// The package comprises a set of pretrained machine learning models to predict basic immune cell types
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scAnnotatR/inst/doc/classifying-cells.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("scAnnotatR")
+// Bioconductor workflow: scAnnotatR — cell_classification_pretrained
+// Classify cell types in a single-cell RNA-seq dataset using pretrained models.
+// Input: tirosh_mel80_example
+// Container: quay.io/biocontainers/bioconductor-scannotatr:1.16.0--r45hdfd78af_0
+// R packages: Seurat, scAnnotatR
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Seurat, scAnnotatR
+// Visualizations: UMAP/t-SNE plot, feature plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the scAnnotatR package
+//  * 2. [Input & Preparation] Load the default pretrained models
+//  * 3. [Input & Preparation] Load the single-cell dataset
+//  * 4. [Core Analysis] Run cell classification using classify_cells
+//  * 5. [Core Analysis] Inspect the classification results in the metadata
+//  * 6. [Visualization & Output] Visualize the predicted cell types and prediction probabilities using Seurat plotting functions
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCANNOTATR {
+process BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scannotatr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scannotatr:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scannotatr:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scannotatr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scannotatr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scannotatr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Seurat", "scAnnotatR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the scAnnotatR and Seurat packages
     library(scAnnotatR)
-    library(jsonlite)
-
-    # --- Load Models [] ---
-    # Key functions: load_models
-    ---------------------------------------------------------------------
+    library(Seurat)
+    
+    # 2. Load the default pretrained models
     default_models <- load_models("default")
-    names(default_models)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    # load the example dataset
-    data("tirosh_mel80_example")
-    tirosh_mel80_example
-    # --- Classify Cells [] ---
-    # Key functions: classify_cells
-    ---------------------------------------------------------------------
-    seurat.obj <- classify_cells(classify_obj = tirosh_mel80_example,
-                                 assay = 'RNA', slot = 'counts',
-                                 cell_types = c('B cells', 'NK', 'T cells'),
-                                 path_to_models = 'default')
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scannotatr_results.csv", row.names = TRUE)
+    print(names(default_models))
+    print(default_models[['B cells']])
+    
+    # 3. Load the single-cell dataset from the user input file
+    if (file.exists("tirosh_mel80_example")) {
+      tirosh_mel80_example <- readRDS("tirosh_mel80_example")
+    } else if (file.exists("tirosh_mel80_example.rds")) {
+      tirosh_mel80_example <- readRDS("tirosh_mel80_example.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scannotatr_results.csv")
+      stop("Error: Input file 'tirosh_mel80_example' or 'tirosh_mel80_example.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scannotatr_output.rds")
-    }
+    
+    print(tirosh_mel80_example)
+    print(head(tirosh_mel80_example[[]]))
+    
+    # 4. Run cell classification using classify_cells
+    seurat.obj <- classify_cells(classify_obj = tirosh_mel80_example, 
+                                 assay = 'RNA', layer = 'counts',
+                                 cell_types = c('B cells', 'NK', 'T cells'), 
+                                 path_to_models = 'default')
+    
+    # 5. Inspect the classification results in the metadata
+    metadata_subset <- seurat.obj[[]][c(50:60), c(8:ncol(seurat.obj[[]]))]
+    print(metadata_subset)
+    
+    # Save the full metadata and the subset to CSV files
+    write.csv(seurat.obj[[]], "classified_cells_metadata.csv", row.names = TRUE)
+    write.csv(metadata_subset, "classified_cells_metadata_subset.csv", row.names = TRUE)
+    
+    # Save the classified Seurat object
+    saveRDS(seurat.obj, "classified_seurat_object.rds")
+    
+    # 6. Visualize the predicted cell types and prediction probabilities using Seurat plotting functions
+    pdf("cell_classification_plots.pdf", width = 10, height = 8)
+    
+    # Visualize the cell types
+    p1 <- Seurat::DimPlot(seurat.obj, group.by = "most_probable_cell_type")
+    print(p1)
+    
+    # Visualize the B cell prediction probability
+    p2 <- Seurat::FeaturePlot(seurat.obj, features = "B_cells_p")
+    print(p2)
+    
+    # Visualize canonical marker expression
+    p3 <- Seurat::FeaturePlot(seurat.obj, features = c("CD19", "MS4A1"), ncol = 2)
+    print(p3)
+    
+    dev.off()
+    
+    print("Pipeline completed successfully. Outputs saved: 'classified_seurat_object.rds', 'classified_cells_metadata.csv', 'classified_cells_metadata_subset.csv', and 'cell_classification_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCANNOTATR:", paste0("    scannotatr: ", packageVersion("scAnnotatR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED":',
+        paste0('    scAnnotatR: ', as.character(packageVersion('scAnnotatR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scannotatr_results.csv
-    touch ${prefix}_scannotatr_output.rds
-    echo "BIOC_SCANNOTATR:" > versions.yml
-    echo "    scannotatr: 0.0.0" >> versions.yml
+    touch ${prefix}_cell_classification_pretrained.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCANNOTATR_WORKFLOW {
+workflow BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tirosh_mel80_example ] ]
 
     main:
-    BIOC_SCANNOTATR(ch_input)
+    BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED(ch_input)
 
     emit:
-    results  = BIOC_SCANNOTATR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCANNOTATR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCANNOTATR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCANNOTATR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED.out.tables
+    plots    = BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED.out.plots
+    objects  = BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED.out.objects
+    versions = BIOC_SCANNOTATR_CELL_CLASSIFICATION_PRETRAINED.out.versions
 }

@@ -1,0 +1,61 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Filter=Logical. In Linnorm and Linnorm.limma, filters out low count genes and genes with high technical noise ;; output=Character. In Linnorm.Norm, set to \"XPM\" if downstream tools convert data to CPM/TPM, or \"Raw\" if downstream tools require raw counts. In Linnorm.limma, set to \"Both\" to return both DEG results and the transformed matrix ;; BE_strength=Numeric. Controls normalization strength (default 0.5 to prevent overfitting; set to 1 to increase strength) ;; DataImputation=Logical. In Linnorm, set to TRUE to perform data imputation during transformation ;; RowSamples=Logical. Set to TRUE if columns represent genes and rows represent samples (improves speed) ;; input=Character. Set to \"Linnorm\" in compatible functions if the input dataset is already Linnorm-transformed to avoid redundant transformation ;; Group=Vector. In clustering functions, provides sample group/subpopulation annotations ;; num_center=Integer. In t-SNE/PCA clustering, specifies the number of clusters for k-means ;; num_PC=Integer. In t-SNE/PCA clustering, specifies the number of principal components to use ;; distribution=Character. In RnaXSim, specifies the simulation distribution (\"NB\", \"Gamma\", \"Poisson\", \"LogNorm\")\n- alternatives: limma=Used internally by Linnorm.limma for differential expression analysis ;; Spike-in genes=Alternative to using Linnorm.SGenes for identifying stable genes in single-cell RNA-seq datasets\n- when_to_use: Use when analyzing high-throughput count data (especially single-cell RNA-seq with high noise and zero inflation) to perform normalization, transformation, differential expression, clustering, or network analysis under parametric assumptions.\n- pitfalls: Do NOT input log-transformed datasets, as Linnorm performs its own log transformation ;; Undefined values such as NA, NaN, and INF are not supported ;; Data imputation (Linnorm.DataImput) is not recommended unless it is explicitly shown to improve downstream results ;; Linnorm.Norm and Linnorm.SGenes must only be run on raw, pre-transformed data ;; Setting BE_strength too high can cause overfitting and artificially reduce biological differences between conditions",
+  "workflows": [
+    {
+      "name": "normalization_and_transformation",
+      "intent": "Normalize, transform, and optionally impute raw count or expression data for downstream parametric analysis or export.",
+      "input": [
+        "Islam2011 (matrix or data frame of raw counts or expression values where columns are samples and rows are genes)"
+      ],
+      "stages": "1. Load the Linnorm library and dataset ;; 2. Perform normalizing transformation with or without low-count filtering ;; 3. Export transformed data to a tab-delimited file ;; 4. Perform normalization to XPM or Raw counts ;; 5. Optionally perform data imputation or select stable genes.",
+      "code": "library(Linnorm)\n\n# Obtain data\ndata(Islam2011)\n\n# Do not filter gene list:\nTransformed <- Linnorm(Islam2011)\n\n# Filter low count genes\nresult <- Linnorm(Islam2011, Filter=TRUE)\nFTransformed <- result[[\"Linnorm\"]]\n\n# You can use this file with Excel.\n# This file includes all genes.\nwrite.table(Transformed, \"Transformed.txt\",\nquote=FALSE, sep=\"\\t\", col.names=TRUE, row.names=TRUE)\n\n# This file filtered low count genes.\nwrite.table(FTransformed, \"Transformed.txt\",\nquote=FALSE, sep=\"\\t\", col.names=TRUE, row.names=TRUE)\n\nlibrary(Linnorm)\nNormalized <- Linnorm.Norm(Islam2011)\n\n# You can use this file with Excel.\nwrite.table(Normalized, \"Normalized.txt\",\nquote=FALSE, sep=\"\\t\", col.names=TRUE, row.names=TRUE)\n\n# Data Imputation\nDataImputed <- Linnorm.DataImput(Transformed)\n\n# Or, users can directly perform data imputation during transformation.\nDataImputed <- Linnorm(Islam2011,DataImputation=TRUE)\n\n# Obtain stable genes\nStableGenes <- Linnorm.SGenes(Islam2011)"
+    },
+    {
+      "name": "differential_expression_limma",
+      "intent": "Perform differential expression analysis on count data using the integrated Linnorm-limma pipeline.",
+      "input": [
+        "LIHC (matrix of raw counts or expression values)",
+        "IslamData (matrix of single-cell RNA-seq raw counts)"
+      ],
+      "stages": "1. Define the experimental design matrix ;; 2. Run the Linnorm-limma pipeline to identify differentially expressed genes ;; 3. Extract and filter significant genes ;; 4. Generate a volcano plot.",
+      "code": "library(Linnorm)\ndata(LIHC)\ndatamatrix <- LIHC\n\n# 5 samples for condition 1 and 5 samples for condition 2.\n# You might need to edit this line\ndesign <- c(rep(1,5),rep(2,5))\n# These lines can be copied directly.\ndesign <- model.matrix(~ 0+factor(design))\ncolnames(design) <- c(\"group1\", \"group2\")\nrownames(design) <- colnames(datamatrix)\n\nlibrary(Linnorm)\n# The Linnorm-limma pipeline only consists of one line.\nDEG_Results <- Linnorm.limma(datamatrix,design)\n\nlibrary(Linnorm)\n# Just add output=\"Both\" into the argument list\nBothResults <- Linnorm.limma(datamatrix,design,output=\"Both\")\n\n# To separate results into two matrices:\nDEG_Results <- BothResults$DEResults\nTransformedMatrix <- BothResults$Linnorm\n\nwrite.table(DEG_Results, \"DEG_Results.txt\", quote=FALSE, sep=\"\\t\",\ncol.names=TRUE,row.names=TRUE)\n\nGenes10 <- DEG_Results[order(DEG_Results[,\"adj.P.Val\"]),][1:10,]\n\nSignificantGenes <- DEG_Results[DEG_Results[,5] <= 0.05,1]\n\nplot(x=DEG_Results[,1], y=DEG_Results[,5], col=ifelse(DEG_Results[,1] %in%\nSignificantGenes, \"red\", \"green\"),log=\"y\", ylim = \nrev(range(DEG_Results[,5])), main=\"Volcano Plot\", \nxlab=\"log2 Fold Change\", ylab=\"q values\", cex = 0.5)"
+    },
+    {
+      "name": "coexpression_network_analysis",
+      "intent": "Identify gene co-expression networks, perform clustering, and visualize correlation profiles.",
+      "input": [
+        "Islam2011 (matrix of expression values)"
+      ],
+      "stages": "1. Run Linnorm.Cor to calculate gene correlation and identify clusters ;; 2. Plot the co-expression network using igraph ;; 3. Extract genes belonging to specific clusters ;; 4. Generate a correlation heatmap for top correlated genes.",
+      "code": "data(Islam2011)\n\n# Obtain embryonic stem cell data\ndatamatrix <- Islam2011[,1:48]\n\nresults <- Linnorm.Cor(datamatrix, plotNetwork=FALSE,\n# Edge color when correlation is positive\nplot.Pos.cor.col=\"red\",\n# Edge color when correlation is negative\nplot.Neg.cor.col=\"green\")\n\nGenes10 <- results$Results[order(results$Results[,5]),][1:10,]\n\nlibrary(igraph)\nThislayout <- layout_with_kk(results$igraph)\nplot(results$igraph,\n# Vertex size\nvertex.size=2,\n# Vertex color, based on clustering results\nvertex.color=results$Cluster$Cluster,\n# Vertex frame color\nvertex.frame.color=\"transparent\",\n# Vertex label color (the gene names)\nvertex.label.color=\"black\",\n# Vertex label size\nvertex.label.cex=0.05,\n# This is how much the edges should be curved.\nedge.curved=0.1,\n# Edge width\nedge.width=0.05,\n# Use the layout created previously\nlayout=Thislayout\n)\n\nTheCluster <- which(results$Cluster[,1] == \"Mmp2\")\n\n# Index of the genes\nListOfGenes <- which(results$Cluster[,2] == TheCluster)\n\n# Names of the genes\nGeneNames <- results$Cluster[ListOfGenes,1]\n\ntop100 <- results$Results[order(results$Results[,4],decreasing=FALSE)[1:100],1]\n\nTop100.Cor.Matrix <- results$Cor.Matrix[top100,top100]\n\nlibrary(RColorBrewer)\nlibrary(gplots)\nheatmap.2(as.matrix(Top100.Cor.Matrix),\n# Hierarchical clustering on both row and column\nRowv=TRUE, Colv=TRUE,\n# Center white color at correlation 0\nsymbreaks=TRUE,\n# Turn off level trace\ntrace=\"none\",\n# x and y axis labels\nxlab = 'Genes', ylab = \"Genes\",\n# Turn off density info\ndensity.info='none',\n# Control color\nkey.ylab=NA,\ncol=colorRampPalette(c(\"blue\", \"white\", \"yellow\"))(n = 1000),\nlmat=rbind(c(4, 3), c(2, 1)),\n# Gene name font size\ncexRow=0.3,\ncexCol=0.3,\n# Margins\nmargins = c(8, 8)\n)"
+    },
+    {
+      "name": "highly_variable_gene_analysis",
+      "intent": "Identify highly variable genes/features from expression data.",
+      "input": [
+        "Islam2011 (matrix of expression values)"
+      ],
+      "stages": "1. Run Linnorm.HVar to detect highly variable genes ;; 2. Extract results and plot Mean vs SD highlighting significant genes.",
+      "code": "data(Islam2011)\n\n# The first 48 columns are the embryonic stem cells.\nresults <- Linnorm.HVar(Islam2011[,1:48])\n\nresultsdata <- results$Results\nGenes10 <- resultsdata[order(resultsdata[,\"q.value\"]),][1:10,3:5]\n\nprint(results$plot$plot)"
+    },
+    {
+      "name": "cell_subpopulation_clustering",
+      "intent": "Perform cell subpopulation clustering using t-SNE, PCA, or Hierarchical Clustering.",
+      "input": [
+        "Islam2011 (matrix of expression values)"
+      ],
+      "stages": "1. Run t-SNE k-means clustering with or without known group annotations ;; 2. Run PCA k-means clustering with or without known group annotations ;; 3. Run Hierarchical Clustering and plot the dendrogram.",
+      "code": "library(Linnorm)\ndata(Islam2011)\n\ntSNE.results <- Linnorm.tSNE(Islam2011[,1:92])\n\nprint(tSNE.results$plot$plot)\n\n# The first 48 samples belong to mouse embryonic stem cells.\nGroups <- rep(\"ES_Cells\",48)\n# The next 44 samples are mouse embryonic fibroblasts.\nGroups <- c(Groups, rep(\"EF_Cells\",44))\n\ntSNE.results <- Linnorm.tSNE(Islam2011[,1:92],\n Group=Groups, num_center=2)\n\nprint(tSNE.results$plot$plot)\n\nPCA.results <- Linnorm.PCA(Islam2011[,1:92])\n\nprint(PCA.results$plot$plot)\n\nPCA.results <- Linnorm.PCA(Islam2011[,1:92],\nGroup=Groups, num_center=2, num_PC=3)\n\nprint(PCA.results$plot$plot)\n\nIslam <- Islam2011[,1:92]\n\n# 48 ESC, 44 EF, and 4 NegCtrl\nGroup <- c(rep(\"ESC\",48),rep(\"EF\",44))\ncolnames(Islam) <- paste(colnames(Islam),Group,sep=\"_\")\n\n# Note that there are 3 known clusters.\nHClust.Results <- Linnorm.HClust(Islam,Group=Group,\nnum_Clust=2, fontsize=1.5, Color = c(\"Red\",\"Blue\"), RectColor=\"Green\")\n\nprint(HClust.Results$plot$plot)"
+    },
+    {
+      "name": "rnaxsim_expression_simulation",
+      "intent": "Simulate RNA-seq expression data with known differentially expressed genes for method evaluation.",
+      "input": [
+        "SEQC (reference expression matrix)"
+      ],
+      "stages": "1. Run RnaXSim with default Negative Binomial distribution parameters ;; 2. Run RnaXSim with advanced parameters (e.g., Gamma distribution, custom replicates, and feature counts) ;; 3. Extract simulated expression matrices and true DE gene indices.",
+      "code": "library(Linnorm)\ndata(SEQC)\nSampleA <- SEQC\n\n# This will generate two sets of RNA-seq data with 5 replicates each. \n# It will have 20000 genes totally with 2000 genes being differentially \n# expressed. It has the Negative Binomial distribution.\nSimulatedData <- RnaXSim(SampleA)\n\n# Index of differentially expressed genes.\nDE_Index <- SimulatedData[[2]]\n\n# Expression Matrix\nExpMatrix <- SimulatedData[[1]]\n\n# Sample Set 1\nSample1 <- ExpMatrix[,1:3]\n\n# Sample Set 2\nSample2 <- ExpMatrix[,4:6]\n\nlibrary(Linnorm)\nSimulatedData <- RnaXSim(SampleA,\ndistribution=\"Gamma\", # Distribution in the simulated dataset.\n# Put \"NB\" for Negative Binomial, \"Gamma\" for Gamma,\n# \"Poisson\" for Poisson and \"LogNorm\" for Log Normal distribution.\nNumRep=5, # Number of replicates in each sample set. \n# 5 will generate 10 samples in total.\nNumDiff = 1000, # Number of differentially expressed genes.\nNumFea = 5000 # Total number of genes in the dataset\n)\n\n# Index of differentially expressed genes.\nDE_Index <- SimulatedData[[2]]\n\n# Expression Matrix\nExpMatrix <- SimulatedData[[1]]\n\n# Simulated Sample Set 1\nSample1 <- ExpMatrix[,1:3]\n\n# Simulated Sample Set 2\nSample2 <- ExpMatrix[,4:6]"
+    }
+  ]
+}

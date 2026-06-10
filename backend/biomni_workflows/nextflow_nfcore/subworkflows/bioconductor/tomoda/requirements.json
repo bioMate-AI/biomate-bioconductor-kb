@@ -1,0 +1,15 @@
+{
+  "package": "tomoda",
+  "requirements": [
+    "SummarizedExperiment",
+    "ggplot2",
+    "tomoda"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "tomoda"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "biocthis",
+  "requirements": [
+    "biocthis",
+    "styler",
+    "usethis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "biocthis",
+      "styler",
+      "usethis"
+    ]
+  }
+}

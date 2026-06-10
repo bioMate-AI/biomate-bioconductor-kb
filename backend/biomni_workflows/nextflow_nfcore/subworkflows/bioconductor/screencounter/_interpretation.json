@@ -1,0 +1,52 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: flank5=The 5' constant sequence immediately flanking the variable region ;; flank3=The 3' constant sequence immediately flanking the variable region (should be set to \"\" if lost in short reads) ;; choices=A vector, list, or DataFrame of known variable sequences or combinations to match against ;; template=A character string defining the barcode structure, where 'N' represents variable bases ;; substitutions=An integer specifying the number of allowed mismatches (default is 0) ;; strand=A character string specifying which strand to search (\"original\", \"reverse\", or \"both\") ;; randomized=A logical value; if TRUE, searches both FASTQ files for both dual barcode arrangements ;; BPPARAM=A BiocParallel parameter object (e.g., SnowParam(2)) for parallelization across files\n- alternatives: External tools like FLASh or vsearch with --fastq_mergepairs can be used to merge paired-end reads into consensus reads before counting single or combinatorial barcodes.\n- when_to_use: Use when you need to quantify barcode frequencies (single, combinatorial, dual, or random) from single-end or paired-end FASTQ files in sequencing screen experiments.\n- pitfalls: Do not supply the full length of the flanking sequence if it is not captured in the read (e.g., set flank3=\"\" if the 3' flank is lost). Mismatch tolerance (substitutions) is disabled by default because synthesis errors can result in genuinely different barcodes being incorrectly collapsed. Indels are not tolerated in any matches. For dual barcodes with randomized=TRUE, read pairs matching different valid combinations in both arrangements are filtered out.",
+  "workflows": [
+    {
+      "name": "single_barcodes",
+      "intent": "Quantify single barcodes flanked by constant regions from single-end FASTQ files.",
+      "input": [
+        "single.fastq (FASTQ file containing single-end reads with single barcodes)"
+      ],
+      "stages": "1. Quantify single barcodes using matrixOfSingleBarcodes ;; 2. Extract the count matrix using assay",
+      "code": "known <- c(\"AAAAAAAA\", \"CCCCCCCC\", \"GGGGGGGG\", \"TTTTTTTT\")\nlibrary(Biostrings)\nchosen <- sample(known, 1000, replace=TRUE)\nreads <- sprintf(\"GTAC%sCATG\", chosen)\nnames(reads) <- sprintf(\"READ_%i\", seq_along(reads))\nsingle.fq <- tempfile(fileext=\".fastq\")\nwriteXStringSet(DNAStringSet(reads), file=single.fq, format=\"fastq\")\nlibrary(screenCounter)\nout <- matrixOfSingleBarcodes(single.fq, \n    flank5=\"GTAC\", flank3=\"CATG\", choices=known)\nout\nassay(out)"
+    },
+    {
+      "name": "combinatorial_barcodes",
+      "intent": "Quantify combinatorial barcodes where multiple variable regions are randomly ligated within a template structure.",
+      "input": [
+        "combo.fastq (FASTQ file containing single-end reads with combinatorial barcodes)"
+      ],
+      "stages": "1. Quantify combinatorial barcodes using matrixOfComboBarcodes ;; 2. Extract the count matrix using assay ;; 3. Extract barcode identities using rowData",
+      "code": "known1 <- c(\"AAAA\", \"CCCC\", \"GGGG\", \"TTTT\")\nknown2 <- c(\"ATTA\", \"CGGC\", \"GCCG\", \"TAAT\")\nlibrary(Biostrings)\nchosen1 <- sample(known1, 1000, replace=TRUE)\nchosen2 <- sample(known2, 1000, replace=TRUE)\nreads <- sprintf(\"GTAC%sCATG%sGTAC\", chosen1, chosen2)\nnames(reads) <- sprintf(\"READ_%i\", seq_along(reads))\ncombo.fq <- tempfile(fileext=\".fastq\")\nwriteXStringSet(DNAStringSet(reads), file=combo.fq, format=\"fastq\")\nout <- matrixOfComboBarcodes(combo.fq,\n    template=\"GTACNNNNCATGNNNNGTAC\",\n    choices=list(first=known1, second=known2))\nout\nassay(out)\nrowData(out)"
+    },
+    {
+      "name": "dual_barcodes_paired_end",
+      "intent": "Quantify dual barcodes present on paired-end reads (one barcode per read).",
+      "input": [
+        "read1.fastq (FASTQ file containing Read 1 of paired-end reads with dual barcodes)",
+        "read2.fastq (FASTQ file containing Read 2 of paired-end reads with dual barcodes)"
+      ],
+      "stages": "1. Define valid barcode combinations in a DataFrame ;; 2. Quantify dual barcodes using matrixOfDualBarcodes ;; 3. Extract the count matrix using assay ;; 4. Extract mapping diagnostics using colData ;; 5. Extract barcode identities using rowData",
+      "code": "known.pool1 <- c(\"AGAGAGAGA\", \"CTCTCTCTC\",\n    \"GTGTGTGTG\", \"CACACACAC\")\nknown.pool2 <- c(\"ATATATATA\", \"CGCGCGCGC\",\n    \"GAGAGAGAG\", \"CTCTCTCTC\")\nN <- 1000\nread1 <- sprintf(\"CAGCTACGTACG%sCCAGCTCGATCG\",\n   sample(known.pool1, N, replace=TRUE))\nnames(read1) <- seq_len(N)\nread2 <- sprintf(\"TGGGCAGCGACA%sACACGAGGGTAT\",\n   sample(known.pool2, N, replace=TRUE))\nnames(read2) <- seq_len(N)\ntmp <- tempfile()\ntmp1 <- paste0(tmp, \"_1.fastq\")\nwriteXStringSet(DNAStringSet(read1), filepath=tmp1, format=\"fastq\")\ntmp2 <- paste0(tmp, \"_2.fastq\")\nwriteXStringSet(DNAStringSet(read2), filepath=tmp2, format=\"fastq\")\nchoices <- expand.grid(known.pool1, known.pool2)\nchoices <- DataFrame(barcode1=choices[,1], barcode2=choices[,2])\nchoices <- choices[sample(nrow(choices), nrow(choices)*0.9),]\nout <- matrixOfDualBarcodes(list(c(tmp1, tmp2)), \n    choices=choices,\n    template=c(\"CAGCTACGTACGNNNNNNNNNCCAGCTCGATCG\",\n               \"TGGGCAGCGACANNNNNNNNNACACGAGGGTAT\"))\nout\nassay(out)\ncolData(out)\nrowData(out)"
+    },
+    {
+      "name": "dual_barcodes_single_end",
+      "intent": "Quantify dual barcodes where both variable regions are present on a single read.",
+      "input": [
+        "dual_single.fastq (FASTQ file containing single-end reads with dual barcodes)"
+      ],
+      "stages": "1. Define valid barcode combinations in a DataFrame ;; 2. Quantify single-end dual barcodes using matrixOfDualBarcodesSingleEnd ;; 3. Extract the count matrix using assay ;; 4. Extract mapping diagnostics using colData ;; 5. Extract barcode identities using rowData",
+      "code": "known.pool1 <- c(\"AGAGAGAGA\", \"CTCTCTCTC\",\n    \"GTGTGTGTG\", \"CACACACAC\")\nknown.pool2 <- c(\"ATATATATA\", \"CGCGCGCGC\",\n    \"GAGAGAGAG\", \"CTCTCTCTC\")\nN <- 1000\nread <- sprintf(\"CAGCTACGTACG%sCCAGCTCGATCG%sACACGAGGGTAT\",\n   sample(known.pool1, N, replace=TRUE),\n   sample(known.pool2, N, replace=TRUE))\nnames(read) <- seq_len(N)\ntmp <- tempfile(fileext=\".fastq\")\nwriteXStringSet(DNAStringSet(read), filepath=tmp, format=\"fastq\")\nchoices <- expand.grid(known.pool1, known.pool2)\nchoices <- DataFrame(barcode1=choices[,1], barcode2=choices[,2])\nchoices <- choices[sample(nrow(choices), nrow(choices)*0.9),]\nout <- matrixOfDualBarcodesSingleEnd(tmp, choices=choices,\n    template=\"CAGCTACGTACGNNNNNNNNNCCAGCTCGATCGNNNNNNNNNACACGAGGGTAT\")\nout\nassay(out)\ncolData(out)\nrowData(out)"
+    },
+    {
+      "name": "random_barcodes",
+      "intent": "Quantify random barcodes synthesized from a nucleotide mixture without a known pool of sequences.",
+      "input": [
+        "random.fastq (FASTQ file containing single-end reads with random barcodes)"
+      ],
+      "stages": "1. Quantify random barcodes using matrixOfRandomBarcodes ;; 2. Extract the count matrix using assay",
+      "code": "N <- 1000\nrandomized <- lapply(1:N, function(i) {\n    paste(sample(c(\"A\", \"C\", \"G\", \"T\"), 8, replace=TRUE), collapse=\"\")\n})\nbarcodes <- sprintf(\"CCCAGT%sGGGATAC\", randomized)\nnames(barcodes) <- sprintf(\"READ_%i\", seq_along(barcodes))\nsingle.fq <- tempfile(fileext=\".fastq\")\nwriteXStringSet(DNAStringSet(barcodes), file=single.fq, format=\"fastq\")\nlibrary(screenCounter)\nout <- matrixOfRandomBarcodes(single.fq,\n    template=\"CCCAGTNNNNNNNNGGGATAC\")\nout\nhead(assay(out))"
+    }
+  ]
+}

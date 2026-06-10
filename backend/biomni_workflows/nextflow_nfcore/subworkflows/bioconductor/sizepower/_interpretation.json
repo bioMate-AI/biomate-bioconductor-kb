@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ER0=expected number of false positives (type I errors) ;; G0=anticipated number of genes that are not differentially expressed (often approximated by total genes G) ;; power=desired statistical power (b) ;; absMu1=postulated absolute difference in means under the alternative hypothesis H1 ;; sigmad=standard deviation of the difference in expression between treatment and control samples (equal to sqrt(2)*sigma) ;; sigma=standard deviation of the random error component in ANOVA ;; n=sample size per group or number of blocks ;; numTrt=number of treatments in multiple-treatment designs\n- alternatives: Sidak approach (E(R0) = alpha0 * G0 \u2248 -ln(1 - alphaF)) vs Bonferroni approach (E(R0) = alpha0 * G0 \u2248 alphaF) for relating individual and family-wise type I error rates\n- when_to_use: Use during the planning stage of a transcriptomics/microarray experiment to determine the minimum sample size required to achieve a target power, or to calculate the power of a planned experiment with a fixed sample size\n- pitfalls: Confusing the ANOVA error standard deviation (sigma) with the standard deviation of the difference (sigmad), where sigmad = sqrt(2) * sigma ;; Using the total number of genes G as G0 without noting it is an approximation ;; Failing to account for dependency within matched pairs or blocks, which requires matched/block-specific functions rather than randomized ones",
+  "workflows": [
+    {
+      "name": "completely_randomized_design",
+      "intent": "Calculate sample size and power for a completely randomized treatment-control design.",
+      "input": [
+        "pilot_parameters.txt (estimated parameters G0, ER0, power, absMu1, sigmad, n)"
+      ],
+      "stages": "1. Calculate required sample size using sampleSize.randomized ;; 2. Calculate exact power for a given sample size using power.randomized",
+      "code": "sampleSize.randomized(ER0=1, G0=2000, power=0.9, absMu1=1, sigmad=0.566)\npower.randomized(ER0=1, G0=2000, absMu1=1, sigmad=0.566, n=8)"
+    },
+    {
+      "name": "matched_pairs_design",
+      "intent": "Calculate sample size and power for a matched-pairs design.",
+      "input": [
+        "pilot_parameters.txt (estimated parameters G0, ER0, power, absMu1, sigmad, n)"
+      ],
+      "stages": "1. Calculate required sample size using sampleSize.matched ;; 2. Calculate exact power for a given sample size using power.matched",
+      "code": "sampleSize.matched(ER0=1, G0=2000, power=0.9, absMu1=1, sigmad=0.495)\npower.matched(ER0=1, G0=2000, absMu1=1, sigmad=0.495, n=6)"
+    },
+    {
+      "name": "multiple_treatment_or_block_design",
+      "intent": "Calculate power for multiple-treatment or randomized block designs with an isolated treatment effect.",
+      "input": [
+        "pilot_parameters.txt (estimated parameters G0, ER0, numTrt, absMu1, sigma, n)"
+      ],
+      "stages": "1. Calculate power for multiple-treatment or randomized block design using power.multi",
+      "code": "power.multi(ER0=1, G0=2000, numTrt=5, absMu1=1, sigma=0.4, n=6)\npower.multi(ER0=1, G0=5000, numTrt=6, absMu1=0.9, sigma=0.5, n=9)"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: K=The number of principal components (in pca), ancestral populations (in snmf), or latent factors (in lfmm/lfmm2/genetic.gap) ;; entropy=A logical value (TRUE/FALSE) in snmf to compute the cross-entropy criterion for choosing the optimal K ;; repetitions=The number of independent runs to perform for a given K in snmf or lfmm ;; project=Character string set to \"new\" to start a new analysis project or \"continue\" to resume ;; method=The imputation method used in impute(), typically 'mode' ;; full=A logical value in lfmm2.test() to perform a Fisher's test for multiple environmental predictors ;; linear=A logical value in lfmm2.test() to perform linear model tests\n- alternatives: BEAGLE, IMPUTE2, or MENDEL-IMPUTE=Preferred for genotype imputation in model species with a published reference genome ;; tess3r=Preferred for advanced visualization of the ancestry Q-matrix ;; lfmm2=A faster, least-squares frequentist alternative to the MCMC-based lfmm, highly recommended for large datasets (more than 1,000-10,000 loci)\n- when_to_use: Use when evaluating population genetic structure, identifying outlier loci via population differentiation, imputing missing genotypes, conducting genome-wide genotype-environment association (GEA) studies, or calculating genomic offset (genetic gap) under environmental change scenarios.\n- pitfalls: Two files with the same name but different extensions (e.g., .lfmm and .geno) are assumed by LEA to contain the identical dataset in different formats ;; Missing genotypes must be imputed before running association analyses, as the default imputation in lfmm() has low power ;; MCMC-based lfmm() is sensitive to run-length parameters in small datasets; users must increase burnin and total cycles in these cases ;; Testing an excessively wide range of K values is computationally wasteful; narrow down the range using a PCA screeplot or snmf cross-entropy plot first.",
+  "workflows": [
+    {
+      "name": "population_structure_and_imputation",
+      "intent": "Analyze population genetic structure, identify genetic clusters, perform population differentiation tests, and impute missing genotypes.",
+      "input": [
+        "genotypes.lfmm (genotype matrix in LFMM format)",
+        "genotypes.geno (genotype matrix in GENO format)",
+        "genoM.lfmm (genotype matrix with missing values represented as 9)"
+      ],
+      "stages": "1. Run Principal Component Analysis (PCA) to evaluate genetic variation and determine significant components using pca() and tracy.widom().\n2. Run sparse Nonnegative Matrix Factorization (sNMF) across a range of K values using snmf() to estimate individual ancestry coefficients and cross-entropy.\n3. Select the optimal K value by plotting the cross-entropy criterion.\n4. Visualize individual ancestry proportions (Q-matrix) using barchart().\n5. Conduct population differentiation tests to detect outlier loci using snmf.pvalues().\n6. Impute missing genotypes based on sNMF ancestry coefficients using impute().",
+      "code": "pc = pca(\"genotypes.lfmm\", scale = TRUE)\ntw = tracy.widom(pc)\nplot(tw$percentage, pch = 19, col = \"darkblue\", cex = .8)\nproject = snmf(\"genotypes.geno\", K = 1:10, entropy = TRUE, repetitions = 10, project = \"new\")\nplot(project, col = \"blue\", pch = 19, cex = 1.2)\nbest = which.min(cross.entropy(project, K = 4))\nbarchart(project, K = 4, run = best, border = NA, space = 0, col = my.colors, xlab = \"Individuals\", ylab = \"Ancestry proportions\", main = \"Ancestry matrix\") -> bp\naxis(1, at = 1:length(bp$order), labels = bp$order, las=1, cex.axis = .4)\np = snmf.pvalues(project, entropy = TRUE, ploidy = 2, K = 4)\npvalues = p$pvalues\nhist(pvalues, col = \"orange\")\nplot(-log10(pvalues), pch = 19, col = \"blue\", cex = .5)\nproject.missing = snmf(\"genoM.lfmm\", K = 4, entropy = TRUE, repetitions = 10, project = \"new\")\nbest = which.min(cross.entropy(project.missing, K = 4))\nimpute(project.missing, \"genoM.lfmm\", method = 'mode', K = 4, run = best)\ndat.imp = read.lfmm(\"genoM.lfmm_imputed.lfmm\")"
+    },
+    {
+      "name": "gea_mcmc_lfmm",
+      "intent": "Perform genotype-environment association (GEA) testing using the Bayesian MCMC algorithm in LFMM.",
+      "input": [
+        "genotypes.lfmm (genotype matrix in LFMM format)",
+        "gradients.env (environmental variables in ENV format)"
+      ],
+      "stages": "1. Fit Latent Factor Mixed Models (LFMM) using MCMC via the lfmm() function.\n2. Combine z-scores from multiple runs and compute adjusted p-values using lfmm.pvalues().\n3. Visualize significance values using a histogram and Manhattan plot.\n4. Control False Discovery Rate (FDR) using the Benjamini-Hochberg procedure to identify candidate loci.",
+      "code": "project = lfmm(\"genotypes.lfmm\", \"gradients.env\", K = 6, repetitions = 5, project = \"new\")\np = lfmm.pvalues(project, K = 6)\npvalues = p$pvalues\nhist(pvalues, col = \"lightblue\")\nplot(-log10(pvalues), pch = 19, col = \"blue\", cex = .7)\nw = which(sort(pvalues) < alpha * (1:L) / L)\ncandidates = order(pvalues)[w]"
+    },
+    {
+      "name": "gea_least_squares_lfmm2",
+      "intent": "Perform fast genotype-environment association (GEA) testing using the least-squares algorithm in LFMM2.",
+      "input": [
+        "Y (genotype matrix object)",
+        "X (environmental variables matrix object)"
+      ],
+      "stages": "1. Fit LFMM2 using the lfmm2() function to estimate latent factors and loadings.\n2. Plot the estimated latent factors to inspect population structure.\n3. Compute significance values using lfmm2.test() with either linear regression or Fisher's tests.\n4. Visualize association significance using a Manhattan plot.",
+      "code": "mod.lfmm2 <- lfmm2(input = Y, env = X, K = 2)\nplot(mod.lfmm2@U, col = \"grey\", pch = 19, xlab = \"Factor 1\", ylab = \"Factor 2\")\npv <- lfmm2.test(object = mod.lfmm2, input = Y, env = X, full = TRUE)\nplot(-log10(pv$pvalues), col = \"grey\", cex = .5, pch = 19)\nmod <- lfmm2(input = Y, env = X, K = 3)\npv <- lfmm2.test(object = mod, input = Y, env = X, linear = TRUE)\nplot(-log10(pv$pvalues), col = \"grey\", cex = .6, pch = 19)\npoints(target, -log10(pv$pvalues[target]), col = \"red\")"
+    },
+    {
+      "name": "predictive_ecological_genomics_genetic_gap",
+      "intent": "Calculate genomic offset (genetic gap) to predict population maladaptation under environmental change.",
+      "input": [
+        "Y (genotype matrix object)",
+        "X (current environmental variables matrix object)",
+        "X.pred (predicted future environmental variables matrix object)"
+      ],
+      "stages": "1. Compute the geometric genetic gap using the genetic.gap() function.\n2. Extract relative contributions of environmental predictors to local adaptation.\n3. Plot covariance eigenvalues and correlate the genetic gap with squared ecological distance.",
+      "code": "g.gap.scaled <- genetic.gap(input = Y, env = X, pred.env = X.pred, scale = TRUE, K = 2)\ng.gap.scaled$vectors[,1:2]^2\nbarplot(g.gap.scaled$eigenvalues, col = \"orange\", xlab = \"Axes\", ylab = \"Eigenvalues\")\nDelta = X[,1:2] - X.pred[,1:2]\nsquared.env.dist = rowSums(Delta^2)\nplot(squared.env.dist, g.gap.scaled$offset,  cex = .6)"
+    }
+  ]
+}

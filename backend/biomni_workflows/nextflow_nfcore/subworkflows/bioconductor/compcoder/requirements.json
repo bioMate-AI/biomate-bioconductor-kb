@@ -1,0 +1,16 @@
+{
+  "package": "compcoder",
+  "requirements": [
+    "ape",
+    "compcodeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "compcodeR"
+    ],
+    "phylogenetic_rnaseq_comparison.nf": [
+      "ape",
+      "compcodeR"
+    ]
+  }
+}

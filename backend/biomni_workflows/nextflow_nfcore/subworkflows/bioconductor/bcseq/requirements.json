@@ -1,0 +1,21 @@
+{
+  "package": "bcseq",
+  "requirements": [
+    "Matrix",
+    "bcSeq"
+  ],
+  "by_workflow": {
+    "barcode_alignment_custom_probability.nf": [
+      "Matrix",
+      "bcSeq"
+    ],
+    "barcode_alignment_edit.nf": [
+      "Matrix",
+      "bcSeq"
+    ],
+    "main.nf": [
+      "Matrix",
+      "bcSeq"
+    ]
+  }
+}

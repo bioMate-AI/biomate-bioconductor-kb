@@ -1,0 +1,21 @@
+{
+  "package": "bettr",
+  "requirements": [
+    "ComplexHeatmap",
+    "SummarizedExperiment",
+    "bettr",
+    "dplyr",
+    "rtracklayer",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "SummarizedExperiment",
+      "bettr",
+      "dplyr",
+      "rtracklayer",
+      "tibble"
+    ]
+  }
+}

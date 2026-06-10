@@ -1,0 +1,17 @@
+{
+  "package": "guideseq",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GUIDEseq"
+  ],
+  "by_workflow": {
+    "all_in_one_guideseq.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GUIDEseq"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GUIDEseq"
+    ]
+  }
+}

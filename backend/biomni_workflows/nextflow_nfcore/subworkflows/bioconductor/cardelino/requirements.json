@@ -1,0 +1,21 @@
+{
+  "package": "cardelino",
+  "requirements": [
+    "Matrix",
+    "cardelino",
+    "ggplot2",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "clone_id_denovo.nf": [
+      "Matrix",
+      "cardelino",
+      "pheatmap"
+    ],
+    "main.nf": [
+      "cardelino",
+      "ggplot2",
+      "pheatmap"
+    ]
+  }
+}

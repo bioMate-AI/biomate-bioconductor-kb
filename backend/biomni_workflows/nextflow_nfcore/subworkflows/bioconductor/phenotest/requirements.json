@@ -1,0 +1,15 @@
+{
+  "package": "phenotest",
+  "requirements": [
+    "Biobase",
+    "GSEABase",
+    "phenoTest"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEABase",
+      "phenoTest"
+    ]
+  }
+}

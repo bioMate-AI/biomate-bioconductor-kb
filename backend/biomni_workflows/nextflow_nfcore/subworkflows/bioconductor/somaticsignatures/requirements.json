@@ -1,0 +1,25 @@
+{
+  "package": "somaticsignatures",
+  "requirements": [
+    "Biostrings",
+    "GenomeInfoDb",
+    "Rsamtools",
+    "SomaticSignatures",
+    "VariantAnnotation",
+    "ggdendro",
+    "ggplot2",
+    "sva"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomeInfoDb",
+      "Rsamtools",
+      "SomaticSignatures",
+      "VariantAnnotation",
+      "ggdendro",
+      "ggplot2",
+      "sva"
+    ]
+  }
+}

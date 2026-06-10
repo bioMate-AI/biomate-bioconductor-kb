@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: spike=A DataFrame containing spike-in sequence database details (methylation status, CpG count, GC fraction, etc.) loaded via data(spike) or custom-built ;; bsgenome=Character string specifying the BSgenome package to load (e.g., \"BSgenome.Hsapiens.UCSC.hg38\") for genomic bias adjustment ;; ret=Return format for predict_pmol(), set to \"df\" to return a data frame ;; genome=Genome build identifier (e.g., \"hg38\") used in scan_genomic_bedpe()\n- alternatives: None mentioned. The package supports either BAM or BEDPE formats for input.\n- when_to_use: When performing absolute quantification of cell-free methylated DNA from cfMeDIP-seq experiments that utilize synthetic spike-in controls to adjust for PCR and immunoprecipitation biases.\n- pitfalls: If methylation specificity calculated by methylation_specificity() is < 0.98, the cfMeDIP experiment performed inadequately and the sample should be flagged or removed ;; BAM files must be indexed (using samtools index) ;; BEDPE files must be sorted, compressed with bgzip, and indexed with tabix ;; Contig name mismatches between BAM/BEDPE files and the spike database can occur, resulting in warnings.",
+  "workflows": [
+    {
+      "name": "cfmedip_quant_bam",
+      "intent": "Perform absolute quantification and bias adjustment of cfMeDIP-seq data using BAM input files.",
+      "input": [
+        "genomic_bam (BAM file of genomic reads)",
+        "genomic_bam.bai (Index file for genomic BAM)",
+        "spike_bam (BAM file of spike-in reads)",
+        "spike_bam.bai (Index file for spike BAM)"
+      ],
+      "stages": "1. Load spike-in database ;; 2. Scan genomic BAM to get genomic coverage ;; 3. Scan spike-in BAM to get spike coverage ;; 4. Calculate methylation specificity ;; 5. Fit Gaussian GLM on spike-in data ;; 6. Predict molar concentration (pmol) for genomic regions ;; 7. Bin and adjust molar concentration into genomic windows",
+      "code": "data(spike)\ngenomic_bam_path <- system.file(\"extdata\", \"example_chr21.bam\", package=\"spiky\", mustWork=TRUE)\ngenomic_coverage <- scan_genomic_contigs(genomic_bam_path,spike=spike)\nspike_bam_path <- system.file(\"extdata\", \"example.spike.bam\", package=\"spiky\", mustWork=TRUE)\nspikes_coverage <- scan_spike_contigs(spike_bam_path,spike=spike)\nmethyl_spec <- methylation_specificity(spikes_coverage,spike=spike)\nprint(methyl_spec)\ngaussian_glm <- model_glm_pmol(spikes_coverage,spike=spike)\nsummary(gaussian_glm)\nsample_data_pmol <- predict_pmol(gaussian_glm, genomic_coverage,bsgenome=\"BSgenome.Hsapiens.UCSC.hg38\",ret=\"df\")\nhead(sample_data_pmol,n=1)\nsample_binned_data <- bin_pmol(sample_data_pmol)\nhead(sample_binned_data,n=1)"
+    },
+    {
+      "name": "cfmedip_quant_bedpe",
+      "intent": "Perform absolute quantification and bias adjustment of cfMeDIP-seq data using BEDPE input files.",
+      "input": [
+        "genomic_bedpe.bed.gz (Sorted, bgzipped BEDPE file of genomic reads)",
+        "genomic_bedpe.bed.gz.tbi (Tabix index for genomic BEDPE)",
+        "spike_bedpe.bed.gz (Sorted, bgzipped BEDPE file of spike-in reads)",
+        "spike_bedpe.bed.gz.tbi (Tabix index for spike BEDPE)"
+      ],
+      "stages": "1. Load spike-in database ;; 2. Scan genomic BEDPE to get genomic coverage ;; 3. Scan spike-in BEDPE to get spike coverage ;; 4. Calculate methylation specificity ;; 5. Fit Gaussian GLM on spike-in data ;; 6. Predict molar concentration (pmol) for genomic regions ;; 7. Bin and adjust molar concentration into genomic windows",
+      "code": "data(spike)\ngenomic_bedpe_path <- system.file(\"extdata\", \"example_chr21_bedpe.bed.gz\", package=\"spiky\", mustWork=TRUE)\ngenomic_coverage <- scan_genomic_bedpe(genomic_bedpe_path,genome=\"hg38\")\nspike_bedpe_path <- system.file(\"extdata\", \"example_spike_bedpe.bed.gz\", package=\"spiky\", mustWork=TRUE)\nspikes_coverage <- scan_spike_bedpe(spike_bedpe_path,spike=spike)\nmethyl_spec <- methylation_specificity(spikes_coverage,spike=spike)\nprint(methyl_spec)\ngaussian_glm <- model_glm_pmol(spikes_coverage,spike=spike)\nsummary(gaussian_glm)\nsample_data_pmol <- predict_pmol(gaussian_glm, genomic_coverage,bsgenome=\"BSgenome.Hsapiens.UCSC.hg38\",ret=\"df\")\nhead(sample_data_pmol,n=1)\nsample_binned_data <- bin_pmol(sample_data_pmol)\nhead(sample_binned_data,n=1)"
+    }
+  ]
+}

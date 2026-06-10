@@ -1,138 +1,118 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scrapper
-// Implements R bindings to C++ code for analyzing single-cell (expression) data, mostly from various l
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scrapper/inst/doc/userguide.R
-// Upstream  : BiocStyle, DelayedArray, knitr, scRNAseq
-// Downstream: none
-//
-// Install: BiocManager::install("scrapper")
+// Bioconductor workflow: scrapper — basic_sc_rna_seq_analysis
+// Perform an end-to-end single-cell RNA-seq analysis workflow including QC, normalization, PCA, clustering, and marker detection using a single wrapper function.
+// Input: sce.z
+// Container: quay.io/biocontainers/bioconductor-scrapper:1.4.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, BiocStyle, DelayedArray, knitr, scater, scrapper, scRNAseq
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, scater, scrapper
+// Visualizations: ordination plot, t-SNE plot
+// QC: cell QC metrics
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Identify mitochondrial genes
+//  * 2. [Core Analysis] Run end-to-end analysis with analyze.se()
+//  * 3. [Visualization & Output] Visualize results with plotReducedDim()
+//  * 4. [Core Analysis] Inspect marker genes with previewMarkers()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCRAPPER {
+process BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scrapper"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scrapper:1.0.3--r44_0' :
-        'quay.io/biocontainers/bioconductor-scrapper:1.0.3--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scrapper_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scrapper_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scrapper_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "BiocStyle", "DelayedArray", "knitr", "scater", "scrapper", "scRNAseq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(scrapper)
-    library(DelayedArray)
-    library(StoeckiusHashingData)
-    library(TasicBrainData)
-    library(ZeiselBrainData)
-    library(jsonlite)
-
-    # --- Normalisation and Feature Selection [] ---
-    # Key functions: centerSizeFactors, normalizeCounts, modelGeneVariances, chooseHighlyVariableGenes
-    size.factors <- centerSizeFactors(rna.qc.metrics$sum[rna.qc.filter])
-    normalized <- normalizeCounts(filtered, size.factors)
-    gene.var <- modelGeneVariances(normalized, num.threads = 2)
-    top.hvgs <- chooseHighlyVariableGenes(gene.var$statistics$residuals)
-
-
-    # --- Dimensionality Reduction and Clustering [] ---
-    # Key functions: runPca, runUmap, runTsne, buildSnnGraph, clusterGraph
-    pca <- runPca(normalized[top.hvgs, ], num.threads = 2)
-    umap.out <- runUmap(pca$components, num.threads = 2)
-    tsne.out <- runTsne(pca$components, num.threads = 2)
-    snn.graph <- buildSnnGraph(pca$components, num.threads = 2)
-    clust.out <- clusterGraph(snn.graph)
-
-
-    # --- Marker Gene Detection [] ---
-    # Key functions: scoreMarkers
-    markers <- scoreMarkers(
-        normalized,
-        groups = clust.out$membership,
-        num.threads = 2
+    library(scater)
+    
+    # 1. Read the input SingleCellExperiment object from the working directory
+    sce.z <- readRDS("sce.z")
+    
+    # 2. Identify mitochondrial genes
+    is.mito <- grep("^mt-", rownames(sce.z))
+    
+    # 3. Run end-to-end analysis with analyze.se()
+    results <- analyze.se(
+        sce.z,
+        rna.qc.subsets=list(Mito=is.mito),
+        num.threads=2 # limit number of threads to keep R CMD check happy.
     )
-    top.markers <- lapply(markers$auc, function(x) {
-        head(rownames(x)[order(x$median, decreasing = TRUE)], 10)
-    })
+    
+    # Save the analyzed SingleCellExperiment object (which contains the results)
+    saveRDS(results\$x, "analyzed_sce.rds")
+    
+    # 4. Visualize results with plotReducedDim() and save to PDF
+    pdf("tsne_plot.pdf", width=8, height=6)
+    p <- plotReducedDim(results\$x, "TSNE", colour_by="graph.cluster")
+    print(p)
+    dev.off()
+    
+    # 5. Inspect marker genes with previewMarkers() and save to CSV
+    markers_preview <- previewMarkers(results\$markers\$rna[[1]], order.by="auc.median")
+    write.csv(as.data.frame(markers_preview), "marker_genes.csv", row.names=TRUE)
 
-
-    # --- Batch Correction [] ---
-    # Key functions: correctMnn
-    corrected <- correctMnn(
-        pca$components,
-        block = filtered.block,
-        num.threads = 2
-    )
-    corrected.umap <- runUmap(corrected$corrected, num.threads = 2)
-
-
-    # --- Multi-modal Integration [] ---
-    # Key functions: computeAdtQcMetrics, computeClrm1Factors, scaleByNeighbors
-    adt.qc.metrics <- computeAdtQcMetrics(adt.counts, num.threads = 2)
-    adt.size.factors <- computeClrm1Factors(adt.counts, num.threads = 2)
-    adt.size.factors <- centerSizeFactors(adt.size.factors)
-    adt.normalized <- normalizeCounts(adt.counts, adt.size.factors)
-    combined <- scaleByNeighbors(
-        list(pca$components, as.matrix(adt.normalized)),
-        num.threads = 2
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scrapper_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scrapper_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scrapper_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCRAPPER:", paste0("    scrapper: ", packageVersion("scrapper"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS":',
+        paste0('    scrapper: ', as.character(packageVersion('scrapper')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scrapper_results.csv
-    touch ${prefix}_scrapper_output.rds
-    echo "BIOC_SCRAPPER:" > versions.yml
-    echo "    scrapper: 0.0.0" >> versions.yml
+    touch ${prefix}_basic_sc_rna_seq_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCRAPPER_WORKFLOW {
+workflow BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce.z ] ]
 
     main:
-    BIOC_SCRAPPER(ch_input)
+    BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCRAPPER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCRAPPER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCRAPPER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCRAPPER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS.out.tables
+    plots    = BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS.out.plots
+    objects  = BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS.out.objects
+    versions = BIOC_SCRAPPER_BASIC_SC_RNA_SEQ_ANALYSIS.out.versions
 }

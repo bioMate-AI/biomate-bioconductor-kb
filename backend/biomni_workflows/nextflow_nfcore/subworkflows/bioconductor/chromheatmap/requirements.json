@@ -1,0 +1,13 @@
+{
+  "package": "chromheatmap",
+  "requirements": [
+    "AnnotationDbi",
+    "ChromHeatMap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "ChromHeatMap"
+    ]
+  }
+}

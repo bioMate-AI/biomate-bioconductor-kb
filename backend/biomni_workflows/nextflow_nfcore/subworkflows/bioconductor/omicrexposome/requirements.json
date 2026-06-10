@@ -1,0 +1,23 @@
+{
+  "package": "omicrexposome",
+  "requirements": [
+    "MultiDataSet",
+    "ggplot2",
+    "gridExtra",
+    "omicRexposome",
+    "rexposome"
+  ],
+  "by_workflow": {
+    "integration_analysis.nf": [
+      "MultiDataSet",
+      "omicRexposome",
+      "rexposome"
+    ],
+    "main.nf": [
+      "MultiDataSet",
+      "ggplot2",
+      "gridExtra",
+      "omicRexposome"
+    ]
+  }
+}

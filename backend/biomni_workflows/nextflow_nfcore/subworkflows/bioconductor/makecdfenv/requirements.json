@@ -1,0 +1,13 @@
+{
+  "package": "makecdfenv",
+  "requirements": [
+    "affy",
+    "makecdfenv"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "affy",
+      "makecdfenv"
+    ]
+  }
+}

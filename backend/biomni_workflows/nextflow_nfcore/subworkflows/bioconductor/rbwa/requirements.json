@@ -1,0 +1,14 @@
+{
+  "package": "rbwa",
+  "requirements": [
+    "Rbwa"
+  ],
+  "by_workflow": {
+    "bwa_mem_long_reads.nf": [
+      "Rbwa"
+    ],
+    "main.nf": [
+      "Rbwa"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package": "genomeintervals",
+  "requirements": [
+    "GenomicRanges",
+    "genomeIntervals",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "genomeIntervals",
+      "rtracklayer"
+    ]
+  }
+}

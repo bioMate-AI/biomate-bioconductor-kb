@@ -1,0 +1,11 @@
+{
+  "package": "timecourse",
+  "requirements": [
+    "timecourse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "timecourse"
+    ]
+  }
+}

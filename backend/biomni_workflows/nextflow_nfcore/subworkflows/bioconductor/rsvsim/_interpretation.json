@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genome=A named DNAStringSet or a path to a FASTA file. Defaults to hg19 (requires BSgenome.Hsapiens.UCSC.hg19) ;; output=Directory path to write output files (CSV and FASTA). Set to NA to avoid writing to disk ;; dels, ins, invs, dups, trans=Number of deletions, insertions, inversions, tandem duplications, and translocations to simulate ;; sizeDels, sizeIns, sizeInvs, sizeDups=Sizes of the respective SVs (single value or vector) ;; repeatBias=Logical; if TRUE, simulates bias of breakpoint positioning towards repeat regions (hg19 only) ;; bpFlankSize, percSNPs, indelProb, maxIndelSize=Parameters to configure additional breakpoint mutations (SNPs and indels) close to the breakpoint ;; regionsDels, regionsIns, regionsInvs, regionsDups, regionsTrans=GRanges objects restricting SVs to specific genomic regions ;; random=Logical (or vector); if FALSE, inserts SVs at exact coordinates specified in the regions parameters ;; tol=Tolerance in bp when comparing query SVs to simulated SVs in compareSV\n- alternatives: ART or pIRS can be used downstream of RSVSim to simulate NGS reads from the rearranged FASTA file produced by RSVSim\n- when_to_use: Appropriate when designing sequencing experiments, assessing the performance (sensitivity and precision) of SV detection algorithms, or generating ground-truth rearranged genomes for NGS read simulation\n- pitfalls: Setting repeatBias = TRUE with a genome other than hg19 will automatically turn the feature off ;; The initial automatic download of repeat coordinates for hg19 from UCSC can take up to 45 minutes (providing a local RepeatMasker file is much quicker) ;; When inserting known SVs (random = FALSE), it is strongly recommended to use a set of non-overlapping SVs ;; compareSV only compares one SV type at a time; query and simulation tables must not contain a mixture of different SV types ;; Chromosome names in the regions GRanges must exactly match the names in the genome DNAStringSet",
+  "workflows": [
+    {
+      "name": "structural_variation_simulation",
+      "intent": "Simulate random structural variations in a genome with optional repeat biases, breakpoint mutations, or within specific genomic regions.",
+      "input": [
+        "genome.fasta (reference genome sequence)"
+      ],
+      "stages": "1. Load the genome sequence as a DNAStringSet ;; 2. Run simulateSV with specified SV counts, sizes, and optional parameters (e.g., repeatBias, bpFlankSize, regionsDels) ;; 3. Retrieve rearranged sequences and metadata",
+      "code": "genome = DNAStringSet(\nc(\"AAAAAAAAAAAAAAAAAAAATTTTTTTTTTTTTTTTTTTT\", \n\"GGGGGGGGGGGGGGGGGGGGCCCCCCCCCCCCCCCCCCCC\"))\nnames(genome) = c(\"chr1\",\"chr2\")\nsim = simulateSV(output=NA, genome=genome, dels=3, sizeDels=10,\nbpSeqSize=6, seed=456, verbose=FALSE)\nsim\nmetadata(sim)\nsim = simulateSV(output=NA, genome=genome, dels=1, sizeDels=5, bpFlankSize=10, \npercSNPs=0.25, indelProb=1, maxIndelSize=3, bpSeqSize=10, seed=123, verbose=FALSE)\nregions = GRanges(IRanges(c(21,1),c(40,20)), seqnames=c(\"chr1\",\"chr2\"))\nsim = simulateSV(output=NA, genome=genome, invs=4, sizeInvs=5, \nregionsInvs=regions, bpSeqSize=6, seed=2345, verbose=FALSE)"
+    },
+    {
+      "name": "inserting_known_svs",
+      "intent": "Insert a set of known, user-defined structural variations at exact coordinates.",
+      "input": [
+        "genome.fasta (reference genome sequence)"
+      ],
+      "stages": "1. Define the exact coordinates of the SVs using GRanges ;; 2. Run simulateSV with random=FALSE and pass the GRanges to the corresponding regions parameter",
+      "code": "knownDeletion = GRanges(IRanges(16,25), seqnames=\"chr2\")\nnames(knownDeletion) = \"myDeletion\"\nsim = simulateSV(output=NA, genome=genome, regionsDels=knownDeletion,\nbpSeqSize=10, random=FALSE, verbose=FALSE)\nknownInsertion = GRanges(IRanges(16,25),seqnames=\"chr1\", chrB=\"chr2\", startB=26)\nnames(knownInsertion) = \"myInsertion\"\nsim = simulateSV(output=NA, genome=genome, regionsIns=knownInsertion,\nbpSeqSize=10, random=FALSE, verbose=FALSE)"
+    },
+    {
+      "name": "comparing_sv_sets",
+      "intent": "Compare simulated ground-truth SVs with query SVs detected by an algorithm to evaluate performance.",
+      "input": [
+        "simulated_svs.csv (ground-truth SVs from simulation metadata)",
+        "detected_svs.bed (detected SV coordinates from an SV caller)"
+      ],
+      "stages": "1. Extract simulated SVs from the simulation metadata ;; 2. Format or load the query SVs as a data.frame ;; 3. Run compareSV with a specified tolerance",
+      "code": "sim = simulateSV(output=NA, genome=genome, dels=5, sizeDels=5,\nbpSeqSize=10, seed=2345, verbose=FALSE)\nsimSVs = metadata(sim)$deletions\nquerySVs = data.frame(\n  chr=c(\"chr1\",\"chr1\",\"chr1\",\"chr2\",\"chr2\"),\n  start=c(12,17,32,2,16), \n  end=c(15,24,36,6,20), \n  bpSeq=c(\"AAAAAAAAAA\", \"AAAAAAATTT\", \"TTTTTTTTTT\", \n    \"GGGGGGGGGG\", \"GGGGGGCCCC\")\n)\ncompareSV(querySVs, simSVs, tol=0)\ncompareSV(querySVs, simSVs, tol=3)"
+    },
+    {
+      "name": "estimating_sv_sizes",
+      "intent": "Estimate and generate realistic SV size distributions by fitting a beta distribution to real data or using default database parameters.",
+      "input": [
+        "real_sv_sizes.txt (optional list of real SV sizes to fit)"
+      ],
+      "stages": "1. Define a vector of real SV sizes or select a default SV type ;; 2. Run estimateSVSizes to generate a vector of simulated sizes",
+      "code": "svSizes = c(10,20,30,40,60,80,100,150,200,250,300,400,500,750,1000)\nsimSizes = estimateSVSizes(n=1000, svSizes=svSizes, minSize=10, maxSize=1000, hist=TRUE) \ndelSizes = estimateSVSizes(n=10000, minSize=500, maxSize=10000, \ndefault=\"deletions\", hist=TRUE)"
+    }
+  ]
+}

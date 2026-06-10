@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxseg=The maximum number of segments to fit ;; maxk=The maximum length of an individual segment, used to reduce computational complexity from quadratic to linear ;; what=Type of plot in plotAlongChrom, either \"dots\" or \"heatmap\" ;; sepPlot=Logical indicating whether to plot different hybridization channels/conditions separately ;; makeRasterImage=Logical indicating whether to use grid.raster (faster, default) or grid.rect for heatmaps ;; colHeatmap=Color palette/gradient function for the heatmap (e.g., colorRamp) ;; penalty=Penalty type in logLik, either \"AIC\" or \"BIC\" for model selection\n- alternatives: Picard et al. segmentation software, which has O(N^2) memory complexity; tilingArray's segment function reduces this to O(N * maxk) by restricting maximum segment length\n- when_to_use: Appropriate for identifying transcript boundaries in tiling microarray data or copy number variations (gains/losses) in arrayCGH data where probe effects have been normalized\n- pitfalls: If the number of hybridization channels (hybes) is greater than 4, plotAlongChrom with what=\"dots\" will force taking the average across all hybes unless heatmaps are used; the segmentation algorithm assumes that probe-specific hybridization effects have already been normalized away",
+  "workflows": [
+    {
+      "name": "piecewise_segmentation",
+      "intent": "Fit a piecewise constant curve to sequential genomic data and select the optimal number of segments using AIC or BIC.",
+      "input": [
+        "intensity_matrix.txt (matrix of normalized intensity values where rows represent genomic positions and columns represent replicates/samples)"
+      ],
+      "stages": "1. Run segmentation using the segment function with specified maxk and maxseg constraints ;; 2. Plot penalized log-likelihoods using plotPenLL ;; 3. Identify the optimal number of segments using logLik with AIC or BIC penalties",
+      "code": "seg  = segment(gd$x, maxk=maxk, maxseg=maxseg)\ns = segment(gd$x, maxk=lenx, maxseg=as.integer(nrSeg * 2.5))\nplotPenLL(s)\nwhich.max(logLik(s, penalty=\"AIC\"))\nwhich.max(logLik(s, penalty=\"BIC\"))"
+    },
+    {
+      "name": "along_chromosome_visualization",
+      "intent": "Visualize genomic expression profiles and segmentation boundaries along a chromosome region using dot plots or heatmaps aligned with GFF annotations.",
+      "input": [
+        "segmentation_env.RData (R environment containing segmentation class objects named by chromosome and strand)",
+        "gff_annotation.gff (GFF table containing genomic features for the region of interest)"
+      ],
+      "stages": "1. Plot expression data along the chromosome as a dot plot using plotAlongChrom ;; 2. Plot separate dot plots for different conditions using the sepPlot parameter ;; 3. Plot expression data as a heatmap using plotAlongChrom with what=\"heatmap\" ;; 4. Optimize heatmap rendering speed and color palettes using makeRasterImage and colHeatmap",
+      "code": "plotAlongChrom(segnf,chr=1, coord=c(35000,50000),what=\"dots\", gff=gffSub)\nplotAlongChrom(segObj,chr=1, coord=c(35000,50000),what=\"dots\", gff=gffSub,sepPlot = T)\nplotAlongChrom(segnf,chr=1, coord=c(35000,50000),what=\"heatmap\", gff=gffSub,\n         rowNamesHeatmap=nmLabel,makeRasterImage=FALSE)\nplotAlongChrom(segnf,chr=1, coord=c(35000,50000),what=\"heatmap\", gff=gffSub,\n         rowNamesHeatmap=nmLabel,makeRasterImage=TRUE)\nplotAlongChrom(segnf,chr=1, coord=c(35000,50000),what=\"heatmap\", gff=gffSub,\n         rowNamesHeatmap=nmLabel,makeRasterImage=TRUE,\n         colHeatmap = colorRamp(brewer.pal(9, \"Blues\")))"
+    }
+  ]
+}

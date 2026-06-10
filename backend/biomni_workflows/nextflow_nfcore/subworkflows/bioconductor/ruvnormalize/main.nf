@@ -1,164 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RUVnormalize
-// RUVnormalize is meant to remove unwanted variation from gene expression data when the factor of inte
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RUVnormalize/inst/doc/RUVnormalize.R
-// Upstream  : RUVnormalizeData, spams
-// Downstream: none
-//
-// Install: BiocManager::install("RUVnormalize")
+// Bioconductor workflow: RUVnormalize — naive_ruv2
+// Remove unwanted variation from gene expression data using negative control genes with or without shrinkage.
+// Input: expression_matrix.csv, negative_controls.txt
+// Container: quay.io/biocontainers/bioconductor-ruvnormalize:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RUVnormalize
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Center the gene expression matrix. 2. Identify the indices of negative control genes. 3. Run naive RUV-2 without shrinkage (rank r
 
 nextflow.enable.dsl = 2
 
-process BIOC_RUVNORMALIZE {
+process BIOC_RUVNORMALIZE_NAIVE_RUV2 {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ruvnormalize"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ruvnormalize:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ruvnormalize:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ruvnormalize_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ruvnormalize_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ruvnormalize_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(RUVnormalize)
-    library(jsonlite)
-
-    # --- Uncorrected Evaluation ---
-    # Key functions: clScore, svdPlot
-    sdY <- apply(Y, 2, sd)
-    ssd <- sort(sdY, decreasing=TRUE, index.return=TRUE)$ix
-    kmres <- kmeans(Y[, ssd[1:nKeep], drop=FALSE], centers=2, nstart=200)
-    uScore <- clScore(kmres$cluster, X)
-    svdResUncorr <- svdPlot(
-        Y[, ssd[1:nKeep], drop=FALSE],
-        annot=annot,
-        labels=lab.and.region,
-        svdRes=NULL,
-        plAnnots=plAnnots,
-        kColors=gender.col,
-        file=NULL
-    )
-
-    # --- Naive RUV-2 Normalization without Shrinkage ---
-    # Key functions: naiveRandRUV, clScore, svdPlot
-    nsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=20)
-    sdY_ns <- apply(nsY, 2, sd)
-    ssd_ns <- sort(sdY_ns, decreasing=TRUE, index.return=TRUE)$ix
-    kmres2ns <- kmeans(
-        nsY[, ssd_ns[1:nKeep], drop=FALSE],
-        centers=2,
-        nstart=200
-    )
-    nsScore <- clScore(kmres2ns$cluster, X)
-    svdRes2ns <- svdPlot(
-        nsY[, ssd_ns[1:nKeep], drop=FALSE],
-        annot=annot,
-        labels=lab.and.region,
-        svdRes=NULL,
-        plAnnots=plAnnots,
-        kColors=gender.col,
-        file=NULL
-    )
-
-    # --- Naive RUV-2 Normalization with Shrinkage ---
-    # Key functions: naiveRandRUV, clScore, svdPlot
-    nY <- naiveRandRUV(Y, cIdx, nu.coeff=1e-3, k=ncol(Y))
-    sdY_s <- apply(nY, 2, sd)
-    ssd_s <- sort(sdY_s, decreasing=TRUE, index.return=TRUE)$ix
-    kmres2 <- kmeans(
-        nY[, ssd_s[1:nKeep], drop=FALSE],
-        centers=2,
-        nstart=200
-    )
-    nScore <- clScore(kmres2$cluster, X)
-    svdRes2 <- svdPlot(
-        nY[, ssd_s[1:nKeep], drop=FALSE],
-        annot=annot,
-        labels=lab.and.region,
-        svdRes=NULL,
-        plAnnots=plAnnots,
-        kColors=gender.col,
-        file=NULL
-    )
-
-    # --- Replicate-based RUV Normalization ---
-    # Key functions: naiveReplicateRUV, clScore, svdPlot
-    sRes <- naiveReplicateRUV(Y, cIdx, scIdx, k=20)
-    sdY_rep <- apply(sRes$cY, 2, sd)
-    ssd_rep <- sort(sdY_rep, decreasing=TRUE, index.return=TRUE)$ix
-    kmresRep <- kmeans(
-        sRes$cY[, ssd_rep[1:nKeep], drop=FALSE],
-        centers=2,
-        nstart=200
-    )
-    RepScore <- clScore(kmresRep$cluster, X)
-    svdResRep <- svdPlot(
-        sRes$cY[, ssd_rep[1:nKeep], drop=FALSE],
-        annot=annot,
-        labels=lab.and.region,
-        svdRes=NULL,
-        plAnnots=plAnnots,
-        kColors=gender.col,
-        file=NULL
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ruvnormalize_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ruvnormalize_results.csv")
+    
+    # 1. Read user input files
+    Y <- as.matrix(read.csv("expression_matrix.csv", row.names=1, check.names=FALSE))
+    
+    # Read negative controls
+    controls <- readLines("negative_controls.txt")
+    # Determine if controls are indices or names
+    cIdx <- suppressWarnings(as.integer(controls))
+    if (any(is.na(cIdx)) || length(cIdx) == 0) {
+      cIdx <- which(colnames(Y) %in% controls)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ruvnormalize_output.rds")
+    
+    # 2. Center the gene expression matrix
+    Y <- scale(Y, scale=FALSE)
+    
+    # Define dimensions
+    m <- nrow(Y)
+    n <- ncol(Y)
+    
+    # 3. Run naive RUV-2 without shrinkage
+    k <- min(20, m)
+    nu <- 0
+    nsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=k)
+    
+    # Run naive RUV-2 with shrinkage
+    k <- m
+    nu.coeff <- 1e-3
+    nY <- naiveRandRUV(Y, cIdx, nu.coeff=nu.coeff, k=k)
+    
+    # 4. Visualize the corrected data using SVD/PCA plotting
+    nKeep <- min(1260, n)
+    sdY <- apply(nY, 2, sd)
+    ssd <- sort(sdY, decreasing=TRUE, index.return=TRUE)\$ix
+    
+    # Prepare annotations for plotting
+    annot <- matrix("sample", nrow=nrow(Y), ncol=1)
+    colnames(annot) <- "group"
+    plAnnots <- list("group"="categorical")
+    lab.and.region <- rownames(Y)
+    if (is.null(lab.and.region)) {
+      lab.and.region <- as.character(1:nrow(Y))
     }
+    gender.col <- c("sample" = "blue")
+    
+    # Plot to PDF
+    pdf("svd_plot_corrected.pdf")
+    svdRes2 <- svdPlot(nY[, ssd[1:nKeep], drop=FALSE], 
+                         annot=annot, 
+                         labels=lab.and.region, 
+                         svdRes=NULL, 
+                         plAnnots=plAnnots,                     
+                         kColors=gender.col, file=NULL)
+    dev.off()
+    
+    # Write outputs
+    write.csv(nsY, "corrected_expression_noshrink.csv", row.names=TRUE)
+    write.csv(nY, "corrected_expression_shrink.csv", row.names=TRUE)
+    saveRDS(svdRes2, "svd_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RUVNORMALIZE:", paste0("    ruvnormalize: ", packageVersion("RUVnormalize"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RUVNORMALIZE_NAIVE_RUV2":',
+        paste0('    RUVnormalize: ', as.character(packageVersion('RUVnormalize')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ruvnormalize_results.csv
-    touch ${prefix}_ruvnormalize_output.rds
-    echo "BIOC_RUVNORMALIZE:" > versions.yml
-    echo "    ruvnormalize: 0.0.0" >> versions.yml
+    touch ${prefix}_naive_ruv2.csv versions.yml
     """
 }
 
-
-workflow BIOC_RUVNORMALIZE_WORKFLOW {
+workflow BIOC_RUVNORMALIZE_NAIVE_RUV2_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, negative_controls.txt ] ]
 
     main:
-    BIOC_RUVNORMALIZE(ch_input)
+    BIOC_RUVNORMALIZE_NAIVE_RUV2(ch_input)
 
     emit:
-    results  = BIOC_RUVNORMALIZE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RUVNORMALIZE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RUVNORMALIZE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RUVNORMALIZE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RUVNORMALIZE_NAIVE_RUV2.out.tables
+    plots    = BIOC_RUVNORMALIZE_NAIVE_RUV2.out.plots
+    objects  = BIOC_RUVNORMALIZE_NAIVE_RUV2.out.objects
+    versions = BIOC_RUVNORMALIZE_NAIVE_RUV2.out.versions
 }

@@ -4,6 +4,8 @@
 // Perform hypergeometric-based over-representation analysis on a list of genes of interest.
 // Input: gene_list.txt, background_universe.txt, mouse.reactome.gmt
 // Container: quay.io/biocontainers/bioconductor-fgsea:1.36.2--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: data.table, fgsea, ggplot2
 // Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -39,9 +41,12 @@ process BIOC_FGSEA_OVER_REPRESENTATION_ANALYSIS {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         
         # Load required libraries

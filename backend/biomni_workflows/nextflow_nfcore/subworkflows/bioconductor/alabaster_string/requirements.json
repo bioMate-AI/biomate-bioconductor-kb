@@ -1,0 +1,19 @@
+{
+  "package": "alabaster_string",
+  "requirements": [
+    "IRanges",
+    "S4Vectors",
+    "alabaster.base",
+    "alabaster.string",
+    "alabaster_string"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IRanges",
+      "S4Vectors",
+      "alabaster.base",
+      "alabaster.string",
+      "alabaster_string"
+    ]
+  }
+}

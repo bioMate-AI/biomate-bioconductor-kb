@@ -1,0 +1,16 @@
+{
+  "package": "metagenomeseq",
+  "requirements": [
+    "gss",
+    "metagenomeSeq"
+  ],
+  "by_workflow": {
+    "longitudinal_time_series.nf": [
+      "gss",
+      "metagenomeSeq"
+    ],
+    "main.nf": [
+      "metagenomeSeq"
+    ]
+  }
+}

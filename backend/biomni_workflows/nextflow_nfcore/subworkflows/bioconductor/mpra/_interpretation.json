@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: DNA=K x S integer count matrix of DNA counts ;; RNA=K x S integer count matrix of RNA counts ;; eid=Character vector of length K identifying the unique putative regulatory elements (PREs) ;; eseq=Optional character vector of length K specifying PRE sequences ;; barcode=Optional character vector of length K specifying barcode sequences ;; aggregate=Method to summarize barcode-level information (\"mean\" for average estimator, \"sum\" for aggregate estimator, or \"none\" if already aggregated) ;; normalize=Logical, if TRUE scales libraries to 10 million reads ;; model_type=\"indep_groups\" for independent samples (unpaired) or \"corr_groups\" for paired/linked samples ;; block=Integer vector indicating sample/block membership, required when model_type is \"corr_groups\" ;; endomorphic=Logical, if TRUE returns an MPRASet object with results in rowData and scaled counts in assays instead of an MArrayLM object ;; coef=Coefficient to extract, passed to topTable internally when endomorphic is TRUE\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when performing differential activity analysis of regulatory elements in MPRA data across different conditions (e.g., tissues) or between different alleles (e.g., SNP variants).\n- pitfalls: In allelic studies, different alleles are linked to different barcodes and may have varying barcode counts, so counts should be aggregated over barcodes before creating the MPRASet object ;; For paired/allelic analyses, failing to specify the block vector and setting model_type to \"corr_groups\" will lead to incorrect modeling of within-sample correlation.",
+  "workflows": [
+    {
+      "name": "tissue_comparison",
+      "intent": "Perform differential activity analysis of regulatory elements between independent groups (e.g., tissues or cell types).",
+      "input": [
+        "dna.txt (DNA count matrix)",
+        "rna.txt (RNA count matrix)",
+        "eid.txt (element IDs)",
+        "eseq.txt (optional element sequences)"
+      ],
+      "stages": "1. Create an MPRASet object using MPRASet() ;; 2. Define the design matrix ;; 3. Fit the model using mpralm() with model_type = \"indep_groups\" ;; 4. Extract top differential elements using topTable() ;; 5. Optionally run mpralm() with endomorphic = TRUE to return results directly inside the MPRASet object.",
+      "code": "mpraset_example <- MPRASet(DNA = dna, RNA = rna, eid = eid, eseq = eseq, barcode = NULL)\ndesign <- data.frame(intcpt = 1, episomal = grepl(\"MT\", colnames(mpraSetExample)))\nmpralm_fit <- mpralm(object = mpraSetExample, design = design, aggregate = \"mean\", normalize = TRUE, model_type = \"indep_groups\", plot = TRUE)\ntoptab <- topTable(mpralm_fit, coef = 2, number = Inf)\ntoptab6 <- head(toptab)\nefit <- mpralm(object = mpraSetExample, design = design, aggregate = \"sum\", normalize = TRUE, model_type = \"indep_groups\", plot = FALSE, endomorphic = TRUE, coef = 2)\nrowData(efit)\nsdna <- assay(efit, \"scaledDNA\")\nsrna <- assay(efit, \"scaledRNA\")"
+    },
+    {
+      "name": "allelic_comparison",
+      "intent": "Perform differential activity analysis between alleles of regulatory elements measured in the same samples (paired analysis).",
+      "input": [
+        "agg_dna.txt (aggregated DNA count matrix)",
+        "agg_rna.txt (aggregated RNA count matrix)",
+        "eid.txt (element IDs)",
+        "eseq.txt (optional element sequences)"
+      ],
+      "stages": "1. Create an MPRASet object using MPRASet() ;; 2. Define the design matrix and block vector ;; 3. Fit the model using mpralm() with model_type = \"corr_groups\" and specifying the block vector ;; 4. Extract top differential elements using topTable().",
+      "code": "mpraset_example2 <- MPRASet(DNA = agg_dna, RNA = agg_rna, eid = eid, eseq = eseq, barcode = NULL)\ndesign <- data.frame(intcpt = 1, alleleB = grepl(\"allele_B\", colnames(mpraSetAllelicExample)))\nblock_vector <- rep(1:5, 2)\nmpralm_allele_fit <- mpralm(object = mpraSetAllelicExample, design = design, aggregate = \"none\", normalize = TRUE, block = block_vector, model_type = \"corr_groups\", plot = TRUE)\ntoptab_allele <- topTable(mpralm_allele_fit, coef = 2, number = Inf)\nhead(toptab_allele)"
+    }
+  ]
+}

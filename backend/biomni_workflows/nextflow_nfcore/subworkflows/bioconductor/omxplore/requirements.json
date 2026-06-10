@@ -1,0 +1,15 @@
+{
+  "package": "omxplore",
+  "requirements": [
+    "MultiAssayExperiment",
+    "SummarizedExperiment",
+    "omXplore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "SummarizedExperiment",
+      "omXplore"
+    ]
+  }
+}

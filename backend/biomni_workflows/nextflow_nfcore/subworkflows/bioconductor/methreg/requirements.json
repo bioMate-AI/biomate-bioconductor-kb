@@ -1,0 +1,27 @@
+{
+  "package": "methreg",
+  "requirements": [
+    "MethReg",
+    "SummarizedExperiment",
+    "dorothea",
+    "dplyr"
+  ],
+  "by_workflow": {
+    "confounding_correction_analysis.nf": [
+      "MethReg",
+      "SummarizedExperiment",
+      "dplyr"
+    ],
+    "main.nf": [
+      "MethReg",
+      "SummarizedExperiment",
+      "dplyr"
+    ],
+    "regulon_based_analysis.nf": [
+      "MethReg",
+      "SummarizedExperiment",
+      "dorothea",
+      "dplyr"
+    ]
+  }
+}

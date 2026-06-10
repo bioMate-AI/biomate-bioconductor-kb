@@ -1,0 +1,17 @@
+{
+  "package": "megadepth",
+  "requirements": [
+    "GenomicRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "megadepth"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "megadepth"
+    ]
+  }
+}

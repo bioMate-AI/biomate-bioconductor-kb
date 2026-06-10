@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: range=limits the searching range for sequencing fragment size in bindWidth ;; step=step size for searching bind width in bindWidth ;; sampling=proportion of genome/regions and number of times to sample for GC effects estimation in gcEffects ;; model=distribution model to use in gcEffects ('poisson' or 'nbinom') ;; supervise=optional GRanges object of potential peaks to allow more efficient foreground/background sampling in gcEffects ;; gcrange=GC content range to avoid outliers driving the regression lines in gcEffects ;; permute=number of permutations for significance evaluation in gcapcPeaks and refinePeaks ;; peaks=GRanges object of peaks called by other peak callers to be refined in refinePeaks\n- alternatives: Other peak callers (which lack GC-bias correction or have less power in ranking peak significance). gcapc can refine peaks called by these other callers.\n- when_to_use: When analyzing ChIP-seq data where sequence context biases (specifically GC bias) may affect peak calling and significance ranking, or when correcting GC-content bias in a pre-calculated read count table across genomic regions.\n- pitfalls: Regions with extremely low/high GC content can act as outliers and drive regression lines if foreground regions are too few; gcrange should be carefully selected. For small genomes or small subsets of chromosomes, the default sampling size (0.05) should be tuned higher to ensure accuracy. Larger sample sizes or more sampling times for GC estimation result in longer computation times.",
+  "workflows": [
+    {
+      "name": "gc_corrected_peak_calling_and_refining",
+      "intent": "Perform GC-bias-corrected peak calling and refine peak significance from a ChIP-seq BAM file.",
+      "input": [
+        "chipseq.bam (ChIP-seq alignment BAM file)"
+      ],
+      "stages": "1. Read 5' end coverage from BAM ;; 2. Estimate binding width and peak window half size ;; 3. Estimate GC effects using mixture models ;; 4. Call peaks and evaluate significance ;; 5. Refine peak significance",
+      "code": "library(gcapc)\nbam <- system.file(\"extdata\", \"chipseq.bam\", package=\"gcapc\")\ncov <- read5endCoverage(bam)\nbdw <- bindWidth(cov, range=c(50L,300L), step=10L)\nlayout(matrix(1:2,1,2))\ngcb <- gcEffects(cov, bdw, sampling=c(0.25,1), plot=TRUE, model='poisson')\nlayout(matrix(1:2,1,2))\npeaks <- gcapcPeaks(cov, gcb, bdw, plot=TRUE, permute=100L)\npeaks <- gcapcPeaks(cov, gcb, bdw, plot=TRUE, permute=50L)\nnewpeaks <- refinePeaks(cov, gcb, bdw, peaks=peaks, permute=50L)\nplot(newpeaks$es,newpeaks$newes,xlab='old score',ylab='new score')"
+    }
+  ]
+}

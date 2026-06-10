@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None documented in the provided text.\n- alternatives: None mentioned in the provided text.\n- when_to_use: Use when identifying genes (such as nuclear hormone receptors or transcriptome-wide) with lost expression in subsets of tumors relative to normal tissue, particularly when the number of normal control samples is small.\n- pitfalls: The package is deprecated and has been removed from Bioconductor.",
+  "workflows": [
+    {
+      "name": "recept_loss_detection",
+      "intent": "Identify genes with lost expression in tumor subsets relative to normal tissue.",
+      "input": [
+        "Gene expression dataset (such as a SummarizedExperiment or matrix containing tumor and normal samples)"
+      ],
+      "stages": "1. Install the package using BiocManager ;; 2. Run the expression loss identification workflow (specific analysis functions are not documented in the provided text)",
+      "code": "if (!require(\"BiocManager\", quietly = TRUE)) install.packages(\"BiocManager\")\nBiocManager::install(\"receptLoss\")"
+    }
+  ]
+}

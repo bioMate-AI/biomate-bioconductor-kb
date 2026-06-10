@@ -1,0 +1,16 @@
+{
+  "package": "buscorrect",
+  "requirements": [
+    "BUScorrect",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "bus_correct_summarized_experiment.nf": [
+      "BUScorrect",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "BUScorrect"
+    ]
+  }
+}

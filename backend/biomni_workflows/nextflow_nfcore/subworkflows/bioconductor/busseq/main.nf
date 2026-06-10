@@ -1,96 +1,152 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BUSseq
-// BUSseq R package fits an interpretable Bayesian hierarchical model---the Batch Effects Correction wi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BUSseq/inst/doc/BUSseq_user_guide.R
-// Upstream  : SingleCellExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("BUSseq")
+// Bioconductor workflow: BUSseq — scrna_seq_batch_correction_and_clustering
+// Correct batch effects, cluster unknown cell types, identify intrinsic genes, and obtain batch-corrected expression data from multi-batch scRNA-seq count data.
+// Input: raw_counts.csv, batch_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-busseq:1.16.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BUSseq, SingleCellExperiment
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Prepare the input data as a SingleCellExperiment object containing raw counts and batch indicators. 2. Fit the BUSseq model using 
 
 nextflow.enable.dsl = 2
 
-process BIOC_BUSSEQ {
+process BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-busseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-busseq:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-busseq:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_busseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_busseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_busseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BUSseq_MCMC)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: assay, unlist, SingleCellExperiment
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BUSseq)
-    library(SingleCellExperiment)
-    CountData <- assay(BUSseqfits_example, "counts")
-    # --- Assay data access [] ---
-    # Key functions: BUSseq_MCMC, assay, celltypes, location_batch_effects, overdispersions, cell_effect_values, celltype_mean_expression, celltype_effects
-    celltype_mean_expression_est <- celltype_mean_expression(BUSseqfits_example)
-    head(celltype_mean_expression_est)
-    celltype_effects_est <- celltype_effects(BUSseqfits_res)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_busseq_results.csv", row.names = TRUE)
+    
+    # 1. Read user input files
+    CountData <- as.matrix(read.csv("raw_counts.csv", row.names = 1, check.names = FALSE))
+    
+    batch_meta <- read.csv("batch_metadata.csv", stringsAsFactors = FALSE)
+    
+    # Identify batch indicator column
+    batch_col <- grep("batch", colnames(batch_meta), ignore.case = TRUE, value = TRUE)
+    if (length(batch_col) > 0) {
+      batch_ind <- batch_meta[[batch_col[1]]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_busseq_results.csv")
+      batch_ind <- batch_meta[, 1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_busseq_output.rds")
-    }
+    
+    # Prepare the input data as a SingleCellExperiment object
+    sce_input <- SingleCellExperiment(assays = list(counts = CountData),
+                              colData = DataFrame(Batch_ind = factor(batch_ind)))
+    
+    # 2. Fit the BUSseq model using MCMC sampling
+    BUSseqfits_res <- BUSseq_MCMC(ObservedData = sce_input, 
+                              seed = 1234, n.cores = 2,
+                              n.celltypes = 4, n.iterations = 500)
+    
+    # 3. Extract the imputed read counts, estimated cell types, batch effects, cell-specific effects, and cell-type effects
+    Imputed_count <- assay(BUSseqfits_res, "imputed_data")
+    write.csv(as.matrix(Imputed_count), "imputed_counts.csv")
+    
+    celltyes_est <- celltypes(BUSseqfits_res)
+    write.csv(data.frame(Cell = colnames(sce_input), Estimated_Celltype = celltyes_est), "estimated_celltypes.csv", row.names = FALSE)
+    
+    location_batch_effects_est <- location_batch_effects(BUSseqfits_res)
+    write.csv(location_batch_effects_est, "location_batch_effects.csv")
+    
+    overdispersion_est <- overdispersions(BUSseqfits_res)
+    write.csv(overdispersion_est, "overdispersions.csv")
+    
+    cell_effects_est <- cell_effect_values(BUSseqfits_res)
+    write.csv(data.frame(Cell = colnames(sce_input), Cell_Effect = cell_effects_est), "cell_effects.csv", row.names = FALSE)
+    
+    # Note: The documented code used BUSseqfits_example for celltype_mean_expression.
+    # Since BUSseqfits_example is a bundled demo object (which is forbidden),
+    # we adapt it to use our fitted object BUSseqfits_res.
+    celltype_mean_expression_est <- celltype_mean_expression(BUSseqfits_res)
+    write.csv(celltype_mean_expression_est, "celltype_mean_expression.csv")
+    
+    celltype_effects_est <- celltype_effects(BUSseqfits_res)
+    write.csv(celltype_effects_est, "celltype_effects.csv")
+    
+    # 4. Identify intrinsic genes that drive cell-type differences
+    intrinsic_gene_indicators <- intrinsic_genes_BUSseq(BUSseqfits_res)
+    write.csv(as.data.frame(intrinsic_gene_indicators), "intrinsic_genes.csv")
+    
+    # 5. Compute and incorporate batch-corrected read counts
+    BUSseqfits_res <- corrected_read_counts(BUSseqfits_res)
+    corrected_counts <- assay(BUSseqfits_res, "corrected_data")
+    write.csv(as.matrix(corrected_counts), "corrected_counts.csv")
+    
+    # Save the final SingleCellExperiment object
+    saveRDS(BUSseqfits_res, "BUSseqfits_res.rds")
+    
+    # 6. Visualize the raw, imputed, and corrected expression data using heatmaps
+    dir.create("./heatmap", showWarnings = FALSE, recursive = TRUE)
+    
+    heatmap_data_BUSseq(BUSseqfits_res, data_type = "Raw", 
+                            project_name = "BUSseq_raw_allgenes",
+                            image_dir = "./heatmap")
+    
+    heatmap_data_BUSseq(BUSseqfits_res, data_type = "Imputed", 
+                            project_name = "BUSseq_imputed_allgenes",
+                            image_dir = "./heatmap")
+    
+    heatmap_data_BUSseq(BUSseqfits_res, data_type = "Corrected",
+                            project_name = "BUSseq_corrected_allgenes",
+                            image_dir = "./heatmap")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BUSSEQ:", paste0("    busseq: ", packageVersion("BUSseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING":',
+        paste0('    BUSseq: ', as.character(packageVersion('BUSseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_busseq_results.csv
-    touch ${prefix}_busseq_output.rds
-    echo "BIOC_BUSSEQ:" > versions.yml
-    echo "    busseq: 0.0.0" >> versions.yml
+    touch ${prefix}_scrna_seq_batch_correction_and_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_BUSSEQ_WORKFLOW {
+workflow BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_counts.csv, batch_metadata.csv ] ]
 
     main:
-    BIOC_BUSSEQ(ch_input)
+    BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_BUSSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BUSSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BUSSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BUSSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING.out.tables
+    plots    = BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING.out.plots
+    objects  = BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING.out.objects
+    versions = BIOC_BUSSEQ_SCRNA_SEQ_BATCH_CORRECTION_AND_CLUSTERING.out.versions
 }

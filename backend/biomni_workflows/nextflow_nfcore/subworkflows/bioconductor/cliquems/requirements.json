@@ -1,0 +1,15 @@
+{
+  "package": "cliquems",
+  "requirements": [
+    "MSnbase",
+    "cliqueMS",
+    "xcms"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "cliqueMS",
+      "xcms"
+    ]
+  }
+}

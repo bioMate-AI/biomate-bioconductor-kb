@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genome.size=An integer specifying the number of genes in the genomic background (the \"universe\"). This is a critical parameter as the significance of the overlap is highly sensitive to it ;; what=A character string in drawHeatmap (e.g., \"Jaccard\" or default \"Odds Ratio\") specifying which metric to visualize ;; ncolused=An integer specifying the number of colors to use in the heatmap ;; grid.col=A character string specifying the color palette for the heatmap grid (e.g., \"Blues\", \"Oranges\") ;; note.col=A character string specifying the color of the text notes (p-values) superimposed on the heatmap grids\n- alternatives: Hypergeometric distribution (mathematically equivalent formulation of the contingency table solved by Fisher's exact test)\n- when_to_use: Use this package when you have two or more gene lists (e.g., from ChIP-seq peak calling, RNA-seq expression groups, or pathway analyses) and want to statistically test and visualize whether their overlap is significant rather than occurring by chance.\n- pitfalls: Modifying the slots of a GeneOverlap object (such as listA, listB, or genome.size) after creation will reset its status to untested, requiring you to call testGeneOverlap again ;; Underestimating or overestimating the genome.size (background universe) will drastically skew the resulting p-values, as a larger background size makes a given overlap size appear more statistically significant.",
+  "workflows": [
+    {
+      "name": "pairwise_gene_overlap",
+      "intent": "Test the statistical significance of the overlap between two individual gene lists and retrieve detailed association statistics.",
+      "input": [
+        "list1.txt (character vector of gene IDs for list A)",
+        "list2.txt (character vector of gene IDs for list B)",
+        "background_size (integer representing the total number of genes in the genomic background)"
+      ],
+      "stages": "1. Create a GeneOverlap object using newGeneOverlap ;; 2. Run the statistical test using testGeneOverlap ;; 3. Print detailed results and retrieve specific statistics (intersection, odds ratio, contingency table, genome size) using accessors.",
+      "code": "go.obj <- newGeneOverlap(hESC.ChIPSeq.list$H3K4me3, \n                         hESC.RNASeq.list$\"Exp High\", \n                         genome.size=gs.RNASeq)\ngo.obj <- testGeneOverlap(go.obj)\nprint(go.obj)\nhead(getIntersection(go.obj))\ngetOddsRatio(go.obj)\ngetContbl(go.obj)\ngetGenomeSize(go.obj)"
+    },
+    {
+      "name": "matrix_gene_overlap",
+      "intent": "Compare multiple gene lists from two different gene sets in a pairwise matrix fashion, visualize the results as a heatmap, and extract specific comparison matrices.",
+      "input": [
+        "set1.rds (named list of character vectors representing gene set A)",
+        "set2.rds (named list of character vectors representing gene set B)",
+        "background_size (integer representing the total number of genes in the genomic background)"
+      ],
+      "stages": "1. Create a GeneOverlapMatrix object using newGOM ;; 2. Visualize the pairwise overlaps using drawHeatmap ;; 3. Extract matrices of p-values or odds ratios using getMatrix ;; 4. Retrieve overlapping gene lists for all comparisons using getNestedList ;; 5. Access individual pairwise GeneOverlap objects using matrix-like indexing.",
+      "code": "gom.obj <- newGOM(hESC.ChIPSeq.list, hESC.RNASeq.list, \n                  gs.RNASeq)\ndrawHeatmap(gom.obj)\ngetMatrix(gom.obj, name=\"pval\")\ngetMatrix(gom.obj, \"odds.ratio\")\ninter.nl <- getNestedList(gom.obj, name=\"intersection\")\ngo.k4.high <- gom.obj[1, 1]\ngom.obj[\"H3K9me3\", \"Exp Medium\"]"
+    },
+    {
+      "name": "self_comparison_overlap",
+      "intent": "Perform a pairwise self-comparison of gene lists within a single gene set and visualize the results using customized heatmaps.",
+      "input": [
+        "set1.rds (named list of character vectors representing a single gene set)",
+        "background_size (integer representing the total number of genes in the genomic background)"
+      ],
+      "stages": "1. Create a GeneOverlapMatrix object for self-comparison using newGOM with a single gene set ;; 2. Visualize the upper triangular matrix using drawHeatmap ;; 3. Customize the heatmap colors, text colors, and plotted metrics (e.g., Jaccard index).",
+      "code": "gom.self <- newGOM(hESC.ChIPSeq.list, \n                   genome.size=gs.RNASeq)\ndrawHeatmap(gom.self)\ndrawHeatmap(gom.self, ncolused=5, grid.col=\"Blues\", note.col=\"black\")\ndrawHeatmap(gom.self, what=\"Jaccard\", ncolused=3, grid.col=\"Oranges\", \n            note.col=\"black\")"
+    }
+  ]
+}

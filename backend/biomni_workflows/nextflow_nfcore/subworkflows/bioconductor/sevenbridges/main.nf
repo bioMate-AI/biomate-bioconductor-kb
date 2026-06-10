@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SEVENBRIDGES {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-sevenbridges"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sevenbridges:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sevenbridges:1.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -51,7 +50,7 @@ process BIOC_SEVENBRIDGES {
         token = "your_token",
         platform = "aws-us"
     )
-    p <- a$project(id = "your_project_id")
+    p <- a\$project(id = "your_project_id")
 
     # --- App Schema Inspection ---
     # Key functions: convert_app, output_matrix
@@ -60,7 +59,7 @@ process BIOC_SEVENBRIDGES {
         package = "sevenbridges"
     )
     app <- convert_app(f1)
-    in_mat <- app$input_matrix(
+    in_mat <- app\$input_matrix(
         c("id", "label", "type"),
         required = TRUE
     )
@@ -68,15 +67,15 @@ process BIOC_SEVENBRIDGES {
 
     # --- File Querying ---
     # Key functions: Auth
-    fastq_in <- p$file(
+    fastq_in <- p\$file(
         name = "SRR1039508*.fastq",
         complete = TRUE
     )
-    fasta_in <- p$file(
+    fasta_in <- p\$file(
         name = "Homo_sapiens.GRCh38.dna.primary_assembly.fa",
         exact = TRUE
     )
-    gtf_in <- p$file(
+    gtf_in <- p\$file(
         name = "Homo_sapiens.GRCh38.84.gtf",
         exact = TRUE
     )
@@ -84,7 +83,7 @@ process BIOC_SEVENBRIDGES {
     # --- Task Creation and Batching ---
     # Key functions: batch
     taskName <- "RFranklin-star-alignment"
-    tsk <- p$task_add(
+    tsk <- p\$task_add(
         name = taskName,
         description = "Batch Star Test",
         app = "RFranklin/api-testing-2/newcopyofstar/0",
@@ -101,27 +100,36 @@ process BIOC_SEVENBRIDGES {
 
     # --- Task Execution and Monitoring ---
     # Key functions: setTaskHook, getTaskHook
-    tsk$run()
+    tsk\$run()
     setTaskHook("completed", function() {
-        tsk$download(tempdir())
+        tsk\$download(tempdir())
         return(TRUE)
     })
     current_hook <- getTaskHook("completed")
 
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sevenbridges_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_sevenbridges_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sevenbridges_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_sevenbridges_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sevenbridges_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_sevenbridges_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SEVENBRIDGES:", paste0("    sevenbridges: ", packageVersion("sevenbridges"))),
+        c("BIOC_SEVENBRIDGES:", paste0("    sevenbridges: ", as.character(packageVersion("sevenbridges")))),
         "versions.yml"
     )
     """

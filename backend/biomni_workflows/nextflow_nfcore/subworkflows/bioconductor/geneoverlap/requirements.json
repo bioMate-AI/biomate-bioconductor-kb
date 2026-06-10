@@ -1,0 +1,17 @@
+{
+  "package": "geneoverlap",
+  "requirements": [
+    "GeneOverlap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GeneOverlap"
+    ],
+    "matrix_gene_overlap.nf": [
+      "GeneOverlap"
+    ],
+    "self_comparison_overlap.nf": [
+      "GeneOverlap"
+    ]
+  }
+}

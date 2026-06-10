@@ -1,0 +1,19 @@
+{
+  "package": "nparc",
+  "requirements": [
+    "BiocParallel",
+    "NPARC",
+    "dplyr",
+    "ggplot2",
+    "magrittr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "NPARC",
+      "dplyr",
+      "ggplot2",
+      "magrittr"
+    ]
+  }
+}

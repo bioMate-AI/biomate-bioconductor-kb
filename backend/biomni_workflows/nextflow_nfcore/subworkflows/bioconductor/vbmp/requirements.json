@@ -1,0 +1,14 @@
+{
+  "package": "vbmp",
+  "requirements": [
+    "vbmp"
+  ],
+  "by_workflow": {
+    "high_dimensional_cross_validation.nf": [
+      "vbmp"
+    ],
+    "main.nf": [
+      "vbmp"
+    ]
+  }
+}

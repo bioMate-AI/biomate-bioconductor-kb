@@ -1,0 +1,17 @@
+{
+  "package": "mpranalyze",
+  "requirements": [
+    "MPRAnalyze"
+  ],
+  "by_workflow": {
+    "comparative_analysis.nf": [
+      "MPRAnalyze"
+    ],
+    "main.nf": [
+      "MPRAnalyze"
+    ],
+    "scalable_comparative_analysis.nf": [
+      "MPRAnalyze"
+    ]
+  }
+}

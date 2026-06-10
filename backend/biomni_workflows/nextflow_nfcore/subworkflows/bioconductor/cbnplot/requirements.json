@@ -1,0 +1,15 @@
+{
+  "package": "cbnplot",
+  "requirements": [
+    "CBNplot",
+    "bnlearn",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CBNplot",
+      "bnlearn",
+      "igraph"
+    ]
+  }
+}

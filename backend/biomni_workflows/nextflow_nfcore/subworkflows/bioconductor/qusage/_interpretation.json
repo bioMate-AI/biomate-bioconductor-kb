@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: eset=An ExpressionSet or a log2-normalized gene expression matrix (genes as rows, samples as columns) ;; labels=A character vector of group labels for each sample in eset (must be legal R variable names) ;; contrast=A character string specifying the comparison of interest (e.g., \"treatment-mock\") ;; geneSets=A vector (single gene set) or list of vectors (multiple gene sets) containing gene symbols matching the rownames of eset ;; pairVector=An optional vector of sample/patient IDs used to specify paired or longitudinal samples ;; fixed=A formula specifying the fixed effects for the qgen mixed model ;; contrast.factor=A formula specifying the factor of interest for the contrast in qgen ;; random=A formula specifying the random effects structure in qgen ;; correlation=An optional corStruct object specifying the correlation structure in qgen ;; design.sampleid=A character string indicating the column name in the metadata that matches the sample IDs in the expression data\n- alternatives: LIMMA=Mentioned as an alternative for individual gene statistics, but qusage's implemented Welch-based method is preferred as it is shown to improve specificity ;; Wu et al. (2012)=Mentioned as the basis for the VIF technique, which qusage extends\n- when_to_use: Use when performing gene set enrichment analysis on transcriptomics data (especially microarray, but adaptable to RNA-seq count data) and you want to account for inter-gene correlation, obtain full probability density functions of pathway activity, perform paired/longitudinal analysis, or run complex linear mixed models.\n- pitfalls: Rownames of eset must match the gene symbols/IDs used in the geneSets list, otherwise gene sets will be evaluated as size 0 ;; Group labels must be legal R variable names (no spaces, must start with a letter) ;; For best results, the expression dataset should be trimmed to remove genes with very low expression ;; Multiple hypothesis testing correction (e.g., FDR) must be manually applied to the resulting p-values when analyzing a large number of gene sets.",
+  "workflows": [
+    {
+      "name": "standard_qusage_analysis",
+      "intent": "Perform standard gene set enrichment analysis on a single dataset, calculate p-values, adjust for multiple testing, and visualize pathway activity.",
+      "input": [
+        "eset (matrix or ExpressionSet of log2-normalized gene expression data)",
+        "gene_sets.gmt (GMT file containing gene sets of interest)"
+      ],
+      "stages": "1. Read gene sets from a GMT file using read.gmt ;; 2. Run the qusage wrapper function to calculate gene-level comparisons, aggregate gene data, and calculate variance inflation factors ;; 3. Extract p-values using pdf.pVal ;; 4. Adjust p-values for multiple testing using p.adjust ;; 5. Generate a summary table of results using qsTable ;; 6. Plot confidence intervals or density curves using plot or plotDensityCurves",
+      "code": "MSIG.geneSets = read.gmt(\"c2.cp.kegg.v4.0.symbols.gmt\")\nqs.results.msig = qusage(eset, labels, contrast, MSIG.geneSets)\np.vals = pdf.pVal(qs.results.msig)\nq.vals = p.adjust(p.vals, method=\"fdr\")\nqsTable(qs.results.msig, number=10)\nplot(qs.results.msig)"
+    },
+    {
+      "name": "two_way_comparison",
+      "intent": "Compare pathway activation profiles between two distinct groups or conditions over a treatment/time course (differential pathway activation).",
+      "input": [
+        "eset (matrix or ExpressionSet of log2-normalized gene expression data)",
+        "gene_sets.gmt (GMT file containing gene sets of interest)"
+      ],
+      "stages": "1. Define group labels and sample pairing information ;; 2. Run qusage for each individual group comparison, or run a single qusage call with a complex contrast representing the difference of differences ;; 3. Calculate p-values for the difference between the two curves using twoCurve.pVal or pdf.pVal ;; 4. Visualize the comparative density curves, gene set distributions, and individual gene confidence intervals using plotDensityCurves, plotGeneSetDistributions, and plotCIsGenes",
+      "code": "pairs = c(1:17,1:17)\ntwoWay.labels = paste(resp, labels, sep=\".\")\nsx.results  = qusage(eset, twoWay.labels, \"sx.t1-sx.t0\",\n                     MSIG.geneSets, pairVector=pairs)\nasx.results = qusage(eset, twoWay.labels, \"asx.t1-asx.t0\", \n                     MSIG.geneSets, pairVector=pairs)\np.vals = twoCurve.pVal(sx.results,asx.results)\nasx.vs.sx = qusage(eset, twoWay.labels, \"(sx.t1-sx.t0) - (asx.t1-asx.t0)\",\n                 MSIG.geneSets, pairVector=pairs)\np.vals = pdf.pVal(asx.vs.sx)\nplotDensityCurves(asx.results,path.index=125,xlim=c(-0.2,0.5),\n                  col=3,main=\"CYTOSOLIC DNA SENSING\")\nplotDensityCurves(sx.results,path.index=125,col=2,add=T)\nplotDensityCurves(asx.vs.sx, path.index=125,col=1,add=T, lwd=3)\nplotGeneSetDistributions(sx.results,asx.results,path.index=125)\nplotCIsGenes(sx.results,path.index=125)"
+    },
+    {
+      "name": "mixed_models_qgen",
+      "intent": "Perform gene set enrichment analysis using generalized linear mixed models to account for random effects and complex correlation structures.",
+      "input": [
+        "eset.full (matrix or ExpressionSet of log2-normalized gene expression data)",
+        "flu.meta (data frame containing sample metadata and design variables)"
+      ],
+      "stages": "1. Define formulas for fixed effects and contrast factors ;; 2. Run the qgen function specifying fixed effects, random effects, and sample IDs ;; 3. Optionally define a correlation structure and run qgen with correlation constraints ;; 4. Summarize and plot the mixed model results",
+      "code": "fixedeffects <- ~Hours+Condition+Condition*Hours+Age+Gender\ncon.fac <- ~Condition*Hours\ncontrast = \"sx77 - sx0\"\nqusage.result.random<-qgen(eset.full,flu.meta,\n                           fixed=fixedeffects,\n                           contrast.factor=con.fac, \n                           contrast=contrast,\n                           geneSets=ISG.geneSet,\n                           random=~1|Subject,\n                           design.sampleid=\"SampleID\")\nqsTable(qusage.result.random)\ncorStruct = corExp(value=3,~Hours.Numeric|Subject)\nqusage.result.corstruct<-qgen(eset.full,flu.meta,\n                              fixed=fixedeffects,\n                              contrast.factor=con.fac, \n                              contrast=contrast,\n                              geneSets=ISG.geneSet,\n                              correlation=corStruct,\n                              design.sampleid=\"SampleID\")"
+    },
+    {
+      "name": "meta_analysis",
+      "intent": "Combine pathway enrichment probability density functions (PDFs) from multiple independent studies to perform a meta-analysis.",
+      "input": [
+        "fluVaccine (a list containing expression datasets and associated metadata for multiple studies)",
+        "BTM.geneSets (list of gene sets of interest)"
+      ],
+      "stages": "1. Run qusage independently on each dataset to generate a list of QSarray objects ;; 2. Combine the individual study PDFs using combinePDFs ;; 3. Calculate meta-analysis p-values using pdf.pVal ;; 4. Plot the combined meta-analysis PDF alongside individual study PDFs using plotCombinedPDF",
+      "code": "qs.results.list = lapply(c(\"GSE59635\", \"GSE59654\"), function(n){\n  eset = fluVaccine$esets[[n]]\n  phenoData = fluVaccine$phenoData[[n]]\n  labels = paste(phenoData$responder, phenoData$bloodDrawDay, \n                 sep = \".\")\n  qusage(eset, labels, \"(high.d7-high.d0)-(low.d7-low.d0)\", \n            BTM.geneSets, pairVector=phenoData$subjectId, n.points=2^14)\n})\ncombined = combinePDFs(qs.results.list)\nhead(pdf.pVal(combined))\nplotCombinedPDF(combined, path.index=235)"
+    }
+  ]
+}

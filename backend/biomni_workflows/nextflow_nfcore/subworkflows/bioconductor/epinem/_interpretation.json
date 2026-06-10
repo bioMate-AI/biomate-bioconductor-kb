@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=\"exhaustive\" for up to 4 signaling genes, \"greedy\" for 5 or more ;; global=logical, if FALSE detailed results are plotted for specific double knock-out pairs ;; ind=index of the specific double knock-out pair to plot when global is FALSE\n- alternatives: nem package=classic Nested Effects Models, preferred when there are no double knockouts ;; B-NEM package=general Boolean network inference from combinatorial perturbations, preferred for general Boolean networks but slower than epiNEM ;; ARACNE or PC algorithm=faster network inference methods but cannot derive logical gates in the network structure\n- when_to_use: Appropriate when analyzing knock-out screen data containing both single and double perturbations (e.g., binary differential expression matrices) to infer epistatic relationships (logical gates) and downstream effect reporter attachments.\n- pitfalls: Exhaustive search is computationally expensive and only feasible for up to 4 signaling genes; greedy search must be used for 5 or more. Input data must be binary (0/1), typically derived by thresholding differential expression p-values and fold changes.",
+  "workflows": [
+    {
+      "name": "small_gene_set_inference",
+      "intent": "Infer the epistatic network structure and logical gates for a small set of signaling genes.",
+      "input": [
+        "binary_effects_matrix.csv (binary matrix with effect reporters as rows and single/double perturbations as columns)"
+      ],
+      "stages": "1. Prepare binary effect matrix ;; 2. Run epiNEM network inference ;; 3. Plot the inferred network structure",
+      "code": "data <- matrix(sample(c(0,1), 100*4, replace = TRUE), 100, 4)\ncolnames(data) <- c(\"A\", \"A.B\", \"B\", \"C\")\nrownames(data) <- paste(\"E\", 1:100, sep = \"_\")\nprint(head(data))\nres <- epiNEM(data, method = \"exhaustive\")\nplot(res)"
+    },
+    {
+      "name": "systematic_modulator_screening",
+      "intent": "Perform a systematic analysis to identify and rank the most likely modulators for signaling gene pairs across a larger perturbation screen.",
+      "input": [
+        "large_binary_effects_matrix.csv (binary matrix with effect reporters as rows and multiple single/double perturbations as columns)"
+      ],
+      "stages": "1. Prepare binary effect matrix ;; 2. Run epiScreen to identify modulators ;; 3. Plot global distribution of inferred logics ;; 4. Plot detailed ranked modulators for specific pairs ;; 5. Visualize perfect binary effects matrix for each logic",
+      "code": "data <- matrix(sample(c(0,1), 100*9, replace = TRUE), 100, 9)\ncolnames(data) <- c(\"A.B\", \"A.C\", \"B.C\", \"A\", \"B\", \"C\", \"D\", \"E\", \"G\")\nrownames(data) <- paste(\"E\", 1:100, sep = \"_\")\nres <- epiScreen(data)\nplot(res)\nplot(res, global = FALSE, ind = 1)\nepiAnno()"
+    }
+  ]
+}

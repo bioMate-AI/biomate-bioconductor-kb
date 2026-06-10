@@ -1,100 +1,127 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RNAmodR.RiboMethSeq
-// RNAmodR.RiboMethSeq implements the detection of 2'-O methylations on RNA from experimental data gene
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RNAmodR.RiboMethSeq/inst/doc/RNAmodR.RiboMethSeq.R
-// Upstream  : GenomicRanges, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("RNAmodR.RiboMethSeq")
+// Bioconductor workflow: rnamodr_ribomethseq — ribomethseq_analysis
+// Detect and quantify 2'-O-methylations (Nm) from RiboMethSeq BAM files using the RNAmodR framework.
+// Input: alignments.bam, annotation.gff3, reference.fasta
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RNAmodR.RiboMethSeq, rnamodr_ribomethseq, rtracklayer
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and define input file paths
+//  * 2. [Input & Preparation] Construct a ModSetRiboMethSeq object to process the BAM files against the reference genome and annotations
+//  * 3. [Core Analysis] Detect modifications using the detectModifications function
+//  * 4. [Visualization & Output] Plot data for a specific gene/transcript using plotData
 
 nextflow.enable.dsl = 2
 
-process BIOC_RNAMODR_RIBOMETHSEQ {
+process BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rnamodr_ribomethseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rnamodr.ribomethseq:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rnamodr.ribomethseq:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rnamodr_ribomethseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rnamodr_ribomethseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rnamodr_ribomethseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RNAmodR.RiboMethSeq)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(RNAmodR.RiboMethSeq)
+            
+            # Define input file paths from the working directory
+            files <- c(replicate1 = "alignments.bam")
+            annotation <- "annotation.gff3"
+            sequences <- "reference.fasta"
+            
+            # Construct ModSetRiboMethSeq object
+            msr <- ModSetRiboMethSeq(files, annotation = annotation, sequences = sequences)
+            
+            # Detect modifications
+            modifications <- modifications(msr)
+            
+            # Save the main outputs
+            saveRDS(msr, "modset_ribomethseq.rds")
+            saveRDS(modifications, "detected_modifications.rds")
+            
+            # Attempt to export modifications to a CSV file
+            tryCatch({
+              df_mods <- as.data.frame(modifications)
+              write.csv(df_mods, "detected_modifications.csv", row.names = FALSE)
+            }, error = function(e) {
+              message("Could not export modifications to CSV: ", e\$message)
+            })
+            
+            # Determine a valid transcript/sequence name for plotting
+            plot_name <- "transcript_id"
+            tryCatch({
+              if (length(modifications) > 0) {
+                plot_name <- names(modifications)[1]
+              }
+            }, error = function(e) {
+              tryCatch({
+                library(rtracklayer)
+                gff <- rtracklayer::import(annotation)
+                plot_name <- gff\$ID[1]
+              }, error = function(e2) {})
+            })
+            
+            # Plot data for the identified transcript/sequence
+            pdf("ribomethseq_plot.pdf")
+            tryCatch({
+              print(plotData(msr, name = plot_name))
+            }, error = function(e) {
+              message("Could not generate plot: ", e\$message)
+            })
+            dev.off()
 
-    # --- plot Compare By Coord [] ---
-    # Key functions: plotCompareByCoord
-    plotCompareByCoord(msrms[c(2L,1L)], coord, alias = alias)
-    # --- plot Data By Coord [] ---
-    # Key functions: plotDataByCoord
-    plotDataByCoord(msrms, singleCoord)
-    # --- plot R O C [] ---
-    # Key functions: plotROC
-    plotROC(msrms,coord)
-    # --- settings [] ---
-    # Key functions: settings
-    settings(msrms) <- list(minScoreMean = 0.7)
-    # --- modify [] ---
-    # Key functions: modify
-    msrms2 <- modify(msrms,force = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rnamodr_ribomethseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rnamodr_ribomethseq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rnamodr_ribomethseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RNAMODR_RIBOMETHSEQ:", paste0("    rnamodr_ribomethseq: ", packageVersion("RNAmodR.RiboMethSeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS":',
+        paste0('    rnamodr_ribomethseq: ', as.character(packageVersion('rnamodr_ribomethseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rnamodr_ribomethseq_results.csv
-    touch ${prefix}_rnamodr_ribomethseq_output.rds
-    echo "BIOC_RNAMODR_RIBOMETHSEQ:" > versions.yml
-    echo "    rnamodr_ribomethseq: 0.0.0" >> versions.yml
+    touch ${prefix}_ribomethseq_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_RNAMODR_RIBOMETHSEQ_WORKFLOW {
+workflow BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ alignments.bam, annotation.gff3, reference.fasta ] ]
 
     main:
-    BIOC_RNAMODR_RIBOMETHSEQ(ch_input)
+    BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_RNAMODR_RIBOMETHSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RNAMODR_RIBOMETHSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RNAMODR_RIBOMETHSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RNAMODR_RIBOMETHSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS.out.tables
+    plots    = BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS.out.plots
+    objects  = BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS.out.objects
+    versions = BIOC_RNAMODR_RIBOMETHSEQ_RIBOMETHSEQ_ANALYSIS.out.versions
 }

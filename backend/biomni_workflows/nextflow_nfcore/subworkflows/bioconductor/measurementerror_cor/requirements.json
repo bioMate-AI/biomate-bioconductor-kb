@@ -1,0 +1,13 @@
+{
+  "package": "measurementerror_cor",
+  "requirements": [
+    "MeasurementError.cor",
+    "measurementerror_cor"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MeasurementError.cor",
+      "measurementerror_cor"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: vcfFilename=Character string or vector of the input VCF file path(s) ;; pedFilename=Character string of the PED file path containing pedigree information, required for inheritance models ;; allTranscripts=Logical indicating whether to use all transcripts (default FALSE) or only principal ones ;; regionAnnotations=List of genomic regions to annotate (e.g., CodingVariants(), IntronVariants()) ;; otherAnnotations=Character vector of additional annotation packages/objects (e.g., MafDb, PolyPhen, SIFT) ;; groupBy=Argument in allVariants() to group variants by a specific annotation column ;; method=Argument in summary() (e.g., \"bioc\", \"SOfull\") to control the ontology/vocabulary of the summary\n- alternatives: VariantAnnotation package (specifically locateVariants() and predictCoding()) can be used directly if custom low-level annotation is preferred without the inheritance model filtering framework.\n- when_to_use: Use this package when analyzing NGS variant data (VCF files) from a family (trio/pedigree) or unrelated individuals to identify disease-causing variants under specific inheritance models (dominant, recessive, compound heterozygous, X-linked, de novo) or shared variants.\n- pitfalls: Running inheritance model functions (like autosomalRecessiveHomozygous()) without providing a valid PED file in VariantFilteringParam() will fail or yield incorrect results ;; By default, all functional annotation filters are inactive (FALSE); users must explicitly activate them using active(filters(obj)) <- TRUE or select specific ones to apply filtering ;; summary() might return 0 rows for a specific SO term if no variants are directly annotated to it, unless method=\"SOfull\" is used to aggregate up the hierarchical tree.",
+  "workflows": [
+    {
+      "name": "unrelated_individuals_analysis",
+      "intent": "Annotate and filter variants from unrelated individuals without assuming an inheritance model.",
+      "input": [
+        "CEUtrio.vcf.bgz (multisample VCF file)",
+        "NA12878.subset.bam, NA12891.subset.bam, NA12892.subset.bam (optional BAM files for visualization)"
+      ],
+      "stages": "1. Create parameter object using VariantFilteringParam() ;; 2. Annotate variants using unrelatedIndividuals() ;; 3. Summarize annotations using summary() ;; 4. Set BAM files and plot variant support using bamFiles() and plot() ;; 5. Filter variants by modifying active filters and cutoffs using filters(), cutoffs(), and change() ;; 6. Retrieve filtered variants using filteredVariants() ;; 7. Export results using reportVariants()",
+      "code": "library(VariantFiltering)\nCEUvcf <- file.path(system.file(\"extdata\", package=\"VariantFiltering\"), \"CEUtrio.vcf.bgz\")\nvfpar <- VariantFilteringParam(CEUvcf)\nuind <- unrelatedIndividuals(vfpar)\nsummary(uind)\nsummary(uind, method=\"bioc\")\nuindSO <- summary(uind, method=\"SOfull\")\nallVariants(uind)\npath2bams <- file.path(system.file(\"extdata\", package=\"VariantFiltering\"), paste0(samples(uind), \".subset.bam\"))\nbv <- BamViews(bamPaths=path2bams, bamSamples=DataFrame(row.names=samples(uind)))\nbamFiles(uind) <- bv\nplot(uind, what=\"rs6130959\", sampleName=\"NA12892\")\nsamples(uind) <- c(\"NA12891\", \"NA12892\")\nuind <- resetSamples(uind)\nfilters(uind)\nactive(filters(uind)) <- TRUE\nchange(cutoffs(uind), \"SOterms\") <- \"UTR_variant\"\nactive(filters(uind))[\"SOterms\"] <- TRUE\nchange(cutoffs(uind)$maxMAF, \"popmask\") <- FALSE\nchange(cutoffs(uind)$maxMAF, \"maxvalue\") <- 0.01\nfilteredVariants(uind)\nreportVariants(uind, type=\"csv\", file=\"uind.csv\")"
+    },
+    {
+      "name": "inheritance_models_analysis",
+      "intent": "Filter variants that segregate according to specific inheritance models using pedigree information.",
+      "input": [
+        "CEUtrio.vcf.bgz (multisample VCF file)",
+        "CEUtrio.ped (pedigree file)"
+      ],
+      "stages": "1. Create parameter object with both VCF and PED files using VariantFilteringParam() ;; 2. Filter variants using inheritance model functions: autosomalRecessiveHomozygous(), autosomalRecessiveHeterozygous(), autosomalDominant(), xLinked(), or deNovo()",
+      "code": "library(VariantFiltering)\nCEUvcf <- file.path(system.file(\"extdata\", package=\"VariantFiltering\"), \"CEUtrio.vcf.bgz\")\nCEUped <- file.path(system.file(\"extdata\", package=\"VariantFiltering\"), \"CEUtrio.ped\")\nparam <- VariantFilteringParam(vcfFilenames=CEUvcf, pedFilename=CEUped)"
+    }
+  ]
+}

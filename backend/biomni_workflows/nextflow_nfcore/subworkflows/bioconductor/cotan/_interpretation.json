@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: calcCoex=logical determining whether to evaluate the full gene co-expression matrix (can be set to FALSE to save time if only doing cell clustering or DEA) ;; optimizeForSpeed=logical to enable speed optimizations ;; deviceStr=character specifying the computation device, such as \"cuda\" for GPU acceleration ;; GDIThreshold=numeric threshold (default 1.40) used in GDI plots and uniformity checkers to determine cluster homogeneity ;; useCoexEigen=logical determining whether to project data on COEX eigenvectors instead of standard PCA during clustering and UMAP generation.\n- alternatives: SingleCellExperiment=can be converted to and from COTAN objects using convertToSingleCellExperiment() and convertFromSingleCellExperiment() ;; Seurat/Scanpy=mentioned as alternative methods for highly variable gene (HVG) selection and data reduction in cellsUMAPPlot().\n- when_to_use: Use COTAN when you want to analyze single-cell RNA-seq data to study gene-gene co-expression, identify transcriptionally uniform cell clusters, and perform differential expression analysis based on contingency tables rather than standard distance metrics.\n- pitfalls: The clean() function must be run again every time any genes or cells are dropped from the dataset to re-estimate parameters ;; UDE (cell efficiency) should not correlate with principal components in PCA plots ;; The torch library may fail to load or require further system-level initialization, in which case the package falls back to legacy non-torch code.",
+  "workflows": [
+    {
+      "name": "dataset_cleaning",
+      "intent": "Clean raw single-cell UMI count datasets by identifying and removing doublets, dead cells, and low-efficiency cells.",
+      "input": [
+        "rawDataset (CSV/TSV file containing raw UMI counts)",
+        "vignette.cells.origin (named vector/factor of cell origin metadata)"
+      ],
+      "stages": "1. Initialize the COTAN object and metadata.\n2. Assign cell origin conditions.\n3. Generate quality control plots (empirical cumulative distribution, cell size, gene size, and scatter plots).\n4. Drop cells exceeding library size or gene count thresholds.\n5. Identify and drop cells with high mitochondrial gene percentages.\n6. Run the clean function to estimate parameters and drop low-expression genes/cells.\n7. Generate clean plots (PCA, UDE, and Nu plots) to identify distinct low-quality cell groups.\n8. Drop low-efficiency cells and re-run parameter estimation.",
+      "code": "obj <- COTAN(raw = rawDataset)\nobj <- initializeMetaDataset( obj, GEO = GEO, sequencingMethod = \"Drop_seq\", sampleCondition = cond )\nobj <- addCondition(obj, condName = \"origin\", conditions = vignette.cells.origin)\nplot(ECDPlot(obj, condName = \"origin\"))\nplot(cellSizePlot(obj, condName = \"origin\"))\nplot(genesSizePlot(obj, condName = \"origin\"))\nplot(scatterPlot(obj, condName = \"origin\"))\nobj <- addElementToMetaDataset(obj, \"Cells size threshold\", cellsSizeThr)\ncellsToRem <- getCells(obj)[getCellsSize(obj) > cellsSizeThr]\nobj <- dropGenesCells(obj, cells = cellsToRem)\nc(mitPlot, mitSizes) %<-% mitochondrialPercentagePlot(obj, genePrefix = \"^mt-\", condName = \"origin\")\nobj <- clean(obj)\nc(pcaCellsPlot, pcaCellsData, genesPlot, UDEPlot, nuPlot, zoomedNuPlot) %<-% cleanPlots(obj)\nobj <- estimateNuLinear(obj)"
+    },
+    {
+      "name": "cell_clustering_and_dea",
+      "intent": "Cluster cells based on expression uniformity and perform differential expression analysis (DEA) on the resulting clusters.",
+      "input": [
+        "obj (cleaned COTAN object)",
+        "vignette.split.clusters (pre-calculated clusterization factor)"
+      ],
+      "stages": "1. Calibrate the COTAN model without full COEX calculation to save time.\n2. Load or establish cell clusterizations.\n3. Run Differential Expression Analysis (DEA) on clusters.\n4. Reorder and manipulate clusterizations.\n5. Plot cluster dendrograms and marker gene relevance heatmaps.\n6. Find differentially expressed marker genes for clusters.\n7. Merge uniform clusters and extract summary statistics.",
+      "code": "obj <- proceedToCoex( obj, calcCoex = FALSE, optimizeForSpeed = TRUE, cores = 3L, deviceStr = \"cuda\" )\nvignette.split.coexDF <- DEAOnClusters(obj, clusters = vignette.split.clusters)\nobj <- addClusterization( obj, clName = \"split\", clusters = vignette.split.clusters, coexDF = vignette.split.coexDF, override = FALSE )\nsplitClusters <- niceFactorLevels(splitClusters)\nc(splitClusters, splitCoexDF, perm) %<-% reorderClusterization( obj, clName = \"split\", reverse = FALSE, coexDF = NULL, useDEA = TRUE, distance = NULL, hclustMethod = \"ward.D2\" )\ntreePlot <- clustersTreePlot( obj, kCuts = 2L, clName = \"split\", useDEA = TRUE )[[\"dend\"]]\nc(splitHeatmap, splitScoreDF, splitPValueDF) %<-% clustersMarkersHeatmapPlot( obj, groupMarkers = layersGenes, clName = \"split\", kCuts = 2L, adjustmentMethod = \"bonferroni\", condNameList = list(\"origin\") )\nmergeClusterMarkers <- findClustersMarkers( obj, clName = \"merge\", n = 5L, markers = unlist(layersGenes), adjustmentMethod = \"bonferroni\" )\nc(mergedClusters, mergedCoexDF) %<-% mergeUniformCellsClusters( obj, clusters = splitClusters, checkers = checkersList, allCheckResults = prevCheckRes, optimizeForSpeed = TRUE, deviceStr = \"cuda\", cores = 6L, useDEA = TRUE, saveObj = TRUE, outDir = outDir )"
+    },
+    {
+      "name": "gene_coexpression_and_clustering",
+      "intent": "Calculate gene-pair co-expression (COEX), calculate Global Differentiation Index (GDI), and establish gene clusters.",
+      "input": [
+        "obj (cleaned COTAN object)"
+      ],
+      "stages": "1. Calibrate the COTAN model and calculate the full gene-pair COEX matrix.\n2. Retrieve contingency tables and specific COEX values for gene pairs.\n3. Calculate and store the Global Differentiation Index (GDI).\n4. Plot GDI to identify highly differentiated genes.\n5. Generate COEX heatmaps for gene sets.\n6. Establish gene clusters based on marker lists.\n7. Visualize gene clusters using UMAP.",
+      "code": "obj <- proceedToCoex( obj, calcCoex = TRUE, optimizeForSpeed = TRUE, cores = 3L, deviceStr = \"cuda\" )\ncontingencyTables(obj, g1 = \"Satb2\", g2 = \"Bcl11b\")\ncoex <- getGenesCoex(obj, zeroDiagonal = FALSE)\ngdiDF <- calculateGDI(obj, cores = 3L)\nobj <- storeGDI(obj, genesGDI = gdiDF)\nGDIPlot(obj, genes = genesLists, GDIThreshold = 1.40)\nplot(heatmapPlot(obj, genesLists = genesLists, sets = 1L:3L, cores = 3L))\ngenesHeatmapPlot( obj, primaryMarkers = layersMarkers, pValueThreshold = 0.0001, symmetric = TRUE, cores = 3L )\nc(gSpace, eigPlot, pcaGenesClDF, treePlot) %<-% establishGenesClusters( obj, groupMarkers = layersGenes, numGenesPerMarker = 25L, kCuts = 5L )\ngenesUmapPl <- UMAPPlot( pcaGenesClDF[, colSelection, drop = FALSE], clusters = getColumnFromDF(pcaGenesClDF, \"hclust\"), elements = layersGenes, title = \"Genes' clusters UMAP Plot\", numNeighbors = 32L, minPointsDist = 0.25 )"
+    }
+  ]
+}

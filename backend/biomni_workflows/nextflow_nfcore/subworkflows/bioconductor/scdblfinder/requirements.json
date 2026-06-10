@@ -1,0 +1,34 @@
+{
+  "package": "scdblfinder",
+  "requirements": [
+    "BiocParallel",
+    "SingleCellExperiment",
+    "bluster",
+    "scDblFinder",
+    "scater",
+    "scran",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "compute_doublet_density.nf": [
+      "SingleCellExperiment",
+      "scDblFinder",
+      "scater",
+      "scran",
+      "scuttle"
+    ],
+    "find_doublet_clusters.nf": [
+      "SingleCellExperiment",
+      "bluster",
+      "scDblFinder",
+      "scater",
+      "scran",
+      "scuttle"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "scDblFinder"
+    ]
+  }
+}

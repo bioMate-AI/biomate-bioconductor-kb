@@ -1,0 +1,19 @@
+{
+  "package": "padog",
+  "requirements": [
+    "Biobase",
+    "PADOG",
+    "doParallel"
+  ],
+  "by_workflow": {
+    "benchmark_gene_set_analysis.nf": [
+      "Biobase",
+      "PADOG",
+      "doParallel"
+    ],
+    "main.nf": [
+      "PADOG",
+      "doParallel"
+    ]
+  }
+}

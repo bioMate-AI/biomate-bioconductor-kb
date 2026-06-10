@@ -1,0 +1,15 @@
+{
+  "package": "roseq",
+  "requirements": [
+    "ROSeq",
+    "edgeR",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ROSeq",
+      "edgeR",
+      "limma"
+    ]
+  }
+}

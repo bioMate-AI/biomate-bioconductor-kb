@@ -1,175 +1,180 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gaga
-// Implements the GaGa model for high-throughput data analysis, including differential expression analy
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gaga/inst/doc/gagamanual.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("gaga")
+// Bioconductor workflow: gaga — differential_expression_and_fold_change
+// Fit the GaGa model to expression data, identify differentially expressed genes under a target FDR, and estimate posterior fold changes.
+// Input: expression_matrix.csv, sample_groups.csv
+// Container: quay.io/biocontainers/bioconductor-gaga:2.56.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, gaga
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define experimental groups and the hypothesis patterns matrix. 2. Fit the GaGa model using fitGG. 3. Estimate hyper-parameters and
 
 nextflow.enable.dsl = 2
 
-process BIOC_GAGA {
+process BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gaga"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gaga:2.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gaga:2.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gaga_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gaga_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gaga_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(gaga)
-    library(jsonlite)
-
-    # --- One [] ---
-    # Key functions: simGG
-    library(gaga)
-    set.seed(10)
-    n <- 100; m <- c(6,6)
-    a0 <- 25.5; nu <- 0.109
-    balpha <- 1.183; nualpha <- 1683
-    # --- Two [] ---
-    # Key functions: featureData, phenoData, fData, exprs
-    xsim
-    featureData(xsim)
-    phenoData(xsim)
-    a <- fData(xsim)[,c("alpha.1","alpha.2")]
-    l <- fData(xsim)[,c("mean.1","mean.2")]
-    # --- density [] ---
-    # Key functions: density
-    plot(density(x),xlab='Expression levels',main='')
-    # --- Three [] ---
-    # Key functions: pData
-    groups <- pData(xsim)$group[c(-6,-12)]
-    groups
-    patterns <- matrix(c(0,0,0,1),2,2)
-    colnames(patterns) <- c('group 1','group 2')
-    patterns
-    # --- Four [] ---
-    # Key functions: fitGG
-    patterns <- matrix(c(0,0,0,1),2,2)
-    colnames(patterns) <- c('group 1','group 2')
-    gg1 <- fitGG(x[,c(-6,-12)],groups,patterns=patterns,nclust=1,method='Gibbs',B=1000,trace=FALSE)
-    gg2 <- fitGG(x[,c(-6,-12)],groups,patterns=patterns,method='EM',trace=FALSE)
-    gg3 <- fitGG(x[,c(-6,-12)],groups,patterns=patterns,method='quickEM',trace=FALSE)
-    # --- Five [] ---
-    # Key functions: parest
-    gg1 <- parest(gg1,x=x[,c(-6,-12)],groups,burnin=100,alpha=.05)
-    gg2 <- parest(gg2,x=x[,c(-6,-12)],groups,alpha=.05)
-    gg3 <- parest(gg3,x=x[,c(-6,-12)],groups,alpha=.05)
-    gg1
-    gg1$ci
-    # --- checkfit [] ---
-    # Key functions: checkfit
-    checkfit(gg1,x=x[,c(-6,-12)],groups,type='data',main='')
-    # --- Eight [] ---
-    # Key functions: findgenes
-    d1 <- findgenes(gg1,x[,c(-6,-12)],groups,fdrmax=.05,parametric=TRUE)
-    d1.nonpar <- findgenes(gg1,x[,c(-6,-12)],groups,fdrmax=.05,parametric=FALSE,B=1000)
-    dtrue <- (l[,1]!=l[,2])
-    table(d1$d,dtrue)
-    table(d1.nonpar$d,dtrue)
-    # --- Eightbis [] ---
-    # Key functions: findgenes
-    d2 <- findgenes(gg2,x[,c(-6,-12)],groups,fdrmax=.05,parametric=TRUE)
-    d3 <- findgenes(gg3,x[,c(-6,-12)],groups,fdrmax=.05,parametric=TRUE)
-    table(d1$d,d2$d)
-    table(d1$d,d3$d)
-    # --- Fc1 [] ---
-    # Key functions: posmeansGG
-    mpos <- posmeansGG(gg1,x=x[,c(-6,-12)],groups=groups,underpattern=1)
-    fc <- mpos[,1]-mpos[,2]
-    fc[1:5]
-    # --- Nine [] ---
-    # Key functions: classpred
-    pred1 <- classpred(gg1,xnew=x[,6],x=x[,c(-6,-12)],groups,ngene=50,prgroups=c(.5,.5))
-    pred2 <- classpred(gg1,xnew=x[,12],x=x[,c(-6,-12)],groups,ngene=50,prgroups=c(.5,.5))
-    pred1
-    pred2
-    # --- Simulatefs [] ---
-    # Key functions: simGG, fitGG, parest
-    set.seed(1)
-    x <- simGG(n=20,m=2,p.de=.5,a0=3,nu=.5,balpha=.5,nualpha=25)
-    gg1 <- fitGG(x,groups=1:2,method='EM')
-    gg1 <- parest(gg1,x=x,groups=1:2)
-    # --- Powfindgenes [] ---
-    # Key functions: powfindgenes
-    pow1 <- powfindgenes(gg1, x=x, groups=1:2, batchSize=1, fdrmax=0.05, B=1000)
-    pow2 <- powfindgenes(gg1, x=x, groups=1:2, batchSize=2, fdrmax=0.05, B=1000)
-    pow3 <- powfindgenes(gg1, x=x, groups=1:2, batchSize=3, fdrmax=0.05, B=1000)
-    pow1$m
-    pow2$m
-    # --- Forwsim [] ---
-    # Key functions: forwsimDiffExpr
-    fs1 <- forwsimDiffExpr(gg1, x=x, groups=1:2,
-    maxBatch=3,batchSize=1,fdrmax=0.05, B=100, Bsummary=100, randomSeed=1)
-    head(fs1)
-    # --- Seqn [] ---
-    # Key functions: seqBoundariesGrid
-    b0seq <- seq(0,20,length=200); b1seq <- seq(0,40,length=200)
-    bopt <-seqBoundariesGrid(b0=b0seq,b1=b1seq,forwsim=fs1,samplingCost=samplingCost,powmin=0)
-    names(bopt)
-    bopt$opt
-    head(bopt$grid)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gaga_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # -----------------------------------------------------------------
+    # 1. Read User Input Files and Preprocess
+    # -----------------------------------------------------------------
+    
+    # Read expression matrix
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Error: 'expression_matrix.csv' not found in the working directory.")
+    }
+    expr_df <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    x_raw <- as.matrix(expr_df)
+    mode(x_raw) <- "double"
+    
+    # Read sample groups metadata
+    if (!file.exists("sample_groups.csv")) {
+      stop("Error: 'sample_groups.csv' not found in the working directory.")
+    }
+    groups_df <- read.csv("sample_groups.csv", stringsAsFactors = FALSE)
+    
+    # Identify the group column dynamically
+    group_col <- grep("group", colnames(groups_df), ignore.case = TRUE, value = TRUE)
+    if (length(group_col) == 0) {
+      group_col <- colnames(groups_df)[2]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gaga_results.csv")
+      group_col <- group_col[1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gaga_output.rds")
+    groups_raw <- as.character(groups_df[[group_col]])
+    
+    # Map user groups to "group 1" and "group 2" to match the documented patterns matrix
+    unique_groups <- unique(groups_raw)
+    if (length(unique_groups) < 2) {
+      half <- ceiling(length(groups_raw) / 2)
+      groups_raw[1:half] <- "group 1"
+      groups_raw[(half + 1):length(groups_raw)] <- "group 2"
+    } else {
+      groups_raw <- ifelse(groups_raw == unique_groups[1], "group 1", "group 2")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GAGA:", paste0("    gaga: ", packageVersion("gaga"))),
-        "versions.yml"
+    
+    # Construct the matrix `x` and ExpressionSet `xsim`
+    x <- x_raw
+    pheno_data <- data.frame(group = groups_raw)
+    rownames(pheno_data) <- colnames(x)
+    xsim <- ExpressionSet(assayData = x, phenoData = AnnotatedDataFrame(pheno_data))
+    
+    # -----------------------------------------------------------------
+    # 2. Execute Documented Workflow
+    # -----------------------------------------------------------------
+    
+    # Define experimental groups and the hypothesis patterns matrix
+    groups <- pData(xsim)\$group
+    patterns <- matrix(c(0,0,0,1),2,2)
+    colnames(patterns) <- c('group 1','group 2')
+    
+    # Fit the GaGa model using fitGG
+    gg1 <- fitGG(x,groups,patterns=patterns,nclust=1,method='Gibbs',B=1000,trace=FALSE)
+    
+    # Estimate hyper-parameters and posterior probabilities using parest
+    gg1 <- parest(gg1,x=x,groups,burnin=100,alpha=.05)
+    
+    # Assess model goodness-of-fit using checkfit (saving plots to PDF)
+    pdf("goodness_of_fit_plots.pdf", width = 10, height = 10)
+    par(mfrow = c(2, 2))
+    checkfit(gg1,x=x,groups,type='data',main='')
+    checkfit(gg1,x=x,groups,type='shape',main='')
+    checkfit(gg1,x=x,groups,type='mean',main='')
+    checkfit(gg1,x=x,groups,type='shapemean',main='',xlab='Mean',ylab='1/sqrt(CV)')
+    dev.off()
+    
+    # Identify differentially expressed genes using findgenes
+    d1 <- findgenes(gg1,x,groups,fdrmax=.05,parametric=TRUE)
+    d1.nonpar <- findgenes(gg1,x,groups,fdrmax=.05,parametric=FALSE,B=1000)
+    
+    # Save FDR estimation plot
+    pdf("fdr_estimation_plot.pdf", width = 7, height = 7)
+    plot(d1.nonpar\$fdrest,type='l',xlab='Bayesian FDR',ylab='Estimated frequentist FDR')
+    dev.off()
+    
+    # Compute posterior expected expression values and log-fold changes using posmeansGG
+    mpos <- posmeansGG(gg1,x=x,groups=groups,underpattern=1)
+    fc <- mpos[,1]-mpos[,2]
+    
+    # -----------------------------------------------------------------
+    # 3. Save Outputs
+    # -----------------------------------------------------------------
+    
+    # Save the fitted model object
+    saveRDS(gg1, "gaga_fit_model.rds")
+    
+    # Save differential expression and fold change results
+    results_df <- data.frame(
+      Gene = rownames(x_raw),
+      DE_Parametric = d1\$d,
+      DE_NonParametric = d1.nonpar\$d,
+      PosteriorMean_Group1 = mpos[, 1],
+      PosteriorMean_Group2 = mpos[, 2],
+      LogFoldChange = fc,
+      stringsAsFactors = FALSE
     )
+    write.csv(results_df, "differential_expression_results.csv", row.names = FALSE)
+    
+    cat("Pipeline completed successfully.\n")
+
+    writeLines(c(
+        '"BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE":',
+        paste0('    gaga: ', as.character(packageVersion('gaga')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gaga_results.csv
-    touch ${prefix}_gaga_output.rds
-    echo "BIOC_GAGA:" > versions.yml
-    echo "    gaga: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_expression_and_fold_change.csv versions.yml
     """
 }
 
-
-workflow BIOC_GAGA_WORKFLOW {
+workflow BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, sample_groups.csv ] ]
 
     main:
-    BIOC_GAGA(ch_input)
+    BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE(ch_input)
 
     emit:
-    results  = BIOC_GAGA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GAGA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GAGA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GAGA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE.out.tables
+    plots    = BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE.out.plots
+    objects  = BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE.out.objects
+    versions = BIOC_GAGA_DIFFERENTIAL_EXPRESSION_AND_FOLD_CHANGE.out.versions
 }

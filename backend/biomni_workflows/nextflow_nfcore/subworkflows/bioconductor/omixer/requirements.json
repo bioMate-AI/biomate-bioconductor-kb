@@ -1,0 +1,21 @@
+{
+  "package": "omixer",
+  "requirements": [
+    "Omixer",
+    "dplyr",
+    "forcats",
+    "ggplot2",
+    "stringr",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Omixer",
+      "dplyr",
+      "forcats",
+      "ggplot2",
+      "stringr",
+      "tibble"
+    ]
+  }
+}

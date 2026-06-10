@@ -1,133 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HiCBricks
-// HiCBricks is a library designed for handling large high-resolution Hi-C datasets. Over the years, th
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HiCBricks/inst/doc/IntroductionToHiCBricks.R
-// Upstream  : GenomicRanges, curl, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("HiCBricks")
+// Bioconductor workflow: HiCBricks — import_from_2d_text
+// Create a Brick container and load cis/trans contact matrices from 2D text files.
+// Input: Bintable_100kb.bins, Sexton2012_yaffetanay_CisTrans_100000_corrected_chr2L.txt.gz
+// Container: quay.io/biocontainers/bioconductor-hicbricks:1.28.0--r45hdfd78af_0
+// R packages: curl, GenomicRanges, HiCBricks, knitr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_HICBRICKS {
+process BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hicbricks"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hicbricks:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hicbricks:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-hicbricks:1.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hicbricks_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hicbricks_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hicbricks_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HiCBricks)
-    library(Brick_add_ranges)
-    library(Brick_get_ranges)
-    library(Brick_vizart_plot_heatmap)
-    library(jsonlite)
-
-    # --- Load Hi-C Matrix Data [] ---
-    # Key functions: load_BrickContainer, Brick_load_matrix
-    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
-    my_brick <- load_BrickContainer(project_dir = brick_dir)
-    example_dir <- system.file("extdata", package = "HiCBricks")
-    matrix_file <- file.path(example_dir,
-        "Sexton2012_yaffetanay_CisTrans_100000_corrected_chr2L.txt.gz")
-    Brick_load_matrix(Brick = my_brick,
-        chr1 = "chr2L", chr2 = "chr2L",
-        resolution = 100000, matrix_file = matrix_file,
-        delim = " ", remove_prior = TRUE)
-
-
-    # --- Query Genomic Ranges and Metadata [] ---
-    # Key functions: load_BrickContainer, Brick_get_bintable, Brick_get_ranges, Brick_return_region_position
-    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
-    my_brick <- load_BrickContainer(project_dir = brick_dir)
-    bin_table <- Brick_get_bintable(my_brick, resolution = 100000)
-    chr3r_ranges <- Brick_get_ranges(Brick = my_brick,
-        rangekey = "Bintable", chr = "chr3R", resolution = 100000)
-    region_pos <- Brick_return_region_position(Brick = my_brick,
-        region = "chr2L:5000000:10000000", resolution = 100000)
-
-
-    # --- Extract Matrix Values by Distance [] ---
-    # Key functions: load_BrickContainer, Brick_get_values_by_distance
-    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
-    my_brick <- load_BrickContainer(project_dir = brick_dir)
-    failsafe_median <- function(x) {
-        x[is.nan(x) | is.infinite(x) | is.na(x)] <- 0
-        return(median(log10(x + 1)))
-    }
-    dist_values <- Brick_get_values_by_distance(Brick = my_brick,
-        chr = "chr2L", distance = 4, resolution = 100000,
-        FUN = failsafe_median)
-
-
-    # --- Extract Sub-Matrix for Region [] ---
-    # Key functions: load_BrickContainer, Brick_get_matrix_within_coords
-    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
-    my_brick <- load_BrickContainer(project_dir = brick_dir)
-    sub_matrix <- Brick_get_matrix_within_coords(Brick = my_brick,
-        x_coords = "chr2L:5000000:10000000",
-        y_coords = "chr2L:5000000:10000000",
-        resolution = 100000, force = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hicbricks_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hicbricks_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hicbricks_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("curl", "GenomicRanges", "HiCBricks", "knitr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HICBRICKS:", paste0("    hicbricks: ", packageVersion("HiCBricks"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required library
+    library("HiCBricks")
+    
+    # Define input file paths from the working directory
+    Bintable_path <- "Bintable_100kb.bins"
+    Matrix_file_chr2L <- "Sexton2012_yaffetanay_CisTrans_100000_corrected_chr2L.txt.gz"
+    
+    # Create the project directory
+    out_dir <- "HiCBricks_project"
+    if (!dir.exists(out_dir)) {
+        dir.create(out_dir, recursive = TRUE)
+    }
+    
+    # 1. Create the project directory and initialize the Brick objects using the bin table
+    Create_many_Bricks(
+        BinTable = Bintable_path, 
+        bin_delim = " ", 
+        output_directory = out_dir, 
+        file_prefix = "HiCBricks_vignette_test", 
+        remove_existing = TRUE, 
+        experiment_name = "HiCBricks vignette test", 
+        resolution = 100000
     )
+    
+    # 2. Load the BrickContainer
+    BrickContainer_dir <- out_dir
+    My_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)
+    
+    # 3. Populate the Brick objects with contact frequencies from the 2D matrix files
+    # Since only the chr2L matrix file is provided in the user input, we load chr2L.
+    Chromosomes <- c("chr2L")
+    for (chr in Chromosomes) {
+        Matrix_file <- Matrix_file_chr2L
+        Brick_load_matrix(
+            Brick = My_BrickContainer, 
+            chr1 = chr, 
+            chr2 = chr, 
+            resolution = 100000, 
+            matrix_file = Matrix_file, 
+            delim = " ", 
+            remove_prior = TRUE
+        )
+    }
+    
+    # Save the BrickContainer object to an RDS file
+    saveRDS(My_BrickContainer, file = "My_BrickContainer.rds")
+    
+    # Export meaningful results to verify successful loading
+    # Export the bin table
+    bintable <- Brick_get_bintable(My_BrickContainer, resolution = 100000)
+    write.csv(as.data.frame(bintable), file = "bintable_output.csv", row.names = FALSE)
+    
+    # Export matrix summary statistics for chr2L
+    m_dims <- Brick_matrix_dimensions(Brick = My_BrickContainer, chr1 = "chr2L", chr2 = "chr2L", resolution = 100000)
+    m_minmax <- Brick_matrix_minmax(Brick = My_BrickContainer, chr1 = "chr2L", chr2 = "chr2L", resolution = 100000)
+    
+    summary_stats <- data.frame(
+        Metric = c("Rows", "Cols", "Min_Value", "Max_Value"),
+        Value = c(m_dims[1], m_dims[2], m_minmax[1], m_minmax[2])
+    )
+    write.csv(summary_stats, file = "chr2L_matrix_summary.csv", row.names = FALSE)
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT":
+        HiCBricks: \$(Rscript -e 'cat(as.character(packageVersion("HiCBricks")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hicbricks_results.csv
-    touch ${prefix}_hicbricks_output.rds
-    echo "BIOC_HICBRICKS:" > versions.yml
-    echo "    hicbricks: 0.0.0" >> versions.yml
+    touch ${prefix}_import_from_2d_text.csv versions.yml
     """
 }
 
-
-workflow BIOC_HICBRICKS_WORKFLOW {
+workflow BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Bintable_100kb.bins, Sexton2012_yaffetanay_CisTrans_100000_corrected_chr2L.txt.gz ] ]
 
     main:
-    BIOC_HICBRICKS(ch_input)
+    BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT(ch_input)
 
     emit:
-    results  = BIOC_HICBRICKS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HICBRICKS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HICBRICKS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HICBRICKS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT.out.tables
+    plots    = BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT.out.plots
+    objects  = BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT.out.objects
+    versions = BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT.out.versions
 }

@@ -1,0 +1,13 @@
+{
+  "package": "casper",
+  "requirements": [
+    "Biobase",
+    "casper"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "casper"
+    ]
+  }
+}

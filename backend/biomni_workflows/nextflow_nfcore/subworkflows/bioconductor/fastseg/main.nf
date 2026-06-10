@@ -1,126 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: fastseg
-// fastseg implements a very fast and efficient segmentation algorithm. It has similar functionality as
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/fastseg/inst/doc/fastseg.R
-// Upstream  : DNAcopy, GenomicRanges, oligo
-// Downstream: none
-//
-// Install: BiocManager::install("fastseg")
+// Bioconductor workflow: fastseg — genomic_ranges_segmentation
+// Segment genomic data represented as a GRanges object to identify copy number segments and plot the results.
+// Input: gr
+// Container: quay.io/biocontainers/bioconductor-fastseg:1.56.0--r45ha27e39d_0
+// R packages: DNAcopy, fastseg, GenomicRanges, oligo
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, fastseg
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load GenomicRanges and fastseg packages
+//  * 2. [Core Analysis] Run segmentation using fastseg
+//  * 3. [Visualization & Output] Plot the segmentation results using segPlot
 
 nextflow.enable.dsl = 2
 
-process BIOC_FASTSEG {
+process BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fastseg"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fastseg:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-fastseg:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fastseg_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fastseg_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fastseg_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(IRanges)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: na
-    ---------------------------------------------------------------------
-    data(coriell)
-    head(coriell)
-    samplenames <- colnames(coriell)[4:5]
-    data <- as.matrix(coriell[4:5])
-    # --- Granges [] ---
-    # Key functions: GRanges, IRanges, mcols, fastseg
-    ---------------------------------------------------------------------
-    library("GenomicRanges")
-    ## with both individuals
-    gr <- GRanges(seqnames=chrom,
-            ranges=IRanges(maploc, end=maploc))
-    # --- Fastseg [] ---
-    # Key functions: fastseg
-    ---------------------------------------------------------------------
-    data2 <- data[, 1]
-    res <- fastseg(data2)
-    head(res)
-    # --- Granges [] ---
-    # Key functions: GRanges, IRanges, mcols, fastseg
-    ---------------------------------------------------------------------
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DNAcopy", "fastseg", "GenomicRanges", "oligo")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(fastseg)
+    library(GenomicRanges)
+    
+    # Read the user input GRanges object from the working directory
+    if (file.exists("gr")) {
+      gr_input <- readRDS("gr")
+    } else if (file.exists("gr.rds")) {
+      gr_input <- readRDS("gr.rds")
+    } else {
+      stop("Error: Input file 'gr' or 'gr.rds' not found in the working directory.")
+    }
+    
+    # Extract necessary components from the input GRanges object to match the documented workflow
+    chrom <- as.character(seqnames(gr_input))
+    maploc <- start(gr_input)
+    data <- as.matrix(mcols(gr_input))
+    samplenames <- colnames(mcols(gr_input))
+    
     ## with both individuals
     gr <- GRanges(seqnames=chrom,
             ranges=IRanges(maploc, end=maploc))
     mcols(gr) <- data
-    # --- Segplot [] ---
-    # Key functions: segPlot
-    ---------------------------------------------------------------------
-    segPlot(gr,res, plot.type="w")
-    # --- Data [] ---
-    # Key functions: time, fastseg
-    ---------------------------------------------------------------------
-    data(fastsegData)
-    system.time(res <- fastseg(fastsegData))
-    # --- Segplot [] ---
-    # Key functions: segPlot
-    ---------------------------------------------------------------------
-    segPlot(fastsegData,res, plot.type="w")
+    colnames(mcols(gr)) <- samplenames
+    res <- fastseg(gr)
+    head(res)
+    
+    # Save results for both individuals
+    write.csv(as.data.frame(res), "res_both.csv", row.names=FALSE)
+    saveRDS(res, "res_both.rds")
+    
+    ## with one individual
+    gr2 <- gr
+    data2 <- as.matrix(data[, 1])
+    colnames(data2) <- "sample1"
+    mcols(gr2) <- data2
+    res_one <- fastseg(gr2)
+    head(res_one)
+    
+    # Save results for one individual
+    write.csv(as.data.frame(res_one), "res_one.csv", row.names=FALSE)
+    saveRDS(res_one, "res_one.rds")
+    
+    ## with both individuals and custom threshold
+    gr <- GRanges(seqnames=chrom,
+            ranges=IRanges(maploc, end=maploc))
+    mcols(gr) <- data
+    colnames(mcols(gr)) <- samplenames
+    res <- fastseg(gr,segMedianT=0.2)
+    
+    # Save results with custom threshold
+    write.csv(as.data.frame(res), "res_both_segMedianT.csv", row.names=FALSE)
+    saveRDS(res, "res_both_segMedianT.rds")
+    
+    # Plotting the segmentation results
+    pdf("segplot_whole_genome.pdf", width=10, height=8)
+    segPlot(gr, res, plot.type="w")
+    dev.off()
+    
+    pdf("segplot_single_chrom.pdf", width=10, height=10)
+    segPlot(gr, res, plot.type="s")
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fastseg_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fastseg_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fastseg_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FASTSEG:", paste0("    fastseg: ", packageVersion("fastseg"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION":',
+        paste0('    fastseg: ', as.character(packageVersion('fastseg')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fastseg_results.csv
-    touch ${prefix}_fastseg_output.rds
-    echo "BIOC_FASTSEG:" > versions.yml
-    echo "    fastseg: 0.0.0" >> versions.yml
+    touch ${prefix}_genomic_ranges_segmentation.csv versions.yml
     """
 }
 
-
-workflow BIOC_FASTSEG_WORKFLOW {
+workflow BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gr ] ]
 
     main:
-    BIOC_FASTSEG(ch_input)
+    BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION(ch_input)
 
     emit:
-    results  = BIOC_FASTSEG.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FASTSEG.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FASTSEG.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FASTSEG.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION.out.tables
+    plots    = BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION.out.plots
+    objects  = BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION.out.objects
+    versions = BIOC_FASTSEG_GENOMIC_RANGES_SEGMENTATION.out.versions
 }

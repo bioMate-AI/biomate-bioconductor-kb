@@ -1,0 +1,17 @@
+{
+  "package": "snagee",
+  "requirements": [
+    "Biobase",
+    "SNAGEE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "SNAGEE"
+    ],
+    "sample_quality_assessment.nf": [
+      "Biobase",
+      "SNAGEE"
+    ]
+  }
+}

@@ -3,6 +3,8 @@
 // Bioconductor module: Structstrings
 // The Structstrings package implements the widely used dot bracket annotation for storing base pairing
 //
+// Input: structures.txt (dot-bracket annotations, one per line), sequences.fasta (matching RNA sequences in FASTA, same order)
+//
 // Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Structstrings/inst/doc/Structstrings.R
 // Upstream  : none
 // Downstream: tRNA, tRNAdbImport
@@ -12,14 +14,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_STRUCTSTRINGS {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-structstrings"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-structstrings:1.22.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-structstrings:1.22.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,9 +39,17 @@ process BIOC_STRUCTSTRINGS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DotBracketString)
-    library(StructuredRNAStringSet)
+    library(Structstrings)
+    library(Biostrings)
     library(jsonlite)
+
+    # --- Load user-provided inputs ---
+    # structures.txt : dot-bracket secondary-structure annotations, one structure
+    #                  per line (e.g. "(((((.(..(((.........)))...)))))").
+    # sequences.fasta: matching RNA sequences in FASTA format (one record per
+    #                  structure, in the same order).
+    dbs  <- DotBracketStringSet(readLines("structures.txt"))
+    nseq <- readRNAStringSet("sequences.fasta")
 
     # --- get Base Pairing [] ---
     # Key functions: getBasePairing
@@ -61,8 +70,6 @@ process BIOC_STRUCTSTRINGS {
     getDotBracket(getBasePairing(db), force = TRUE)
     # --- structured rna string [] ---
     # Key functions: StructuredRNAStringSet, dotbracket
-    data("dbs", package = "Structstrings")
-    data("nseq", package = "Structstrings")
     sdbs <- StructuredRNAStringSet(nseq,dbs)
     # --- structured rna string base pairing [] ---
     # Key functions: getBasePairing
@@ -71,18 +78,27 @@ process BIOC_STRUCTSTRINGS {
     sessionInfo()
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_structstrings_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_structstrings_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_structstrings_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_structstrings_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_structstrings_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_structstrings_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_STRUCTSTRINGS:", paste0("    structstrings: ", packageVersion("Structstrings"))),
+        c("BIOC_STRUCTSTRINGS:", paste0("    structstrings: ", as.character(packageVersion("Structstrings")))),
         "versions.yml"
     )
     """

@@ -1,0 +1,20 @@
+{
+  "package": "snm",
+  "requirements": [
+    "snm"
+  ],
+  "by_workflow": {
+    "double_channel_normalization.nf": [
+      "snm"
+    ],
+    "main.nf": [
+      "snm"
+    ],
+    "preprocessed_normalization.nf": [
+      "snm"
+    ],
+    "reference_design_normalization.nf": [
+      "snm"
+    ]
+  }
+}

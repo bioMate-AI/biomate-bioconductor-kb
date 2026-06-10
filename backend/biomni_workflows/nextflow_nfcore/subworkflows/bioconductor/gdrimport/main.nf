@@ -1,93 +1,131 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gDRimport
-// The package is a part of the gDR suite. It helps to prepare raw drug response data for downstream pr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gDRimport/inst/doc/ConvertingMAEtoPharmacoSet.R
-// Upstream  : none
-// Downstream: gDR
-//
-// Install: BiocManager::install("gDRimport")
+// Bioconductor workflow: gDRimport — mae_to_pharmacoset
+// Convert a gDR-generated MultiAssayExperiment (MAE) object into a PharmacoGx PharmacoSet (PSet) object.
+// Input: kyung2022mae/MAE_E2.qs2
+// Container: quay.io/biocontainers/bioconductor-gdrimport:1.8.1--r45hdfd78af_0
+// R packages: PharmacoGx, gDRimport, qs2
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GDRIMPORT {
+process BIOC_GDRIMPORT_MAE_TO_PHARMACOSET {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gdrimport"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gdrimport:1.4.6--r44_0' :
-        'quay.io/biocontainers/bioconductor-gdrimport:1.4.6--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-gdrimport:1.8.1--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gdrimport_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gdrimport_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gdrimport_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MAEpply)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("PharmacoGx", "gDRimport", "qs2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- M A Epply [] ---
-    # Key functions: MAEpply
-    gDRutils::MAEpply(mae, assays)
-    # --- treatment Response [] ---
-    # Key functions: treatmentResponse
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(gDRimport)
+    library(qs2)
+    library(PharmacoGx)
+    
+    # Define input file path
+    input_file <- "kyung2022mae/MAE_E2.qs2"
+    
+    # Check if input file exists
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file not found:", input_file))
+    }
+    
+    # Stage 1: Load the MAE object using qs2::qs_read
+    message("Loading MultiAssayExperiment object...")
+    mae <- qs2::qs_read(input_file)
+    
+    # Stage 2: Convert the MAE object into a PharmacoSet object
+    message("Converting MAE to PharmacoSet...")
+    pset <- convert_MAE_to_PSet(mae, pset_name = "Kyung2022")
+    
+    # Stage 3: Extract the TreatmentResponseExperiment
+    message("Extracting TreatmentResponseExperiment...")
     tre <- treatmentResponse(pset)
-    head(rownames(tre))
-    head(rowData(tre))
+    
+    # Save meaningful results to output files
+    message("Saving outputs...")
+    
+    # Save the PharmacoSet object
+    saveRDS(pset, file = "Kyung2022_PSet.rds")
+    
+    # Save the TreatmentResponseExperiment object
+    saveRDS(tre, file = "Kyung2022_TRE.rds")
+    
+    # Extract and save treatment and sample metadata as CSV tables
+    tryCatch({
+      treatment_df <- PharmacoGx::treatmentInfo(pset)
+      write.csv(treatment_df, file = "treatment_info.csv", row.names = TRUE)
+    }, error = function(e) {
+      message("Could not save treatment info: ", e\$message)
+    })
+    
+    tryCatch({
+      sample_df <- PharmacoGx::sampleInfo(pset)
+      write.csv(sample_df, file = "sample_info.csv", row.names = TRUE)
+    }, error = function(e) {
+      message("Could not save sample info: ", e\$message)
+    })
+    
+    message("Pipeline completed successfully.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gdrimport_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gdrimport_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gdrimport_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GDRIMPORT:", paste0("    gdrimport: ", packageVersion("gDRimport"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_GDRIMPORT_MAE_TO_PHARMACOSET":
+        gDRimport: \$(Rscript -e 'cat(as.character(packageVersion("gDRimport")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gdrimport_results.csv
-    touch ${prefix}_gdrimport_output.rds
-    echo "BIOC_GDRIMPORT:" > versions.yml
-    echo "    gdrimport: 0.0.0" >> versions.yml
+    touch ${prefix}_mae_to_pharmacoset.csv versions.yml
     """
 }
 
-
-workflow BIOC_GDRIMPORT_WORKFLOW {
+workflow BIOC_GDRIMPORT_MAE_TO_PHARMACOSET_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ kyung2022mae/MAE_E2.qs2 ] ]
 
     main:
-    BIOC_GDRIMPORT(ch_input)
+    BIOC_GDRIMPORT_MAE_TO_PHARMACOSET(ch_input)
 
     emit:
-    results  = BIOC_GDRIMPORT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GDRIMPORT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GDRIMPORT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GDRIMPORT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GDRIMPORT_MAE_TO_PHARMACOSET.out.tables
+    plots    = BIOC_GDRIMPORT_MAE_TO_PHARMACOSET.out.plots
+    objects  = BIOC_GDRIMPORT_MAE_TO_PHARMACOSET.out.objects
+    versions = BIOC_GDRIMPORT_MAE_TO_PHARMACOSET.out.versions
 }

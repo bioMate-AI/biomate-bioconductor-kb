@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: distance_metric=Specifies the distance metric to use in odseq (e.g., \"affine\") ;; B=The number of bootstrap replicates to run for threshold calculation (e.g., 1000) ;; type=Specifies whether the input matrix for odseq_unaligned is a \"similarity\" or \"distance\" matrix\n- alternatives: odseq (for aligned sequences, which is highly accurate but requires computationally expensive multiple sequence alignment) vs. odseq_unaligned (for unaligned sequences, which is faster for large datasets but requires a precomputed similarity or distance matrix)\n- when_to_use: Use when you have a set of sequences (e.g., from a PFAM family) and want to identify and discard outlier/noise sequences that could degrade the quality of a multiple sequence alignment.\n- pitfalls: odseq_unaligned is highly dependent on the type of metric/kernel used; simple kernels like the spectrum kernel do not consider relative letter positions, which can heavily reduce outlier detection accuracy compared to using aligned sequences.",
+  "workflows": [
+    {
+      "name": "aligned_sequence_outlier_detection",
+      "intent": "Detect outlier sequences from a set of sequences by first performing a multiple sequence alignment.",
+      "input": [
+        "seqs (AAStringSet or DNAStringSet of biological sequences to be aligned and analyzed)"
+      ],
+      "stages": "1. Perform multiple sequence alignment using msa ;; 2. Run outlier detection using odseq with a specified distance metric and bootstrap parameter",
+      "code": "set.seed(93)\nlibrary(odseq)\ndata(\"seqs\")\nlibrary(msa)\nalig <- msa(seqs)\nground_values <- c(rep(FALSE, 211), rep(TRUE, 100))\noutliers <- odseq(alig, distance_metric = \"affine\", B = 1000)\nmean(outliers == ground_values)"
+    },
+    {
+      "name": "unaligned_sequence_outlier_detection",
+      "intent": "Detect outlier sequences from unaligned sequences using a precomputed similarity or distance matrix to save alignment computation time.",
+      "input": [
+        "seqs (AAStringSet or DNAStringSet of biological sequences)"
+      ],
+      "stages": "1. Compute a similarity matrix using a string kernel from the kebabs package ;; 2. Run outlier detection on the similarity matrix using odseq_unaligned",
+      "code": "library(kebabs)\nsp <- spectrumKernel(k = 3)\nmat <- getKernelMatrix(sp, seqs)\noutliers_unaligned <- odseq_unaligned(mat, B = 1000, type = \"similarity\")\nmean(outliers_unaligned == ground_values)"
+    }
+  ]
+}

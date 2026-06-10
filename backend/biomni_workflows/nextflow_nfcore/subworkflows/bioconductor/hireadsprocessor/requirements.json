@@ -1,0 +1,17 @@
+{
+  "package": "hireadsprocessor",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "IRanges",
+    "hiReadsProcessor"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "IRanges",
+      "hiReadsProcessor"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "package": "targetscore",
+  "requirements": [
+    "DESeq",
+    "TargetScore",
+    "TargetScoreData",
+    "gplots"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TargetScore"
+    ],
+    "target_score_deseq_pipeline.nf": [
+      "DESeq",
+      "TargetScore"
+    ],
+    "target_score_via_targetscoredata.nf": [
+      "TargetScore",
+      "TargetScoreData",
+      "gplots"
+    ]
+  }
+}

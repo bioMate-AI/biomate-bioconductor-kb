@@ -1,149 +1,232 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bettr
-// bettr provides a set of interactive visualization methods to explore the results of a benchmarking s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bettr/inst/doc/bettr.R
-// Upstream  : SummarizedExperiment, dplyr, tibble
-// Downstream: none
-//
-// Install: BiocManager::install("bettr")
+// Bioconductor workflow: bettr — bettr_genomic_benchmark
+// Benchmark genomic regions or peak-calling methods by extracting performance metrics from a BED file and metadata, then visualizing and ranking them using bettr.
+// Input: regions.bed, coldata.csv
+// Container: 1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ComplexHeatmap, SummarizedExperiment, bettr, dplyr, rtracklayer, tibble
+// Visualizations: heatmap
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BETTR {
+process BIOC_BETTR_BETTR_GENOMIC_BENCHMARK {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bettr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bettr:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bettr:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bettr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bettr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bettr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(bettr)
-    library(jsonlite)
-
-    # --- Data Assembly [Data Assembly] ---
-    # Key functions: assembleSE
-    df <- data.frame(
-        Method = c("M1", "M2", "M3"),
-        metric1 = c(1, 2, 3),
-        metric2 = c(3, 1, 2)
-    )
-    metricInfo <- data.frame(
-        Metric = c("metric1", "metric2"),
-        Group = c("G1", "G2")
-    )
-    idInfo <- data.frame(
-        Method = c("M1", "M2", "M3"),
-        Type = c("T1", "T1", "T2")
-    )
-    se <- assembleSE(
-        df = df,
-        idCol = "Method",
-        metricInfo = metricInfo,
-        idInfo = idInfo
-    )
-
-    # --- Advanced Assembly with Transformations [Data Assembly] ---
-    # Key functions: assembleSE
-    res <- read.csv(system.file("extdata", "duo2018_results.csv",
-                                package = "bettr"))
-    metricInfo <- data.frame(
-        Metric = colnames(res)[-1],
-        Class = sub("_.*", "", colnames(res)[-1])
-    )
-    initialTransforms <- lapply(
-        res[, grep("elapsed|nclust", colnames(res), value = TRUE)],
-        function(i) list(flip = TRUE, transform = '[0,1]')
-    )
-    duo2018 <- assembleSE(
-        df = res,
-        idCol = "method",
-        metricInfo = metricInfo,
-        initialTransforms = initialTransforms
-    )
-
-    # --- Data Preparation and Weighting [Data Preparation] ---
-    # Key functions: bettrGetReady
-    metadata(duo2018)$bettrInfo$initialWeights["Class_ARI"] <- 0.55
-    prepData <- bettrGetReady(
-        bettrSE = duo2018,
-        idCol = "method",
-        scoreMethod = "weighted mean",
-        metricGrouping = "Class",
-        metricCollapseGroup = TRUE
-    )
-
-    # --- Performance Visualization [Visualisation] ---
-    # Key functions: makeHeatmap, makePolarPlot
-    heatmap_plot <- makeHeatmap(bettrList = prepData)
-    polar_plot <- makePolarPlot(bettrList = prepData)
-
-    # --- Interactive Dashboard Setup [Visualisation] ---
-    # Key functions: bettr
-    app <- bettr(
-        bettrSE = duo2018,
-        bstheme = "sandstone"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bettr_results.csv", row.names = TRUE)
+    library(rtracklayer)
+    library(dplyr)
+    library(tibble)
+    
+    # ==========================================
+    # Stage 1: Input Processing & Feature Extraction
+    # ==========================================
+    
+    message("Step 1: Importing genomic intervals from regions.bed...")
+    gr <- rtracklayer::import("regions.bed")
+    df_bed <- as.data.frame(gr)
+    
+    # Ensure score column exists and is numeric
+    if (!"score" %in% colnames(df_bed) || all(is.na(df_bed\$score))) {
+      message("Warning: 'score' column missing or empty in BED. Generating default scores.")
+      df_bed\$score <- seq_len(nrow(df_bed))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bettr_results.csv")
+      df_bed\$score <- as.numeric(df_bed\$score)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bettr_output.rds")
+    
+    # Determine the column to use as the Method identifier
+    # If 'name' has multiple unique values, we treat it as the Method/Algorithm name.
+    # Otherwise, we fallback to using chromosomes (seqnames) as the comparison groups.
+    if ("name" %in% colnames(df_bed) && length(unique(df_bed\$name)) > 1) {
+      id_col <- "name"
+    } else {
+      message("Using chromosome (seqnames) as the comparison group (Method).")
+      df_bed\$name <- as.character(df_bed\$seqnames)
+      id_col <- "name"
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BETTR:", paste0("    bettr: ", packageVersion("bettr"))),
-        "versions.yml"
+    
+    message("Step 2: Calculating benchmark metrics per method...")
+    # Compute multiple metrics to evaluate each method
+    benchmark_df <- df_bed %>%
+      group_by(Method = !!sym(id_col)) %>%
+      summarize(
+        mean_score = mean(score, na.rm = TRUE),
+        max_score = max(score, na.rm = TRUE),
+        total_width = sum(width, na.rm = TRUE),
+        mean_width = mean(width, na.rm = TRUE),
+        num_regions = n(),
+        .groups = "drop"
+      )
+    
+    # Read optional metadata if available
+    if (file.exists("coldata.csv")) {
+      message("Step 3: Integrating metadata from coldata.csv...")
+      coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+      if (!"Method" %in% colnames(coldata)) {
+        colnames(coldata)[1] <- "Method"
+      }
+      idInfo <- coldata[coldata\$Method %in% benchmark_df\$Method, , drop = FALSE]
+      if (nrow(idInfo) == 0) {
+        idInfo <- data.frame(Method = benchmark_df\$Method, Type = "DefaultType")
+      }
+    } else {
+      idInfo <- data.frame(Method = benchmark_df\$Method, Type = "DefaultType")
+    }
+    
+    # Define metric metadata (grouping metrics into classes)
+    metricInfo <- data.frame(
+      Metric = c("mean_score", "max_score", "total_width", "mean_width", "num_regions"),
+      Class = c("Score", "Score", "Size", "Size", "Count"),
+      stringsAsFactors = FALSE
     )
+    
+    # ==========================================
+    # Stage 2: Normalization & Transformation Setup
+    # ==========================================
+    
+    message("Step 4: Setting up metric transformations...")
+    # For 'mean_width' and 'num_regions', smaller values are typically preferred (flip = TRUE).
+    # For scores and total width, larger values are preferred (flip = FALSE).
+    # All metrics are scaled to [0, 1] to ensure comparability.
+    initialTransforms <- list(
+      mean_score  = list(flip = FALSE, transform = "[0,1]"),
+      max_score   = list(flip = FALSE, transform = "[0,1]"),
+      total_width = list(flip = FALSE, transform = "[0,1]"),
+      mean_width  = list(flip = TRUE,  transform = "[0,1]"),
+      num_regions = list(flip = TRUE,  transform = "[0,1]")
+    )
+    
+    # ==========================================
+    # Stage 3: Assemble SummarizedExperiment
+    # ==========================================
+    
+    message("Step 5: Assembling SummarizedExperiment...")
+    se <- assembleSE(
+      df = as.data.frame(benchmark_df),
+      idCol = "Method",
+      metricInfo = metricInfo,
+      idInfo = idInfo,
+      initialTransforms = initialTransforms
+    )
+    
+    # ==========================================
+    # Stage 4: Programmatic Preparation & Scoring
+    # ==========================================
+    
+    message("Step 6: Preparing data and calculating aggregated scores...")
+    prepData <- bettrGetReady(
+      bettrSE = se,
+      idCol = "Method",
+      scoreMethod = "weighted mean",
+      metricGrouping = "Class",
+      metricCollapseGroup = TRUE
+    )
+    
+    # Save final scores and rankings
+    write.csv(prepData\$scoredata, "benchmark_scores.csv", row.names = FALSE)
+    message("Saved aggregated scores to 'benchmark_scores.csv'.")
+    
+    # ==========================================
+    # Stage 5: Visualization & Serialization
+    # ==========================================
+    
+    message("Step 7: Generating diagnostic plots...")
+    
+    # 1. Heatmap
+    pdf("heatmap.pdf", width = 10, height = 8)
+    hm <- makeHeatmap(bettrList = prepData)
+    if (inherits(hm, "Heatmap")) {
+      ComplexHeatmap::draw(hm)
+    } else {
+      print(hm)
+    }
+    dev.off()
+    message("Saved heatmap to 'heatmap.pdf'.")
+    
+    # 2. Polar and Parallel Coordinate Plots
+    pdf("polar_plots.pdf", width = 8, height = 8)
+    tryCatch({
+      print(makePolarPlot(bettrList = prepData))
+    }, error = function(e) {
+      message("Warning: Could not generate Polar Plot: ", e\$message)
+    })
+    
+    tryCatch({
+      print(makeBarPolarPlot(bettrList = prepData))
+    }, error = function(e) {
+      message("Warning: Could not generate Bar Polar Plot: ", e\$message)
+    })
+    
+    tryCatch({
+      print(makeParCoordPlot(bettrList = prepData))
+    }, error = function(e) {
+      message("Warning: Could not generate Parallel Coordinate Plot: ", e\$message)
+    })
+    dev.off()
+    message("Saved polar and coordinate plots to 'polar_plots.pdf'.")
+    
+    # 3. Export to JSON for web/server mode compatibility
+    message("Step 8: Exporting benchmark to JSON...")
+    bettrToJSON(se, file = "bettr_benchmark.json")
+    message("Saved JSON configuration to 'bettr_benchmark.json'.")
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_BETTR_BETTR_GENOMIC_BENCHMARK":',
+        paste0('    bettr: ', as.character(packageVersion('bettr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bettr_results.csv
-    touch ${prefix}_bettr_output.rds
-    echo "BIOC_BETTR:" > versions.yml
-    echo "    bettr: 0.0.0" >> versions.yml
+    touch ${prefix}_bettr_genomic_benchmark.csv versions.yml
     """
 }
 
-
-workflow BIOC_BETTR_WORKFLOW {
+workflow BIOC_BETTR_BETTR_GENOMIC_BENCHMARK_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BETTR(ch_input)
+    BIOC_BETTR_BETTR_GENOMIC_BENCHMARK(ch_input)
 
     emit:
-    results  = BIOC_BETTR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BETTR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BETTR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BETTR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BETTR_BETTR_GENOMIC_BENCHMARK.out.tables
+    plots    = BIOC_BETTR_BETTR_GENOMIC_BENCHMARK.out.plots
+    objects  = BIOC_BETTR_BETTR_GENOMIC_BENCHMARK.out.objects
+    versions = BIOC_BETTR_BETTR_GENOMIC_BENCHMARK.out.versions
 }

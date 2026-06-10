@@ -1,134 +1,158 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: XINA
-// The aim of XINA is to determine which proteins exhibit similar patterns within and across experiment
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/XINA/inst/doc/xina_user_code.R
-// Upstream  : devtools, ggplot2, STRINGdb
-// Downstream: none
-//
-// Install: BiocManager::install("XINA")
+// Bioconductor workflow: XINA — xina_time_series_clustering_and_network_analysis
+// Cluster multiplexed time-series omics data across multiple conditions, identify comigrated features, and perform PPI network analysis.
+// Input: Control.csv, Stimulus1.csv, Stimulus2.csv
+// Container: quay.io/biocontainers/bioconductor-xina:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: STRINGdb, XINA, ggplot2
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load quantitative time-series datasets for each condition
+//  * 2. [Input & Preparation] Define the time points (columns) and data files
+//  * 3. [Core Analysis] Perform model-based or k-means clustering using xina_clustering
+//  * 4. [Visualization & Output] Plot the clusters using plot_clusters and condition compositions using plot_condition_compositions
+//  * 5. [Core Analysis] Perform coregulation/comigration analysis using alluvial_enriched
+//  * 6. [Core Analysis] Perform PPI network analysis using STRINGdb and xina_analysis
+//  * 7. [Visualization & Output] Plot PPI networks using xina_plot_all
 
 nextflow.enable.dsl = 2
 
-process BIOC_XINA {
+process BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-xina"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-xina:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-xina:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_xina_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_xina_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_xina_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(XINA)
-    library(jsonlite)
+    library(ggplot2)
+    
+    # 1. Load quantitative time-series datasets for each condition from the working directory
+    Control <- read.csv("Control.csv", check.names=FALSE, stringsAsFactors = FALSE)
+    Stimulus1 <- read.csv("Stimulus1.csv", check.names=FALSE, stringsAsFactors = FALSE)
+    Stimulus2 <- read.csv("Stimulus2.csv", check.names=FALSE, stringsAsFactors = FALSE)
+    
+    # 2. Define the time points (columns) and data files
+    # We identify the time-series columns by excluding non-numeric metadata columns
+    data_column <- setdiff(colnames(Control), c("Accession", "Description"))
+    data_files <- c("Control.csv", "Stimulus1.csv", "Stimulus2.csv")
+    
+    # Set seed for reproducibility
+    set.seed(0)
+    
+    # 3. Perform model-based or k-means clustering using xina_clustering
+    clustering_result <- xina_clustering(data_files, data_column=data_column, nClusters=20)
+    clustering_result_km <- xina_clustering(data_files, data_column=data_column, nClusters=20, chosen_model='kmeans')
+    
+    # Save clustering results
+    saveRDS(clustering_result, "clustering_result_mclust.rds")
+    saveRDS(clustering_result_km, "clustering_result_kmeans.rds")
+    
+    # 4. Plot the clusters and condition compositions
+    theme1 <- theme(title=element_text(size=8, face='bold'),
+                    axis.text.x = element_text(size=7),
+                    axis.text.y = element_blank(),
+                    axis.ticks.x = element_blank(),
+                    axis.ticks.y = element_blank(),
+                    axis.title.x = element_blank(),
+                    axis.title.y = element_blank())
+    
+    pdf("clusters_plot.pdf", width=10, height=8)
+    plot_clusters(clustering_result, ggplot_theme=theme1)
+    dev.off()
+    
+    theme2 <- theme(legend.key.size = unit(0.3, "cm"),
+                    legend.text=element_text(size=5),
+                    title=element_text(size=7, face='bold'))
+    
+    pdf("condition_compositions_plot.pdf", width=10, height=8)
+    condition_composition <- plot_condition_compositions(clustering_result, ggplot_theme=theme2)
+    dev.off()
+    
+    write.csv(condition_composition, "condition_composition.csv", row.names=FALSE)
+    
+    # 5. Perform coregulation/comigration analysis using alluvial_enriched
+    classes <- as.vector(clustering_result\$condition)
+    
+    pdf("alluvial_plot_all.pdf", width=10, height=8)
+    all_cor <- alluvial_enriched(clustering_result, classes)
+    dev.off()
+    
+    pdf("alluvial_plot_size5.pdf", width=10, height=8)
+    cor_bigger_than_5 <- alluvial_enriched(clustering_result, classes, comigration_size=5)
+    dev.off()
+    
+    write.csv(all_cor, "alluvial_all_cor.csv", row.names=FALSE)
+    write.csv(cor_bigger_than_5, "alluvial_cor_bigger_than_5.csv", row.names=FALSE)
+    
+    # 6. Perform PPI network analysis using STRINGdb and xina_analysis
+    # Wrapped in tryCatch to handle potential network/download issues gracefully
+    tryCatch({
+      library(STRINGdb)
+      string_db <- STRINGdb\$new( version="10", species=9606, score_threshold=0, input_directory="" )
+      xina_result <- xina_analysis(clustering_result, string_db)
+      saveRDS(xina_result, "xina_network_analysis_result.rds")
+      
+      # 7. Plot PPI networks using xina_plot_all
+      # This function automatically writes network plots to the working directory
+      xina_plot_all(xina_result, clustering_result)
+    }, error = function(e) {
+      warning("STRINGdb PPI network analysis could not be completed: ", e\$message)
+    })
 
-    # --- Data Preparation [Data Preparation] ---
-    # Key functions: make_random_xina_data
-    random_data_info <- make_random_xina_data()
-    data_files <- paste(
-        random_data_info$conditions,
-        ".csv",
-        sep=""
-    )
-    data_column <- random_data_info$time_points
-
-    # --- Clustering Analysis [Clustering Analysis] ---
-    # Key functions: xina_clustering
-    clustering_result <- xina_clustering(
-        file_list=data_files,
-        data_column=data_column,
-        nClusters=20
-    )
-    clustering_result_km <- xina_clustering(
-        file_list=data_files,
-        data_column=data_column,
-        nClusters=20,
-        chosen_model="kmeans"
-    )
-
-    # --- Cluster Visualization [Cluster Visualization] ---
-    # Key functions: plot_clusters
-    plot_clusters(
-        clustering_result
-    )
-
-    # --- Condition Composition Analysis [Condition Composition Analysis] ---
-    # Key functions: plot_condition_compositions
-    condition_composition <- plot_condition_compositions(
-        clustering_result
-    )
-
-    # --- Comigration Search [Comigration Search] ---
-    # Key functions: alluvial_enriched
-    classes <- as.vector(clustering_result$condition)
-    all_cor <- alluvial_enriched(
-        clustering_result,
-        classes
-    )
-    cor_filtered <- alluvial_enriched(
-        clustering_result,
-        classes,
-        comigration_size=5
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_xina_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_xina_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_xina_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_XINA:", paste0("    xina: ", packageVersion("XINA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS":',
+        paste0('    XINA: ', as.character(packageVersion('XINA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_xina_results.csv
-    touch ${prefix}_xina_output.rds
-    echo "BIOC_XINA:" > versions.yml
-    echo "    xina: 0.0.0" >> versions.yml
+    touch ${prefix}_xina_time_series_clustering_and_network_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_XINA_WORKFLOW {
+workflow BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Control.csv, Stimulus1.csv, Stimulus2.csv ] ]
 
     main:
-    BIOC_XINA(ch_input)
+    BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_XINA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_XINA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_XINA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_XINA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS.out.tables
+    plots    = BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS.out.plots
+    objects  = BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS.out.objects
+    versions = BIOC_XINA_XINA_TIME_SERIES_CLUSTERING_AND_NETWORK_ANALYSIS.out.versions
 }

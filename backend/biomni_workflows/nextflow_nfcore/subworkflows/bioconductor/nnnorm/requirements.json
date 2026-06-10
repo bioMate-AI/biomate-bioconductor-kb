@@ -1,0 +1,13 @@
+{
+  "package": "nnnorm",
+  "requirements": [
+    "marray",
+    "nnNorm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "marray",
+      "nnNorm"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "sconify",
+  "requirements": [
+    "Sconify",
+    "dplyr",
+    "magrittr",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Sconify",
+      "dplyr",
+      "magrittr",
+      "tibble"
+    ]
+  }
+}

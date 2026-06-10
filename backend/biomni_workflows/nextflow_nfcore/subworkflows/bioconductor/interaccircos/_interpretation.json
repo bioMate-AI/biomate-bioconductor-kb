@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: width=Width of the output Circos plot in pixels ;; height=Height of the output Circos plot in pixels ;; zoom=Logical value (TRUE/FALSE) indicating whether to enable zooming on the plot ;; genome=A named list specifying the chromosomes/scaffolds and their respective lengths ;; genomeFillColor=Character vector of colors or a predefined color palette name (e.g., \"Blues\") to fill the genome tracks ;; moduleList=A track or combination of tracks (concatenated using '+') to be displayed on the Circos plot ;; minRadius=The inner radius of a specific track module ;; maxRadius=The outer radius of a specific track module ;; data=The input data frame containing genomic coordinates and values for the track\n- alternatives: circosJS or BioCircos.js native JavaScript libraries which require local installation, compiling extra libraries, or manual data processing ;; static Circos plotting packages in R (such as circlize) when interactive web-based features are not required\n- when_to_use: When you need to visualize multi-dimensional genomic data (such as SNPs, copy number variations, expression data, or genomic interactions) in an interactive, web-friendly circular layout\n- pitfalls: Failing to match the chromosome/scaffold names in the track data with the names defined in the genome list parameter ;; Overlapping tracks by setting conflicting minRadius and maxRadius values across different modules",
+  "workflows": [
+    {
+      "name": "interactive_circos_histogram",
+      "intent": "Create an interactive Circos plot displaying a genomic histogram track.",
+      "input": [
+        "histogram_data.csv (Data frame containing genomic coordinates and values for the histogram track)"
+      ],
+      "stages": "1. Load the interacCircos library ;; 2. Load the histogram data ;; 3. Generate the interactive Circos plot with CircosHistogram and Circos",
+      "code": "library(interacCircos)\n\nhistogramData <- histogramExample\nCircos(moduleList=CircosHistogram('HISTOGRAM01', data = histogramData,\n      fillColor= \"#ff7f0e\",maxRadius = 210,minRadius = 175,\n      animationDisplay = TRUE),genome=list(\"2L\"=23011544,\"2R\"=21146708,\"3L\"=24543557,\"3R\"= 27905053,\"X\"=22422827,\"4\"=1351857),\n      outerRadius = 220, width = 700,height = 550)"
+    },
+    {
+      "name": "interactive_circos_snp_background",
+      "intent": "Create an interactive Circos plot displaying SNP data points overlaid on a background track.",
+      "input": [
+        "snp_data.csv (Data frame containing SNP coordinates and values)"
+      ],
+      "stages": "1. Load the interacCircos library ;; 2. Load the SNP data ;; 3. Combine the SNP track and background track using the plus operator ;; 4. Generate the interactive Circos plot using Circos",
+      "code": "library(interacCircos)\n\nsnpData <- snpExample\nCircos(moduleList=CircosSnp('SNP01', minRadius =150, \n      maxRadius = 190, data = snpExample,SNPFillColor= \"#9ACD32\", \n      circleSize= 2, SNPAxisColor= \"#B8B8B8\", SNPAxisWidth= 0.5, \n      animationDisplay=TRUE,animationTime= 2000, animationDelay= 0, \n      animationType= \"linear\") + \n      CircosBackground('BG01',minRadius = 145,maxRadius = 200),\n      width = 700,height = 550)"
+    }
+  ]
+}

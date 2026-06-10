@@ -1,0 +1,14 @@
+{
+  "package": "differentialregulation",
+  "requirements": [
+    "DifferentialRegulation"
+  ],
+  "by_workflow": {
+    "bulk_rna_seq_pipeline.nf": [
+      "DifferentialRegulation"
+    ],
+    "main.nf": [
+      "DifferentialRegulation"
+    ]
+  }
+}

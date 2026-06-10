@@ -1,102 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: velociraptor
-// This package provides Bioconductor-friendly wrappers for RNA velocity calculations in single-cell RN
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/velociraptor/inst/doc/velociraptor.R
-// Upstream  : BiocStyle, ggplot2, knitr, scRNAseq, scater
-// Downstream: OSCA.advanced
-//
-// Install: BiocManager::install("velociraptor")
+// Bioconductor workflow: velociraptor — rna_velocity_scvelo
+// Calculate RNA velocity from spliced and unspliced single-cell RNA-seq counts, project the velocity vectors onto a low-dimensional embedding, and visualize the g
+// Input: sce
+// Container: quay.io/biocontainers/bioconductor-velociraptor:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, ggplot2, scater, scran, scuttle, velociraptor
+// Visualizations: t-SNE plot
+// QC: cell QC metrics, count normalization, highly-variable feature selection
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Feature selection (identifying highly variable genes using scran)
+//  * 2. [Core Analysis] RNA velocity estimation using scvelo()
+//  * 3. [Core Analysis] Dimensionality reduction (PCA and t-SNE)
+//  * 4. [Core Analysis] Velocity embedding projection using embedVelocity()
+//  * 5. [Visualization & Output] Grid-based summarization of velocity vectors using gridVectors()
+//  * 6. [Visualization & Output] Visualization of velocity pseudotime and vectors using ggplot2
 
 nextflow.enable.dsl = 2
 
-process BIOC_VELOCIRAPTOR {
+process BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-velociraptor"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-velociraptor:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-velociraptor:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_velociraptor_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_velociraptor_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_velociraptor_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(scuttle)
+    library(scran)
     library(velociraptor)
-    library(HermannSpermatogenesisData)
-    library(jsonlite)
-
-    # --- Velocity Embedding Projection [] ---
-    # Key functions: embedVelocity
-    tsne_coords <- SingleCellExperiment::reducedDim(sce, "TSNE")
-    embedded_velo <- embedVelocity(
-        tsne_coords,
-        velo_out
-    )
-
-
-    # --- Velocity Grid Aggregation [] ---
-    # Key functions: gridVectors
-    grid_df <- gridVectors(
-        sce,
-        embedded_velo,
-        use.dimred = "TSNE"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_velociraptor_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_velociraptor_results.csv")
+    library(scater)
+    library(ggplot2)
+    
+    # 1. Read User Input
+    sce_path <- "sce"
+    if (!file.exists(sce_path) && file.exists("sce.rds")) {
+      sce_path <- "sce.rds"
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_velociraptor_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VELOCIRAPTOR:", paste0("    velociraptor: ", packageVersion("velociraptor"))),
-        "versions.yml"
+    sce <- readRDS(sce_path)
+    
+    # 2. Feature selection (identifying highly variable genes using scran)
+    sce <- logNormCounts(sce, assay.type=1)
+    dec <- modelGeneVar(sce)
+    top.hvgs <- getTopHVGs(dec, n=2000)
+    
+    # 3. RNA velocity estimation using scvelo()
+    velo.out <- scvelo(
+      sce, subset.row=top.hvgs, assay.X="spliced",
+      scvelo.params=list(neighbors=list(n_neighbors=30L))
     )
+    
+    # 4. Dimensionality reduction (PCA and t-SNE)
+    set.seed(100)
+    sce <- runPCA(sce, subset_row=top.hvgs)
+    sce <- runTSNE(sce, dimred="PCA", perplexity = 30)
+    
+    sce\$velocity_pseudotime <- velo.out\$velocity_pseudotime
+    
+    # 5. Velocity embedding projection using embedVelocity()
+    embedded <- embedVelocity(reducedDim(sce, "TSNE"), velo.out)
+    
+    # 6. Grid-based summarization of velocity vectors using gridVectors()
+    grid.df <- gridVectors(sce, embedded, use.dimred = "TSNE")
+    
+    # 7. Visualization of velocity pseudotime and vectors using ggplot2
+    p <- plotTSNE(sce, colour_by="velocity_pseudotime") +
+        geom_segment(data=grid.df, mapping=aes(x=start.1, y=start.2, 
+            xend=end.1, yend=end.2, colour=NULL), arrow=arrow(length=unit(0.05, "inches")))
+    
+    # Save outputs
+    ggsave("velocity_tsne_plot.pdf", plot = p, width = 8, height = 7)
+    write.csv(as.data.frame(grid.df), "grid_vectors.csv", row.names = FALSE)
+    
+    pseudotime_df <- data.frame(
+      Cell = colnames(sce),
+      velocity_pseudotime = sce\$velocity_pseudotime
+    )
+    write.csv(pseudotime_df, "velocity_pseudotime.csv", row.names = FALSE)
+    
+    saveRDS(velo.out, "velo_out.rds")
+    saveRDS(sce, "sce_output.rds")
+
+    writeLines(c(
+        '"BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO":',
+        paste0('    velociraptor: ', as.character(packageVersion('velociraptor')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_velociraptor_results.csv
-    touch ${prefix}_velociraptor_output.rds
-    echo "BIOC_VELOCIRAPTOR:" > versions.yml
-    echo "    velociraptor: 0.0.0" >> versions.yml
+    touch ${prefix}_rna_velocity_scvelo.csv versions.yml
     """
 }
 
-
-workflow BIOC_VELOCIRAPTOR_WORKFLOW {
+workflow BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce ] ]
 
     main:
-    BIOC_VELOCIRAPTOR(ch_input)
+    BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO(ch_input)
 
     emit:
-    results  = BIOC_VELOCIRAPTOR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VELOCIRAPTOR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VELOCIRAPTOR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VELOCIRAPTOR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO.out.tables
+    plots    = BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO.out.plots
+    objects  = BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO.out.objects
+    versions = BIOC_VELOCIRAPTOR_RNA_VELOCITY_SCVELO.out.versions
 }

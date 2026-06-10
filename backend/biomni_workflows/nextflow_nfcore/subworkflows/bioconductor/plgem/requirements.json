@@ -1,0 +1,17 @@
+{
+  "package": "plgem",
+  "requirements": [
+    "Biobase",
+    "plgem"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "plgem"
+    ],
+    "step_by_step_mode.nf": [
+      "Biobase",
+      "plgem"
+    ]
+  }
+}

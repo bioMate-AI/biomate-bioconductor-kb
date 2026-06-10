@@ -1,0 +1,18 @@
+{
+  "package": "generegionscan",
+  "requirements": [
+    "Biobase",
+    "Biostrings",
+    "GeneRegionScan"
+  ],
+  "by_workflow": {
+    "gene_region_analysis_and_visualization.nf": [
+      "Biobase",
+      "Biostrings",
+      "GeneRegionScan"
+    ],
+    "main.nf": [
+      "GeneRegionScan"
+    ]
+  }
+}

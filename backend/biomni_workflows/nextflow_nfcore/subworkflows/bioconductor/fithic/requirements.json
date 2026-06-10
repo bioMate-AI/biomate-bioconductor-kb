@@ -1,0 +1,17 @@
+{
+  "package": "fithic",
+  "requirements": [
+    "FitHiC"
+  ],
+  "by_workflow": {
+    "fithic_hicpro_analysis.nf": [
+      "FitHiC"
+    ],
+    "fithic_normalized_analysis.nf": [
+      "FitHiC"
+    ],
+    "main.nf": [
+      "FitHiC"
+    ]
+  }
+}

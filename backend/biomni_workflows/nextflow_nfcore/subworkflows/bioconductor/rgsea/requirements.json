@@ -1,0 +1,14 @@
+{
+  "package": "rgsea",
+  "requirements": [
+    "RGSEA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RGSEA"
+    ],
+    "rgsea_sd_features.nf": [
+      "RGSEA"
+    ]
+  }
+}

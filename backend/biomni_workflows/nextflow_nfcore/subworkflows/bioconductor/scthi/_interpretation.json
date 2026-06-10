@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: expMat=A matrix of count data or normalized counts (e.g., log TPM) where rows are Hugo Symbols and columns are cells ;; cellCusterA=Character vector of cell names/IDs belonging to cluster A (e.g., Malignant cells) ;; cellCusterB=Character vector of cell names/IDs belonging to cluster B (e.g., Immune cells) ;; topRank=Percentage threshold (default 10) to consider a gene expressed in a cell (must be in the top X% of the ranked gene list) ;; PValue=Logical indicating whether to compute p-values based on random permutations ;; pvalueCutoff=Significance threshold for reporting interaction pairs (default 0.05) ;; nPermu=Number of permutations for p-value calculation ;; filterCutoff=Percentage threshold (default 50%) of cells in respective clusters that must express partner A and partner B ;; minLenGeneSet=Minimum number of genes for a signature to be considered in TME classification\n- alternatives: None mentioned. The documentation notes that standard marker-gene approaches for TME classification are less accurate than its MWW-GST signature enrichment approach.\n- when_to_use: Use when you have single-cell RNA-seq data of tumor and microenvironment cells and want to identify active, statistically significant ligand-receptor interactions between specific cell clusters, or classify TME cells using gene signature enrichment.\n- pitfalls: Not all interaction genes might be present in the input expression matrix, which generates a warning. TME_classification can take a long time if the number of cells to test is large. Input matrix must have genes as Hugo Symbols. Interactions are not symmetric; cellCusterA is tested for partner A and cellCusterB for partner B.",
+  "workflows": [
+    {
+      "name": "ligand_receptor_analysis",
+      "intent": "Identify and visualize significant ligand-receptor interactions between two cell clusters from single-cell RNA-seq data.",
+      "input": [
+        "expMat (matrix of single-cell RNA-seq counts/normalized counts with Hugo Symbols as rows and cells as columns)",
+        "cell_metadata (annotation of each cell to define cluster groups)"
+      ],
+      "stages": "1. Define cell clusters of interest ;; 2. Run scTHI_score to compute interaction scores and p-values ;; 3. Plot results using scTHI_plotResult ;; 4. Run t-SNE using scTHI_runTsne ;; 5. Visualize clusters on t-SNE using scTHI_plotCluster ;; 6. Visualize specific interaction pairs on t-SNE using scTHI_plotPairs",
+      "code": "Malignant <-\nrownames(H3K27.meta)[H3K27.meta$Type == \"Malignant\"][1:100]\nImmune <- rownames(H3K27.meta)[H3K27.meta$Type == \"Immune cell\"]\n\nH3K27.result <-\nscTHI_score(\nexpMat = H3K27,\ncellCusterA = Malignant,\ncellCusterB = Immune,\ncellCusterAName = \"Malignant\",\ncellCusterBName = \"Immune\",\ntopRank = 10,\nPValue = TRUE,\npvalueCutoff = 0.05,\nnPermu = 10,\nncore = 1\n)\n\nscTHI_plotResult(scTHIresult = H3K27.result,\n                cexNames = 0.7,\n                plotType = \"score\")\n\nscTHI_plotResult(scTHIresult = H3K27.result,\n                cexNames = 0.7,\n                plotType = \"pair\")\n\nH3K27.result <- scTHI_runTsne(scTHIresult = H3K27.result)\n\nscTHI_plotCluster(scTHIresult = H3K27.result,\n                cexPoint = 0.8,\n                legendPos = \"bottomleft\")\n\nscTHI_plotPairs(\nscTHIresult = H3K27.result,\ncexPoint = 0.8,\ninteractionToplot = \"THY1_ITGAX:ITGB2\"\n)"
+    },
+    {
+      "name": "tme_classification",
+      "intent": "Classify non-tumor cells in the tumor microenvironment into specific immune and stromal cell types using gene signature enrichment.",
+      "input": [
+        "expMat (matrix of single-cell RNA-seq counts/normalized counts with Hugo Symbols as rows and cells as columns, typically subsetted to non-malignant cells)",
+        "tsneData (t-SNE coordinates, e.g., from scTHI_runTsne)"
+      ],
+      "stages": "1. Subset expression matrix to TME cells ;; 2. Run TME_classification to classify cells ;; 3. Plot the classification results on t-SNE coordinates using TME_plot",
+      "code": "Tme.cells <-\nrownames(H3K27.meta)[which(H3K27.meta$Type != \"Malignant\")]\nH3K27.tme <- H3K27[, Tme.cells]\n\nClass <- TME_classification(expMat = H3K27.tme, minLenGeneSet = 10)\n\nTME_plot(tsneData = H3K27.result$tsneData, Class, cexPoint = 0.8)"
+    }
+  ]
+}

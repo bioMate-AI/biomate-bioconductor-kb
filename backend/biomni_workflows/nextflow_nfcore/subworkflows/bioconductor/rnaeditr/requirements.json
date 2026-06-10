@@ -1,0 +1,16 @@
+{
+  "package": "rnaeditr",
+  "requirements": [
+    "GenomicRanges",
+    "rnaEditr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rnaEditr"
+    ],
+    "region_based_analysis.nf": [
+      "GenomicRanges",
+      "rnaEditr"
+    ]
+  }
+}

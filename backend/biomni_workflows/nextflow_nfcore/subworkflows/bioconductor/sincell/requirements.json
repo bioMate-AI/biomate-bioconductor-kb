@@ -1,0 +1,19 @@
+{
+  "package": "sincell",
+  "requirements": [
+    "igraph",
+    "sincell"
+  ],
+  "by_workflow": {
+    "functional_association_testing.nf": [
+      "sincell"
+    ],
+    "main.nf": [
+      "igraph",
+      "sincell"
+    ],
+    "statistical_support_assessment.nf": [
+      "sincell"
+    ]
+  }
+}

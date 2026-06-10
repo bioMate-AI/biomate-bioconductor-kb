@@ -1,0 +1,17 @@
+{
+  "package": "mlseq",
+  "requirements": [
+    "DESeq2",
+    "MLSeq",
+    "caret",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "MLSeq",
+      "caret",
+      "edgeR"
+    ]
+  }
+}

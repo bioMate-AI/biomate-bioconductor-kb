@@ -1,0 +1,11 @@
+{
+  "package": "clst",
+  "requirements": [
+    "clst"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "clst"
+    ]
+  }
+}

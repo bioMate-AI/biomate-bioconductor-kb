@@ -1,163 +1,155 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: apComplex
-// Functions to estimate a bipartite graph of protein complex membership using AP-MS data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/apComplex/inst/doc/apComplex.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("apComplex")
+// Bioconductor workflow: apComplex — protein_complex_estimation
+// Estimate protein complex membership from AP-MS bait-hit data, merge initial subgraphs using sensitivity/specificity parameters, and sort them into topological c
+// Input: apEX
+// Container: quay.io/biocontainers/bioconductor-apcomplex:2.76.0--r45hdfd78af_0
+// R packages: apComplex
+// Bioconductor: 3.20 | R: 4.4
+// Requires: apComplex
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Find initial maximal BH-complete subgraphs using bhmaxSubgraph
+//  * 2. [Core Analysis] Merge complexes using mergeComplexes based on sensitivity and specificity parameters
+//  * 3. [Core Analysis] Alternatively, run both steps together using findComplexes
+//  * 4. [Core Analysis] Sort the estimated complexes into MBME, SBMH, and UnRBB components using sortComplexes
 
 nextflow.enable.dsl = 2
 
-process BIOC_APCOMPLEX {
+process BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-apcomplex"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-apcomplex:2.72.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-apcomplex:2.72.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_apcomplex_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_apcomplex_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_apcomplex_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("apComplex")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(apComplex)
-    library(jsonlite)
-
-    # --- Truedata [] ---
-    # Key functions: ftM2graphNEL, plotGraph
-    FromT <- c(rep("P1",3),rep("P2",3),rep("P3",2))
-    ToT <- c("P2","P4","P6","P1","P4","P6","P4","P5")
-    LT <- cbind(FromT,ToT)
-    apEXGT <- ftM2graphNEL(LT)
-    fcT <- c(rep("yellow",3),rep("white",3))
-    # --- Observeddata [] ---
-    # Key functions: ftM2adjM, plotGraph
-    From <- c(rep("P1",3),rep("P2",2),rep("P3",3),"P8")
-    To <- c("P2","P4","P6","P1","P6","P4","P5","P7","P3")
-    L <- cbind(From,To)
-    M1 <- ftM2adjM(L)
-    apEXG <- as(M1,"graphNEL")
-    # --- Pcmg0 [] ---
-    # Key functions: bhmaxSubgraph
-    PCMG0 <- bhmaxSubgraph(apEX)
-    PCMG0
-    # --- sub Graph [] ---
-    # Key functions: subGraph, edgemode, plotGraph
-    par(mfrow=c(2,2))
-    sn1 <- c("P3","P8")
-    sg1 <- subGraph(sn1,apEXG)
-    edgemode(sg1) <- "directed"
-    fc1 <- fc[sn1]
-    # --- Bp1 [] ---
-    # Key functions: ftM2graphNEL, plotGraph
-    FromBP1 <- c("P1","P1","P2","P3","P3","P4","P4","P5","P6","P6","P7","P8")
-    ToBP1 <- paste("BHM",c(2,3,2,1,4,3,4,4,2,3,4,1),sep="")
-    LBP1 <- cbind(FromBP1,ToBP1)
-    gBP1 <- ftM2graphNEL(LBP1, edgemode="undirected")
-    fc <- c(rep("yellow",4),rep("white",4),rep("salmon",4))
-    # --- Mergecomplexes [] ---
-    # Key functions: mergeComplexes
-    PCMG1 <- mergeComplexes(PCMG0,apEX,sensitivity=.7,specificity=.75)
-    PCMG1
-    # --- Mergedcomplex [] ---
-    # Key functions: plotGraph, subGraph, edgemode
-    par(mfrow=c(1,3))
-    plotGraph(sg1,nodeAttrs=nA1,edgeAttrs=eA1)
-    title("Complex1")
-    sn5 <- c("P1","P2","P4","P6")
-    sg5 <- subGraph(sn5,apEXG)
-    # --- Bp2 [] ---
-    # Key functions: ftM2graphNEL, plotGraph
-    FromBP2 <- paste("P",c(1,2,3,3,8,4,4,5,6,7),sep="")
-    ToBP2 <- paste("C",c(2,2,1,3,1,2,3,3,2,3),sep="")
-    LBP2 <- cbind(FromBP2,ToBP2)
-    gBP2 <- ftM2graphNEL(LBP2, edgemode="undirected")
-    fc <- c(rep("yellow",4),rep("white",4),rep("thistle",3))
-    # --- Findcomplexes [] ---
-    # Key functions: findComplexes
-    PCMG2 <- findComplexes(apEX,sensitivity=.7,specificity=.75)
-    PCMG2
-    # --- Sortcomps [] ---
-    # Key functions: sortComplexes
-    sortComplexes(PCMG2,adjMat=apEX)
-    # --- Publicdatatap [] ---
-    # Key functions: adj
-    data(TAP)
-    dim(TAP)
-    data(TAPgraph)
-    which(TAP["Abd1",]==1)
-    adj(TAPgraph,"Abd1")
-    # --- Publicdatahmspci [] ---
-    # Key functions: adj
-    data(HMSPCI)
-    dim(HMSPCI)
-    data(HMSPCIgraph)
-    which(HMSPCI["YAL015C",]==1)
-    adj(HMSPCIgraph,"YAL015C")
-    # --- data [] ---
-    # Key functions: data
-    data(MBMEcTAP)
-    which(MBMEcTAP[,37]==1)
-    which(MBMEcTAP[,38]==1)
-    which(MBMEcTAP[,39]==1)
-    which(MBMEcTAP[,195]==1)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_apcomplex_results.csv", row.names = TRUE)
+    
+    # Read input file 'apEX' from the working directory
+    # We support both CSV and RDS formats
+    if (file.exists("apEX.csv")) {
+      apEX <- as.matrix(read.csv("apEX.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("apEX.rds")) {
+      apEX <- readRDS("apEX.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_apcomplex_results.csv")
+      stop("Error: Input file 'apEX.csv' or 'apEX.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_apcomplex_output.rds")
+    
+    # Ensure apEX is a matrix
+    apEX <- as.matrix(apEX)
+    
+    # 1. Find initial maximal BH-complete subgraphs
+    PCMG0 <- bhmaxSubgraph(apEX)
+    saveRDS(PCMG0, "PCMG0.rds")
+    
+    # 2. Merge complexes based on sensitivity and specificity parameters
+    PCMG1 <- mergeComplexes(PCMG0, apEX, sensitivity = 0.7, specificity = 0.75)
+    saveRDS(PCMG1, "PCMG1.rds")
+    
+    # 3. Alternatively, run both steps together
+    PCMG2 <- findComplexes(apEX, sensitivity = 0.7, specificity = 0.75)
+    saveRDS(PCMG2, "PCMG2.rds")
+    
+    # 4. Sort the estimated complexes into MBME, SBMH, and UnRBB components
+    sorted_complexes <- sortComplexes(PCMG2, adjMat = apEX)
+    saveRDS(sorted_complexes, "sorted_complexes.rds")
+    
+    # Write a text summary of the sorted complexes
+    sink("sorted_complexes_summary.txt")
+    cat("=== Sorted Complexes Summary ===\n\n")
+    for (category in names(sorted_complexes)) {
+      cat("Category:", category, "\n")
+      cat("-------------------------\n")
+      sub_list <- sorted_complexes[[category]]
+      if (length(sub_list) == 0) {
+        cat("  None\n")
+      } else {
+        for (comp_name in names(sub_list)) {
+          cat("  ", comp_name, ": ", paste(sub_list[[comp_name]], collapse = ", "), "\n", sep = "")
+        }
+      }
+      cat("\n")
     }
+    sink()
+    
+    # Write a CSV representation of the sorted complexes for downstream analysis
+    complex_df <- data.frame(Category = character(), Complex = character(), Protein = character(), stringsAsFactors = FALSE)
+    for (category in names(sorted_complexes)) {
+      sub_list <- sorted_complexes[[category]]
+      for (comp_name in names(sub_list)) {
+        proteins <- sub_list[[comp_name]]
+        tmp_df <- data.frame(
+          Category = category,
+          Complex = comp_name,
+          Protein = proteins,
+          stringsAsFactors = FALSE
+        )
+        complex_df <- rbind(complex_df, tmp_df)
+      }
+    }
+    write.csv(complex_df, "sorted_complexes.csv", row.names = FALSE)
+    
+    cat("Workflow completed successfully. Outputs saved to PCMG0.rds, PCMG1.rds, PCMG2.rds, sorted_complexes.rds, sorted_complexes_summary.txt, and sorted_complexes.csv.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_APCOMPLEX:", paste0("    apcomplex: ", packageVersion("apComplex"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION":',
+        paste0('    apComplex: ', as.character(packageVersion('apComplex')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_apcomplex_results.csv
-    touch ${prefix}_apcomplex_output.rds
-    echo "BIOC_APCOMPLEX:" > versions.yml
-    echo "    apcomplex: 0.0.0" >> versions.yml
+    touch ${prefix}_protein_complex_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_APCOMPLEX_WORKFLOW {
+workflow BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ apEX ] ]
 
     main:
-    BIOC_APCOMPLEX(ch_input)
+    BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_APCOMPLEX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_APCOMPLEX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_APCOMPLEX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_APCOMPLEX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION.out.tables
+    plots    = BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION.out.plots
+    objects  = BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION.out.objects
+    versions = BIOC_APCOMPLEX_PROTEIN_COMPLEX_ESTIMATION.out.versions
 }

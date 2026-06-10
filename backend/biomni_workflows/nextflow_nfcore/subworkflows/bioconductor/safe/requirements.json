@@ -1,0 +1,27 @@
+{
+  "package": "safe",
+  "requirements": [
+    "hgu133a.db",
+    "reactome.db",
+    "safe",
+    "survival"
+  ],
+  "by_workflow": {
+    "covariate_adjusted_safe_analysis.nf": [
+      "safe"
+    ],
+    "custom_cmatrix_safe_analysis.nf": [
+      "hgu133a.db",
+      "reactome.db",
+      "safe"
+    ],
+    "main.nf": [
+      "hgu133a.db",
+      "safe"
+    ],
+    "survival_safe_analysis.nf": [
+      "safe",
+      "survival"
+    ]
+  }
+}

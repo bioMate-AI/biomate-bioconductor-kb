@@ -1,0 +1,14 @@
+{
+  "package": "frenchfish",
+  "requirements": [
+    "frenchFISH"
+  ],
+  "by_workflow": {
+    "correct_manual_counts.nf": [
+      "frenchFISH"
+    ],
+    "main.nf": [
+      "frenchFISH"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "package": "bert",
+  "requirements": [
+    "BERT",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "covariate_batch_correction.nf": [
+      "BERT"
+    ],
+    "main.nf": [
+      "BERT"
+    ],
+    "reference_based_correction.nf": [
+      "BERT"
+    ],
+    "summarized_experiment_correction.nf": [
+      "BERT",
+      "SummarizedExperiment"
+    ]
+  }
+}

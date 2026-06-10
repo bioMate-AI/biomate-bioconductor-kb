@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=An ExpressionSet or a data matrix with row names corresponding to probe or gene identifiers ;; lib=The character string naming the AnnotationDbi annotation package (e.g., 'hgu95av2') ;; chromosome=The chromosome to plot (e.g., 19 or 1) ;; strands=Whether to plot 'both' strands combined, or 'forward' and 'reverse' separately ;; RowSideColors=A vector of colors to indicate sample subsets on the heatmap ;; cytoband=A character string specifying a cytoband to subset the plot (e.g., 'q23') ;; interval=An integer specifying the genomic interval size for plotting ;; srtCyto=Rotation angle for cytoband labels ;; cexCyto=Character expansion (size) for cytoband labels\n- alternatives: The makeChrStrandData function is based on the Makesense function in the geneplotter package, but removes the internal call to lowess to avoid smoothing the data.\n- when_to_use: Use this package when you want to visualize genomic data (expression, CGH, SNP) from microarrays or next-generation sequencing in a genomic context along chromosome strands, with optional sample clustering and cytogenetic banding.\n- pitfalls: The default colors from heat.colors are not very attractive or informative, so custom-defined colors (e.g., from RColorBrewer) should be considered. The layout and par options are not reset after plotting to allow grabChrMapProbes to work interactively. Genes lying very close to each other may have their signals averaged at screen resolution, returning concatenated probe IDs separated by semicolons; this can be resolved by zooming in using cytoband, start/end coordinates, or adjusting the interval parameter.",
+  "workflows": [
+    {
+      "name": "chrom_heatmap_analysis",
+      "intent": "Map genomic expression data to chromosome coordinates, plot strand-specific or combined chromosome heatmaps, and interactively extract probe identifiers of interest.",
+      "input": [
+        "expression_matrix.csv (a data matrix of expression values with probe/gene identifiers as row names and samples as columns, or an ExpressionSet)",
+        "annotation_package (an AnnotationDbi package matching the probe identifiers)"
+      ],
+      "stages": "1. Map probe identifiers to chromosome coordinates using makeChrStrandData.\n2. Plot the chromosome heatmap using plotChrMap with optional sample annotation colors and cytoband subsetting.\n3. Interactively select and extract probe identifiers from the heatmap using grabChrMapProbes.\n4. Map the extracted probes to gene symbols using mget from AnnotationDbi.",
+      "code": "library('ALL')\ndata('ALL')\nselSamples <- ALL$mol.biol %in% c('ALL1/AF4', 'E2A/PBX1')\nALLs <- ALL[, selSamples]\n\nlibrary('ChromHeatMap')\nchrdata<-makeChrStrandData(exprs(ALLs), lib='hgu95av2')\n\ngroupcol <- ifelse( ALLs$mol.biol == 'ALL1/AF4', 'red', 'green' )\nplotChrMap(chrdata, 19, strands='both', RowSideColors=groupcol)\n\nplotmap<-plotChrMap(chrdata, 1, cytoband='q23', interval=50000, srtCyto=0, cexCyto=1.2)\n\nprobes <- grabChrMapProbes( plotmap )\ngenes <- unlist(mget(probes, envir=hgu95av2SYMBOL, ifnotfound=NA))"
+    }
+  ]
+}

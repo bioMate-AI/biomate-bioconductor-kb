@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: chip=integer index of the array/chip to contaminate ;; center=two-element numeric vector specifying the (x, y) coordinates of the circle center ;; rad=numeric radius of the circular defect ;; vals=numeric value or vector of values to assign to the contaminated region ;; valgen=function to generate random values for the contaminated region (overrides vals if provided) ;; xinds=numeric vector of x-coordinate indices for rectangular contamination ;; yinds=numeric vector of y-coordinate indices for rectangular contamination ;; fac=multiplicative factor used to scale the variance of the retrieved region\n- alternatives: None mentioned for injecting defects; for quality assessment and outlier detection, the documentation mentions affyMvout and mdqc, and limma for differential expression analysis.\n- when_to_use: Use when you need to benchmark microarray quality control pipelines, test the sensitivity of outlier detection algorithms (like affyMvout or mdqc), or assess the robustness of preprocessing methods (like RMA) and downstream statistical testing (like limma) against localized physical artifacts on the chips.\n- pitfalls: Running full QA assessment workflows (including RMA, robust linear model fitting, and outlier detection) across multiple contaminated chips is computationally intensive and can run very slowly.",
+  "workflows": [
+    {
+      "name": "affybatch_contamination_and_qa",
+      "intent": "Introduce structured circular and rectangular defects into AffyBatch microarray data and evaluate their impact on quality control and downstream analysis.",
+      "input": [
+        "user_data.affybatch (an AffyBatch object containing raw Affymetrix microarray data)"
+      ],
+      "stages": "1. Load the AffyBatch data and visualize an original chip ;; 2. Apply circular contamination with constant values using setCircRegion ;; 3. Define and apply variance-inflated circular contamination using getCircRegion and setCircRegion ;; 4. Define and apply variance-inflated rectangular contamination using getRectRegion and setRectRegion ;; 5. Visualize the contaminated chip to verify the artifact",
+      "code": "library(affydata)\ndata(Dilution)\nimage(Dilution[,1])\nlibrary(affyContam)\ndilc = setCircRegion(Dilution, chip=1)\nincvarCircRegion = function(x, chip=1, center=c(150,500), rad=100, fac=3) {\n tmp = fac*getCircRegion(x, chip, center, rad)\n setCircRegion(x, chip, center, rad, vals=tmp)\n}\nincvarRectRegion = function(x, chip=1, xinds=350:700, yinds=1:700, fac=3) {\n tmp = fac*getRectRegion(x, chip, xinds, yinds)\n setRectRegion(x, chip, xinds, yinds, vals=tmp)\n}\ntryout = incvarCircRegion(Dilution)\nfin = incvarRectRegion(tryout)\nimage(fin[,1], main=\"composite contamination\")"
+    }
+  ]
+}

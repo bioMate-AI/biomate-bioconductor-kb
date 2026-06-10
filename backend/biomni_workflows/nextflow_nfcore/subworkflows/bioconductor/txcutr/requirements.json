@@ -1,0 +1,15 @@
+{
+  "package": "txcutr",
+  "requirements": [
+    "AnnotationDbi",
+    "GenomicFeatures",
+    "txcutr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "GenomicFeatures",
+      "txcutr"
+    ]
+  }
+}

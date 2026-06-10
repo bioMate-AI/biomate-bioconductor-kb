@@ -1,0 +1,14 @@
+{
+  "package": "segmentseq",
+  "requirements": [
+    "segmentSeq"
+  ],
+  "by_workflow": {
+    "dna_methylation_loci_and_dm.nf": [
+      "segmentSeq"
+    ],
+    "main.nf": [
+      "segmentSeq"
+    ]
+  }
+}

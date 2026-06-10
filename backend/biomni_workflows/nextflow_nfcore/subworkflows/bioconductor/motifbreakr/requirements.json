@@ -1,0 +1,17 @@
+{
+  "package": "motifbreakr",
+  "requirements": [
+    "BSgenome",
+    "BiocParallel",
+    "MotifDb",
+    "motifbreakR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome",
+      "BiocParallel",
+      "MotifDb",
+      "motifbreakR"
+    ]
+  }
+}

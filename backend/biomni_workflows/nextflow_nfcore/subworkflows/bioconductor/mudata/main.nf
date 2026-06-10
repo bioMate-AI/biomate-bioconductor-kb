@@ -3,6 +3,8 @@
 // Bioconductor module: MuData
 // Save MultiAssayExperiments to h5mu files supported by muon and mudata. Muon is a Python framework fo
 //
+// Input: input.rds (serialized MultiAssayExperiment to be exported to an .h5mu file)
+//
 // Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MuData/inst/doc/Blood-CITE-seq.R
 // Upstream  : none
 // Downstream: none
@@ -12,14 +14,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_MUDATA {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-mudata"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mudata:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mudata:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,87 +39,54 @@ process BIOC_MUDATA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(H5Fopen)
-    library(H5Gopen)
-    library(H5close)
+    library(MuData)
     library(MultiAssayExperiment)
+    library(SummarizedExperiment)
+    library(rhdf5)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("CITEseq_example", package = "CiteFuse")
-    lapply(CITEseq_example, dim)
-    # --- Preprocessing [] ---
-    # Key functions: preprocessing
-    ---------------------------------------------------------------------
-    sce_citeseq <- preprocessing(CITEseq_example)
-    sce_citeseq
-    # --- Lognormcounts [] ---
-    # Key functions: logNormCounts
-    ---------------------------------------------------------------------
-    sce_citeseq <- scater::logNormCounts(sce_citeseq)
-    sce_citeseq  # new assay: logcounts
-    # --- Normaliseexprs [] ---
-    # Key functions: normaliseExprs, altExp
-    ---------------------------------------------------------------------
-    sce_citeseq <- CiteFuse::normaliseExprs(
-      sce_citeseq, altExp_name = "ADT", transform = "log"
-    )
-    altExp(sce_citeseq, "ADT")  # new assay: logcounts
-    # --- Runpca [] ---
-    # Key functions: runPCA
-    ---------------------------------------------------------------------
-    sce_citeseq <- scater::runPCA(
-      sce_citeseq, exprs_values = "logcounts", ncomponents = 20
-    )
-    # --- Plotreduceddim [] ---
-    # Key functions: plotReducedDim
-    ---------------------------------------------------------------------
-    scater::plotReducedDim(sce_citeseq, dimred = "PCA",
-                           by_exprs_values = "logcounts", colour_by = "CD27")
-    # --- List [] ---
-    # Key functions: altExp, MultiAssayExperiment
-    ---------------------------------------------------------------------
-    experiments <- list(
-      ADT = altExp(sce_citeseq, "ADT"),
-      HTO = altExp(sce_citeseq, "HTO")
-    )
+    # --- Load user-provided input ---
+    # input.rds: a serialized MultiAssayExperiment containing the modalities to
+    #            export (e.g. RNA / ADT / HTO assays from a CITE-seq experiment).
+    #            The object is written to an .h5mu file readable by muon / mudata.
+    mae <- readRDS("input.rds")
+    if (!is(mae, "MultiAssayExperiment")) {
+      stop("input.rds must contain a MultiAssayExperiment object")
+    }
+    experiment_dims <- lapply(experiments(mae), dim)
+
     # --- write H5 M U [] ---
     # Key functions: writeH5MU
-    ---------------------------------------------------------------------
     writeH5MU(mae, "citefuse_example.h5mu")
+
     # --- H5 Fopen [] ---
     # Key functions: H5Fopen, h5ls, H5Gopen
-    ---------------------------------------------------------------------
     h5 <- rhdf5::H5Fopen("citefuse_example.h5mu")
-    h5ls(H5Gopen(h5, "mod"), recursive = FALSE)
-    # --- h5ls [] ---
-    # Key functions: h5ls, H5Gopen
-    ---------------------------------------------------------------------
-    h5ls(H5Gopen(h5, "mod/ADT"), FALSE)
-    h5ls(H5Gopen(h5, "mod/ADT/layers"), FALSE)
-    # --- h5ls [] ---
-    # Key functions: h5ls, H5Gopen, H5close
-    ---------------------------------------------------------------------
-    h5ls(H5Gopen(h5, "mod/RNA/obsm"), FALSE)
-    # There is an alternative way to access groups:
-    # h5&'mod'&'RNA'&'obsm'
+    mods <- h5ls(H5Gopen(h5, "mod"), recursive = FALSE)
     rhdf5::H5close()
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mudata_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_mudata_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mudata_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_mudata_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mudata_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_mudata_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_MUDATA:", paste0("    mudata: ", packageVersion("MuData"))),
+        c("BIOC_MUDATA:", paste0("    mudata: ", as.character(packageVersion("MuData")))),
         "versions.yml"
     )
     """

@@ -1,0 +1,19 @@
+{
+  "package": "mixomics",
+  "requirements": [
+    "BiocParallel",
+    "mixOmics"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mixOmics"
+    ],
+    "spls_regression.nf": [
+      "BiocParallel",
+      "mixOmics"
+    ],
+    "splsda_classification.nf": [
+      "mixOmics"
+    ]
+  }
+}

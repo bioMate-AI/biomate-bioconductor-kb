@@ -1,0 +1,20 @@
+{
+  "package": "circseqaligntk",
+  "requirements": [
+    "CircSeqAlignTk",
+    "R.utils",
+    "Rbowtie2",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CircSeqAlignTk",
+      "R.utils",
+      "Rbowtie2",
+      "ggplot2"
+    ],
+    "synthetic_read_simulation_and_evaluation.nf": [
+      "CircSeqAlignTk"
+    ]
+  }
+}

@@ -1,110 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gINTomics
-// gINTomics is an R package for Multi-Omics data integration and visualization. gINTomics is designed 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gINTomics/inst/doc/gINTomics.R
-// Upstream  : MultiAssayExperiment, shiny
-// Downstream: none
-//
-// Install: BiocManager::install("gINTomics")
+// Bioconductor workflow: gINTomics — two_omics_integration
+// Integrate gene or miRNA expression data with a single genomic modification (CNV or methylation) or transcriptional regulator (TF or miRNA) using individual matr
+// Input: gene_exp_matrix.csv, cnv_matrix.csv, meth_matrix.csv, miRNA_exp_matrix.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: gINTomics
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Transpose input matrices so that samples are represented as rows and features as columns
+//  * 2. [Core Analysis] Run the specific integration function (run_genomic_integration, run_cnv_integration, run_met_integration, or run_tf_integration)
+//  * 3. [Visualization & Output] Summarize the integration model results using summary
 
 nextflow.enable.dsl = 2
 
-process BIOC_GINTOMICS {
+process BIOC_GINTOMICS_TWO_OMICS_INTEGRATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gintomics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gintomics:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gintomics:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(input_file)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gintomics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gintomics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gintomics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(gINTomics)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(gINTomics)
+        
+        # Read user input files from the working directory
+        gene_exp_matrix  <- as.matrix(read.csv("gene_exp_matrix.csv", row.names = 1, check.names = FALSE))
+        gene_cnv_matrix  <- as.matrix(read.csv("cnv_matrix.csv", row.names = 1, check.names = FALSE))
+        meth_matrix      <- as.matrix(read.csv("meth_matrix.csv", row.names = 1, check.names = FALSE))
+        miRNA_exp_matrix <- as.matrix(read.csv("miRNA_exp_matrix.csv", row.names = 1, check.names = FALSE))
+        
+        # 1. Run Genomic Integration (Gene Expression ~ CNV + Methylation)
+        gene_genomic_integration <- run_genomic_integration(expression = t(gene_exp_matrix),
+                                                            cnv_data = t(gene_cnv_matrix),
+                                                            methylation = t(meth_matrix))
+        summary(gene_genomic_integration)
+        saveRDS(gene_genomic_integration, "gene_genomic_integration.rds")
+        
+        # 2. Run CNV Integration (Gene Expression ~ CNV)
+        gene_cnv_integration <- run_cnv_integration(expression = t(gene_exp_matrix),
+                                                    cnv_data = t(gene_cnv_matrix))
+        summary(gene_cnv_integration)
+        saveRDS(gene_cnv_integration, "gene_cnv_integration.rds")
+        
+        # 3. Run Methylation Integration (Gene Expression ~ Methylation)
+        gene_met_integration <- run_met_integration(expression = t(gene_exp_matrix),
+                                                    methylation = t(meth_matrix))
+        summary(gene_met_integration)
+        saveRDS(gene_met_integration, "gene_met_integration.rds")
+        
+        # 4. Run TF-target Integration (Gene Expression ~ TF Expression)
+        tf_target_integration <- run_tf_integration(expression = t(gene_exp_matrix),
+                                                    type = "tf")
+        summary(tf_target_integration)
+        saveRDS(tf_target_integration, "tf_target_integration.rds")
+        
+        # 5. Run miRNA-target Integration (Gene Expression ~ miRNA Expression)
+        miRNA_target_integration <- run_tf_integration(expression = t(gene_exp_matrix),
+                                                       tf_expression = t(miRNA_exp_matrix),
+                                                       type = "miRNA_target")
+        summary(miRNA_target_integration)
+        saveRDS(miRNA_target_integration, "miRNA_target_integration.rds")
+        
+        # 6. Run TF-miRNA Integration (miRNA Expression ~ TF Expression)
+        tf_miRNA_integration <- run_tf_integration(expression = t(miRNA_exp_matrix),
+                                                   tf_expression = t(gene_exp_matrix),
+                                                   type = "tf_miRNA")
+        summary(tf_miRNA_integration)
+        saveRDS(tf_miRNA_integration, "tf_miRNA_integration.rds")
+        
+        # Helper function to export integration results to CSV files
+        export_results <- function(integration_obj, prefix) {
+          if (!is.null(integration_obj\$coef_data)) {
+            for (i in seq_along(integration_obj\$coef_data)) {
+              n <- names(integration_obj\$coef_data)[i]
+              suffix <- if (!is.null(n) && n != "") paste0("_", n) else paste0("_", i)
+              write.csv(integration_obj\$coef_data[[i]], paste0(prefix, "_coefficients", suffix, ".csv"), row.names = TRUE)
+            }
+          }
+          if (!is.null(integration_obj\$pval_data)) {
+            for (i in seq_along(integration_obj\$pval_data)) {
+              n <- names(integration_obj\$pval_data)[i]
+              suffix <- if (!is.null(n) && n != "") paste0("_", n) else paste0("_", i)
+              write.csv(integration_obj\$pval_data[[i]], paste0(prefix, "_pvalues", suffix, ".csv"), row.names = TRUE)
+            }
+          }
+          if (!is.null(integration_obj\$fdr_data)) {
+            for (i in seq_along(integration_obj\$fdr_data)) {
+              n <- names(integration_obj\$fdr_data)[i]
+              suffix <- if (!is.null(n) && n != "") paste0("_", n) else paste0("_", i)
+              write.csv(integration_obj\$fdr_data[[i]], paste0(prefix, "_fdr", suffix, ".csv"), row.names = TRUE)
+            }
+          }
+        }
+        
+        # Export all results to CSV
+        export_results(gene_genomic_integration, "gene_genomic")
+        export_results(gene_cnv_integration, "gene_cnv")
+        export_results(gene_met_integration, "gene_met")
+        export_results(tf_target_integration, "tf_target")
+        export_results(miRNA_target_integration, "miRNA_target")
+        export_results(tf_miRNA_integration, "tf_miRNA")
 
-    # --- Extract Model Res [] ---
-    # Key functions: extract_model_res, plot_network
-    ---------------------------------------------------------------------
-    data_table <- extract_model_res(multiomics_integration)
-    data_table <- data_table[data_table$cov!="(Intercept)",]
-    # plot_network(data_table, num_interactions = 200)
-    # --- Plot Venn [] ---
-    # Key functions: plot_venn
-    ---------------------------------------------------------------------
-    # plot_venn(data_table)
-    # --- Plot Volcano [] ---
-    # Key functions: plot_volcano
-    ---------------------------------------------------------------------
-    # plot_volcano(data_table, omics = "gene_genomic_res", cnv_met = "cnv")
-    # plot_volcano(data_table, omics = "gene_genomic_res", cnv_met = "met")
-    # --- Plot Ridge [] ---
-    # Key functions: plot_ridge
-    ---------------------------------------------------------------------
-    # plot_ridge(data_table, omics = "gene_genomic_res", cnv_met = "cnv")
-    # plot_ridge(data_table, omics = "gene_genomic_res", cnv_met = "met")
-    # --- Run Genomic Enrich [] ---
-    # Key functions: run_genomic_enrich, dot_plotly
-    ---------------------------------------------------------------------
-    #gen_enr <- run_genomic_enrich(multiomics_integration, qvalueCutoff = 1, pvalueCutoff = 0.05, pAdjustMethod = "none")
-    #dot_plotly(gen_enr$cnv[[1]]$go)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gintomics_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gintomics_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gintomics_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GINTOMICS:", paste0("    gintomics: ", packageVersion("gINTomics"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GINTOMICS_TWO_OMICS_INTEGRATION":',
+        paste0('    gINTomics: ', as.character(packageVersion('gINTomics')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gintomics_results.csv
-    touch ${prefix}_gintomics_output.rds
-    echo "BIOC_GINTOMICS:" > versions.yml
-    echo "    gintomics: 0.0.0" >> versions.yml
+    touch ${prefix}_two_omics_integration.csv versions.yml
     """
 }
 
-
-workflow BIOC_GINTOMICS_WORKFLOW {
+workflow BIOC_GINTOMICS_TWO_OMICS_INTEGRATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(input_file) ]
+    ch_input  // channel: [ val(meta), [ gene_exp_matrix.csv, cnv_matrix.csv, meth_matrix.csv, miRNA_exp_matrix.csv ] ]
 
     main:
-    BIOC_GINTOMICS(ch_input)
+    BIOC_GINTOMICS_TWO_OMICS_INTEGRATION(ch_input)
 
     emit:
-    results  = BIOC_GINTOMICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GINTOMICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GINTOMICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GINTOMICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GINTOMICS_TWO_OMICS_INTEGRATION.out.tables
+    plots    = BIOC_GINTOMICS_TWO_OMICS_INTEGRATION.out.plots
+    objects  = BIOC_GINTOMICS_TWO_OMICS_INTEGRATION.out.objects
+    versions = BIOC_GINTOMICS_TWO_OMICS_INTEGRATION.out.versions
 }

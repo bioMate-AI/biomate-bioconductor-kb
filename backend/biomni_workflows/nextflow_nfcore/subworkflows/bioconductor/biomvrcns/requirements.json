@@ -1,0 +1,22 @@
+{
+  "package": "biomvrcns",
+  "requirements": [
+    "GenomicRanges",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "biomvRCNS"
+  ],
+  "by_workflow": {
+    "dmr_detection.nf": [
+      "GenomicRanges",
+      "biomvRCNS"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "biomvRCNS"
+    ],
+    "rna_seq_transcript_detection.nf": [
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "biomvRCNS"
+    ]
+  }
+}

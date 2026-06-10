@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Specifies the alignment method in alignToRefs() (e.g., \"ClustalW\", \"ClustalOmega\", \"Muscle\") ;; trimToRef=Logical (default TRUE) in alignToRefs() to crop the alignment to the non-gap span of a chosen prototype ;; refName=Character specifying the anchor reference sequence name (default \"JN855971.1_A107\") ;; model=Specifies the distance model (e.g., \"IUPAC\") in assignTypes(), pairwiseDistances(), and overallMeanDistance() ;; deleteGapsGlobally=Logical (default FALSE) in assignTypes() and pairwiseDistances() to perform global gap deletion ;; threshold=Numeric (default 0.105) for genotype assignment distance threshold in assignTypes() ;; show_only_highlighted=Logical (default TRUE) in plotAA() to focus on chosen rows while keeping mismatch context\n- alternatives: External alignment tools (e.g., MAFFT, MUSCLE) can be used by exporting references with getPrototypeSeqs() and importing the curated alignment with Biostrings::readDNAStringSet(), which is preferred when users want to manually curate alignments or use external command-line tools.\n- when_to_use: Use this package when genotyping rhinovirus sequences (specifically VP4/2 genomic region) and performing downstream distance, phylogenetic, and SNP/amino acid visualization analyses.\n- pitfalls: assignTypes() will error if prototype sequences are not present in the input alignment ;; deleteGapsGlobally = TRUE or deleteMissingDataSites() performs global gap deletion which modifies the alignment by dropping any column with a gap in any sequence, potentially distorting distances ;; SNPeek() uses the sequence at the bottom of the alignment as the reference, so users must move their desired reference sequence to the bottom before importing ;; SNP/AA plots may be truncated if the plotting device height is too small; increase device height or use highlight options.",
+  "workflows": [
+    {
+      "name": "rhinovirus_genotyping_external_alignment",
+      "intent": "Genotype rhinovirus sequences by exporting prototype references, aligning them externally, importing the curated alignment, and performing downstream distance and visualization analyses.",
+      "input": [
+        "user_sequences.fasta (unaligned user rhinovirus VP4/2 sequences)",
+        "input_aln.fasta (curated alignment of user sequences and prototype references)"
+      ],
+      "stages": "1. Export prototype sequences using getPrototypeSeqs() ;; 2. Import the externally aligned and curated FASTA file using Biostrings::readDNAStringSet() ;; 3. Assign genotypes using assignTypes() ;; 4. Plot genotype frequencies using plotFrequency() ;; 5. Compute pairwise distances using pairwiseDistances() ;; 6. Compute overall mean distance using overallMeanDistance() ;; 7. Plot distance heatmap using plotDistances() and tree using plotTree() ;; 8. Visualize SNPs using SNPeek()",
+      "code": "getPrototypeSeqs(\"~/Desktop\")\n\naln_curated <- Biostrings::readDNAStringSet(\n  system.file(\"extdata\", \"input_aln.fasta\", package = \"rhinotypeR\")\n)\n\nres <- assignTypes(aln_curated, model = \"IUPAC\", deleteGapsGlobally = FALSE, threshold = 0.105)\nhead(res)\n\nplotFrequency(res)\n\nd <- pairwiseDistances(\n  fastaData = rhinovirusVP4,\n  model = \"IUPAC\",\n  deleteGapsGlobally = FALSE   # set TRUE to apply global deletion inside the function\n)\n\noverallMeanDistance(rhinovirusVP4, model = \"IUPAC\")\n\nplotDistances(d)  \n\nsampled_distances <- d[1:30, 1:30]\nplotTree(sampled_distances, hang = -1, cex = 0.6, \n         main = \"A simple tree\", xlab = \"\", ylab = \"Genetic distance\")\n\nSNPeek(rhinovirusVP4)"
+    },
+    {
+      "name": "rhinovirus_genotyping_internal_alignment",
+      "intent": "Genotype rhinovirus sequences by aligning them directly in R with packaged prototype references, followed by downstream distance and visualization analyses.",
+      "input": [
+        "user_sequences.fasta (unaligned user rhinovirus VP4/2 sequences)"
+      ],
+      "stages": "1. Align user sequences and packaged prototypes in R using alignToRefs() ;; 2. Assign genotypes using assignTypes() ;; 3. Plot genotype frequencies using plotFrequency() ;; 4. Translate DNA sequences and visualize amino acid alignments using Biostrings::translate(), msa::msa(), and plotAA()",
+      "code": "aln <- alignToRefs(\n  seqData   = rhinovirusVP4,\n  method    = \"ClustalW\",           # or \"ClustalOmega\", \"Muscle\"\n  trimToRef = TRUE,                 # crop to reference non-gap span\n  refName   = \"JN855971.1_A107\"     # default anchor; change if desired\n)\n\naln\n\nres <- assignTypes(aln, model = \"IUPAC\", deleteGapsGlobally = FALSE, threshold = 0.105)\nhead(res)\n\nplotFrequency(res)\n\naln_no_gaps <- Biostrings::DNAStringSet(\n  gsub(\"-\", \"\", as.character(rhinovirusVP4))\n)\n\naa <- Biostrings::translate(aln_no_gaps)\naa_aln <- msa::msa(aa)  # align as plotAA expects equal width\naa_aln <- as(aa_aln, \"AAStringSet\") # transform to AAStringSet\nplotAA(aa_aln)"
+    }
+  ]
+}

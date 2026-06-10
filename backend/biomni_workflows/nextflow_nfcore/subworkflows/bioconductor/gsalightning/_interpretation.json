@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: eset=Numeric matrix of gene expression data where rows are genes and columns are subjects (must have row and column names) ;; fac=Factor of class labels for unpaired tests, or an integer vector of pairs (e.g., 1, -1, 2, -2) for paired tests ;; gs=Gene sets represented as a list of gene vectors, a data.table with 'geneSet' and 'gene' columns, or a binary sparse matrix ;; nperm=Number of permutations; if NULL, automatically set to (number of gene sets)/0.05 * 2 ;; method=The statistic used to combine gene statistics ('maxmean', 'mean', or 'absmean') ;; restandardize=Logical indicating whether to apply Efron's restandardization to correct p-value distribution ;; minsize=Minimum number of genes a gene set must contain to be analyzed ;; maxsize=Maximum number of genes a gene set must contain to be analyzed ;; rmGSGenes=Character option ('gene' or 'gs') to handle genes in gene sets that are missing from the expression matrix ;; tests=Type of test to perform ('unpaired' or 'paired')\n- alternatives: GSA package=The original implementation of the GSA algorithm; GSALightning is preferred when the number of gene sets and permutations is large due to its superior speed\n- when_to_use: Use when performing permutation-based gene set enrichment analysis on two-sample (paired or unpaired) expression datasets, particularly when high computational efficiency is required for large numbers of permutations\n- pitfalls: Missing values in the expression matrix will cause GSALight() to error ;; Genes with zero sample variance must be removed prior to running GSALight() to avoid errors ;; Genes in gene sets that are not present in the expression matrix will cause errors unless rmGSGenes is explicitly set to 'gene' or 'gs' ;; The 'maxmean' statistic is not defined for single-gene testing and will error in permTestLight() ;; Omitting restandardization (restandardize = FALSE) can lead to highly non-uniform p-value distributions and inflated false positive rates",
+  "workflows": [
+    {
+      "name": "unpaired_gsa",
+      "intent": "Perform permutation-based gene set analysis on unpaired two-sample expression data with optional restandardization.",
+      "input": [
+        "expression_matrix.csv (gene expression matrix with genes as rows and samples as columns)",
+        "sample_metadata.csv (sample annotations containing group/condition factor)",
+        "gene_sets.gmt (list of gene sets)"
+      ],
+      "stages": "1. Filter out genes with zero variance ;; 2. Run GSALight with specified statistics, size filters, and missing gene handling ;; 3. Run GSALight with restandardization enabled to obtain corrected p-values and q-values.",
+      "code": "expression <- expression[apply(expression,1,sd) != 0,]\nGSALightResults <- GSALight(eset = expression, fac = factor(sampleInfo$TN), gs = targetGenes, nperm = 1000, minsize = 10, rmGSGenes = 'gene')\nGSALightResults <- GSALight(eset = expression, fac = factor(sampleInfo$TN), gs = targetGenes, nperm = 1000, method = 'maxmean', restandardize = FALSE, minsize = 10, maxsize = 30, rmGSGenes = 'gene', verbose = FALSE)\nGSALightResultsReStand <- GSALight(eset = expression, fac = factor(sampleInfo$TN), gs = targetGenes, nperm = NULL, method = 'maxmean', restandardize = TRUE, minsize = 10, rmGSGenes = 'gene', verbose = FALSE)"
+    },
+    {
+      "name": "paired_gsa",
+      "intent": "Perform permutation-based gene set analysis on paired two-sample expression data.",
+      "input": [
+        "expression_matrix.csv (gene expression matrix with genes as rows and samples as columns)",
+        "paired_design.csv (metadata containing paired subject indicators and condition signs)",
+        "gene_sets.gmt (list of gene sets)"
+      ],
+      "stages": "1. Define the paired class vector using positive and negative integers to represent pairs and conditions ;; 2. Run GSALight with tests set to 'paired'.",
+      "code": "fac <- 1:(ncol(expression)/2)\nfac <- c(fac, -fac)\nGSALightResultsPaired <- GSALight(eset = expression, fac = fac, gs = targetGenes, nperm = 1000, tests = 'paired', method = 'maxmean', restandardize = TRUE, minsize = 10, rmGSGenes = 'gene', verbose = FALSE)"
+    },
+    {
+      "name": "single_gene_testing",
+      "intent": "Perform single-gene association testing using fast permutation tests or Mann-Whitney U tests.",
+      "input": [
+        "expression_matrix.csv (gene expression matrix with genes as rows and samples as columns)",
+        "sample_metadata.csv (sample annotations containing group/condition factor)"
+      ],
+      "stages": "1. Run single-gene permutation testing using permTestLight ;; 2. Run single-gene Mann-Whitney U testing using wilcoxTest.",
+      "code": "singleGeneAnalysis <- permTestLight(eset = expression, fac = factor(sampleInfo$TN), nperm = 1000,  method = 'mean', verbose = TRUE)\nsingleWilcox <- wilcoxTest(eset = expression, fac = factor(sampleInfo$TN), tests = \"unpaired\")"
+    }
+  ]
+}

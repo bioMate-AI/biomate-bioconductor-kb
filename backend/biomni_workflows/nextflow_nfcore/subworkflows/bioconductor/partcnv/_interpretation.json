@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cyto_feature=A string specifying the chromosome and region of interest (e.g., \"chr20(q11.1-q13.1)\") ;; Counts=A matrix of normalized scRNA-seq counts ;; normalization=Logical indicating whether to normalize the counts ;; qt_cutoff=Quantile cutoff to filter out cells with very low expression (e.g., 0.99 filters out cells expressing in < 1% of cells) ;; int_counts=The processed count matrix output from GetExprCountCyto ;; cyto_type=Type of cytogenetic alteration, either \"del\" (deletion) or \"amp\" (amplification) ;; cyto_p=Prior probability or expected proportion of altered cells based on cytogenetics data\n- alternatives: copyKAT=Preferred for solid tumors (e.g., lung cancer, breast cancer) ;; inferCNV=Preferred for solid tumors (e.g., lung cancer, breast cancer)\n- when_to_use: Appropriate for analyzing scRNA-seq data from patients with hematologic malignancies (such as MDS and AML) where a subset of cells carries known cytogenetic alterations (local deletions or amplifications).\n- pitfalls: Do not use if the patient has normal cytogenetics (e.g., 46,XY[20]) or if all cells are altered (e.g., 46,XY,del(20)[25]) as there is no mixture to classify ;; For complex cytogenetics, analyze features one by one (e.g., start with amplification, then analyze deletion) ;; Increase qt_cutoff if the total number of genes within the target region is small.",
+  "workflows": [
+    {
+      "name": "part_cnv_standard",
+      "intent": "Identify locally aneuploid cells using the standard partCNV EM algorithm.",
+      "input": [
+        "scRNA_seq_counts.rds (normalized scRNA-seq count matrix)",
+        "cytogenetics_info.txt (prior cytogenetics region and proportion)"
+      ],
+      "stages": "1. Retrieve genomic coordinates for the cytogenetics feature ;; 2. Subset and filter the count matrix ;; 3. Run the EM algorithm for cell classification",
+      "code": "res <- GetCytoLocation(cyto_feature = \"chr20(q11.1-q13.1)\")\nGEout <- GetExprCountCyto(cytoloc_output = res, Counts = as.matrix(SimData), normalization = TRUE, qt_cutoff = 0.99)\npcout <- partCNV(int_counts = GEout$ProcessedCount,\n                 cyto_type = \"del\",\n                 cyto_p = 0.40)"
+    },
+    {
+      "name": "part_cnvh_hmm",
+      "intent": "Identify locally aneuploid cells using partCNVH which integrates a Hidden Markov Model for feature selection.",
+      "input": [
+        "scRNA_seq_counts.rds (normalized scRNA-seq count matrix)",
+        "cytogenetics_info.txt (prior cytogenetics region and proportion)"
+      ],
+      "stages": "1. Retrieve genomic coordinates for the cytogenetics feature ;; 2. Subset and filter the count matrix ;; 3. Run the EM algorithm with HMM feature selection",
+      "code": "res <- GetCytoLocation(cyto_feature = \"chr20(q11.1-q13.1)\")\nGEout <- GetExprCountCyto(cytoloc_output = res, Counts = as.matrix(SimData), normalization = TRUE, qt_cutoff = 0.99)\npcHout <- partCNVH(int_counts = GEout$ProcessedCount,\n                 cyto_type = \"del\",\n                 cyto_p = 0.40)"
+    }
+  ]
+}

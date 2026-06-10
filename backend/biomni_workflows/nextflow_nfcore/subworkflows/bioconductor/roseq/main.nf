@@ -1,88 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ROSeq
-// ROSeq - A rank based approach to modeling gene expression with filtered and normalized read count ma
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ROSeq/inst/doc/ROSeq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ROSeq")
+// Bioconductor workflow: ROSeq — roseq_de_analysis
+// Perform rank-based differential expression analysis on single-cell RNA-Seq data.
+// Input: count_matrix.csv, cell_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-roseq:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ROSeq, edgeR, limma
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load required libraries
+//  * 2. [Core Analysis] Filter cells and genes based on expression thresholds
+//  * 3. [Core Analysis] Perform TMM normalization using ROSeq::TMMnormalization
+//  * 4. [Core Analysis] Apply voom transformation using limma::voom
+//  * 5. [Core Analysis] Run differential expression analysis using ROSeq
 
 nextflow.enable.dsl = 2
 
-process BIOC_ROSEQ {
+process BIOC_ROSEQ_ROSEQ_DE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-roseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-roseq:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-roseq:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_roseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_roseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_roseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(ROSeq)
-    library(jsonlite)
-
-    # --- R O Seq [] ---
-    # Key functions: ROSeq
-    output<-ROSeq(countData=samples$count$E, condition = samples$group, numCores=1)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_roseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_roseq_results.csv")
+    library(edgeR)
+    library(limma)
+    
+    # Read user input files
+    # count_matrix.csv: raw read count matrix with genes in rows and cells in columns
+    count_matrix <- read.csv("count_matrix.csv", row.names = 1, check.names = FALSE)
+    
+    # cell_metadata.csv: cell-annotation/condition mapping cells to contrasting groups
+    cell_metadata <- read.csv("cell_metadata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align cells between count matrix and metadata
+    common_cells <- intersect(colnames(count_matrix), rownames(cell_metadata))
+    if (length(common_cells) == 0) {
+      stop("No common cells found between count_matrix.csv columns and cell_metadata.csv row names.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_roseq_output.rds")
+    count_matrix <- count_matrix[, common_cells, drop = FALSE]
+    cell_metadata <- cell_metadata[common_cells, , drop = FALSE]
+    
+    # Determine the condition/group column
+    group_col <- "group"
+    if (!group_col %in% colnames(cell_metadata)) {
+      if ("condition" %in% colnames(cell_metadata)) {
+        group_col <- "condition"
+      } else {
+        group_col <- colnames(cell_metadata)[1]
+      }
     }
+    
+    # Construct the samples list
+    samples <- list()
+    samples\$count <- as.matrix(count_matrix)
+    samples\$group <- cell_metadata[[group_col]]
+    
+    # Preprocessing: Cells and genes filtering
+    gene_names <- rownames(samples\$count)
+    samples\$count <- apply(samples\$count, 2, function(x) as.numeric(x))
+    rownames(samples\$count) <- gene_names
+    
+    # Filter cells based on expression thresholds (with fallback for small datasets)
+    cell_keep <- colSums(samples\$count > 0) > 2000
+    if (sum(cell_keep) < 2) {
+      # Fallback if too few cells pass the 2000 genes threshold
+      cell_keep <- rep(TRUE, ncol(samples\$count))
+    }
+    samples\$count <- samples\$count[, cell_keep, drop = FALSE]
+    samples\$group <- samples\$group[cell_keep]
+    
+    # Filter genes based on expression thresholds (with fallback)
+    gkeep <- apply(samples\$count, 1, function(x) sum(x > 2) >= 3)
+    if (sum(gkeep) < 2) {
+      gkeep <- rep(TRUE, nrow(samples\$count))
+    }
+    samples\$count <- samples\$count[gkeep, , drop = FALSE]
+    
+    # Perform TMM normalization and voom transformation
+    samples\$count <- limma::voom(ROSeq::TMMnormalization(samples\$count))
+    
+    # Run ROSeq differential expression analysis
+    output <- ROSeq(countData = samples\$count\$E, condition = samples\$group, numCores = 1)
+    
+    # Write outputs
+    write.csv(output, "roseq_de_results.csv", row.names = TRUE)
+    saveRDS(output, "roseq_de_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ROSEQ:", paste0("    roseq: ", packageVersion("ROSeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ROSEQ_ROSEQ_DE_ANALYSIS":',
+        paste0('    ROSeq: ', as.character(packageVersion('ROSeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_roseq_results.csv
-    touch ${prefix}_roseq_output.rds
-    echo "BIOC_ROSEQ:" > versions.yml
-    echo "    roseq: 0.0.0" >> versions.yml
+    touch ${prefix}_roseq_de_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ROSEQ_WORKFLOW {
+workflow BIOC_ROSEQ_ROSEQ_DE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ count_matrix.csv, cell_metadata.csv ] ]
 
     main:
-    BIOC_ROSEQ(ch_input)
+    BIOC_ROSEQ_ROSEQ_DE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ROSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ROSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ROSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ROSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ROSEQ_ROSEQ_DE_ANALYSIS.out.tables
+    plots    = BIOC_ROSEQ_ROSEQ_DE_ANALYSIS.out.plots
+    objects  = BIOC_ROSEQ_ROSEQ_DE_ANALYSIS.out.objects
+    versions = BIOC_ROSEQ_ROSEQ_DE_ANALYSIS.out.versions
 }

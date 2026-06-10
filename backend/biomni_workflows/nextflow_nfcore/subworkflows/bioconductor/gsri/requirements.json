@@ -1,0 +1,27 @@
+{
+  "package": "gsri",
+  "requirements": [
+    "Biobase",
+    "GSEABase",
+    "GSRI",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEABase",
+      "GSRI",
+      "limma"
+    ],
+    "multiple_gene_sets_analysis.nf": [
+      "Biobase",
+      "GSEABase",
+      "GSRI"
+    ],
+    "weighted_gene_set_analysis.nf": [
+      "Biobase",
+      "GSEABase",
+      "GSRI"
+    ]
+  }
+}

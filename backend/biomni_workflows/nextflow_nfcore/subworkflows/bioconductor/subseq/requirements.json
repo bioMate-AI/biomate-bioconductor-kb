@@ -1,0 +1,17 @@
+{
+  "package": "subseq",
+  "requirements": [
+    "subSeq"
+  ],
+  "by_workflow": {
+    "add_methods_or_depths.nf": [
+      "subSeq"
+    ],
+    "extract_subsampled_matrix.nf": [
+      "subSeq"
+    ],
+    "main.nf": [
+      "subSeq"
+    ]
+  }
+}

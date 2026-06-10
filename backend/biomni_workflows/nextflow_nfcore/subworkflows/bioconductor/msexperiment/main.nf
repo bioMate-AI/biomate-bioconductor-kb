@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_MSEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-msexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msexperiment:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msexperiment:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,53 +37,81 @@ process BIOC_MSEXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DataFrame)
+    library(S4Vectors)
     library(MsExperiment)
     library(MsExperimentFiles)
     library(PXDataset)
     library(Spectra)
-    library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Sample Metadata Association [] ---
-    # Key functions: sampleData<-
+    # --- Experiment Initialization [Initialization] ---
+    # Key functions: MsExperiment, MsExperimentFiles, experimentFiles<-, sampleData<-
+    fls <- c("sample1.mzML", "sample2.mzML")
+    msexp <- MsExperiment()
+    msfls <- MsExperimentFiles(
+        mzmls = fls,
+        fasta = "homo_sapiens.fasta"
+    )
+    experimentFiles(msexp) <- msfls
     sd <- S4Vectors::DataFrame(
-        mzmls = basename(MsExperiment::experimentFiles(msexp)[["mzmls"]]),
+        mzmls = basename(fls),
         fractions = 1:2
     )
-    MsExperiment::sampleData(msexp) <- sd
+    sampleData(msexp) <- sd
 
+    # --- Spectra Loading and Association [Spectra Loading] ---
+    # Key functions: Spectra, spectra<-
+    mz_files <- experimentFiles(msexp)[["mzmls"]]
+    sp <- Spectra::Spectra(mz_files)
+    spectra(msexp) <- sp
 
-    # --- Data Linking [] ---
-    # Key functions: linkSampleData
-    msexp <- MsExperiment::linkSampleData(
+    # --- Sample Data Linking [Sample Linking] ---
+    # Key functions: linkSampleData, spectraSampleIndex
+    sampleData(msexp)\$raw_file <- normalizePath(
+        experimentFiles(msexp)[["mzmls"]]
+    )
+    msexp <- linkSampleData(
         msexp,
-        with = "sampleData.mzmls = spectra.dataOrigin"
+        with = "sampleData.raw_file = spectra.dataOrigin"
+    )
+    idx <- spectraSampleIndex(msexp)
+
+    # --- Quantitative Data Integration [Quantification Integration] ---
+    # Key functions: qdata<-, linkSampleData, qdata
+    sd <- S4Vectors::DataFrame(sample = c("QC2", "QC1"), idx = c(3, 1))
+    se <- SummarizedExperiment::SummarizedExperiment(
+        colData = sd,
+        assay = list(counts = matrix(1:20, ncol = 2))
+    )
+    qdata(msexp) <- se
+    msexp <- linkSampleData(
+        msexp,
+        with = "sampleData.mzmls = qdata.sample"
     )
 
-
-    # --- Spectra Filtering [] ---
-    # Key functions: filterSpectra, spectra
-    res <- MsExperiment::filterSpectra(
-        msexp,
-        Spectra::filterRt,
-        rt = c(200, 210)
-    )
-    filtered_sps <- MsExperiment::spectra(res)
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msexperiment_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_msexperiment_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msexperiment_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_msexperiment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msexperiment_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_msexperiment_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_MSEXPERIMENT:", paste0("    msexperiment: ", packageVersion("MsExperiment"))),
+        c("BIOC_MSEXPERIMENT:", paste0("    msexperiment: ", as.character(packageVersion("MsExperiment")))),
         "versions.yml"
     )
     """

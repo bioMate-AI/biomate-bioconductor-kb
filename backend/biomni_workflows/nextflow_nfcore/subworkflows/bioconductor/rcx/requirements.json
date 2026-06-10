@@ -1,0 +1,13 @@
+{
+  "package": "rcx",
+  "requirements": [
+    "RCX",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RCX",
+      "igraph"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package": "specond",
+  "requirements": [
+    "Biobase",
+    "SpeCond"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "SpeCond"
+    ],
+    "stepwise_specond_analysis.nf": [
+      "SpeCond"
+    ]
+  }
+}

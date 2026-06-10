@@ -1,0 +1,24 @@
+{
+  "package": "corral",
+  "requirements": [
+    "SingleCellExperiment",
+    "corral",
+    "ggplot2",
+    "gridExtra",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "corral",
+      "ggplot2",
+      "gridExtra",
+      "scater"
+    ],
+    "multi_batch_integration.nf": [
+      "SingleCellExperiment",
+      "corral",
+      "ggplot2"
+    ]
+  }
+}

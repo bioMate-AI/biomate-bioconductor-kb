@@ -1,0 +1,13 @@
+{
+  "package": "cadra",
+  "requirements": [
+    "CaDrA",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CaDrA",
+      "SummarizedExperiment"
+    ]
+  }
+}

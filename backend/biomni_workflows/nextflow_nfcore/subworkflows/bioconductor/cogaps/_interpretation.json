@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nPatterns=The number of patterns (latent dimensions) to learn ;; nIterations=The number of MCMC iterations (default 50000, has the largest impact on runtime) ;; seed=Random seed for stochastic reproducibility ;; sparseOptimization=Logical, optimizes for sparse data (recommended for single-cell data) ;; distributed=Parallelization strategy (e.g., \"genome-wide\" to parallelize across sets) ;; nSets=Number of sets for distributed CoGAPS (configured via setDistributedParams) ;; threshold=In patternMarkers(), can be \"all\" (each gene assigned to exactly one pattern) or \"cut\" (genes sorted by intra-pattern rank, allows genes in multiple patterns) ;; axis=In patternMarkers(), 1 for feature/gene markers (default), 2 for sample markers\n- alternatives: None mentioned in the documentation other than general Nonnegative Matrix Factorization (NMF) class algorithms.\n- when_to_use: Appropriate for latent space learning, dimensionality reduction, and signature/process discovery in bulk or single-cell transcriptomics data.\n- pitfalls: Stochastic nature of MCMC means results can vary unless seed is set ;; Long runtimes (several hours) on large datasets; users should immediately save the CogapsResult object using saveRDS or toCSV ;; Changing nPatterns requires calling setDistributedParams again if running distributed CoGAPS.",
+  "workflows": [
+    {
+      "name": "standard_cogaps_workflow",
+      "intent": "Run standard sequential Bayesian NMF on a gene expression matrix to learn latent patterns.",
+      "input": [
+        "modsimdata (matrix or data.frame of gene expression values)"
+      ],
+      "stages": "1. Initialize parameters using new(\"CogapsParams\") ;; 2. Modify parameters using setParam() ;; 3. Run factorization using CoGAPS() ;; 4. Extract sample factors and feature loadings from the CogapsResult object",
+      "code": "params <- new(\"CogapsParams\", nPatterns=6)\nparams\ngetParam(params, \"nPatterns\")\nparams <- setParam(params, \"nPatterns\", 3)\ngetParam(params, \"nPatterns\")\ncogapsresult <- CoGAPS(modsimdata, params, outputFrequency = 10000)\ncogapsresult\ncogapsresult@sampleFactors\ncogapsresult@featureLoadings"
+    },
+    {
+      "name": "distributed_sc_cogaps_workflow",
+      "intent": "Run distributed CoGAPS on large single-cell transcriptomics data, identify pattern markers, perform gene set overrepresentation analysis, and run MANOVA on metadata.",
+      "input": [
+        "pdac_epi_counts (matrix of raw single-cell counts)",
+        "interestedVariables (matrix/dataframe of metadata variables of interest)"
+      ],
+      "stages": "1. Initialize parameters with sparse optimization and distributed settings using CogapsParams() ;; 2. Set distributed parameters using setDistributedParams() ;; 3. Run factorization using CoGAPS() ;; 4. Save results using saveRDS() or toCSV() ;; 5. Identify pattern markers using patternMarkers() ;; 6. Perform gene set overrepresentation analysis using getPatternGeneSet() ;; 7. Plot gene set enrichment results using plotPatternGeneSet() ;; 8. Run MANOVA on metadata variables using MANOVA()",
+      "code": "pdac_params <- CogapsParams(nIterations=50000, # 50000 iterations\n               \tseed=42, # for consistency across stochastic runs\n               \tnPatterns=8, # each thread will learn 8 patterns\n                sparseOptimization=TRUE, # optimize for sparse data\n                distributed=\"genome-wide\") # parallelize across sets\npdac_params <- setDistributedParams(pdac_params, nSets=7)\npdac_epi_result <- CoGAPS(pdac_epi_counts, pdac_params)\nsaveRDS(pdac_epi_result, \"../data/pdac_epi_cogaps_result.Rds\")\ntoCSV(pdac_epi_result, \"../data\")\npm <- patternMarkers(cogapsresult)\nhallmarks_ora <- getPatternGeneSet(cogapsresult,\n                                   gene.sets = hallmark_ls,\n                                   method = \"overrepresentation\")\npl_pattern7 <- plotPatternGeneSet(\n  patterngeneset = hallmarks_ora, whichpattern = 7, padj_threshold = 0.05\n)\ninterestedVariables <- cbind(pdac_data@meta.data[[\"nCount_RNA\"]], pdac_data@meta.data[[\"nFeature_RNA\"]])\nmanova_results <- MANOVA(interestedVariables, cogapsresult)"
+    }
+  ]
+}

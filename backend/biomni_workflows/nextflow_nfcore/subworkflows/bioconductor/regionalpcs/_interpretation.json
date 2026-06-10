@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cpg_gr=GRanges object containing the genomic coordinates of the CpG sites ;; genes_gr=GRanges object containing the genomic coordinates of the target gene regions (e.g., promoters) ;; meth=Numeric matrix of methylation values (M-values or beta-values) where rownames correspond to CpG IDs ;; region_map=Data frame mapping gene/region IDs to CpG IDs, where the second column must match the rownames of the methylation matrix ;; pc_method=Character string specifying the method to select the number of significant PCs, either \"gd\" (Gavish-Donoho) or \"mp\" (Marcenko-Pasteur)\n- alternatives: pc_method=\"gd\" (Gavish-Donoho) is the default and tends to be more conservative in selecting PCs to filter out noise, whereas pc_method=\"mp\" (Marcenko-Pasteur) typically selects more PCs and may capture more of the underlying signal depending on the analysis goals.\n- when_to_use: Use this package when analyzing DNA methylation array data (e.g., 450k or EPIC) and you want to reduce dimensionality by summarizing individual CpG-level methylation values into region-level principal components for downstream association or differential methylation analyses.\n- pitfalls: Ensure that the genomic builds of the methylation probe coordinates (e.g., hg19) and the gene region annotations (e.g., TxDb.Hsapiens.UCSC.hg19.knownGene) are perfectly aligned. Additionally, the CpG IDs in the second column of the region map must exactly match the rownames of the methylation matrix.",
+  "workflows": [
+    {
+      "name": "regional_pc_summarization",
+      "intent": "Summarize CpG-level DNA methylation data into regional principal components using genomic region annotations.",
+      "input": [
+        "MsetEx.sub (MethylSet object containing methylation data)",
+        "TxDb.Hsapiens.UCSC.hg19.knownGene (Transcript database for genomic annotations)"
+      ],
+      "stages": "1. Extract methylation values from the MethylSet object.\n2. Map methylation data to genomic coordinates and convert to a GRanges object.\n3. Extract target genomic regions (promoters) from the transcript database.\n4. Create a region map associating CpG sites with the target genomic regions.\n5. Compute regional principal components using the Gavish-Donoho or Marcenko-Pasteur method.",
+      "code": "mvals <- getM(MsetEx.sub)\ngset <- mapToGenome(MsetEx.sub)\ncpg_gr <- granges(gset)\ntxdb <- TxDb.Hsapiens.UCSC.hg19.knownGene\npromoters_gr <- suppressMessages(promoters(genes(txdb), \n                                    upstream=1000, \n                                    downstream=0))\nregion_map <- regionalpcs::create_region_map(cpg_gr=cpg_gr, \n                                                genes_gr=promoters_gr)\nres <- compute_regional_pcs(meth=mvals, region_map=region_map, pc_method=\"gd\")\nnames(res)\nregional_pcs <- res$regional_pcs\nmp_res <- compute_regional_pcs(mvals, region_map, pc_method = \"mp\")"
+    }
+  ]
+}

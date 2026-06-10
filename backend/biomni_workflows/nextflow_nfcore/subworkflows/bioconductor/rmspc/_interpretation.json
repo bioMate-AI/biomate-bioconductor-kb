@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: input = Character vector of BED file paths or a GRangesList object ;; replicateType = Character string defining replicate type ('Bio', 'Biological', 'Tec', 'Technical') ;; stringencyThreshold = Double threshold on p-values for stringent peaks ;; weakThreshold = Double threshold on p-values for weak peaks ;; gamma = Double combined significance threshold ;; keep = Logical indicating whether to keep generated files on disk ;; GRanges = Logical indicating whether to return generated files as GRanges objects ;; multipleIntersections = Character string ('Lowest' or 'Highest') defining how to handle multiple overlapping peaks ;; c = Integer minimum number of supporting replicates required to confirm a peak ;; alpha = Double significance level for Benjamini-Hochberg multiple testing correction ;; directoryGRangesInput = Character string specifying the export directory for GRanges inputs\n- alternatives: MSPC command-line interface (C# .NET) can be run directly from the terminal on Linux, macOS, and Windows.\n- when_to_use: Appropriate when performing joint analysis of ChIP-seq replicate samples (biological or technical) to rescue weak peaks and reduce false negatives by combining statistical significance of overlapping regions.\n- pitfalls: Requires .NET 9.0 runtime installed on the system (check with 'dotnet --info') ;; Output structure depends on 'keep' and 'GRanges' arguments ;; When inputting GRanges objects, they are written to disk, requiring write permissions for the directory specified by 'directoryGRangesInput'.",
+  "workflows": [
+    {
+      "name": "peak_calling_from_bed_files",
+      "intent": "Run MSPC peak calling using paths to BED files as input.",
+      "input": [
+        "rep1.bed (ChIP-seq replicate 1 peak file)",
+        "rep2.bed (ChIP-seq replicate 2 peak file)"
+      ],
+      "stages": "1. Define paths to input BED files ;; 2. Run the mspc function with BED file paths and threshold parameters ;; 3. Retrieve status and GRanges output objects.",
+      "code": "path <- system.file(\"extdata\", package = \"rmspc\")\ninput1 <- paste0(path, \"/rep1.bed\")\ninput2 <- paste0(path, \"/rep2.bed\")\ninput <- c(input1, input2)\nresults <- mspc(\n    input = input, replicateType = \"Technical\",\n    stringencyThreshold = 1e-8,\n    weakThreshold = 1e-4, gamma = 1e-8,\n    keep = FALSE,GRanges = TRUE,\n    multipleIntersections = \"Lowest\",\n    c = 2,alpha = 0.05)\nresults$status\nhead(results$GRangesObjects,3)\nresults$GRangesObjects$ConsensusPeaks\nresults$GRangesObjects$`rep1/Background`"
+    },
+    {
+      "name": "peak_calling_from_granges",
+      "intent": "Run MSPC peak calling using GRanges objects loaded in R.",
+      "input": [
+        "GR1 (GRanges object of replicate 1 peaks)",
+        "GR2 (GRanges object of replicate 2 peaks)"
+      ],
+      "stages": "1. Import BED files as GRanges objects using rtracklayer ;; 2. Combine GRanges objects into a GRangesList ;; 3. Run the mspc function with the GRangesList and threshold parameters ;; 4. Retrieve status and GRanges output objects.",
+      "code": "library(GenomicRanges)\nlibrary(rtracklayer)\n\npath <- system.file(\"extdata\", package = \"rmspc\")\ninput1 <- paste0(path, \"/rep1.bed\")\ninput2 <- paste0(path, \"/rep2.bed\")\n\nGR1 <- rtracklayer::import(con = input1, format = \"bed\")\nGR2 <- rtracklayer::import(con = input2, format = \"bed\")\nGR <- GenomicRanges::GRangesList(\"GR1\" = GR1, \"GR2\" = GR2)\nresults <- mspc(\n    input = GR, replicateType = \"Biological\",\n    stringencyThreshold = 1e-8, weakThreshold = 1e-4,\n    gamma =  1e-8, GRanges = TRUE, keep = FALSE,\n    multipleIntersections = \"Highest\",\n    c = 2,alpha = 0.05)\nresults$status\ntail(results$GRangesObjects)"
+    }
+  ]
+}

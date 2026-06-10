@@ -1,0 +1,16 @@
+{
+  "package": "koinar",
+  "requirements": [
+    "OrgMassSpecR",
+    "koinar"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "koinar"
+    ],
+    "spectral_similarity_comparison.nf": [
+      "OrgMassSpecR",
+      "koinar"
+    ]
+  }
+}

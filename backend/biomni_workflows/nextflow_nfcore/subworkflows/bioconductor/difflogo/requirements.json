@@ -1,0 +1,17 @@
+{
+  "package": "difflogo",
+  "requirements": [
+    "DiffLogo"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DiffLogo"
+    ],
+    "multiple_motif_comparison_table.nf": [
+      "DiffLogo"
+    ],
+    "pwm_alignment.nf": [
+      "DiffLogo"
+    ]
+  }
+}

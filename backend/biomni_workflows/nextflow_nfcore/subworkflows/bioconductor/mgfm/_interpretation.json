@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data.mat=The microarray expression data in matrix format with probe sets corresponding to rows and samples corresponding to columns. Replicate samples must have the same column label ;; samples2compare=An optional character vector with the sample names to be compared (defaults to \"all\") ;; annotate=A boolean value indicating whether to show the gene symbol and Entrez gene ID (defaults to TRUE) ;; chip=The chip name required for mapping probe sets to genes when annotate is TRUE ;; score.cutoff=A value in the interval [0,1] used to filter markers according to specificity score (defaults to 1, which means no filtering)\n- alternatives: The documentation mentions using justRMA() from the affy package for background correction, normalization, and summarization, and ComBat from the sva package to adjust for batch effects when combining data from different studies.\n- when_to_use: Use this package when you have normalized microarray gene expression data with replicates for each sample type and want to quickly identify highly specific marker genes for each sample type.\n- pitfalls: Replicate samples must have the exact same column label in the input matrix. Data must be normalized before analysis to avoid experimental bias. The marker selection method is strict and will miss markers that are associated with more than one type of sample. If annotate is TRUE, the corresponding Bioconductor annotation package (ChipDb) must be installed and loaded.",
+  "workflows": [
+    {
+      "name": "marker_gene_detection",
+      "intent": "Identify tissue- or cell-type-specific marker genes from normalized microarray expression data, with optional gene annotation.",
+      "input": [
+        "expression_matrix.csv (normalized microarray gene expression matrix with probe sets as rows and replicate-labeled samples as columns)"
+      ],
+      "stages": "1. Load the MGFM package and the appropriate chip annotation database package. ;; 2. Load the normalized gene expression matrix. ;; 3. Run getMarkerGenes() to identify marker genes, specifying whether to annotate probe sets and setting a specificity score cutoff. ;; 4. Inspect the resulting marker list for each sample type.",
+      "code": "library(\"MGFM\")\ndata(\"ds2.mat\")\nrequire(hgu133a.db)\nmarker.list2 <- getMarkerGenes(ds2.mat, samples2compare=\"all\", annotate=TRUE,  chip=\"hgu133a\",score.cutoff=1)\nnames(marker.list2)\nmarker.list2[[\"liver_markers\"]][1:20]\n\nmarker.list2 <- getMarkerGenes(ds2.mat, samples2compare=\"all\", annotate=FALSE, score.cutoff=1)\nnames(marker.list2)\nmarker.list2[[\"lung_markers\"]][1:20]"
+    }
+  ]
+}

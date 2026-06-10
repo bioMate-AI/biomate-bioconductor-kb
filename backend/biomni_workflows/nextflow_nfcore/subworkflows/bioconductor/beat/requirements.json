@@ -1,0 +1,11 @@
+{
+  "package": "beat",
+  "requirements": [
+    "BEAT"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BEAT"
+    ]
+  }
+}

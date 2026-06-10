@@ -1,0 +1,17 @@
+{
+  "package": "clustersignificance",
+  "requirements": [
+    "ClusterSignificance"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ClusterSignificance"
+    ],
+    "mlp_analysis.nf": [
+      "ClusterSignificance"
+    ],
+    "pca_downstream_analysis.nf": [
+      "ClusterSignificance"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: relations=A data frame containing expected relationships with columns idx, idy, and relation_type ;; verbose=Logical indicating whether to print progress and pruning details ;; callRate=Threshold for removing SNPs missing in a certain fraction of samples (default 0.95) ;; coverageRate=Threshold for minimum fraction of SNPs called in a sample (default 2/3) ;; alpha=Significance level for Hardy-Weinberg equilibrium filtering (default 0) ;; maf=Minor allele frequency threshold for filtering SNPs (default 0) ;; assayName=Character string specifying the assay to extract from a SummarizedExperiment (e.g., \"exprs\")\n- alternatives: None mentioned.\n- when_to_use: Use when you need to verify sample relationships within a single omic dataset or across multiple omic datasets (e.g., matching DNA methylation and genotype data from the same individuals) to detect sample swaps or verify family/twin relationships.\n- pitfalls: Ensure that the rownames of the two datasets match (e.g., identical SNP/CpG identifiers) when performing cross-omic verification. Ensure that the identifiers in the relations data frame (idx and idy) match the column names of the input matrices. For DNA methylation data, select CpGs that are known to be affected by polymorphic SNPs in the target population before calling genotypes.",
+  "workflows": [
+    {
+      "name": "genotype_relationship_verification",
+      "intent": "Verify sample relationships using SNP/genotype matrices within a single omic dataset or across two different omic datasets.",
+      "input": [
+        "x (genotype matrix of first omic dataset where rows are SNPs and columns are samples)",
+        "y (optional genotype matrix of second omic dataset where rows are SNPs and columns are samples)",
+        "relations (optional data frame of expected relationships)"
+      ],
+      "stages": "1. Calculate allele sharing using Identity by State (IBS) with alleleSharing ;; 2. Infer and identify misclassified relationships using inferRelations",
+      "code": "data <- alleleSharing(x, verbose=TRUE)\nmismatches <- inferRelations(data)\nrelations <- expand.grid(idx = colnames(x), idy= colnames(x))\nrelations$relation_type <- \"unrelated\"\nrelations$relation_type[relations$idx == relations$idy] <- \"identical\"\nrelations$relation_type[c(2,5)] <- \"identical\" ##replicate\nrelations$relation_type[c(3,7,9,10)] <- \"parent offspring\"\ndata <- alleleSharing(x, relations=relations)\nmismatches <- inferRelations(data)\nrownames(x) <- paste0(\"rs\", 1:100)\ny <- x[sample(1:100, 80),]\ndata <- alleleSharing(x, y)\nmismatches <- inferRelations(data)\ndata <- alleleSharing(x, y, relations)\nmismatches <- inferRelations(data)"
+    },
+    {
+      "name": "methylation_relationship_verification",
+      "intent": "Verify sample relationships using DNA methylation beta-values by first converting them to genotypes.",
+      "input": [
+        "se (SummarizedExperiment containing DNA methylation beta-values)",
+        "r (data frame of expected relationships)",
+        "hm450.manifest.pop.GoNL (manifest data for SNP-masked CpGs)"
+      ],
+      "stages": "1. Filter SummarizedExperiment for CpGs affected by polymorphic SNPs ;; 2. Convert beta-values to genotype calls using beta2genotype ;; 3. Calculate allele sharing using alleleSharing ;; 4. Infer and identify misclassified relationships using inferRelations",
+      "code": "data(hm450.manifest.pop.GoNL)\ncpgs <- names(hm450.manifest.pop.GoNL[\n    mcols(hm450.manifest.pop.GoNL)$MASK.snp5.EAS])\nse <- se[cpgs,]\ndnamCalls <- beta2genotype(se, assayName = \"exprs\")\ndata <- alleleSharing(dnamCalls, relations = r, verbose = TRUE)\nmismatches <- inferRelations(data)"
+    }
+  ]
+}

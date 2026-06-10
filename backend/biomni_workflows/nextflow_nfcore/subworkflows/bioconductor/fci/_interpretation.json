@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <ctr.idx=Vector or list of column indices representing control replicates (e.g., c(1,2,3) or list(1:2, 7:8)) ;; case.idx=Vector or list of column indices representing case/experimental replicates (e.g., c(4,5,6) or list(5:6, 11:12)) ;; data/filename=Tab-delimited file path or data frame containing expression values where rows are genes/proteins and columns are samples ;; fold_sequence=A sequence of fold change cutoff values to test, passed to setfCI (e.g., seq(from=1.1,to=3,by=0.1)) ;; center_bool=Logical value passed to setfCI indicating whether to center the pairwise ratio distribution using Gaussian kernel density approximation>\n- alternatives: <The documentation mentions other methods specifically designed for individual experiments (e.g., standard RNA-seq or proteomics DEG tools), but notes fCI is preferred when integrating multi-dimensional data (proteogenomics), time courses, or when there are very few or no replicates.>\n- when_to_use: <Use when identifying DEGs across transcriptomic, proteomic, or integrated proteogenomic datasets, especially in studies with very few or no replicates, or multi-dimensional setups like time courses.>\n- pitfalls: <If the case-control distribution does not show obvious deviation from the control-control distribution, fCI will not find a local minimum divergence and will report no DEGs (returning NULL). Each sample column must contain the exact same number of genes. Using the shortcut function fCI.call.by.index will find DEGs but will not retain internal runtime variables or the S4 object for downstream exploration.>",
+  "workflows": [
+    {
+      "name": "single_omic_deg_analysis",
+      "intent": "Identify differentially expressed genes from a single-omic dataset (e.g., transcriptomics or proteomics) with control and case replicates.",
+      "input": [
+        "Supp_Dataset_part_2.txt (tab-delimited file with genes in rows and sample expression values in columns)",
+        "fci.data (data frame of expression values)"
+      ],
+      "stages": "1. Normalize data (optional, e.g., total library size or trimmed sum normalization); 2. Initialize NPCI object; 3. Find DEGs using control and case column indices; 4. Extract and display identified DEGs; 5. Plot kernel density distributions.",
+      "code": "fci.data=data.frame(matrix(sample(3:100, 1043*6, replace=TRUE), 1043,6))\nfci.data=total.library.size.normalization(fci.data)\nfci.data=trim.size.normalization(fci.data)\nfci=new(\"NPCI\")\nfci=find.fci.targets(fci, c(1,2,3), c(4,5,6), filename)\nDiff.Expr.Genes=show.targets(fci)\nhead(Diff.Expr.Genes)\nfigures(fci)\nfci=find.fci.targets(fci, c(1,2), 5, filename)\nDiff.Expr.Genes=fCI.call.by.index(c(1,2,3), c(4,5,6), filename)"
+    },
+    {
+      "name": "proteogenomics_deg_analysis",
+      "intent": "Identify co-regulated differentially expressed genes across multi-dimensional/integrated proteogenomics datasets.",
+      "input": [
+        "proteoGenomics.txt (tab-delimited file containing integrated transcriptomics and proteomics expression columns)"
+      ],
+      "stages": "1. Initialize NPCI object; 2. Set fCI runtime variables (optional); 3. Find DEGs using lists of control and case indices across multiple dimensions; 4. Extract and display co-regulated DEGs; 5. Plot kernel density distributions.",
+      "code": "fci=new(\"NPCI\")\nfci=setfCI(fci, 7:8, 11:12, seq(from=1.1,to=3,by=0.1), TRUE)\ntargets=find.fci.targets(fci, list(1:2, 7:8), list(5:6, 11:12), filename2)\nDiff.Expr.Genes=show.targets(targets)\nhead(Diff.Expr.Genes)\nproteogenomic.data=read.csv(filename2, sep=\"\\t\")\nhead(proteogenomic.data)"
+    }
+  ]
+}

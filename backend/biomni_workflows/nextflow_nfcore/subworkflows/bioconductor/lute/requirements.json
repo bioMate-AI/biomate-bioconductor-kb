@@ -1,0 +1,11 @@
+{
+  "package": "lute",
+  "requirements": [
+    "lute"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "lute"
+    ]
+  }
+}

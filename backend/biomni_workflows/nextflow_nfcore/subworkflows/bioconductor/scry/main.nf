@@ -1,106 +1,169 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scry
-// Many modern biological datasets consist of small counts that are not well fit by standard linear-Gau
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scry/inst/doc/bigdata.R
-// Upstream  : DuoClustering2018, SingleCellExperiment, TENxPBMCData, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("scry")
+// Bioconductor workflow: scry — sce_deviance_glmpca
+// Perform deviance-based feature selection and GLM-PCA dimension reduction on a SingleCellExperiment object.
+// Input: sce
+// Container: quay.io/biocontainers/bioconductor-scry:1.22.0--r45hdfd78af_0
+// R packages: duoclustering2018, ggplot2, scry, SingleCellExperiment, tenxpbmcdata
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, ggplot2, scry
+// Visualizations: PCA plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Rank genes based on binomial deviance using devianceFeatureSelection
+//  * 2. [Core Analysis] Subset the SingleCellExperiment to keep only high-deviance genes
+//  * 3. [Core Analysis] Run GLM-PCA to reduce dimensionality
+//  * 4. [Visualization & Output] Extract latent factors from metadata for visualization
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCRY {
+process BIOC_SCRY_SCE_DEVIANCE_GLMPCA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scry"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scry:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scry:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(input_file)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scry_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scry_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scry_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Matrix)
-    library(TENxPBMCData)
-    library(jsonlite)
-
-    # --- Tenxpbmcdata [] ---
-    # Key functions: TENxPBMCData, counts, rowSums, time, devianceFeatureSelection
-    ---------------------------------------------------------------------
-    sce<-TENxPBMCData(dataset="pbmc3k")
-    h5counts<-counts(sce)
-    seed(h5counts) #print information about object
-    h5counts<-h5counts[rowSums(h5counts)>0,]
-    # --- Matrix [] ---
-    # Key functions: time, devianceFeatureSelection
-    ---------------------------------------------------------------------
-    denseCounts<-as.matrix(h5counts)
-    system.time(denseDevs<-devianceFeatureSelection(denseCounts)) # 5 sec
-    max(abs(denseDevs-h5devs)) #should be close to zero
-    # --- Mean [] ---
-    # Key functions: Matrix, time, devianceFeatureSelection
-    ---------------------------------------------------------------------
-    mean(denseCounts>0) #shows that the data are mostly zeros so sparsity useful
-    sparseCounts<-Matrix::Matrix(denseCounts,sparse=TRUE)
-    system.time(sparseDevs<-devianceFeatureSelection(sparseCounts)) #1.6 sec
-    max(abs(sparseDevs-h5devs)) #should be close to zero
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scry_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("duoclustering2018", "ggplot2", "scry", "SingleCellExperiment", "tenxpbmcdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    suppressPackageStartupMessages({
+      library(scry)
+      library(ggplot2)
+    })
+    
+    # Set ggplot theme
+    theme_set(theme_bw())
+    
+    # 1. Read the input SingleCellExperiment object
+    input_file <- "sce"
+    if (!file.exists(input_file) && file.exists("sce.rds")) {
+      input_file <- "sce.rds"
+    }
+    
+    if (!file.exists(input_file)) {
+      stop("Error: Input file 'sce' or 'sce.rds' not found in the working directory.")
+    }
+    
+    sce <- readRDS(input_file)
+    
+    # Ensure the "counts" assay exists
+    if (!"counts" %in% assayNames(sce)) {
+      stop("Error: The input SingleCellExperiment object must contain a 'counts' assay.")
+    }
+    
+    # 2. Rank genes based on binomial deviance
+    sce<-devianceFeatureSelection(sce, assay="counts", sorted=TRUE)
+    
+    # Save deviance feature selection plot
+    pdf("deviance_plot.pdf", width=6, height=4)
+    plot(rowData(sce)\$binomial_deviance, type="l", xlab="ranked genes",
+         ylab="binomial deviance", main="Feature Selection with Deviance")
+    abline(v=min(2000, nrow(sce)), lty=2, col="red")
+    dev.off()
+    
+    # Save deviance features table
+    write.csv(as.data.frame(rowData(sce)), "deviance_features.csv", row.names=TRUE)
+    
+    # 3. Subset the SingleCellExperiment to keep only high-deviance genes
+    # Use min(1000, nrow(sce)) to handle cases where the input has fewer than 1000 genes
+    num_genes_to_keep <- min(1000, nrow(sce))
+    sce2<-sce[1:num_genes_to_keep, ]
+    
+    # 4. Run GLM-PCA to reduce dimensionality
+    set.seed(101)
+    sce2<-GLMPCA(sce2, 2, assay="counts")
+    
+    # 5. Extract latent factors from metadata for visualization
+    fit<-metadata(sce2)\$glmpca
+    pd<-cbind(as.data.frame(colData(sce2)), fit\$factors)
+    
+    # Save GLM-PCA factors table
+    write.csv(pd, "glmpca_factors.csv", row.names=TRUE)
+    
+    # Save the updated SingleCellExperiment object
+    saveRDS(sce2, "sce_glmpca_out.rds")
+    
+    # Generate and save GLM-PCA plot
+    pdf("glmpca_plot.pdf", width=6, height=4)
+    # Dynamically check for a cell type or phenotype column to color the plot
+    color_col <- NULL
+    possible_cols <- c("phenoid", "celltype", "cell_type", "CellType", "label", "cluster")
+    for (col in possible_cols) {
+      if (col %in% colnames(pd)) {
+        color_col <- col
+        break
+      }
+    }
+    
+    if (!is.null(color_col)) {
+      p <- ggplot(pd, aes(x=dim1, y=dim2, colour=.data[[color_col]])) +
+           geom_point(size=.8) +
+           ggtitle("GLM-PCA applied to high deviance genes")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scry_results.csv")
+      p <- ggplot(pd, aes(x=dim1, y=dim2)) +
+           geom_point(size=.8) +
+           ggtitle("GLM-PCA applied to high deviance genes")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scry_output.rds")
-    }
+    print(p)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCRY:", paste0("    scry: ", packageVersion("scry"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCRY_SCE_DEVIANCE_GLMPCA":',
+        paste0('    scry: ', as.character(packageVersion('scry')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scry_results.csv
-    touch ${prefix}_scry_output.rds
-    echo "BIOC_SCRY:" > versions.yml
-    echo "    scry: 0.0.0" >> versions.yml
+    touch ${prefix}_sce_deviance_glmpca.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCRY_WORKFLOW {
+workflow BIOC_SCRY_SCE_DEVIANCE_GLMPCA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(input_file) ]
+    ch_input  // channel: [ val(meta), [ sce ] ]
 
     main:
-    BIOC_SCRY(ch_input)
+    BIOC_SCRY_SCE_DEVIANCE_GLMPCA(ch_input)
 
     emit:
-    results  = BIOC_SCRY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCRY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCRY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCRY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCRY_SCE_DEVIANCE_GLMPCA.out.tables
+    plots    = BIOC_SCRY_SCE_DEVIANCE_GLMPCA.out.plots
+    objects  = BIOC_SCRY_SCE_DEVIANCE_GLMPCA.out.objects
+    versions = BIOC_SCRY_SCE_DEVIANCE_GLMPCA.out.versions
 }

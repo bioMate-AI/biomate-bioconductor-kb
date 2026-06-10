@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cutoff=The minimum sum of read counts across all samples required for an exon to be considered testable (default is 5) ;; times/perm.times=The number of permutations to run for empirical background generation (at least 1000 is recommended for real analyses) ;; DEweight=The weight given to the differential expression score during integration, ranging from 0 (DS only) to 1 (DE only) ;; geneID.type=The type of gene identifier used in the count data, such as \"ensembl\" ;; genesetsize.min=The minimum number of genes a gene set must contain to be analyzed (default is 5) ;; genesetsize.max=The maximum number of genes a gene set can contain to be analyzed (default is 1000)\n- alternatives: easyRNASeq, summarizeOverlaps (GenomicRanges), or featureCounts (Rsubread) can be used as alternatives to the provided Python scripts for counting reads mapped to exons. Rsubread, TopHat, or STAR can be used for upstream read mapping and quality control.\n- when_to_use: Use this package when you have exon-level RNA-Seq count data and want to perform functional gene set enrichment analysis that accounts for both overall gene expression changes and alternative splicing events simultaneously.\n- pitfalls: Running too few permutations (e.g., 20 as shown in the quick examples) will result in inaccurate p-values and FDR/FWER distributions; always use at least 1000 permutations for real data. Current versions of SeqGSEA only support gene sets with gene symbols, so gene IDs must be mapped appropriately. Forgetting to register a parallel backend using registerDoParallel will cause the highly intensive permutation loops to run sequentially, significantly increasing execution time.",
+  "workflows": [
+    {
+      "name": "integrated_de_ds_gsea",
+      "intent": "Run an integrated gene set enrichment analysis combining differential expression and differential splicing from exon-level RNA-Seq count data.",
+      "input": [
+        "case.files (text files containing exon read counts for case samples)",
+        "control.files (text files containing exon read counts for control samples)",
+        "geneset.file (GMT format gene set file containing gene symbols)"
+      ],
+      "stages": "1. Register parallel backend ;; 2. Load exon count data ;; 3. Filter low-expression exons and genes ;; 4. Calculate DS NB statistics on real and permuted datasets ;; 5. Calculate DE NB statistics on real and permuted datasets ;; 6. Normalize DE and DS scores ;; 7. Integrate DE and DS scores ;; 8. Load gene sets ;; 9. Run GSEA and format results",
+      "code": "library(doParallel)\ncl <- makeCluster(2)\nregisterDoParallel(cl)\nperm.times <- 20\nRCS <- loadExonCountData(case.files, control.files)\nRCS <- exonTestability(RCS, cutoff=5)\ngeneTestable <- geneTestability(RCS)\nRCS <- subsetByGenes(RCS, unique(geneID(RCS))[ geneTestable ])\ngeneIDs <- unique(geneID(RCS))\nRCS <- estiExonNBstat(RCS)\nRCS <- estiGeneNBstat(RCS)\npermuteMat <- genpermuteMat(RCS, times=perm.times)\nRCS <- DSpermute4GSEA(RCS, permuteMat)\ngeneCounts <- getGeneCount(RCS)\nlabel <- label(RCS)\ndds <-runDESeq(geneCounts, label)\nDEGres <- DENBStat4GSEA(dds)\nDEpermNBstat <- DENBStatPermut4GSEA(dds, permuteMat)\nDEscore.normFac <- normFactor(DEpermNBstat)\nDEscore <- scoreNormalization(DEGres$NBstat, DEscore.normFac)\nDEscore.perm <- scoreNormalization(DEpermNBstat, DEscore.normFac)\nDSscore.normFac <- normFactor(RCS@permute_NBstat_gene)\nDSscore <- scoreNormalization(RCS@featureData_gene$NBstat, DSscore.normFac)\nDSscore.perm <- scoreNormalization(RCS@permute_NBstat_gene, DSscore.normFac)\ngene.score <- geneScore(DEscore, DSscore, DEweight=0.5)\ngene.score.perm <- genePermuteScore(DEscore.perm, DSscore.perm, DEweight=0.5)\ngene.set <- loadGenesets(geneset.file, geneIDs, geneID.type=\"ensembl\", genesetsize.min = 5, genesetsize.max = 1000)\ngene.set <- GSEnrichAnalyze(gene.set, gene.score, gene.score.perm, weighted.type=1)\nGSEAres <- GSEAresultTable(gene.set, TRUE)"
+    },
+    {
+      "name": "de_only_gsea",
+      "intent": "Run gene set enrichment analysis using only differential expression scores from gene-level RNA-Seq count data.",
+      "input": [
+        "count.file (tab-separated gene read count file)",
+        "geneset.file (GMT format gene set file containing gene symbols)"
+      ],
+      "stages": "1. Register parallel backend ;; 2. Load gene read count data ;; 3. Calculate DE NB statistics on real and permuted datasets ;; 4. Normalize DE scores ;; 5. Integrate scores with DEweight=1 ;; 6. Load gene sets ;; 7. Run GSEA and format results",
+      "code": "library(doParallel)\ncl <- makeCluster(2)\nregisterDoParallel(cl)\nperm.times <- 20\ngeneCounts <- read.table(count.file)\nlabel <- as.factor(c(rep(1,10), rep(0,10)))\ndds <-runDESeq(geneCounts, label)\nDEGres <- DENBStat4GSEA(dds)\npermuteMat <- genpermuteMat(label, times=perm.times)\nDEpermNBstat <- DENBStatPermut4GSEA(dds, permuteMat)\nDEscore.normFac <- normFactor(DEpermNBstat)\nDEscore <- scoreNormalization(DEGres$NBstat, DEscore.normFac)\nDEscore.perm <- scoreNormalization(DEpermNBstat, DEscore.normFac)\ngene.score <- geneScore(DEscore, DEweight=1)\ngene.score.perm <- genePermuteScore(DEscore.perm, DEweight=1)\ngeneIDs <- rownames(geneCounts)\ngene.set <- loadGenesets(geneset.file, geneIDs, geneID.type=\"ensembl\", genesetsize.min = 5, genesetsize.max = 1000)\ngene.set <- GSEnrichAnalyze(gene.set, gene.score, gene.score.perm, weighted.type=1)\nGSEAres <- GSEAresultTable(gene.set, TRUE)"
+    },
+    {
+      "name": "one_step_seqgsea",
+      "intent": "Run the entire SeqGSEA pipeline (including DE, DS, score integration, and GSEA) in a single step using the all-in-one wrapper function.",
+      "input": [
+        "data.dir (directory containing case and control exon count files)",
+        "geneset.file (GMT format gene set file containing gene symbols)"
+      ],
+      "stages": "1. Define input file patterns, gene set file, and analysis parameters ;; 2. Run the complete analysis using runSeqGSEA",
+      "code": "runSeqGSEA(data.dir=data.dir, case.pattern=case.pattern, ctrl.pattern=ctrl.pattern, geneset.file=geneset.file, geneID.type=geneID.type, output.prefix=output.prefix, nCores=nCores, perm.times=perm.times, integrationMethod=integrationMethod, DEonly=DEonly, DEweight=DEweight)"
+    }
+  ]
+}

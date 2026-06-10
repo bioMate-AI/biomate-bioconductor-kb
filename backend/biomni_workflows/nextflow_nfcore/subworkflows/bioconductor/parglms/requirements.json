@@ -1,0 +1,13 @@
+{
+  "package": "parglms",
+  "requirements": [
+    "BatchJobs",
+    "parglms"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BatchJobs",
+      "parglms"
+    ]
+  }
+}

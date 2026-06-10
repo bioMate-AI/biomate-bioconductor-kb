@@ -1,0 +1,21 @@
+{
+  "package": "splicewiz",
+  "requirements": [
+    "SpliceWiz",
+    "edgeR",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "coverage_visualization.nf": [
+      "SpliceWiz"
+    ],
+    "main.nf": [
+      "SpliceWiz",
+      "edgeR",
+      "ggplot2"
+    ],
+    "novel_splicing_analysis.nf": [
+      "SpliceWiz"
+    ]
+  }
+}

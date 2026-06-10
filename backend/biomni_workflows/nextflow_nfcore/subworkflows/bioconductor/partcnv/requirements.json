@@ -1,0 +1,20 @@
+{
+  "package": "partcnv",
+  "requirements": [
+    "Seurat",
+    "ggplot2",
+    "partCNV"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Seurat",
+      "ggplot2",
+      "partCNV"
+    ],
+    "part_cnvh_hmm.nf": [
+      "Seurat",
+      "ggplot2",
+      "partCNV"
+    ]
+  }
+}

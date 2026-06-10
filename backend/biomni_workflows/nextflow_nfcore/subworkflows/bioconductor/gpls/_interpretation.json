@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: br=Logical (TRUE/FALSE) indicating whether to use Firth's bias reduction to remedy nonconvergence ;; K.prov=Integer specifying the number of PLS components to use (defaults to the minimum of the row and column rank of the design matrix if not specified) ;; mlogit=Logical (TRUE/FALSE) in glpls1a.mlogit.cv.error to choose between glpls1a.mlogit (TRUE) and glpls1a.logit.all (FALSE)\n- alternatives: lda=Linear Discriminant Analysis from the MASS package is mentioned as an alternative classification method ;; glpls1a.logit.all=An alternative to glpls1a.mlogit for multi-group classification that fits separate two-group models, which is simpler but less efficient\n- when_to_use: Appropriate for two-group and multi-group classification tasks, especially when dealing with high-dimensional datasets where partial least squares is beneficial, or when standard logistic regression models fail to converge\n- pitfalls: The predictor matrix X passed to glpls1a.mlogit must explicitly include a column of ones for the intercept term, whereas the X matrix for glpls1a (two-group) should not include an intercept term ;; glpls1a.logit.all is less statistically efficient than glpls1a.mlogit due to separate fitting of binary logits",
+  "workflows": [
+    {
+      "name": "two_group_classification",
+      "intent": "Fit a two-group classification model using generalized partial least squares and evaluate performance via cross-validation or test set error.",
+      "input": [
+        "x (matrix of training predictors)",
+        "y (vector of binary training responses 0/1)",
+        "x1 (matrix of test predictors)",
+        "y1 (vector of binary test responses 0/1)"
+      ],
+      "stages": "1. Fit the two-group model using glpls1a ;; 2. Calculate leave-one-out cross-validation error using glpls1a.cv.error ;; 3. Calculate test set error and predict probabilities using glpls1a.train.test.error",
+      "code": "glpls1a(x,y,br=FALSE)\nglpls1a(x,y,K.prov=1,br=FALSE)\nglpls1a(x,y,br=TRUE)\nglpls1a.cv.error(x,y,br=FALSE)\nglpls1a.train.test.error(x,y,x1,y1,br=FALSE)\nglpls1a.cv.error(x,y,K.prov=1,br=TRUE)\nglpls1a.train.test.error(x,y,x1,y1,K.prov=1,br=TRUE)"
+    },
+    {
+      "name": "multi_group_classification",
+      "intent": "Fit a multi-group classification model using multinomial generalized partial least squares and evaluate performance.",
+      "input": [
+        "x (matrix of training predictors)",
+        "y (vector of multi-class training responses 1/2/3)"
+      ],
+      "stages": "1. Fit the multi-group model using glpls1a.mlogit (with intercept) or glpls1a.logit.all (without intercept) ;; 2. Calculate leave-one-out cross-validation error using glpls1a.mlogit.cv.error",
+      "code": "glpls1a.mlogit(cbind(rep(1,10),x),y,K.prov=1,br=FALSE)\nglpls1a.logit.all(x,y,K.prov=1,br=FALSE)\nglpls1a.mlogit(cbind(rep(1,10),x),y,br=TRUE)\nglpls1a.logit.all(x,y,br=TRUE)\nglpls1a.mlogit.cv.error(x,y,br=FALSE)\nglpls1a.mlogit.cv.error(x,y,mlogit=FALSE,br=FALSE)\nglpls1a.mlogit.cv.error(x,y,br=TRUE)\nglpls1a.mlogit.cv.error(x,y,mlogit=FALSE,br=TRUE)"
+    },
+    {
+      "name": "formula_interface_classification",
+      "intent": "Fit a GPLS classification model using a formula interface and predict classes for new data.",
+      "input": [
+        "Pima.tr (training data frame with predictors and response)",
+        "Pima.te (test data frame with predictors)"
+      ],
+      "stages": "1. Fit the model using gpls with formula ;; 2. Predict classes for test data using predict",
+      "code": "m1 = gpls(type~., Pima.tr)\np1 = predict(m1, Pima.te[,-8])"
+    }
+  ]
+}

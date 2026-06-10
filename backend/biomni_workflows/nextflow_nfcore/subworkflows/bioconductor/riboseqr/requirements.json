@@ -1,0 +1,15 @@
+{
+  "package": "riboseqr",
+  "requirements": [
+    "GenomicRanges",
+    "baySeq",
+    "riboSeqR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "baySeq",
+      "riboSeqR"
+    ]
+  }
+}

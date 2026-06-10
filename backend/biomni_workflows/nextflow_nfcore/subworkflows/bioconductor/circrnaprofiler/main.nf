@@ -1,88 +1,475 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: circRNAprofiler
-// R-based computational framework for a comprehensive in silico analysis of circRNAs. This computation
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/circRNAprofiler/inst/doc/circRNAprofiler.R
-// Upstream  : VennDiagram, ggplot2, ggpubr, gridExtra, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("circRNAprofiler")
+// Bioconductor workflow: circRNAprofiler — circrna_downstream_analysis
+// Perform a comprehensive downstream analysis of predicted circRNAs, including merging, filtering, differential expression, structural annotation, sequence retrie
+// Input: gencode.V19.annotation.gtf, experiment.txt, circRNAs_X.txt, motifs.txt, miRs.txt, transcripts.txt, traits.txt
+// Container: quay.io/biocontainers/bioconductor-circrnaprofiler:1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome, BSgenome.Hsapiens.UCSC.hg19, BiocManager, VennDiagram, circRNAprofiler, dplyr, ggplot2, ggpubr, gridExtra
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize project folder structure using initCircRNAprofiler()
+//  * 2. [Core Analysis] Verify folder structure using checkProjectFolder()
+//  * 3. [Core Analysis] Format the GTF file using formatGTF()
+//  * 4. [Input & Preparation] Import predicted circRNAs using getBackSplicedJunctions()
+//  * 5. [Core Analysis] Merge commonly identified circRNAs across tools using mergeBSJunctions()
+//  * 6. [Input & Preparation] Filter circRNAs based on read counts and conditions using filterCirc()
+//  * 7. [Core Analysis] Identify differentially expressed circRNAs using getDeseqRes() or getEdgerRes()
+//  * 8. [Core Analysis] Map coordinates between assemblies (optional) using liftBSJcoords()
+//  * 9. [Core Analysis] Annotate internal structure and flanking introns using annotateBSJs()
+//  * 10. [Core Analysis] Generate random background junctions using getRandomBSJunctions()
+//  * 11. [Core Analysis] Retrieve target sequences (internal, BSJ, or flanking) using getCircSeqs(), getSeqsAcrossBSJs(), or getSeqsFromGRs()
+//  * 12. [Core Analysis] Screen for RBP motifs using getMotifs() and mergeMotifs()
+//  * 13. [Core Analysis] Screen for miRNA binding sites using getMiRsites() and rearrangeMiRres()
+//  * 14. [Core Analysis] Annotate GWAS SNPs using annotateSNPsGWAS()
+//  * 15. [Core Analysis] Annotate repetitive elements using annotateRepeats()
 
 nextflow.enable.dsl = 2
 
-process BIOC_CIRCRNAPROFILER {
+process BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-circrnaprofiler"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-circrnaprofiler:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-circrnaprofiler:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_circrnaprofiler_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_circrnaprofiler_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_circrnaprofiler_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(circRNAprofiler)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(circRNAprofiler)
+            library(ggplot2)
+            library(ggpubr)
+            library(gridExtra)
+            library(VennDiagram)
+            library(BSgenome)
+            library(dplyr)
+            
+            # Store the original working directory
+            orig_wd <- getwd()
+            
+            # Module 1 - Set up project folder
+            initCircRNAprofiler(
+                projectFolderName = "projectCirc",
+                detectionTools = c("mapsplice", "nclscan", "circmarker")
+            )
+            
+            # Copy user input files from the original directory to the project folder
+            files_to_copy <- c("gencode.V19.annotation.gtf", "experiment.txt", "motifs.txt", "miRs.txt", "transcripts.txt", "traits.txt")
+            for (f in files_to_copy) {
+                src <- file.path(orig_wd, f)
+                if (file.exists(src)) {
+                    file.copy(src, file.path("projectCirc", f), overwrite = TRUE)
+                }
+            }
+            
+            # Copy tool-specific subfolders and their circRNAs_X.txt files
+            tools <- c("mapsplice", "nclscan", "circmarker")
+            for (tool in tools) {
+                src_dir <- file.path(orig_wd, tool)
+                if (dir.exists(src_dir)) {
+                    files <- list.files(src_dir, pattern = "circRNAs_.*\\\\.txt", full.names = TRUE)
+                    for (fl in files) {
+                        dest_file <- file.path("projectCirc", tool, basename(fl))
+                        file.copy(fl, dest_file, overwrite = TRUE)
+                    }
+                }
+            }
+            
+            # Change working directory to the project folder
+            setwd("projectCirc")
+            
+            # Verify folder structure
+            check <- checkProjectFolder()
+            message("Project folder check code: ", check)
+            
+            # Module 2 - Import predicted circRNAs
+            gtf <- formatGTF("gencode.V19.annotation.gtf")
+            backSplicedJunctions <- getBackSplicedJunctions(gtf)
+            write.csv(backSplicedJunctions, "backSplicedJunctions.csv", row.names = FALSE)
+            
+            # Module 3 - Merge commonly identified circRNAs
+            mergedBSJunctions <- mergeBSJunctions(backSplicedJunctions, gtf)
+            write.csv(mergedBSJunctions, "mergedBSJunctions.csv", row.names = FALSE)
+            
+            # Module 4 - Filter circRNAs
+            filteredCirc <- filterCirc(mergedBSJunctions, allSamples = FALSE, min = 5)
+            write.csv(filteredCirc, "filteredCirc.csv", row.names = FALSE)
+            
+            # Module 5 - Find differentially expressed circRNAs
+            cond_AB <- "A-B"
+            cond_AC <- "A-C"
+            if (file.exists("experiment.txt")) {
+                exp_data <- read.table("experiment.txt", header = TRUE, stringsAsFactors = FALSE)
+                if ("condition" %in% colnames(exp_data)) {
+                    conds <- sort(unique(exp_data\$condition))
+                    if (length(conds) >= 2) cond_AB <- paste(conds[1], conds[2], sep="-")
+                    if (length(conds) >= 3) cond_AC <- paste(conds[1], conds[3], sep="-")
+                }
+            }
+        
+            deseqResBvsA <- NULL
+            deseqResCvsA <- NULL
+            tryCatch({
+                deseqResBvsA <- getDeseqRes(
+                    filteredCirc,
+                    condition = cond_AB,
+                    fitType = "local",
+                    pAdjustMethod = "BH"
+                )
+                write.csv(deseqResBvsA, "deseqResBvsA.csv", row.names = FALSE)
+            }, error = function(e) {
+                warning("DESeq2 BvsA analysis failed: ", e\$message)
+            })
+            
+            tryCatch({
+                deseqResCvsA <- getDeseqRes(
+                    filteredCirc,
+                    condition = cond_AC,
+                    fitType = "local",
+                    pAdjustMethod = "BH"
+                )
+                write.csv(deseqResCvsA, "deseqResCvsA.csv", row.names = FALSE)
+            }, error = function(e) {
+                warning("DESeq2 CvsA analysis failed: ", e\$message)
+            })
+            
+            edgerResBvsA <- NULL
+            tryCatch({
+                edgerResBvsA <- getEdgerRes(
+                    filteredCirc,
+                    condition = cond_AB,
+                    normMethod = "TMM",
+                    pAdjustMethod = "BH"
+                )
+                write.csv(edgerResBvsA, "edgerResBvsA.csv", row.names = FALSE)
+            }, error = function(e) {
+                warning("edgeR BvsA analysis failed: ", e\$message)
+            })
+            
+            # Module 6 - Map BSJ coordinates between species and genome assemblies
+            liftedBSJcoords <- NULL
+            tryCatch({
+                liftedBSJcoords <- liftBSJcoords(filteredCirc, map = "hg19ToMm9", annotationHubID = "AH14155")
+                if (!is.null(liftedBSJcoords)) {
+                    write.csv(liftedBSJcoords, "liftedBSJcoords.csv", row.names = FALSE)
+                }
+            }, error = function(e) {
+                warning("liftBSJcoords failed: ", e\$message)
+            })
+            
+            # Module 7 - Annotate circRNAs internal structure and flanking introns
+            annotatedBSJs <- NULL
+            if (nrow(filteredCirc) > 0) {
+                num_to_annotate <- min(30, nrow(filteredCirc))
+                annotatedBSJs <- annotateBSJs(filteredCirc[1:num_to_annotate, ], gtf, isRandom = FALSE)
+                write.csv(annotatedBSJs, "annotatedBSJs.csv", row.names = FALSE)
+            }
+            
+            # Module 8 - Generate random BSJs
+            randomBSJunctions <- NULL
+            annotatedRBSJs <- NULL
+            if (!is.null(annotatedBSJs) && nrow(annotatedBSJs) > 0) {
+                f <- sum((annotatedBSJs\$exNumUpBSE == 1 | annotatedBSJs\$exNumDownBSE == 1), na.rm = TRUE) / (nrow(annotatedBSJs) * 2)
+                if (is.nan(f) || is.na(f)) f <- 0.1 # Fallback if division by zero or NA
+                
+                randomBSJunctions <- getRandomBSJunctions(gtf, n = nrow(annotatedBSJs), f = f, setSeed = 123)
+                write.csv(randomBSJunctions, "randomBSJunctions.csv", row.names = FALSE)
+                
+                annotatedRBSJs <- annotateBSJs(randomBSJunctions, gtf, isRandom = TRUE)
+                write.csv(annotatedRBSJs, "annotatedRBSJs.csv", row.names = FALSE)
+            }
+            
+            # Retrieve target sequences
+            # Load the genome of interest
+            if (!requireNamespace("BSgenome.Hsapiens.UCSC.hg19", quietly = TRUE)) {
+                BiocManager::install("BSgenome.Hsapiens.UCSC.hg19", update = FALSE, ask = FALSE)
+            }
+            genome <- BSgenome::getBSgenome("BSgenome.Hsapiens.UCSC.hg19")
+            
+            # Select target circRNA and background circRNAs
+            annotatedCirc <- NULL
+            annotatedBackgroundCircs <- NULL
+            if (!is.null(annotatedBSJs) && nrow(annotatedBSJs) > 0) {
+                if ("ALPK2:-:chr18:56247780:56246046" %in% annotatedBSJs\$id) {
+                    annotatedCirc <- annotatedBSJs[annotatedBSJs\$id == "ALPK2:-:chr18:56247780:56246046", ]
+                    annotatedBackgroundCircs <- annotatedBSJs[annotatedBSJs\$id != "ALPK2:-:chr18:56247780:56246046", ]
+                } else {
+                    annotatedCirc <- annotatedBSJs[1, ]
+                    annotatedBackgroundCircs <- annotatedBSJs[-1, ]
+                }
+            }
+            
+            # Module 9 - Retrieve internal circRNA sequences
+            targetsFTS_circ <- NULL
+            targetsBTS_circ <- NULL
+            if (!is.null(annotatedCirc) && nrow(annotatedCirc) > 0) {
+                targetsFTS_circ <- getCircSeqs(annotatedCirc, gtf, genome)
+                saveRDS(targetsFTS_circ, "targetsFTS_circ.rds")
+            }
+            if (!is.null(annotatedBackgroundCircs) && nrow(annotatedBackgroundCircs) > 0) {
+                targetsBTS_circ <- getCircSeqs(annotatedBackgroundCircs, gtf, genome)
+                saveRDS(targetsBTS_circ, "targetsBTS_circ.rds")
+            }
+            
+            # Module 10 - Retrieve BSJ sequences
+            targetsFTS_bsj <- NULL
+            targetsBTS_bsj <- NULL
+            if (!is.null(annotatedCirc) && nrow(annotatedCirc) > 0) {
+                targetsFTS_bsj <- getSeqsAcrossBSJs(annotatedCirc, gtf, genome)
+                saveRDS(targetsFTS_bsj, "targetsFTS_bsj.rds")
+            }
+            if (!is.null(annotatedBackgroundCircs) && nrow(annotatedBackgroundCircs) > 0) {
+                targetsBTS_bsj <- getSeqsAcrossBSJs(annotatedBackgroundCircs, gtf, genome)
+                saveRDS(targetsBTS_bsj, "targetsBTS_bsj.rds")
+            }
+            
+            # Module 11 - Retrieve sequences flanking the BSJs
+            targetsFTS_gr <- NULL
+            targetsBTS_gr <- NULL
+            if (!is.null(annotatedCirc) && nrow(annotatedCirc) > 0) {
+                targetsFTS_gr <- getSeqsFromGRs(annotatedCirc, genome, lIntron = 200, lExon = 9, type = "ie")
+                saveRDS(targetsFTS_gr, "targetsFTS_gr.rds")
+            }
+            if (!is.null(annotatedBackgroundCircs) && nrow(annotatedBackgroundCircs) > 0) {
+                targetsBTS_gr <- getSeqsFromGRs(annotatedBackgroundCircs, genome, lIntron = 200, lExon = 9, type = "ie")
+                saveRDS(targetsBTS_gr, "targetsBTS_gr.rds")
+            }
+            
+            # Module 12 - Screen target sequences for RBP/de Novo motifs
+            motifsFTS_gr <- NULL
+            motifsBTS_gr <- NULL
+            mergedMotifsFTS_gr <- NULL
+            mergedMotifsBTS_gr <- NULL
+            if (!is.null(targetsFTS_gr)) {
+                tryCatch({
+                    motifsFTS_gr <- getMotifs(targetsFTS_gr, width = 6, database = 'ATtRACT', species = "Hsapiens", rbp = TRUE, reverse = FALSE)
+                    mergedMotifsFTS_gr <- mergeMotifs(motifsFTS_gr)
+                    saveRDS(mergedMotifsFTS_gr, "mergedMotifsFTS_gr.rds")
+                }, error = function(e) {
+                    warning("Motif screening for foreground failed: ", e\$message)
+                })
+            }
+            if (!is.null(targetsBTS_gr)) {
+                tryCatch({
+                    motifsBTS_gr <- getMotifs(targetsBTS_gr, width = 6, database = 'ATtRACT', species = "Hsapiens", rbp = TRUE, reverse = FALSE)
+                    mergedMotifsBTS_gr <- mergeMotifs(motifsBTS_gr)
+                    saveRDS(mergedMotifsBTS_gr, "mergedMotifsBTS_gr.rds")
+                }, error = function(e) {
+                    warning("Motif screening for background failed: ", e\$message)
+                })
+            }
+            
+            # Module 13 - Screen circRNA sequences for miRNA binding sites
+            miRsites <- NULL
+            rearragedMiRres <- NULL
+            if (!is.null(targetsFTS_circ)) {
+                tryCatch({
+                    miRsites <- getMiRsites(
+                        targetsFTS_circ,
+                        miRspeciesCode = "hsa",
+                        miRBaseLatestRelease = TRUE,
+                        totalMatches = 6,
+                        maxNonCanonicalMatches = 1
+                    )
+                    rearragedMiRres <- rearrageMiRres(miRsites)
+                    saveRDS(rearragedMiRres, "rearragedMiRres.rds")
+                }, error = function(e) {
+                    warning("miRNA binding site screening failed: ", e\$message)
+                })
+            }
+            
+            # Module 14 - Annotate GWAS SNPs
+            snpsGWAS <- NULL
+            if (!is.null(targetsFTS_gr)) {
+                tryCatch({
+                    snpsGWAS <- annotateSNPsGWAS(targetsFTS_gr, assembly = "hg19", makeCurrent = TRUE)
+                    saveRDS(snpsGWAS, "snpsGWAS.rds")
+                }, error = function(e) {
+                    warning("GWAS SNP annotation failed: ", e\$message)
+                })
+            }
+            
+            # Module 15 - Annotate repetitive elements
+            repeats <- NULL
+            if (!is.null(targetsFTS_gr)) {
+                tryCatch({
+                    repeats <- annotateRepeats(targetsFTS_gr, annotationHubID = "AH5122", complementary = TRUE)
+                    saveRDS(repeats, "repeats.rds")
+                }, error = function(e) {
+                    warning("Repetitive elements annotation failed: ", e\$message)
+                })
+            }
+            
+            # Generate and save plots to PDF
+            pdf("circRNA_analysis_plots.pdf", width = 11, height = 8.5)
+            
+            # Plot 1: Number of circRNAs identified by each detection tool
+            tryCatch({
+                p1 <- ggplot(backSplicedJunctions, aes(x = tool)) + 
+                    geom_bar() + 
+                    labs(title = "circRNAs Identified by Tool", x = "Detection tool", y = "No. of circRNAs") + 
+                    theme_classic()
+                dt <- getDetectionTools() %>% 
+                    dplyr::filter(name %in% c("mapsplice", "nclscan", "circmarker")) %>% 
+                    gridExtra::tableGrob(rows = NULL)
+                gridExtra::grid.arrange(p1, dt, nrow = 1)
+            }, error = function(e) {
+                warning("Plot 1 failed: ", e\$message)
+            })
+            
+            # Plot 2: Commonly identified circRNAs after merging
+            tryCatch({
+                p2 <- ggplot(mergedBSJunctions, aes(x = tool)) + 
+                    geom_bar() + 
+                    labs(title = "Merged circRNAs by Tool Combination", x = "Detection tool", y = "No. of circRNAs") + 
+                    theme_classic()
+                gridExtra::grid.arrange(p2, dt, nrow = 1)
+            }, error = function(e) {
+                warning("Plot 2 failed: ", e\$message)
+            })
+            
+            # Plot 3: Filtered circRNAs
+            tryCatch({
+                p3 <- ggplot(filteredCirc, aes(x = tool)) + 
+                    geom_bar() + 
+                    labs(title = "Filtered circRNAs by Tool Combination", x = "Detection tool", y = "No. of circRNAs") + 
+                    theme_classic()
+                gridExtra::grid.arrange(p3, dt, nrow = 1)
+            }, error = function(e) {
+                warning("Plot 3 failed: ", e\$message)
+            })
+            
+            # Plot 4: Volcano plots for differential expression
+            if (!is.null(deseqResBvsA) && !is.null(deseqResCvsA)) {
+                tryCatch({
+                    vp1 <- volcanoPlot(
+                        deseqResBvsA,
+                        log2FC = 1,
+                        padj = 0.05,
+                        title = "DCMs Vs. Con",
+                        setxLim = TRUE,
+                        xlim = c(-8, 7.5),
+                        setyLim = TRUE,
+                        ylim = c(0, 4),
+                        gene = FALSE
+                    )
+                    vp2 <- volcanoPlot(
+                        deseqResCvsA,
+                        log2FC = 1,
+                        padj = 0.05,
+                        title = "HCMs Vs. Con",
+                        setxLim = TRUE,
+                        xlim = c(-8, 7.5),
+                        setyLim = TRUE,
+                        ylim = c(0, 4),
+                        gene = FALSE
+                    )
+                    print(ggarrange(vp1, vp2, ncol = 1, nrow = 2))
+                }, error = function(e) {
+                    warning("Volcano plots failed: ", e\$message)
+                })
+            }
+            
+            # Plot 5: Structural features comparison
+            if (!is.null(annotatedBSJs) && !is.null(annotatedRBSJs)) {
+                tryCatch({
+                    sp1 <- plotLenIntrons(annotatedBSJs, annotatedRBSJs, title = "Length flanking introns", df1Name = "predicted", df2Name = "random", setyLim = TRUE, ylim = c(0, 7))
+                    sp2 <- plotLenBSEs(annotatedBSJs, annotatedRBSJs, title = "Length back-spliced exons", df1Name = "predicted", df2Name = "random", setyLim = TRUE, ylim = c(0, 7))
+                    sp3 <- plotHostGenes(annotatedBSJs, title = "# CircRNAs produced from host genes")
+                    sp4 <- plotExBetweenBSEs(annotatedBSJs, title = "# Exons between back-spliced junctions")
+                    sp5 <- plotExPosition(annotatedBSJs, n = 1, title = "Position back-spliced exons in the transcripts")
+                    sp6 <- plotTotExons(annotatedBSJs, title = "Total number of exons in the host transcripts")
+                    print(ggarrange(sp1, sp2, sp3, sp4, sp5, sp6, ncol = 2, nrow = 3))
+                }, error = function(e) {
+                    warning("Structural feature plots failed: ", e\$message)
+                })
+            }
+            
+            # Plot 6: Motifs plot
+            if (!is.null(mergedMotifsFTS_gr) && !is.null(mergedMotifsBTS_gr)) {
+                tryCatch({
+                    mp <- plotMotifs(
+                        mergedMotifsFTS_gr,
+                        mergedMotifsBTS_gr,
+                        nf1 = sum(targetsFTS_gr\$upGR\$length, na.rm = TRUE) + sum(targetsFTS_gr\$downGR\$length, na.rm = TRUE),
+                        nf2 = sum(targetsBTS_gr\$upGR\$length, na.rm = TRUE) + sum(targetsBTS_gr\$downGR\$length, na.rm = TRUE),
+                        log2FC = 1,
+                        removeNegLog2FC = TRUE,
+                        df1Name = "Foreground",
+                        df2Name = "Background",
+                        angle = 45
+                    )
+                    print(ggarrange(mp[[1]], mp[[2]], labels = c("", ""), ncol = 2, nrow = 1))
+                }, error = function(e) {
+                    warning("Motifs plot failed: ", e\$message)
+                })
+            }
+            
+            # Plot 7: miRNA plot
+            if (!is.null(rearragedMiRres)) {
+                tryCatch({
+                    mirp <- plotMiR(rearragedMiRres, n = 40, color = "blue", miRid = TRUE, id = 1)
+                    print(mirp)
+                }, error = function(e) {
+                    warning("miRNA plot failed: ", e\$message)
+                })
+            }
+            
+            dev.off()
+            
+            # Return to original working directory
+            setwd(orig_wd)
+            message("Pipeline completed successfully.")
 
-    # --- render_toc [] ---
-    # Key functions: render_toc
-    render_toc("circRNAprofiler.Rmd")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_circrnaprofiler_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_circrnaprofiler_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_circrnaprofiler_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CIRCRNAPROFILER:", paste0("    circrnaprofiler: ", packageVersion("circRNAprofiler"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS":',
+        paste0('    circRNAprofiler: ', as.character(packageVersion('circRNAprofiler')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_circrnaprofiler_results.csv
-    touch ${prefix}_circrnaprofiler_output.rds
-    echo "BIOC_CIRCRNAPROFILER:" > versions.yml
-    echo "    circrnaprofiler: 0.0.0" >> versions.yml
+    touch ${prefix}_circrna_downstream_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CIRCRNAPROFILER_WORKFLOW {
+workflow BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gencode.V19.annotation.gtf, experiment.txt, circRNAs_X.txt, motifs.txt, miRs.txt, transcripts.txt, traits.txt ] ]
 
     main:
-    BIOC_CIRCRNAPROFILER(ch_input)
+    BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CIRCRNAPROFILER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CIRCRNAPROFILER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CIRCRNAPROFILER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CIRCRNAPROFILER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS.out.tables
+    plots    = BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS.out.plots
+    objects  = BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS.out.objects
+    versions = BIOC_CIRCRNAPROFILER_CIRCRNA_DOWNSTREAM_ANALYSIS.out.versions
 }

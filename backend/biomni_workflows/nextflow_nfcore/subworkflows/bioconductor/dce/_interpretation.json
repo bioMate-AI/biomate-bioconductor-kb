@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: graph=The underlying network topology as a graphNEL object, igraph object, or adjacency matrix ;; df.expr.wt=Gene expression data matrix/data frame for the control/wild-type condition ;; df.expr.mt=Gene expression data matrix/data frame for the mutant/treatment condition ;; solver=Method used to estimate causal effects (e.g., \"regression\") ;; bootstrap=Logical indicating whether to compute confidence intervals/p-values via bootstrapping ;; boot.samples=Number of bootstrap resamples to perform\n- alternatives: Standard differential expression analysis (e.g., limma, DESeq2) which identifies individual differentially expressed genes but does not capture causal network-level changes; pathway enrichment analysis (e.g., goseq, camera) which identifies enriched gene sets but ignores network topology and causal directions.\n- when_to_use: Use when you have gene expression data (RNA-seq or microarray) for two distinct conditions (e.g., control vs. disease) and a known pathway structure (DAG) and want to identify which regulatory interactions (edges) are significantly altered between the conditions.\n- pitfalls: The network must be a Directed Acyclic Graph (DAG); cyclic networks or undirected graphs are not natively supported without preprocessing. High-dimensional expression data with small sample sizes can lead to unstable causal effect estimates, so bootstrapping is recommended but computationally expensive.",
+  "workflows": [
+    {
+      "name": "differential_causal_effect_estimation",
+      "intent": "Compute and visualize differential causal effects on a biological network using gene expression data from two conditions.",
+      "input": [
+        "network.gml (pathway topology/graph structure)",
+        "expression_control.csv (gene expression matrix for control samples)",
+        "expression_treatment.csv (gene expression matrix for treatment/mutant samples)"
+      ],
+      "stages": "1. Load the network topology and expression datasets ;; 2. Compute differential causal effects using the dce function ;; 3. Visualize the resulting differential causal network using the plot function",
+      "code": "library(dce)\nres <- dce(graph, df.expr.wt, df.expr.mt)\nplot(res)"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "package": "absseq",
+  "requirements": [
+    "ABSSeq",
+    "limma"
+  ],
+  "by_workflow": {
+    "complex_design_analysis.nf": [
+      "ABSSeq",
+      "limma"
+    ],
+    "main.nf": [
+      "ABSSeq"
+    ],
+    "single_replicate_de_analysis.nf": [
+      "ABSSeq"
+    ],
+    "variance_stabilization_and_pca.nf": [
+      "ABSSeq"
+    ]
+  }
+}

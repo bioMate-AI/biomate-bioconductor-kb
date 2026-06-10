@@ -1,104 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: copa
-// COPA is a method to find genes that undergo recurrent fusion in a given cancer type by finding pairs
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/copa/inst/doc/copa.R
-// Upstream  : colonCA
-// Downstream: none
-//
-// Install: BiocManager::install("copa")
+// Bioconductor workflow: copa — cancer_outlier_profile_analysis
+// Identify, visualize, and statistically validate mutually exclusive outlier gene pairs representing potential gene fusions from microarray expression data.
+// Input: expression_set.RData
+// Container: quay.io/biocontainers/bioconductor-copa:1.78.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: copa
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load package and data
+//  * 2. [Core Analysis] Run COPA analysis to find outlier gene pairs
+//  * 3. [Visualization & Output] Plot the top outlier gene pair
+//  * 4. [Core Analysis] Tabulate the number of gene pairs with given outlier counts
+//  * 5. [Visualization & Output] Summarize the specific gene pairs meeting the outlier threshold
+//  * 6. [Core Analysis] Run permutation testing to assess the statistical significance of the observed outlier pairs
 
 nextflow.enable.dsl = 2
 
-process BIOC_COPA {
+process BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-copa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-copa:1.74.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-copa:1.74.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_copa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_copa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_copa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # 1. Load package and data
     library(copa)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: pData
-    library(copa)
-    library(colonCA)
-    data(colonCA)
+    
+    if (!file.exists("expression_set.RData")) {
+      stop("Error: expression_set.RData not found in the working directory.")
+    }
+    
+    # Load the ExpressionSet from the user-provided RData file
+    env <- new.env()
+    load("expression_set.RData", envir = env)
+    obj_names <- ls(env)
+    eset_idx <- sapply(obj_names, function(x) inherits(env[[x]], "ExpressionSet"))
+    
+    if (!any(eset_idx)) {
+      stop("Error: No ExpressionSet object found in expression_set.RData")
+    }
+    
+    # Assign the loaded ExpressionSet to 'colonCA' to match the documented code
+    colonCA <- env[[obj_names[eset_idx][1]]]
+    
+    # Display the first 10 rows of phenotypic data
     head(pData(colonCA), 10)
-    # --- Copa [] ---
-    # Key functions: copa, pData
-    rslt <- copa(colonCA, as.numeric(pData(colonCA)[,3]))
-    # --- Plotcopa [] ---
-    # Key functions: plotCopa
-    ## plotCopa(rslt, idx = 1, col = c("lightgreen","salmon"))
-    # --- Summarycopa [] ---
-    # Key functions: summaryCopa
-    summaryCopa(rslt, 9)
-    # --- Copaperm [] ---
-    # Key functions: copaPerm
-    prm <- copaPerm(colonCA, rslt, 9, 24)
-    sum(prm >= 9)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_copa_results.csv", row.names = TRUE)
+    
+    # Dynamically determine the class label column (look for a binary column)
+    pd <- pData(colonCA)
+    valid_cols <- which(sapply(pd, function(x) length(unique(na.omit(x))) == 2))
+    if (length(valid_cols) > 0) {
+      cl <- as.numeric(as.factor(pd[[valid_cols[1]]]))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_copa_results.csv")
+      cl <- as.numeric(as.factor(pd[[ncol(pd)]]))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_copa_output.rds")
-    }
+    
+    # 2. Run COPA analysis to find outlier gene pairs
+    rslt <- copa(colonCA, cl)
+    
+    # 3. Plot the top outlier gene pair
+    pdf("copa_plot.pdf")
+    plotCopa(rslt, idx = 1, col = c("lightgreen","salmon"))
+    dev.off()
+    
+    # 4. Tabulate the number of gene pairs with given outlier counts
+    tbl <- tableCopa(rslt)
+    write.csv(as.data.frame(tbl), "copa_table.csv", row.names = TRUE)
+    
+    # Determine the maximum number of outliers and the corresponding number of pairs
+    outlier_counts <- as.numeric(names(tbl))
+    max_outliers <- max(outlier_counts)
+    num_pairs <- as.numeric(tbl[as.character(max_outliers)])
+    
+    # 5. Summarize the specific gene pairs meeting the outlier threshold
+    smry <- summaryCopa(rslt, max_outliers)
+    write.csv(smry, "copa_summary.csv", row.names = FALSE)
+    
+    # 6. Run permutation testing to assess statistical significance
+    prm <- copaPerm(colonCA, rslt, max_outliers, num_pairs)
+    perm_sum <- sum(prm >= max_outliers)
+    
+    # Save permutation results
+    saveRDS(prm, "copa_perm.rds")
+    writeLines(paste("Number of permutations >=", max_outliers, ":", perm_sum), "copa_perm_sum.txt")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COPA:", paste0("    copa: ", packageVersion("copa"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS":',
+        paste0('    copa: ', as.character(packageVersion('copa')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_copa_results.csv
-    touch ${prefix}_copa_output.rds
-    echo "BIOC_COPA:" > versions.yml
-    echo "    copa: 0.0.0" >> versions.yml
+    touch ${prefix}_cancer_outlier_profile_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_COPA_WORKFLOW {
+workflow BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_set.RData ] ]
 
     main:
-    BIOC_COPA(ch_input)
+    BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_COPA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COPA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COPA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COPA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS.out.tables
+    plots    = BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS.out.plots
+    objects  = BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS.out.objects
+    versions = BIOC_COPA_CANCER_OUTLIER_PROFILE_ANALYSIS.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "undo",
+  "requirements": [
+    "UNDO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "UNDO"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package": "tfbstools",
+  "requirements": [
+    "Biostrings",
+    "TFBSTools",
+    "rtracklayer",
+    "seqLogo"
+  ],
+  "by_workflow": {
+    "de_novo_motif_discovery.nf": [
+      "Biostrings",
+      "TFBSTools"
+    ],
+    "genome_wide_phylogenetic_footprinting.nf": [
+      "TFBSTools",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "TFBSTools",
+      "seqLogo"
+    ]
+  }
+}

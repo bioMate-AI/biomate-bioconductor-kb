@@ -1,0 +1,11 @@
+{
+  "package": "semisup",
+  "requirements": [
+    "semisup"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "semisup"
+    ]
+  }
+}

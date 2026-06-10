@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: max_features=The maximum number of features to select and rank ;; conditions=Number of independent conditions per replicate (used in simData) ;; n_latent_factors=Number of latent factors to generate redundant features (used in simData) ;; replicates=Number of replicates (used in simData)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Appropriate when you have high-dimensional data with replicated measurements across multiple conditions and want to reduce dimensionality by selecting a subset of highly reproducible, non-redundant features.\n- pitfalls: None explicitly mentioned in the documentation, but the algorithm relies on having replicated measurements across conditions to calculate the replicate F-statistic.",
+  "workflows": [
+    {
+      "name": "unsupervised_feature_selection",
+      "intent": "Select and rank a subset of highly reproducible, non-redundant features from high-dimensional replicated data.",
+      "input": [
+        "SummarizedExperiment object containing replicated measurements across conditions (features x samples)."
+      ],
+      "stages": "1. Perform feature selection and ranking using FeatSeek ;; 2. Visualize the selected features using plotSelectedFeatures",
+      "code": "sim <- simData(conditions=conditions, n_latent_factors=latent_factors,\n                replicates=replicates)\nres <- FeatSeek(sim, max_features=5)\nplotSelectedFeatures(res)"
+    }
+  ]
+}

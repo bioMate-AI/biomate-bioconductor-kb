@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: X=Formula or matrix representing cell-level covariates (e.g., \"~Batch\" for batch effect removal) ;; K=Number of latent dimensions to estimate ;; verbose=Logical indicating whether to print progress (default FALSE, setting to TRUE can slow down computation on large datasets) ;; children=Number of cores to use for parallelization ;; n_gene_disp=Number of genes to use in the dispersion optimization (mini-batch) ;; n_cell_par=Number of cells to use in the cell-related parameters optimization (mini-batch) ;; n_gene_par=Number of genes to use in the gene-related parameters optimization (mini-batch) ;; commondispersion=Logical indicating whether to use a common dispersion parameter (default TRUE; if FALSE, estimates genewise dispersion)\n- alternatives: None mentioned in the documentation\n- when_to_use: When performing dimensionality reduction and batch effect correction on raw, unnormalized single-cell RNA-seq count data\n- pitfalls: Input data must be raw, unnormalized counts ;; The batch variable in colData must be explicitly converted to a factor for batch effect removal ;; Setting verbose = TRUE on large datasets can significantly slow down computation ;; Do not use n_gene_disp when commondispersion = FALSE as it will slow down the computation",
+  "workflows": [
+    {
+      "name": "scrna_dimensionality_reduction_batch_correction",
+      "intent": "Perform dimensionality reduction and batch effect correction on raw scRNA-seq count data using NewWave, followed by latent space extraction.",
+      "input": [
+        "data (a SingleCellExperiment object containing raw, unnormalized scRNA-seq counts and a batch covariate in colData)"
+      ],
+      "stages": "1. Convert the batch covariate to a factor ;; 2. Run newWave to perform dimensionality reduction and batch correction (using standard, parallelized, or mini-batch configurations) ;; 3. Extract the low-dimensional latent representation using reducedDim",
+      "code": "data$Batch <- as.factor(data$Batch)\nres <- newWave(data,X = \"~Batch\", K=10, verbose = TRUE)\nres2 <- newWave(data,X = \"~Batch\", K=10, verbose = TRUE, children=2)\nres3 <- newWave(data,X = \"~Batch\", verbose = TRUE,K=10, children=2,\n                n_gene_disp = 100, n_gene_par = 100, n_cell_par = 100)\nres3 <- newWave(data,X = \"~Batch\", verbose = TRUE,K=10, children=2,\n                n_gene_par = 100, n_cell_par = 100, commondispersion = FALSE)\nlatent <- reducedDim(res)"
+    }
+  ]
+}

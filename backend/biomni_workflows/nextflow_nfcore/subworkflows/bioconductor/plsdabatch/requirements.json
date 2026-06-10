@@ -1,0 +1,25 @@
+{
+  "package": "plsdabatch",
+  "requirements": [
+    "Biobase",
+    "PLSDAbatch",
+    "SummarizedExperiment",
+    "ggplot2",
+    "gridExtra",
+    "mixOmics",
+    "pheatmap",
+    "vegan"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "PLSDAbatch",
+      "SummarizedExperiment",
+      "ggplot2",
+      "gridExtra",
+      "mixOmics",
+      "pheatmap",
+      "vegan"
+    ]
+  }
+}

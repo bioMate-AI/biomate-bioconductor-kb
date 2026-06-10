@@ -1,0 +1,13 @@
+{
+  "package": "regenrich",
+  "requirements": [
+    "RegEnrich",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RegEnrich",
+      "S4Vectors"
+    ]
+  }
+}

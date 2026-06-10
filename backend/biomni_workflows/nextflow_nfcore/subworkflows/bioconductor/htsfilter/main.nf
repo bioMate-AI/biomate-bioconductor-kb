@@ -1,130 +1,111 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HTSFilter
-// This package implements a filtering procedure for replicated transcriptome sequencing data based on 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HTSFilter/inst/doc/HTSFilter.R
-// Upstream  : DESeq2, EDASeq, edgeR
-// Downstream: none
-//
-// Install: BiocManager::install("HTSFilter")
+// Bioconductor workflow: HTSFilter — matrix_and_dataframe
+// Filter high-throughput sequencing data in the form of a raw count matrix or data.frame using TMM normalization.
+// Input: counts_matrix.csv, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-htsfilter:1.50.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: HTSFilter
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Extract the expression matrix and condition labels
+//  * 2. [Core Analysis] Run HTSFilter to find the optimal threshold and filter the matrix
+//  * 3. [Core Analysis] Extract the filtered and removed data matrices
 
 nextflow.enable.dsl = 2
 
-process BIOC_HTSFILTER {
+process BIOC_HTSFILTER_MATRIX_AND_DATAFRAME {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-htsfilter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-htsfilter:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-htsfilter:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_htsfilter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_htsfilter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_htsfilter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DESeq)
-    library(DESeqDataSetFromMatrix)
-    library(DGEList)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(HTSFilter)
-    library(jsonlite)
-
-    # --- Matrix Filtering [HTSFilter] ---
-    # Key functions: HTSFilter
-    filter_results <- HTSFilter(
-        x = mat,
-        conds = conds,
-        s.min = 1,
-        s.max = 200,
-        s.len = 25,
-        plot = FALSE
-    )
-    filtered_matrix <- filter_results$filteredData
-    removed_matrix <- filter_results$removedData
-
-    # --- EdgeR Exact Test Filtering [HTSFilter] ---
-    # Key functions: HTSFilter
-    filter_et <- HTSFilter(
-        x = et,
-        DGEList = dge,
-        s.len = 25,
-        plot = FALSE
-    )
-    filtered_et_data <- filter_et$filteredData
-
-    # --- EdgeR GLM Filtering [HTSFilter] ---
-    # Key functions: HTSFilter
-    filter_lrt <- HTSFilter(
-        x = lrt,
-        DGEGLM = fit,
-        s.len = 25,
-        plot = FALSE
-    )
-    filtered_lrt_data <- filter_lrt$filteredData
-
-    # --- DESeq2 Pipeline Filtering [HTSFilter] ---
-    # Key functions: HTSFilter
-    filter_dds <- HTSFilter(
-        x = dds,
-        s.len = 25,
-        plot = FALSE
-    )
-    filtered_dds_data <- filter_dds$filteredData
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_htsfilter_results.csv", row.names = TRUE)
+    
+    # 1. Read user input files
+    counts <- read.csv("counts_matrix.csv", row.names = 1, check.names = FALSE)
+    mat <- as.matrix(counts)
+    
+    metadata <- read.csv("sample_metadata.csv", row.names = 1, check.names = FALSE)
+    # Align metadata with matrix columns
+    metadata <- metadata[colnames(mat), , drop = FALSE]
+    
+    # Extract condition labels (use 'cell.line' if present, otherwise fallback to the first column)
+    if ("cell.line" %in% colnames(metadata)) {
+      conds <- as.character(metadata\$cell.line)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_htsfilter_results.csv")
+      conds <- as.character(metadata[[1]])
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_htsfilter_output.rds")
-    }
+    
+    # 2. Run HTSFilter to find the optimal threshold and filter the matrix
+    # Capture the Jaccard index plot in a PDF file
+    pdf("HTSFilter_jaccard_plot.pdf")
+    filter <- HTSFilter(mat, conds, s.min=1, s.max=200, s.len=25)
+    dev.off()
+    
+    # 3. Extract the filtered and removed data matrices
+    mat <- filter\$filteredData
+    dim(mat)
+    dim(filter\$removedData)
+    
+    # 4. Write outputs to files
+    write.csv(mat, "filtered_counts.csv", row.names = TRUE)
+    write.csv(filter\$removedData, "removed_counts.csv", row.names = TRUE)
+    saveRDS(filter, "HTSFilter_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HTSFILTER:", paste0("    htsfilter: ", packageVersion("HTSFilter"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HTSFILTER_MATRIX_AND_DATAFRAME":',
+        paste0('    HTSFilter: ', as.character(packageVersion('HTSFilter')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_htsfilter_results.csv
-    touch ${prefix}_htsfilter_output.rds
-    echo "BIOC_HTSFILTER:" > versions.yml
-    echo "    htsfilter: 0.0.0" >> versions.yml
+    touch ${prefix}_matrix_and_dataframe.csv versions.yml
     """
 }
 
-
-workflow BIOC_HTSFILTER_WORKFLOW {
+workflow BIOC_HTSFILTER_MATRIX_AND_DATAFRAME_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts_matrix.csv, sample_metadata.csv ] ]
 
     main:
-    BIOC_HTSFILTER(ch_input)
+    BIOC_HTSFILTER_MATRIX_AND_DATAFRAME(ch_input)
 
     emit:
-    results  = BIOC_HTSFILTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HTSFILTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HTSFILTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HTSFILTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HTSFILTER_MATRIX_AND_DATAFRAME.out.tables
+    plots    = BIOC_HTSFILTER_MATRIX_AND_DATAFRAME.out.plots
+    objects  = BIOC_HTSFILTER_MATRIX_AND_DATAFRAME.out.objects
+    versions = BIOC_HTSFILTER_MATRIX_AND_DATAFRAME.out.versions
 }

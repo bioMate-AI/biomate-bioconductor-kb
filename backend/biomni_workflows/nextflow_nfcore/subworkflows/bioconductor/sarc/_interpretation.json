@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cov_file=path to the normalized read coverage file ;; cnv_file=path to the CNV list file (similar to BED format)\n- alternatives: CNVassoc, CNVpanelizer, or custom filtering scripts using GenomicRanges\n- when_to_use: When you have called CNVs from WES/WGS data and want to validate or filter them using normalized read coverage data.\n- pitfalls: Ensure that the chromosome naming conventions (e.g., 'chr1' vs '1') are consistent between the coverage file and the CNV file.",
+  "workflows": [
+    {
+      "name": "cnv_validation_and_filtering",
+      "intent": "Import coverage and CNV files to validate and filter copy number variations.",
+      "input": [
+        "sample_coverage.cov (normalized read coverage file from BAM)",
+        "sample_cnvs.cnv (list of CNVs in BED-like format)"
+      ],
+      "stages": "1. Import the coverage and CNV files ;; 2. Perform validation and filtering of CNVs based on coverage depth",
+      "code": "# No vignette or code cached in documentation."
+    }
+  ]
+}

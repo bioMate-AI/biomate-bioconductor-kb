@@ -1,0 +1,11 @@
+{
+  "package": "proteinprofiles",
+  "requirements": [
+    "proteinProfiles"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "proteinProfiles"
+    ]
+  }
+}

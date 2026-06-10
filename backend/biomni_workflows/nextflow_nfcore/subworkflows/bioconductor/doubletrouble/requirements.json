@@ -1,0 +1,21 @@
+{
+  "package": "doubletrouble",
+  "requirements": [
+    "Biostrings",
+    "doubletrouble",
+    "ggplot2",
+    "patchwork",
+    "rtracklayer",
+    "syntenet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "doubletrouble",
+      "ggplot2",
+      "patchwork",
+      "rtracklayer",
+      "syntenet"
+    ]
+  }
+}

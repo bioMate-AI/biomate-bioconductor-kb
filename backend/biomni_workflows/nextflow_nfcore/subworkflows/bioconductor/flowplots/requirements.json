@@ -1,0 +1,16 @@
+{
+  "package": "flowplots",
+  "requirements": [
+    "flowPlots",
+    "vcd"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowPlots"
+    ],
+    "ternary_plot_pfd.nf": [
+      "flowPlots",
+      "vcd"
+    ]
+  }
+}

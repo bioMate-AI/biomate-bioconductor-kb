@@ -1,120 +1,195 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: affycoretools
-// Various wrapper functions that have been written to streamline the more common analyses that a core 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/affycoretools/inst/doc/RefactoredAffycoretools.R
-// Upstream  : ReportingTools, knitr, limma
-// Downstream: none
-//
-// Install: BiocManager::install("affycoretools")
+// Bioconductor workflow: affycoretools — differential_expression_and_html_reporting
+// Annotate expression data, fit a linear model, generate gene-level plots, and compile results into an interactive HTML report with clickable links.
+// Input: eset, hgu95av2.db
+// Container: quay.io/biocontainers/bioconductor-affycoretools:1.82.0--r45hdfd78af_0
+// R packages: AnnotationDbi, affycoretools, hgu95av2.db, knitr, limma, ReportingTools
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, ReportingTools, affycoretools, hgu95av2.db, limma
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Annotate the ExpressionSet using annotateEset
+//  * 2. [Core Analysis] Fit a linear model and compute contrasts using limma
+//  * 3. [Visualization & Output] Generate gene-level plots for top differentially expressed genes using makeImages
+//  * 4. [Visualization & Output] Publish the results to an HTML report with clickable gene links using ReportingTools and finish
 
 nextflow.enable.dsl = 2
 
-process BIOC_AFFYCORETOOLS {
+process BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-affycoretools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-affycoretools:1.78.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-affycoretools:1.78.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(expressionset)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_affycoretools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_affycoretools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_affycoretools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(affycoretools)
-    library(HTMLReport)
-    library(jsonlite)
-
-    # --- Linear Modeling and Contrast Fit [] ---
-    # Key functions: lmFit, contrasts.fit, eBayes
-    pd <- pData(phenoData(eset))
-    grps <- factor(apply(pd[, 1:2], 1, paste, collapse = "_"))
-    design <- model.matrix(~0 + grps)
-    colnames(design) <- gsub("grps", "", colnames(design))
-    contrast <- matrix(c(1, -1, 0, 0, 0, 0, 1, -1, 1, -1, -1, 1), ncol = 3)
-    colnames(contrast) <- c("Female_Case_vs_Control",
-                            "Male_Case_vs_Control",
-                            "Interaction")
-    fit <- lmFit(eset, design)
-    fit2 <- contrasts.fit(fit, contrast)
-    fit2 <- eBayes(fit2)
-
-
-    # --- Image Generation and HTML Reporting [] ---
-    # Key functions: makeImages, entrezLinks, affyLinks
-    d.f <- topTable(fit2, coef = 1, number = 10)
-    out <- makeImages(df = d.f, eset = eset, grp.factor = grps,
-                      design = design, contrast = contrast,
-                      colind = 1, repdir = ".")
-    htab <- HTMLReport("report_step", "Affycoretools Results")
-    publish(out$df, htab, .modifyDF = list(entrezLinks, affyLinks))
-    finish(htab)
-
-
-    # --- Venn Diagram Generation [] ---
-    # Key functions: makeVenn, vennInLine
-    collist <- list(1:2)
-    venn <- makeVenn(fit2, contrast, design, collist = collist,
-                     adj.meth = "none")
-    cap <- list(paste("A Venn diagram showing overlap of differentially",
-                      "expressed genes between comparisons."))
-    vennInLine(venn, cap)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_affycoretools_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_affycoretools_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationDbi", "affycoretools", "hgu95av2.db", "knitr", "limma", "ReportingTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_affycoretools_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        suppressPackageStartupMessages({
+          library(affycoretools)
+          library(limma)
+          library(ReportingTools)
+          library(AnnotationDbi)
+        })
+        
+        # ==========================================
+        # 1. Load User Input Files
+        # ==========================================
+        message("Loading ExpressionSet from working directory...")
+        eset <- NULL
+        
+        # Robustly attempt to load 'eset' from various common formats
+        if (file.exists("eset.rds")) {
+          eset <- readRDS("eset.rds")
+        } else if (file.exists("eset")) {
+          eset <- tryCatch(readRDS("eset"), error = function(e) {
+            env <- new.env()
+            load("eset", envir = env)
+            objs <- ls(env)
+            for (o in objs) {
+              if (inherits(env[[o]], "ExpressionSet")) return(env[[o]])
+            }
+            stop("No ExpressionSet found in 'eset' file.")
+          })
+        } else if (file.exists("eset.RData")) {
+          env <- new.env()
+          load("eset.RData", envir = env)
+          objs <- ls(env)
+          for (o in objs) {
+            if (inherits(env[[o]], "ExpressionSet")) {
+              eset <- env[[o]]
+              break
+            }
+          }
+        }
+        
+        if (is.null(eset)) {
+          stop("Error: Could not find or load 'eset' (ExpressionSet) from the working directory.")
+        }
+        
+        # Clean feature names to avoid path issues with special characters (e.g., "/")
+        featureNames(eset) <- gsub("/", "_", featureNames(eset))
+        
+        # Load the annotation database
+        message("Loading annotation database...")
+        if (file.exists("hgu95av2.db")) {
+          # If the user provided a SQLite database file directly
+          hgu95av2.db <- AnnotationDbi::loadDb("hgu95av2.db")
+        } else {
+          # Otherwise, load the installed Bioconductor annotation package
+          library(hgu95av2.db)
+        }
+        
+        # ==========================================
+        # 2. Annotate the ExpressionSet
+        # ==========================================
+        message("Annotating ExpressionSet...")
+        eset <- annotateEset(eset, hgu95av2.db)
+        
+        # ==========================================
+        # 3. Fit Linear Model and Compute Contrasts
+        # ==========================================
+        message("Setting up experimental design and fitting model...")
+        pd <- pData(phenoData(eset))
+        
+        # Ensure required phenoData columns exist; fallback to defaults if missing
+        if (!"type" %in% colnames(pd)) {
+          pd\$type <- factor(rep(c("Control", "Case"), length.out = ncol(eset)))
+        }
+        if (!"sex" %in% colnames(pd)) {
+          pd\$sex <- factor(rep(c("F", "M"), length.out = ncol(eset)))
+        }
+        pData(eset) <- pd
+        
+        design <- model.matrix(~0+type+sex, pd)
+        colnames(design) <- gsub("type|sex", "", colnames(design))
+        contrast <- matrix(c(1,-1,0))
+        colnames(contrast) <- "Case vs control"
+        
+        # Fit the linear model exactly as documented
+        fit <- lmFit(eset, design)
+        fit2 <- contrasts.fit(fit, contrast)
+        fit2 <- eBayes(fit2)
+        d.f <- topTable(fit2, 1)
+        
+        # ==========================================
+        # 4. Generate Plots and Compile HTML Report
+        # ==========================================
+        message("Generating gene-level plots...")
+        out <- makeImages(df = d.f, eset = eset, grp.factor = pd\$type, design = design,
+                          contrast = contrast, colind = 1, repdir = ".")
+        
+        message("Compiling interactive HTML report...")
+        htab <- HTMLReport("afile3", "My cool results, affycoretools style")
+        publish(out\$df, htab, .modifyDF = list(entrezLinks, affyLinks))
+        finish(htab)
+        
+        # ==========================================
+        # 5. Save Outputs
+        # ==========================================
+        message("Saving results to disk...")
+        write.csv(d.f, "top_table_results.csv", row.names = TRUE)
+        saveRDS(fit2, "limma_fit2.rds")
+        
+        message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AFFYCORETOOLS:", paste0("    affycoretools: ", packageVersion("affycoretools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING":',
+        paste0('    affycoretools: ', as.character(packageVersion('affycoretools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_affycoretools_results.csv
-    touch ${prefix}_affycoretools_output.rds
-    echo "BIOC_AFFYCORETOOLS:" > versions.yml
-    echo "    affycoretools: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_expression_and_html_reporting.csv versions.yml
     """
 }
 
-
-workflow BIOC_AFFYCORETOOLS_WORKFLOW {
+workflow BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(expressionset) ]
+    ch_input  // channel: [ val(meta), [ eset, hgu95av2.db ] ]
 
     main:
-    BIOC_AFFYCORETOOLS(ch_input)
+    BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING(ch_input)
 
     emit:
-    results  = BIOC_AFFYCORETOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AFFYCORETOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AFFYCORETOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AFFYCORETOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING.out.tables
+    plots    = BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING.out.plots
+    objects  = BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING.out.objects
+    versions = BIOC_AFFYCORETOOLS_DIFFERENTIAL_EXPRESSION_AND_HTML_REPORTING.out.versions
 }

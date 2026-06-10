@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: group=Specifies the algebraic group for computing automorphisms (e.g., \"Z4\", \"Z5\", \"Z64\", \"Z125\", \"Z5^3\") ;; cube=Character vector denoting the primary pair of dual genetic-code cubes (e.g., c(\"ACGT\", \"TGCA\")) ;; cube_alt=Alternative set of dual cubes used if automorphisms are not found in the primary set (e.g., c(\"CATG\", \"GTAC\")) ;; start=Integer specifying the start coordinate of the alignment region to analyze ;; end=Integer specifying the end coordinate of the alignment region to analyze ;; output=In conserved_regions(), setting to \"unique\" returns unique conserved genomic ranges\n- alternatives: None mentioned. The documentation discusses choosing between different group representations (e.g., Z64, Z125, or Z5^3) depending on whether 1D cyclic groups or 3D vector spaces on Galois fields are preferred for modeling.\n- when_to_use: Use when analyzing pairwise aligned protein-coding DNA sequences to quantitatively describe mutational events, identify indels (modeled as translations), find conserved/non-conserved regions, or estimate mutation type probabilities under an algebraic/group-theoretic framework.\n- pitfalls: Not all mutational events can be described as automorphisms from a single given cube; hence, dual genetic-code cubes (cube and cube_alt) must be specified to search for automorphisms across complementary strands or alternative representations. Indel mutational events cannot be described as automorphisms and are instead represented as translations (labeled \"Trnl\").",
+  "workflows": [
+    {
+      "name": "automorphism_analysis_1d_group",
+      "intent": "Compute and analyze genomic automorphisms on 1D cyclic groups (Z64 or Z125) from pairwise aligned DNA sequences to identify mutational events, indels, and estimate mutation type probabilities.",
+      "input": [
+        "covid_aln (Pairwise aligned DNA sequences of protein-coding regions, loaded as a DNAMultipleAlignment object)"
+      ],
+      "stages": "1. Load the pairwise sequence alignment.\n2. Compute codon coordinates on the specified group.\n3. Compute automorphisms on the 1D cyclic group (Z64 or Z125) using dual cubes.\n4. Summarize the automorphism results by genomic ranges to identify mutational regions and indels (translations).\n5. Group automorphisms by coefficients to classify mutation types.\n6. Estimate the posterior probabilities of mutation types using a Bayesian Dirichlet-Multinomial model.\n7. Extract conserved and unique conserved genomic regions.",
+      "code": "data(covid_aln, package = \"GenomAutomorphism\")\ncodons <- codon_coord(\n                    codon = covid_aln, \n                    cube = \"ACGT\", \n                    group = \"Z64\", \n                    chr = 1L,\n                    strand = \"+\",\n                    start = 1,\n                    end = 750)\nautm <- automorphisms(\n                    seqs = covid_aln,\n                    group = \"Z64\",\n                    cube = c(\"ACGT\", \"TGCA\"),\n                    cube_alt = c(\"CATG\", \"GTAC\"),\n                    start = 1,\n                    end = 750, \n                    verbose = FALSE)\naut_range <- automorphismByRanges(autm)\ndata(covid_autm, package = \"GenomAutomorphism\")\naut_range <- automorphismByRanges(covid_autm)\nidx = which(covid_autm$cube == \"Trnl\")\ncovid_autm[ idx ]\nidx = which(aut_range$cube == \"Trnl\")\naut_range[ idx ]\ndata.frame(aut_range[idx])\nwidth(aut_range[ idx ])\nautby_coef <- automorphism_bycoef(covid_autm)\nautby_coef <- autby_coef[ autby_coef$autm != 1 & autby_coef$autm != -1  ]\npost_prob <- automorphism_prob(autby_coef)\npost_prob <- post_prob[post_prob$Posterior_Probability > 0.003,]\nconserv <- conserved_regions(covid_autm)\nconserv_unique <- conserved_regions(covid_autm, output = \"unique\")\ndata(autm_z125, package = \"GenomAutomorphism\")\naut_range_2 <- automorphismByRanges(autm_z125)"
+    },
+    {
+      "name": "automorphism_analysis_3d_space",
+      "intent": "Compute and analyze genomic automorphisms on the 3D space Z5^3 representing the genetic-code cube on the Galois field GF(5) to identify codon-preserving and mutational events.",
+      "input": [
+        "covid_aln (Pairwise aligned DNA sequences of protein-coding regions, loaded as a DNAMultipleAlignment object)"
+      ],
+      "stages": "1. Load the pairwise sequence alignment.\n2. Compute automorphisms on the 3D space group Z5^3 using dual cubes.\n3. Group automorphisms by coefficients to identify codon-preserving (identity matrix \"1,1,1\") and mutational events.\n4. Extract conserved genomic regions.",
+      "code": "data(covid_aln, package = \"GenomAutomorphism\")\ndata(autm_3d, package = \"GenomAutomorphism\")\nautby_coef_3d <- automorphism_bycoef(autm_3d)\nautby_coef_3d <- autby_coef_3d[ autby_coef_3d$autm != \"1,1,1\" ]\nconserv <- conserved_regions(autm_3d)"
+    }
+  ]
+}

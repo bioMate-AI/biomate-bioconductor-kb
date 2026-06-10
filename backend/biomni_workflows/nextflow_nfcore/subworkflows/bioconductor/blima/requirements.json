@@ -1,0 +1,19 @@
+{
+  "package": "blima",
+  "requirements": [
+    "Biobase",
+    "beadarray",
+    "blima"
+  ],
+  "by_workflow": {
+    "alternative_preprocessing_options.nf": [
+      "beadarray",
+      "blima"
+    ],
+    "main.nf": [
+      "Biobase",
+      "beadarray",
+      "blima"
+    ]
+  }
+}

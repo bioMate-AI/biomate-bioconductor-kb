@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rna.qc.subsets=List of logical or integer vectors specifying control gene subsets (e.g., mitochondrial genes) for RNA quality control ;; adt.qc.subsets=List of logical or integer vectors specifying control subsets (e.g., IgG controls) for ADT quality control ;; adt.altexp=String specifying the name of the alternative experiment containing ADT (CITE-seq) data ;; block=Vector indicating batch/block membership for each cell to perform batch-aware calculations and MNN correction ;; num.threads=Integer specifying the number of threads to use for parallel processing in the C++ backend ;; order.by=String specifying the metric to sort marker genes in previewMarkers (e.g., \"auc.median\", \"delta.detected.mean\")\n- alternatives: The documentation references the Orchestrating Single-Cell Analysis (OSCA) book for theoretical details of the workflow, implying standard Bioconductor workflows (such as scran and scater) as the conceptual baseline, but scrapper is preferred for C++-accelerated execution speed.\n- when_to_use: Use when analyzing single-cell RNA-seq, multi-modal (RNA + ADT/CITE-seq), or CRISPR single-cell datasets where fast, multi-threaded C++ implementations of standard analysis steps are required.\n- pitfalls: Batch effects can severely confound downstream clustering and visualization if not accounted for; use the block parameter to enable MNN correction. Mitochondrial genes may be absent when intersecting genes across different datasets, requiring the user to skip mitochondrial QC in those specific runs. For CRISPR data, normalization must use size factors defined by centering the total sum of guide counts for each cell.",
+  "workflows": [
+    {
+      "name": "basic_sc_rna_seq_analysis",
+      "intent": "Perform an end-to-end single-cell RNA-seq analysis workflow including QC, normalization, PCA, clustering, and marker detection using a single wrapper function.",
+      "input": [
+        "sce.z (SingleCellExperiment object containing raw count data)"
+      ],
+      "stages": "1. Identify mitochondrial genes ;; 2. Run end-to-end analysis with analyze.se() ;; 3. Visualize results with plotReducedDim() ;; 4. Inspect marker genes with previewMarkers()",
+      "code": "is.mito <- grep(\"^mt-\", rownames(sce.z))\nresults <- analyze.se(\n    sce.z,\n    rna.qc.subsets=list(Mito=is.mito),\n    num.threads=2 # limit number of threads to keep R CMD check happy.\n)\nresults$x # most outputs are stored in a copy of the input SingleCellExperiment. \nlibrary(scater)\nplotReducedDim(results$x, \"TSNE\", colour_by=\"graph.cluster\")\n# Ordering by the median AUC across pairwise comparisons involving the cluster.\npreviewMarkers(results$markers$rna[[1]], order.by=\"auc.median\")"
+    },
+    {
+      "name": "modular_sc_rna_seq_analysis",
+      "intent": "Run the single-cell analysis pipeline step-by-step using individual component functions for custom control over each stage.",
+      "input": [
+        "sce.z (SingleCellExperiment object containing raw count data)"
+      ],
+      "stages": "1. Quality control with quickRnaQc.se() ;; 2. Filter cells ;; 3. Normalize counts with normalizeRnaCounts.se() ;; 4. Select highly variable genes with chooseRnaHvgs.se() ;; 5. Run PCA with runPca.se() ;; 6. Build SNN graph and cluster with runAllNeighborSteps.se() ;; 7. Score markers with scoreMarkers.se()",
+      "code": "test <- sce.z\ntest <- quickRnaQc.se(test, subsets=list(mt=is.mito), num.threads=2)\ntest <- test[,test$keep]\ntest <- normalizeRnaCounts.se(test, size.factors=test$sum)\ntest <- chooseRnaHvgs.se(test, num.threads=2)\ntest <- runPca.se(test, features=rowData(test)$hvg, num.threads=2)\ntest <- runAllNeighborSteps.se(test, num.threads=2)\nmarkers <- scoreMarkers.se(test, groups=test$clusters, num.threads=2)"
+    },
+    {
+      "name": "batch_blocked_analysis",
+      "intent": "Combine multiple single-cell datasets and perform batch-corrected analysis using MNN correction and block-aware calculations.",
+      "input": [
+        "sce.t (SingleCellExperiment object for batch 1)",
+        "sce.z (SingleCellExperiment object for batch 2)"
+      ],
+      "stages": "1. Find common genes and combine columns ;; 2. Define batch blocking vector ;; 3. Run batch-aware end-to-end analysis with analyze.se() ;; 4. Visualize batch correction ;; 5. Aggregate cells across clusters and batches with aggregateAcrossCells.se()",
+      "code": "# Only using the common genes in both datasets.\ncommon <- intersect(rownames(sce.z), rownames(sce.t))\ncombined <- combineCols(sce.t[common,], sce.z[common,])\nblock <- rep(c(\"tasic\", \"zeisel\"), c(ncol(sce.t), ncol(sce.z)))\n# No mitochondrial genes in the combined set, so we'll just skip it.\nblocked_res <- analyze.se(combined, block=block, num.threads=2)\nplotReducedDim(blocked_res$x, \"TSNE\", colour_by=\"block\")\ntable(blocked_res$x$graph.cluster, blocked_res$x$block)\npreviewMarkers(blocked_res$markers$rna[[1]])\naggregates <- aggregateAcrossCells.se(\n    blocked_res$x,\n    list(cluster=blocked_res$x$graph.cluster, dataset=blocked_res$x$block)\n)"
+    },
+    {
+      "name": "multimodal_rna_adt_analysis",
+      "intent": "Analyze single-cell datasets containing both RNA-seq and CITE-seq (ADT) modalities.",
+      "input": [
+        "sce.s (SingleCellExperiment object containing both RNA and ADT alternative experiments)"
+      ],
+      "stages": "1. Prepare alternative experiments ;; 2. Identify mitochondrial and IgG control features ;; 3. Run multi-modal analysis with analyze.se() ;; 4. Visualize joint clustering ;; 5. Inspect modality-specific markers with previewMarkers()",
+      "code": "# Combining the various ADT-related alternative experiments into a single object.\naltExp(sce.s, \"all.adts\") <- rbind(altExp(sce.s, \"adt1\"), altExp(sce.s, \"adt2\"))\naltExp(sce.s, \"adt1\") <- altExp(sce.s, \"adt2\") <- NULL\nis.mito <- grepl(\"^MT-\", rownames(sce.s))\nis.igg <- grepl(\"^IgG\", rownames(altExp(sce.s, 'all.adts')))\nmulti_res <- analyze.se(\n    sce.s,\n    adt.altexp=\"all.adts\",\n    rna.qc.subsets=list(mito=is.mito),\n    adt.qc.subsets=list(igg=is.igg),\n    num.threads=2\n)\nplotReducedDim(multi_res$x, \"UMAP\", colour_by=\"graph.cluster\")\n# By default, markers are sorted by the mean Cohen's d.\n# We just replace the column name when printing the dataframe here.\npreviewMarkers(multi_res$markers$adt[[5]], c(effect=\"cohens.d.mean\"))\n# Using the delta-detected to focus on silent-to-expressed genes.\npreviewMarkers(multi_res$markers$rna[[5]], order.by=\"delta.detected.mean\")"
+    }
+  ]
+}

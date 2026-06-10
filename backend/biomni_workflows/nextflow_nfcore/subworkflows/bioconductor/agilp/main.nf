@@ -1,122 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: agilp
-// More about what it does (maybe more than one line)
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/agilp/inst/doc/agilp_manual.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("agilp")
+// Bioconductor workflow: agilp — agilent_microarray_preprocessing_pipeline
+// Extract, normalize, and map raw Agilent microarray scanner data using a template-driven pipeline.
+// Input: scanner_files.txt, sample_template.txt, annotations_sample.txt
+// Container: quay.io/biocontainers/bioconductor-agilp:3.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: agilp
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Extract raw signals and average replicate probes using AAProcess
+//  * 2. [Core Analysis] Generate a list of extracted filenames using filenamex to populate the template
+//  * 3. [Core Analysis] Generate a normalization baseline file using Baseline
+//  * 4. [Core Analysis] Select and merge or copy processed files using Loader
+//  * 5. [Core Analysis] Perform LOESS normalization against the baseline using AALoess
+//  * 6. [Core Analysis] Swap probe identifiers to target IDs (e.g., Ensembl IDs) using IDswop
+//  * 7. [Core Analysis] Equalize files using Equaliser
 
 nextflow.enable.dsl = 2
 
-process BIOC_AGILP {
+process BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-agilp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-agilp:3.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-agilp:3.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_agilp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_agilp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_agilp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AALoess)
-    library(Baseline)
-    library(IDswop)
-    library(Loader)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load the required Bioconductor package
+        library(agilp)
+        
+        # Define directory paths for the pipeline stages
+        scanner_input_dir   <- "scanner_input/"
+        processed_raw_dir   <- "processed_raw/"
+        filename_output_dir <- "filename_output/"
+        loader_output_dir   <- "loader_output/"
+        loess_output_dir    <- "loess_output/"
+        swapped_output_dir  <- "swapped_output/"
+        equalised_output_dir <- "equalised_output/"
+        
+        # Create the directories if they do not exist
+        dir.create(scanner_input_dir, showWarnings = FALSE, recursive = TRUE)
+        dir.create(processed_raw_dir, showWarnings = FALSE, recursive = TRUE)
+        dir.create(filename_output_dir, showWarnings = FALSE, recursive = TRUE)
+        dir.create(loader_output_dir, showWarnings = FALSE, recursive = TRUE)
+        dir.create(loess_output_dir, showWarnings = FALSE, recursive = TRUE)
+        dir.create(swapped_output_dir, showWarnings = FALSE, recursive = TRUE)
+        dir.create(equalised_output_dir, showWarnings = FALSE, recursive = TRUE)
+        
+        # Validate and prepare the user input files
+        if (!file.exists("scanner_files.txt")) {
+          stop("Required input file 'scanner_files.txt' not found in the working directory.")
+        }
+        if (!file.exists("sample_template.txt")) {
+          stop("Required input file 'sample_template.txt' not found in the working directory.")
+        }
+        if (!file.exists("annotations_sample.txt")) {
+          stop("Required input file 'annotations_sample.txt' not found in the working directory.")
+        }
+        
+        # Copy the raw scanner file to the scanner input directory for processing
+        file.copy("scanner_files.txt", file.path(scanner_input_dir, "scanner_file_1.txt"), overwrite = TRUE)
+        
+        # Define file paths for template and annotation inputs
+        template_path <- "sample_template.txt"
+        annotation_path <- "annotations_sample.txt"
+        outputbase <- "testbase.txt"
+        
+        # 1. Extract raw signals and average replicate probes using AAProcess
+        message("Stage 1: Running AAProcess...")
+        AAProcess(input = scanner_input_dir, output = processed_raw_dir, s = 9)
+        
+        # 2. Generate a list of extracted filenames using filenamex to populate the template
+        message("Stage 2: Running filenamex...")
+        filenamex(input = processed_raw_dir, output = filename_output_dir)
+        
+        # 3. Generate a normalization baseline file using Baseline
+        message("Stage 3: Running Baseline...")
+        Baseline(NORM = "LOG", allfiles = "TRUE", r = 2, A = 2, B = 3, input = processed_raw_dir, baseout = outputbase, t = template_path)
+        
+        # 4. Select and merge or copy processed files using Loader
+        message("Stage 4: Running Loader...")
+        Loader(input = processed_raw_dir, output = loader_output_dir, t = template_path, f = "TRUE", r = 2, A = 2, B = 5)
+        
+        # 5. Perform LOESS normalization against the baseline using AALoess
+        message("Stage 5: Running AALoess...")
+        AALoess(input = loader_output_dir, output = loess_output_dir, baseline = outputbase, LOG = "TRUE")
+        
+        # 6. Swap probe identifiers to target IDs (e.g., Ensembl IDs) using IDswop
+        message("Stage 6: Running IDswop...")
+        IDswop(input = loess_output_dir, output = swapped_output_dir, annotation = annotation_path, source_ID = "ProbeID", target_ID = "EnsemblID", ERR = 0.2)
+        
+        # 7. Equalize files using Equaliser
+        message("Stage 7: Running Equaliser...")
+        Equaliser(input = swapped_output_dir, output = equalised_output_dir)
+        
+        message("Pipeline completed successfully!")
 
-    # --- Unlink [] ---
-    # Key functions: unlink, path
-    unlink(file.path(system.file(package="agilp"),"output","","*.*",
-    fsep = .Platform$file.sep), recursive=FALSE)
-    # --- Baseline [] ---
-    # Key functions: Baseline
-    Baseline(NORM="FALSE",allfiles="FALSE",r=2,A=2,B=5,input=inputdir, baseout=outputbase, t = template)
-    # --- Unlink [] ---
-    # Key functions: unlink, path
-    unlink(file.path(system.file(package="agilp"),"output","","*.*",
-    fsep = .Platform$file.sep), recursive=FALSE)
-    # --- Loader [] ---
-    # Key functions: Loader
-    Loader(input=inputdir,output=outputdir,t=template,f="FALSE",r=2,A=2,B=5)
-    dim(dataout)
-    # --- Unlink [] ---
-    # Key functions: unlink, path
-    unlink(file.path(system.file(package="agilp"),"output","","*.*",
-    fsep = .Platform$file.sep), recursive=FALSE)
-    # --- Aaloess [] ---
-    # Key functions: AALoess
-    AALoess(input=inputdir, output=outputdir, baseline = baselinedir, LOG="FALSE")
-    # --- Unlink [] ---
-    # Key functions: unlink, path
-    unlink(file.path(system.file(package="agilp"),"output","","*.*",
-    fsep = .Platform$file.sep), recursive=FALSE)
-    # --- Idswop [] ---
-    # Key functions: IDswop
-    IDswop(input=inputdir,output=outputdir,annotation=annotation,source_ID="ProbeID",
-    target_ID="EnsemblID", ERR=1)
-    # --- Unlink [] ---
-    # Key functions: unlink, path
-    unlink(file.path(system.file(package="agilp"),"output","","*.*",
-    fsep = .Platform$file.sep), recursive=FALSE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_agilp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_agilp_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_agilp_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AGILP:", paste0("    agilp: ", packageVersion("agilp"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE":',
+        paste0('    agilp: ', as.character(packageVersion('agilp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_agilp_results.csv
-    touch ${prefix}_agilp_output.rds
-    echo "BIOC_AGILP:" > versions.yml
-    echo "    agilp: 0.0.0" >> versions.yml
+    touch ${prefix}_agilent_microarray_preprocessing_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_AGILP_WORKFLOW {
+workflow BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ scanner_files.txt, sample_template.txt, annotations_sample.txt ] ]
 
     main:
-    BIOC_AGILP(ch_input)
+    BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_AGILP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AGILP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AGILP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AGILP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE.out.tables
+    plots    = BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE.out.plots
+    objects  = BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE.out.objects
+    versions = BIOC_AGILP_AGILENT_MICROARRAY_PREPROCESSING_PIPELINE.out.versions
 }

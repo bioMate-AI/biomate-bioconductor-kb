@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: barcode.length=used in read10xMolInfo to force a known barcode length if automatic detection fails ;; prop=used in downsampleReads to specify the proportion of reads to keep ;; lower=used in emptyDrops to set the UMI count threshold below which droplets are treated as empty for ambient profile estimation ;; ambient=used in hashedDrops to specify the ambient HTO profile ;; nmad=used in hashedDrops to adjust the threshold for defining small log-fold changes for confident singlets ;; min.frac=used in swappedDrops to define the minimum fraction of reads required to assign a molecule to a sample rather than removing it\n- alternatives: scuttle::downsampleMatrix=preferred over downsampleReads if the user wants to guarantee similar total counts after downsampling, as downsampleReads downsamples raw reads and may not decrease final UMI counts if libraries are saturated\n- when_to_use: Use when processing raw droplet-based single-cell RNA-seq data (specifically 10X Genomics) to load count matrices, filter out empty droplets, demultiplex cell-hashing libraries, or correct for sequencing artifacts like barcode swapping and chimeric reads.\n- pitfalls: downsampleReads returns a UMI count matrix where the final total count may not decrease if libraries are saturated (use downsampleMatrix instead) ;; emptyDrops uses permutation testing, so set.seed must be called for reproducibility ;; if emptyDrops results show FDR above the threshold and Limited == TRUE, the number of permutations (npts) should be increased ;; read10xCounts can load multiple samples at once, but only if they share the exact same set of genes.",
+  "workflows": [
+    {
+      "name": "import_and_filter_10x_data",
+      "intent": "Load 10X Genomics UMI count matrices, compute barcode ranks, and distinguish cell-containing droplets from empty droplets.",
+      "input": [
+        "dir.name (directory containing barcodes.tsv, genes.tsv, and matrix.mtx)",
+        "my.counts (UMI count matrix)"
+      ],
+      "stages": "1. Load the 10X count matrix into a SingleCellExperiment object using read10xCounts ;; 2. Compute barcode rank statistics using barcodeRanks ;; 3. Detect cell-containing droplets using emptyDrops ;; 4. Filter the results based on False Discovery Rate (FDR)",
+      "code": "sce <- read10xCounts(dir.name)\nbr.out <- barcodeRanks(my.counts)\nplot(br.out$rank, br.out$total, log=\"xy\", xlab=\"Rank\", ylab=\"Total\")\no <- order(br.out$rank)\nlines(br.out$rank[o], br.out$fitted[o], col=\"red\")\nabline(h=metadata(br.out)$knee, col=\"dodgerblue\", lty=2)\nabline(h=metadata(br.out)$inflection, col=\"forestgreen\", lty=2)\nlegend(\"bottomleft\", lty=2, col=c(\"dodgerblue\", \"forestgreen\"), legend=c(\"knee\", \"inflection\"))\nset.seed(100)\ne.out <- emptyDrops(my.counts)\nis.cell <- e.out$FDR <= 0.01\nsum(is.cell, na.rm=TRUE)\ntable(Limited=e.out$Limited, Significant=is.cell)\nplot(e.out$Total, -e.out$LogProb, col=ifelse(is.cell, \"red\", \"black\"), xlab=\"Total UMI count\", ylab=\"-Log Probability\")"
+    },
+    {
+      "name": "demultiplex_hashed_libraries",
+      "intent": "Demultiplex cell-hashing libraries to assign cell-containing barcodes to their sample of origin and identify doublets.",
+      "input": [
+        "y (matrix of HTO counts)"
+      ],
+      "stages": "1. Identify cell-containing barcodes using emptyDrops with an adjusted lower threshold ;; 2. Demultiplex the cell-containing barcodes using hashedDrops ;; 3. Identify confident singlets and doublets",
+      "code": "hto.calls <- emptyDrops(y, lower=500)\nhas.cell <- hto.calls$FDR <= 0.001\nsummary(has.cell)\ndemux <- hashedDrops(y[,which(has.cell)], ambient=metadata(hto.calls)$ambient)\ntable(demux$Best[demux$Confident])\ncolors <- ifelse(demux$Confident, \"black\", ifelse(demux$Doublet, \"red\", \"grey\"))\nplot(demux$LogFC, demux$LogFC2, col=colors, xlab=\"Log-fold change between best and second HTO\", ylab=\"Log-fold change between second HTO and ambient\")"
+    },
+    {
+      "name": "remove_barcode_swapping",
+      "intent": "Eliminate barcode swapping effects across multiplexed 10X samples sequenced on the same Illumina run.",
+      "input": [
+        "mult.mol.info (character vector of paths to molecule_info.h5 files for multiplexed samples)"
+      ],
+      "stages": "1. Clean the molecule information files and generate cleaned UMI count matrices using swappedDrops",
+      "code": "s.out <- swappedDrops(mult.mol.info, min.frac=0.9)\nlength(s.out$cleaned)\nclass(s.out$cleaned[[1]])"
+    },
+    {
+      "name": "remove_chimeric_reads",
+      "intent": "Remove chimeric molecules generated during library preparation within cells.",
+      "input": [
+        "mult.mol.info[1] (path to a molecule_info.h5 file)"
+      ],
+      "stages": "1. Remove molecules in the same cell with the same UMI sequence using chimericDrops",
+      "code": "out <- chimericDrops(mult.mol.info[1])\nclass(out)"
+    }
+  ]
+}

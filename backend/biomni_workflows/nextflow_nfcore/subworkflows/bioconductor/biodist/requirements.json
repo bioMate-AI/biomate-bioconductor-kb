@@ -1,0 +1,16 @@
+{
+  "package": "biodist",
+  "requirements": [
+    "Biobase",
+    "bioDist"
+  ],
+  "by_workflow": {
+    "correlation_distance_and_neighbor_search.nf": [
+      "Biobase",
+      "bioDist"
+    ],
+    "main.nf": [
+      "bioDist"
+    ]
+  }
+}

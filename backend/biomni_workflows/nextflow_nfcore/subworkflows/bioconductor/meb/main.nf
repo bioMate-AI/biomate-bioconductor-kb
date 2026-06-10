@@ -1,124 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MEB
-// This package provides a method to identify differential expression genes in the same or different sp
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MEB/inst/doc/NIMEB.R
-// Upstream  : SingleCellExperiment, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("MEB")
+// Bioconductor workflow: MEB — sfmeb_bulk_same_species
+// Identify differentially expressed genes in bulk RNA-seq data from the same species using the SFMEB method.
+// Input: countsTable, train_id
+// Container: quay.io/biocontainers/bioconductor-meb:1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MEB
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define candidate gamma parameters
+//  * 2. [Core Analysis] Train the SFMEB model using NIMEB with ds = FALSE
+//  * 3. [Core Analysis] Predict DEG status using predict on the trained model
 
 nextflow.enable.dsl = 2
 
-process BIOC_MEB {
+process BIOC_MEB_SFMEB_BULK_SAME_SPECIES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-meb"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-meb:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-meb:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_meb_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_meb_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_meb_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(NIMEB)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(sim_data_sp)
-    sim_data_sp
-    # --- Data [] ---
-    # Key functions: NIMEB, assay
-    ---------------------------------------------------------------------
-    data(sim_data_sp)
-    gamma <- seq(1e-06,5e-05,1e-06)
-    sim_model_sp <- NIMEB(countsTable=assay(sim_data_sp), train_id=1:1000, gamma,
-    nu = 0.01, reject_rate = 0.05, ds = FALSE)
-    # --- Predict [] ---
-    # Key functions: predict, assay
-    ---------------------------------------------------------------------
-    sim_model_sp_pred <- predict(sim_model_sp$model, assay(sim_data_sp))
-    summary(sim_model_sp_pred)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(sim_scRNA_data)
-    sim_scRNA_data
-    # --- Scmeb [] ---
-    # Key functions: scMEB
-    ---------------------------------------------------------------------
-    sim_scRNA <- scMEB(sce=sim_scRNA_data, stable_idx=stable_gene,
-    filtered = TRUE, gamma = seq(1e-04,0.001,1e-05), nu = 0.01,
-    reject_rate = 0.1)
-    # --- Predict [] ---
-    # Key functions: predict
-    ---------------------------------------------------------------------
-    sim_scRNA_pred <- predict(sim_scRNA$model, sim_scRNA$dat_pca)
-    summary(sim_scRNA_pred)
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    sim_scRNA_dist <- data.frame(Gene=rownames(sim_scRNA_data),
-                                 Distance=sim_scRNA$dist)
-    head(sim_scRNA_dist)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_meb_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(MEB)
+    
+    # ---------------------------------------------------------
+    # 1. Read User Input Files
+    # ---------------------------------------------------------
+    
+    # Read countsTable (matrix of raw RNA-seq counts)
+    if (file.exists("countsTable.rds")) {
+      countsTable <- readRDS("countsTable.rds")
+    } else if (file.exists("countsTable.csv")) {
+      countsTable <- as.matrix(read.csv("countsTable.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("countsTable.tsv")) {
+      countsTable <- as.matrix(read.delim("countsTable.tsv", row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_meb_results.csv")
+      stop("Error: countsTable file not found (expected countsTable.rds, countsTable.csv, or countsTable.tsv)")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_meb_output.rds")
+    
+    # Read train_id (vector of row indices representing known housekeeping genes)
+    if (file.exists("train_id.rds")) {
+      train_id <- readRDS("train_id.rds")
+    } else if (file.exists("train_id.txt")) {
+      train_id <- as.integer(readLines("train_id.txt"))
+    } else if (file.exists("train_id.csv")) {
+      train_id <- as.integer(read.csv("train_id.csv", header = FALSE)[[1]])
+    } else {
+      stop("Error: train_id file not found (expected train_id.rds, train_id.txt, or train_id.csv)")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MEB:", paste0("    meb: ", packageVersion("MEB"))),
-        "versions.yml"
+    
+    # Ensure countsTable is a matrix
+    countsTable <- as.matrix(countsTable)
+    
+    # ---------------------------------------------------------
+    # 2. Execute Documented Workflow
+    # ---------------------------------------------------------
+    
+    # Define candidate gamma parameters
+    gamma <- seq(1e-06,5e-05,1e-06)
+    
+    # Train the SFMEB model using NIMEB with ds = FALSE
+    sim_model_sp <- NIMEB(countsTable=countsTable, train_id=train_id, gamma,
+    nu = 0.01, reject_rate = 0.05, ds = FALSE)
+    
+    # Predict DEG status using predict on the trained model
+    sim_model_sp_pred <- predict(sim_model_sp\$model, countsTable)
+    
+    # Print summary to console
+    summary(sim_model_sp_pred)
+    
+    # ---------------------------------------------------------
+    # 3. Save Outputs
+    # ---------------------------------------------------------
+    
+    # Save the trained model object
+    saveRDS(sim_model_sp, "sim_model_sp.rds")
+    
+    # Save prediction results as a CSV table
+    # TRUE means non-DE (inside the ball), FALSE means DE (outlier)
+    results_df <- data.frame(
+      Gene = rownames(countsTable),
+      Prediction_Non_DE = sim_model_sp_pred,
+      Is_DEG = !sim_model_sp_pred,
+      stringsAsFactors = FALSE
     )
+    write.csv(results_df, "sfmeb_predictions.csv", row.names = FALSE)
+    
+    # Save summary text
+    sink("prediction_summary.txt")
+    cat("Summary of SFMEB Predictions (TRUE = Non-DE, FALSE = DE):\n")
+    print(summary(sim_model_sp_pred))
+    sink()
+    
+    cat("Workflow completed successfully. Outputs saved to 'sim_model_sp.rds', 'sfmeb_predictions.csv', and 'prediction_summary.txt'.\n")
+
+    writeLines(c(
+        '"BIOC_MEB_SFMEB_BULK_SAME_SPECIES":',
+        paste0('    MEB: ', as.character(packageVersion('MEB')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_meb_results.csv
-    touch ${prefix}_meb_output.rds
-    echo "BIOC_MEB:" > versions.yml
-    echo "    meb: 0.0.0" >> versions.yml
+    touch ${prefix}_sfmeb_bulk_same_species.csv versions.yml
     """
 }
 
-
-workflow BIOC_MEB_WORKFLOW {
+workflow BIOC_MEB_SFMEB_BULK_SAME_SPECIES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ countsTable, train_id ] ]
 
     main:
-    BIOC_MEB(ch_input)
+    BIOC_MEB_SFMEB_BULK_SAME_SPECIES(ch_input)
 
     emit:
-    results  = BIOC_MEB.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MEB.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MEB.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MEB.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MEB_SFMEB_BULK_SAME_SPECIES.out.tables
+    plots    = BIOC_MEB_SFMEB_BULK_SAME_SPECIES.out.plots
+    objects  = BIOC_MEB_SFMEB_BULK_SAME_SPECIES.out.objects
+    versions = BIOC_MEB_SFMEB_BULK_SAME_SPECIES.out.versions
 }

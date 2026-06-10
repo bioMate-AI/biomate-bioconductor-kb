@@ -1,100 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: goTools
-// Wraper functions for description/comparison of oligo ID list using Gene Ontology database
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/goTools/inst/doc/goTools.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("goTools")
+// Bioconductor workflow: goTools — compare_and_plot_gene_lists
+// Compare the functional profiles of multiple probe ID lists using Gene Ontology and plot the results.
+// Input: subset
+// Container: quay.io/biocontainers/bioconductor-gotools:1.84.0--r45hdfd78af_0
+// R packages: GO.db, goTools
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GO.db, goTools
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the goTools package and the probe ID dataset. 2. Load the GO.db annotation database. 3. Define the subset of probe lists to c
 
 nextflow.enable.dsl = 2
 
-process BIOC_GOTOOLS {
+process BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gotools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gotools:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gotools:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gotools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gotools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gotools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CustomEndNodeList)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GO.db", "goTools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the goTools package
     library("goTools", verbose=FALSE)
-    data(probeID)
-    # --- Ontoploteg1 [] ---
-    # Key functions: ontoCompare
-    ## library(GO.db)
-    ## subset=c(L1=list(affylist[[1]][1:5]),L2=list(affylist[[2]][1:5]))
-    ## res <- ontoCompare(subset, probeType="hgu133a", plot=TRUE)
-    # --- Customendnodelist [] ---
-    # Key functions: CustomEndNodeList
-    ## MFendnode <- CustomEndNodeList("GO:0003674", rank=2)
-    # --- Ontocompare [] ---
-    # Key functions: ontoCompare
-    ## res <- ontoCompare(subset, probeType="hgu133a", endnode=MFendnode, goType="MF")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gotools_results.csv", row.names = TRUE)
+    
+    # 2. Load the GO.db annotation database
+    library(GO.db)
+    
+    # 3. Define the subset of probe lists to compare by reading the user input file.
+    # The pipeline expects 'subset.rds' (a serialized R list of probe ID vectors)
+    # or 'subset.csv' (where each column represents a probe list) in the working directory.
+    if (file.exists("subset.rds")) {
+      subset <- readRDS("subset.rds")
+    } else if (file.exists("subset.csv")) {
+      input_data <- read.csv("subset.csv", header = TRUE, stringsAsFactors = FALSE)
+      subset <- as.list(input_data)
+      # Clean up any NA or empty values resulting from unequal column lengths
+      subset <- lapply(subset, function(x) {
+        clean_x <- x[!is.na(x) & x != ""]
+        return(clean_x)
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gotools_results.csv")
+      stop("Error: Required input file 'subset.rds' or 'subset.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gotools_output.rds")
+    
+    # Validate that the input is a list
+    if (!is.list(subset)) {
+      stop("Error: The input 'subset' must be a list of character vectors containing probe IDs.")
     }
+    
+    # 4. Run ontoCompare to map probes, calculate percentages, and plot the comparison.
+    # We wrap the call in a PDF device to capture the plot generated when plot=TRUE.
+    pdf("ontoCompare_plot.pdf", width = 10, height = 8)
+    
+    res <- ontoCompare(subset, probeType="hgu133a", plot=TRUE)
+    
+    dev.off()
+    
+    # 5. Save the meaningful results to output files
+    # Save the raw results object as an RDS file
+    saveRDS(res, "ontoCompare_results.rds")
+    
+    # Convert the results to a data frame and save as a CSV table
+    res_df <- as.data.frame(res)
+    write.csv(res_df, "ontoCompare_results.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GOTOOLS:", paste0("    gotools: ", packageVersion("goTools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS":',
+        paste0('    goTools: ', as.character(packageVersion('goTools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gotools_results.csv
-    touch ${prefix}_gotools_output.rds
-    echo "BIOC_GOTOOLS:" > versions.yml
-    echo "    gotools: 0.0.0" >> versions.yml
+    touch ${prefix}_compare_and_plot_gene_lists.csv versions.yml
     """
 }
 
-
-workflow BIOC_GOTOOLS_WORKFLOW {
+workflow BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ subset ] ]
 
     main:
-    BIOC_GOTOOLS(ch_input)
+    BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS(ch_input)
 
     emit:
-    results  = BIOC_GOTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GOTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GOTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GOTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS.out.tables
+    plots    = BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS.out.plots
+    objects  = BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS.out.objects
+    versions = BIOC_GOTOOLS_COMPARE_AND_PLOT_GENE_LISTS.out.versions
 }

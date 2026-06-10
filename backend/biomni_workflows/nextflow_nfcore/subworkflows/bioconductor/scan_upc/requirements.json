@@ -1,0 +1,17 @@
+{
+  "package": "scan_upc",
+  "requirements": [
+    "Biobase",
+    "scan_upc"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "scan_upc"
+    ],
+    "rnaseq_upc_expression_probability.nf": [
+      "Biobase",
+      "scan_upc"
+    ]
+  }
+}

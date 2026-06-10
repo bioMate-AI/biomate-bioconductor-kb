@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: skipFactor=Factor to skip odd values in the interval [0, Inf) (default is 3), where higher values mean fewer samples are skipped ;; zeta=Threshold in the interval [0, 1] (default is 0.5) used in membership functions to control the activation of linguistic labels ;; overlapping=Integer (1, 2, or 3) determining the number of discrete labels used (1 for Low/Medium/High; 2 for 5 labels; 3 for 6 labels) ;; piVal=Threshold in the interval [0, 1] (default is 0.9) controlling the percentage of class samples required to establish a fuzzy pattern label\n- alternatives: Classical gene selection/filtering methods that rank genes solely by statistical significance or discrimination metrics\n- when_to_use: Appropriate for microarray or transcriptomics datasets with high dimensionality (many genes) and small sample sizes, where identifying a robust, interpretable, and reduced set of class-specific marker genes is required\n- pitfalls: Running the algorithm on very large datasets (e.g., 20,000+ genes) can take several minutes; setting the piVal parameter too high may result in an overly stringent filter with very few or no genes making up the pattern; the discriminant fuzzy pattern is highly dependent on the specific set of comparison classes, meaning results will change if classes are added or removed",
+  "workflows": [
+    {
+      "name": "quick_discriminant_fuzzy_pattern",
+      "intent": "Quickly identify differentially expressed genes from an ExpressionSet object using default parameters.",
+      "input": [
+        "rmadataset (ExpressionSet object containing gene expression matrix and class labels)"
+      ],
+      "stages": "1. Run the wrapper function discriminantFuzzyPattern ;; 2. Plot the resulting discriminant fuzzy patterns",
+      "code": "library(DFP)\ndata(rmadataset)\nres <- discriminantFuzzyPattern(rmadataset)\nplotDiscriminantFuzzyPattern(res$discriminant.fuzzy.pattern)"
+    },
+    {
+      "name": "step_by_step_fuzzy_pipeline",
+      "intent": "Run the complete step-by-step fuzzy pattern discretization and discrimination pipeline starting from raw CSV files.",
+      "input": [
+        "exprsData.csv (CSV file containing gene expression values)",
+        "pData.csv (CSV file containing phenotype metadata and class labels)"
+      ],
+      "stages": "1. Read CSV files into an ExpressionSet ;; 2. Calculate membership functions ;; 3. Discretize expression values into linguistic labels ;; 4. Calculate fuzzy patterns for each class ;; 5. Calculate discriminant fuzzy patterns ;; 6. Plot the final discriminant fuzzy patterns",
+      "code": "library(DFP)\ndataDir <- system.file(\"extdata\", package=\"DFP\")\nfileExprs <- file.path(dataDir, \"exprsData.csv\")\nfilePhenodata <- file.path(dataDir, \"pData.csv\")\nrmadataset <- readCSV(fileExprs, filePhenodata)\nskipFactor <- 3\nzeta <- 0.5\npiVal <- 0.9\noverlapping <- 2\nmfs <- calculateMembershipFunctions(rmadataset, skipFactor)\nplotMembershipFunctions(rmadataset, mfs, featureNames(rmadataset)[1:2])\ndvs <- discretizeExpressionValues(rmadataset, mfs, zeta, overlapping)\nshowDiscreteValues(dvs, featureNames(rmadataset)[1:10],c(\"healthy\", \"AML-inv\"))\nfps <- calculateFuzzyPatterns(rmadataset, dvs, piVal, overlapping)\nshowFuzzyPatterns(fps, \"healthy\")[21:50]\ndfps <- calculateDiscriminantFuzzyPattern(rmadataset, fps)\nplotDiscriminantFuzzyPattern(dfps, overlapping)"
+    }
+  ]
+}

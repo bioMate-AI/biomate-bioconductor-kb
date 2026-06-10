@@ -1,0 +1,54 @@
+{
+  "package": "saser",
+  "requirements": [
+    "ASpli",
+    "BiocParallel",
+    "DESeq2",
+    "GenomicAlignments",
+    "GenomicFeatures",
+    "data.table",
+    "dplyr",
+    "edgeR",
+    "igraph",
+    "limma",
+    "saseR",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "aberrant_splicing_analysis.nf": [
+      "ASpli",
+      "BiocParallel",
+      "DESeq2",
+      "GenomicFeatures",
+      "data.table",
+      "dplyr",
+      "edgeR",
+      "igraph",
+      "limma",
+      "saseR",
+      "txdbmaker"
+    ],
+    "differential_usage_deseq2_edger.nf": [
+      "DESeq2",
+      "GenomicAlignments",
+      "GenomicFeatures",
+      "dplyr",
+      "edgeR",
+      "saseR",
+      "txdbmaker"
+    ],
+    "main.nf": [
+      "ASpli",
+      "BiocParallel",
+      "DESeq2",
+      "GenomicFeatures",
+      "data.table",
+      "dplyr",
+      "edgeR",
+      "igraph",
+      "limma",
+      "saseR",
+      "txdbmaker"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "package": "cssq",
+  "requirements": [
+    "CSSQ",
+    "GenomicRanges",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "differential_binding_from_precalculated_counts.nf": [
+      "CSSQ",
+      "GenomicRanges",
+      "SummarizedExperiment"
+    ],
+    "differential_binding_pipeline_wrapper.nf": [
+      "CSSQ",
+      "GenomicRanges"
+    ],
+    "main.nf": [
+      "CSSQ",
+      "GenomicRanges"
+    ]
+  }
+}

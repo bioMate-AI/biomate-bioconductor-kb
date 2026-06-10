@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: adjfile=Path to the ARACNe network output .adj file used to build the regulon ;; dset=An ExpressionSet object or matrix containing the gene expression data ;; per=Number of permutations used to generate the null model (default is 1000) ;; repos=Logical value indicating whether bootstrap resampling should be performed with replacement ;; regulators=Number of top master regulators, p-value cutoff, or specific names of MRs to consider in shadow or synergy analysis\n- alternatives: MARINA (Master Regulator Inference algorithm) is a predecessor algorithm, but VIPER is preferred as it accounts for regulator mode of action, interaction confidence, and pleiotropic target regulation ;; GSEA (Gene Set Enrichment Analysis) is used as a conceptual basis for leading-edge analysis and sample similarity, but VIPER's aREA algorithm is optimized for two-tail enrichment of regulons\n- when_to_use: Use when you want to estimate functional protein activity (e.g., transcription factors or signaling proteins) from mRNA expression data, identify master regulators of phenotypic transitions, or perform unsupervised clustering of samples based on functional protein activity rather than gene expression\n- pitfalls: Assuming statistical independence of gene expression can lead to underestimated p-values due to co-regulation; always use a permutation-based null model (via ttestNull or viperSignature) to account for gene correlation. Additionally, pleiotropic target regulation can cause \"shadow effects\" where a regulator appears active because its targets are shared with a truly active TF; use shadow analysis to identify and penalize these cases",
+  "workflows": [
+    {
+      "name": "msviper_analysis",
+      "intent": "Identify master regulators associated with a phenotypic transition by performing multi-sample msVIPER analysis with null models, leading-edge analysis, shadow analysis, and synergy analysis.",
+      "input": [
+        "dset (ExpressionSet or matrix of gene expression data)",
+        "bcellaracne.adj (ARACNe network adjacency file)"
+      ],
+      "stages": "1. Generate regulon object from ARACNe output ;; 2. Generate gene expression signature (GES) using Student's t-test ;; 3. Generate null model by sample permutations ;; 4. Run msVIPER analysis ;; 5. Perform leading-edge analysis ;; 6. Run bootstrap msVIPER ;; 7. Perform shadow analysis ;; 8. Perform synergy analysis",
+      "code": "data(bcellViper, package=\"bcellViper\")\nadjfile <- system.file(\"aracne\", \"bcellaracne.adj\", package = \"bcellViper\")\nregul <- aracne2regulon(adjfile, dset, verbose = FALSE)\nprint(regul)\nsignature <- rowTtest(dset, \"description\", c(\"CB\", \"CC\"), \"N\")\nsignature <- (qnorm(signature$p.value/2, lower.tail = FALSE) * \n                sign(signature$statistic))[, 1]\nnullmodel <- ttestNull(dset, \"description\", c(\"CB\", \"CC\"), \"N\", per = 1000,\n                       repos = TRUE, verbose = FALSE)\nmrs <- msviper(signature, regulon, nullmodel, verbose = FALSE)\nsummary(mrs)\nplot(mrs, cex = .7)\nmrs <- ledge(mrs)\nsummary(mrs)\nsignature <- bootstrapTtest(dset, \"description\", c(\"CB\", \"CC\"), \"N\", verbose = FALSE)\nmrs <- msviper(signature, regulon, nullmodel, verbose = FALSE)\nmrs <- bootstrapmsviper(mrs, \"mode\")\nplot(mrs, cex = .7)\nmrshadow <- shadow(mrs, regulators = 25, verbose = FALSE)\nsummary(mrshadow)\nmrs <- msviperCombinatorial(mrs, regulators = 25, verbose = FALSE)\nmrs <- msviperSynergy(mrs, verbose = FALSE)\nsummary(mrs)\nplot(mrs, 25, cex = .7)"
+    },
+    {
+      "name": "single_sample_viper",
+      "intent": "Transform a gene expression matrix into a single-sample protein activity matrix and perform sample similarity clustering.",
+      "input": [
+        "dset (ExpressionSet or matrix of gene expression data)",
+        "regulon (regulon class object)"
+      ],
+      "stages": "1. Run VIPER directly on the expression dataset ;; 2. Run VIPER with a permutation-based null model using reference samples ;; 3. Compute sample similarity using the aREA-based viperSimilarity algorithm ;; 4. Perform hierarchical clustering on the similarity matrix",
+      "code": "vpres <- viper(dset, regulon, verbose = FALSE)\ndim(vpres)\ntmp <- rowTtest(vpres, \"description\", c(\"CB\", \"CC\"), \"N\")\ndata.frame(Gene = rownames(tmp$p.value), t = round(tmp$statistic, 2),\n\"p-value\" = signif(tmp$p.value, 3))[order(tmp$p.value)[1:10], ]\nvpsig <- viperSignature(dset, \"description\", \"N\", verbose = FALSE)\nvpres <- viper(vpsig, regulon, verbose = FALSE)\npos <- pData(vpres)[[\"description\"]] %in% c(\"M\", \"CB\", \"CC\")\nd1 <- exprs(vpres)[, pos]\ncolnames(d1) <- pData(vpres)[[\"description\"]][pos]\ndd <- dist(t(d1), method = \"euclidean\")\nheatmap(as.matrix(dd), Rowv = as.dendrogram(hclust(dd, method = \"average\")), symm = T)\ndd <- viperSimilarity(d1)\nheatmap(as.matrix(as.dist(dd)), Rowv = as.dendrogram(hclust(as.dist(dd),\nmethod = \"average\")), symm = T)"
+    }
+  ]
+}

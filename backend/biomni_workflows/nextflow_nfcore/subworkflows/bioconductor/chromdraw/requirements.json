@@ -1,0 +1,14 @@
+{
+  "package": "chromdraw",
+  "requirements": [
+    "chromDraw"
+  ],
+  "by_workflow": {
+    "bed_file_karyotype.nf": [
+      "chromDraw"
+    ],
+    "main.nf": [
+      "chromDraw"
+    ]
+  }
+}

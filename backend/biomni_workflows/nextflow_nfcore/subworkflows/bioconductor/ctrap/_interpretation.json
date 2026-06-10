@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=\"metadata\" = specifies loading metadata in loadCMapData ;; cellLine = filters CMap metadata by cell line in filterCMapMetadata ;; perturbationType = filters CMap metadata by perturbation type (e.g., \"Compound\" or \"Consensus signature from shRNAs targeting the same gene\") ;; zscores = path to the CMap z-scores GCTX file in prepareCMapPerturbations ;; method = comparison metric (\"spearman\", \"pearson\", \"gsea\", or \"rankProduct\") in plot and predictTargetingDrugs ;; labelBy = labels compounds by \"target\" or \"moa\" in plotTargetingDrugsVSsimilarPerturbations\n- alternatives: Correlation methods can be \"spearman\" or \"pearson\", or \"gsea\" (Weighted Connectivity Score) ;; Drug sensitivity datasets can be \"GDSC 7\", \"CTRP 2.1\", or \"NCI60\"\n- when_to_use: When you have differential gene expression results (specifically t-statistics) and want to identify cellular perturbations (gene knockdown, overexpression, or small molecules) that mimic or reverse the expression profile, or to predict targeting drugs and analyze their molecular descriptors.\n- pitfalls: The CMap z-scores file (cmapZscores.gctx) is extremely large (~20GB) and requires confirmation or manual download ;; GSEA score is set to 0 if the enrichment scores for top and bottom genes have the same sign ;; Columns matching between drug sensitivity and perturbation datasets might fail if identifiers do not match (e.g., matching 'broad id' and 'pubchem_cid' based on 0 common values), requiring manual key column specification.",
+  "workflows": [
+    {
+      "name": "prepare_differential_expression_input",
+      "intent": "Download ENCODE RNA-seq data, perform differential expression analysis, and prepare the t-statistics vector required for downstream cTRAP analyses.",
+      "input": [
+        "cellLine (character string of cell line name)",
+        "gene (character string of target gene symbol)"
+      ],
+      "stages": "1. Download ENCODE knockdown metadata ;; 2. Load ENCODE samples ;; 3. Prepare gene expression counts ;; 4. Convert gene identifiers to gene symbols ;; 5. Perform differential expression analysis ;; 6. Extract t-statistics and name them with gene symbols",
+      "code": "gene <- \"EIF4G1\"\ncellLine <- \"HepG2\"\n\nENCODEmetadata <- downloadENCODEknockdownMetadata(cellLine, gene)\ntable(ENCODEmetadata$`Experiment target`)\nlength(unique(ENCODEmetadata$`Experiment target`))\n\nENCODEsamples <- loadENCODEsamples(ENCODEmetadata)[[1]]\ncounts <- prepareENCODEgeneExpression(ENCODEsamples)\nfilter <- rowSums(counts[ , -c(1, 2)] >= minReads) >= minSamples\ncounts <- counts[filter, ]\ncounts$gene_id <- convertGeneIdentifiers(counts$gene_id)\ndiffExpr <- performDifferentialExpression(counts)\ndiffExprStat <- diffExpr$t\nnames(diffExprStat) <- diffExpr$Gene_symbol"
+    },
+    {
+      "name": "compare_cmap_perturbations",
+      "intent": "Compare user's differential expression signature against CMap perturbations to identify similar or opposing cellular perturbations.",
+      "input": [
+        "diffExprStat (named numeric vector of t-statistics from differential expression analysis, where names are gene symbols)"
+      ],
+      "stages": "1. Load CMap metadata ;; 2. Filter CMap metadata for specific cell lines and perturbation types ;; 3. Load and prepare CMap perturbation data ;; 4. Compare differential expression signature against CMap perturbations ;; 5. Visualize perturbation similarity rankings and individual relationships",
+      "code": "cmapMetadata <- loadCMapData(\"cmapMetadata.txt\", type=\"metadata\")\ngetCMapConditions(cmapMetadata)\ngetCMapConditions(cmapMetadata, cellLine=\"HepG2\")\ngetCMapConditions(\n    cmapMetadata, cellLine=\"HepG2\",\n    perturbationType=\"Consensus signature from shRNAs targeting the same gene\")\ncmapMetadataKD <- filterCMapMetadata(\n    cmapMetadata, cellLine=\"HepG2\",\n    perturbationType=\"Consensus signature from shRNAs targeting the same gene\")\ncmapPerturbationsKD <- prepareCMapPerturbations(\n    metadata=cmapMetadataKD, zscores=\"cmapZscores.gctx\",\n    geneInfo=\"cmapGeneInfo.txt\")\ncompareKD <- rankSimilarPerturbations(diffExprStat, cmapPerturbationsKD)\nhead(compareKD[order(spearman_rank)], n=10)\nhead(compareKD[order(pearson_rank)])\nhead(compareKD[order(GSEA_rank)])\nhead(compareKD[order(rankProduct_rank)])\nplot(compareKD, \"spearman\", n=c(10, 3))\nplot(compareKD, \"pearson\")\nplot(compareKD, \"gsea\")\nplot(compareKD, \"rankProduct\")\nEIF4G1knockdown <- grep(\"EIF4G1\", compareKD[[1]], value=TRUE)\nprint(compareKD, EIF4G1knockdown)\nprint(compareKD[order(rankProduct_rank)], 1:10)\ntable <- as.table(compareKD)\nhead(table)\nnames(attributes(compareKD))\nattr(compareKD, \"metadata\")\nattr(compareKD, \"geneInfo\")\nplot(compareKD, EIF4G1knockdown, \"spearman\")\nplot(compareKD, EIF4G1knockdown, \"pearson\")\nplot(compareKD, EIF4G1knockdown, \"gsea\")"
+    },
+    {
+      "name": "predict_targeting_drugs_and_descriptors",
+      "intent": "Predict drugs targeting the user's differential expression profile and analyze the enrichment of molecular descriptors among candidate drugs.",
+      "input": [
+        "diffExprStat (named numeric vector of t-statistics from differential expression analysis, where names are gene symbols)"
+      ],
+      "stages": "1. Load expression and drug sensitivity association data ;; 2. Predict targeting drugs based on the differential expression profile ;; 3. Plot targeting drug predictions and compare against similar perturbations ;; 4. Load drug descriptors and prepare drug sets ;; 5. Analyze and plot drug set enrichment",
+      "code": "listExpressionDrugSensitivityAssociation()\nctrp      <- listExpressionDrugSensitivityAssociation()[[2]]\nassoc     <- loadExpressionDrugSensitivityAssociation(ctrp)\npredicted <- predictTargetingDrugs(diffExprStat, assoc)\nplot(predicted, method=\"rankProduct\")\nplot(predicted, predicted[[1, 1]], method=\"spearman\")\nplot(predicted, predicted[[1, 1]], method=\"gsea\")\nplotTargetingDrugsVSsimilarPerturbations(\n  predicted, compareCompounds, column=\"spearman_rank\")\nplotTargetingDrugsVSsimilarPerturbations(\n  predicted, compareCompounds, column=\"spearman_rank\", labelBy=\"target\")\nplotTargetingDrugsVSsimilarPerturbations(\n  predicted, compareCompounds, column=\"spearman_rank\", labelBy=\"moa\")\ndescriptors <- loadDrugDescriptors(\"CMap\", \"2D\")\ndrugSets    <- prepareDrugSets(descriptors)\ndsea        <- analyseDrugSetEnrichment(drugSets, predicted)\nplotDrugSetEnrichment(drugSets, predicted,\n                      selectedSets=head(dsea$descriptor, 6))"
+    }
+  ]
+}

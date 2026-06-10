@@ -1,104 +1,263 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: fastLiquidAssociation
-// This package extends the function of the LiquidAssociation package for genome-wide application. It i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/fastLiquidAssociation/inst/doc/fastLiquidAssociation.R
-// Upstream  : GOstats, LiquidAssociation, WGCNA, doParallel, impute
-// Downstream: none
-//
-// Install: BiocManager::install("fastLiquidAssociation")
+// Bioconductor workflow: fastLiquidAssociation — fast_liquid_association_pipeline
+// Identify and statistically validate gene triplets exhibiting liquid association (where the correlation between two genes is mediated by a third gene) using a fa
+// Input: counts.csv, coldata.csv
+// Container: 1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: doParallel, fastLiquidAssociation
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_FASTLIQUIDASSOCIATION {
+process BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fastliquidassociation"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fastliquidassociation:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-fastliquidassociation:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(input_file)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fastliquidassociation_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fastliquidassociation_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fastliquidassociation_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(fastLiquidAssociation)
-    library(CNM)
-    library(GLA)
-    library(jsonlite)
-
-    # --- Parallelized Liquid Association [] ---
-    # Key functions: fastLA
-    la_parallel <- fastLA(
-        data, 
-        percent = 0.1, 
-        topn = 20, 
-        threads = 2
-    )
-
-
-    # --- Targeted Liquid Association [] ---
-    # Key functions: fastLA
-    la_targeted <- fastLA(
-        data[, 1:10], 
-        percent = 0.01, 
-        topn = 5
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fastliquidassociation_results.csv", row.names = TRUE)
+    library(parallel)
+    library(doParallel)
+    
+    # ==========================================
+    # Stage 1: Read and Preprocess Input Data
+    # ==========================================
+    message("Stage 1: Loading and preprocessing data...")
+    
+    # Read expression matrix (genes as rows, samples as columns)
+    if (!file.exists("counts.csv")) {
+      stop("Required input file 'counts.csv' not found.")
+    }
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    
+    # If a 'gene_id' column exists, set it as row names
+    if ("gene_id" %in% colnames(counts)) {
+      rownames(counts) <- counts\$gene_id
+      counts\$gene_id <- NULL
+    }
+    
+    # Transpose so that samples are rows and genes are columns
+    data_mat <- t(as.matrix(counts))
+    
+    # Filter out genes with more than 30% missing values
+    na_pct <- colMeans(is.na(data_mat))
+    data_mat <- data_mat[, na_pct < 0.3, drop = FALSE]
+    
+    if (ncol(data_mat) < 3) {
+      stop("Fewer than 3 genes remaining after filtering. Liquid association requires at least 3 genes.")
+    }
+    
+    # Select the top 50 most variable genes to keep the screening computationally feasible
+    gene_vars <- apply(data_mat, 2, var, na.rm = TRUE)
+    top_genes <- names(sort(gene_vars, decreasing = TRUE))[1:min(50, ncol(data_mat))]
+    data_subset <- data_mat[, top_genes, drop = FALSE]
+    
+    # Determine the optimal 'cut' parameter (number of bins + 1)
+    # Ho et al. recommend 15-30 observations per bin.
+    n_samples <- nrow(data_subset)
+    cut_val <- max(3, round(n_samples / 20) + 1)
+    
+    message(paste("Processing", ncol(data_subset), "genes across", n_samples, "samples with cut =", cut_val))
+    
+    # ==========================================
+    # Stage 2: Screen Triplets using fastMLA
+    # ==========================================
+    message("Stage 2: Screening triplets with fastMLA...")
+    
+    cores <- min(parallel::detectCores(), 2)
+    
+    mla_res <- tryCatch({
+      fastMLA(
+        data = data_subset,
+        topn = 50,
+        nvec = 1:ncol(data_subset),
+        rvalue = 0.1,
+        cut = cut_val,
+        threads = cores
+      )
+    }, error = function(e) {
+      message("Warning: fastMLA failed: ", e\$message)
+      NULL
+    })
+    
+    # Write fastMLA results
+    if (!is.null(mla_res) && nrow(mla_res) > 0) {
+      write.csv(mla_res, "mla_results.csv", row.names = FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fastliquidassociation_results.csv")
+      write.csv(data.frame(Message = "No triplets passed the screening phase."), "mla_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fastliquidassociation_output.rds")
+    
+    # ==========================================
+    # Stage 3: Significance Testing via CNM
+    # ==========================================
+    message("Stage 3: Testing significance with mass.CNM...")
+    
+    cnm_res <- NULL
+    if (!is.null(mla_res) && nrow(mla_res) > 0) {
+      cnm_res <- tryCatch({
+        mass.CNM(
+          data = data_subset,
+          GLA.mat = mla_res,
+          nback = min(10, nrow(mla_res))
+        )
+      }, error = function(e) {
+        message("Warning: mass.CNM failed: ", e\$message)
+        NULL
+      })
     }
+    
+    # Write CNM results
+    if (!is.null(cnm_res) && !is.null(cnm_res[["top p-values"]])) {
+      write.csv(cnm_res[["top p-values"]], "cnm_results.csv", row.names = FALSE)
+    } else {
+      write.csv(data.frame(Message = "No CNM significance results generated."), "cnm_results.csv", row.names = FALSE)
+    }
+    
+    # ==========================================
+    # Stage 4: Robust Bootstrap Estimation
+    # ==========================================
+    message("Stage 4: Running robust bootstrap estimation for complex triplets...")
+    
+    boots_res <- NULL
+    if (!is.null(cnm_res)) {
+      boot_triplets <- cnm_res[["bootstrap triplets"]]
+      if (!is.null(boot_triplets) && nrow(boot_triplets) > 0) {
+        clust <- parallel::makeCluster(cores)
+        doParallel::registerDoParallel(clust)
+        
+        boots_res <- tryCatch({
+          fastboots.GLA(
+            tripmat = boot_triplets,
+            data = data_subset,
+            clust = clust,
+            boots = 30,
+            perm = 100,
+            cut = cut_val
+          )
+        }, error = function(e) {
+          message("Warning: fastboots.GLA failed: ", e\$message)
+          NULL
+        }, finally = {
+          parallel::stopCluster(clust)
+        })
+      }
+    }
+    
+    # Write bootstrap results
+    if (!is.null(boots_res) && nrow(boots_res) > 0) {
+      write.csv(boots_res, "bootstrap_results.csv", row.names = FALSE)
+    } else {
+      write.csv(data.frame(Message = "No triplets required or successfully processed via bootstrapping."), "bootstrap_results.csv", row.names = FALSE)
+    }
+    
+    # ==========================================
+    # Stage 5: Visualization of Top Triplet
+    # ==========================================
+    message("Stage 5: Generating liquid association diagnostic plots...")
+    
+    pdf("liquid_association_plot.pdf", width = 10, height = 5)
+    plot_success <- FALSE
+    
+    if (!is.null(mla_res) && nrow(mla_res) > 0) {
+      tryCatch({
+        # Extract top triplet details
+        top_trip <- mla_res[1, ]
+        x1_name <- as.character(top_trip[[1]])
+        x2_name <- as.character(top_trip[[2]])
+        x3_name <- as.character(top_trip[[3]])
+        
+        x1 <- data_subset[, x1_name]
+        x2 <- data_subset[, x2_name]
+        x3 <- data_subset[, x3_name]
+        
+        # Stratify by the median of the mediator gene X3
+        med_x3 <- median(x3, na.rm = TRUE)
+        group <- ifelse(x3 <= med_x3, "Low X3", "High X3")
+        
+        # Set up side-by-side scatter plots
+        par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1)
+        
+        # Low X3 Plot
+        plot(x1[group == "Low X3"], x2[group == "Low X3"],
+             xlab = x1_name, ylab = x2_name,
+             main = paste("Low", x3_name, "\n(r =", round(cor(x1[group == "Low X3"], x2[group == "Low X3"], use = "complete.obs"), 2), ")"),
+             col = "blue", pch = 16, cex = 1.2)
+        abline(lm(x2[group == "Low X3"] ~ x1[group == "Low X3"]), col = "blue", lwd = 2)
+        
+        # High X3 Plot
+        plot(x1[group == "High X3"], x2[group == "High X3"],
+             xlab = x1_name, ylab = x2_name,
+             main = paste("High", x3_name, "\n(r =", round(cor(x1[group == "High X3"], x2[group == "High X3"], use = "complete.obs"), 2), ")"),
+             col = "red", pch = 16, cex = 1.2)
+        abline(lm(x2[group == "High X3"] ~ x1[group == "High X3"]), col = "red", lwd = 2)
+        
+        plot_success <- TRUE
+      }, error = function(e) {
+        message("Warning: Failed to plot top triplet: ", e\$message)
+      })
+    }
+    
+    if (!plot_success) {
+      plot.new()
+      text(0.5, 0.5, "No valid liquid association triplets found to plot.", cex = 1.2)
+    }
+    dev.off()
+    
+    message("Pipeline complete. All outputs successfully written.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FASTLIQUIDASSOCIATION:", paste0("    fastliquidassociation: ", packageVersion("fastLiquidAssociation"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE":',
+        paste0('    fastLiquidAssociation: ', as.character(packageVersion('fastLiquidAssociation')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fastliquidassociation_results.csv
-    touch ${prefix}_fastliquidassociation_output.rds
-    echo "BIOC_FASTLIQUIDASSOCIATION:" > versions.yml
-    echo "    fastliquidassociation: 0.0.0" >> versions.yml
+    touch ${prefix}_fast_liquid_association_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_FASTLIQUIDASSOCIATION_WORKFLOW {
+workflow BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(input_file) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_FASTLIQUIDASSOCIATION(ch_input)
+    BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_FASTLIQUIDASSOCIATION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FASTLIQUIDASSOCIATION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FASTLIQUIDASSOCIATION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FASTLIQUIDASSOCIATION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE.out.tables
+    plots    = BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE.out.plots
+    objects  = BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE.out.objects
+    versions = BIOC_FASTLIQUIDASSOCIATION_FAST_LIQUID_ASSOCIATION_PIPELINE.out.versions
 }

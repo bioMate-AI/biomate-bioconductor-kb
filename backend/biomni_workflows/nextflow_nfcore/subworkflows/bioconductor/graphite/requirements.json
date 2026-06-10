@@ -1,0 +1,39 @@
+{
+  "package": "graphite",
+  "requirements": [
+    "AnnotationDbi",
+    "Biobase",
+    "Rgraphviz",
+    "a4Preproc",
+    "clipper",
+    "graphite",
+    "hgu133plus2.db",
+    "impute",
+    "org.Hs.eg.db",
+    "topologyGSA"
+  ],
+  "by_workflow": {
+    "clipper_gene_expression.nf": [
+      "Biobase",
+      "a4Preproc",
+      "clipper",
+      "graphite"
+    ],
+    "clipper_mixed_metabolomics.nf": [
+      "Rgraphviz",
+      "clipper",
+      "graphite",
+      "impute",
+      "org.Hs.eg.db"
+    ],
+    "main.nf": [
+      "AnnotationDbi",
+      "graphite",
+      "hgu133plus2.db"
+    ],
+    "topology_gsa_analysis.nf": [
+      "graphite",
+      "topologyGSA"
+    ]
+  }
+}

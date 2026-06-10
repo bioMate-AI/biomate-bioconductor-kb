@@ -1,0 +1,32 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: query.gr=A GenomicRanges object containing the genomic intervals of interest ;; loci=An eqtlSet object or a list of eqtlSet objects representing tissue-specific eQTLs ;; path=A geneSet object containing the pathway/gene set collection ;; parallel=A logical value indicating whether to run the query in parallel mode across multiple eQTL sets ;; test.method=A character string (e.g., \"gene\") specifying the test method for extracting matrices or p-values\n- alternatives: None mentioned. The documentation notes that traditional proximity-based methods for linking loci to genes are unreliable, and loci2path provides a tissue-specific eQTL-based alternative.\n- when_to_use: Use when you have a set of genomic intervals (e.g., disease-associated loci from GWAS, ChIP-seq peaks, or ATAC-seq regions) and want to identify enriched biological pathways and tissue-specific regulatory signatures based on functional eQTL evidence.\n- pitfalls: Only the genomic locations (chromosomes, start, and end positions) of the query regions are used; strand information and other metadata columns are ignored. The total number of genes in the gene set collection (numGene) must be specified accurately to perform the enrichment test correctly. eQTL datasets can be very large, so parallel processing is recommended when querying multiple tissues.",
+  "workflows": [
+    {
+      "name": "pathway_enrichment_analysis",
+      "intent": "Perform pathway enrichment analysis on genomic intervals using tissue-specific eQTL sets and gene set collections.",
+      "input": [
+        "query/Psoriasis.BED (Genomic intervals of interest)",
+        "eqtl/brain.gtex.txt (eQTL table for brain)",
+        "eqtl/skin.gtex.txt (eQTL table for skin)",
+        "eqtl/blood.gtex.txt (eQTL table for blood)",
+        "geneSet/biocarta.txt (Gene set description/links)",
+        "geneSet/biocarta.set.txt (Gene set members)"
+      ],
+      "stages": "1. Load query regions as GenomicRanges ;; 2. Construct eQTL sets and list ;; 3. Prepare gene set collection ;; 4. Perform query (single or multiple tissues, optionally in parallel) ;; 5. Explore results (extract tables, covered genes, tissue degrees, and generate visualizations like heatmaps, word clouds, and p-value plots).",
+      "code": "query.bed <- read.table(bed.file, header=FALSE)\ncolnames(query.bed) <- c(\"chr\",\"start\",\"end\")\nquery.gr <- makeGRangesFromDataFrame(query.bed)\n\ntab <- read.table(brain.file, stringsAsFactors=FALSE, header=TRUE)\nsnp.gr <- GRanges(seqnames=Rle(tab$snp.chr), ranges=IRanges(start=tab$snp.pos, width=1))\nbrain.eset <- eqtlSet(tissue=\"brain\", eqtlId=tab$snp.id, eqtlRange=snp.gr, gene=as.character(tab$gene.entrez.id))\n\ntab=read.table(skin.file, stringsAsFactors=FALSE, header=TRUE)\nsnp.gr <- GRanges(seqnames=Rle(tab$snp.chr), ranges=IRanges(start=tab$snp.pos, width=1))\nskin.eset <- eqtlSet(tissue=\"skin\", eqtlId=tab$snp.id, eqtlRange=snp.gr, gene=as.character(tab$gene.entrez.id))\n\ntab <- read.table(blood.file, stringsAsFactors=FALSE, header=TRUE)\nsnp.gr <- GRanges(seqnames=Rle(tab$snp.chr), ranges=IRanges(start=tab$snp.pos, width=1))\nblood.eset <- eqtlSet(tissue=\"blood\", eqtlId=tab$snp.id, eqtlRange=snp.gr, gene=as.character(tab$gene.entrez.id))\n\neset.list <- list(Brain=brain.eset, Skin=skin.eset, Blood=blood.eset)\n\nbiocarta.link <- read.delim(biocarta.link.file, header=FALSE, stringsAsFactors=FALSE)\nset.geneid <- read.table(biocarta.set.file, stringsAsFactors=FALSE)\nset.geneid <- strsplit(set.geneid[,1], split=\",\")\nnames(set.geneid) <- biocarta.link[,1]\n\nbiocarta <- geneSet(numGene=31847, description=biocarta.link[,2], geneSetList=set.geneid)\n\nres.one <- query(query.gr=query.gr, loci=skin.eset, path=biocarta)\n\nres.esetlist <- query(query.gr=query.gr, loci=eset.list, path=biocarta)\n\nres.paral <- query(query.gr=query.gr, loci=eset.list, path=biocarta, parallel=TRUE)\n\nresultTable(res.esetlist)\ncoveredGene(res.esetlist)\n\ntissue.degree <- getTissueDegree(res.esetlist, eset.list)\nres.tissue <- data.frame(resultTable(res.esetlist), t.degree=tissue.degree$mean.tissue.degree)\n\nmat <- getMat(res.esetlist, test.method=\"gene\")\nheatmap.para <- getHeatmap(res.esetlist)\nwc <- getWordcloud(res.esetlist)\npval <- getPval(res.esetlist, test.method=\"gene\")\ndescription <- getPathDescription(res.esetlist, biocarta)"
+    },
+    {
+      "name": "tissue_specificity_enrichment",
+      "intent": "Query tissue specificity of genomic intervals directly using eQTL sets without pathway/gene set collections.",
+      "input": [
+        "query/Psoriasis.BED (Genomic intervals of interest)",
+        "eqtl/brain.gtex.txt (eQTL table for brain)",
+        "eqtl/skin.gtex.txt (eQTL table for skin)",
+        "eqtl/blood.gtex.txt (eQTL table for blood)"
+      ],
+      "stages": "1. Load query regions as GenomicRanges ;; 2. Construct eQTL sets and list ;; 3. Perform tissue specificity query using query() with only query.gr and loci arguments.",
+      "code": "query.bed <- read.table(bed.file, header=FALSE)\ncolnames(query.bed) <- c(\"chr\",\"start\",\"end\")\nquery.gr <- makeGRangesFromDataFrame(query.bed)\n\ntab <- read.table(brain.file, stringsAsFactors=FALSE, header=TRUE)\nsnp.gr <- GRanges(seqnames=Rle(tab$snp.chr), ranges=IRanges(start=tab$snp.pos, width=1))\nbrain.eset <- eqtlSet(tissue=\"brain\", eqtlId=tab$snp.id, eqtlRange=snp.gr, gene=as.character(tab$gene.entrez.id))\n\ntab=read.table(skin.file, stringsAsFactors=FALSE, header=TRUE)\nsnp.gr <- GRanges(seqnames=Rle(tab$snp.chr), ranges=IRanges(start=tab$snp.pos, width=1))\nskin.eset <- eqtlSet(tissue=\"skin\", eqtlId=tab$snp.id, eqtlRange=snp.gr, gene=as.character(tab$gene.entrez.id))\n\ntab <- read.table(blood.file, stringsAsFactors=FALSE, header=TRUE)\nsnp.gr <- GRanges(seqnames=Rle(tab$snp.chr), ranges=IRanges(start=tab$snp.pos, width=1))\nblood.eset <- eqtlSet(tissue=\"blood\", eqtlId=tab$snp.id, eqtlRange=snp.gr, gene=as.character(tab$gene.entrez.id))\n\neset.list <- list(Brain=brain.eset, Skin=skin.eset, Blood=blood.eset)\n\ngr.tissue <- query(query.gr, loci=eset.list)"
+    }
+  ]
+}

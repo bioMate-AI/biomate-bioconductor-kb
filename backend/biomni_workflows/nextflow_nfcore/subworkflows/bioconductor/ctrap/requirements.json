@@ -1,0 +1,17 @@
+{
+  "package": "ctrap",
+  "requirements": [
+    "cTRAP"
+  ],
+  "by_workflow": {
+    "compare_cmap_perturbations.nf": [
+      "cTRAP"
+    ],
+    "main.nf": [
+      "cTRAP"
+    ],
+    "predict_targeting_drugs_and_descriptors.nf": [
+      "cTRAP"
+    ]
+  }
+}

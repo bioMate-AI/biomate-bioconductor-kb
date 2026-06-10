@@ -1,0 +1,17 @@
+{
+  "package": "dune",
+  "requirements": [
+    "Dune",
+    "dplyr",
+    "ggplot2",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Dune",
+      "dplyr",
+      "ggplot2",
+      "tidyr"
+    ]
+  }
+}

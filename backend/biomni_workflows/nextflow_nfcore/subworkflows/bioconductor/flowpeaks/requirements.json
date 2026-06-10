@@ -1,0 +1,16 @@
+{
+  "package": "flowpeaks",
+  "requirements": [
+    "flowCore",
+    "flowPeaks"
+  ],
+  "by_workflow": {
+    "flowframe_clustering.nf": [
+      "flowCore",
+      "flowPeaks"
+    ],
+    "main.nf": [
+      "flowPeaks"
+    ]
+  }
+}

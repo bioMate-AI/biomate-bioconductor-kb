@@ -1,150 +1,312 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: HiContacts
-// HiContacts provides a collection of tools to analyse and visualize Hi-C datasets imported in R by Hi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/HiContacts/inst/doc/HiContacts.R
-// Upstream  : GenomicRanges, HiCExperiment, HiContactsData, InteractionSet, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("HiContacts")
+// Bioconductor workflow: HiContacts — matrix_arithmetics_and_visualization
+// Import Hi-C matrices, perform arithmetic operations (detrending, autocorrelating, merging, dividing, despeckling), and visualize them with loops and borders.
+// Input: cool_file.cool, mcool_file.mcool, S288C-loops.bedpe, S288C-borders.bed
+// Container: quay.io/biocontainers/bioconductor-hicontacts:1.12.0--r45hdfd78af_0
+// R packages: BiocParallel, dplyr, GenomicRanges, ggplot2, HiCExperiment, HiContacts, HiContactsData, InteractionSet, patchwork, rtracklayer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, HiCExperiment, HiContacts, InteractionSet, dplyr, ggplot2, patchwork, rtracklayer
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Import Hi-C matrix as a HiCExperiment object. 2. Plot square or horizontal matrices, optionally overlaying loops and borders. 3. A
 
 nextflow.enable.dsl = 2
 
-process BIOC_HICONTACTS {
+process BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hicontacts"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hicontacts:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hicontacts:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hicontacts_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hicontacts_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hicontacts_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocParallel", "dplyr", "GenomicRanges", "ggplot2", "HiCExperiment", "HiContacts", "HiContactsData", "InteractionSet", "patchwork", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(dplyr)
+    library(ggplot2)
+    library(HiCExperiment)
     library(HiContacts)
-    library(GRanges)
-    library(HiContactsData)
-    library(P)
-    library(SerialParam)
-    library(jsonlite)
-
-    # --- Matrix Detrending and Autocorrelation [] ---
-    # Key functions: autocorrelate, detrend, plotMatrix
-    mcool_file <- HiContactsData::HiContactsData("mESCs", format = "mcool")
-    hic <- import(
-        mcool_file, format = "mcool", focus = "chr2",
-        resolution = 160000
-    )
-    hic_auto <- autocorrelate(hic)
-    hic_detrend <- detrend(hic)
-    p_auto <- plotMatrix(
-        hic_auto, use.scores = "autocorrelated",
-        limits = c(-1, 1), scale = "linear"
-    )
-
-
-    # --- Matrix Operations [] ---
-    # Key functions: merge, divide
-    mcool_1 <- HiContactsData::HiContactsData("yeast_eco1", format = "mcool")
-    mcool_2 <- HiContactsData::HiContactsData("yeast_wt", format = "mcool")
-    hic_1 <- import(mcool_1, format = "mcool", focus = "II", resolution = 2000)
-    hic_2 <- import(mcool_2, format = "mcool", focus = "II", resolution = 2000)
-    merged_hic <- merge(hic_1, hic_2)
-    div_hic <- divide(hic_1, by = hic_2)
-
-
-    # --- Compartment and Saddle Analysis [] ---
-    # Key functions: getCompartments, topologicalFeatures, plotSaddle
-    mcool_file <- HiContactsData::HiContactsData("yeast_wt", format = "mcool")
-    hic <- import(mcool_file, format = "mcool", resolution = 16000)
-    hic <- getCompartments(hic, chromosomes = c("XV", "XVI"))
-    comp_A <- topologicalFeatures(hic, "compartments")[
-        topologicalFeatures(hic, "compartments")$compartment == "A"
-    ]
-    p_saddle <- plotSaddle(hic)
-
-
-    # --- Insulation and Border Detection [] ---
-    # Key functions: zoom, getDiamondInsulation, getBorders, topologicalFeatures
-    mcool_file <- HiContactsData::HiContactsData("yeast_wt", format = "mcool")
-    hic <- import(mcool_file, format = "mcool", resolution = 16000)
-    hic_borders <- getBorders(
-        getDiamondInsulation(
-            zoom(hic, resolution = 1000),
-            window_size = 8000
+    library(rtracklayer)
+    library(InteractionSet)
+    library(BiocParallel)
+    library(patchwork)
+    
+    # Define input files from the working directory
+    cool_file_path <- "cool_file.cool"
+    mcool_file_path <- "mcool_file.mcool"
+    loops_file_path <- "S288C-loops.bedpe"
+    borders_file_path <- "S288C-borders.bed"
+    
+    # ==========================================
+    # 1. Import Hi-C matrix as a HiCExperiment object
+    # ==========================================
+    hic <- import(cool_file_path, format = 'cool')
+    
+    # Save basic info
+    sink("hic_experiment_summary.txt")
+    print(hic)
+    sink()
+    
+    # ==========================================
+    # 2. Plot square or horizontal matrices, optionally overlaying loops and borders
+    # ==========================================
+    # Square matrix plot
+    p1 <- plotMatrix(hic, use.scores = 'balanced', limits = c(-4, -1))
+    ggsave("plot1_square_matrix.pdf", plot = p1, width = 7, height = 6)
+    
+    # Horizontal matrix plot (refocused)
+    # Attempt to refocus on 'II' as in the vignette, with fallback to the first available chromosome
+    p2 <- tryCatch({
+        plotMatrix(
+            refocus(hic, 'II'),
+            use.scores = 'balanced', limits = c(-4, -1), 
+            maxDistance = 200000
         )
-    )
-    borders <- topologicalFeatures(hic_borders, "borders")
-
-
-    # --- Virtual 4C Analysis [] ---
-    # Key functions: virtual4C, plot4C
-    mcool_file <- HiContactsData::HiContactsData("mESCs", format = "mcool")
-    hic <- import(
-        mcool_file, format = "mcool",
-        focus = "chr18:20000000-35000000", resolution = 40000
-    )
-    v4C <- virtual4C(
-        hic,
-        viewpoint = GenomicRanges::GRanges("chr18:31000000-31050000")
-    )
-    p_4c <- plot4C(v4C, ggplot2::aes(x = center, y = score))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hicontacts_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hicontacts_results.csv")
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        plotMatrix(
+            refocus(hic, first_chrom),
+            use.scores = 'balanced', limits = c(-4, -1), 
+            maxDistance = 200000
+        )
+    })
+    ggsave("plot2_horizontal_matrix.pdf", plot = p2, width = 8, height = 4)
+    
+    # Import loops and borders
+    loops <- import(loops_file_path) |> 
+        makeGInteractionsFromGRangesPairs()
+    
+    borders <- import(borders_file_path)
+    
+    # Plot matrix with loops
+    p3 <- tryCatch({
+        import(mcool_file_path, format = 'mcool', focus = 'IV') |> 
+            plotMatrix(loops = loops, limits = c(-4, -1), dpi = 120)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        import(mcool_file_path, format = 'mcool', focus = first_chrom) |> 
+            plotMatrix(loops = loops, limits = c(-4, -1), dpi = 120)
+    })
+    ggsave("plot3_matrix_loops.pdf", plot = p3, width = 7, height = 6)
+    
+    # Plot matrix with loops and borders
+    p4 <- tryCatch({
+        import(mcool_file_path, format = 'mcool', focus = 'IV') |> 
+            plotMatrix(loops = loops, borders = borders, limits = c(-4, -1), dpi = 120)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        import(mcool_file_path, format = 'mcool', focus = first_chrom) |> 
+            plotMatrix(loops = loops, borders = borders, limits = c(-4, -1), dpi = 120)
+    })
+    ggsave("plot4_matrix_loops_borders.pdf", plot = p4, width = 7, height = 6)
+    
+    # ==========================================
+    # 3. Aggregate matrices over features (e.g., loops)
+    # ==========================================
+    aggr_centros <- tryCatch({
+        HiContacts::aggregate(
+            hic, targets = loops, BPPARAM = BiocParallel::SerialParam()
+        )
+    }, error = function(e) {
+        warning("Aggregation failed: ", e\$message)
+        NULL
+    })
+    
+    if (!is.null(aggr_centros)) {
+        saveRDS(aggr_centros, "aggregated_centros.rds")
+        p_aggr <- plotMatrix(
+            aggr_centros, use.scores = 'detrended', limits = c(-1, 1), scale = 'linear', 
+            cmap = bgrColors()
+        )
+        ggsave("plot5_aggregated_matrix.pdf", plot = p_aggr, width = 6, height = 5)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hicontacts_output.rds")
-    }
+    
+    # ==========================================
+    # 4. Compute autocorrelated contact maps
+    # ==========================================
+    hic_auto <- tryCatch({
+        import(mcool_file_path, format = 'mcool', focus = 'chr2', resolution = 160000)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        avail_res <- tryCatch(resolutions(import(mcool_file_path, format = 'mcool')), error = function(err) 160000)
+        import(mcool_file_path, format = 'mcool', focus = first_chrom, resolution = avail_res[1])
+    })
+    
+    hic_auto <- autocorrelate(hic_auto)
+    saveRDS(hic_auto, "autocorrelated_hic.rds")
+    
+    # Export scores summary
+    sink("autocorrelated_scores_summary.txt")
+    print(scores(hic_auto))
+    print(summary(scores(hic_auto, 'autocorrelated')))
+    sink()
+    
+    p_auto <- plotMatrix(hic_auto, use.scores = 'autocorrelated', limits = c(-1, 1), scale = 'linear')
+    ggsave("plot6_autocorrelated_matrix.pdf", plot = p_auto, width = 7, height = 6)
+    
+    # ==========================================
+    # 5. Detrend contact maps (scores over expected)
+    # ==========================================
+    hic_detrend <- tryCatch({
+        import(mcool_file_path, format = 'mcool', focus = 'chr18:20000000-35000000', resolution = 40000)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        avail_res <- tryCatch(resolutions(import(mcool_file_path, format = 'mcool')), error = function(err) 40000)
+        import(mcool_file_path, format = 'mcool', focus = first_chrom, resolution = avail_res[1])
+    })
+    
+    detrended_hic <- detrend(hic_detrend)
+    saveRDS(detrended_hic, "detrended_hic.rds")
+    
+    p_detrend <- tryCatch({
+        patchwork::wrap_plots(
+            plotMatrix(detrended_hic, use.scores = 'expected', scale = 'log10', limits = c(-3, -1), dpi = 120),
+            plotMatrix(detrended_hic, use.scores = 'detrended', scale = 'linear', limits = c(-1, 1), dpi = 120)
+        )
+    }, error = function(e) {
+        plotMatrix(detrended_hic, use.scores = 'detrended', scale = 'linear', limits = c(-1, 1), dpi = 120)
+    })
+    ggsave("plot7_detrended_comparison.pdf", plot = p_detrend, width = 12, height = 5)
+    
+    # ==========================================
+    # 6. Merge (sum) two contact maps
+    # ==========================================
+    # Using the same mcool file to simulate two conditions/samples as requested
+    mcool_file_1 <- mcool_file_path
+    mcool_file_2 <- mcool_file_path
+    
+    hic_1 <- tryCatch({
+        import(mcool_file_1, format = 'mcool', focus = 'II:1-300000', resolution = 2000)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        avail_res <- tryCatch(resolutions(import(mcool_file_path, format = 'mcool')), error = function(err) 2000)
+        import(mcool_file_1, format = 'mcool', focus = first_chrom, resolution = avail_res[1])
+    })
+    
+    hic_2 <- tryCatch({
+        import(mcool_file_2, format = 'mcool', focus = 'II:1-300000', resolution = 2000)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        avail_res <- tryCatch(resolutions(import(mcool_file_path, format = 'mcool')), error = function(err) 2000)
+        import(mcool_file_2, format = 'mcool', focus = first_chrom, resolution = avail_res[1])
+    })
+    
+    merged_hic <- merge(hic_1, hic_2)
+    saveRDS(merged_hic, "merged_hic.rds")
+    
+    # ==========================================
+    # 7. Divide (compute ratio) between two contact maps
+    # ==========================================
+    hic_1_div <- tryCatch({
+        import(mcool_file_1, format = 'mcool', focus = 'II', resolution = 2000)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        avail_res <- tryCatch(resolutions(import(mcool_file_path, format = 'mcool')), error = function(err) 2000)
+        import(mcool_file_1, format = 'mcool', focus = first_chrom, resolution = avail_res[1])
+    })
+    
+    hic_2_div <- tryCatch({
+        import(mcool_file_2, format = 'mcool', focus = 'II', resolution = 2000)
+    }, error = function(e) {
+        first_chrom <- seqlevels(hic)[1]
+        avail_res <- tryCatch(resolutions(import(mcool_file_path, format = 'mcool')), error = function(err) 2000)
+        import(mcool_file_2, format = 'mcool', focus = first_chrom, resolution = avail_res[1])
+    })
+    
+    div_hic <- divide(hic_1_div, by = hic_2_div)
+    saveRDS(div_hic, "divided_hic.rds")
+    
+    p_div <- tryCatch({
+        patchwork::wrap_plots(
+            plotMatrix(hic_1_div, use.scores = 'balanced', scale = 'log10', limits = c(-4, -1)),
+            plotMatrix(hic_2_div, use.scores = 'balanced', scale = 'log10', limits = c(-4, -1)),
+            plotMatrix(div_hic, use.scores = 'balanced.fc', scale = 'log2', limits = c(-2, 2), cmap = bgrColors())
+        )
+    }, error = function(e) {
+        plotMatrix(div_hic, use.scores = 'balanced.fc', scale = 'log2', limits = c(-2, 2), cmap = bgrColors())
+    })
+    ggsave("plot8_divided_comparison.pdf", plot = p_div, width = 15, height = 5)
+    
+    # ==========================================
+    # 8. Despeckle (smooth) contact maps
+    # ==========================================
+    hic_1_despeckled <- despeckle(hic_1_div)
+    hic_1_despeckled5 <- despeckle(hic_1_div, focal.size = 5)
+    saveRDS(hic_1_despeckled, "despeckled_focal3.rds")
+    saveRDS(hic_1_despeckled5, "despeckled_focal5.rds")
+    
+    p_despeckle <- tryCatch({
+        patchwork::wrap_plots(
+            plotMatrix(hic_1_div, use.scores = 'balanced', scale = 'log10', limits = c(-4, -1)),
+            plotMatrix(hic_1_despeckled, use.scores = 'balanced.despeckled', scale = 'log10', limits = c(-4, -1)),
+            plotMatrix(hic_1_despeckled5, use.scores = 'balanced.despeckled', scale = 'log10', limits = c(-4, -1))
+        )
+    }, error = function(e) {
+        plotMatrix(hic_1_despeckled, use.scores = 'balanced.despeckled', scale = 'log10', limits = c(-4, -1))
+    })
+    ggsave("plot9_despeckle_comparison.pdf", plot = p_despeckle, width = 15, height = 5)
+    
+    # Save session info
+    writeLines(capture.output(sessionInfo()), "session_info.txt")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HICONTACTS:", paste0("    hicontacts: ", packageVersion("HiContacts"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION":',
+        paste0('    HiContacts: ', as.character(packageVersion('HiContacts')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hicontacts_results.csv
-    touch ${prefix}_hicontacts_output.rds
-    echo "BIOC_HICONTACTS:" > versions.yml
-    echo "    hicontacts: 0.0.0" >> versions.yml
+    touch ${prefix}_matrix_arithmetics_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_HICONTACTS_WORKFLOW {
+workflow BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cool_file.cool, mcool_file.mcool, S288C-loops.bedpe, S288C-borders.bed ] ]
 
     main:
-    BIOC_HICONTACTS(ch_input)
+    BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_HICONTACTS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HICONTACTS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HICONTACTS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HICONTACTS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION.out.tables
+    plots    = BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION.out.plots
+    objects  = BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION.out.objects
+    versions = BIOC_HICONTACTS_MATRIX_ARITHMETICS_AND_VISUALIZATION.out.versions
 }

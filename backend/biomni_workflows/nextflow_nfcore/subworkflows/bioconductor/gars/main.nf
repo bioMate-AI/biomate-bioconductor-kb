@@ -1,160 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GARS
-// Feature selection aims to identify and remove redundant, irrelevant and noisy variables from high-di
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GARS/inst/doc/GARS.R
-// Upstream  : DaMiRseq, MLSeq
-// Downstream: none
-//
-// Install: BiocManager::install("GARS")
+// Bioconductor workflow: GARS — feature_selection_gars
+// Run the genetic algorithm to select a robust subset of features from normalized high-dimensional data and visualize the results.
+// Input: datanorm
+// Container: quay.io/biocontainers/bioconductor-gars:1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GARS, SummarizedExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run GARS_GA to perform genetic algorithm-based feature selection
+//  * 2. [Visualization & Output] Extract fitness scores and plot fitness evolution
+//  * 3. [Visualization & Output] Extract populations and plot feature usage frequency
+//  * 4. [Core Analysis] Extract the reduced expression matrix of selected features
 
 nextflow.enable.dsl = 2
 
-process BIOC_GARS {
+process BIOC_GARS_FEATURE_SELECTION_GARS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gars"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gars:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gars:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gars_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gars_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gars_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GARS)
-    library(AllPop)
-    library(FitScore)
-    library(GARS_GA)
-    library(GARS_PlotFeaturesUsage)
-    library(GARS_PlotFitnessEvolution)
-    library(MatrixFeatures)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(GARS)
+        
+        # 1. Read User Input
+        # The pipeline expects 'datanorm' to be a SummarizedExperiment object
+        # containing the normalized expression data and sample metadata (colData).
+        if (file.exists("datanorm.rds")) {
+          datanorm <- readRDS("datanorm.rds")
+        } else {
+          stop("Error: Input file 'datanorm.rds' containing the SummarizedExperiment object was not found in the working directory.")
+        }
+        
+        # Set seed for reproducibility
+        set.seed(123)
+        
+        # 2. Run GARS_GA to perform genetic algorithm-based feature selection
+        res_GA <- GARS_GA(data=datanorm,
+                         classes = colData(datanorm),
+                         chr.num = 100,
+                         chr.len = 8,
+                         generat = 20,
+                         co.rate = 0.8,
+                         mut.rate = 0.1,
+                         n.elit = 10,
+                         type.sel = "RW",
+                         type.co = "one.p",
+                         type.one.p.co = "II.quart",
+                         n.gen.conv = 150,
+                         plots="no",
+                         verbose="yes")
+        
+        # Save the GarsSelectedFeatures object
+        saveRDS(res_GA, "res_GA.rds")
+        
+        # 3. Extract fitness scores and plot fitness evolution
+        fitness_scores <- FitScore(res_GA)
+        write.csv(as.data.frame(fitness_scores), "fitness_scores.csv", row.names = FALSE)
+        
+        pdf("fitness_evolution.pdf", width = 8, height = 6)
+        print(GARS_PlotFitnessEvolution(fitness_scores))
+        dev.off()
+        
+        # 4. Extract populations and plot feature usage frequency
+        Allfeat_names <- rownames(datanorm)
+        Allpopulations <- AllPop(res_GA)
+        
+        pdf("features_usage.pdf", width = 10, height = 8)
+        print(GARS_PlotFeaturesUsage(Allpopulations,
+                               Allfeat_names,
+                               nFeat = 10))
+        dev.off()
+        
+        # 5. Extract the reduced expression matrix of selected features
+        data_reduced_GARS <- MatrixFeatures(res_GA)
+        
+        # Save the reduced expression matrix
+        saveRDS(data_reduced_GARS, "data_reduced_GARS.rds")
+        write.csv(as.data.frame(data_reduced_GARS), "data_reduced_GARS.csv")
 
-    # --- Genetic Algorithm Feature Selection [] ---
-    # Key functions: GARS_GA
-    res_GA <- GARS_GA(data=datanorm,
-                     classes = SummarizedExperiment::colData(datanorm),
-                     chr.num = 100,
-                     chr.len = 8,
-                     generat = 20,
-                     co.rate = 0.8,
-                     mut.rate = 0.1,
-                     n.elit = 10,
-                     type.sel = "RW",
-                     type.co = "one.p",
-                     type.one.p.co = "II.quart",
-                     n.gen.conv = 150,
-                     plots="no",
-                     verbose="no")
-
-
-    # --- Fitness and Feature Usage Analysis [] ---
-    # Key functions: FitScore, GARS_PlotFitnessEvolution, AllPop, GARS_PlotFeaturesUsage
-    fitness_scores <- FitScore(res_GA)
-    GARS_PlotFitnessEvolution(fitness_scores)
-    Allfeat_names <- rownames(datanorm)
-    Allpopulations <- AllPop(res_GA)
-    GARS_PlotFeaturesUsage(Allpopulations,
-                           Allfeat_names,
-                           nFeat = 10)
-
-
-    # --- Feature Extraction and Classification [] ---
-    # Key functions: MatrixFeatures, DaMiR.MDSplot, DaMiR.Clustplot, DaMiR.EnsembleLearning
-    data_reduced_GARS <- MatrixFeatures(res_GA)
-    data_reduced_DaMiR <- as.data.frame(data_reduced_GARS)
-    classes_DaMiR <- as.data.frame(SummarizedExperiment::colData(datanorm))
-    colnames(classes_DaMiR) <- "class"
-    rownames(classes_DaMiR) <- rownames(data_reduced_DaMiR)
-    DaMiRseq::DaMiR.MDSplot(data_reduced_DaMiR, classes_DaMiR)
-    DaMiRseq::DaMiR.Clustplot(data_reduced_DaMiR, classes_DaMiR)
-    Classification.res <- DaMiRseq::DaMiR.EnsembleLearning(
-        data_reduced_DaMiR,
-        as.factor(classes_DaMiR$class),
-        iter=5
-    )
-
-
-    # --- Feature Size Optimization [] ---
-    # Key functions: GARS_GA, FitScore, MatrixFeatures
-    populs <- list()
-    k <- 1
-    for (ik in c(7, 8, 9)) {
-        populs[[k]] <- GARS_GA(data=datanorm,
-                              classes = SummarizedExperiment::colData(datanorm),
-                              chr.num = 50,
-                              chr.len = ik,
-                              generat = 10,
-                              co.rate = 0.8,
-                              mut.rate = 0.1,
-                              n.elit = 5,
-                              type.sel = "RW",
-                              type.co = "one.p",
-                              type.one.p.co = "II.quart",
-                              n.gen.conv = 100,
-                              plots = "no",
-                              verbose="no")
-        k <- k + 1
-    }
-    max_fit <- sapply(populs, function(x) max(FitScore(x)))
-    best_popul <- populs[[which.max(max_fit)]]
-    best_features <- MatrixFeatures(best_popul)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gars_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gars_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gars_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GARS:", paste0("    gars: ", packageVersion("GARS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GARS_FEATURE_SELECTION_GARS":',
+        paste0('    GARS: ', as.character(packageVersion('GARS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gars_results.csv
-    touch ${prefix}_gars_output.rds
-    echo "BIOC_GARS:" > versions.yml
-    echo "    gars: 0.0.0" >> versions.yml
+    touch ${prefix}_feature_selection_gars.csv versions.yml
     """
 }
 
-
-workflow BIOC_GARS_WORKFLOW {
+workflow BIOC_GARS_FEATURE_SELECTION_GARS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ datanorm ] ]
 
     main:
-    BIOC_GARS(ch_input)
+    BIOC_GARS_FEATURE_SELECTION_GARS(ch_input)
 
     emit:
-    results  = BIOC_GARS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GARS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GARS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GARS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GARS_FEATURE_SELECTION_GARS.out.tables
+    plots    = BIOC_GARS_FEATURE_SELECTION_GARS.out.plots
+    objects  = BIOC_GARS_FEATURE_SELECTION_GARS.out.objects
+    versions = BIOC_GARS_FEATURE_SELECTION_GARS.out.versions
 }

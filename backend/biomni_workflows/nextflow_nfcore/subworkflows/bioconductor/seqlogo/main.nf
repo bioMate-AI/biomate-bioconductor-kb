@@ -1,113 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: seqLogo
-// seqLogo takes the position weight matrix of a DNA sequence motif and plots the corresponding sequenc
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/seqLogo/inst/doc/seqLogo.R
-// Upstream  : none
-// Downstream: rGADEM, generegulation
-//
-// Install: BiocManager::install("seqLogo")
+// Bioconductor workflow: seqLogo — sequence_logo_generation
+// Generate and customize sequence logos from a position weight matrix of DNA or RNA sequences.
+// Input: pwm_matrix.txt
+// Container: quay.io/biocontainers/bioconductor-seqlogo:1.76.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: seqLogo
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and read the position weight matrix from a file
+//  * 2. [Input & Preparation] Create a PWM object using makePWM()
+//  * 3. [Core Analysis] Access PWM slots like information content and consensus sequence
+//  * 4. [Visualization & Output] Plot the sequence logo using seqLogo(), optionally adjusting information content scaling, colors, or alphabet (DNA/RNA)
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEQLOGO {
+process BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seqlogo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seqlogo:1.72.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seqlogo:1.72.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seqlogo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seqlogo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seqlogo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the package and read the position weight matrix from a file
     library(seqLogo)
-    library(jsonlite)
-
-    # --- PWM Slot Extraction [] ---
-    # Key functions: pwm, ic, consensus
-    pwm_matrix <- pwm(p)
-    info_content <- ic(p)
-    consensus_seq <- consensus(p)
-    pwm_dim <- dim(pwm_matrix)
-    ic_length <- length(info_content)
-
-
-    # --- Sequence Logo Generation [] ---
-    # Key functions: seqLogo
-    png("seqlogo_default.png", width=800, height=400)
+    
+    # Read the user-provided PWM matrix from the working directory
+    m <- read.table("pwm_matrix.txt")
+    
+    # 2. Create a PWM object using makePWM()
+    p <- makePWM(m)
+    
+    # 3. Access PWM slots like information content and consensus sequence
+    s_names <- slotNames(p)
+    p_matrix <- pwm(p)
+    ic_profile <- ic(p)
+    cons_seq <- consensus(p)
+    
+    # Print accessed slot information to stdout
+    print(s_names)
+    print(p_matrix)
+    print(ic_profile)
+    print(cons_seq)
+    
+    # Save accessed slot information to output files
+    write.table(p_matrix, file = "pwm_matrix_output.txt", sep = "\t", quote = FALSE, col.names = NA)
+    writeLines(cons_seq, con = "consensus_sequence.txt")
+    write.table(data.frame(Position = seq_along(ic_profile), InformationContent = ic_profile), 
+                file = "information_content.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+    saveRDS(p, file = "pwm_dna_object.rds")
+    
+    # 4. Plot the sequence logo using seqLogo(), optionally adjusting information content scaling, colors, or alphabet (DNA/RNA)
+    pdf("sequence_logos.pdf", width = 7, height = 5)
+    
+    # Plot 1: Default sequence logo
     seqLogo(p)
-    dev.off()
-    png("seqlogo_no_scale.png", width=800, height=400)
+    
+    # Plot 2: Sequence logo with uniform column heights
     seqLogo(p, ic.scale=FALSE)
-    dev.off()
-
-
-    # --- Custom Sequence Logo Styling [] ---
-    # Key functions: seqLogo
-    custom_colors <- c(A="#4daf4a", C="#377eb8", G="#ffd92f", T="#e41a1c")
-    png("seqlogo_custom.png", width=800, height=400)
-    seqLogo(p, fill=custom_colors, ic.scale=FALSE)
-    dev.off()
-    png("seqlogo_rna.png", width=800, height=400)
+    
+    # Plot 3: Sequence logo with user-specified colors
+    seqLogo(p, fill=c(A="#4daf4a", C="#377eb8", G="#ffd92f", T="#e41a1c"),
+            ic.scale=FALSE)
+    
+    # Plot 4: RNA Sequence logo
+    r <- makePWM(m, alphabet="RNA")
     seqLogo(r, ic.scale=FALSE)
+    
     dev.off()
+    
+    # Save RNA PWM object
+    saveRDS(r, file = "pwm_rna_object.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seqlogo_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seqlogo_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seqlogo_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEQLOGO:", paste0("    seqlogo: ", packageVersion("seqLogo"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION":',
+        paste0('    seqLogo: ', as.character(packageVersion('seqLogo')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seqlogo_results.csv
-    touch ${prefix}_seqlogo_output.rds
-    echo "BIOC_SEQLOGO:" > versions.yml
-    echo "    seqlogo: 0.0.0" >> versions.yml
+    touch ${prefix}_sequence_logo_generation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEQLOGO_WORKFLOW {
+workflow BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pwm_matrix.txt ] ]
 
     main:
-    BIOC_SEQLOGO(ch_input)
+    BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION(ch_input)
 
     emit:
-    results  = BIOC_SEQLOGO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEQLOGO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEQLOGO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEQLOGO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION.out.tables
+    plots    = BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION.out.plots
+    objects  = BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION.out.objects
+    versions = BIOC_SEQLOGO_SEQUENCE_LOGO_GENERATION.out.versions
 }

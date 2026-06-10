@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <userSets=A GRanges or GRangesList object containing the genomic regions of interest ;; userUniverse=A GRanges object representing the background universe of all tested regions ;; regionDB=A loaded region database list object returned by loadRegionDB() ;; cores=Number of CPU cores to use for parallel processing in runLOLA() ;; includeSplits=A logical parameter in writeCombinedEnrichment() that, when TRUE, writes separate result tables for each userSet ;; collections=A character vector specifying database collections to extract in getRegionSet() ;; filenames=A character vector specifying database filenames to extract in getRegionSet()>\n- alternatives: <Gene set analysis is mentioned as a traditional alternative, but it is limited because it requires gene-centric data and cannot easily handle non-coding regulatory elements like enhancers.>\n- when_to_use: <Use this package when you have genomic region sets (e.g., ChIP-seq peaks, differential methylation regions, ATAC-seq peaks) and want to identify which public regulatory elements, transcription factor binding sites, or chromatin states they significantly overlap with relative to a specific background universe.>\n- pitfalls: <Choosing an inappropriate background universe (the universe must represent the complete set of regions that had a chance of being selected, otherwise the Fisher's exact test significance values will be biased or incorrect) ;; Running runLOLA on individual region sets separately instead of combining them into a single GRangesList (combining them is much faster and more efficient).>",
+  "workflows": [
+    {
+      "name": "genomic_region_enrichment_analysis",
+      "intent": "Run enrichment analysis on user-provided genomic region sets against a reference database using a custom background universe, and extract/save the results.",
+      "input": [
+        "setA_100.bed (BED file of genomic regions of interest)",
+        "setB_100.bed (BED file of genomic regions of interest)",
+        "setC_100.bed (BED file of genomic regions of interest)",
+        "activeDHS_universe.bed (BED file of the background universe of tested regions)"
+      ],
+      "stages": "1. Load the reference database using loadRegionDB ;; 2. Read user region sets and the background universe using readBed ;; 3. Combine user region sets into a GRangesList ;; 4. Run the enrichment analysis using runLOLA ;; 5. Order and explore results ;; 6. Write results to files using writeCombinedEnrichment ;; 7. Extract specific overlapping regions for a given result using extractEnrichmentOverlaps",
+      "code": "library(\"LOLA\")\nregionDB = loadRegionDB(\"LOLACore/hg19\")\nregionSetA = readBed(\"lola_vignette_data/setA_100.bed\")\nregionSetB = readBed(\"lola_vignette_data/setB_100.bed\")\nregionSetC = readBed(\"lola_vignette_data/setC_100.bed\")\nactiveDHS = readBed(\"lola_vignette_data/activeDHS_universe.bed\")\nuserSets = GRangesList(regionSetA, regionSetB, regionSetC)\nlocResults = runLOLA(userSets, activeDHS, regionDB, cores=1)\nlocResults[order(meanRnk, decreasing=FALSE),][1:20,]\nwriteCombinedEnrichment(locResults, outFolder= \"lolaResults\", includeSplits=TRUE)\noneResult = locResults[2,]\nextractEnrichmentOverlaps(oneResult, userSets, regionDB)"
+    }
+  ]
+}

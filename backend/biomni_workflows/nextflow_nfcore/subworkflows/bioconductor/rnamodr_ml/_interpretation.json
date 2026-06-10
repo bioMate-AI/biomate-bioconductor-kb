@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bamfiles=Character vector of paths to BAM files containing Ribo-meth-seq alignments ;; fasta=Path to the genomic or transcriptomic FASTA reference file ;; gff=Path to the GFF3/GTF annotation file ;; model=The machine learning model (e.g., Random Forest) used for predicting modification sites\n- alternatives: `rnamodr` (standard ratio-based detection) which is preferred when machine learning models are not trained for the specific organism or when simpler threshold-based scoring (Score A, B, C) is sufficient.\n- when_to_use: Use this package when you have Ribo-meth-seq data and want to leverage machine learning classifiers to identify 2'-O-methylations with potentially higher accuracy than traditional ratio-based methods.\n- pitfalls: Applying pre-trained models to datasets with significantly different sequencing depths, library preparation protocols, or from different species without retraining or validation can lead to high false-positive or false-negative rates.",
+  "workflows": [
+    {
+      "name": "detect_2_o_methylations_ml",
+      "intent": "Detect 2'-O-methylations from Ribo-meth-seq BAM files using machine learning classifiers.",
+      "input": [
+        "sample1.bam (Ribo-meth-seq alignment file)",
+        "genome.fa (Reference genome FASTA file)",
+        "annotation.gff (Genome annotation GFF3 file)"
+      ],
+      "stages": "1. Load the package and define input file paths ;; 2. Initialize the ModMLRiboMethSeq modifier object ;; 3. Extract predicted 2'-O-methylations using the modifications function",
+      "code": "library(rnamodr.ml)\nbamfiles <- c(\"sample1.bam\", \"sample2.bam\")\nfasta <- \"genome.fa\"\ngff <- \"annotation.gff\"\nmod <- ModMLRiboMethSeq(bamfiles, fasta = fasta, gff = gff)\nmods <- modifications(mod)"
+    }
+  ]
+}

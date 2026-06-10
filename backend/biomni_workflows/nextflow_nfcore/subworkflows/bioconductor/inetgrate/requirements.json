@@ -1,0 +1,15 @@
+{
+  "package": "inetgrate",
+  "requirements": [
+    "Pigengene",
+    "iNETgrate",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Pigengene",
+      "iNETgrate",
+      "org.Hs.eg.db"
+    ]
+  }
+}

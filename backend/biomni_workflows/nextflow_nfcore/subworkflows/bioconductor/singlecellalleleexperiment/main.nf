@@ -1,90 +1,201 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SingleCellAlleleExperiment
-// Defines a S4 class that is based on SingleCellExperiment. In addition to the usual gene layer the ob
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SingleCellAlleleExperiment/inst/doc/scae_intro.R
-// Upstream  : AnnotationDbi, DropletUtils, ggplot2, patchwork, scaeData
-// Downstream: none
-//
-// Install: BiocManager::install("SingleCellAlleleExperiment")
+// Bioconductor workflow: SingleCellAlleleExperiment — allele_aware_single_cell_analysis
+// Read allele-level single-cell quantification data, aggregate it into gene and functional layers, filter cells, and perform layer-specific dimensionality reducti
+// Input: cells_x_genes.barcodes.txt, cells_x_genes.features.txt, cells_x_genes_mtx.mtx, lookup_table.csv
+// Container: quay.io/biocontainers/bioconductor-singlecellalleleexperiment:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DropletUtils, SingleCellAlleleExperiment, ggplot2, patchwork, scater, scran, scuttle
+// Visualizations: ordination plot, t-SNE plot
+// QC: cell QC metrics, highly-variable feature selection
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the lookup table mapping alleles to genes and functions
+//  * 2. [Visualization & Output] Read raw allele counts and construct the SingleCellAlleleExperiment object using read_allele_counts(), applying knee-plot or custo
+//  * 3. [Core Analysis] Subset the dataset into specific layers (non-immune, alleles, immune genes, functional groups) using scae_subset()
+//  * 4. [Core Analysis] Model gene variance and identify highly variable genes (HVGs) for each layer using modelGeneVar() and getTopHVGs()
+//  * 5. [Core Analysis] Run PCA on each layer using runPCA() with unique names to avoid overwriting
+//  * 6. [Core Analysis] Run t-SNE on the reduced dimensions using runTSNE()
+//  * 7. [Visualization & Output] Plot expression and reduced dimensions using plotExpression() and plotReducedDim()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SINGLECELLALLELEEXPERIMENT {
+process BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-singlecellalleleexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-singlecellalleleexperiment:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-singlecellalleleexperiment:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_singlecellalleleexperiment_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_singlecellalleleexperiment_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_singlecellalleleexperiment_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(SingleCellAlleleExperiment)
-    library(jsonlite)
-
-    # --- plot Reduced Dim [] ---
-    # Key functions: plotReducedDim, ggtitle
-    tsne_g_a  <- plotReducedDim(scae, dimred=tsne, colour_by="HLA-DRB1") +
-    ggtitle("HLA-DRB1 gene")
-    tsne_g_a1 <- plotReducedDim(scae, dimred=tsne, colour_by="DRB1*07:01:01:01") +
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_singlecellalleleexperiment_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_singlecellalleleexperiment_results.csv")
+    library(scater)
+    library(scran)
+    library(scuttle)
+    library(DropletUtils)
+    library(ggplot2)
+    library(patchwork)
+    
+    # 1. Load the lookup table mapping alleles to genes and functions
+    lookup <- utils::read.csv("lookup_table.csv")
+    
+    # 2. Read raw allele counts and construct the SingleCellAlleleExperiment object
+    scae <- read_allele_counts(".",
+                               sample_names="example_data",
+                               filter_mode="yes",
+                               lookup_file=lookup,
+                               barcode_file="cells_x_genes.barcodes.txt",
+                               gene_file="cells_x_genes.features.txt",
+                               matrix_file="cells_x_genes_mtx.mtx",
+                               log=TRUE)
+    
+    # 3. Subset the dataset into specific layers
+    scae_nonimmune_subset <- scae_subset(scae, "nonimmune")
+    scae_alleles_subset <- scae_subset(scae, "alleles")
+    scae_immune_genes_subset <- scae_subset(scae, "immune_genes")
+    scae_functional_groups_subset <- scae_subset(scae, "functional_groups")
+    
+    rn_scae_ni <- rownames(scae_subset(scae, "nonimmune"))
+    rn_scae_alleles <- rownames(scae_subset(scae, "alleles"))
+    
+    scae_nonimmune__allels_subset <- scae[c(rn_scae_ni, rn_scae_alleles), ]
+    
+    rn_scae_i <- rownames(scae_subset(scae, "immune_genes"))
+    
+    scae_nonimmune__immune <- scae[c(rn_scae_ni, rn_scae_i), ]
+    
+    rn_scae_functional <- rownames(scae_subset(scae, "functional_groups"))
+    
+    scae_nonimmune__functional <- scae[c(rn_scae_ni, rn_scae_functional), ]
+    
+    # 4. Model gene variance and identify highly variable genes (HVGs)
+    df_ni_a <- modelGeneVar(scae_nonimmune__allels_subset)
+    top_ni_a <- getTopHVGs(df_ni_a, prop=0.1)
+    
+    df_ni_g <- modelGeneVar(scae_nonimmune__immune)
+    top_ni_g <- getTopHVGs(df_ni_g, prop=0.1)
+    
+    df_ni_f <- modelGeneVar(scae_nonimmune__functional)
+    top_ni_f <- getTopHVGs(df_ni_f, prop=0.1)
+    
+    # 5. Run PCA on each layer
+    assay <- "logcounts"
+    
+    scae <- runPCA(scae, ncomponents=10, subset_row=top_ni_a,
+                   exprs_values=assay, name="PCA_a")
+    
+    scae <- runPCA(scae, ncomponents=10, subset_row=top_ni_g,
+                   exprs_values=assay, name="PCA_g")
+    
+    scae <- runPCA(scae, ncomponents=10, subset_row=top_ni_f,
+                   exprs_values=assay, name="PCA_f")
+    
+    # 6. Run t-SNE on the reduced dimensions
+    set.seed(18)
+    scae <- runTSNE(scae, dimred="PCA_g",  name="TSNE_g")
+    
+    # 7. Plot expression and reduced dimensions
+    tsne <- "TSNE_g"
+    
+    # Determine features to plot dynamically to avoid missing feature errors
+    avail_features <- rownames(scae)
+    gene_to_plot <- "HLA-DRB1"
+    allele1_to_plot <- "DRB1*07:01:01:01"
+    allele2_to_plot <- "DRB1*13:01:01:01"
+    
+    if (!gene_to_plot %in% avail_features) {
+        imm_genes <- rownames(scae_subset(scae, "immune_genes"))
+        if (length(imm_genes) > 0) {
+            gene_to_plot <- imm_genes[1]
+        } else {
+            gene_to_plot <- avail_features[1]
+        }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_singlecellalleleexperiment_output.rds")
+    
+    if (!allele1_to_plot %in% avail_features) {
+        alleles <- rownames(scae_subset(scae, "alleles"))
+        if (length(alleles) > 0) {
+            allele1_to_plot <- alleles[1]
+            if (length(alleles) > 1) {
+                allele2_to_plot <- alleles[2]
+            } else {
+                allele2_to_plot <- alleles[1]
+            }
+        } else {
+            allele1_to_plot <- avail_features[1]
+            allele2_to_plot <- avail_features[1]
+        }
     }
+    
+    tsne_g_a  <- plotReducedDim(scae, dimred=tsne, colour_by=gene_to_plot) +
+                 ggtitle(paste(gene_to_plot, "gene"))
+    
+    tsne_g_a1 <- plotReducedDim(scae, dimred=tsne, colour_by=allele1_to_plot) + 
+                 ggtitle(paste("Allele", allele1_to_plot))
+    
+    tsne_g_a2 <- plotReducedDim(scae, dimred=tsne, colour_by=allele2_to_plot) + 
+                 ggtitle(paste("Allele", allele2_to_plot))
+    
+    p2 <- tsne_g_a + tsne_g_a1 + tsne_g_a2
+    
+    # Save outputs
+    saveRDS(scae, "scae_processed.rds")
+    ggsave("tsne_plots.pdf", plot=p2, width=12, height=4)
+    
+    write.csv(data.frame(HVG_alleles=top_ni_a), "hvg_alleles.csv", row.names=FALSE)
+    write.csv(data.frame(HVG_genes=top_ni_g), "hvg_genes.csv", row.names=FALSE)
+    write.csv(data.frame(HVG_functional=top_ni_f), "hvg_functional.csv", row.names=FALSE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SINGLECELLALLELEEXPERIMENT:", paste0("    singlecellalleleexperiment: ", packageVersion("SingleCellAlleleExperiment"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS":',
+        paste0('    SingleCellAlleleExperiment: ', as.character(packageVersion('SingleCellAlleleExperiment')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_singlecellalleleexperiment_results.csv
-    touch ${prefix}_singlecellalleleexperiment_output.rds
-    echo "BIOC_SINGLECELLALLELEEXPERIMENT:" > versions.yml
-    echo "    singlecellalleleexperiment: 0.0.0" >> versions.yml
+    touch ${prefix}_allele_aware_single_cell_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SINGLECELLALLELEEXPERIMENT_WORKFLOW {
+workflow BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cells_x_genes.barcodes.txt, cells_x_genes.features.txt, cells_x_genes_mtx.mtx, lookup_table.csv ] ]
 
     main:
-    BIOC_SINGLECELLALLELEEXPERIMENT(ch_input)
+    BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SINGLECELLALLELEEXPERIMENT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SINGLECELLALLELEEXPERIMENT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SINGLECELLALLELEEXPERIMENT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SINGLECELLALLELEEXPERIMENT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS.out.tables
+    plots    = BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS.out.plots
+    objects  = BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS.out.objects
+    versions = BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS.out.versions
 }

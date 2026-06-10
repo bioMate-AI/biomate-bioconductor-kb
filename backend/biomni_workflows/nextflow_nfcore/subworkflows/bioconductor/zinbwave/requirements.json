@@ -1,0 +1,42 @@
+{
+  "package": "zinbwave",
+  "requirements": [
+    "BiocParallel",
+    "DESeq2",
+    "Rtsne",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "edgeR",
+    "ggplot2",
+    "magrittr",
+    "matrixStats",
+    "sparseMatrixStats",
+    "zinbwave"
+  ],
+  "by_workflow": {
+    "differential_expression_with_weights.nf": [
+      "BiocParallel",
+      "DESeq2",
+      "SummarizedExperiment",
+      "edgeR",
+      "zinbwave"
+    ],
+    "large_dataset_approximation.nf": [
+      "BiocParallel",
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "ggplot2",
+      "magrittr",
+      "zinbwave"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "Rtsne",
+      "ggplot2",
+      "magrittr",
+      "matrixStats",
+      "sparseMatrixStats",
+      "zinbwave"
+    ]
+  }
+}

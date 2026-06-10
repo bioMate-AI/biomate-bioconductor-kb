@@ -1,0 +1,11 @@
+{
+  "package": "omicade4",
+  "requirements": [
+    "omicade4"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "omicade4"
+    ]
+  }
+}

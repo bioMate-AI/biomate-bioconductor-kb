@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: k=Number of k-nearest neighbors to define the neighborhood; should not exceed the size of the smallest cell population ;; k_min=Minimum number of cells defining a neighborhood when using density-based neighborhoods ;; batch_min=Minimum number of cells for each batch to include in a dynamic neighborhood ;; group=The metadata column name representing batch or group labels ;; res_name=Prefix/suffix name for storing results in the colData slot ;; dim_red=Subspace to use for calculating cell distances (e.g., \"PCA\", \"MNN\") ;; assay_name=Assay slot name to use for calculations (e.g., \"counts\", \"lim_corrected\")\n- alternatives: scater=For general visualization and log-normalization ;; fastMNN=For MNN-based data integration ;; limma=For linear batch effect correction ;; Seurat=For mixing metric and local structure metric ;; isi=For local inverse Simpson index ;; entropy=For Shannon entropy of batch variables\n- when_to_use: Use when you need to detect and quantify batch effects in raw single-cell RNA-seq data, or when you want to compare the performance of different data integration and batch correction methods.\n- pitfalls: Setting k too large can include cells from different populations, violating distance distribution assumptions ;; MNN integration assumes batch effects are smaller than biological variation; if this is violated, MNN can distort internal structures, resulting in high ldfDiff scores ;; For ldfDiff, the input list names (sce_pre_list) must correspond exactly to the batch levels.",
+  "workflows": [
+    {
+      "name": "quantify_and_visualize_batch_effects",
+      "intent": "Quantify and visualize batch effects in unaligned single-cell RNA-seq data using the Cellspecific Mixing Score (CMS).",
+      "input": [
+        "sce50 (SingleCellExperiment object containing unaligned single-cell RNA-seq data with batch annotations in colData)"
+      ],
+      "stages": "1. Visualize batch distribution using visGroup ;; 2. Calculate CMS using cms ;; 3. Visualize CMS results using visHist, visMetric, visOverview, and visCluster",
+      "code": "visGroup(sce50, group = \"batch\")\nsce50 <- cms(sce50, k = 30, group = \"batch\", res_name = \"unaligned\", n_dim = 3, cell_min = 4)\nvisHist(sce50)\nmetric_plot <- visMetric(sce20, metric_var = \"cms_smooth.unaligned\")\ngroup_plot <- visGroup(sce20, group = \"batch\")\nvisOverview(sce20, \"batch\", other_var = \"celltype\")\nvisCluster(sce20, metric_var = \"cms.unaligned\", cluster_var = \"celltype\")"
+    },
+    {
+      "name": "evaluate_and_compare_integration",
+      "intent": "Evaluate and compare different batch correction/integration methods by assessing both cell mixing (CMS) and preservation of local structure (ldfDiff).",
+      "input": [
+        "sce20 (SingleCellExperiment object containing integrated embeddings or corrected assays)",
+        "sce_pre_list (List of individual SingleCellExperiment objects for each batch before integration, named by batch levels)"
+      ],
+      "stages": "1. Run cms on integrated embeddings (e.g., MNN) or corrected assays (e.g., limma) ;; 2. Compare mixing using visHist ;; 3. Calculate local density differences before and after integration using ldfDiff ;; 4. Visualize structure preservation using visIntegration",
+      "code": "sce20 <- cms(sce20, k = 30, group = \"batch\", dim_red = \"MNN\", res_name = \"MNN\", n_dim = 3, cell_min = 4)\nsce20 <- cms(sce20, k = 30, group = \"batch\", assay_name = \"lim_corrected\", res_name = \"limma\", n_dim = 3, cell_min = 4)\nvisHist(sce20, metric = \"cms.\",  n_col = 3)\nsce_pre_list <- list(\"1\" = sce20[,sce20$batch == \"1\"], \"2\" = sce20[,sce20$batch == \"2\"], \"3\" = sce20[,sce20$batch == \"3\"])\nsce20 <- ldfDiff(sce_pre_list, sce_combined = sce20, group = \"batch\", k = 70, dim_red = \"PCA\", dim_combined = \"MNN\", assay_pre = \"counts\", n_dim = 3, res_name = \"MNN\")\nsce20 <- ldfDiff(sce_pre_list, sce_combined = sce20, group = \"batch\", k = 70, dim_red = \"PCA\", dim_combined = \"PCA\", assay_pre = \"counts\", assay_combined = \"lim_corrected\", n_dim = 3, res_name = \"limma\")\nvisIntegration(sce20, metric = \"diff_ldf\", metric_name = \"ldfDiff\")"
+    },
+    {
+      "name": "comprehensive_metric_evaluation",
+      "intent": "Run a suite of different integration metrics (e.g., inverse Simpson index, entropy) simultaneously using a wrapper function.",
+      "input": [
+        "sce50 (SingleCellExperiment object containing single-cell RNA-seq data)"
+      ],
+      "stages": "1. Run multiple metrics using evalIntegration ;; 2. Visualize the overview of all metrics using visOverview",
+      "code": "sce50 <- evalIntegration(metrics = c(\"isi\", \"entropy\"), sce50, group = \"batch\", k = 30, n_dim = 2, cell_min = 4, res_name = c(\"weighted_isi\", \"entropy\"))\nvisOverview(sce50, \"batch\", metric = c(\"cms_smooth.unaligned\", \"weighted_isi\", \"entropy\"), prefix = FALSE)"
+    }
+  ]
+}

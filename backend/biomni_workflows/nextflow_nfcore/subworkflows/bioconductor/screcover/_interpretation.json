@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=A scRNA-seq read counts matrix or a SingleCellExperiment S4 object containing the read counts matrix (rows are genes, columns are cells) ;; Kcluster=An integer specifying the number of cell subpopulations, used to determine candidate neighbors of each cell (not required to be highly accurate; set to NULL if labels is provided) ;; labels=A character/integer vector specifying the cell type of each column in the raw count matrix, only needed when Kcluster = NULL ;; outputDir=Character string specifying the directory to save imputed expression matrices (defaults to a folder with prefix 'outDir_scRecover_' under the current working directory if unspecified) ;; parallel=Logical (default TRUE) to enable parallel computing via BiocParallel ;; BPPARAM=A BiocParallelParam object (e.g., MulticoreParam or SnowParam) to specify the parallel back-end and configuration ;; verbose=Logical (e.g., FALSE) to suppress detailed progress messages\n- alternatives: Standalone scImpute, SAVER, and MAGIC. scRecover is preferred when you want to combine these methods with ZINB and accumulation curves to distinguish dropout zeros from real zeros, thereby keeping real zeros unchanged and improving downstream accuracy.\n- when_to_use: Appropriate for transcriptomics workflows using single-cell RNA-seq raw read count data where dropout events (false zeros) need to be corrected without corrupting true biological zeros (real zeros), especially prior to downstream clustering and visualization.\n- pitfalls: When using cell type labels instead of Kcluster, each cell type must have at least two cells for imputation. If outputDir is unspecified, it will write to the current working directory with a default prefix, which might clutter the workspace.",
+  "workflows": [
+    {
+      "name": "scrna_seq_imputation",
+      "intent": "Detect and impute dropout values in a scRNA-seq raw read counts matrix or SingleCellExperiment object while keeping real zeros unchanged.",
+      "input": [
+        "counts (scRNA-seq read counts matrix or SingleCellExperiment object)",
+        "labels (optional character/integer vector specifying the cell type of each column)"
+      ],
+      "stages": "1. Load or format input data (matrix or SingleCellExperiment) ;; 2. Run scRecover with Kcluster or labels specified to perform imputation ;; 3. Retrieve imputed matrices from the specified output directory.",
+      "code": "# Load test data for scRecover\ndata(scRecoverTest)\n\n# Run scRecover with Kcluster specified\nscRecover(counts = counts, Kcluster = 2, outputDir = \"./outDir_scRecover/\", verbose = FALSE)\n\n# Or run scRecover with labels specified\n# scRecover(counts = counts, labels = labels, outputDir = \"./outDir_scRecover/\")\n\n# Convert the test data in scRecover to SingleCellExperiment data representation\nsce <- SingleCellExperiment(assays = list(counts = as.matrix(counts)))\n\n# Run scRecover with SingleCellExperiment input sce (Kcluster specified)\nscRecover(counts = sce, Kcluster = 2, outputDir = \"./outDir_scRecover/\", verbose = FALSE)\n\n# Or run scRecover with SingleCellExperiment input sce (labels specified)\n# scRecover(counts = sce, labels = labels, outputDir = \"./outDir_scRecover/\")\n\n# Set the parameters and register the back-end to be used (Unix and Mac)\nparam <- MulticoreParam(workers = 18, progressbar = TRUE)\nregister(param)\n\n# Run scRecover with 18 cores (Kcluster specified)\nscRecover(counts = counts, Kcluster = 2, parallel = TRUE, BPPARAM = param)\n\n# Set the parameters and register the back-end to be used (Windows)\nparam <- SnowParam(workers = 8, type = \"SOCK\", progressbar = TRUE)\nregister(param)\n\n# Run scRecover with 8 cores (Kcluster specified)\nscRecover(counts = counts, Kcluster = 2, parallel = TRUE, BPPARAM = param)"
+    },
+    {
+      "name": "dropout_estimation",
+      "intent": "Estimate the dropout gene number or total expressed gene number in a single cell using downsampling.",
+      "input": [
+        "oneCell (a vector of a cell's raw read counts for each gene)"
+      ],
+      "stages": "1. Downsample read counts using countsSampling ;; 2. Estimate the dropout gene number using estDropoutNum.",
+      "code": "# Load test data\ndata(scRecoverTest)\n\n# Downsample 10% read counts in oneCell\nset.seed(999)\noneCell.down <- countsSampling(counts = oneCell, fraction = 0.1)\n\n# Count the groundtruth dropout gene number in the downsampled cell\nsum(oneCell.down == 0 & oneCell != 0)\n\n# Estimate the dropout gene number in the downsampled cell by estDropoutNum\nestDropoutNum(sample = oneCell.down, depth = 10, return = \"dropoutNum\")"
+    }
+  ]
+}

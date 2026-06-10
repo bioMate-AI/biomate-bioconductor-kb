@@ -1,0 +1,25 @@
+{
+  "package": "ggbio",
+  "requirements": [
+    "AnnotationFilter",
+    "GenomeInfoDb",
+    "GenomicAlignments",
+    "GenomicRanges",
+    "VariantAnnotation",
+    "biovizBase",
+    "ensembldb",
+    "ggbio"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationFilter",
+      "GenomeInfoDb",
+      "GenomicAlignments",
+      "GenomicRanges",
+      "VariantAnnotation",
+      "biovizBase",
+      "ensembldb",
+      "ggbio"
+    ]
+  }
+}

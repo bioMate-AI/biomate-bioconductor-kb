@@ -1,0 +1,19 @@
+{
+  "package": "dominosignal",
+  "requirements": [
+    "ComplexHeatmap",
+    "SingleCellExperiment",
+    "circlize",
+    "dominoSignal",
+    "plyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "SingleCellExperiment",
+      "circlize",
+      "dominoSignal",
+      "plyr"
+    ]
+  }
+}

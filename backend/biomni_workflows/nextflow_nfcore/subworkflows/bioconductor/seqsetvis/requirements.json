@@ -1,0 +1,22 @@
+{
+  "package": "seqsetvis",
+  "requirements": [
+    "GenomicRanges",
+    "data.table",
+    "ggplot2",
+    "seqsetvis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "ggplot2",
+      "seqsetvis"
+    ],
+    "signal_profiling_and_clustering.nf": [
+      "GenomicRanges",
+      "data.table",
+      "ggplot2",
+      "seqsetvis"
+    ]
+  }
+}

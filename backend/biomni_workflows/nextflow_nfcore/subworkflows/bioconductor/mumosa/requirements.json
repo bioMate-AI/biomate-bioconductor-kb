@@ -1,0 +1,25 @@
+{
+  "package": "mumosa",
+  "requirements": [
+    "SingleCellExperiment",
+    "bluster",
+    "igraph",
+    "mumosa",
+    "scater",
+    "scran"
+  ],
+  "by_workflow": {
+    "feature_correlation_analysis.nf": [
+      "SingleCellExperiment",
+      "mumosa"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "bluster",
+      "igraph",
+      "mumosa",
+      "scater",
+      "scran"
+    ]
+  }
+}

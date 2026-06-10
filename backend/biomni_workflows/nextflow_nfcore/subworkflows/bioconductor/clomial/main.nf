@@ -1,105 +1,134 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Clomial
-// Clomial fits binomial distributions to counts obtained from Next Gen Sequencing data of multiple sam
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Clomial/inst/doc/Clonal_decomposition_by_Clomial.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Clomial")
+// Bioconductor workflow: Clomial — clonal_decomposition
+// Infer clonal genotypes and frequencies from multi-sample tumor NGS count data using binomial models.
+// Input: Dc, Dt
+// Container: quay.io/biocontainers/bioconductor-clomial:1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Clomial
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the Clomial package and input count matrices
+//  * 2. [Core Analysis] Run the Clomial EM algorithm to train multiple models
+//  * 3. [Core Analysis] Select the best model based on likelihood using choose.best()
+//  * 4. [Core Analysis] Extract and inspect the estimated clonal genotypes (Mu) and clone frequencies (P)
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLOMIAL {
+process BIOC_CLOMIAL_CLONAL_DECOMPOSITION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clomial"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clomial:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-clomial:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clomial_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clomial_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clomial_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load Clomial package
     library(Clomial)
-    library(jsonlite)
-
-    # --- Example [] ---
-    # Key functions: Clomial
-    library(Clomial)
+    
+    # Set seed for reproducibility
     set.seed(1)
-    data(breastCancer)
-    Dc <- breastCancer$Dc
-    Dt <- breastCancer$Dt
-    # --- Model1 [] ---
-    # Key functions: data
-    data(Clomial1000)
-    models <- Clomial1000$models
-    ## Number of trained models:
-    length(models)
-    # --- Model1 [] ---
-    # Key functions: best
-    chosen <- choose.best(models=models, doTalk=TRUE)
-    M1 <- chosen$bestModel
-    print("Genotypes according to the best model:")
-    round(M1$Mu)
-    print("Clone frequencies in the first sample:")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clomial_results.csv", row.names = TRUE)
+    
+    # Read input matrices Dc and Dt from the working directory
+    if (file.exists("Dc.csv")) {
+      Dc <- as.matrix(read.csv("Dc.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("Dc.tsv")) {
+      Dc <- as.matrix(read.delim("Dc.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("Dc.txt")) {
+      Dc <- as.matrix(read.table("Dc.txt", header = TRUE, row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clomial_results.csv")
+      stop("Error: Dc file not found in working directory (expected Dc.csv, Dc.tsv, or Dc.txt)")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clomial_output.rds")
+    
+    if (file.exists("Dt.csv")) {
+      Dt <- as.matrix(read.csv("Dt.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("Dt.tsv")) {
+      Dt <- as.matrix(read.delim("Dt.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("Dt.txt")) {
+      Dt <- as.matrix(read.table("Dt.txt", header = TRUE, row.names = 1, check.names = FALSE))
+    } else {
+      stop("Error: Dt file not found in working directory (expected Dt.csv, Dt.tsv, or Dt.txt)")
     }
+    
+    # Run Clomial EM algorithm to train multiple models
+    Clomial2 <- Clomial(Dc=Dc, Dt=Dt, maxIt=20, C=4, binomTryNum=2)
+    
+    # Extract the first model
+    model1 <- Clomial2\$models[[1]]
+    
+    # Print clonal frequencies of the first model
+    print("Clonal frequencies of the first model:")
+    print(round(model1\$P, digits=2))
+    
+    # Select the best model based on likelihood using choose.best()
+    models <- Clomial2\$models
+    print(paste("Number of trained models:", length(models)))
+    
+    chosen <- choose.best(models=models, doTalk=TRUE)
+    M1 <- chosen\$bestModel
+    
+    # Extract and inspect the estimated clonal genotypes (Mu) and clone frequencies (P)
+    print("Genotypes according to the best model:")
+    print(round(M1\$Mu))
+    
+    print("Clone frequencies in the first sample:")
+    print(round(M1\$P[,1], digits=2))
+    
+    # Write outputs to files
+    saveRDS(Clomial2, file = "clomial_output.rds")
+    saveRDS(M1, file = "best_model.rds")
+    write.csv(round(M1\$Mu), file = "best_model_genotypes_Mu.csv", row.names = TRUE)
+    write.csv(round(M1\$P, digits = 2), file = "best_model_frequencies_P.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLOMIAL:", paste0("    clomial: ", packageVersion("Clomial"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLOMIAL_CLONAL_DECOMPOSITION":',
+        paste0('    Clomial: ', as.character(packageVersion('Clomial')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clomial_results.csv
-    touch ${prefix}_clomial_output.rds
-    echo "BIOC_CLOMIAL:" > versions.yml
-    echo "    clomial: 0.0.0" >> versions.yml
+    touch ${prefix}_clonal_decomposition.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLOMIAL_WORKFLOW {
+workflow BIOC_CLOMIAL_CLONAL_DECOMPOSITION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Dc, Dt ] ]
 
     main:
-    BIOC_CLOMIAL(ch_input)
+    BIOC_CLOMIAL_CLONAL_DECOMPOSITION(ch_input)
 
     emit:
-    results  = BIOC_CLOMIAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLOMIAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLOMIAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLOMIAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLOMIAL_CLONAL_DECOMPOSITION.out.tables
+    plots    = BIOC_CLOMIAL_CLONAL_DECOMPOSITION.out.plots
+    objects  = BIOC_CLOMIAL_CLONAL_DECOMPOSITION.out.objects
+    versions = BIOC_CLOMIAL_CLONAL_DECOMPOSITION.out.versions
 }

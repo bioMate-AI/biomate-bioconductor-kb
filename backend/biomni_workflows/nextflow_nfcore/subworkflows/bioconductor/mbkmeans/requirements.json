@@ -1,0 +1,21 @@
+{
+  "package": "mbkmeans",
+  "requirements": [
+    "SingleCellExperiment",
+    "bluster",
+    "mbkmeans",
+    "scater"
+  ],
+  "by_workflow": {
+    "bluster_mbkmeans_clustering.nf": [
+      "SingleCellExperiment",
+      "bluster",
+      "mbkmeans"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "mbkmeans",
+      "scater"
+    ]
+  }
+}

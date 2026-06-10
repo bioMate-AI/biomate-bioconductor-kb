@@ -1,95 +1,179 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: combi
-// This explorative ordination method combines quasi-likelihood estimation, compositional regression mo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/combi/inst/doc/combi.R
-// Upstream  : BiocManager, devtools
-// Downstream: none
-//
-// Install: BiocManager::install("combi")
+// Bioconductor workflow: combi — unconstrained_integration
+// Integrate multiple omics views without constraints and visualize the shared variability.
+// Input: zhangMicrobio, zhangMetabo, zhangMetavars
+// Container: quay.io/biocontainers/bioconductor-combi:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: combi
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit unconstrained combi model using combi()
+//  * 2. [Visualization & Output] Print model summary
+//  * 3. [Visualization & Output] Plot ordination with sample metadata
+//  * 4. [Visualization & Output] Plot alternative feature representations (points or density)
+//  * 5. [Core Analysis] Add links/projections between features and samples using addLink()
+//  * 6. [Core Analysis] Extract coordinates using extractCoords()
+//  * 7. [Core Analysis] Run diagnostics using convPlot() and inflPlot()
 
 nextflow.enable.dsl = 2
 
-process BIOC_COMBI {
+process BIOC_COMBI_UNCONSTRAINED_INTEGRATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-combi"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-combi:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-combi:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_combi_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_combi_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_combi_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(combi)
-    library(jsonlite)
-
-    # --- add Link [] ---
-    # Key functions: addLink
-    mmPlot = plot(microMetaboInt, samDf = zhangMetavars, samCol = "ABX", returnCoords = TRUE, featNum = 10)
-    addLink(mmPlot, links = cbind("Staphylococcus_819c11","OTU929ffc"), Views = 1, samples = c(0,1))
-    # --- conv Plot [] ---
-    # Key functions: convPlot
-    convPlot(microMetaboInt)
-    # --- infl Plot [] ---
-    # Key functions: inflPlot
-    inflPlot(microMetaboInt, samples = 1:20, plotType = "boxplot")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_combi_results.csv", row.names = TRUE)
+    
+    # Helper function to read user input files from the working directory
+    read_input = function(base_name) {
+      # Try RDS first
+      if (file.exists(paste0(base_name, ".rds"))) {
+        return(readRDS(paste0(base_name, ".rds")))
+      }
+      # Try CSV
+      if (file.exists(paste0(base_name, ".csv"))) {
+        return(read.csv(paste0(base_name, ".csv"), row.names = 1, check.names = FALSE))
+      }
+      # Try TSV/TXT
+      if (file.exists(paste0(base_name, ".txt"))) {
+        return(read.table(paste0(base_name, ".txt"), header = TRUE, row.names = 1, sep = "\t", check.names = FALSE))
+      }
+      stop(paste("Error: Input file not found for", base_name))
+    }
+    
+    # Read the declared user input files
+    zhangMicrobio = read_input("zhangMicrobio")
+    zhangMetabo = read_input("zhangMetabo")
+    zhangMetavars = read_input("zhangMetavars")
+    
+    # 1. Fit unconstrained combi model
+    microMetaboInt = combi(
+     list("microbiome" = zhangMicrobio, "metabolomics" = zhangMetabo),
+     distributions = c("quasi", "gaussian"), compositional = c(TRUE, FALSE),
+     logTransformGaussian = FALSE)
+    
+    # 2. Print model summary
+    sink("model_summary.txt")
+    print(microMetaboInt)
+    sink()
+    
+    # Open PDF to save all plots
+    pdf("combi_plots.pdf", width = 10, height = 8)
+    
+    # 3. Plot ordination
+    p1 = plot(microMetaboInt)
+    print(p1)
+    
+    # Dynamically select the first column of the metadata for plotting
+    sam_col_name = colnames(zhangMetavars)[1]
+    
+    p2 = plot(microMetaboInt, samDf = zhangMetavars, samCol = sam_col_name)
+    print(p2)
+    
+    # 4. Plot alternative feature representations
+    p3 = plot(microMetaboInt, samDf = zhangMetavars, samCol = sam_col_name, 
+         featurePlot = "points")
+    print(p3)
+    
+    p4 = plot(microMetaboInt, samDf = zhangMetavars, samCol = sam_col_name, 
+         featurePlot = "density")
+    print(p4)
+    
+    # 5. Add links/projections between features and samples
+    mmPlot = plot(microMetaboInt, samDf = zhangMetavars, samCol = sam_col_name, returnCoords = TRUE, featNum = 10)
+    
+    # Wrap in tryCatch in case the specific features do not exist in the user's custom dataset
+    tryCatch({
+      p5 = addLink(mmPlot, links = cbind("Staphylococcus_819c11","OTU929ffc"), Views = 1, samples = c(0,1))
+      print(p5)
+    }, error = function(e) {
+      message("Could not add link (likely due to missing specific features in input data): ", e\$message)
+    })
+    
+    # 6. Extract coordinates
+    coords = extractCoords(microMetaboInt, Dim = c(1,2))
+    if (!is.null(names(coords))) {
+      for (n in names(coords)) {
+        write.csv(coords[[n]], paste0("extracted_coordinates_", n, ".csv"), row.names = TRUE)
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_combi_results.csv")
+      for (i in seq_along(coords)) {
+        write.csv(coords[[i]], paste0("extracted_coordinates_", i, ".csv"), row.names = TRUE)
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_combi_output.rds")
-    }
+    
+    # 7. Run diagnostics
+    p_conv = convPlot(microMetaboInt)
+    print(p_conv)
+    
+    # Wrap in tryCatch in case the user's dataset has fewer than 20 samples
+    tryCatch({
+      p_infl = inflPlot(microMetaboInt, samples = 1:20, plotType = "boxplot")
+      print(p_infl)
+    }, error = function(e) {
+      message("Could not plot influence (likely due to sample size constraints): ", e\$message)
+    })
+    
+    dev.off()
+    
+    # Save the fitted model object
+    saveRDS(microMetaboInt, "microMetaboInt.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COMBI:", paste0("    combi: ", packageVersion("combi"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COMBI_UNCONSTRAINED_INTEGRATION":',
+        paste0('    combi: ', as.character(packageVersion('combi')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_combi_results.csv
-    touch ${prefix}_combi_output.rds
-    echo "BIOC_COMBI:" > versions.yml
-    echo "    combi: 0.0.0" >> versions.yml
+    touch ${prefix}_unconstrained_integration.csv versions.yml
     """
 }
 
-
-workflow BIOC_COMBI_WORKFLOW {
+workflow BIOC_COMBI_UNCONSTRAINED_INTEGRATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ zhangMicrobio, zhangMetabo, zhangMetavars ] ]
 
     main:
-    BIOC_COMBI(ch_input)
+    BIOC_COMBI_UNCONSTRAINED_INTEGRATION(ch_input)
 
     emit:
-    results  = BIOC_COMBI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COMBI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COMBI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COMBI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COMBI_UNCONSTRAINED_INTEGRATION.out.tables
+    plots    = BIOC_COMBI_UNCONSTRAINED_INTEGRATION.out.plots
+    objects  = BIOC_COMBI_UNCONSTRAINED_INTEGRATION.out.objects
+    versions = BIOC_COMBI_UNCONSTRAINED_INTEGRATION.out.versions
 }

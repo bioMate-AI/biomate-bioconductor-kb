@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: varNames=character vector specifying the flow cytometry channels/parameters to use for clustering ;; K=integer or vector of integers specifying the number of clusters to fit ;; B=maximum number of EM iterations ;; min/max=numeric vectors specifying the lower/upper boundaries for filtering data points before clustering ;; max.count/min.count=threshold counts for filtering points accumulating on boundaries (set to -1 to suppress) ;; level=quantile level (e.g., 0.90, 0.95) used to identify outliers ;; z.cutoff=posterior probability threshold for cluster assignment to identify outliers ;; prior/usePrior=prior specification list and flag (\"yes\"/\"no\") to incorporate prior knowledge\n- alternatives: Gaussian mixture models (mentioned as a simpler alternative that does not handle outliers or non-ellipsoidal shapes as robustly as t-mixtures with Box-Cox) ;; flowCore filters (like rectangleGate) which can be combined with flowClust via %subset%\n- when_to_use: When clustering flow cytometry data containing outliers, heavy-tailed distributions, or non-ellipsoidal cell populations that require robust modeling and Box-Cox transformation. Also when integrating clustering directly into a flowCore gating workflow using tmixFilter.\n- pitfalls: Requires GSL (GNU Scientific Library) and BLAS to be installed and correctly linked on the system, which can cause installation failures if paths are not set. By default, points accumulating on the boundaries (10 or more) are filtered; this must be adjusted with max.count/min.count if boundary points are meaningful. Setting a small B (EM iterations) is only for demonstration; real analyses need sufficient iterations for convergence.",
+  "workflows": [
+    {
+      "name": "standard_clustering_and_outliers",
+      "intent": "Perform robust model-based clustering on flow cytometry data, select the best model using BIC, adjust outlier identification rules, and visualize the results.",
+      "input": [
+        "rituximab (flowFrame object containing flow cytometry data)"
+      ],
+      "stages": "1. Run initial single-cluster clustering to identify and remove outliers ;; 2. Run multi-cluster estimation on selected parameters ;; 3. Select the best model using BIC and summarize ;; 4. Adjust outlier rules (quantile level and posterior probability cutoff) ;; 5. Visualize results using scatter, contour, image, and histogram plots",
+      "code": "library(flowClust)\nlibrary(flowCore)\ndata(rituximab)\nsummary(rituximab)\nres1 <-\n\tflowClust(\n\t\trituximab,\n\t\tvarNames = c(\"FSC.H\", \"SSC.H\"),\n\t\tK = 1,\n\t\tB = 100\n\t)\nrituximab2 <- rituximab[rituximab %in% res1, ]\nres2 <-\n\tflowClust(\n\t\trituximab2,\n\t\tvarNames = c(\"FL1.H\", \"FL3.H\"),\n\t\tK = 1:6,\n\t\tB = 100\n\t)\ncriterion(res2, \"BIC\")\nsummary(res2[[3]])\nruleOutliers(res2[[3]]) <- list(level = 0.95)\nsummary(res2[[3]])\nruleOutliers(res2[[3]]) <- list(z.cutoff = 0.6)\nsummary(res2[[3]])\nflowClust(\n\trituximab2,\n\tvarNames = c(\"FL1.H\", \"FL3.H\"),\n\tK = 2,\n\tB = 100,\n\tmin = c(0, 0),\n\tmax = c(400, 800)\n)\nplot(res2[[3]],\n\t  data = rituximab2,\n\t  level = 0.8,\n\t  z.cutoff = 0)\nres2.den <- density(res2[[3]], data = rituximab2)\nplot(res2.den)\nplot(res2.den, type = \"image\")\nhist(res2[[3]], data = rituximab2, subset = \"FL1.H\")\nhist(res2[[3]], data = rituximab2, subset = 1)"
+    },
+    {
+      "name": "flowcore_integration",
+      "intent": "Integrate flowClust clustering into a flowCore gating workflow using tmixFilter, Subset, split, and subsetting gates.",
+      "input": [
+        "rituximab2 (flowFrame object containing pre-filtered flow cytometry data)"
+      ],
+      "stages": "1. Create a tmixFilter object ;; 2. Apply the filter to the flowFrame ;; 3. Subset or split the flowFrame based on the filter results ;; 4. Combine tmixFilter with standard flowCore gates (e.g., rectangleGate) using %subset%",
+      "code": "s2filter <- tmixFilter(\"s2filter\", c(\"FL1.H\", \"FL3.H\"), K = 3, B = 100)\nres2f <- filter(rituximab2, s2filter)\nSubset(rituximab2, res2f)\nsplit(rituximab2, res2f, population = list(sc1 = 1:2, sc2 = 3))\nrectGate <-\n\trectangleGate(\n\t\tfilterId = \"rectRegion\",\n\t\t\"FL1.H\" = c(0, 400),\n\t\t\"FL3.H\" = c(0, 800)\n\t)\nMBCfilter <- tmixFilter(\"MBCfilter\", c(\"FL1.H\", \"FL3.H\"), K = 2, B = 100)\nfilter(rituximab2, MBCfilter %subset% rectGate)"
+    },
+    {
+      "name": "prior_based_clustering",
+      "intent": "Perform robust clustering incorporating prior knowledge from an existing model fit.",
+      "input": [
+        "rituximab2 (flowFrame object containing flow cytometry data)",
+        "res2 (list of flowClust model fits)"
+      ],
+      "stages": "1. Extract prior parameters from an existing model using flowClust2Prior ;; 2. Adjust prior parameters (means, variances) ;; 3. Run flowClust with the prior and usePrior=\"yes\" ;; 4. Plot and compare results",
+      "code": "set.seed(100)\nlibrary(flowStats)\nprior <- flowClust2Prior(res2[[2]], kappa = 1, Nt = 5000)\nprior2 <- prior\nprior2$Mu0[1, ] <- rep(box(200, prior2$lambda), 2)\nprior2$Lambda0 <- prior2$Lambda0 / 2\npfit2 <-\n\tflowClust(\n\t\trituximab2,\n\t\tvarNames = c(\"FL1.H\", \"FL3.H\"),\n\t\tK = 2,\n\t\tprior = prior2,\n\t\tusePrior = \"yes\"\n\t)\npar(mfrow = c(1, 2))\nplot(res2[[2]], data = rituximab2)\nplot(pfit2, data = rituximab2)"
+    }
+  ]
+}

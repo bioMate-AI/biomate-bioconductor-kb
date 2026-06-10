@@ -1,0 +1,14 @@
+{
+  "package": "qvalue",
+  "requirements": [
+    "qvalue"
+  ],
+  "by_workflow": {
+    "fdr_estimation_from_test_statistics.nf": [
+      "qvalue"
+    ],
+    "main.nf": [
+      "qvalue"
+    ]
+  }
+}

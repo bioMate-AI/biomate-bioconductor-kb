@@ -1,0 +1,44 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: taxa_are_rows=Logical indicating whether the OTU table is oriented with taxa as rows (TRUE) or columns (FALSE) ;; measures=Character vector specifying alpha diversity estimators (e.g., \"Observed\", \"Chao1\", \"ACE\", \"Shannon\", \"Simpson\", \"InvSimpson\") ;; method=Character string specifying the ordination method (e.g., \"PCoA\", \"NMDS\", \"CCA\", \"DPCoA\") ;; distance=Character string or distance object specifying the ecological distance metric (e.g., \"bray\", \"wunifrac\", \"uunifrac\", \"jaccard\") ;; maxdist=Maximum ecological distance allowed to draw an edge between samples in a network ;; taxlevel=Taxonomic rank at which to merge taxa (e.g., \"Genus\") ;; speciationMinLength=Threshold patristic distance for merging closely related taxa in tip_glom\n- alternatives: picante::unifrac=Alternative package for UniFrac distance, but phyloseq's native UniFrac is optionally-parallelized and faster ;; vegan=Alternative package for ecological distances and ordinations, which phyloseq wraps and extends ;; dada2=Algorithm for sequence-level denoising before importing into phyloseq\n- when_to_use: Appropriate when analyzing high-throughput phylogenetic sequencing data clustered into OTUs/ASVs, especially when integrating abundance tables with sample metadata, taxonomic classifications, and phylogenetic trees.\n- pitfalls: Rarefying microbiome data is statistically inadmissible and should be avoided; instead, use raw counts for alpha diversity and methods like DESeq2 or relative abundance transformations to handle library size differences ;; Using trimmed/filtered data for richness (alpha diversity) estimates is a mistake; raw, untrimmed OTU data should be used because richness estimates depend heavily on singletons ;; Mixing up the orientation of the OTU table (taxa as rows vs. columns) without setting taxa_are_rows correctly ;; Adding pseudocounts or log-transforming without filtering out highly sparse taxa can lead to unstable downstream ordination or distance calculations.",
+  "workflows": [
+    {
+      "name": "data_import_and_assembly",
+      "intent": "Import raw microbiome data components from various formats and assemble them into a single unified phyloseq object.",
+      "input": [
+        "file.biom (BIOM file containing OTU/taxonomy data)",
+        "file.tre (Phylogenetic tree file)",
+        "map.txt (Tab-delimited sample metadata mapping file)"
+      ],
+      "stages": "1. Import BIOM and tree files using import_biom ;; 2. Import sample metadata using import_qiime_sample_data ;; 3. Merge components into a single phyloseq object using merge_phyloseq ;; 4. Alternatively, construct components manually from R matrices/data frames using otu_table, sample_data, tax_table, and read_tree, then combine with phyloseq.",
+      "code": "import_biom(BIOMfilename)\nimport_qiime_sample_data(map.txt)\nmerge_phyloseq(x, y)\notu1 <- otu_table(raw_abundance_matrix, taxa_are_rows=FALSE)\nsam1 <- sample_data(raw_sample_data.frame)\ntax1 <- tax_table(raw_taxonomy_matrix)\ntre1 <- read_tree(my_tree_file)\nex1b <- phyloseq(my_otu_table, my_sample_data, my_taxonomyTable, my_tree)\nex1c <- phyloseq(my_otu_table, my_sample_data)"
+    },
+    {
+      "name": "data_filtering_and_transformation",
+      "intent": "Filter low-abundance taxa, subset samples or taxonomic groups, transform sample counts, and perform taxonomic or phylogenetic agglomeration.",
+      "input": [
+        "phyloseq_object (An assembled phyloseq S4 object)"
+      ],
+      "stages": "1. Prune taxa based on abundance using prune_taxa and taxa_sums ;; 2. Filter taxa using within-sample criteria with genefilter_sample and filterfun_sample ;; 3. Filter taxa using across-sample criteria with filter_taxa ;; 4. Subset samples based on metadata variables using subset_samples ;; 5. Subset taxa by taxonomic category using subset_taxa ;; 6. Transform abundance counts using transform_sample_counts ;; 7. Agglomerate taxa taxonomically using tax_glom or phylogenetically using tip_glom.",
+      "code": "GP <- prune_taxa(taxa_sums(GlobalPatterns) > 0, GlobalPatterns)\nmost_abundant_taxa <- sort(taxa_sums(GlobalPatterns), TRUE)[1:topN]\nex2 <- prune_taxa(names(most_abundant_taxa), GlobalPatterns)\nf1<- filterfun_sample(topp(0.1))\nwh1 <- genefilter_sample(GlobalPatterns, f1, A=(1/2*nsamples(GlobalPatterns)))\nex2 <- prune_taxa(wh1, GlobalPatterns)\nflist<- filterfun(kOverA(5, 2e-05))\nent.logi <- filter_taxa(enterotype, flist)\nent.trim <- filter_taxa(enterotype, flist, TRUE)\nex3 <- subset_samples(GlobalPatterns, SampleType%in%c(\"Freshwater\", \"Ocean\", \"Freshwater (creek)\"))\nex4 <- subset_taxa(GlobalPatterns, Phylum==\"Firmicutes\")\nex2 <- transform_sample_counts(GlobalPatterns, I)\nex4<- transform_sample_counts(GlobalPatterns, threshrankfun(500))\nex6 <- tax_glom(GlobalPatterns, taxlevel=\"Genus\")\nex7 <- tip_glom(GlobalPatterns, speciationMinLength = 0.05)"
+    },
+    {
+      "name": "exploratory_analysis_and_visualization",
+      "intent": "Perform exploratory analysis and generate publication-quality visualizations including alpha diversity plots, phylogenetic trees, bar plots, heatmaps, sample networks, and ordinations.",
+      "input": [
+        "phyloseq_object (An assembled phyloseq S4 object)"
+      ],
+      "stages": "1. Plot alpha diversity estimates using plot_richness ;; 2. Plot annotated phylogenetic trees using plot_tree ;; 3. Generate taxonomic abundance bar plots using plot_bar ;; 4. Create abundance heatmaps using plot_heatmap ;; 5. Construct and plot sample co-occurrence networks using plot_net ;; 6. Calculate ecological distances using distance or UniFrac ;; 7. Perform ordination (PCoA, NMDS, CA, DPCoA) using ordinate and plot results using plot_ordination and plot_scree ;; 8. Perform hierarchical clustering using hclust.",
+      "code": "alpha_meas = c(\"Observed\", \"Chao1\", \"ACE\", \"Shannon\", \"Simpson\", \"InvSimpson\")\n(p <- plot_richness(GP, \"human\", \"SampleType\", measures=alpha_meas))\nplot_tree(GP.chl, color=\"SampleType\", shape=\"Family\", label.tips=\"Genus\", size=\"Abundance\")\nplot_bar(ent10, \"SeqTech\", fill=\"Enterotype\", facet_grid=~Genus)\n(p <- plot_heatmap(gpac, \"NMDS\", \"bray\", \"SampleType\", \"Family\"))\nplot_net(enterotype, maxdist=0.4, color=\"SeqTech\", shape=\"Enterotype\")\nGPUF <- UniFrac(GlobalPatterns)\nGloPa.pcoa = ordinate(GlobalPatterns, method=\"PCoA\", distance=GPUF)\nplot_scree(GloPa.pcoa, \"Scree plot for Global Patterns, UniFrac/PCoA\")\n(p12 <- plot_ordination(GlobalPatterns, GloPa.pcoa, \"samples\", color=\"SampleType\") + geom_point(size=5) + geom_path() + scale_colour_hue(guide = FALSE) )\nGP.NMDS <- ordinate(GlobalPatterns, \"NMDS\", GPUF)\ngpca <- ordinate(GP, \"CCA\")\nGP.dpcoa <- ordinate(GP, \"DPCoA\")\npdpcoa <- plot_ordination( physeq = GP, ordination = GP.dpcoa, type=\"biplot\", color=\"SampleType\", shape=\"Phylum\")\ndistance(esophagus, \"bray\")\ndistance(esophagus, \"wunifrac\")\nGP.hclust <- hclust(GPUF, method=\"average\")\nplot(GP.hclust, col=cols)"
+    },
+    {
+      "name": "differential_abundance_deseq2",
+      "intent": "Convert a phyloseq object to a DESeq2 object to perform negative binomial differential abundance testing and visualize the results.",
+      "input": [
+        "phyloseq_object (An assembled phyloseq S4 object with raw count data)"
+      ],
+      "stages": "1. Filter out low-read samples and clean up metadata using subset_samples and prune_samples ;; 2. Convert the phyloseq object to a DESeq2 dataset using phyloseq_to_deseq2 ;; 3. Estimate size factors using geometric means and run the DESeq2 pipeline using DESeq ;; 4. Extract and filter significant results using results ;; 5. Merge taxonomic information with test results and plot log2 fold changes.",
+      "code": "kostic <- subset_samples(kostic, DIAGNOSIS != \"None\")\nkostic <- prune_samples(sample_sums(kostic) > 500, kostic)\ndiagdds = phyloseq_to_deseq2(kostic, ~ DIAGNOSIS)\ngm_mean = function(x, na.rm=TRUE){ exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x)) }\ngeoMeans = apply(counts(diagdds), 1, gm_mean)\ndiagdds = estimateSizeFactors(diagdds, geoMeans = geoMeans)\ndiagdds = DESeq(diagdds, fitType=\"local\")\nres = results(diagdds)\nres = res[order(res$padj, na.last=NA), ]\nsigtab = res[(res$padj < alpha), ]\nsigtab = cbind(as(sigtab, \"data.frame\"), as(tax_table(kostic)[rownames(sigtab), ], \"matrix\"))\nggplot(sigtabgen, aes(y=Genus, x=log2FoldChange, color=Phylum)) + geom_vline(xintercept = 0.0, color = \"gray\", size = 0.5) + geom_point(size=6) + theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))"
+    }
+  ]
+}

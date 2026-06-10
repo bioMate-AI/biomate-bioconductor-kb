@@ -1,0 +1,20 @@
+{
+  "package": "gintomics",
+  "requirements": [
+    "MultiAssayExperiment",
+    "gINTomics",
+    "htmlwidgets",
+    "shiny"
+  ],
+  "by_workflow": {
+    "complete_multiomics_integration.nf": [
+      "MultiAssayExperiment",
+      "gINTomics",
+      "htmlwidgets",
+      "shiny"
+    ],
+    "main.nf": [
+      "gINTomics"
+    ]
+  }
+}

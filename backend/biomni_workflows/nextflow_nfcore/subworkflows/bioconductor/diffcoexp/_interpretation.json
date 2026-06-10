@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprs.1=Normalized gene expression data under condition 1 (SummarizedExperiment, data.frame, or matrix) with rows as genes and columns as samples ;; exprs.2=Normalized gene expression data under condition 2 (SummarizedExperiment, data.frame, or matrix) with rows as genes and columns as samples. Must have the same number of genes in the same order as exprs.1 ;; r.method=Correlation method passed to WGCNA::cor (e.g., \"spearman\" or \"pearson\") ;; q.method=Multiple testing correction method passed to stats::p.adjust\n- alternatives: FGNet=For downstream functional enrichment analysis of identified DCGs ;; clusterProfiler=For downstream functional enrichment analysis of identified DCGs ;; enrichr=For downstream functional enrichment analysis of identified DCGs ;; igraph=For visualizing and analyzing the differential coexpression network of DCLs ;; DCGL v2.0=For identifying upstream causal regulators from DCLs\n- when_to_use: When comparing gene coexpression networks between two distinct biological conditions (e.g., treated vs. control, disease vs. healthy) to identify rewired gene interactions (DCLs) and highly rewired hub genes (DCGs).\n- pitfalls: Input matrices exprs.1 and exprs.2 must have the exact same number of genes in the exact same order ;; Running the analysis on a full genome-wide dataset (e.g., ~6000 genes) can be computationally intensive, taking around 20 minutes on an 8-core, 16GB RAM machine; multi-threading should be enabled using allowWGCNAThreads() to optimize performance.",
+  "workflows": [
+    {
+      "name": "differential_coexpression_analysis",
+      "intent": "Identify differentially coexpressed gene pairs (DCLs) and genes (DCGs) from normalized expression data under two conditions.",
+      "input": [
+        "exprs.1 (normalized gene expression matrix/data.frame/SummarizedExperiment for condition 1)",
+        "exprs.2 (normalized gene expression matrix/data.frame/SummarizedExperiment for condition 2)"
+      ],
+      "stages": "1. Load the package and enable multi-threading ;; 2. Run the differential coexpression analysis using diffcoexp ;; 3. Inspect the structure of the output list containing DCGs and DCLs",
+      "code": "library(diffcoexp)\ndata(gse4158part)\nallowWGCNAThreads()\nres=diffcoexp(exprs.1 = exprs.1, exprs.2 = exprs.2, r.method = \"spearman\" )\nstr(res)"
+    }
+  ]
+}

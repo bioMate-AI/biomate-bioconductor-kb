@@ -1,0 +1,40 @@
+{
+  "package": "raer",
+  "requirements": [
+    "Biostrings",
+    "ComplexHeatmap",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "Rsamtools",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "raer",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "alu_editing_index.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "raer"
+    ],
+    "bulk_differential_editing.nf": [
+      "ComplexHeatmap",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "raer",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "Rsamtools",
+      "SingleCellExperiment",
+      "raer"
+    ],
+    "novel_editing_detection.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "raer"
+    ]
+  }
+}

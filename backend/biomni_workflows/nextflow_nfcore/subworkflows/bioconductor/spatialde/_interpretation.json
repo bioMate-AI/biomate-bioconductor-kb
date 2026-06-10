@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sample_info=A data frame containing sample metadata, specifically total_counts for regressing out library size effects ;; coordinates=A data frame or matrix of spatial coordinates (e.g., x and y) for each spot ;; de_results=A data frame of differentially expressed (or spatially variable) genes, typically filtered by Q-value ;; n_patterns=Integer specifying the number of spatial patterns to group SVGs into ;; length=Length scale parameter for spatial patterns ;; assay_type=Character string specifying which assay to extract from a SpatialExperiment object ;; qval_thresh=Q-value threshold for filtering DE results in SpatialExperiment workflows\n- alternatives: None mentioned in the documentation.\n- when_to_use: When analyzing spatially resolved transcriptomics data to identify genes whose expression levels vary significantly across spatial coordinates, classify them into spatial models, or group them into spatial patterns.\n- pitfalls: The method assumes normally distributed data, so raw counts must be stabilized (e.g., using Anscombe's approximation via stabilize()) and library size effects must be regressed out via regress_out() before running the spatial test. Running the SpatialDE test on a very large number of genes can be computationally expensive, so filtering unobserved genes is recommended. For SpatialExperiment objects, ensure the counts matrix has genes as rows and spots as columns.",
+  "workflows": [
+    {
+      "name": "standard_matrix_workflow",
+      "intent": "Identify, classify, and cluster spatially variable genes from raw count matrices and spatial coordinates.",
+      "input": [
+        "Rep11_MOB_0 (raw count matrix with genes as rows and spots as columns)",
+        "MOB_sample_info (data frame containing spatial coordinates x and y, and spot metadata)"
+      ],
+      "stages": "1. Filter out unobserved genes and calculate total counts per spot ;; 2. Stabilize variance using Anscombe's approximation with stabilize() ;; 3. Regress out library size effects using regress_out() ;; 4. Run the SpatialDE test using spatialDE::run() ;; 5. Classify SVGs into interpretable classes using model_search() ;; 6. Group SVGs into spatial patterns using spatial_patterns() ;; 7. Visualize results using multiGenePlots() and FSV_sig()",
+      "code": "Rep11_MOB_0 <- Rep11_MOB_0[rowSums(Rep11_MOB_0) >= 3, ]\nRep11_MOB_0 <- Rep11_MOB_0[, row.names(MOB_sample_info)]\nMOB_sample_info$total_counts <- colSums(Rep11_MOB_0)\nX <- MOB_sample_info[, c(\"x\", \"y\")]\nnorm_expr <- stabilize(Rep11_MOB_0)\nresid_expr <- regress_out(norm_expr, sample_info = MOB_sample_info)\nsample_resid_expr <- head(resid_expr, 1000)\nresults <- spatialDE::run(sample_resid_expr, coordinates = X)\nde_results <- results[results$qval < 0.05, ]\nms_results <- model_search(\n    sample_resid_expr,\n    coordinates = X,\n    de_results = de_results\n)\nsp <- spatial_patterns(\n    sample_resid_expr,\n    coordinates = X,\n    de_results = de_results,\n    n_patterns = 4L, length = 1.5\n)\nordered_de_results <- de_results[order(de_results$qval), ]\nmultiGenePlots(norm_expr,\n    coordinates = X,\n    ordered_de_results[1:6, ]$g,\n    point_size = 4,\n    viridis_option = \"D\",\n    dark_theme = FALSE\n)\nFSV_sig(results, ms_results)"
+    },
+    {
+      "name": "spatial_experiment_workflow",
+      "intent": "Identify, classify, and cluster spatially variable genes directly using a SpatialExperiment object.",
+      "input": [
+        "spe (SpatialExperiment object containing spatial coordinates and raw count assays)"
+      ],
+      "stages": "1. Run SpatialDE on the SpatialExperiment object using spatialDE() ;; 2. Visualize spatial patterns of multiple genes using multiGenePlots() ;; 3. Classify SVGs into interpretable classes using modelSearch() ;; 4. Group SVGs into spatial patterns using spatialPatterns()",
+      "code": "out <- spatialDE(spe, assay_type = \"counts\", verbose = FALSE)\nspe_results <- out[out$qval < 0.05, ]\nordered_spe_results <- spe_results[order(spe_results$qval), ]\nmultiGenePlots(spe,\n    assay_type = \"counts\",\n    ordered_spe_results[1:6, ]$g,\n    point_size = 4,\n    viridis_option = \"D\",\n    dark_theme = FALSE\n)\nmsearch <- modelSearch(spe,\n    de_results = out, qval_thresh = 0.05,\n    verbose = FALSE\n)\nspatterns <- spatialPatterns(spe,\n    de_results = de_results, qval_thresh = 0.05,\n    n_patterns = 4L, length = 1.5, verbose = FALSE\n)"
+    }
+  ]
+}

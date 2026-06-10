@@ -1,0 +1,26 @@
+{
+  "package": "comapr",
+  "requirements": [
+    "BiocParallel",
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "comapr",
+    "ggplot2",
+    "statmod"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "GenomicRanges",
+      "comapr",
+      "ggplot2"
+    ],
+    "single_sperm_co_analysis.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "comapr",
+      "ggplot2",
+      "statmod"
+    ]
+  }
+}

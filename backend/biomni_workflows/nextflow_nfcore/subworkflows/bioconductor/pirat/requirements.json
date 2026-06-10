@@ -1,0 +1,14 @@
+{
+  "package": "pirat",
+  "requirements": [
+    "Pirat"
+  ],
+  "by_workflow": {
+    "imputation_with_extensions.nf": [
+      "Pirat"
+    ],
+    "main.nf": [
+      "Pirat"
+    ]
+  }
+}

@@ -1,102 +1,102 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MassArray
-// This package is designed for the import, quality control, analysis, and visualization of methylation
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MassArray/inst/doc/MassArray.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MassArray")
+// Bioconductor workflow: MassArray — amplicon_prediction_and_design
+// Predict fragmentation patterns, assayability of CG sites, and identify potential conversion controls for a candidate amplicon sequence.
+// Input: sequence
+// Container: quay.io/biocontainers/bioconductor-massarray:1.62.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MassArray
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run in silico prediction using ampliconPrediction() to evaluate fragmentation patterns and CG assayability
 
 nextflow.enable.dsl = 2
 
-process BIOC_MASSARRAY {
+process BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-massarray"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-massarray:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-massarray:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_massarray_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_massarray_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_massarray_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AAAATTTTCCCCTCTGCGTGAGAGAGTTGTC)
-    library(TTTTCCCCTCTGCGTGAGAGAGTTGTC)
-    library(jsonlite)
-
-    # --- Fig1 [] ---
-    # Key functions: ampliconPrediction
-    results <- ampliconPrediction("AAAATTTTCCCCTCTGCGTGAGAGAGTTGTCCGACAAAA")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    library(MassArray)
+    
+    # Read the candidate amplicon sequence from the user input file 'sequence'
+    if (!file.exists("sequence")) {
+      stop("Error: The required input file 'sequence' does not exist in the working directory.")
+    }
+    
+    sequence_str <- trimws(paste(readLines("sequence", warn=FALSE), collapse=""))
+    
+    # Run in silico prediction using ampliconPrediction() to evaluate fragmentation patterns and CG assayability.
+    # Since ampliconPrediction() generates a plot, we wrap it in a PDF device to save the visualization.
+    pdf("amplicon_prediction_plot.pdf", width=11, height=8.5)
+    results <- ampliconPrediction(sequence_str)
+    dev.off()
+    
+    # Print results to console as in the documented code
     results
-    # --- Fig2 [] ---
-    # Key functions: ampliconPrediction, TTTTCCCCTCTGCGTGAGAGAGTTGTC
-    ampliconPrediction("AAAA>TTTTCCCCTCTGCGTGAGAGAGTTGTC(CG)AC<AAAA")
-    # --- Fig3 [] ---
-    # Key functions: ampliconPrediction, AAAATTTTCCCCTCTGCGTGAGAGAGTTGTC
-    ampliconPrediction("AAAATTTTCCCCTCTGCGTGAGAGAGTTGTC(CG)ACTTCCCCTCTGCGTGAGAGAGTTGTCCGACAAAA")
-    # --- Fig4 [] ---
-    # Key functions: ampliconPrediction
-    ampliconPrediction("CCTGTCCAGGGGCACTCCATATTTTCCTACCTGTCCCTCTTTGCTTGTAAAAACAAATTAAACAGGGATCCCAGCAACTTCG")
-    # --- Fig8 [] ---
-    # Key functions: evaluateSNPs
-    SNP.results <- evaluateSNPs(data)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_massarray_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_massarray_results.csv")
+    
+    # Write meaningful outputs to the working directory
+    if (!is.null(results\$summary)) {
+      write.csv(results\$summary, "amplicon_summary.csv", row.names=FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_massarray_output.rds")
+    if (!is.null(results\$counts)) {
+      write.csv(results\$counts, "amplicon_counts.csv", row.names=TRUE)
     }
+    saveRDS(results, "amplicon_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MASSARRAY:", paste0("    massarray: ", packageVersion("MassArray"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN":',
+        paste0('    MassArray: ', as.character(packageVersion('MassArray')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_massarray_results.csv
-    touch ${prefix}_massarray_output.rds
-    echo "BIOC_MASSARRAY:" > versions.yml
-    echo "    massarray: 0.0.0" >> versions.yml
+    touch ${prefix}_amplicon_prediction_and_design.csv versions.yml
     """
 }
 
-
-workflow BIOC_MASSARRAY_WORKFLOW {
+workflow BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sequence ] ]
 
     main:
-    BIOC_MASSARRAY(ch_input)
+    BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN(ch_input)
 
     emit:
-    results  = BIOC_MASSARRAY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MASSARRAY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MASSARRAY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MASSARRAY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN.out.tables
+    plots    = BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN.out.plots
+    objects  = BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN.out.objects
+    versions = BIOC_MASSARRAY_AMPLICON_PREDICTION_AND_DESIGN.out.versions
 }

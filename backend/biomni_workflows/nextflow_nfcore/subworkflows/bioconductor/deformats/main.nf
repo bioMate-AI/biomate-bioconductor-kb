@@ -1,138 +1,162 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DEFormats
-// Convert between different data formats used by differential gene expression analysis tools.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DEFormats/inst/doc/DEFormats.R
-// Upstream  : DESeq2, edgeR
-// Downstream: none
-//
-// Install: BiocManager::install("DEFormats")
+// Bioconductor workflow: DEFormats — deformats_interoperability_pipeline
+// Convert RNA-seq count data between DESeq2 and edgeR formats using DEFormats to perform parallel differential expression analyses and compare results.
+// Input: counts.csv, coldata.csv
+// Container: 1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DEFormats, DESeq2, SummarizedExperiment, edgeR
+// Visualizations: plot (ggplot/base)
+// QC: dispersion/size-factor estimation
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEFORMATS {
+process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-deformats"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-deformats:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-deformats:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_deformats_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_deformats_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_deformats_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DESeqDataSet)
-    library(DESeqDataSetFromMatrix)
-    library(DGEList)
-    library(jsonlite)
-
-    # --- Counts [] ---
-    # Key functions: simulateRnaSeqData
-    ---------------------------------------------------------------
-    counts = simulateRnaSeqData()
-    # --- Dge [] ---
-    # Key functions: DGEList
-    ------------------------------------------------------------------
-    group = rep(c("A", "B"), each = 3)
-    dge = DGEList(counts, group = group)
-    dge
-    # --- Dds [] ---
-    # Key functions: DESeqDataSet
-    ------------------------------------------------------------------
-    dds = as.DESeqDataSet(dge)
-    dds
-    # --- Dgedds [] ---
-    # Key functions: DGEList
-    ---------------------------------------------------------------
-    identical(dge, as.DGEList(dds))
-    # --- Identicaldds [] ---
-    # Key functions: DESeqDataSetFromMatrix, frame
-    ---------------------------------------------------------
-    dds1 = DESeqDataSetFromMatrix(counts, data.frame(condition=group), ~ condition)
-    dds2 = DESeqDataSetFromMatrix(counts, data.frame(condition=group), ~ condition)
-    identical(dds1, dds2)
-    # --- Se [] ---
-    # Key functions: simulateRnaSeqData
-    -------------------------------------------------------------------
-    se = simulateRnaSeqData(output = "RangedSummarizedExperiment")
-    se
-    # --- Dds Se [] ---
-    # Key functions: DESeqDataSet
-    ---------------------------------------------------------------
-    dds = DESeqDataSet(se, design = ~ condition)
-    # --- Dgedds2 [] ---
-    # Key functions: DGEList
-    --------------------------------------------------------------
-    dge = as.DGEList(dds)
-    dge
-    # --- Dgese [] ---
-    # Key functions: colData, DGEList
-    ----------------------------------------------------------------
-    names(colData(se)) = "group"
-    dge = DGEList(se)
-    dge
-    # --- Rse [] ---
-    # Key functions: DESeqDataSet
-    ------------------------------------------------------------------
-    dds = as.DESeqDataSet(dge)
-    rse = as(dds, "RangedSummarizedExperiment")
-    rse
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_deformats_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_deformats_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
+    library(DESeq2)
+    library(edgeR)
+    library(DEFormats)
+    
+    # Stage 2: Read and preprocess input data
+    message("Reading input files...")
+    counts_df <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
+    counts_mat <- as.matrix(counts_df)
+    
+    coldata_df <- read.csv("coldata.csv", row.names = "sample", check.names = FALSE)
+    
+    # Align counts and coldata
+    common_samples <- intersect(colnames(counts_mat), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+        stop("Error: No matching samples found between counts.csv and coldata.csv")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_deformats_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEFORMATS:", paste0("    deformats: ", packageVersion("DEFormats"))),
-        "versions.yml"
+    counts_mat <- counts_mat[, common_samples, drop = FALSE]
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    
+    # Ensure condition is a factor
+    coldata_df\$condition <- as.factor(coldata_df\$condition)
+    
+    # Stage 3: Format conversions using DEFormats
+    message("Performing format conversions...")
+    
+    # 3.1: Create DGEList and convert to DESeqDataSet
+    dge_initial <- DGEList(counts = counts_mat, group = coldata_df\$condition)
+    dds_converted <- as.DESeqDataSet(dge_initial)
+    # Set the design formula for the converted DESeqDataSet
+    design(dds_converted) <- ~ group
+    
+    # 3.2: Create SummarizedExperiment and convert to DGEList directly
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        colData = coldata_df
     )
+    # Rename condition to group so DGEList automatically detects the grouping factor
+    names(colData(se))[names(colData(se)) == "condition"] <- "group"
+    dge_converted <- DGEList(se)
+    
+    # Stage 4: Parallel Differential Expression Analysis
+    message("Running DESeq2 analysis on converted object...")
+    # Run DESeq2 on the DESeqDataSet converted from DGEList
+    dds_analyzed <- DESeq(dds_converted, quiet = TRUE)
+    res_deseq <- results(dds_analyzed)
+    res_deseq_df <- as.data.frame(res_deseq)
+    res_deseq_df\$gene_id <- rownames(res_deseq_df)
+    
+    message("Running edgeR analysis on converted object...")
+    # Run edgeR on the DGEList converted from SummarizedExperiment
+    dge_converted <- estimateDisp(dge_converted)
+    et_analyzed <- exactTest(dge_converted)
+    res_edger <- topTags(et_analyzed, n = Inf)\$table
+    res_edger\$gene_id <- rownames(res_edger)
+    
+    # Stage 5: Compare and Save Results
+    message("Comparing results and writing outputs...")
+    
+    # Write individual results
+    write.csv(res_deseq_df, "deseq2_results.csv", row.names = FALSE)
+    write.csv(res_edger, "edger_results.csv", row.names = FALSE)
+    
+    # Merge results for comparison
+    merged_res <- merge(
+        res_deseq_df[, c("gene_id", "log2FoldChange", "pvalue", "padj")],
+        res_edger[, c("gene_id", "logFC", "PValue", "FDR")],
+        by = "gene_id",
+        suffixes = c("_deseq2", "_edger")
+    )
+    write.csv(merged_res, "method_comparison.csv", row.names = FALSE)
+    
+    # Generate comparison plot
+    pdf("method_comparison.pdf", width = 6, height = 6)
+    plot(
+        merged_res\$log2FoldChange, 
+        merged_res\$logFC,
+        xlab = "DESeq2 Log2 Fold Change",
+        ylab = "edgeR Log2 Fold Change",
+        main = "LFC Correlation between DESeq2 and edgeR",
+        pch = 16, 
+        col = rgb(0, 0, 1, 0.5)
+    )
+    abline(a = 0, b = 1, col = "red", lty = 2)
+    grid()
+    dev.off()
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE":',
+        paste0('    DEFormats: ', as.character(packageVersion('DEFormats')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_deformats_results.csv
-    touch ${prefix}_deformats_output.rds
-    echo "BIOC_DEFORMATS:" > versions.yml
-    echo "    deformats: 0.0.0" >> versions.yml
+    touch ${prefix}_deformats_interoperability_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEFORMATS_WORKFLOW {
+workflow BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_DEFORMATS(ch_input)
+    BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_DEFORMATS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEFORMATS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEFORMATS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEFORMATS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE.out.tables
+    plots    = BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE.out.plots
+    objects  = BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE.out.objects
+    versions = BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE.out.versions
 }

@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=Numeric phenotype vector or n x 1 matrix (either binary or Poisson distributed; multiple phenotypes are not allowed simultaneously) ;; SNPs=Numeric SNP matrix where columns are SNPs and rows correspond to phenotypes ;; Fixed=Matrix of fixed covariates (can be NULL) ;; Covariance=List of random effect covariance matrices (e.g., kinship matrix, identity matrix for overdispersion) ;; Z=Design/incidence matrices relating random effects to phenotypes (set to NULL if Zi = I_n_x_n) ;; family=Distributional family of the response, either \"poisson\" or \"bernoulli\" ;; replicates=Number of ecotype/individual replicates (provides computational gain for Poisson, set to NULL for binary) ;; Tau=Choice of fixed value or prior for the dispersion parameter of the nonlocal prior (\"uniform\" or \"IG\" for Inverse Gamma) ;; FDR_Nominal=Nominal False Discovery Rate level (e.g., 0.05) ;; maxiterations=Maximum number of iterations for the genetic algorithm in model selection (default 4000) ;; runs_til_stop=Number of consecutive genetic algorithm iterations with the same best model required for convergence (default 400)\n- alternatives: GWASTools=Provides frequentist methods for GWAS analysis ;; GWAS.BAYES=Provides Bayesian methods, but specifically for Gaussian (continuous) data, whereas BG2 is for non-Gaussian data ;; Single Marker Association (SMA)=Frequentist approach; BG2 drastically reduces false discoveries compared to SMA while maintaining similar recall\n- when_to_use: Use when performing GWAS on non-Gaussian phenotypes (specifically count data modeled as Poisson, or binary data modeled as Bernoulli) while controlling for population structure (kinship) and/or overdispersion using random effects in a generalized linear mixed model (GLMM) framework.\n- pitfalls: Does not allow the analysis of multiple phenotypes simultaneously (Y must be a single vector or n x 1 matrix) ;; The SNP matrix must contain only numeric values ;; The kinship matrix must be positive semi-definite and contain only numeric values ;; Setting replicates for binary data provides no computational gain and is not required (should be set to NULL).",
+  "workflows": [
+    {
+      "name": "poisson_gwas",
+      "intent": "Perform GWAS analysis on Poisson-distributed count phenotypes using a two-step Bayesian GLMM with kinship and overdispersion random effects.",
+      "input": [
+        "Y_poisson (numeric vector of Poisson phenotypes)",
+        "SNPs (numeric matrix of SNPs)",
+        "kinship (numeric kinship matrix)"
+      ],
+      "stages": "1. Load the phenotype, SNP, and kinship data ;; 2. Define the covariance matrices for the random effects (kinship and identity matrix for overdispersion) ;; 3. Run the BG2 function with family=\"poisson\", specifying the number of replicates and a uniform prior for Tau.",
+      "code": "data(\"Y_poisson\")\ndata(\"SNPs\")\ndata(\"kinship\")\nn <- length(Y_poisson)\ncovariance <- list()\ncovariance[[1]] <- kinship\ncovariance[[2]] <- diag(1, nrow = n, ncol = n)\nset.seed(1330)\noutput_poisson <- BG2(Y=Y_poisson, SNPs=SNPs, Fixed = NULL, \n                      Covariance=covariance, Z=NULL, family=\"poisson\", \n                      replicates=4, Tau=\"uniform\",FDR_Nominal = 0.05, \n                      maxiterations = 4000, runs_til_stop = 400)\noutput_poisson"
+    },
+    {
+      "name": "binary_gwas",
+      "intent": "Perform GWAS analysis on binary (Bernoulli) phenotypes using a two-step Bayesian GLMM with a kinship random effect.",
+      "input": [
+        "Y_binary (numeric vector of binary phenotypes)",
+        "SNPs (numeric matrix of SNPs)",
+        "kinship (numeric kinship matrix)"
+      ],
+      "stages": "1. Load the binary phenotype, SNP, and kinship data ;; 2. Define the covariance matrix for the kinship random effect ;; 3. Run the BG2 function with family=\"bernoulli\", setting replicates to NULL and using an Inverse Gamma prior for Tau.",
+      "code": "data(\"Y_binary\")\ndata(\"SNPs\")\ndata(\"kinship\")\ncovariance <- list()\ncovariance[[1]] <- kinship\nset.seed(1330)\noutput_binary <- BG2(Y=Y_binary, SNPs=SNPs, Fixed = NULL, \n                     Covariance=covariance, Z=NULL, family=\"bernoulli\", \n                     replicates=NULL, Tau=\"IG\",FDR_Nominal = 0.05, \n                     maxiterations = 4000, runs_til_stop = 400)\noutput_binary"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A data frame containing the outcome, regressors, and spatial/temporal coordinates ;; outVar=A character string specifying the name of the continuous outcome variable ;; xNames=A character vector of regressor variable names ;; glsSt=A corStruct object from the nlme package defining the autocorrelation structure ;; lambda=The penalty parameter; if omitted, it is tuned via cross-validation ;; nfolds=Number of cross-validation folds ;; alpha=Elastic net mixing parameter (e.g., 0.5 for elastic net, default is 1 for lasso) ;; cvType=Type of cross-validation, either \"blocked\" (recommended for spatial/temporal data) or \"random\" ;; transFun=A transformation function applied to outcomes during cross-validation (e.g., centering) ;; loss=Loss function for cross-validation, either \"R2\" (default) or \"MSE\"\n- alternatives: naive glmnet=Standard glmnet which ignores spatial/temporal dependence, used internally to find initial lambda or as a baseline comparison\n- when_to_use: Use when analyzing high-dimensional datasets (where the number of features p is large, potentially p > n) that exhibit spatial or temporal autocorrelation (e.g., time-series, grid-sampled spatial data).\n- pitfalls: Using random cross-validation (cvType = \"random\") for timecourse or spatial data is not recommended as it can lead to overoptimistic performance estimates; blocked cross-validation (cvType = \"blocked\") should be used instead. Failing to center or scale outcomes in cross-validation when baseline differences exist across timepoints can also degrade performance.",
+  "workflows": [
+    {
+      "name": "spatial_autocorrelation_analysis",
+      "intent": "Fit a penalized generalized least squares model to high-dimensional data with spatial coordinates using a spatial correlation structure.",
+      "input": [
+        "df (data frame containing a continuous outcome variable, high-dimensional regressors, and spatial coordinates x and y)"
+      ],
+      "stages": "1. Define the spatial correlation structure using nlme::corGaus ;; 2. Fit the pengls model with a specified penalty parameter lambda ;; 3. Extract coefficients and make predictions ;; 4. Perform cross-validation using cv.pengls to find the optimal lambda and inspect results",
+      "code": "corStruct <- corGaus(form = ~ x + y, nugget = TRUE, value = c(\"range\" = 5, \"nugget\" = 0.5))\npenglsFit <- pengls(data = df, outVar = \"a\", xNames = grep(names(df), pattern = \"b\", value =TRUE), glsSt = corStruct, lambda = 0.2, verbose = TRUE)\npenglsFit\npenglsCoef <- coef(penglsFit)\npenglsPred <- predict(penglsFit)\npenglsFitCV <- cv.pengls(data = df, outVar = \"a\", xNames = grep(names(df), pattern = \"b\", value =TRUE), glsSt = corStruct, nfolds = nfolds)\npenglsFitCV\npenglsFitCV$lambda.1se\npenglsFitCV$cvOpt\nhead(coef(penglsFitCV))\npenglsFitCV$foldid"
+    },
+    {
+      "name": "temporal_autocorrelation_analysis",
+      "intent": "Fit a penalized generalized least squares model to high-dimensional time-series data using a temporal correlation structure and cross-validation.",
+      "input": [
+        "dfTime (data frame containing a continuous outcome variable, high-dimensional regressors, and a time/ordering variable t)"
+      ],
+      "stages": "1. Define the temporal correlation structure using nlme::corAR1 ;; 2. Fit the pengls model with cross-validation to find the optimal lambda, optionally specifying elastic net mixing parameter alpha ;; 3. Visualize or inspect the cross-validation folds using makeFolds ;; 4. Perform cross-validation with custom settings such as random/blocked CV, outcome centering, or MSE loss",
+      "code": "corStructTime <- corAR1(form = ~ t, value = 0.5)\npenglsFitTime <- pengls(data = dfTime, outVar = \"a\", verbose = TRUE, xNames = grep(names(dfTime), pattern = \"b\", value =TRUE), glsSt = corStructTime, nfolds = 5, alpha = 0.5)\npenglsFitTime\nrandomFolds <- makeFolds(nfolds = nfolds, dfTime, \"random\", \"t\")\nblockedFolds <- makeFolds(nfolds = nfolds, dfTime, \"blocked\", \"t\")\npenglsFitCVtime <- cv.pengls(data = dfTime, outVar = \"a\", xNames = grep(names(dfTime), pattern = \"b\", value =TRUE), glsSt = corStructTime, nfolds = nfolds, cvType = \"random\")\npenglsFitCVtimeCenter <- cv.pengls(data = dfTime, outVar = \"a\", xNames = grep(names(dfTime), pattern = \"b\", value =TRUE), glsSt = corStructTime, nfolds = nfolds, cvType = \"blocked\", transFun = function(x) x-mean(x))\npenglsFitCVtimeCenter$cvOpt\npenglsFitCVtime <- cv.pengls(data = dfTime, outVar = \"a\", xNames = grep(names(dfTime), pattern = \"b\", value =TRUE), glsSt = corStructTime, nfolds = nfolds, loss =  \"MSE\")"
+    }
+  ]
+}

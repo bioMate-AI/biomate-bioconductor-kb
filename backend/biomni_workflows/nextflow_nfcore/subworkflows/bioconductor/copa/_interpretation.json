@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pct=Percentile cutoff used for internal pre-filtering of genes based on outlier count (default is 95th percentile; if >1000 genes remain, a warning is issued) ;; idx=The index of the gene pair to plot in plotCopa (e.g., idx = 1 for the top-ranked pair) ;; col=A vector of colors for the plot in plotCopa (e.g., c(\"lightgreen\", \"salmon\")) ;; lib=The annotation package name to label plots with gene symbols in plotCopa ;; cutoff (in copaPerm)=The outlier threshold/number of outliers to evaluate (e.g., 9) ;; num.pairs (in copaPerm)=The number of pairs to check in the permutation test (e.g., 24)\n- alternatives: Oncomine website (www.oncomine.org)=The original COPA implementation, but it is limited to the website, lacks pre-filtering, and does not compute inferential statistics ;; t-tests=Standard differential expression methods, which fail here because they look for overall differences rather than subset-specific outlier expression\n- when_to_use: Use when analyzing cancer microarray expression data to identify potential gene fusion partners characterized by mutually exclusive outlier expression in a subset of tumor samples compared to normal samples.\n- pitfalls: Pairwise outlier sum computation is computationally intensive; if the pre-filtering step results in more than 1000 genes, the analysis will slow down significantly and trigger a warning. Running copaPerm is extremely slow because it repeatedly runs the copa function on permuted labels; the default of 100 permutations is only enough for a basic idea, and at least 500-1000 permutations are required for a reliable p-value or FDR.",
+  "workflows": [
+    {
+      "name": "cancer_outlier_profile_analysis",
+      "intent": "Identify, visualize, and statistically validate mutually exclusive outlier gene pairs representing potential gene fusions from microarray expression data.",
+      "input": [
+        "expression_set.RData (ExpressionSet object containing microarray expression data and phenotypic class labels)"
+      ],
+      "stages": "1. Load package and data ;; 2. Run COPA analysis to find outlier gene pairs ;; 3. Plot the top outlier gene pair ;; 4. Tabulate the number of gene pairs with given outlier counts ;; 5. Summarize the specific gene pairs meeting the outlier threshold ;; 6. Run permutation testing to assess the statistical significance of the observed outlier pairs",
+      "code": "library(copa)\nlibrary(colonCA)\ndata(colonCA)\nhead(pData(colonCA), 10)\nrslt <- copa(colonCA, as.numeric(pData(colonCA)[,3]))\nplotCopa(rslt, idx = 1, col = c(\"lightgreen\",\"salmon\"))\ntableCopa(rslt)\nsummaryCopa(rslt, 9)\nprm <- copaPerm(colonCA, rslt, 9, 24)\nsum(prm >= 9)"
+    }
+  ]
+}

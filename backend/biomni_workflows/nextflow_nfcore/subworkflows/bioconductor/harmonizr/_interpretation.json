@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data_as_input=Path to raw data, or a dataframe/matrix, or a SummarizedExperiment object ;; description_as_input=Path to description file, or a dataframe/matrix (not needed if using SummarizedExperiment with batch info) ;; algorithm=Batch correction algorithm, either \"ComBat\" (default) or \"limma\" ;; ComBat_mode=Integer (1 to 4) specifying ComBat arguments (default is 1) ;; plot=Set to \"samplemeans\", \"featuremeans\", or \"CV\" to generate boxplots of pre- and post-adjusted data ;; output_file=Name/path of the output .tsv file (defaults to \"cured_data\"). Set to FALSE to disable ;; sort=Sorting algorithm prior to adjustment (\"sparcity_sort\", \"seriation_sort\", or \"jaccard_sort\") ;; block=Integer dictating how many batches to pack together during matrix dissection ;; verbosity=Integer controlling command line feedback (0 or \"mute\" to silence, 1 is default) ;; cores=Number of cores to use (defaults to all available cores) ;; ur=Logical (TRUE/FALSE) to toggle unique removal for increased feature rescue (default is TRUE)\n- alternatives: Standard ComBat (from sva) or limma directly, which are unable to deal with missing data points on their own.\n- when_to_use: When performing batch effect correction on high-throughput biological data (especially proteomics) that contains missing values (NA).\n- pitfalls: Trying to plot data using the plot parameter when the data has not been log-transformed prior to running HarmonizR may lead to an unplottable result ;; The sort parameter does not yield any benefit when the block parameter is unused ;; ComBat_mode is only valid when algorithm is set to \"ComBat\".",
+  "workflows": [
+    {
+      "name": "batch_correction_dataframe",
+      "intent": "Perform batch effect correction on a data frame containing missing values using ComBat or limma.",
+      "input": [
+        "df (a data frame or matrix of molecular features, e.g., proteins or genes, with samples as columns and features as rows)",
+        "des (a description data frame mapping sample IDs to their respective batches)"
+      ],
+      "stages": "1. Prepare the input data frame and sample description data frame ;; 2. Run the harmonizR function to perform matrix dissection and batch effect correction.",
+      "code": "df <- data.frame(matrix(rnorm(n = 3*6), ncol = 6))\ncolnames(df) <- c(\"A\", \"B\", \"C\", \"D\", \"E\", \"F\")\nrow_names <- c(\"F1\", \"F2\", \"F3\")\nrownames(df) <- row_names\nbatch <- rep(1:3, each = 2)\ndes <- data.frame(ID = colnames(df), sample = 1:6, batch = batch)\nresult <- harmonizR(df, des, output_file = FALSE, cores = 1)"
+    }
+  ]
+}

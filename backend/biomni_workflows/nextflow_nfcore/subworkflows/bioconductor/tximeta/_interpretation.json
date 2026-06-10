@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: coldata=A data frame containing files (path to quant.sf) and names (unique sample names) columns ;; skipMeta=Logical; if TRUE, skips adding ranges and metadata ;; assignRanges=Character; in summarizeToGene, can be \"range\" (default) or \"abundant\" (most abundant isoform) ;; type=Character; in importData, specifies the quantifier type (e.g., \"oarfish\") ;; txpData=GRanges or data.frame; in updateMetadata, used to manually add transcript metadata ;; ranges=Logical; in updateMetadata, if TRUE, populates rowRanges but removes transcripts without range information ;; divide=Logical; in DGEListFromTximeta, if TRUE, divides out quantification uncertainty for transcript-level analysis\n- alternatives: tximport=The underlying package; prefer tximport directly or run tximeta with skipMeta=TRUE and a manual tx2gene table if using unsupported quantifiers, if no reference digest is available, or if running Salmon in alignment mode.\n- when_to_use: Use when importing RNA-seq transcript quantifications from Salmon, Sailfish, alevin, or oarfish, and you want to automatically attach genomic coordinates (GRanges), transcript/gene metadata, and ensure computational reproducibility via reference sequence digests.\n- pitfalls: Modifying or rearranging the output directory of the quantification tool (e.g., Salmon) will prevent tximeta from identifying the provenance of the reference transcripts ;; Missing transcripts in the GTF/GFF file that were present in the indexed FASTA will trigger a warning and be removed from the ranged SummarizedExperiment (can be bypassed with skipMeta=TRUE) ;; Using Salmon in alignment mode lacks an index, meaning there is no digest; skipMeta=TRUE must be used ;; For alevin, tximeta requires that it was run using gene IDs in the tgMap step, not gene symbols ;; linkedTxome and tximeta do not currently support multiple GTF/GFF files (users must combine them manually first).",
+  "workflows": [
+    {
+      "name": "salmon_import_and_summarization",
+      "intent": "Import Salmon transcript quantifications, automatically attach metadata/ranges, and summarize to gene-level for downstream differential expression.",
+      "input": [
+        "quant.sf (Salmon quantification output files)",
+        "coldata (sample metadata table)"
+      ],
+      "stages": "1. Prepare sample table with files and names columns ;; 2. Link custom transcriptome using makeLinkedTxome ;; 3. Import data using tximeta ;; 4. Retrieve database using retrieveDb ;; 5. Add exons using addExons ;; 6. Summarize to gene-level using summarizeToGene ;; 7. Add alternative identifiers using addIds ;; 8. Convert to downstream analysis objects (e.g., DGEListFromTximeta)",
+      "code": "dir <- system.file ( \"extdata/salmon_dm\" , package= \"tximportData\" )\nfiles <- file.path (dir, \"SRR1197474\" , \"quant.sf\" )\ncoldata <- data.frame (files, names= \"SRR1197474\" , condition= \"A\" , stringsAsFactors= FALSE )\nindexDir <- file.path (dir, \"Dm.BDGP6.22.98_salmon-0.14.1\" )\nfastaFTP <- c ( \"ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/cdna/Drosophila_melanogaster.BDGP6.22.cdna.all.fa.gz\" , \"ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/ncrna/Drosophila_melanogaster.BDGP6.22.ncrna.fa.gz\" )\ngtfPath <- file.path (dir, \"Drosophila_melanogaster.BDGP6.22.98.gtf.gz\" )\nmakeLinkedTxome ( indexDir= indexDir, source= \"LocalEnsembl\" , organism= \"Drosophila melanogaster\" , release= \"98\" , genome= \"BDGP6.22\" , fasta= fastaFTP, gtf= gtfPath, write= FALSE )\nse <- tximeta (coldata)\nedb <- retrieveDb (se)\nse.exons <- addExons (se)\ngse <- summarizeToGene (se)\ngse <- addIds (gse, \"REFSEQ\" , gene= TRUE )\ny <- DGEListFromTximeta (gse)"
+    },
+    {
+      "name": "mixed_reference_oarfish_import",
+      "intent": "Import and update metadata for mixed reference transcripts (annotated + novel) quantified with oarfish.",
+      "input": [
+        "sgnex_h9_rep2.quant.gz (oarfish quantification output files)",
+        "coldata (sample metadata table)",
+        "novel_gr (GRanges object containing novel transcript coordinates)"
+      ],
+      "stages": "1. Prepare sample table with files and names columns ;; 2. Import un-ranged data using importData with type=\"oarfish\" ;; 3. Inspect reference digests using inspectDigests ;; 4. Update metadata and optionally add ranges using updateMetadata ;; 5. Manually add novel transcript ranges using updateMetadata with txpData and ranges=TRUE",
+      "code": "dir <- system.file(\"extdata/oarfish\", package=\"tximportData\")\nnames <- paste0(\"rep\", 2:4)\nfiles <- file.path(dir, paste0(\"sgnex_h9_\", names, \".quant.gz\"))\ncoldata <- data.frame(files, names)\nse <- importData(coldata, type=\"oarfish\")\ninspectDigests(se)\ninspectDigests(se, fullDigest=TRUE)\nse_update <- updateMetadata(se)\nnovel <- data.frame(\n  seqnames = paste0(\"chr\", rep(1:22, each = 500)),\n  start = 1e6 + 1 + 0:499 * 1000,\n  end = 1e6 + 1 + 0:499 * 1000 + 1000 - 1,\n  strand = \"+\",\n  tx_name = paste0(\"novel\", 1:(22 * 500)),\n  gene_id = paste0(\"novel_gene\", rep(1:(22 * 10), each = 50)),\n  type = \"protein_coding\"\n)\nlibrary(GenomicRanges)\nnovel_gr <- as(novel, \"GRanges\")\nnames(novel_gr) <- novel$tx_name\nse_with_ranges <- updateMetadata(se, txpData=novel_gr, ranges=TRUE)"
+    }
+  ]
+}

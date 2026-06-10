@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=In toPWM, controls the conversion type (e.g., \"log2probratio\" or \"prob\") ;; pseudocounts=In toPWM or toICM, specifies the correction value to eliminate zero values before log transformation (default is 0.8) ;; schneider=In toICM, a logical indicating whether to perform the Schneider correction ;; min.score=In searchSeq, searchAln, or searchPairBSgenome, sets the minimum threshold score for scanning (can be a percentage string like \"60%\") ;; strand=In searchSeq or searchAln, controls which strand of the sequence is searched (\"*\" for both, \"+\" or \"-\") ;; cutoff=In searchAln, the threshold for alignment conservation/score\n- alternatives: Biostrings::toPWM=An alternative for converting PFMs to PWMs, but TFBSTools::toPWM is preferred when input matrices have unequal column sums or require customized column-specific pseudocounts ;; TFFM=Transcription Factor Flexible Models (HMM-based) can be used instead of basic PWMs to model position interdependence and variable motif length\n- when_to_use: Use when you need to identify putative transcription factor binding sites in nucleotide sequences, pairwise alignments, or across genomes using known binding profiles (PWMs), and when you want to calculate empirical p-values for these matches or export them to GFF format.\n- pitfalls: Using the square root of the column sum as pseudocounts (the default in the TFBS Perl module) can be too harsh; a default of 0.8 is recommended instead.",
+  "workflows": [
+    {
+      "name": "tfbs_sequence_scanning",
+      "intent": "Scan a nucleotide sequence with a PWM to identify putative TFBSs, calculate empirical p-values, and export results to GFF format.",
+      "input": [
+        "sequence.fasta (DNA sequence of interest)",
+        "pfm_data.txt (raw position frequency matrix or JASPAR ID)"
+      ],
+      "stages": "1. Construct PFMatrix ;; 2. Convert PFMatrix to PWMatrix ;; 3. Scan sequence with PWMatrix ;; 4. Calculate empirical p-values ;; 5. Export results to GFF3 or GFF2",
+      "code": "pfm <- PFMatrix(ID=\"MA0004.1\", name=\"Arnt\", \n                matrixClass=\"Zipper-Type\", strand=\"+\",\n                bg=c(A=0.25, C=0.25, G=0.25, T=0.25),\n                tags=list(family=\"Helix-Loop-Helix\", species=\"10090\",\n                          tax_group=\"vertebrates\",medline=\"7592839\", \n                          type=\"SELEX\",ACC=\"P53762\", pazar_tf_id=\"TF0000003\",\n                          TFBSshape_ID=\"11\", TFencyclopedia_ID=\"580\"),\n                profileMatrix=matrix(c(4L,  19L, 0L,  0L,  0L,  0L,\n                                       16L, 0L,  20L, 0L,  0L,  0L,\n                                       0L,  1L,  0L,  20L, 0L,  20L,\n                                       0L,  0L,  0L,  0L,  20L, 0L),\n                                     byrow=TRUE, nrow=4,\n                                     dimnames=list(c(\"A\", \"C\", \"G\", \"T\"))\n                                     )\n                )\npwm <- toPWM(pfm, type=\"log2probratio\", pseudocounts=0.8,\n             bg=c(A=0.25, C=0.25, G=0.25, T=0.25))\nsubject <- DNAString(\"GAATTCTCTCTTGTTGTAGTCTCTTGACAAAATG\")\nsiteset <- searchSeq(pwm, subject, seqname=\"seq1\", min.score=\"60%\", strand=\"*\")\nhead(writeGFF3(siteset))\nhead(writeGFF2(siteset))\nrelScore(siteset)\npvalues(siteset, type=\"TFMPvalue\")\npvalues(siteset, type=\"sampling\")"
+    },
+    {
+      "name": "pairwise_alignment_scanning",
+      "intent": "Scan a pairwise sequence alignment with a PWM to identify conserved TFBSs.",
+      "input": [
+        "alignment_seq1.fasta (first aligned sequence)",
+        "alignment_seq2.fasta (second aligned sequence)"
+      ],
+      "stages": "1. Convert PFM to PWM ;; 2. Scan pairwise alignment ;; 3. Export conserved sites to GFF",
+      "code": "pwm <- toPWM(MA0003.2)\naln1 <- DNAString(\"ACTTCACCAGCTCCCTGGCGGTAAGTTGATC---AAAGG---AAACGCAAAGTTTTCAAG\")\naln2 <- DNAString(\"GTTTCACTACTTCCTTTCGGGTAAGTAAATATATAAATATATAAAAATATAATTTTCATC\")\nsitePairSet <- searchAln(pwm, aln1, aln2, seqname1=\"seq1\", seqname2=\"seq2\",\n                         min.score=\"50%\", cutoff=0.5,\n                         strand=\"*\", type=\"any\")\nhead(writeGFF3(sitePairSet))\nhead(writeGFF2(sitePairSet))"
+    },
+    {
+      "name": "genome_wide_phylogenetic_footprinting",
+      "intent": "Identify conserved TFBSs across two genomes using liftover chain files.",
+      "input": [
+        "hg19_genome (BSgenome object for target genome)",
+        "mm10_genome (BSgenome object for query genome)",
+        "hg19ToMm10.over.chain (liftover chain file)"
+      ],
+      "stages": "1. Retrieve PFM and convert to PWM ;; 2. Scan both genomes using liftover chain to find conserved sites",
+      "code": "pfm <- getMatrixByID(JASPAR2014, ID=\"MA0004.1\")\npwm <- toPWM(pfm)\nchain <- import.chain(\"Downloads/hg19ToMm10.over.chain\")\nsitePairSet <- searchPairBSgenome(pwm, BSgenome.Hsapiens.UCSC.hg19,\n                                 BSgenome.Mmusculus.UCSC.mm10,\n                                 chr1=\"chr1\", chr2=\"chr1\",\n                                 min.score=\"90%\", strand=\"+\", chain=chain)"
+    }
+  ]
+}

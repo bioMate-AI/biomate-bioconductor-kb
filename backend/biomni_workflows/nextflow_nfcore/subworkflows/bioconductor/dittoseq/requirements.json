@@ -1,0 +1,13 @@
+{
+  "package": "dittoseq",
+  "requirements": [
+    "SummarizedExperiment",
+    "dittoSeq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "dittoSeq"
+    ]
+  }
+}

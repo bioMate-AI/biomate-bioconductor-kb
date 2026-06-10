@@ -1,0 +1,13 @@
+{
+  "package": "bcrank",
+  "requirements": [
+    "BCRANK",
+    "seqLogo"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BCRANK",
+      "seqLogo"
+    ]
+  }
+}

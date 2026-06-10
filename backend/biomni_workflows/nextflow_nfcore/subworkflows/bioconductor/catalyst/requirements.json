@@ -1,0 +1,28 @@
+{
+  "package": "catalyst",
+  "requirements": [
+    "CATALYST",
+    "SingleCellExperiment",
+    "cowplot",
+    "diffcyt",
+    "flowCore",
+    "ggplot2",
+    "scater"
+  ],
+  "by_workflow": {
+    "differential_discovery.nf": [
+      "CATALYST",
+      "SingleCellExperiment",
+      "diffcyt",
+      "flowCore",
+      "scater"
+    ],
+    "main.nf": [
+      "CATALYST",
+      "SingleCellExperiment",
+      "cowplot",
+      "flowCore",
+      "ggplot2"
+    ]
+  }
+}

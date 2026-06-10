@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genome=Specifies the genome build (hg18, hg19, or hg38) to use for annotations and plots ;; nCores=Number of cores for parallel processing in adjustSignal and segmentCGH (automatically set to 1 on Windows) ;; UndoSD=Standard deviation threshold for CBS in segmentCGH (default NULL estimates optimal value) ;; peakThresh=Proportion of the highest density peak to use for EM centralization in EMnormalize (default 0.5) ;; Ref=Reference dye for Agilent dual-color arrays in adjustSignal (default cy3, can be cy5) ;; Scale=Logical indicating whether to rescale LRR for Affymetrix data in adjustSignal (default TRUE)\n- alternatives: Affymetrix CEL files must be preprocessed using ChAS or Affymetrix Power Tools (APT) to export cychp.txt or cnchp.txt files before reading with rCGH. Custom arrays should be read using readGeneric instead of platform-specific readers.\n- when_to_use: When performing copy number alteration (CNA) and loss of heterozygosity (LOH) analysis on array-based CGH data from Agilent, Affymetrix SNP6.0, CytoScanHD, or custom generic platforms.\n- pitfalls: Affymetrix CEL files cannot be read directly and must be pre-exported. cychp.txt files do not contain Allelic differences and cannot be used for LOH estimation (use cnchp.txt instead). Parallelization (nCores > 1) is not supported on Windows and will automatically fall back to 1. Setting useProbes = \"cn\" on the provided demo files will cause an error because they only contain SNP probes. Some genes may be dropped during byGeneTable if they span multiple strands or reference sequences unless single.strand.genes.only=FALSE is specified.",
+  "workflows": [
+    {
+      "name": "acgh_analysis_pipeline",
+      "intent": "Perform a complete aCGH analysis pipeline from reading raw array data to signal adjustment, segmentation, EM normalization, gene annotation, and visualization.",
+      "input": [
+        "Affy_cytoScan.cyhd.CN5.CNCHP.txt.bz2 (Affymetrix CytoScan HD exported text file)",
+        "Affy_snp6_cnchp.txt.bz2 (Affymetrix SNP6.0 exported text file)",
+        "Agilent4x180K.txt.bz2 (Agilent Feature Extraction text file)",
+        "generic.txt.bz2 (Custom array text file)"
+      ],
+      "stages": "1. Read array data using readAffyCytoScan, readAffySNP6, readAgilent, or readGeneric ;; 2. Add/get sample annotations using setInfo and getInfo ;; 3. Adjust and scale LRR signals using adjustSignal ;; 4. Segment genomic profile using segmentCGH and extract table with getSegTable ;; 5. Center LRR using EMnormalize and check density with plotDensity ;; 6. Map segments to genes using byGeneTable ;; 7. Visualize profile statically using multiplot/plotProfile or interactively using view ;; 8. Recenter profile if needed using recenter",
+      "code": "library(rCGH)\nfilePath <- system.file(\"extdata\",\n    \"Affy_cytoScan.cyhd.CN5.CNCHP.txt.bz2\",\n    package = \"rCGH\")\ncgh <- readAffyCytoScan(filePath, sampleName = \"CSc-Example\",\n                        labName = \"myLab\")\ncgh\nsetInfo(cgh, \"item1\") <- 35\nsetInfo(cgh, \"item2\") <- TRUE\nsetInfo(cgh, \"item3\") <- \"someComment\"\ngetInfo(cgh)\ngetInfo(cgh, c(\"item1\", \"item3\"))\ncgh <- adjustSignal(cgh, nCores=1)\ncgh <- segmentCGH(cgh, nCores=1)\nsegTable <- getSegTable(cgh)\nhead(segTable)\ncgh <- EMnormalize(cgh)\nplotDensity(cgh)\ngeneTable <- byGeneTable(segTable)\nhead(geneTable, n=3)\nbyGeneTable(segTable, \"erbb2\", genome = \"hg19\")[,1:6]\nbyGeneTable(segTable, \"erbb2\", genome = \"hg18\")[,1:6]\ngetParam(cgh)[1:3]\nmultiplot(cgh, symbol = c(\"egfr\", \"erbb2\"))\nrecenter(cgh) <- 2\nplotProfile(cgh, symbol = c(\"egfr\", \"erbb2\"))\n# view(cgh)"
+    }
+  ]
+}

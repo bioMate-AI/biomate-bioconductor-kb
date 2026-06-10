@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exp=An ExpressionSet or expression matrix containing log-transformed gene expression values ;; classes=A numeric vector of class labels (e.g., 1 and 2) indicating the experimental conditions, named with sample identifiers ;; graph=A graphNEL object representing the pathway topology ;; nperm=Number of permutations for the pathQ test ;; alphaV=Significance level for the variance test ;; b=Number of bootstrap replicates or iterations ;; method=Method used in easyClip (e.g., \"mean\" or \"var\") ;; trZero=Threshold below which values are treated as zero in clipper ;; permute=Logical indicating whether to permute in clipper ;; thr=Dissimilarity threshold for pruning overlapping paths in prunePaths\n- alternatives: GSEA=Non-topological method that treats pathways as simple gene lists without structure ;; SPIA=Topological method that takes only a list of differentially expressed genes as input and tests a different null hypothesis ;; DEGraph=Another topological pathway analysis method on Bioconductor\n- when_to_use: Use when you want to exploit pathway topology to identify both global pathway alterations (changes in mean expression and/or covariance/interaction strength) and specific sub-paths (portions of the pathway) driving the phenotypic differences between two conditions.\n- pitfalls: The method is based on Gaussian graphical models, so it is strongly recommended to use log-transformed data ;; Ensure gene identifiers in the expression matrix/ExpressionSet match the node identifiers in the pathway graph (e.g., prefixing with \"ENTREZID:\" if using graphite) ;; RCytoscape is no longer supported on some platforms; RCy3 should be used instead for Cytoscape visualization",
+  "workflows": [
+    {
+      "name": "global_and_subpath_clipper_analysis",
+      "intent": "Perform a two-step topological pathway analysis to test global pathway significance and identify specific active sub-paths.",
+      "input": [
+        "expression_data.RData (ExpressionSet or matrix of log-transformed gene expression values)",
+        "class_labels.RData (numeric vector of class labels 1 and 2, named by sample)",
+        "pathway_graph.RData (graphNEL object representing pathway topology)"
+      ],
+      "stages": "1. Run global pathway analysis using pathQ to test for differences in covariance and mean ;; 2. Identify specific sub-paths associated with the phenotype using clipper ;; 3. Prune overlapping or redundant sub-paths using prunePaths ;; 4. Visualize the identified sub-paths using plotInCytoscape",
+      "code": "pathwayAnalysis <- pathQ(exp, classes, graph, nperm=100, alphaV=0.05, b=100)\npathwayAnalysis\nclipped <- clipper(exp, classes, graph, \"var\", trZero=0.01, permute=FALSE)\nclipped[,1:5]\nclipped <- prunePaths(clipped, thr=0.2)\nclipped[,1:5]\nplotInCytoscape(graph, clipped[1,])"
+    },
+    {
+      "name": "easy_clipper_analysis",
+      "intent": "Quickly run a simplified topological pathway analysis to identify altered sub-paths and summarize results.",
+      "input": [
+        "expression_data.RData (ExpressionSet or matrix of log-transformed gene expression values)",
+        "class_labels.RData (numeric vector of class labels 1 and 2, named by sample)",
+        "pathway_graph.RData (graphNEL object representing pathway topology)"
+      ],
+      "stages": "1. Run simplified analysis using easyClip with a specified method ;; 2. Summarize and inspect the results using easyLook",
+      "code": "clipped <- easyClip(exp, classes, graph, method=\"mean\")\nclipped[,1:5]\neasyLook(clipped)"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - dirproject=Path to the project directory where all outputs and subdirectories are saved.\n  - dirbam=Directory containing the input BAM files.\n  - filebamlist=Path to a text file listing the names of the BAM files to be processed.\n  - filecpgset=Path to an RDS file containing the list of genomic CpG locations.\n  - scoretag=BAM field/tag used for filtering reads (typically \"MAPQ\" or \"AS\").\n  - minscore=Minimum alignment score threshold; reads below this are excluded.\n  - minfragmentsize=Minimum size of sequenced DNA fragments (not read length).\n  - maxfragmentsize=Maximum size of sequenced DNA fragments.\n  - minavgcpgcoverage=Minimum average coverage threshold to preserve a CpG (default 0.3).\n  - minnonzerosamples=Minimum proportion of samples with non-zero coverage to preserve a CpG (default 0.3).\n  - filecovariates=Path to a comma- or tab-separated file containing sample covariates.\n  - modelcovariates=Vector of covariates to be regressed out or adjusted for in the model.\n  - modeloutcome=The phenotype or outcome variable of interest for association testing.\n  - modelPCs=Number of top principal components to include as covariates in the MWAS.\n  - toppvthreshold=P-value threshold (or integer count) for saving top findings.\n  - fileSNPs=Path to the SNP genotype filematrix for joint CpG-SNP analysis.\n- alternatives:\n  - Bowtie 2 is recommended as an external tool for aligning raw FASTQ reads before running RaMWAS.\n  - vcftools is recommended as an external tool to generate allele count files from VCFs for SNP injection.\n  - filematrix package is used internally to handle large-scale parallel data storage and access.\n- when_to_use: Use this package when conducting MWAS on enrichment-based methylation sequencing data (e.g., MBD-seq) or other methylomic data (like Illumina arrays) where you need a unified pipeline from BAM alignment files to association testing and risk score prediction.\n- pitfalls:\n  - Hard disk speed is a major bottleneck during BAM scanning; using more than 4 CPU threads (`cputhreads`) on a single rotational hard drive may not yield speed improvements.\n  - Injecting all SNPs from dbSNP without filtering by minor allele frequency (MAF) creates an excessively large number of rare CpG-SNPs (e.g., 42M vs 29M), which severely reduces statistical power.\n  - CpG sites in repetitive elements (~45% of the human genome) cause alignment errors that confound methylation estimates; they must be filtered out using an in silico alignment experiment.\n  - If BAMs or samples are excluded after QC, Step 2 (`ramwas2collectqc`) must be rerun to ensure fragment size distribution is estimated only on the clean, selected dataset.",
+  "workflows": [
+    {
+      "name": "standard_mwas_pipeline",
+      "intent": "Perform a complete MWAS workflow from raw BAM files, including QC, normalization, PCA, association testing, annotation, and cross-validated risk score prediction.",
+      "input": [
+        "bams/ (directory of raw BAM files)",
+        "bam_list.txt (text file listing BAM filenames)",
+        "Simulated_chromosome.rds (RDS file containing CpG locations)",
+        "covariates.txt (tab/comma-separated file with sample phenotypes and covariates)"
+      ],
+      "stages": "1. Define pipeline parameters using `ramwasParameters`.\n2. Scan BAM files and calculate QC metrics using `ramwas1scanBams`.\n3. Summarize QC metrics and estimate fragment size distribution using `ramwas2collectqc`.\n4. Calculate and normalize the CpG score (coverage) matrix using `ramwas3normalizedCoverage`.\n5. Perform Principal Component Analysis (PCA) on the normalized coverage matrix using `ramwas4PCA`.\n6. Run the association analysis (MWAS) using `ramwas5MWAS`.\n7. Annotate top findings with gene symbols and IDs using `ramwas6annotateTopFindings`.\n8. Predict the outcome variable using cross-validated elastic net models via `ramwas7riskScoreCV`.",
+      "code": "param = ramwasParameters(\n dirproject = dr,\n dirbam = \"bams\",\n filebamlist = \"bam_list.txt\",\n filecpgset = \"Simulated_chromosome.rds\",\n cputhreads = 2,\n scoretag = \"MAPQ\",\n minscore = 4,\n minfragmentsize = 50,\n maxfragmentsize = 250,\n minavgcpgcoverage = 0.3,\n minnonzerosamples = 0.3,\n filecovariates = \"covariates.txt\",\n modelcovariates = NULL,\n modeloutcome = \"age\",\n modelPCs = 0,\n toppvthreshold = 1e-5,\n bihost = \"grch37.ensembl.org\",\n bimart = \"ENSEMBL_MART_ENSEMBL\",\n bidataset = \"hsapiens_gene_ensembl\",\n biattributes = c(\"hgnc_symbol\",\"entrezgene\",\"strand\"),\n bifilters = list(with_hgnc_trans_name = TRUE),\n biflank = 0,\n cvnfolds = 5,\n mmalpha = 0,\n mmncpgs = c(5, 10, 50, 100, 500, 1000, 2000)\n)\nramwas1scanBams(param)\nramwas2collectqc(param)\nramwas3normalizedCoverage(param)\nramwas4PCA(param)\nramwas5MWAS(param)\nramwas6annotateTopFindings(param)\nramwas7riskScoreCV(param)"
+    },
+    {
+      "name": "cpg_snp_joint_analysis",
+      "intent": "Perform a joint association analysis of methylation and genotype data to account for the effects of CpG-SNPs on methylation measurements.",
+      "input": [
+        "Coverage (filematrix of normalized coverage scores)",
+        "CpG_locations (filematrix of CpG genomic coordinates)",
+        "SNPs (filematrix of genotype dosages/counts matching the coverage matrix)",
+        "covariates (R data.frame containing sample phenotypes and covariates)"
+      ],
+      "stages": "1. Define parameters for the joint analysis using `ramwasParameters`, specifying the genotype filematrix in `fileSNPs`.\n2. Run the joint CpG-SNP association analysis using `ramwasSNPs`.\n3. Run a standard MWAS on the same parameters using `ramwas5MWAS` for comparison.",
+      "code": "param = ramwasParameters(\n dircoveragenorm = dr,\n covariates = covariates,\n modelcovariates = \"batch\",\n modeloutcome = \"sex\",\n toppvthreshold = 20,\n fileSNPs = \"SNPs\"\n)\nramwasSNPs(param)\nramwas5MWAS(param)"
+    },
+    {
+      "name": "custom_cpg_set_construction",
+      "intent": "Construct a custom CpG set from a reference genome, inject common SNPs filtered by minor allele frequency, and perform an in silico alignment experiment to filter out problematic repetitive regions.",
+      "input": [
+        "count_ALL_chr22.txt (allele count file generated by vcftools --counts)",
+        "bams/ (directory containing BAM files from aligning simulated FASTQ reads back to the reference genome)"
+      ],
+      "stages": "1. Inject common SNPs (MAF > 0.01) into the reference genome using `injectSNPsMAF`.\n2. Identify all potential CpG sites in the SNP-injected genome using `getCpGsetALL`.\n3. Generate artificial FASTQ reads from the reference genome using `insilicoFASTQ` for the alignment experiment.\n4. Define parameters for scanning the simulated BAM files using `ramwasParameters`.\n5. Scan the simulated BAMs and calculate normalized coverage using `ramwas1scanBams` and `ramwas3normalizedCoverage`.\n6. Filter the CpG set by keeping only the sites that fall within the expected coverage tolerance.",
+      "code": "genome[[\"chr22\"]] = injectSNPsMAF(\n gensequence = BSGenome[[\"chr22\"]],\n frqcount = \"count_ALL_chr22.txt\",\n MAF = 0.01)\ncpgset = getCpGsetALL(genome)\ninsilicoFASTQ(\n con=\"chr1.fastq.gz\",\n gensequence = BSGenome[[\"chr1\"]],\n fraglength=75)\nparam = ramwasParameters(\n dirproject = \".\",\n dirbam = \"./bams\",\n dirfilter = TRUE,\n bamnames = chrset,\n bam2sample = list(all_samples = chrset),\n scoretag = \"AS\",\n minscore = 100,\n minfragmentsize = targetcov,\n maxfragmentsize = targetcov,\n minavgcpgcoverage = 0,\n minnonzerosamples = 0,\n filecpgset = filecpgset\n)\nparam1 = parameterPreprocess(param)\nramwas1scanBams(param)\nramwas3normalizedCoverage(param)"
+    }
+  ]
+}

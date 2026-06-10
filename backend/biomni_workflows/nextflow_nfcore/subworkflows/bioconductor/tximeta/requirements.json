@@ -1,0 +1,29 @@
+{
+  "package": "tximeta",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "digest",
+    "edgeR",
+    "tximeta"
+  ],
+  "by_workflow": {
+    "linked_transcriptomes.nf": [
+      "Biostrings",
+      "SummarizedExperiment",
+      "digest",
+      "tximeta"
+    ],
+    "main.nf": [
+      "SummarizedExperiment",
+      "edgeR",
+      "tximeta"
+    ],
+    "mixed_reference_import.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "tximeta"
+    ]
+  }
+}

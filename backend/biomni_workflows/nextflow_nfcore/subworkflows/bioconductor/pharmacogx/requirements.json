@@ -1,0 +1,33 @@
+{
+  "package": "pharmacogx",
+  "requirements": [
+    "CoreGx",
+    "PharmacoGx",
+    "SummarizedExperiment",
+    "data.table",
+    "ggplot2",
+    "pander",
+    "scales"
+  ],
+  "by_workflow": {
+    "drug_synergy_antagonism.nf": [
+      "CoreGx",
+      "PharmacoGx",
+      "data.table",
+      "ggplot2",
+      "scales"
+    ],
+    "gene_drug_association.nf": [
+      "PharmacoGx",
+      "pander"
+    ],
+    "main.nf": [
+      "PharmacoGx",
+      "SummarizedExperiment"
+    ],
+    "perturbation_connectivity.nf": [
+      "PharmacoGx",
+      "pander"
+    ]
+  }
+}

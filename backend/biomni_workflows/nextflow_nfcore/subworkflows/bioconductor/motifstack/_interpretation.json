@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: layout=Controls the visual arrangement of multiple motifs (e.g., \"stack\", \"tree\", \"radialPhylog\", \"rectangles\") ;; ic.scale=Logical indicating whether to scale character heights by information content (default TRUE; set to FALSE for probability/same height) ;; markers=A list of marker objects (\"rect\", \"line\", \"text\") to annotate specific positions on the logo ;; reorder=Logical indicating whether to reorder the input motifs in motifStack (default TRUE; set to FALSE to preserve input order) ;; motifScale=Scale of the motifs in radial/circos/pile plots, e.g., \"logarithmic\"\n- alternatives: seqlogo=A tool for individual sequence logos, but lacks the ability to depict relationships among multiple motifs ;; MotIV::motifDistances=Previously used for calculating motif distances (STAMP implementation) but dropped from Bioconductor; motifStack now uses an R implementation of matalign by default\n- when_to_use: Use when visualizing transcription factor binding site motifs, RNA motifs, amino acid sequence conservation, or position-specific affinity matrices (PSAMs), especially when comparing multiple motifs and displaying their relationships via hierarchical clustering, radial trees, or circos layouts.\n- pitfalls: Failing to match the row names of the input matrix to the alphabet (e.g., \"A\", \"C\", \"G\", \"T\" for DNA; \"A\", \"C\", \"G\", \"U\" for RNA; 20 amino acids for proteins) which will cause errors in S4 class initialization ;; Using the deprecated MotIV package for distance calculations instead of the default clusterMotifs or matalign ;; SVG generation warnings when Cairo graphics are not properly configured or when using non-Cairo generated SVGs.",
+  "workflows": [
+    {
+      "name": "single_motif_logo",
+      "intent": "Import a single position count/frequency/affinity matrix and plot it as a customized sequence or affinity logo with markers and custom styles.",
+      "input": [
+        "motif_matrix.txt (A text file containing a position count matrix (PCM), position frequency matrix (PFM), or position-specific affinity matrix (PSAM) with rows representing bases/amino acids and columns representing positions)"
+      ],
+      "stages": "1. Import matrix using importMatrix or read raw table ;; 2. Convert/create S4 object (new(\"pcm\"), new(\"pfm\"), or new(\"psam\")) ;; 3. Define markers (new(\"marker\")) ;; 4. Plot using plot()",
+      "code": "pcm <- read.table(file.path(find.package(\"motifStack\"), \"extdata\", \"bin_SOLEXA.pcm\"))\npcm <- pcm[,3:ncol(pcm)]\nrownames(pcm) <- c(\"A\",\"C\",\"G\",\"T\")\nmotif <- new(\"pcm\", mat=as.matrix(pcm), name=\"bin_SOLEXA\")\nplot(motif)\nplot(motif, ic.scale=FALSE, ylab=\"probability\")\nmotif@color <- colorset(colorScheme='basepairing')\nplot(motif,font=\"serif\")\nmarkerRect <- new(\"marker\", type=\"rect\", start=6, stop=7, gp=gpar(lty=2, fill=NA, col=\"orange\"))\nmarkerLine <- new(\"marker\", type=\"line\", start=2, stop=7, gp=gpar(lwd=2, col=\"red\"))\nmarkerText <- new(\"marker\", type=\"text\", start=c(1, 5), label=c(\"*\", \"core\"), gp=gpar(cex=2, col=\"red\"))\nmotif <- new(\"pcm\", mat=as.matrix(pcm), name=\"bin_SOLEXA\", markers=c(markerRect, markerLine, markerText))\nplot(motif)\nplot(motif, xaxis=paste0(\"pos\", seq.int(7)+10))\nrna <- pcm\nrownames(rna)[4] <- \"U\"\nmotif <- new(\"pcm\", mat=as.matrix(rna), name=\"RNA_motif\")\nplot(motif)"
+    },
+    {
+      "name": "multiple_motif_stack_tree",
+      "intent": "Align, cluster, and plot multiple motifs in a vertical stack, hierarchical tree, or radial phylogeny.",
+      "input": [
+        "motif_folder/ (A directory containing multiple PCM/PFM files in formats like .jaspar, .meme, .transfac, .scpd, .cisbp, or .psam)"
+      ],
+      "stages": "1. Import multiple matrices ;; 2. (Optional) Convert DNA to RNA motifs using DNAmotifToRNAmotif ;; 3. Plot using motifStack with layout \"stack\", \"tree\", or \"radialPhylog\"",
+      "code": "motifs<-importMatrix(dir(file.path(find.package(\"motifStack\"), \"extdata\"),\"pcm$\", full.names = TRUE))\nmotifStack(motifs, layout=\"stack\", ncex=1.0)\nrnaMotifs <- DNAmotifToRNAmotif(motifs)\nmotifStack(rnaMotifs, layout = \"stack\", reorder=FALSE)\nmotifStack(motifs, layout=\"tree\")"
+    },
+    {
+      "name": "advanced_grouped_motif_layouts",
+      "intent": "Cluster multiple motifs, extract signatures, and plot them using advanced layouts like tag clouds, circos plots, pile heatmaps, or interactive D3.js plots.",
+      "input": [
+        "pfm_list.rds (An R list object containing multiple PFM objects or a directory of motif matrices)"
+      ],
+      "stages": "1. Cluster motifs using clusterMotifs ;; 2. Convert hclust to phylog using ade4::hclust2phylog ;; 3. Extract signatures using motifSignature ;; 4. Plot using motifCloud, plotMotifStackWithRadialPhylog, motifCircos, motifPiles, or browseMotifs",
+      "code": "motifs2 <- mapply(pfms, names(pfms), FUN=function(.ele, .name){ new(\"pfm\",mat=.ele, name=.name)}, SIMPLIFY = FALSE)\nmotifs2 <- lapply(motifs2, trimMotif, t=0.4)\nmotifStack(motifs2, layout=\"radialPhylog\", circle=0.3, cleaves = 0.2, clabel.leaves = 0.5, col.bg=rep(color, each=3), col.bg.alpha=0.3, col.leaves=rep(color, each=3), col.inner.label.circle=rep(color, each=3), inner.label.circle.width=0.05, col.outer.label.circle=rep(color, each=3), outer.label.circle.width=0.02, circle.motif=1.2, angle=350)\nhc <- clusterMotifs(pfms)\nlibrary(ade4)\nphylog <- ade4::hclust2phylog(hc)\nleaves <- names(phylog$leaves)\npfms <- pfms[leaves]\nmotifSig <- motifSignature(pfms, phylog, cutoffPval=0.0001, min.freq=1)\nmotifCloud(motifSig, scale=c(6, .5), layout=\"rectangles\", group.col=group.col, groups=groups, draw.legend=TRUE)\nsig <- signatures(motifSig)\ngpCol <- sigColor(motifSig)\nplotMotifStackWithRadialPhylog(phylog=phylog, pfms=sig, circle=0.4, cleaves = 0.3, clabel.leaves = 0.5, col.bg=rep(color, each=3), col.bg.alpha=0.3, col.leaves=rep(rev(color), each=3), col.inner.label.circle=gpCol, inner.label.circle.width=0.03, angle=350, circle.motif=1.2, motifScale=\"logarithmic\")\nmotifCircos(phylog=phylog, pfms=pfms, pfms2=sig, col.tree.bg=rep(color, each=5), col.tree.bg.alpha=0.3, col.leaves=rep(rev(color), each=5), col.inner.label.circle=gpCol, inner.label.circle.width=0.03, col.outer.label.circle=gpCol, outer.label.circle.width=0.03, r.rings=c(0.02, 0.03, 0.04), col.rings=list(sample(colors(), 30), sample(colors(), 30), sample(colors(), 30)), angle=350, motifScale=\"logarithmic\")\npfmsAligned <- DNAmotifAlignment(pfms)\nmotifPiles(phylog=phylog, pfms=pfmsAligned, col.tree=rep(color, each=5), col.leaves=rep(rev(color), each=5), col.pfms2=gpCol, r.anno=rep(0.02, length(dl)), col.anno=dl, motifScale=\"logarithmic\", plotIndex=TRUE, groupDistance=10)\nbrowseMotifs(pfms = pfms, phylog = phylog, layout=\"tree\", yaxis = FALSE, baseWidth=6, baseHeight = 15)"
+    },
+    {
+      "name": "ggplot2_motif_plotting",
+      "intent": "Plot motifs within a ggplot2 framework using geom_motif.",
+      "input": [
+        "pfm_object.rds (An R object containing a PFM or PCM motif)"
+      ],
+      "stages": "1. Create data frame with coordinates and motif list ;; 2. Plot using ggplot + geom_motif()",
+      "code": "df <- data.frame(xmin=c(.25, .25), ymin=c(.25, .75), xmax=c(.75, .75), ymax=c(.5, 1), fontfamily=c(\"serif\", \"mono\"), fontface=c(2, 1))\ndf$motif <- list(pfm, pfm)\nlibrary(ggplot2)\nggplot(df, aes(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, motif=motif, fontfamily=fontfamily, fontface=fontface)) + geom_motif() + theme_bw() + ylim(0, 1) + xlim(0, 1)\ndf <- data.frame(x=.5, y=c(.25, .75), width=.5, height=.25, fontfamily=c(\"serif\", \"mono\"), fontface=c(2, 1))\ndf$motif <- list(pfm, pfm)\nggplot(df, aes(x=x, y=y, width=width, height=height, motif=motif, fontfamily=fontfamily, fontface=fontface)) + geom_motif(use.xy=TRUE) + theme_bw() + ylim(0, 1) + xlim(0, 1)"
+    }
+  ]
+}

@@ -1,181 +1,237 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: biobroom
-// This package contains methods for converting standard objects constructed by bioinformatics packages
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/biobroom/inst/doc/biobroom_vignette.R
-// Upstream  : Biobase, DESeq2, MSnbase, airway, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("biobroom")
+// Bioconductor workflow: biobroom — biobroom_transcriptomics_pipeline
+// Perform differential expression analysis using DESeq2 and edgeR, compute q-values, and tidy all outputs using biobroom for downstream visualization.
+// Input: counts.csv, coldata.csv
+// Container: 1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DESeq2, biobroom, dplyr, edgeR, ggplot2, qvalue
+// Visualizations: plot (ggplot/base)
+// QC: TMM normalization, dispersion/size-factor estimation
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIOBROOM {
+process BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biobroom"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biobroom:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biobroom:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biobroom_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biobroom_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biobroom_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DESeq)
-    library(DESeqDataSet)
-    library(DGEList)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: qvalue
-    ---------------------------------------------------------------------
-    library(qvalue)
-    data(hedenfalk)
-    qobj <- qvalue(hedenfalk$p)
-    names(qobj)
-    # --- Head [] ---
-    # Key functions: tidy, augment, glance
-    ---------------------------------------------------------------------
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(biobroom)
-    # use tidy/augment/glance to restructure the qvalue object
-    head(tidy(qobj))
-    head(augment(qobj))
-    # --- Frame [] ---
-    # Key functions: frame, augment
-    ---------------------------------------------------------------------
-    # create sample names
-    df <- data.frame(gene = 1:length(hedenfalk$p))
-    head(augment(qobj, data = df))
-    # --- Ggplot [] ---
-    # Key functions: ggplot, augment, aes, geom_point, ggtitle, theme_bw
-    ---------------------------------------------------------------------
-    library(ggplot2)
-    # use augmented data to compare p-values to q-values
-    ggplot(augment(qobj), aes(p.value, q.value)) + geom_point() +
-      ggtitle("Simulated P-values versus Computed Q-values") + theme_bw()
-    # --- Augment [] ---
-    # Key functions: augment, filter
-    ---------------------------------------------------------------------
-    library(dplyr)
-    # Find significant genes under 0.05 threshold
-    sig.genes <- augment(qobj) %>% filter(q.value < 0.05)
-    head(sig.genes)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
     library(DESeq2)
-    library(airway)
-    data(airway)
-    airway_se <- airway
-    # --- Deseqdataset [] ---
-    # Key functions: DESeqDataSet, tidy
-    ---------------------------------------------------------------------
-    airway_dds <- DESeqDataSet(airway_se, design = ~cell + dex)
-    head(tidy(airway_dds))
-    # --- Deseq [] ---
-    # Key functions: DESeq, results, tidy
-    ---------------------------------------------------------------------
-    # differential expression analysis
-    deseq <- DESeq(airway_dds)
-    results <- results(deseq)
-    # tidy results
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point, ggtitle, theme_bw
-    ---------------------------------------------------------------------
-    ggplot(tidy_results, aes(x=estimate, y=log(p.value),
-                             color=log(baseMean))) + geom_point(alpha=0.5) +
-      ggtitle("Volcano Plot For Airway Data via DESeq2") + theme_bw()
-    # --- Data [] ---
-    # Key functions: exprs, phenoData, DGEList, calcNormFactors, estimateCommonDisp, estimateTagwiseDisp
-    ---------------------------------------------------------------------
     library(edgeR)
-    data(hammer)
-    hammer.counts <- Biobase::exprs(hammer)[, 1:4]
-    hammer.treatment <- Biobase::phenoData(hammer)$protocol[1:4]
-    # --- Head [] ---
-    # Key functions: tidy
-    ---------------------------------------------------------------------
-    head(tidy(et))
-    # --- Glance [] ---
-    # Key functions: glance
-    ---------------------------------------------------------------------
-    glance(et, alpha = 0.05)
-    # --- Ggplot [] ---
-    # Key functions: ggplot, tidy, aes, geom_point, ggtitle, theme_bw
-    ---------------------------------------------------------------------
-    ggplot(tidy(et), aes(x=estimate, y=log(p.value), color=logCPM)) +
-      geom_point(alpha=0.5) + ggtitle("Volcano Plot for Hammer Data via EdgeR") +
-      theme_bw()
-    # --- Matrix [] ---
-    # Key functions: rnorm, frame
-    ---------------------------------------------------------------------
-    # create random data and design
-    dat <- matrix(rnorm(1000), ncol=4)
-    dat[, 1:2] <- dat[, 1:2] + .5  # add an effect
-    rownames(dat) <- paste0("g", 1:nrow(dat))
-    # --- Lmfit [] ---
-    # Key functions: lmFit, eBayes, tidy
-    ---------------------------------------------------------------------
-    lfit <- lmFit(dat, model.matrix(~ treatment + confounding, des))
-    eb <- eBayes(lfit)
-    head(tidy(lfit))
-    head(tidy(eb))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biobroom_results.csv", row.names = TRUE)
+    library(qvalue)
+    library(ggplot2)
+    library(dplyr)
+    
+    # Set options for biobroom to return standard data frames
+    options(biobroom.return = "data.frame")
+    
+    # ==========================================
+    # STAGE 1: Load and Preprocess Input Data
+    # ==========================================
+    message("Stage 1: Loading input data...")
+    
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    # Read counts and coldata
+    counts_mat <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Align samples between counts and coldata
+    common_samples <- intersect(colnames(counts_mat), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between counts.csv columns and coldata.csv 'sample' column.")
+    }
+    
+    counts_mat <- as.matrix(counts_mat[, common_samples, drop = FALSE])
+    coldata <- coldata[coldata\$sample %in% common_samples, , drop = FALSE]
+    rownames(coldata) <- coldata\$sample
+    
+    # Ensure condition is a factor
+    coldata\$condition <- as.factor(coldata\$condition)
+    
+    # ==========================================
+    # STAGE 2: DESeq2 Analysis & Tidying
+    # ==========================================
+    message("Stage 2: Running DESeq2 analysis...")
+    
+    # Create DESeqDataSet
+    dds <- DESeqDataSetFromMatrix(countData = counts_mat,
+                                  colData = coldata,
+                                  design = ~ condition)
+    
+    # Tidy the DESeqDataSet (extracts long-format counts)
+    tidy_counts <- biobroom::tidy(dds)
+    write.csv(tidy_counts, "deseq_tidy_counts.csv", row.names = FALSE)
+    
+    # Run differential expression
+    dds <- DESeq(dds)
+    res <- results(dds)
+    
+    # Tidy the DESeqResults
+    tidy_deseq_res <- biobroom::tidy(res)
+    write.csv(tidy_deseq_res, "deseq_tidy_results.csv", row.names = FALSE)
+    
+    # ==========================================
+    # STAGE 3: edgeR Analysis & Tidying
+    # ==========================================
+    message("Stage 3: Running edgeR analysis...")
+    
+    # Create DGEList
+    y <- DGEList(counts = counts_mat, group = coldata\$condition)
+    y <- calcNormFactors(y)
+    y <- estimateDisp(y)
+    et <- exactTest(y)
+    
+    # Tidy the DGEExact results
+    tidy_edger_res <- biobroom::tidy(et)
+    write.csv(tidy_edger_res, "edger_tidy_results.csv", row.names = FALSE)
+    
+    # Glance at the edgeR experiment summary
+    glance_edger <- biobroom::glance(et, alpha = 0.05)
+    
+    # ==========================================
+    # STAGE 4: Multiple Hypothesis Testing with qvalue
+    # ==========================================
+    message("Stage 4: Estimating q-values...")
+    
+    # Extract p-values from DESeq2 results (excluding NAs)
+    pvals <- tidy_deseq_res\$p.value
+    pvals_clean <- pvals[!is.na(pvals)]
+    gene_ids_clean <- tidy_deseq_res\$gene[!is.na(pvals)]
+    
+    # Run qvalue with error handling/fallback
+    qobj <- tryCatch({
+      qvalue(pvals_clean)
+    }, error = function(e) {
+      warning("Standard qvalue estimation failed. Attempting robust/pi0.method='bootstrap'...")
+      tryCatch({
+        qvalue(pvals_clean, pi0.method = "bootstrap")
+      }, error = function(e2) {
+        warning("Bootstrap qvalue failed. Falling back to pi0=1 (Benjamini-Hochberg equivalent)...")
+        qvalue(pvals_clean, lambda = 0)
+      })
+    })
+    
+    # Tidy, Augment, and Glance at the qvalue object
+    if (!is.null(qobj)) {
+      # Create a mapping data frame to preserve gene IDs
+      mapping_df <- data.frame(gene = gene_ids_clean, stringsAsFactors = FALSE)
+      
+      # Augment returns p-value, q-value, and local FDR mapped back to genes
+      augmented_q <- biobroom::augment(qobj, data = mapping_df)
+      write.csv(augmented_q, "qvalue_augmented_results.csv", row.names = FALSE)
+      
+      tidy_q <- biobroom::tidy(qobj)
+      glance_q <- biobroom::glance(qobj)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biobroom_results.csv")
+      # Fallback empty/dummy output if qvalue completely failed
+      warning("qvalue object could not be created. Writing empty fallback file.")
+      augmented_q <- data.frame(gene = gene_ids_clean, p.value = pvals_clean, q.value = NA, lfdr = NA)
+      write.csv(augmented_q, "qvalue_augmented_results.csv", row.names = FALSE)
+      tidy_q <- NULL
+      glance_q <- NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biobroom_output.rds")
+    
+    # ==========================================
+    # STAGE 5: Visualization & Diagnostics
+    # ==========================================
+    message("Stage 5: Generating diagnostic plots...")
+    
+    pdf("analysis_plots.pdf", width = 10, height = 8)
+    
+    # 1. DESeq2 Volcano Plot
+    p1 <- ggplot(tidy_deseq_res, aes(x = estimate, y = -log10(p.value))) +
+      geom_point(aes(color = p.value < 0.05), alpha = 0.6) +
+      scale_color_manual(values = c("black", "red")) +
+      labs(title = "DESeq2 Volcano Plot (Tidied Data)",
+           x = "Log2 Fold Change (Estimate)",
+           y = "-log10(P-value)",
+           color = "Significant (p < 0.05)") +
+      theme_minimal()
+    print(p1)
+    
+    # 2. edgeR Volcano Plot
+    p2 <- ggplot(tidy_edger_res, aes(x = estimate, y = -log10(p.value))) +
+      geom_point(aes(color = p.value < 0.05), alpha = 0.6) +
+      scale_color_manual(values = c("black", "blue")) +
+      labs(title = "edgeR Volcano Plot (Tidied Data)",
+           x = "Log2 Fold Change (Estimate)",
+           y = "-log10(P-value)",
+           color = "Significant (p < 0.05)") +
+      theme_minimal()
+    print(p2)
+    
+    # 3. P-values vs Q-values Comparison Plot
+    if (!is.null(qobj)) {
+      p3 <- ggplot(augmented_q, aes(x = p.value, y = q.value)) +
+        geom_point(color = "purple", alpha = 0.5) +
+        labs(title = "P-values versus Computed Q-values (Augmented Data)",
+             x = "Nominal P-value",
+             y = "Storey's Q-value") +
+        theme_minimal()
+      print(p3)
     }
+    
+    dev.off()
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIOBROOM:", paste0("    biobroom: ", packageVersion("biobroom"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE":',
+        paste0('    biobroom: ', as.character(packageVersion('biobroom')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biobroom_results.csv
-    touch ${prefix}_biobroom_output.rds
-    echo "BIOC_BIOBROOM:" > versions.yml
-    echo "    biobroom: 0.0.0" >> versions.yml
+    touch ${prefix}_biobroom_transcriptomics_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIOBROOM_WORKFLOW {
+workflow BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BIOBROOM(ch_input)
+    BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_BIOBROOM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIOBROOM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIOBROOM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIOBROOM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE.out.tables
+    plots    = BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE.out.plots
+    objects  = BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE.out.objects
+    versions = BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE.out.versions
 }

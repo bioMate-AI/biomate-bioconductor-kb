@@ -1,0 +1,13 @@
+{
+  "package": "maskbad",
+  "requirements": [
+    "affy",
+    "maskBAD"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "affy",
+      "maskBAD"
+    ]
+  }
+}

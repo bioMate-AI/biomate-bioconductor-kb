@@ -1,0 +1,17 @@
+{
+  "package": "splinetimer",
+  "requirements": [
+    "Biobase",
+    "GSEABase",
+    "igraph",
+    "splineTimeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEABase",
+      "igraph",
+      "splineTimeR"
+    ]
+  }
+}

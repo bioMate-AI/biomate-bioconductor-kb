@@ -1,0 +1,13 @@
+{
+  "package": "rrdp",
+  "requirements": [
+    "Biostrings",
+    "rRDP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "rRDP"
+    ]
+  }
+}

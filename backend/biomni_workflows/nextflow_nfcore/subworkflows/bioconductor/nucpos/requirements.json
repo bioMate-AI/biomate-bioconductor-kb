@@ -1,0 +1,13 @@
+{
+  "package": "nucpos",
+  "requirements": [
+    "Biostrings",
+    "nuCpos"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "nuCpos"
+    ]
+  }
+}

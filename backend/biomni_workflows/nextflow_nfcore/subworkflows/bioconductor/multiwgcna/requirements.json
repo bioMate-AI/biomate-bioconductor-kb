@@ -1,0 +1,22 @@
+{
+  "package": "multiwgcna",
+  "requirements": [
+    "SummarizedExperiment",
+    "ggalluvial",
+    "ggplot2",
+    "multiWGCNA"
+  ],
+  "by_workflow": {
+    "autism_microarray_workflow.nf": [
+      "SummarizedExperiment",
+      "ggalluvial",
+      "ggplot2",
+      "multiWGCNA"
+    ],
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "multiWGCNA"
+    ]
+  }
+}

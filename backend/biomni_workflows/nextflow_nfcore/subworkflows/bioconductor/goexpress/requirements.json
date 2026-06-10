@@ -1,0 +1,18 @@
+{
+  "package": "goexpress",
+  "requirements": [
+    "Biobase",
+    "GOexpress",
+    "biomaRt"
+  ],
+  "by_workflow": {
+    "custom_annotation_generation.nf": [
+      "GOexpress",
+      "biomaRt"
+    ],
+    "main.nf": [
+      "Biobase",
+      "GOexpress"
+    ]
+  }
+}

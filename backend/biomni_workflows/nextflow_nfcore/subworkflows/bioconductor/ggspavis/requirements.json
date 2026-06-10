@@ -1,0 +1,31 @@
+{
+  "package": "ggspavis",
+  "requirements": [
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "ggplot2",
+    "ggspavis",
+    "patchwork"
+  ],
+  "by_workflow": {
+    "imaging_based_and_dimred_plotting.nf": [
+      "SpatialExperiment",
+      "ggplot2",
+      "ggspavis",
+      "patchwork"
+    ],
+    "main.nf": [
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "ggplot2",
+      "ggspavis",
+      "patchwork"
+    ],
+    "quality_control_plotting.nf": [
+      "SpatialExperiment",
+      "ggplot2",
+      "ggspavis",
+      "patchwork"
+    ]
+  }
+}

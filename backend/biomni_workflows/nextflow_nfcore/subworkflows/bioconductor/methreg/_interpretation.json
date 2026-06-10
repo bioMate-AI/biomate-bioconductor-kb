@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genome=Human genome version (\"hg38\" or \"hg19\") ;; arrayType=DNA methylation array type (\"450k\" or \"EPIC\") ;; betaToM=Logical indicating whether to transform beta values to M-values ;; target.method=Method to link CpG to target genes (\"genes.promoter.overlap\" for promoters, \"window\" or \"nearby.genes\" for distal regions) ;; motif.search.window.size=Size of window to extend CpG region when scanning for motifs (recommended <= 400bp) ;; dnam.group.threshold=Quantile threshold to define high/low methylation groups (e.g., 0.1 or 0.25) ;; stage.wise.analysis=Logical to enable stage-wise FWER correction for multiple comparisons\n- alternatives: decoupleR / viper / GSVA=Used to estimate TF activity from RNA-seq data. viper (via get_tf_ES) is deprecated in favor of decoupleR ;; coMethDMR / comb-p / DMRcate=Used to identify Differentially Methylated Regions (DMRs) prior to running MethReg ;; JASPAR / ReMap=Used for motif scanning in distance-based triplet creation.\n- when_to_use: Appropriate when matched DNA methylation (HM450/EPIC array) and gene expression (RNA-seq) data are available for the same cohort of samples (ideally >= 100 samples), and you want to identify CpG sites or DMRs that work synergistically with transcription factors to regulate target gene expression.\n- pitfalls: Small sample sizes (e.g., < 100 samples) lead to low statistical power ;; Confounding factors (age, sex, batch effects, cell type composition) can bias results and should be regressed out using get_residuals ;; Large motif search windows (> 400bp) may reduce accuracy of predicting methylation effects on TF binding.",
+  "workflows": [
+    {
+      "name": "distance_based_analysis",
+      "intent": "Identify and evaluate regulatory CpGs by linking them to target genes and TFs using genomic distance and motif matching.",
+      "input": [
+        "dnam_matrix.rds (matrix of DNA methylation beta or M-values)",
+        "gene_exp_matrix.rds (matrix of log2 transformed and normalized gene expression values)"
+      ],
+      "stages": "1. Convert DNA methylation matrix to a RangedSummarizedExperiment using make_dnam_se. ;; 2. Convert gene expression matrix to a RangedSummarizedExperiment using make_exp_se. ;; 3. Create CpG-TF-target gene triplets using create_triplet_distance_based. ;; 4. Fit robust linear interaction models to evaluate synergistic effects using interaction_model. ;; 5. Perform stratified analysis on high vs low methylation groups using stratified_model. ;; 6. Visualize the interaction model results using plot_interaction_model.",
+      "code": "dna.met.chr21.se <- make_dnam_se(\n  dnam = dna.met.chr21,\n  genome = \"hg38\",\n  arrayType = \"450k\",\n  betaToM = FALSE, # transform beta to m-values \n  verbose = FALSE # hide informative messages\n)\n\ngene.exp.chr21.se <- make_exp_se(\n  exp = gene.exp.chr21.log2,\n  genome = \"hg38\",\n  verbose = FALSE\n)\n\ntriplet.promoter <- create_triplet_distance_based(\n  region = dna.met.chr21.se,\n  target.method = \"genes.promoter.overlap\",\n  genome = \"hg38\",\n  target.promoter.upstream.dist.tss = 2000,\n  target.promoter.downstream.dist.tss = 2000,\n  motif.search.window.size = 400,\n  motif.search.p.cutoff  = 1e-08,\n  cores = 1  \n)\n\nresults.interaction.model <- interaction_model(\n    triplet = triplet.promoter, \n    dnam = dna.met.chr21.se,\n    exp = gene.exp.chr21.se,\n    dnam.group.threshold = 0.1,\n    sig.threshold = 0.05,\n    fdr = T,\n    stage.wise.analysis = FALSE,\n    filter.correlated.tf.exp.dnam = F,\n    filter.triplet.by.sig.term = T\n)\n\nresults.stratified.model <- stratified_model(\n    triplet = results.interaction.model,\n    dnam = dna.met.chr21.se,\n    exp = gene.exp.chr21.se,\n    dnam.group.threshold = 0.25\n)\n\nplots <- plot_interaction_model(\n    triplet.results = results.interaction.model[1,], \n    dnam = dna.met.chr21.se, \n    exp = gene.exp.chr21.se,\n    dnam.group.threshold = 0.25\n)"
+    },
+    {
+      "name": "regulon_based_analysis",
+      "intent": "Identify and evaluate regulatory CpGs by linking them to target genes and TFs using established regulon databases (e.g., Dorothea) and TF activity scores.",
+      "input": [
+        "dnam_matrix.rds (matrix of DNA methylation beta or M-values)",
+        "gene_exp_matrix.rds (matrix of log2 transformed and normalized gene expression values)"
+      ],
+      "stages": "1. Convert DNA methylation matrix to a RangedSummarizedExperiment using make_dnam_se. ;; 2. Convert gene expression matrix to a RangedSummarizedExperiment using make_exp_se. ;; 3. Calculate TF enrichment scores using get_tf_ES. ;; 4. Create triplets using create_triplet_regulon_based. ;; 5. Fit robust linear interaction models using interaction_model.",
+      "code": "dna.met.chr21.se <- make_dnam_se(\n  dnam = dna.met.chr21,\n  genome = \"hg38\",\n  arrayType = \"450k\",\n  betaToM = FALSE, # transform beta to m-values \n  verbose = FALSE # hide informative messages\n)\n\ngene.exp.chr21.se <- make_exp_se(\n  exp = gene.exp.chr21.log2,\n  genome = \"hg38\",\n  verbose = FALSE\n)\n\nregulons.dorothea <- dorothea::dorothea_hs\n\nrnaseq.tf.es <- get_tf_ES(\n  exp = gene.exp.chr21.se %>% SummarizedExperiment::assay(),\n  regulons = regulons.dorothea\n)\n\ntriplet.regulon <- create_triplet_regulon_based(\n  region = dna.met.chr21.se,\n  genome = \"hg38\",  \n  motif.search.window.size = 400,\n  tf.target = regulons.dorothea,\n  max.distance.region.target = 10^6 # 1Mbp\n) \n\nresults.interaction.model <- interaction_model(\n    triplet = triplet.regulon, \n    dnam = dna.met.chr21.se,\n    exp = gene.exp.chr21.se,\n    dnam.group.threshold = 0.1,\n    sig.threshold = 0.05,\n    fdr = T,\n    stage.wise.analysis = FALSE,\n    filter.correlated.tf.exp.dnam = F,\n    filter.triplet.by.sig.term = T\n)"
+    },
+    {
+      "name": "confounding_correction_analysis",
+      "intent": "Extract residuals from DNA methylation and gene expression data to control for confounding variables (e.g., age, sex, batch effects) before fitting regulatory models.",
+      "input": [
+        "dnam_matrix.rds (matrix of DNA methylation beta or M-values)",
+        "gene_exp_matrix.rds (matrix of log2 transformed and normalized gene expression values)",
+        "metadata.rds (data frame containing sample covariates/confounders)"
+      ],
+      "stages": "1. Extract residuals for gene expression data using get_residuals. ;; 2. Convert DNA methylation matrix to a SummarizedExperiment using make_se_from_dnam_probes. ;; 3. Extract residuals for DNA methylation data using get_residuals. ;; 4. Fit robust linear interaction models on the residuals using interaction_model.",
+      "code": "gene.exp.chr21.residuals <- get_residuals(gene.exp.chr21, metadata) %>% as.matrix()\n\ndna.met.chr21 <- make_se_from_dnam_probes(\n  dnam = dna.met.chr21,\n  genome = \"hg38\",\n  arrayType = \"450k\",\n  betaToM = TRUE\n)\ndna.met.chr21.residuals <- get_residuals(dna.met.chr21, metadata) %>% as.matrix()\n\nresults <- interaction_model(\n    triplet = triplet,\n    dnam = dna.met.chr21.residuals,\n    exp = gene.exp.chr21.residuals\n)"
+    }
+  ]
+}

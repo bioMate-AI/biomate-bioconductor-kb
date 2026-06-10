@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dataset=Path to a CSV file containing matched miRNA and mRNA expression profiles, where the first row contains gene symbols ;; cause=Column indices representing the miRNAs (causes) in the dataset ;; effect=Column indices representing the mRNAs (effects) in the dataset ;; bRank parameters: matrix (correlation/score matrix), miRNAindex (column index of the miRNA of interest), topk (number of top predicted targets to extract), decreasing (logical, TRUE if higher scores indicate stronger relationships) ;; Extopk parameters: matrix (correlation/score matrix), k (number of top predicted interactions to extract) ;; Validation parameters: prediction (top predicted targets/interactions), groundtruth (path to ground truth CSV file)\n- alternatives: The package provides multiple built-in prediction methods including Pearson (Pearson correlation), MI (Mutual Information), IDA (causal inference), and Lasso (linear regression), allowing users to compare different computational approaches since no single method always performs best.\n- when_to_use: Use when you have matched miRNA and mRNA expression data (e.g., from TCGA) and want to predict miRNA-mRNA regulatory relationships, extract top candidate targets, and validate them against a ground truth database of experimentally validated interactions.\n- pitfalls: The input dataset must be in CSV format with the first row (header) containing the gene symbols of miRNAs and mRNAs. The ground truth CSV file must contain exactly two columns: the first for miRNA symbols and the second for mRNA symbols. Ensure the column indices for cause and effect are correctly specified and do not overlap.",
+  "workflows": [
+    {
+      "name": "validate_specific_mirna_targets",
+      "intent": "Predict miRNA-mRNA relationships and validate the top predicted targets of a specific miRNA against ground truth.",
+      "input": [
+        "dataset.csv (matched miRNA and mRNA expression data)",
+        "groundtruth.csv (experimentally validated miRNA-mRNA interactions)"
+      ],
+      "stages": "1. Predict miRNA-mRNA relationships using Pearson correlation with Pearson ;; 2. Extract the top predicted targets for a specific miRNA using bRank ;; 3. Validate the top predicted targets against the ground truth using Validation",
+      "code": "dataset=system.file(\"extdata\", \"ToyEMT.csv\", package=\"miRLAB\")\npearson=Pearson(dataset, 1:3, 4:18)\nmiR200aTop10=bRank(pearson, 3, 10, TRUE)\ngroundtruth=system.file(\"extdata\", \"Toygroundtruth.csv\", package=\"miRLAB\")\nmiR200aTop10Confirmed = Validation(miR200aTop10, groundtruth)"
+    },
+    {
+      "name": "validate_top_overall_interactions",
+      "intent": "Predict miRNA-mRNA relationships and validate the top overall predicted interactions across all miRNAs against ground truth.",
+      "input": [
+        "dataset.csv (matched miRNA and mRNA expression data)",
+        "groundtruth.csv (experimentally validated miRNA-mRNA interactions)"
+      ],
+      "stages": "1. Predict miRNA-mRNA relationships using Pearson correlation with Pearson ;; 2. Extract the top overall predicted interactions using Extopk ;; 3. Validate the top interactions against the ground truth using Validation",
+      "code": "dataset=system.file(\"extdata\", \"ToyEMT.csv\", package=\"miRLAB\")\nEMTresults=Pearson(dataset, 1:3, 4:18)\ntop10=Extopk(EMTresults, 10)\ngroundtruth=system.file(\"extdata\", \"Toygroundtruth.csv\", package=\"miRLAB\")\ntop10Confirmed = Validation(top10, groundtruth)"
+    }
+  ]
+}

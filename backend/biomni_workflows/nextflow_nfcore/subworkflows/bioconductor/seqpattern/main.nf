@@ -1,118 +1,183 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: seqPattern
-// Visualising oligonucleotide patterns and sequence motifs occurrences across a large set of sequences
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/seqPattern/inst/doc/seqPattern.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("seqPattern")
+// Bioconductor workflow: seqPattern — oligonucleotide_and_consensus_density
+// Extract genomic sequences around a reference point, sort them by a feature, and visualize oligonucleotide or consensus sequence densities and average profiles.
+// Input: coordinates.txt, genome_assembly
+// Container: quay.io/biocontainers/bioconductor-seqpattern:1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome, Biostrings, GenomicRanges, seqPattern
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create GRanges of reference positions with associated metadata
+//  * 2. [Input & Preparation] Define flanking regions of equal width using promoters()
+//  * 3. [Core Analysis] Extract genomic sequences using getSeq()
+//  * 4. [Visualization & Output] Plot dinucleotide or consensus density maps using plotPatternDensityMap()
+//  * 5. [Visualization & Output] Plot average oligonucleotide profiles using plotPatternOccurrenceAverage()
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEQPATTERN {
+process BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seqpattern"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seqpattern:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seqpattern:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seqpattern_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seqpattern_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seqpattern_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(seqPattern)
-    library(GRanges)
-    library(IRanges)
-    library(jsonlite)
+    library(GenomicRanges)
+    library(Biostrings)
+    library(BSgenome)
+    
+    # Read user inputs
+    genome_package <- readLines("genome_assembly", n = 1, warn = FALSE)
+    genome_package <- trimws(genome_package)
+    
+    # Load the specified BSgenome package and assign it to genome_obj
+    library(genome_package, character.only = TRUE)
+    genome_obj <- getBSgenome(genome_package)
+    
+    # Read coordinates and associated features
+    zebrafishPromoters24h <- read.table("coordinates.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # 1. Create GRanges of reference positions with associated metadata
+    zebrafishPromotersTSS <- GRanges(seqnames = zebrafishPromoters24h\$chr,
+                ranges = IRanges(start = zebrafishPromoters24h\$dominantTSS, 
+                end = zebrafishPromoters24h\$dominantTSS), 
+                strand = zebrafishPromoters24h\$strand, 
+                interquantileWidth = zebrafishPromoters24h\$interquantileWidth, 
+                seqlengths = seqlengths(genome_obj))
+    
+    # 2. Define flanking regions of equal width using promoters()
+    zebrafishPromotersTSSflank <- promoters(zebrafishPromotersTSS, upstream = 400, 
+                                            downstream = 800)
+    
+    # Trim and filter out-of-bound ranges to ensure equal sequence lengths
+    zebrafishPromotersTSSflank <- trim(zebrafishPromotersTSSflank)
+    keep1 <- width(zebrafishPromotersTSSflank) == 1200
+    zebrafishPromotersTSSflank <- zebrafishPromotersTSSflank[keep1]
+    
+    # 3. Extract genomic sequences using getSeq()
+    zebrafishPromotersTSSflankSeq <- getSeq(genome_obj, zebrafishPromotersTSSflank)
+    
+    # Save intermediate RDS
+    saveRDS(zebrafishPromotersTSSflank, "processed_TSS_flank_400_800.rds")
+    saveRDS(zebrafishPromotersTSSflankSeq, "processed_TSS_flankSeq_400_800.rds")
+    
+    # 4. Plot dinucleotide or consensus density maps using plotPatternDensityMap()
+    # Run multicore plotting inside tryCatch to handle non-Unix environments gracefully
+    tryCatch({
+      plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq, 
+                  patterns = c("AA", "TA", "CG", "GC"), 
+                  seqOrder = order(zebrafishPromotersTSSflank\$interquantileWidth),
+                  flankUp = 400, flankDown = 800, color = "blue", useMulticore = TRUE, nrCores = 4)
+    }, error = function(e) {
+      warning("Multicore plotting failed or is unsupported on this platform. Falling back to single-core.")
+      plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq, 
+                  patterns = c("AA", "TA", "CG", "GC"), 
+                  seqOrder = order(zebrafishPromotersTSSflank\$interquantileWidth), 
+                  flankUp = 400, flankDown = 800, color = "blue")
+    })
+    
+    plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq, 
+                patterns = c("WW", "SS"), 
+                seqOrder = order(zebrafishPromotersTSSflank\$interquantileWidth), 
+                flankUp = 400, flankDown = 800, color = "cyan", labelCol = "white")
+    
+    # 5. Plot average oligonucleotide profiles using plotPatternOccurrenceAverage()
+    sIdx <- zebrafishPromotersTSSflank\$interquantileWidth <= 9
+    bIdx <- zebrafishPromotersTSSflank\$interquantileWidth > 9
+    
+    pdf("average_oligonucleotide_profiles.pdf", width = 10, height = 5)
+    par(mfrow = c(1,2), mar = c(4.5,4,1,1))
+    plotPatternOccurrenceAverage(regionsSeq = zebrafishPromotersTSSflankSeq[sIdx], 
+                patterns = c("WW", "SS"), flankUp = 400, flankDown = 800, 
+                smoothingWindow = 3, color = c("red3", "blue3"), cex.axis = 0.9)
+    plotPatternOccurrenceAverage(regionsSeq = zebrafishPromotersTSSflankSeq[bIdx], 
+                patterns = c("WW", "SS"), flankUp = 400, flankDown = 800, 
+                smoothingWindow = 3, color = c("red3", "blue3"), cex.axis = 0.9)
+    dev.off()
+    
+    # Define narrower flanking regions (200 bp upstream and downstream)
+    zebrafishPromotersTSSflank <- promoters(zebrafishPromotersTSS, upstream = 200, 
+                                            downstream = 200)
+    
+    # Trim and filter out-of-bound ranges
+    zebrafishPromotersTSSflank <- trim(zebrafishPromotersTSSflank)
+    keep2 <- width(zebrafishPromotersTSSflank) == 400
+    zebrafishPromotersTSSflank <- zebrafishPromotersTSSflank[keep2]
+    
+    # Extract genomic sequences for narrower flanking regions
+    zebrafishPromotersTSSflankSeq <- getSeq(genome_obj, zebrafishPromotersTSSflank)
+    
+    # Save intermediate RDS
+    saveRDS(zebrafishPromotersTSSflank, "processed_TSS_flank_200_200.rds")
+    saveRDS(zebrafishPromotersTSSflankSeq, "processed_TSS_flankSeq_200_200.rds")
+    
+    # Plot consensus sequence density maps
+    plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq, 
+                patterns = c("TATAWAWR", "YWTWTATA"), 
+                seqOrder = order(zebrafishPromotersTSSflank\$interquantileWidth), 
+                flankUp = 200, flankDown = 200, 
+                bandWidth = c(1,6), color = "pink", addPatternLabel = FALSE)
+    
+    plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq, 
+                patterns = c("RGGMGGR", "YCCKCCY"), 
+                seqOrder = order(zebrafishPromotersTSSflank\$interquantileWidth), 
+                flankUp = 200, flankDown = 200, 
+                bandWidth = c(1,6), color = "purple", addPatternLabel = FALSE)
 
-    # --- Pattern Occurrence List Generation [] ---
-    # Key functions: getPatternOccurrenceList
-    occurrence_list <- getPatternOccurrenceList(
-        regionsSeq = sequences,
-        patterns = c("CG", "TA", "GC"),
-        seqpos = seq(-15, 14)
-    )
-
-
-    # --- Density Map Visualisation [] ---
-    # Key functions: plotPatternDensityMap
-    plotPatternDensityMap(
-        regionsSeq = sequences,
-        patterns = c("CG", "GC"),
-        seqpos = seq(-15, 14),
-        colormap = "Blues",
-        enableCentering = TRUE,
-        useMulticore = FALSE
-    )
-
-
-    # --- Average Occurrence Profiling [] ---
-    # Key functions: plotPatternOccurrenceAverage
-    plotPatternOccurrenceAverage(
-        regionsSeq = sequences,
-        patterns = c("TA", "CG"),
-        seqpos = seq(-15, 14),
-        flank = 2,
-        smoothingWindow = 3,
-        color = c("red", "blue")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seqpattern_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seqpattern_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seqpattern_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEQPATTERN:", paste0("    seqpattern: ", packageVersion("seqPattern"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY":',
+        paste0('    seqPattern: ', as.character(packageVersion('seqPattern')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seqpattern_results.csv
-    touch ${prefix}_seqpattern_output.rds
-    echo "BIOC_SEQPATTERN:" > versions.yml
-    echo "    seqpattern: 0.0.0" >> versions.yml
+    touch ${prefix}_oligonucleotide_and_consensus_density.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEQPATTERN_WORKFLOW {
+workflow BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ coordinates.txt, genome_assembly ] ]
 
     main:
-    BIOC_SEQPATTERN(ch_input)
+    BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY(ch_input)
 
     emit:
-    results  = BIOC_SEQPATTERN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEQPATTERN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEQPATTERN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEQPATTERN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY.out.tables
+    plots    = BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY.out.plots
+    objects  = BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY.out.objects
+    versions = BIOC_SEQPATTERN_OLIGONUCLEOTIDE_AND_CONSENSUS_DENSITY.out.versions
 }

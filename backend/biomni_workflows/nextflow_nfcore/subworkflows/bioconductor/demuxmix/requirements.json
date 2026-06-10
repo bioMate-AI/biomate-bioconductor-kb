@@ -1,0 +1,19 @@
+{
+  "package": "demuxmix",
+  "requirements": [
+    "cowplot",
+    "demuxmix",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "demuxmix",
+      "ggplot2"
+    ],
+    "pooling_non_labeled_with_labeled_cells.nf": [
+      "cowplot",
+      "demuxmix",
+      "ggplot2"
+    ]
+  }
+}

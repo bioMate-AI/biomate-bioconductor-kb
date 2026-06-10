@@ -1,0 +1,13 @@
+{
+  "package": "ffpe",
+  "requirements": [
+    "Biobase",
+    "ffpe"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "ffpe"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "package": "flowgate",
+  "requirements": [
+    "flowCore",
+    "flowGate",
+    "flowWorkspace",
+    "ggcyto",
+    "ggplot2",
+    "tibble"
+  ],
+  "by_workflow": {
+    "batch_gating_strategy_pipeline.nf": [
+      "flowCore",
+      "flowGate",
+      "flowWorkspace",
+      "ggcyto",
+      "ggplot2",
+      "tibble"
+    ],
+    "main.nf": [
+      "flowCore",
+      "flowGate",
+      "flowWorkspace",
+      "ggcyto",
+      "ggplot2"
+    ]
+  }
+}

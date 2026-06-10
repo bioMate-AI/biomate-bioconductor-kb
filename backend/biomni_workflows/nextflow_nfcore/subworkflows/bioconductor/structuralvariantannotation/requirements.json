@@ -1,0 +1,31 @@
+{
+  "package": "structuralvariantannotation",
+  "requirements": [
+    "StructuralVariantAnnotation",
+    "VariantAnnotation",
+    "biovizBase",
+    "dplyr",
+    "ggbio",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "format_conversion_and_visualization.nf": [
+      "StructuralVariantAnnotation",
+      "VariantAnnotation",
+      "biovizBase",
+      "ggbio",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "StructuralVariantAnnotation",
+      "VariantAnnotation",
+      "dplyr",
+      "ggplot2"
+    ],
+    "transitive_breakpoint_identification.nf": [
+      "StructuralVariantAnnotation",
+      "VariantAnnotation"
+    ]
+  }
+}

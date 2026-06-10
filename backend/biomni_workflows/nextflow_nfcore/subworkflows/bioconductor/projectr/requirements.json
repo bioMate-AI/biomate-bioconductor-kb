@@ -1,0 +1,30 @@
+{
+  "package": "projectr",
+  "requirements": [
+    "cowplot",
+    "dplyr",
+    "ggplot2",
+    "ggrepel",
+    "gplots",
+    "projectR"
+  ],
+  "by_workflow": {
+    "clustering_projection.nf": [
+      "gplots",
+      "projectR"
+    ],
+    "correlation_projection.nf": [
+      "projectR"
+    ],
+    "differential_feature_drivers.nf": [
+      "cowplot",
+      "dplyr",
+      "ggplot2",
+      "ggrepel",
+      "projectR"
+    ],
+    "main.nf": [
+      "projectR"
+    ]
+  }
+}

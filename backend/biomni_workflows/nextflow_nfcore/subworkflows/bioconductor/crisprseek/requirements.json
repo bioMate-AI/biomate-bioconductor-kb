@@ -1,0 +1,33 @@
+{
+  "package": "crisprseek",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "Biostrings",
+    "CRISPRseek",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "allele_specific_grna_design.nf": [
+      "CRISPRseek"
+    ],
+    "base_editing_grna_design.nf": [
+      "Biostrings",
+      "CRISPRseek"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "CRISPRseek",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "org.Hs.eg.db"
+    ],
+    "offtarget_search_with_bulges.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "CRISPRseek"
+    ],
+    "prime_editing_pegrna_design.nf": [
+      "Biostrings",
+      "CRISPRseek"
+    ]
+  }
+}

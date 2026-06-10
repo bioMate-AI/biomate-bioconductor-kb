@@ -1,0 +1,24 @@
+{
+  "package": "heatplus",
+  "requirements": [
+    "Biobase",
+    "Heatplus"
+  ],
+  "by_workflow": {
+    "annotated_heatmap.nf": [
+      "Biobase",
+      "Heatplus"
+    ],
+    "double_annotated_heatmap.nf": [
+      "Biobase",
+      "Heatplus"
+    ],
+    "legacy_heatmap.nf": [
+      "Heatplus"
+    ],
+    "main.nf": [
+      "Biobase",
+      "Heatplus"
+    ]
+  }
+}

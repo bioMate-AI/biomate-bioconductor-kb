@@ -1,0 +1,13 @@
+{
+  "package": "cnorfuzzy",
+  "requirements": [
+    "CNORfuzzy",
+    "CellNOptR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CNORfuzzy",
+      "CellNOptR"
+    ]
+  }
+}

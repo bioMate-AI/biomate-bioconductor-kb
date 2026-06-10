@@ -1,0 +1,20 @@
+{
+  "package": "bnem",
+  "requirements": [
+    "CellNOptR",
+    "bnem",
+    "mnem"
+  ],
+  "by_workflow": {
+    "inference_with_preattached_egenes.nf": [
+      "CellNOptR",
+      "bnem",
+      "mnem"
+    ],
+    "main.nf": [
+      "CellNOptR",
+      "bnem",
+      "mnem"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: samples=A data frame or CSV file path representing the sample sheet containing metadata and file paths to BAM and peak files ;; annotation=The genome assembly being analyzed (e.g., \"hg19\") ;; chromosomes=Specific chromosomes to examine to speed up computation and reduce object size ;; mapQCth=Mapping quality threshold for filtering reads (default is 15) ;; blacklist=A file or GRanges object containing genomic intervals to filter out anomalous signal ;; consensus=If TRUE, derives a consensus peak set to compare all samples (including controls) ;; bCount=If TRUE, computes peak scores by counting overlapping reads for every sample ;; summits=Width (in basepairs) upstream and downstream of peak summits to include in counting ;; facetBy=Metadata columns used to group and facet samples in diagnostic plots ;; colourBy=Metadata column or metric used to color lines/points in plots ;; lineBy=Metadata column used to define line types in plots ;; addMetaData=A data frame of extra metadata to merge into the plot\n- alternatives: DiffBind=Mentioned as a package that accepts the same sample sheets and can represent the experiment as a DBA object, and is used internally via dba.count for peak counting ;; htSeqTools=Mentioned as the package providing the implementation for the SSD metric ;; chipseq=Mentioned as the package providing methods for estimating fragment length by shifting reads\n- when_to_use: Use this package when you have aligned ChIP-seq data (BAM files) and called peaks (BED files) and want to quantitatively assess absolute and relative sample quality, identify problematic replicates, or check for background/PCR duplication issues before downstream differential binding analysis.\n- pitfalls: ChIPQCreport is deprecated and should not be used for generating HTML reports ;; High duplication rates (>50%) can indicate low library complexity or PCR bias, but high duplication in narrow peaks is expected and biologically meaningful ;; SSD scores are highly sensitive to blacklisted regions, so high SSD in control samples may flag the need for further blacklisting rather than genuine enrichment ;; Failure to show a clear cross-coverage peak at the estimated fragment length (RelativeCC < 1) is a strong indicator of a non-enriched sample.",
+  "workflows": [
+    {
+      "name": "multi_sample_chipseq_qc",
+      "intent": "Run a complete quality control analysis on a multi-sample ChIP-seq experiment using a sample sheet and generate diagnostic plots.",
+      "input": [
+        "tamoxifenQC.csv (sample sheet containing metadata, BAM file paths, and peak file paths)",
+        "blacklist_hg19 (GRanges object containing blacklisted genomic regions)"
+      ],
+      "stages": "1. Load the sample sheet.\n2. Run ChIPQC to construct a ChIPQCexperiment object, filtering with a blacklist and calculating consensus peak counts.\n3. Generate coverage distribution histograms.\n4. Generate cross-coverage plots.\n5. Plot relative enrichment of reads in genomic intervals.\n6. Plot average peak profiles.\n7. Plot reads overlapping peaks and blacklisted regions.\n8. Plot sample clustering using correlation heatmaps and principal component analysis.",
+      "code": "library(ChIPQC)\nsamples = read.csv(file.path(system.file(\"extdata\", package=\"ChIPQC\"),\n                                         \"tamoxifenQC.csv\"))\ndata(blacklist_hg19)\ntamoxifen = ChIPQC(samples, consensus=TRUE, bCount=TRUE, summits=250,\n                   annotation=\"hg19\", chromosomes=\"chr18\",\n                   blacklist = blacklist.hg19)\nplotCoverageHist(tamoxifen,facetBy=c(\"Tissue\",\"Condition\"))\nplotCC(tamoxifen,facetBy=c(\"Tissue\",\"Condition\"))\nplotRegi(tamoxifen,facetBy=c(\"Tissue\",\"Condition\"))\nplotPeakProfile(tamoxifen,facetBy=c(\"Tissue\",\"Condition\"))\nplotRap(tamoxifen,facetBy=c(\"Tissue\",\"Condition\"))\nplotFribl(tamoxifen,facetBy=c(\"Tissue\",\"Condition\"))\nplotCorHeatmap(tamoxifen,attributes=c(\"Tissue\",\"Factor\",\"Condition\",\"Replicate\"))\nplotPrincomp(tamoxifen,attributes=c(\"Tissue\",\"Condition\"))"
+    },
+    {
+      "name": "single_sample_chipseq_qc",
+      "intent": "Assess quality metrics and generate diagnostic plots for a single ChIP-seq sample.",
+      "input": [
+        "SRR568129.bam (aligned reads BAM file)",
+        "SRR568129_chr22_peaks.bed (called peaks BED file)"
+      ],
+      "stages": "1. Construct a ChIPQCsample object for the single BAM file and its associated peak file.\n2. Retrieve and display the primary quality metrics.\n3. Plot the cross-coverage score across successive strand shifts.",
+      "code": "library(ChIPQC)\nCTCF1 = ChIPQCsample(\"reads/SRR568129.bam\", peaks=\"peaks/SRR568129_chr22_peaks.bed\")\nCTCF1\nQCmetrics(CTCF1)\nplotCC(CTCF1)"
+    }
+  ]
+}

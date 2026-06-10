@@ -1,0 +1,16 @@
+{
+  "package": "bumphunter",
+  "requirements": [
+    "bumphunter",
+    "doParallel"
+  ],
+  "by_workflow": {
+    "full_bumphunter_analysis.nf": [
+      "bumphunter",
+      "doParallel"
+    ],
+    "main.nf": [
+      "bumphunter"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - Z / dat / data: A matrix (or list of matrices for time course) of gene expression values with genes in rows and replicates in columns.\n    - design / des / designs: A vector (or list of vectors) of length p with 1s indicating treatment replicates and 2s indicating control replicates.\n    - BCa: Logical; if TRUE, computes a bias-corrected and accelerated bootstrap confidence upper bound for the FDR (computationally intensive).\n    - alpha: Desired FDR level (default is 0.05).\n    - lambda: Tuning parameter for estimating the proportion of true null hypotheses (default is 0.5).\n    - B: Number of bootstrap or permutation replications for FDR estimation (default is 100).\n    - PER: Logical; whether to use permutation (TRUE) or bootstrap (FALSE, default) replications.\n    - gamma: Confidence level for the BCa upper bound (default is 0.95).\n    - R: Number of bootstrap samples for BCa confidence interval computation (recommended 1000).\n    - method: For tc, specifies the approach (\"active vs supplementary\", \"groups conformation through time\", or both).\n- alternatives:\n    - Univariate-oriented methods (such as SAM, ANOVA, or standard t-tests with FDR control) should be preferred if Biological Scenario 2 does not hold (i.e., if row standardization is necessary or if genes with no expression are being falsely identified).\n- when_to_use:\n    - When analyzing gene expression data where Biological Scenario 2 is likely to hold (only a small proportion of genes are actively transcribing, and major scale differences are biological rather than technical).\n    - When a multivariate inferential approach is desired to capture overall and differential expression using artificial components.\n- pitfalls:\n    - Performing row standardization before analysis, which eliminates natural gene differences and violates Biological Scenario 2.\n    - Setting BCa=TRUE with large datasets without considering the high computational cost (proportional to R x B x n).\n    - Using the method when Biological Scenario 2 is violated (e.g., if many genes lie far to the left of the origin in the artificial plane, or if detected DE genes lie to the left of the vertical axis).",
+  "workflows": [
+    {
+      "name": "single_time_point_analysis",
+      "intent": "Detect differentially expressed genes at a single experimental time point using artificial components and FDR estimation.",
+      "input": [
+        "dat (matrix of gene expression values with genes in rows and replicates in columns)",
+        "des (numeric vector indicating treatment [1] and control [2] replicates)."
+      ],
+      "stages": "1. Load the package and prepare the expression matrix and design vector.\n2. Run the single time point analysis using stp (optionally enabling BCa bootstrap confidence bounds).\n3. Print the summary of results (achieved FDR, number of up/down-regulated genes).\n4. Plot the estimated FDR curve and the genes on the artificial plane using plot.",
+      "code": "library(acde)\ndat <- phytophthora[[3]]\ndes <- c(rep(1,8), rep(2,8))\nstpPI <- stp(dat, des, BCa=TRUE)\nstpPI\nplot(stpPI)"
+    },
+    {
+      "name": "time_course_analysis",
+      "intent": "Analyze gene expression changes across multiple sequential time points using active vs. supplementary time points and group conformation through time.",
+      "input": [
+        "phytophthora (list of gene expression matrices, one per time point)",
+        "desPI (list of design vectors indicating treatment [1] and control [2] replicates for each time point)."
+      ],
+      "stages": "1. Prepare a list of expression matrices and a corresponding list of design vectors for all time points.\n2. Run the time course analysis using tc.\n3. Summarize the time course results (inertia ratios, active timepoint, and group conformations) using summary and print the object.\n4. Visualize the results across time points using plot.",
+      "code": "library(acde)\ndesPI <- vector(\"list\",4)\nfor(tp in 1:4) desPI[[tp]] <- c(rep(1,8), rep(2,8))\ntcPI <- tc(phytophthora, desPI)\nsummary(tcPI)\ntcPI\nplot(tcPI)"
+    }
+  ]
+}

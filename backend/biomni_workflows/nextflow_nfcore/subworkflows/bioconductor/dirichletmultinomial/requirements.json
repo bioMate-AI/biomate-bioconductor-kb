@@ -1,0 +1,17 @@
+{
+  "package": "dirichletmultinomial",
+  "requirements": [
+    "DirichletMultinomial",
+    "lattice"
+  ],
+  "by_workflow": {
+    "generative_classification.nf": [
+      "DirichletMultinomial",
+      "lattice"
+    ],
+    "main.nf": [
+      "DirichletMultinomial",
+      "lattice"
+    ]
+  }
+}

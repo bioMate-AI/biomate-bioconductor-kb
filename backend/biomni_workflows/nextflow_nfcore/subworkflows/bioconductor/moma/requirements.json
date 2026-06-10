@@ -1,0 +1,15 @@
+{
+  "package": "moma",
+  "requirements": [
+    "MOMA",
+    "MultiAssayExperiment",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MOMA",
+      "MultiAssayExperiment",
+      "ggplot2"
+    ]
+  }
+}

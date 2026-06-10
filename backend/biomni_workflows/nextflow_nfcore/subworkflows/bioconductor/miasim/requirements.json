@@ -1,0 +1,13 @@
+{
+  "package": "miasim",
+  "requirements": [
+    "SummarizedExperiment",
+    "miaSim"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "miaSim"
+    ]
+  }
+}

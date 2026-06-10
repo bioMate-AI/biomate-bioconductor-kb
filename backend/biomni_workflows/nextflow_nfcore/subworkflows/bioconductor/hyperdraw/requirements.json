@@ -1,0 +1,15 @@
+{
+  "package": "hyperdraw",
+  "requirements": [
+    "graph",
+    "hyperdraw",
+    "hypergraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "graph",
+      "hyperdraw",
+      "hypergraph"
+    ]
+  }
+}

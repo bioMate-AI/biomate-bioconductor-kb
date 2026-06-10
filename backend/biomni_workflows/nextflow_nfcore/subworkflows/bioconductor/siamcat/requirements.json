@@ -1,0 +1,14 @@
+{
+  "package": "siamcat",
+  "requirements": [
+    "SIAMCAT"
+  ],
+  "by_workflow": {
+    "holdout_testing.nf": [
+      "SIAMCAT"
+    ],
+    "main.nf": [
+      "SIAMCAT"
+    ]
+  }
+}

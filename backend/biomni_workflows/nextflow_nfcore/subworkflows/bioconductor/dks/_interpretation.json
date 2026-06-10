@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - P = A matrix of simulated null p-values where each column represents a single simulated study.\n    - plot = A logical value indicating whether to generate diagnostic plots (default is TRUE in the main dks function).\n    - delta = The grid size step-value used to define the parameter space for the Beta distribution hyperparameters alpha and beta.\n    - level = The credible level (e.g., 0.80) for calculating the Bayesian credible set of the hyperparameters.\n- alternatives: None mentioned.\n- when_to_use: Use this package when evaluating a new or existing multiple testing procedure to determine if the resulting null p-values satisfy the Joint Null Criterion (JNC) and are truly uniformly distributed.\n- pitfalls:\n    - Only simulated null p-values should be passed to the diagnostic functions; including alternative (non-null) p-values will invalidate the uniformity tests.\n    - The grid size parameter `delta` must be identical in both the `pprob.dist` and `cred.set` function calls.\n    - If the p-values exhibit extreme non-uniform behavior, the default range of the alpha and beta parameters may need to be extended.",
+  "workflows": [
+    {
+      "name": "double_ks_diagnostic",
+      "intent": "Perform double Kolmogorov-Smirnov and Bayesian diagnostic tests on simulated null p-values across multiple studies.",
+      "input": [
+        "P (A matrix of simulated null p-values where rows represent null hypotheses and columns represent independent simulated studies)"
+      ],
+      "stages": "1. Load the dks and cubature packages and the simulated dataset.\n2. Run the dks function to compute the double KS p-value, posterior probabilities of uniformity, and generate diagnostic plots.",
+      "code": "library(dks)\nlibrary(cubature)\ndata(dksdata)\ndim(P)\ndks1 <- dks(P,plot=TRUE)"
+    },
+    {
+      "name": "bayesian_beta_parameter_analysis",
+      "intent": "Calculate and plot the posterior distribution and credible set of the Beta hyperparameters for a set of null p-values from a single study.",
+      "input": [
+        "P[,1] (A vector of simulated null p-values from a single study)"
+      ],
+      "stages": "1. Calculate the posterior distribution of the Beta hyperparameters using pprob.dist.\n2. Plot the posterior distribution using the image function.\n3. Calculate the credible set of the hyperparameters using cred.set.\n4. Plot the credible set using the image function.",
+      "code": "library(dks)\nlibrary(cubature)\ndata(dksdata)\ndelta <- 0.1\ndist1 <- pprob.dist(P[,1])\nalpha <- seq(0.1,10,by=delta)\nbeta <- seq(0.1,10,by=delta)\npprobImage = image(log10(alpha),log10(beta),dist1,xaxt=\"n\",yaxt=\"n\",xlab=\"Alpha\",ylab=\"Beta\")\naxis(1,at=c(-2,-1,0,1,2),labels=c(\"10^-2\",\"10^-1\",\"10^0\",\"10^1\",\"10^2\"))\naxis(2,at=c(-2,-1,0,1,2),labels=c(\"10^-2\",\"10^-1\",\"10^0\",\"10^1\",\"10^2\"))\npoints(0,0,col=\"blue\",cex=1,pch=19)\t\ncred1 <- cred.set(dist1,delta=0.1, level=0.80)\nalpha <- seq(0.1,10,by=delta)\nbeta <- seq(0.1,10,by=delta)\ncredImage=image(log10(alpha),log10(beta),cred1$cred,xaxt=\"n\",yaxt=\"n\",xlab=\"Alpha\",ylab=\"Beta\")\naxis(1,at=c(-2,-1,0,1,2),labels=c(\"10^-2\",\"10^-1\",\"10^0\",\"10^1\",\"10^2\"))\naxis(2,at=c(-2,-1,0,1,2),labels=c(\"10^-2\",\"10^-1\",\"10^0\",\"10^1\",\"10^2\"))\npoints(0,0,col=\"blue\",cex=1,pch=19)"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "package": "eximir",
+  "requirements": [
+    "ExiMiR",
+    "affy",
+    "limma",
+    "makecdfenv"
+  ],
+  "by_workflow": {
+    "exiqon_mirna_normalization.nf": [
+      "ExiMiR",
+      "affy"
+    ],
+    "limma_integration_normalization.nf": [
+      "ExiMiR",
+      "limma"
+    ],
+    "main.nf": [
+      "ExiMiR",
+      "affy",
+      "makecdfenv"
+    ],
+    "summarize_limma_normalized_data.nf": [
+      "ExiMiR",
+      "affy",
+      "limma"
+    ]
+  }
+}

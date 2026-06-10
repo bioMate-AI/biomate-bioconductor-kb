@@ -1,129 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CARNIVAL
-// An upgraded causal reasoning tool from Melas et al in R with updated assignments of TFs' weights fro
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/CARNIVAL/inst/doc/CARNIVAL.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CARNIVAL")
+// Bioconductor workflow: CARNIVAL — standard_carnival
+// Contextualize a signaling network when the upstream perturbation targets are known.
+// Input: toy_perturbations_ex1.RData, toy_measurements_ex1.RData, toy_network_ex1.RData
+// Container: quay.io/biocontainers/bioconductor-carnival:2.20.0--r45hdfd78af_0
+// R packages: CARNIVAL, igraph
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CARNIVAL, igraph
+// Visualizations: network plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load input data and prior knowledge network
+//  * 2. [Core Analysis] Initialize solver options using defaultLpSolveCarnivalOptions
+//  * 3. [Visualization & Output] Set output folder
+//  * 4. [Core Analysis] Run standard pipeline using runVanillaCarnival
+//  * 5. [Visualization & Output] Save results using saveRDS
 
 nextflow.enable.dsl = 2
 
-process BIOC_CARNIVAL {
+process BIOC_CARNIVAL_STANDARD_CARNIVAL {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-carnival"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-carnival:2.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-carnival:2.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_carnival_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_carnival_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_carnival_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CARNIVAL", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(CARNIVAL)
-    library(jsonlite)
-
-    # --- Vanilla CARNIVAL Execution [] ---
-    # Key functions: runVanillaCarnival, defaultLpSolveCarnivalOptions
-    net_file <- system.file("toy_network_ex1.RData", package = "CARNIVAL")
-    meas_file <- system.file("toy_measurements_ex1.RData", package = "CARNIVAL")
-    pert_file <- system.file("toy_perturbations_ex1.RData", package = "CARNIVAL")
-    load(net_file)
-    load(meas_file)
-    load(pert_file)
-    opts <- defaultLpSolveCarnivalOptions()
-    results <- runVanillaCarnival(
-        perturbations = toy_perturbations,
-        measurements = toy_measurements,
-        priorKnowledgeNetwork = toy_network,
-        carnivalOptions = opts
-    )
-
-
-    # --- LP File Generation [] ---
-    # Key functions: generateLpFileCarnival, defaultLpSolveCarnivalOptions
-    net_file <- system.file("toy_network_ex1.RData", package = "CARNIVAL")
-    meas_file <- system.file("toy_measurements_ex1.RData", package = "CARNIVAL")
-    pert_file <- system.file("toy_perturbations_ex1.RData", package = "CARNIVAL")
-    load(net_file)
-    load(meas_file)
-    load(pert_file)
-    opts <- defaultLpSolveCarnivalOptions()
-    lp_data <- generateLpFileCarnival(
-        perturbations = toy_perturbations,
-        measurements = toy_measurements,
-        priorKnowledgeNetwork = toy_network,
-        carnivalOptions = opts
-    )
-
-
-    # --- Run CARNIVAL from LP File [] ---
-    # Key functions: runFromLpCarnival, defaultLpSolveCarnivalOptions
-    lpFilename <- "toy_lpFile.lp"
-    parsedDataFile <- "toy_parsedData.RData"
-    opts <- defaultLpSolveCarnivalOptions()
-    resultsFromLp <- runFromLpCarnival(
-        lpFile = lpFilename,
-        parsedDataFile = parsedDataFile,
-        carnivalOptions = opts
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_carnival_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_carnival_results.csv")
+    library(igraph)
+    
+    # 1. Load input data and prior knowledge network from the working directory
+    load(file = "toy_perturbations_ex1.RData")
+    load(file = "toy_measurements_ex1.RData")
+    load(file = "toy_network_ex1.RData")
+    
+    # 2. Initialize solver options using defaultLpSolveCarnivalOptions
+    carnivalOptions <- defaultLpSolveCarnivalOptions()
+    
+    # 3. Set output folder
+    output_dir <- "ToyExample1"
+    dir.create(output_dir, showWarnings = FALSE)
+    carnivalOptions\$outputFolder <- output_dir
+    
+    # 4. Run standard pipeline using runVanillaCarnival
+    resultsLpSolve <- runVanillaCarnival(perturbations = toy_perturbations_ex1, 
+                                         measurements = toy_measurements_ex1,
+                                         priorKnowledgeNetwork = toy_network_ex1, 
+                                         carnivalOptions = carnivalOptions)
+    
+    # 5. Save results using saveRDS
+    saveRDS(resultsLpSolve, file = file.path(output_dir, "network_solution.Rds"))
+    
+    # Save meaningful results as CSV tables
+    if (!is.null(resultsLpSolve\$weightedSIF)) {
+      write.csv(resultsLpSolve\$weightedSIF, 
+                file = file.path(output_dir, "weightedSIF.csv"), 
+                row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_carnival_output.rds")
+    
+    if (!is.null(resultsLpSolve\$nodesAttributes)) {
+      write.csv(resultsLpSolve\$nodesAttributes, 
+                file = file.path(output_dir, "nodesAttributes.csv"), 
+                row.names = FALSE)
+    }
+    
+    # Generate a PDF plot of the network if weightedSIF is available
+    if (!is.null(resultsLpSolve\$weightedSIF) && nrow(resultsLpSolve\$weightedSIF) > 0) {
+      tryCatch({
+        sif <- resultsLpSolve\$weightedSIF
+        # Create igraph object from the network structure
+        g <- graph_from_data_frame(sif[, c("Node1", "Node2")], directed = TRUE)
+        
+        pdf(file.path(output_dir, "network_plot.pdf"), width = 7, height = 7)
+        plot(g, 
+             vertex.color = "lightblue", 
+             vertex.size = 25, 
+             vertex.label.color = "black", 
+             vertex.label.cex = 0.8,
+             edge.arrow.size = 0.5,
+             main = "CARNIVAL Reconstructed Network")
+        dev.off()
+      }, error = function(e) {
+        message("Could not generate network plot: ", e\$message)
+      })
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CARNIVAL:", paste0("    carnival: ", packageVersion("CARNIVAL"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CARNIVAL_STANDARD_CARNIVAL":',
+        paste0('    CARNIVAL: ', as.character(packageVersion('CARNIVAL')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_carnival_results.csv
-    touch ${prefix}_carnival_output.rds
-    echo "BIOC_CARNIVAL:" > versions.yml
-    echo "    carnival: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_carnival.csv versions.yml
     """
 }
 
-
-workflow BIOC_CARNIVAL_WORKFLOW {
+workflow BIOC_CARNIVAL_STANDARD_CARNIVAL_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ toy_perturbations_ex1.RData, toy_measurements_ex1.RData, toy_network_ex1.RData ] ]
 
     main:
-    BIOC_CARNIVAL(ch_input)
+    BIOC_CARNIVAL_STANDARD_CARNIVAL(ch_input)
 
     emit:
-    results  = BIOC_CARNIVAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CARNIVAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CARNIVAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CARNIVAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CARNIVAL_STANDARD_CARNIVAL.out.tables
+    plots    = BIOC_CARNIVAL_STANDARD_CARNIVAL.out.plots
+    objects  = BIOC_CARNIVAL_STANDARD_CARNIVAL.out.objects
+    versions = BIOC_CARNIVAL_STANDARD_CARNIVAL.out.versions
 }

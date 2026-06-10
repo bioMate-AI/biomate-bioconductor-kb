@@ -1,0 +1,15 @@
+{
+  "package": "msdatahub",
+  "requirements": [
+    "MsDataHub",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MsDataHub",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: obs=Matrix (steady-state) or 3D array (time-series) of perturbation observations (rows = genes, cols = experiments, 3rd dim = time points) ;; delta=Threshold values for active/inactive states, can be defined per gene (\"perGene\"), per gene/experiment, etc. ;; lambda=Penalty parameter for the objective function; can be optimized using cross-validation ;; b=Perturbation vector/matrix indicating which genes are inactivated (0) or active (1) in each experiment ;; annot=Edge annotation, typically generated using getEdgeAnnot(n) ;; flag_time_series=Logical flag; must be set to TRUE when analyzing time-series data in doILP, loocv, or kfoldCV ;; prior=List of constraints representing prior knowledge on individual edges (e.g., from KEGGgraph) ;; sourceNode/sinkNode=Indices of known source and sink nodes to constrain the network flow\n- alternatives: nem (Nested Effects Models) package for reconstructing phenotypic hierarchies from perturbation data ;; KEGGgraph for extracting prior pathway topology to guide the LP model\n- when_to_use: When you have systematic perturbation data (e.g., single/double knockdowns via RNAi) and downstream measurements (e.g., RPPA, flow cytometry, gene expression) and want to reconstruct the causal signaling or gene regulatory network.\n- pitfalls: Failing to set flag_time_series=TRUE when using 3D array time-series data ;; Incorrectly specifying the perturbation vector b (must align with the experiments) ;; Not handling missing values or unmeasured proteins when calculating delta (e.g., using average MOCK control values as a fallback) ;; High computational runtime for LOOCV on large networks (suggesting k-fold CV or pre-calculating lambda range).",
+  "workflows": [
+    {
+      "name": "steady_state_network_inference",
+      "intent": "Infer a signaling network from steady-state perturbation data using integer linear programming.",
+      "input": [
+        "expression_matrix.csv (steady-state gene expression or protein measurements)",
+        "perturbation_design.csv (binary matrix of knockdowns per experiment)"
+      ],
+      "stages": "1. Define network size and perturbation vector ;; 2. Compute delta thresholds ;; 3. Generate edge annotations using getEdgeAnnot ;; 4. Run ILP network reconstruction using doILP ;; 5. Convert the LP result to an adjacency matrix using getAdja",
+      "code": "n <- 5 # number of genes\nK <- 7 # number of perturbation experiments\nobs <- matrix(rnorm(n*K), nrow=n, ncol=K)\ndelta <- apply(obs, 1, mean)\ndelta_type <- \"perGene\"\nb <- c(0,1,1,1,1,    # perturbation exp1\n       1,0,1,1,1,     # perturbation exp2\n       1,1,0,1,1,     # perturbation exp3...\n       1,1,1,0,1,\n       1,1,1,1,0,\n       1,0,0,1,1,\n       1,1,1,1,1)\nres1 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,\n              annot=getEdgeAnnot(n), delta_type)\nadja1 <- getAdja(res1, n)"
+    },
+    {
+      "name": "time_series_network_inference",
+      "intent": "Infer a signaling network from time-series perturbation data.",
+      "input": [
+        "timeseries_expression.RData (3D array of time-series measurements)",
+        "perturbation_design.csv (binary matrix of knockdowns per experiment)"
+      ],
+      "stages": "1. Define network size, time points, and perturbation vector ;; 2. Compute delta thresholds ;; 3. Generate edge annotations using getEdgeAnnot ;; 4. Run ILP network reconstruction with flag_time_series=TRUE using doILP ;; 5. Convert the LP result to an adjacency matrix using getAdja",
+      "code": "n <- 5 # number of genes\nK <- 7 # number of perturbation experiments\nobs <- matrix(rnorm(n*K), nrow=n, ncol=K)\ndelta <- apply(obs, 1, mean)\ndelta_type <- \"perGene\"\nb <- c(0,1,1,1,1,    \n       1,0,1,1,1,     \n       1,1,0,1,1,     \n       1,1,1,0,1,\n       1,1,1,1,0,\n       1,0,0,1,1,\n       1,1,1,1,1)\nT_ <- 4 # number of time points\nobs_ts <- array(rnorm(n*K*T_), c(n,K,T_))\nres1 <- doILP(obs_ts, delta, lambda=1, b, n, K, T_, \n              annot=getEdgeAnnot(n), delta_type, \n              flag_time_series=TRUE)\nadja1 <- getAdja(res1, n)"
+    },
+    {
+      "name": "parameter_tuning_cross_validation",
+      "intent": "Find the optimal penalty parameter lambda using cross-validation (LOOCV or k-fold) to minimize mean squared error.",
+      "input": [
+        "expression_matrix.csv (steady-state gene expression or protein measurements)",
+        "perturbation_design.csv (binary matrix of knockdowns per experiment)"
+      ],
+      "stages": "1. Define active and inactive state distribution parameters ;; 2. Calculate the range of candidate lambda values using calcRangeLambda ;; 3. Perform LOOCV or K-fold CV over the lambda range using loocv or kfoldCV ;; 4. Select the best lambda minimizing MSE ;; 5. Compute the final consensus adjacency matrix using getSampleAdjaMAD",
+      "code": "n <- 5 # number of genes\nK <- 7 # number of perturbation experiments\nobs <- matrix(rnorm(n*K), nrow=n, ncol=K)\ndelta <- apply(obs, 1, mean)\ndelta_type <- \"perGene\"\nb <- c(0,1,1,1,1,    \n       1,0,1,1,1,     \n       1,1,0,1,1,     \n       1,1,1,0,1,\n       1,1,1,1,0,\n       1,0,0,1,1,\n       1,1,1,1,1)\nactive_mu <- 1.1\ninactive_mu <- 0.9\nactive_sd <- inactive_sd <- 0.01\nmu_type <- \"single\"\ntimes <- 5 # number of times the removed observation is sampled\nannot_node <- seq(1,n) # annotation of the nodes\nlambda <- calcRangeLambda(obs, delta, delta_type)\nMSE <- Inf\nfor (lamd in lambda) {\n  loocv_res <- loocv(kfold=NULL, times, obs, delta, lambda=lamd, \n                     b, n, K, T_=NULL, annot=getEdgeAnnot(n), \n                     annot_node, active_mu, active_sd, \n                     inactive_mu, inactive_sd, mu_type, \n                     delta_type)\n  if (loocv_res$MSE < MSE) {\n\t\tMSE <- loocv_res$MSE\n\t\tedges_all <- loocv_res$edges_all\n\t\tbestLambda <- lamd\n  }\n}\nadja_bestLambda <- getSampleAdjaMAD(edges_all, n, annot_node)"
+    }
+  ]
+}

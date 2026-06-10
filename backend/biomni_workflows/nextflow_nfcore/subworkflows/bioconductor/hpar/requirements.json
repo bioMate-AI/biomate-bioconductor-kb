@@ -1,0 +1,13 @@
+{
+  "package": "hpar",
+  "requirements": [
+    "BiocGenerics",
+    "hpar"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "hpar"
+    ]
+  }
+}

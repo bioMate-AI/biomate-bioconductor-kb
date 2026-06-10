@@ -1,0 +1,21 @@
+{
+  "package": "appreci8r",
+  "requirements": [
+    "Biostrings",
+    "GO.db",
+    "GenomicRanges",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "appreci8R",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GO.db",
+      "GenomicRanges",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "appreci8R",
+      "org.Hs.eg.db"
+    ]
+  }
+}

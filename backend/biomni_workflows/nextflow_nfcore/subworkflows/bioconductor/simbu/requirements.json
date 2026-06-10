@@ -1,0 +1,21 @@
+{
+  "package": "simbu",
+  "requirements": [
+    "BiocParallel",
+    "Matrix",
+    "Seurat",
+    "SeuratObject",
+    "SimBu",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "Matrix",
+      "Seurat",
+      "SeuratObject",
+      "SimBu",
+      "SummarizedExperiment"
+    ]
+  }
+}

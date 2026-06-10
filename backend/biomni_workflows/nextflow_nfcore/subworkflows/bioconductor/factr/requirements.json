@@ -1,0 +1,15 @@
+{
+  "package": "factr",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "factR",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "factR",
+      "rtracklayer"
+    ]
+  }
+}

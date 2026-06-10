@@ -1,0 +1,26 @@
+{
+  "package": "schot",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggplot2",
+    "matrixStats",
+    "scHOT",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "matrixStats",
+      "scHOT",
+      "scater"
+    ],
+    "spatial_differential_correlation.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "matrixStats",
+      "scHOT",
+      "scater"
+    ]
+  }
+}

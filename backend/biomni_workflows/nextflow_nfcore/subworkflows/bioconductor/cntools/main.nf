@@ -1,112 +1,163 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNTools
-// This package provides tools to convert the output of segmentation analysis using DNAcopy to a matrix
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNTools/inst/doc/HowTo.R
-// Upstream  : none
-// Downstream: cghMCR
-//
-// Install: BiocManager::install("CNTools")
+// Bioconductor workflow: CNTools — segmented_copy_number_analysis
+// Convert segmented DNA copy number data into a matrix format by region or gene, filter out low-variance features, and perform hierarchical clustering.
+// Input: sampleData, geneInfo
+// Container: quay.io/biocontainers/bioconductor-cntools:1.66.0--r45h01b2380_0
+// R packages: CNTools, genefilter
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNTools, genefilter
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Instantiate a CNSeg object from the segment data using CNSeg. 2. Convert segments to a reduced segment matrix by region or gene us
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNTOOLS {
+process BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cntools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cntools:1.62.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cntools:1.62.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cntools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cntools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cntools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CNSeg)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    require("CNTools")
-    data(sampleData)
-    head(sampleData)
-    # --- Cnseg [] ---
-    # Key functions: CNSeg, element, sample, getRS
-    cnseg <- CNSeg(sampleData[which(is.element(sampleData[, "ID"], sample(unique(sampleData[, "ID"]), 20))), ])
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CNTools", "genefilter")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(CNTools)
+    library(genefilter)
+    
+    # Helper function to find and read input files from the working directory
+    find_and_read <- function(base_name) {
+      possible_files <- c(
+        base_name,
+        paste0(base_name, ".csv"),
+        paste0(base_name, ".tsv"),
+        paste0(base_name, ".txt")
+      )
+      for (f in possible_files) {
+        if (file.exists(f)) {
+          if (grepl("\\\\.csv\$", f)) {
+            return(read.csv(f, header = TRUE, stringsAsFactors = FALSE))
+          } else if (grepl("\\\\.(tsv|txt)\$", f)) {
+            return(read.delim(f, header = TRUE, stringsAsFactors = FALSE))
+          } else {
+            try_read <- try(read.table(f, header = TRUE, stringsAsFactors = FALSE), silent = TRUE)
+            if (!inherits(try_read, "try-error")) return(try_read)
+          }
+        }
+      }
+      stop(paste("Required input file not found in working directory:", base_name))
+    }
+    
+    # Read user inputs
+    sampleData <- find_and_read("sampleData")
+    geneInfo <- find_and_read("geneInfo")
+    
+    # Ensure geneInfo is a matrix as required by CNTools
+    geneInfo <- as.matrix(geneInfo)
+    
+    # 1. Instantiate a CNSeg object from the segment data using CNSeg
+    # Robust sampling to handle cases where there are fewer than 20 unique IDs
+    unique_ids <- unique(sampleData[, "ID"])
+    sampled_ids <- sample(unique_ids, min(20, length(unique_ids)))
+    cnseg <- CNSeg(sampleData[which(is.element(sampleData[, "ID"], sampled_ids)), ])
+    
+    # 2. Convert segments to a reduced segment matrix by region or gene using getRS
     rdseg <- getRS(cnseg, by = "region", imput = FALSE, XY = FALSE, what = "mean")
-    data("geneInfo")
-    geneInfo <- geneInfo[sample(1:nrow(geneInfo), 2000), ]
+    
+    # Robust sampling for geneInfo to handle cases where there are fewer than 2000 genes
+    geneInfo <- geneInfo[sample(1:nrow(geneInfo), min(2000, nrow(geneInfo))), , drop = FALSE]
     rdByGene <- getRS(cnseg, by = "gene", imput = FALSE, XY = FALSE, geneMap = geneInfo, what = "median")
-    # --- Rs [] ---
-    # Key functions: rs
+    
+    # 3. Extract the reduced segment matrix using rs
     reducedseg <- rs(rdseg)
-    # --- Kovera [] ---
-    # Key functions: kOverA, filterfun, genefilter
+    reducedseg_gene <- rs(rdByGene)
+    
+    # Save extracted matrices
+    write.csv(reducedseg, "reduced_segment_region.csv", row.names = TRUE)
+    write.csv(reducedseg_gene, "reduced_segment_gene.csv", row.names = TRUE)
+    
+    # 4. Filter features using genefilter or madFilter
     f1 <- kOverA(5, 1)
     ffun <- filterfun(f1)
-    filteredrs <- genefilter(rdseg, ffun)
-    # --- Madfilter [] ---
-    # Key functions: madFilter
+    filteredrs_gf <- genefilter(rdseg, ffun)
+    
+    # Save genefilter result
+    write.csv(rs(filteredrs_gf), "filtered_segment_genefilter.csv", row.names = TRUE)
+    
     filteredrs <- madFilter(rdseg, 0.8)
-    # --- Hclust [] ---
-    # Key functions: hclust, getDist
-    hc <- hclust(getDist(filteredrs, method = "euclidian"), method = "complete")
-    plot(hc, hang = -1, cex = 0.8, main = "", xlab = "")
+    
+    # Save madFilter result
+    write.csv(rs(filteredrs), "filtered_segment_madfilter.csv", row.names = TRUE)
+    
+    # 5. Calculate sample distances and perform hierarchical clustering using getDist and hclust
+    hc <- hclust(getDist(filteredrs, method = "euclidian"), method = "complete") 
+    
+    # Save clustering object
+    saveRDS(hc, "hierarchical_clustering.rds")
+    
+    # Plot and save dendrogram
+    pdf("hierarchical_clustering_dendrogram.pdf", width = 10, height = 7)
+    plot(hc, hang = -1, cex = 0.8, main = "Hierarchical Clustering of Samples", xlab = "")
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cntools_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cntools_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cntools_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNTOOLS:", paste0("    cntools: ", packageVersion("CNTools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS":',
+        paste0('    CNTools: ', as.character(packageVersion('CNTools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cntools_results.csv
-    touch ${prefix}_cntools_output.rds
-    echo "BIOC_CNTOOLS:" > versions.yml
-    echo "    cntools: 0.0.0" >> versions.yml
+    touch ${prefix}_segmented_copy_number_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNTOOLS_WORKFLOW {
+workflow BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sampleData, geneInfo ] ]
 
     main:
-    BIOC_CNTOOLS(ch_input)
+    BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CNTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS.out.tables
+    plots    = BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS.out.plots
+    objects  = BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS.out.objects
+    versions = BIOC_CNTOOLS_SEGMENTED_COPY_NUMBER_ANALYSIS.out.versions
 }

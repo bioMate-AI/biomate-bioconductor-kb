@@ -1,0 +1,16 @@
+{
+  "package": "mdp",
+  "requirements": [
+    "fgsea",
+    "mdp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mdp"
+    ],
+    "pathway_mdp_analysis.nf": [
+      "fgsea",
+      "mdp"
+    ]
+  }
+}

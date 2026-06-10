@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: work_dir=The directory path where the genotype and map files are stored ;; phenoInfo=A data frame containing individual IDs (IID) and phenotype values (PHENOTYPE) ;; geno_files / gnoFiles=A data frame listing the filenames of the genotype files ;; mapFiles=A data frame listing the filenames of the map files ;; gLst=A data frame containing gene annotations (columns: Gene_Symbol, Chromosome, Start, End) ;; fdr=False Discovery Rate threshold for multiple testing control (set to 1 to turn off FDR control) ;; rng=The extension scope of the gene region (e.g., 0) ;; c=Constant used in rank transformation of phenotypes (e.g., 0.5)\n- alternatives: PCA and pointwise epistasis testing via pCAPiontwiseEpistasis can be used as alternatives or complements to the Functional Regression Model, though they are slower.\n- when_to_use: Use when analyzing next-generation sequencing (NGS) or large-scale genomic data to detect epistasis (interactions) between genes or genomic regions rather than individual SNPs, especially when dealing with rare variants.\n- pitfalls: The package cannot perform multi-loci interaction tests (e.g., 3-gene interactions or more) ;; In Windows systems, the Environment Variable PATH must be set to locate R executable files ;; The PCA and pointwise method (pCAPiontwiseEpistasis) is significantly slower than the Functional Regression Model (fRGEpistasis) ;; Genotype files must be formatted correctly (recoded from PLINK PED files using plink --file DATA --recodeA with 0, 1, 2 coding and missing values coded as 3).",
+  "workflows": [
+    {
+      "name": "functional_regression_epistasis",
+      "intent": "Detect epistasis between genomic regions using the Functional Regression Model (FRG).",
+      "input": [
+        "list_geno.txt (genotype files index)",
+        "list_map.txt (map files index)",
+        "phenotype.csv (phenotype file)",
+        "gene.list.csv (gene annotation file)",
+        "simGeno-chr*.raw (genotype files in PLINK recodeA format)",
+        "chr*.map (map files)"
+      ],
+      "stages": "1. Load the FRGEpistasis library and set the working directory ;; 2. Read the genotype and map file index lists ;; 3. Read the phenotype and gene annotation files ;; 4. Transform the phenotype data (e.g., log transformation or rank transformation using rankTransPheno) ;; 5. Run the functional regression epistasis test using fRGEpistasis ;; 6. Save the output p-values to a CSV file",
+      "code": "library(\"FRGEpistasis\")\nwork_dir <-paste(system.file(\"extdata\", package=\"FRGEpistasis\"),\"/\",sep=\"\")\n##read the list of genotype files\ngeno_files<-read.table(system.file(\"extdata\", \"list_geno.txt\", package=\"FRGEpistasis\"))\n##read the list of map files\nmapFiles<-read.table(system.file(\"extdata\", \"list_map.txt\", package=\"FRGEpistasis\"))\n##read the phenotype file\nphenoInfo <- read.csv(system.file(\"extdata\", \"phenotype.csv\", package=\"FRGEpistasis\"),header=TRUE)\n##read the gene annotation file\ngLst<-read.csv(system.file(\"extdata\", \"gene.list.csv\", package=\"FRGEpistasis\"))\n##define the extension scope of gene region\nrng=0\nfdr=0.05\n## output data structure\nout_epi <- data.frame( )\n\n##log transformation\nphenoInfo [,2]=log(phenoInfo [,2])\n\n##rank transformation\n#c=0.5\n#phenoInfo[,2]=rankTransPheno(phenoInfo[,2],c)\n# test epistasis with Functional Regression Model\nout_epi = fRGEpistasis(work_dir,phenoInfo,geno_files,mapFiles,gLst,fdr,rng)\n## output the result to physical file\nwrite.csv(out_epi,\"Output_Pvalues_Epistasis_Test.csv \")"
+    },
+    {
+      "name": "pca_pointwise_epistasis",
+      "intent": "Perform epistasis testing using PCA and pointwise methods, utilizing the output of the Functional Regression Model.",
+      "input": [
+        "list_geno.txt (genotype files index)",
+        "list_map.txt (map files index)",
+        "phenotype.csv (phenotype file)",
+        "gene.list.csv (gene annotation file)",
+        "simGeno-chr*.raw (genotype files in PLINK recodeA format)",
+        "chr*.map (map files)"
+      ],
+      "stages": "1. Load the FRGEpistasis library and set the working directory ;; 2. Read the genotype, map, phenotype, and gene annotation files ;; 3. Run the Functional Regression Model to obtain the initial epistasis results (out_epi) ;; 4. Run the PCA and pointwise epistasis test using pCAPiontwiseEpistasis",
+      "code": "library(\"FRGEpistasis\")\nwork_dir <-paste(system.file(\"extdata\", package=\"FRGEpistasis\"),\"/\",sep=\"\")\n##read the list of genotype files\ngeno_files<-read.table(system.file(\"extdata\", \"list_geno.txt\", package=\"FRGEpistasis\"))\n##read the list of map files\nmapFiles<-read.table(system.file(\"extdata\", \"list_map.txt\", package=\"FRGEpistasis\"))\n##read the phenotype file\nphenoInfo <- read.csv(system.file(\"extdata\", \"phenotype.csv\", package=\"FRGEpistasis\"),header=TRUE)\n##read the gene annotation file\ngLst<-read.csv(system.file(\"extdata\", \"gene.list.csv\", package=\"FRGEpistasis\"))\n##define the extension scope of gene region\nrng=0\nfdr=0.05\n## output data structure\nout_epi <- data.frame( )\n\n##log transformation\nphenoInfo [,2]=log(phenoInfo [,2])\n\n# test epistasis with Functional Regression Model\nout_epi = fRGEpistasis(work_dir,phenoInfo,geno_files,mapFiles,gLst,fdr,rng)\n\n#out_pp <- data.frame( )\n#out_pp <- pCAPiontwiseEpistasis(wDir,out_epi,phenoInfo,gnoFiles,mapFiles,gLst,rng)"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "gars",
+  "requirements": [
+    "GARS",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "find_optimal_features_loop.nf": [
+      "GARS",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "GARS",
+      "SummarizedExperiment"
+    ]
+  }
+}

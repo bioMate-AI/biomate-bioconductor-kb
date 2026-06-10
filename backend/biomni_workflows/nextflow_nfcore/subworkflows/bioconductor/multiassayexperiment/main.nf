@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_MULTIASSAYEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-multiassayexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-multiassayexperiment:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-multiassayexperiment:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -38,8 +37,7 @@ process BIOC_MULTIASSAYEXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(IRanges)
+    library(GenomicRanges)
     library(MultiAssayExperiment)
     library(RaggedExperiment)
     library(jsonlite)
@@ -66,18 +64,27 @@ process BIOC_MULTIASSAYEXPERIMENT {
         gene_symbols = paste0("GENE", letters[seq_len(nrows)]))
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_multiassayexperiment_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_multiassayexperiment_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_multiassayexperiment_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_multiassayexperiment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_multiassayexperiment_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_multiassayexperiment_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_MULTIASSAYEXPERIMENT:", paste0("    multiassayexperiment: ", packageVersion("MultiAssayExperiment"))),
+        c("BIOC_MULTIASSAYEXPERIMENT:", paste0("    multiassayexperiment: ", as.character(packageVersion("MultiAssayExperiment")))),
         "versions.yml"
     )
     """

@@ -1,0 +1,23 @@
+{
+  "package": "extrachips",
+  "requirements": [
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "edgeR",
+    "extraChIPs",
+    "patchwork",
+    "scales",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "edgeR",
+      "extraChIPs",
+      "patchwork",
+      "scales",
+      "tidyverse"
+    ]
+  }
+}

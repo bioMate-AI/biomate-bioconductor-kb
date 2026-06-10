@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: se=A SummarizedExperiment object containing 'coverage', 'dropoff_count', and 'dropoff_rate' assays ;; Nc=Integer specifying the number of control replicates ;; Nt=Integer specifying the number of treatment replicates ;; t=Numeric coverage threshold below which nucleotides are excluded ;; optimise=Optional tolerance parameter for EM optimization of Beta distribution shape parameters (default is NULL)\n- alternatives: None mentioned\n- when_to_use: When analyzing high-throughput RNA structure probing data with multiple replicates for both control and treatment conditions to statistically identify flexible/modified nucleotide positions.\n- pitfalls: Drop-off rates of 0 are not allowed due to log transform, so positions with 0 drop-off counts in both replicates of a comparison are filtered out ;; Optimizing Beta distribution shape parameters using the EM algorithm (by setting the `optimise` parameter in `computeProbs`) is vulnerable to local minima; the current pipeline recommends leaving it as `NULL` (default) ;; For short molecules (like 18S rRNA), sequence bias correction should be omitted by passing a single stretch containing all positions to `nuclPosition` instead of pattern-specific positions.",
+  "workflows": [
+    {
+      "name": "bumhmm_structure_probing_analysis",
+      "intent": "Compute per-nucleotide posterior probabilities of RNA modification from multi-replicate structure probing data.",
+      "input": [
+        "se (SummarizedExperiment containing coverage, dropoff_count, and dropoff_rate assays for control and treatment replicates)",
+        "sequence (DNAString object representing the genomic/transcriptomic reference sequence)"
+      ],
+      "stages": "1. Select nucleotide positions for pairwise comparisons using selectNuclPos ;; 2. Scale drop-off rates across replicates using scaleDOR ;; 3. Compute uninterrupted stretches of nucleotides using computeStretches ;; 4. Correct coverage bias (variance stabilization) using stabiliseVariance ;; 5. Define nucleotide positions for the null distribution (omitting sequence bias correction for short molecules) ;; 6. Compute posterior probabilities of modification using computeProbs ;; 7. Shift posterior probabilities up by one position to align with modification sites",
+      "code": "Nc <- Nt <- 3\nt <- 1\nnuclSelection <- selectNuclPos(se, Nc, Nt, t)\nassay(se, \"dropoff_rate\") <- scaleDOR(se, nuclSelection, Nc, Nt)\nstretches <- computeStretches(se, t)\nvarStab <- stabiliseVariance(se, nuclSelection, Nc, Nt)\nLDR_C <- varStab$LDR_C\nLDR_CT <- varStab$LDR_CT\nnuclPosition <- list()\nnuclPosition[[1]] <- 1:nchar(sequence)\nposteriors <- computeProbs(LDR_C, LDR_CT, Nc, Nt, '+', nuclPosition,\n                             nuclSelection$analysedC, nuclSelection$analysedCT,\n                             stretches)\nshifted_posteriors <- matrix(, nrow=dim(posteriors)[1], ncol=1)\nshifted_posteriors[1:(length(shifted_posteriors) - 1)] <-\n  posteriors[2:dim(posteriors)[1], 2]"
+    }
+  ]
+}

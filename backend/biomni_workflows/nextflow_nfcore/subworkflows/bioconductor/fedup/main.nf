@@ -1,48 +1,77 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: fedup
-// An R package that tests for enrichment and depletion of user-defined pathways using a Fisher's exact
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/fedup/inst/doc/fedup_doubleTest.R
-// Upstream  : dplyr, ggplot2, tidyr
-// Downstream: none
-//
-// Install: BiocManager::install("fedup")
+// Bioconductor workflow: fedup — pathway_enrichment_and_depletion_analysis
+// Test one or more gene sets against a background for pathway enrichment and depletion using Fisher's exact test, visualize with a dot plot, and generate an enric
+// Input: gene_list.rds, pathways.gmt
+// Container: quay.io/biocontainers/bioconductor-fedup:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: dplyr, fedup, ggplot2, tidyr
+// Visualizations: dot plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the enrichment/depletion analysis using runFedup
+//  * 2. [Core Analysis] Format and filter results using dplyr and tidyr
+//  * 3. [Visualization & Output] Plot significant results using plotDotPlot
+//  * 4. [Visualization & Output] Write out formatted results for EnrichmentMap using writeFemap
+//  * 5. [Visualization & Output] Write out pathway annotations to GMT format using writePathways
+//  * 6. [Visualization & Output] Generate and visualize the enrichment map in Cytoscape using plotFemap
 
 nextflow.enable.dsl = 2
 
-process BIOC_FEDUP {
+process BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fedup"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fedup:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-fedup:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fedup_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fedup_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fedup_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(fedup)
-    library(jsonlite)
-
-    # --- Visualization [] ---
-    # Key functions: plotDotPlot
+    library(dplyr)
+    library(tidyr)
+    library(ggplot2)
+    
+    # 1. Read user input files
+    # gene_list.rds is a named list containing 'background' and one or more test sets
+    geneDouble <- readRDS("gene_list.rds")
+    
+    # pathways.gmt is a pathway annotation file in GMT format
+    pathwaysGMT <- readPathways("pathways.gmt")
+    
+    # 2. Run the enrichment/depletion analysis using runFedup
+    fedupRes <- runFedup(geneDouble, pathwaysGMT)
+    
+    # Save the raw results to RDS
+    saveRDS(fedupRes, "fedup_results.rds")
+    
+    # 3. Format and filter results using dplyr and tidyr
     fedupPlot <- fedupRes %>%
         bind_rows(.id = "set") %>%
         separate(col = "set", into = c("set", "sign"), sep = "_") %>%
@@ -50,64 +79,86 @@ process BIOC_FEDUP {
         mutate(log10qvalue = -log10(qvalue)) %>%
         mutate(pathway = gsub("\\%.*", "", pathway)) %>%
         as.data.frame()
+    
+    # Save formatted plot data to CSV
+    write.csv(fedupPlot, "fedup_plot_data.csv", row.names = FALSE)
+    
+    # 4. Plot significant results using plotDotPlot
     p <- plotDotPlot(
-        df = fedupPlot,
-        xVar = "log10qvalue",
-        yVar = "pathway",
-        xLab = "-log10(qvalue)",
-        fillVar = "sign",
-        fillLab = "Genetic interaction",
-        fillCol = c("#6D90CA", "#F6EB13"),
-        sizeVar = "fold_enrichment",
-        sizeLab = "Fold enrichment"
-    )
-
-
-    # --- Exporting Results [] ---
-    # Key functions: writeFemap, writePathways
+            df = fedupPlot,
+            xVar = "log10qvalue",
+            yVar = "pathway",
+            xLab = "-log10(qvalue)",
+            fillVar = "sign",
+            fillLab = "Genetic interaction",
+            fillCol = c("#6D90CA", "#F6EB13"),
+            sizeVar = "fold_enrichment",
+            sizeLab = "Fold enrichment") +
+        facet_grid("sign", scales = "free", space = "free") +
+        theme(strip.text.y = element_blank())
+    
+    # Save the plot to PDF
+    ggsave("fedup_dotplot.pdf", plot = p, width = 11, height = 15.5)
+    
+    # 5. Write out formatted results for EnrichmentMap using writeFemap
     resultsFolder <- tempdir()
     writeFemap(fedupRes, resultsFolder)
+    
+    # Copy the written files to the working directory for user access
+    femap_files <- list.files(resultsFolder, pattern = "^femap_.*\\\\.txt\$", full.names = TRUE)
+    if (length(femap_files) > 0) {
+        file.copy(femap_files, ".", overwrite = TRUE)
+    }
+    
+    # 6. Write out pathway annotations to GMT format using writePathways
     gmtFile <- tempfile("pathwaysGMT", fileext = ".gmt")
     writePathways(pathwaysGMT, gmtFile)
+    file.copy(gmtFile, "pathways_output.gmt", overwrite = TRUE)
+    
+    # 7. Generate and visualize the enrichment map in Cytoscape using plotFemap
+    netFile <- tempfile("fedupEM_geneDouble", fileext = ".png")
+    
+    # Wrap in tryCatch since Cytoscape must be running locally for plotFemap to succeed
+    tryCatch({
+        plotFemap(
+            gmtFile = gmtFile,
+            resultsFolder = resultsFolder,
+            qvalue = 0.05,
+            chartData = "DATA_SET",
+            hideNodeLabels = TRUE,
+            netName = "fedupEM_geneDouble",
+            netFile = netFile
+        )
+        if (file.exists(netFile)) {
+            file.copy(netFile, "fedupEM_geneDouble.png", overwrite = TRUE)
+        }
+    }, error = function(e) {
+        message("Note: plotFemap failed (this is expected if Cytoscape is not running). Error: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fedup_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fedup_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fedup_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FEDUP:", paste0("    fedup: ", packageVersion("fedup"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS":',
+        paste0('    fedup: ', as.character(packageVersion('fedup')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fedup_results.csv
-    touch ${prefix}_fedup_output.rds
-    echo "BIOC_FEDUP:" > versions.yml
-    echo "    fedup: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_enrichment_and_depletion_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_FEDUP_WORKFLOW {
+workflow BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_list.rds, pathways.gmt ] ]
 
     main:
-    BIOC_FEDUP(ch_input)
+    BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_FEDUP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FEDUP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FEDUP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FEDUP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS.out.tables
+    plots    = BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS.out.plots
+    objects  = BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS.out.objects
+    versions = BIOC_FEDUP_PATHWAY_ENRICHMENT_AND_DEPLETION_ANALYSIS.out.versions
 }

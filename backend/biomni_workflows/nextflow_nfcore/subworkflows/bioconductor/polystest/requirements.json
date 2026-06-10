@@ -1,0 +1,17 @@
+{
+  "package": "polystest",
+  "requirements": [
+    "PolySTest",
+    "SummarizedExperiment",
+    "htmlwidgets",
+    "matrixStats"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PolySTest",
+      "SummarizedExperiment",
+      "htmlwidgets",
+      "matrixStats"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: binary_truth=The column name in the truth data frame representing the true binary classification status (e.g., \"status\") ;; cont_truth=The column name in the truth data frame representing the true continuous score (e.g., \"logFC\") ;; splv=The stratification variable name from the truth data frame (e.g., \"expr_cat\" or \"none\") ;; maxsplit=The maximum number of categories to retain when stratifying (default is 4) ;; colorscheme=A pre-defined color palette name (e.g., \"Dark2\") or a character vector of custom colors ;; facetted=A logical indicating whether plotting should be split into panels based on the stratification variable\n- alternatives: limma::vennDiagram=Used internally by plot_overlap to generate Venn diagrams, and accepts additional arguments like cex to customize text size\n- when_to_use: When evaluating and comparing the performance of multiple ranking or binary classification methods (e.g., comparing differential expression tools like edgeR, DESeq2, and voom) against a known ground truth.\n- pitfalls: Stratifying by continuous annotations is not supported because each category would likely contain only one observation; only categorical/discrete variables should be used for splv ;; If the wrong number of colors is provided in colorscheme, iCOBRA will automatically add or remove colors ;; Methods without adjusted p-values must have them calculated using calculate_adjp before certain performance metrics can be computed.",
+  "workflows": [
+    {
+      "name": "performance_evaluation_and_plotting",
+      "intent": "Programmatically calculate and plot performance metrics (TPR, FDR, ROC, overlap) for ranking and binary classification methods.",
+      "input": [
+        "Data frames containing p-values, adjusted p-values, scores, and ground truth (binary status and/or continuous scores) for features."
+      ],
+      "stages": "1. Load the package and example data (or user data formatted as a COBRAData object) ;; 2. Calculate adjusted p-values if missing using calculate_adjp ;; 3. Calculate performance metrics using calculate_performance ;; 4. Prepare data for plotting using prepare_data_for_plot ;; 5. Generate performance plots using plot_tpr, plot_fdrtprcurve, and plot_overlap.",
+      "code": "library(iCOBRA)\ndata(cobradata_example)\nclass(cobradata_example)\ncobradata_example\ncobradata_example <- calculate_adjp(cobradata_example)\ncobraperf <- calculate_performance(cobradata_example, binary_truth = \"status\", \n                                  cont_truth = \"logFC\", splv = \"none\",\n                                  maxsplit = 4)\nslotNames(cobraperf)\ncobraplot <- prepare_data_for_plot(cobraperf, colorscheme = \"Dark2\", \n                                  facetted = TRUE)\nplot_tpr(cobraplot)\nplot_fdrtprcurve(cobraplot)\nplot_overlap(cobraplot)"
+    },
+    {
+      "name": "interactive_shiny_visualization",
+      "intent": "Launch the interactive Shiny application to explore performance metrics.",
+      "input": [
+        "A COBRAData object or text files containing truth and results."
+      ],
+      "stages": "1. Launch the Shiny app using COBRAapp.",
+      "code": "COBRAapp(cobradata_example)\nCOBRAapp()"
+    },
+    {
+      "name": "text_file_import_export",
+      "intent": "Convert between COBRAData objects and text files for external storage or app compatibility.",
+      "input": [
+        "A COBRAData object or text files containing truth and results."
+      ],
+      "stages": "1. Export COBRAData to text files using COBRAData_to_text ;; 2. Import text files back into a COBRAData object using COBRAData_from_text.",
+      "code": "COBRAData_to_text(cobradata = cobradata_example, \n                  truth_file = \"cobradata_truth.txt\",\n                  result_files = \"cobradata_results.txt\", \n                  feature_id = \"feature\")\ncobra <- COBRAData_from_text(truth_file = \"cobradata_truth.txt\", \n                             result_files = \"cobradata_results.txt\", \n                             feature_id = \"feature\")\ncobra"
+    }
+  ]
+}

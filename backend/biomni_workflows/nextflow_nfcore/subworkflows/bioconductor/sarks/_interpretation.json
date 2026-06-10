@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: halfWindow=Smoothing window half-width (\u03ba). Recommended starting values are on the order of n/20, n/10, or n/5 where n is the number of input sequences ;; spatialLength=Length of spatial kernel (\u03bb) for spatial smoothing. Set to 0 to disable spatial smoothing, or small values (3-10) to sharpen individual motif detection, or larger values (e.g., 100) for multi-motif domains ;; minGini=Gini impurity filter threshold. Recommended starting value is 1.1 (or 0 to disable). Values slightly greater than 1 filter out false positives from excessive repetition of the same sequences ;; nSigma=Number of standard deviations (z) above the permutation mean to set thresholds. Higher values (e.g., 5.0 vs 2.0) reduce false positives at the cost of sensitivity ;; nThreads=Number of threads for multithreaded permutation analysis, specified in the Sarks constructor.\n- alternatives: None mentioned.\n- when_to_use: Use when you want to identify sequence motifs or multi-motif domains (MMDs) whose presence in a set of sequences (DNA, RNA, or other alphabets) is correlated with continuous or discrete numeric scores (e.g., gene expression levels, transcription factor binding affinities).\n- pitfalls: Failing to initialize Java with sufficient heap space (via options(java.parameters = '-Xmx8G') and library(rJava); .jinit()) before loading sarks will cause out-of-memory errors ;; Using the same random seed for estimateFalsePositiveRate as was used in permutationDistribution violates the independence assumption of the permutation tests ;; Multithreading increases memory requirements significantly because each thread tracks its own permuted smoothed scores; ensure the machine has large RAM.",
+  "workflows": [
+    {
+      "name": "basic_motif_discovery",
+      "intent": "Identify individual sequence motifs correlated with numeric scores without spatial smoothing.",
+      "input": [
+        "simulatedSeqs (named character vector of sequences)",
+        "simulatedScores (named numeric vector of scores)"
+      ],
+      "stages": "1. Initialize Java virtual machine with sufficient memory ;; 2. Load sequences and scores ;; 3. Initialize Sarks object with halfWindow parameter ;; 4. Define filters with spatialLength=0 ;; 5. Calculate permutation distribution ;; 6. Determine permutation thresholds ;; 7. Detect k-mer peaks ;; 8. Merge redundant subpeaks and extend k-mers ;; 9. Estimate false positive rate.",
+      "code": "options(java.parameters = '-Xmx8G')\nlibrary(rJava)\n.jinit()\nlibrary(sarks)\ndata(simulatedSeqs)\ndata(simulatedScores)\nsarks <- Sarks(simulatedSeqs, simulatedScores, halfWindow=4)\nfilters <- sarksFilters(halfWindow=4, spatialLength=0, minGini=1.1)\npermDist <- permutationDistribution(sarks, reps=250, filters, seed=123)\nthresholds <- permutationThresholds(filters, permDist, nSigma=2.0)\npeaks <- kmerPeaks(sarks, filters, thresholds)\nnonRedundantPeaks <- mergedKmerSubPeaks(sarks, filters, thresholds)\nextendedPeaks <- extendKmers(sarks, nonRedundantPeaks)\nfpr = estimateFalsePositiveRate(sarks, reps=250, filters, thresholds, seed=321)"
+    },
+    {
+      "name": "spatial_smoothing_and_multi_parameter_analysis",
+      "intent": "Identify multi-motif domains and motifs using spatial smoothing and multiple parameter combinations.",
+      "input": [
+        "simulatedSeqs (named character vector of sequences)",
+        "simulatedScores (named numeric vector of scores)"
+      ],
+      "stages": "1. Initialize Java virtual machine ;; 2. Load sequences and scores ;; 3. Initialize Sarks object with spatialLength and nThreads ;; 4. Define filters with multiple halfWindow and spatialLength values ;; 5. Calculate permutation distribution ;; 6. Determine permutation thresholds with higher nSigma ;; 7. Detect merged k-mer subpeaks ;; 8. Extract block information for visualization ;; 9. Estimate false positive rate.",
+      "code": "options(java.parameters = '-Xmx8G')\nlibrary(rJava)\n.jinit()\nlibrary(sarks)\ndata(simulatedSeqs)\ndata(simulatedScores)\nsarks <- Sarks(simulatedSeqs, simulatedScores, halfWindow=4, spatialLength=3, nThreads=4)\nfilters <- sarksFilters(halfWindow=c(4, 8), spatialLength=c(2, 3), minGini=1.1)\npermDist <- permutationDistribution(sarks, reps=250, filters, seed=123)\nthresholds <- permutationThresholds(filters, permDist, nSigma=5.0)\npeaks <- mergedKmerSubPeaks(sarks, filters, thresholds)\nblock22 <- blockInfo(sarks, block='22', filters, thresholds)\nfpr = estimateFalsePositiveRate(sarks, reps=250, filters, thresholds, seed=321)"
+    },
+    {
+      "name": "kmer_clustering_and_mapping",
+      "intent": "Cluster similar discovered k-mers into broader motifs and map/count them in the input sequences.",
+      "input": [
+        "kmers (character vector of discovered k-mers)",
+        "simulatedSeqs (named character vector of sequences)"
+      ],
+      "stages": "1. Define or input a vector of k-mers ;; 2. Cluster k-mers treating them as equivalent to their reverse-complements ;; 3. Count occurrences of each cluster in the sequences ;; 4. Locate the exact positions and matches of the clusters in the sequences.",
+      "code": "kmers <- c('CAGCCTGG', 'CCTGGAA', 'CAGCCTG', 'CCTGGAAC', 'CTGGAACT', 'ACCTGC', 'CACCTGC', 'TGGCCTG', 'CACCTG', 'TCCAGC', 'CTGGAAC', 'CACCTGG', 'CTGGTCTA', 'GTCCTG', 'CTGGAAG', 'TTCCAGC')\nkmClust <- clusterKmers(kmers, directional=FALSE)\nclCounts <- clusterCounts(kmClust, simulatedSeqs, directional=FALSE)\nclLoci <- locateClusters(kmClust, simulatedSeqs, directional=FALSE, showMatch=TRUE)"
+    }
+  ]
+}

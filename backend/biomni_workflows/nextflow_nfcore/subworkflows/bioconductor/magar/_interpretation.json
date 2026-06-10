@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: plink.path=Path to the PLINK executable, required for processing genotyping data (especially on non-Linux systems) ;; geno.data.type=Type of genotyping data, e.g., \"plink\" or \"idat\" ;; meth.data.type=Type of methylation data, e.g., \"rnb.set\" or \"idat.dir\" ;; cluster.cor.threshold=Correlation threshold for CpG clustering (default varies by platform, e.g., 0.2) ;; standard.deviation.gauss=Standard deviation of the Gaussian used to weight similarities by genomic distance (e.g., 5000 for 450k, 3000 for EPIC, 250 for RRBS/WGBS) ;; absolute.distance.cutoff=Maximum genomic distance for CpG clustering (default 500,000) and SNP-CpG association (default 1,000,000) ;; meth.qtl.type=Definition of methQTL interaction (\"oneVSall\", \"allVSall\", \"twoVSall\", or \"fastQTL\") ;; linear.model.type=Linear model type (\"categorical.anova\", \"classical.linear\", or \"fastQTL\") ;; representative.cpg.computation=Method to compute tag-CpG per block (\"row.medians\", \"mean.center\", or \"best.all\") ;; impute.geno.data=Logical flag to enable genotype imputation via the Michigan Imputation Server ;; imputation.user.token=API token for the Michigan Imputation Server\n- alternatives: fastQTL=An alternative command-line tool for calling methQTLs, which can be selected via meth.qtl.type='fastQTL' and configured with fast.qtl.path for faster computation or permutation-based FDR control\n- when_to_use: Use this package when you have matched genotyping data (from microarrays or sequencing) and DNA methylation data (from Illumina 450k/EPIC arrays or bisulfite sequencing) for the same set of samples, and you want to identify genetic variants (SNPs) that influence DNA methylation levels (methQTLs) while accounting for CpG correlation structures.\n- pitfalls: plink_path=The built-in PLINK installation is only valid for Linux; Windows and macOS users must manually install PLINK and set plink.path ;; sample_id_matching=Sample identifiers in the methylation sample annotation sheet must exactly match the sample IDs in the genotype calls ;; reference_mismatches=The Michigan Imputation Server is highly sensitive to reference mismatches; users should use recode.allele.frequencies=TRUE or provide a local dbSNP reference via db.snp.ref to avoid errors ;; imputation_stalling=Imputation via the Michigan Imputation Server stalls the R session while waiting for the server, and requires manual password entry from emails sent per chromosome",
+  "workflows": [
+    {
+      "name": "meth_qtl_from_plink",
+      "intent": "Import pre-processed PLINK genotyping files and RnBeads methylation objects, call methQTLs, and perform downstream visualization and enrichment.",
+      "input": [
+        "plink_data (folder containing binary .bed, .bim, and .fam files)",
+        "rnb_set_dir (folder containing RnBeads methylation data)",
+        "sample_annotation.csv (CSV file mapping sample IDs to covariates and genotypes)"
+      ],
+      "stages": "1. Configure RnBeads options ;; 2. Import PLINK and RnBeads data using doImport ;; 3. Call methQTLs using doMethQTL ;; 4. Extract results and annotations using getResult and getAnno ;; 5. Visualize interactions using qtlPlotSNPCpGInteraction and qtlDistanceScatterplot ;; 6. Perform base substitution enrichment using qtlBaseSubstitutionEnrichment",
+      "code": "opts <- rnb.xml2options(system.file(\"extdata\",\"rnbeads_options.xml\",package=\"MAGAR\"))\nrnb.options(identifiers.column=\"geo_accession\",\n    import.idat.platform=\"probes450\")\nxml.fi <- file.path(getwd(),\"rnbeads_options.xml\")\ncat(rnb.options2xml(),file=xml.fi)\nqtlSetOption(rnbeads.options = xml.fi)\n\ngeno.dir <- \"plink_data\"\nrnb.set <- load.rnb.set(\"rnb_set_dir\")\ns.anno <- \"sample_annotation.csv\"\ndata.loc <- list(idat.dir=rnb.set,geno.dir=plink.dir)\nqtlSetOption(geno.data.type=\"plink\",\n    meth.data.type=\"rnb.set\")\nmeth.qtl <- doImport(data.location=data.loc,\n    s.anno=s.anno,\n    s.id.col=\"SampleID\",\n    out.folder=getwd())\n\nimp.data <- loadMethQTLInput(system.file(\"extdata\",\"reduced_methQTL\",package=\"MAGAR\"))\nqtlSetOption(standard.deviation.gauss=100,\n    cluster.cor.threshold=0.75)\nmeth.qtl.res <- doMethQTL(imp.data,default.options=FALSE,p.val.cutoff=0.05)\n\nresult.table <- getResult(meth.qtl.res)\nhead(result.table)\nanno.meth <- getAnno(meth.qtl.res,\"meth\")\nhead(anno.meth)\nanno.geno <- getAnno(meth.qtl.res,\"geno\")\nhead(anno.geno)\n\nresult.table <- result.table[order(result.table$P.value,decreasing=FALSE),]\nqtlPlotSNPCpGInteraction(imp.data,result.table$CpG[1],result.table$SNP[1])\nqtlDistanceScatterplot(meth.qtl.res)\n\nres <- qtlBaseSubstitutionEnrichment(meth.qtl.res)"
+    },
+    {
+      "name": "meth_qtl_with_imputation",
+      "intent": "Import raw IDAT files, perform genotype calling and imputation via the Michigan Imputation Server, and call methQTLs.",
+      "input": [
+        "idat_dir (folder containing raw methylation IDAT files)",
+        "geno_dir (folder containing raw genotyping IDAT files)",
+        "sample_annotation.tsv (TSV file mapping sample IDs to barcodes and GenoSentrixPositions)"
+      ],
+      "stages": "1. Configure imputation options ;; 2. Import and impute data using doImport ;; 3. Call methQTLs using doMethQTL ;; 4. Extract results using getResult",
+      "code": "qtlSetOption(\n  impute.geno.data=TRUE,\n  imputation.reference.panel=\"apps@hrc-r1.1\",\n  imputation.phasing.method=\"shapeit\",\n  imputation.population=\"eur\"\n)\n\nidat.dir <- \"idat_dir\"\ngeno.dir <- \"geno_dir\"\nanno.sheet <- \"sample_annotation.tsv\"\nqtlSetOption(hdf5dump=TRUE)\nimp.data <- doImport(data.location = c(idat.dir=idat.dir,geno.dir=geno.dir),\n                    s.anno = anno.sheet,\n                    s.id.col = \"ID\",\n                    tab.sep = \"\\t\",\n                    out.folder = getwd())\n\nqtlSetOption(standard.deviation.gauss=100,\n    cluster.cor.threshold=0.75)\nmeth.qtl.res <- doMethQTL(imp.data,default.options=FALSE,p.val.cutoff=0.05)\n\nresult.table <- getResult(meth.qtl.res)"
+    },
+    {
+      "name": "compare_meth_qtl_results",
+      "intent": "Compare and overlap multiple methQTL result objects to identify shared and dataset-specific QTLs.",
+      "input": [
+        "meth.qtl.res (methQTLResult object from first analysis)",
+        "MethQTLResult_chr18 (saved methQTLResult object from second analysis)"
+      ],
+      "stages": "1. Load second methQTLResult object ;; 2. Combine results into a named list ;; 3. Generate Venn diagram using qtlVennPlot ;; 4. Generate UpSet plot using qtlUpsetPlot ;; 5. Identify specific QTLs using getSpecificQTL",
+      "code": "meth.qtl.res.2 <- loadMethQTLResult(system.file(\"extdata\",\"MethQTLResult_chr18\",package=\"MAGAR\"))\nmeth.qtl.list <- list(First=meth.qtl.res,Second=meth.qtl.res.2)\nqtlVennPlot(meth.qtl.list,out.folder=getwd())\nqtlUpsetPlot(meth.qtl.list,type = \"cor.block\")\nspec.first <- getSpecificQTL(meth.qtl.list$First,meth.qtl.list[-1])"
+    }
+  ]
+}

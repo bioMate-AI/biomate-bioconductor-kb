@@ -1,0 +1,29 @@
+{
+  "package": "saturn",
+  "requirements": [
+    "AnnotationHub",
+    "BiocParallel",
+    "DEXSeq",
+    "SummarizedExperiment",
+    "edgeR",
+    "ensembldb",
+    "ggplot2",
+    "limma",
+    "satuRn",
+    "stageR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationHub",
+      "BiocParallel",
+      "DEXSeq",
+      "SummarizedExperiment",
+      "edgeR",
+      "ensembldb",
+      "ggplot2",
+      "limma",
+      "satuRn",
+      "stageR"
+    ]
+  }
+}

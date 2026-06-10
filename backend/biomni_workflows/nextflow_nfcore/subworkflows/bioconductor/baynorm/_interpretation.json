@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Data=A SummarizedExperiment, SingleCellExperiment, or matrix of raw counts (rows: genes, columns: cells) ;; BETA_vec=A vector of cell-specific capture efficiencies (probabilities) of length equal to the number of cells. If NULL, estimated to be total counts normalized to 6% ;; Conditions=If specified, prior parameters are estimated locally within each group of cells (\"LL\" procedure). Otherwise, a global \"GG\" procedure is used ;; Prior_type=Can be set to \"GG\" to estimate prior parameters globally across all cells even if Conditions is specified ;; mode_version=Logical; if TRUE, returns a 2D matrix of normalized data representing the MAP (mode) of the posterior ;; mean_version=Logical; if TRUE, returns a 2D matrix of normalized data representing the mean of the posterior ;; S=Number of samples to draw from the posterior distribution when generating a 3D array (used when mode_version and mean_version are FALSE) ;; UMI_sffl=A scaling factor for non-UMI datasets; raw data is divided by this number and rounded before applying bayNorm ;; PRIORS=Input for bayNorm_sup containing previously estimated prior parameters (from bayNorm_output$PRIORS) ;; input_params=Input for bayNorm_sup containing the parameters used in the original bayNorm run\n- alternatives: scran=Mentioned as an alternative method for estimating scaling factors, which can then be normalized to the mean capture efficiency using BetaFun or manual scaling ;; SCnorm=Mentioned in the context of downstream differential expression (DE) analysis using the SCnorm_runMAST or SCnorm_runMAST3 functions\n- when_to_use: Appropriate for normalizing scRNA-seq datasets (especially UMI-based, but also non-UMI with scaling) to correct for cell-to-cell variation in capture efficiency and sequencing depth while preserving biological variability for downstream analyses like differential expression detection\n- pitfalls: Using the Method of Moments (MME) alone for estimating the size parameter (phi) introduces systematic bias; bayNorm defaults to a combined method that adjusts MME estimates using a linear regression with BB (marginal likelihood) estimates ;; Optimizing the marginal distribution with respect to both mu and phi (2D optimization) is computationally intensive; the combined method is preferred for efficiency ;; For non-UMI datasets, failing to specify UMI_sffl may lead to dropout vs. mean expression plots that do not resemble UMI datasets, violating model assumptions",
+  "workflows": [
+    {
+      "name": "standard_baynorm_normalization",
+      "intent": "Estimate cell-specific capture efficiencies and perform Bayesian normalization on scRNA-seq count data to generate 3D posterior samples or 2D MAP/mean matrices.",
+      "input": [
+        "rse (SummarizedExperiment or SingleCellExperiment object containing raw scRNA-seq counts)"
+      ],
+      "stages": "1. Estimate cell-specific capture efficiencies using BetaFun ;; 2. Run bayNorm to perform normalization and generate a 3D array of posterior samples",
+      "code": "BETA_est<-BetaFun(Data=rse,MeanBETA=0.06)\nbayNorm_3D<-bayNorm(\n    Data=rse,\n    BETA_vec = NULL,\n    mode_version=FALSE,\n    mean_version = FALSE,S=20\n    ,verbose =FALSE,\n    parallel = TRUE)"
+    },
+    {
+      "name": "baynorm_supplementary_generation",
+      "intent": "Generate alternative 2D normalized matrices (MAP or mean of posterior) using pre-existing prior parameters estimated from a previous bayNorm run.",
+      "input": [
+        "rse (SummarizedExperiment or SingleCellExperiment object containing raw scRNA-seq counts)",
+        "bayNorm_3D (List output from a previous bayNorm run containing estimated priors and input parameters)"
+      ],
+      "stages": "1. Run bayNorm_sup with mode_version=TRUE to generate a 2D MAP matrix ;; 2. Run bayNorm_sup with mean_version=TRUE to generate a 2D posterior mean matrix",
+      "code": "bayNorm_2D<-bayNorm_sup(\n    Data=rse,\n    PRIORS=bayNorm_3D$PRIORS,\n    input_params=bayNorm_3D$input_params,\n    mode_version=TRUE,\n    mean_version = FALSE,\n    verbose =FALSE)\nbayNorm_2D<-bayNorm_sup(\n    Data=rse,\n    PRIORS=bayNorm_3D$PRIORS,\n    input_params=bayNorm_3D$input_params,\n    mode_version=FALSE,\n    mean_version = TRUE,\n    verbose =FALSE)"
+    }
+  ]
+}

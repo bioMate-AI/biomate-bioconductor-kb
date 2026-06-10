@@ -1,0 +1,37 @@
+{
+  "package": "gsva",
+  "requirements": [
+    "GSEABase",
+    "GSVA",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "ggplot2",
+    "limma",
+    "org.Hs.eg.db",
+    "sva"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "GSVA",
+      "SummarizedExperiment",
+      "limma",
+      "org.Hs.eg.db",
+      "sva"
+    ],
+    "proteomics_missing_values.nf": [
+      "GSEABase",
+      "GSVA",
+      "SummarizedExperiment",
+      "org.Hs.eg.db"
+    ],
+    "single_cell_gsva.nf": [
+      "GSEABase",
+      "GSVA",
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "ggplot2",
+      "org.Hs.eg.db"
+    ]
+  }
+}

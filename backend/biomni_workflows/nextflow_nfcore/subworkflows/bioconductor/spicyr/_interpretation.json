@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: condition=The column name in the spatial object representing the experimental condition or \"survival\" for survival analysis ;; from=The starting cell type for testing a specific pairwise localization ;; to=The target cell type for testing a specific pairwise localization ;; cellType=The column name containing cell type annotations (defaults to \"cellType\") ;; alternateResult=A data frame or matrix of custom distance or abundance metrics to use instead of the default L-function ;; weights=Logical, whether to use weights in the linear model (set to FALSE when using alternateResult) ;; subject=The column name representing the subject/random effect for mixed-effects modeling ;; sigma=The bandwidth parameter for kernel density estimation to account for tissue inhomogeneity (defaults to NULL for homogeneous structure) ;; Rs=The distance range/radius for calculating pairwise associations in getPairwise\n- alternatives: imcRtools::buildSpatialGraph=Used to construct kNN interaction graphs which can be converted to custom abundance metrics ;; Statial=Mentioned as a package containing other custom distance metrics that can be used with spicyR\n- when_to_use: Use this package when you have multi-image, single-cell resolution spatial omics data (e.g., multiplexed ion beam imaging, imaging mass cytometry) and want to statistically evaluate if the spatial co-localization or dispersion of cell type pairs significantly differs across clinical conditions, patient groups, or is associated with patient survival.\n- pitfalls: S4 Method Dispatch Bug=SingleCellExperiment and SpatialExperiment objects may not correctly inherit from SummarizedExperiment. A workaround class union must be defined before running the analysis ;; Tissue Inhomogeneity=Dense cell clustering (e.g., tumor nests) can cause false-positive attraction signals. Use the sigma parameter in spicy() or getPairwise() to correct for this ;; Survival Column Requirement=For survival analysis, the input object must contain a column named exactly \"survival\" containing a Surv object.",
+  "workflows": [
+    {
+      "name": "pairwise_localization_modeling",
+      "intent": "Test for changes in pairwise cell type localization across conditions using linear or mixed-effects models.",
+      "input": [
+        "kerenSPE (SpatialExperiment object containing single-cell spatial coordinates, cell type annotations, and condition metadata)",
+        "diabetesData (SpatialExperiment object containing multi-image data per subject for mixed-effects modeling)"
+      ],
+      "stages": "1. Define S4 class union workaround for the inheritance bug ;; 2. Run spicy() for a specific cell pair or all pairwise combinations ;; 3. Extract coefficients and p-values using topPairs() ;; 4. Extract image-level L-function metrics using bind() ;; 5. Visualize significant relationships using signifPlot() ;; 6. Generate boxplots for specific cell-cell relationships using spicyBoxPlot() ;; 7. Perform mixed-effects modeling by specifying the subject parameter",
+      "code": "methods::setClassUnion(\"ExpData\", c(\"matrix\", \"dgCMatrix\", \"ExpressionSet\",\n                                    \"SummarizedExperiment\"))\n\nspicyTestPair <- spicy(\n  kerenSPE,\n  condition = \"tumour_type\",\n  from = \"CD8_T_cell\",\n  to = \"Neutrophils\"\n)\n\ntopPairs(spicyTestPair)\n\nspicyTest <- spicy(\n  kerenSPE,\n  condition = \"tumour_type\"\n)\n\ntopPairs(spicyTest)\n\nbind(spicyTest)[1:5, 1:5]\n\nsignifPlot(\n  spicyTest,\n  breaks = c(-3, 3, 1),\n  marksToPlot = c(\"Macrophages\", \"DC_or_Mono\", \"dn_T_CD3\", \"Neutrophils\",\n                  \"CD8_T_cell\", \"Keratin_Tumour\")\n)\n\nspicyBoxPlot(results = spicyTest, \n             # from = \"Macrophages\",\n             # to = \"dn_T_CD3\"\n             rank = 1)\n\nspicyMixedTest <- spicy(\n  diabetesData,\n  condition = \"stage\",\n  subject = \"case\"\n)"
+    },
+    {
+      "name": "custom_metrics_modeling",
+      "intent": "Perform spatial modeling using custom distance or abundance metrics, such as kNN interaction graphs, instead of the default L-function.",
+      "input": [
+        "kerenSPE (SpatialExperiment object containing single-cell spatial coordinates and cell type annotations)"
+      ],
+      "stages": "1. Build a spatial graph using imcRtools::buildSpatialGraph() ;; 2. Convert the spatial graph into an abundance matrix using convPairs() ;; 3. Run spicy() with the custom abundance matrix passed to alternateResult and weights set to FALSE ;; 4. Retrieve top pairs using topPairs() ;; 5. Visualize results using signifPlot()",
+      "code": "kerenSPE <- imcRtools::buildSpatialGraph(kerenSPE, \n                                         img_id = \"imageID\", \n                                         type = \"knn\", k = 20,\n                                        coords = c(\"x\", \"y\"))\n\npairAbundances <- convPairs(kerenSPE,\n                  colPair = \"knn_interaction_graph\")\n\nhead(pairAbundances[\"B_cell__B_cell\"])\n\nspicyTestColPairs <- spicy(\n  kerenSPE,\n  condition = \"tumour_type\",\n  alternateResult = pairAbundances,\n  weights = FALSE\n)\n\ntopPairs(spicyTestColPairs)\n\nsignifPlot(\n  spicyTestColPairs,\n  breaks = c(-3, 3, 1),\n  marksToPlot = c(\"Macrophages\", \"dn_T_CD3\", \"CD4_T_cell\", \n                  \"B_cell\", \"DC_or_Mono\", \"Neutrophils\", \"CD8_T_cell\")\n)"
+    },
+    {
+      "name": "survival_analysis",
+      "intent": "Assess whether changes in co-localization between cell types are associated with patient survival probability.",
+      "input": [
+        "kerenSPE (SpatialExperiment object containing survival time and censoring status columns)"
+      ],
+      "stages": "1. Create a Surv object and store it in the \"survival\" column of the spatial object ;; 2. Run spicy() with condition set to \"survival\" ;; 3. Access the survival analysis results from the survivalResults slot of the output object",
+      "code": "kerenSPE$event = 1 - kerenSPE$Censored\nkerenSPE$survival = Surv(kerenSPE$`Survival_days_capped*`, kerenSPE$event)\n\nspicySurvival = spicy(kerenSPE,\n                      condition = \"survival\")\n\nhead(spicySurvival$survivalResults, 10)"
+    },
+    {
+      "name": "inhomogeneity_correction_and_visualization",
+      "intent": "Account for tissue inhomogeneity in pairwise association calculations and visually inspect cellular relationships in specific images.",
+      "input": [
+        "kerenSPE (SpatialExperiment object containing single-cell spatial coordinates and cell type annotations)"
+      ],
+      "stages": "1. Subset the spatial object to a single image ;; 2. Calculate pairwise associations using getPairwise() without inhomogeneity correction (sigma = NULL) ;; 3. Calculate pairwise associations using getPairwise() with inhomogeneity correction (sigma = bandwidth value) ;; 4. Plot cell-cell relationships for the image using plotImage()",
+      "code": "kerenSubset = kerenSPE[, colData(kerenSPE)$imageID == \"24\"]\n\npairwiseAssoc = getPairwise(kerenSubset, \n                            sigma = NULL, \n                            Rs = 100) |>\n  as.data.frame()\n\npairwiseAssoc[[\"Keratin_Tumour__Neutrophils\"]]\n\npairwiseAssoc = getPairwise(kerenSubset, \n                            sigma = 20, \n                            Rs = 100) |>\n  as.data.frame()\n\npairwiseAssoc[[\"Keratin_Tumour__Neutrophils\"]]\n\nplotImage(kerenSPE, \"24\", from = \"Keratin_Tumour\", to = \"Neutrophils\")"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: expressionSet=An ExpressionSet object containing the expression matrix and metadata ;; classes=A character string indicating the phenoData column containing binary class labels ;; survival=A character string indicating the phenoData column containing numeric survival times ;; signature=A vector of feature identifiers (e.g., gene symbols) representing the signature ;; annotation=A character string specifying the featureData column containing labels that match the signature ;; validationSamples=An integer vector of sample indices representing the validation set ;; scoreMethod=The method used to score samples, such as \"PCA1\" (default), \"High\", or \"classifier\" ;; threshold=Percentile cutoff(s) to split samples into score-based groups (default is 0.5) ;; iterations=The number of random or permuted tests to run (at least 1000 is recommended) ;; classifierMethod=The MLInterfaces classifier to use when scoreMethod=\"classifier\" (default is svmI)\n- alternatives: The documentation mentions using read.gmt from the qusage package to load external gene sets (such as MSigDB oncogenic signatures) for comparison instead of the built-in knownSignatures.\n- when_to_use: Use this package when you have identified a prognostic or predictive gene signature and want to verify that its performance is significantly better than random gene sets, known signatures, or permuted data.\n- pitfalls: SigCheck cannot handle NA values in the metadata columns (classes or survival), so samples with NAs must be filtered out beforehand. Running many iterations in parallel can cause high memory and CPU load; use BiocParallel's MulticoreParam to limit the number of workers.",
+  "workflows": [
+    {
+      "name": "survival_analysis",
+      "intent": "Evaluate a gene signature's survival prediction performance against random signatures, known signatures, and permuted data.",
+      "input": [
+        "nki (ExpressionSet containing expression data, survival times, binary event classes, and feature annotations)",
+        "knownSignatures$cancer$VANTVEER (vector of gene symbols representing the signature)"
+      ],
+      "stages": "1. Filter out samples with missing metadata ;; 2. Initialize the SigCheckObject and compute baseline survival performance ;; 3. Run all comparison checks (random, known, permuted survival, permuted features) ;; 4. Plot the comparison distributions ;; 5. Extract empirical p-values for each check",
+      "code": "nki <- nki[,!is.na(nki$e.dmfs)]\ncheck <- sigCheck(nki, classes=\"e.dmfs\", survival=\"t.dmfs\",\n                  signature=knownSignatures$cancer$VANTVEER,\n                  annotation=\"HUGO.gene.symbol\",\n                  validationSamples=which(nki$series==\"NKI2\")) \ncheck@survivalPval\nnkiResults <- sigCheckAll(check, iterations=1000) \nsigCheckPlot(nkiResults)\nnkiResults$checkRandom$checkPval\nnkiResults$checkKnown$checkPval\nnkiResults$checkPermutedSurvival$checkPval\nnkiResults$checkPermutedFeatures$checkPval"
+    },
+    {
+      "name": "classification_analysis",
+      "intent": "Evaluate a gene signature's binary classification performance independently of survival data.",
+      "input": [
+        "nki (ExpressionSet containing expression data, binary classes, and feature annotations)",
+        "knownSignatures$cancer$VANTVEER (vector of gene symbols representing the signature)"
+      ],
+      "stages": "1. Initialize the SigCheckObject with scoreMethod=\"classifier\" and without survival data ;; 2. Inspect baseline classification accuracy, mode performance, and the confusion matrix ;; 3. Run checks against random and known signatures ;; 4. Plot the classification performance distributions",
+      "code": "check <- sigCheck(nki, classes=\"e.dmfs\",\n                  signature=knownSignatures$cancer$VANTVEER,\n                  annotation=\"HUGO.gene.symbol\",\n                  validationSamples=which(nki$series==\"NKI2\"),\n                  scoreMethod=\"classifier\") \ncheck@sigPerformance\ncheck@modePerformance\ncheck@confusion\nclassifyRandom <- sigCheckRandom(check, iterations=1000)\nclassifyKnown <- sigCheckKnown(check)\nsigCheckPlot(classifyRandom, classifier=TRUE)\nsigCheckPlot(classifyKnown,  classifier=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "csar",
+  "requirements": [
+    "CSAR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CSAR"
+    ]
+  }
+}

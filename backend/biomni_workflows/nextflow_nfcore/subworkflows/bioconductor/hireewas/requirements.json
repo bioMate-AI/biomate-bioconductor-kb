@@ -1,0 +1,11 @@
+{
+  "package": "hireewas",
+  "requirements": [
+    "HIREewas"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HIREewas"
+    ]
+  }
+}

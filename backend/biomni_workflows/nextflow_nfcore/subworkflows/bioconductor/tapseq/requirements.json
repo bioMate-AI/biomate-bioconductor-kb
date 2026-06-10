@@ -1,0 +1,30 @@
+{
+  "package": "tapseq",
+  "requirements": [
+    "BSgenome",
+    "BiocParallel",
+    "Biostrings",
+    "GenomicRanges",
+    "Seurat",
+    "TAPseq",
+    "dplyr",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Seurat",
+      "TAPseq"
+    ],
+    "primer_design_and_evaluation.nf": [
+      "BSgenome",
+      "BiocParallel",
+      "Biostrings",
+      "GenomicRanges",
+      "TAPseq",
+      "dplyr",
+      "ggplot2",
+      "rtracklayer"
+    ]
+  }
+}

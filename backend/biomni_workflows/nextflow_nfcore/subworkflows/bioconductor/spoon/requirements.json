@@ -1,0 +1,29 @@
+{
+  "package": "spoon",
+  "requirements": [
+    "BiocParallel",
+    "Matrix",
+    "SpatialExperiment",
+    "SummarizedExperiment",
+    "nnSVG",
+    "scuttle",
+    "spoon"
+  ],
+  "by_workflow": {
+    "custom_weighted_svg_workflow.nf": [
+      "BiocParallel",
+      "Matrix",
+      "SpatialExperiment",
+      "SummarizedExperiment",
+      "spoon"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "Matrix",
+      "SpatialExperiment",
+      "nnSVG",
+      "scuttle",
+      "spoon"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "omiccircos",
+  "requirements": [
+    "OmicCircos"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OmicCircos"
+    ],
+    "tcga_cancer_omics_visualization.nf": [
+      "OmicCircos"
+    ]
+  }
+}

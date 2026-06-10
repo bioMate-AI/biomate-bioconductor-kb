@@ -1,119 +1,256 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GEWIST
-// This 'GEWIST' package provides statistical tools to efficiently optimize SNP prioritization for gene
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GEWIST/inst/doc/GEWIST.R
-// Upstream  : car
-// Downstream: none
-//
-// Install: BiocManager::install("GEWIST")
+// Bioconductor workflow: GEWIST — snp_prioritization_known_effect
+// Prioritize SNPs and perform interaction testing when the interaction effect size (theta_gc) is known or estimated.
+// Input: GenoSet, Trait, COV, SNPset, theta_gc, theta_c
+// Container: quay.io/biocontainers/bioconductor-gewist:1.54.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GEWIST, car
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute Levene's test p-values for all SNPs using car::leveneTest
+//  * 2. [Core Analysis] Compute optimal variance prioritization p-value thresholds for each SNP using gewistLevene
+//  * 3. [Core Analysis] Filter SNPs where Levene's p-value is less than the optimal threshold
+//  * 4. [Core Analysis] Perform interaction testing on the prioritized SNPs using linear regression (lm)
 
 nextflow.enable.dsl = 2
 
-process BIOC_GEWIST {
+process BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gewist"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gewist:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gewist:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gewist_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gewist_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gewist_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(GEWIST)
-    library(jsonlite)
-
-    # --- Effect Size Distribution Analysis [] ---
-    # Key functions: effectPDF
-    weibull_exp <- effectPDF(
-        distribution = "weibull",
-        parameter1 = 0.8,
-        parameter2 = 0.3,
-        parameter3 = NULL,
-        p = 0.1,
-        N = 10000,
-        theta_c = 0.1,
-        M = 350000,
-        K = 10000,
-        nb_incr = 50,
-        range = c(0.00025, 0.003),
-        verbose = FALSE
-    )
-
-
-    # --- Optimal Threshold Estimation for SNP Set [] ---
-    # Key functions: gewistLevene
-    nb_snps <- 50
-    maf <- seq(0.05, 0.5, length.out = nb_snps)
-    optimal_pvals <- numeric(nb_snps)
-    for (i in seq_len(nb_snps)) {
-        res <- gewistLevene(
-            p = maf[i],
-            N = 10000,
-            theta_gc = 0.002,
-            theta_c = 0.15,
-            M = 100000,
-            verbose = FALSE
-        )
-        optimal_pvals[i] <- res$Optimal_pval
-    }
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gewist_results.csv", row.names = TRUE)
+    library(car)
+    
+    # ==========================================
+    # 1. READ USER INPUT FILES
+    # ==========================================
+    
+    # GenoSet: genotype matrix of m SNPs for n individuals (n rows, m columns)
+    if (file.exists("GenoSet.csv")) {
+      GenoSet <- as.matrix(read.csv("GenoSet.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("GenoSet.rds")) {
+      GenoSet <- readRDS("GenoSet.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gewist_results.csv")
+      stop("Error: GenoSet file (GenoSet.csv or GenoSet.rds) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gewist_output.rds")
+    
+    # Trait: quantitative phenotype vector of length n
+    if (file.exists("Trait.csv")) {
+      Trait <- read.csv("Trait.csv")[[1]]
+    } else if (file.exists("Trait.rds")) {
+      Trait <- readRDS("Trait.rds")
+    } else {
+      stop("Error: Trait file (Trait.csv or Trait.rds) not found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GEWIST:", paste0("    gewist: ", packageVersion("GEWIST"))),
-        "versions.yml"
+    
+    # COV: covariate measurements vector of length n
+    if (file.exists("COV.csv")) {
+      COV <- read.csv("COV.csv")[[1]]
+    } else if (file.exists("COV.rds")) {
+      COV <- readRDS("COV.rds")
+    } else {
+      stop("Error: COV file (COV.csv or COV.rds) not found in the working directory.")
+    }
+    
+    # SNPset: data frame containing SNP names and MAF values (m rows, 2 columns)
+    if (file.exists("SNPset.csv")) {
+      SNPset <- read.csv("SNPset.csv", header = TRUE)
+    } else if (file.exists("SNPset.rds")) {
+      SNPset <- readRDS("SNPset.rds")
+    } else {
+      stop("Error: SNPset file (SNPset.csv or SNPset.rds) not found in the working directory.")
+    }
+    
+    # theta_gc: estimated variance explained by GxE interaction
+    if (file.exists("theta_gc.txt")) {
+      theta_gc <- as.numeric(readLines("theta_gc.txt", warn = FALSE)[1])
+    } else if (file.exists("theta_gc.rds")) {
+      theta_gc <- readRDS("theta_gc.rds")
+    } else {
+      stop("Error: theta_gc file (theta_gc.txt or theta_gc.rds) not found in the working directory.")
+    }
+    
+    # theta_c: estimated variance explained by covariate
+    if (file.exists("theta_c.txt")) {
+      theta_c <- as.numeric(readLines("theta_c.txt", warn = FALSE)[1])
+    } else if (file.exists("theta_c.rds")) {
+      theta_c <- readRDS("theta_c.rds")
+    } else {
+      stop("Error: theta_c file (theta_c.txt or theta_c.rds) not found in the working directory.")
+    }
+    
+    # ==========================================
+    # Robustness Wrapper for gewistLevene
+    # (Handles potential vignette typo where \$Optimal_pval is used instead of \$Optimal_pval_threshold)
+    # ==========================================
+    original_gewistLevene <- GEWIST::gewistLevene
+    gewistLevene <- function(...) {
+      res <- original_gewistLevene(...)
+      if (!is.null(res) && is.null(res\$Optimal_pval) && !is.null(res\$Optimal_pval_threshold)) {
+        res\$Optimal_pval <- res\$Optimal_pval_threshold
+      }
+      return(res)
+    }
+    
+    # ==========================================
+    # 2. EXECUTING DOCUMENTED WORKFLOW
+    # ==========================================
+    
+    n  <- dim(GenoSet)[1]
+    m <- dim(GenoSet)[2]
+    
+    library(car)
+    
+    levene_pval <- NA
+    
+    	for (i in 1: m) {
+    		
+    		levene_pval[i] <- leveneTest(Trait, as.factor(GenoSet[,i]),center = mean)[1,3]
+    		
+    			   }
+    
+    optimal_pval <- NA
+    
+    for ( i in 1: m){
+    	
+    optimal_pval[i] <- gewistLevene(p = SNPset[i,2], N = n, theta_gc = theta_gc, 
+    theta_c = theta_c, M = m )\$Optimal_pval
+    		
+    			    }
+    			    
+    
+    SNPind <- which(levene_pval < optimal_pval)
+    
+    # Use drop = FALSE to preserve matrix structure if only 1 SNP is prioritized
+    Reduced <- GenoSet[,SNPind, drop = FALSE]
+     
+    intPval <- NA
+     
+    if (length(SNPind) > 0) {
+     	for (j in 1: length(SNPind)) {
+     
+     		intPval[j] <- summary(lm(Trait~ Reduced[,j] * COV ))\$coef[4,4]
+    		
+     						}
+    } else {
+    	intPval <- numeric(0)
+    	message("Warning: No SNPs were prioritized (Levene p-value < Optimal p-value threshold).")
+    }
+    
+    # ==========================================
+    # 3. WRITE OUTPUT FILES
+    # ==========================================
+    
+    # Save comprehensive prioritization results
+    prioritization_results <- data.frame(
+      SNPname = SNPset[, 1],
+      MAF = SNPset[, 2],
+      Levene_Pval = levene_pval,
+      Optimal_Threshold = optimal_pval,
+      Prioritized = (levene_pval < optimal_pval)
     )
+    write.csv(prioritization_results, "prioritization_results.csv", row.names = FALSE)
+    
+    # Save interaction testing results for prioritized SNPs
+    if (length(SNPind) > 0) {
+      interaction_results <- data.frame(
+        SNPname = SNPset[SNPind, 1],
+        MAF = SNPset[SNPind, 2],
+        Levene_Pval = levene_pval[SNPind],
+        Optimal_Threshold = optimal_pval[SNPind],
+        Interaction_Pval = intPval
+      )
+    } else {
+      interaction_results <- data.frame(
+        SNPname = character(0),
+        MAF = numeric(0),
+        Levene_Pval = numeric(0),
+        Optimal_Threshold = numeric(0),
+        Interaction_Pval = numeric(0)
+      )
+    }
+    write.csv(interaction_results, "interaction_results.csv", row.names = FALSE)
+    
+    # Save R objects for downstream analysis
+    saveRDS(list(
+      levene_pval = levene_pval,
+      optimal_pval = optimal_pval,
+      SNPind = SNPind,
+      intPval = intPval,
+      prioritization_results = prioritization_results,
+      interaction_results = interaction_results
+    ), "gewist_pipeline_outputs.rds")
+    
+    # Generate diagnostic plot
+    pdf("gewist_prioritization_plot.pdf", width = 7, height = 6)
+    plot(levene_pval, optimal_pval, 
+         xlab = "Levene's Test P-value", 
+         ylab = "Optimal VP P-value Threshold",
+         main = "SNP Prioritization (GEWIST)",
+         pch = 20, col = ifelse(levene_pval < optimal_pval, "red", "black"))
+    abline(a = 0, b = 1, lty = 2, col = "blue")
+    legend("topleft", legend = c("Prioritized SNPs", "Non-prioritized SNPs"), 
+           col = c("red", "black"), pch = 20)
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to 'prioritization_results.csv', 'interaction_results.csv', 'gewist_pipeline_outputs.rds', and 'gewist_prioritization_plot.pdf'.")
+
+    writeLines(c(
+        '"BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT":',
+        paste0('    GEWIST: ', as.character(packageVersion('GEWIST')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gewist_results.csv
-    touch ${prefix}_gewist_output.rds
-    echo "BIOC_GEWIST:" > versions.yml
-    echo "    gewist: 0.0.0" >> versions.yml
+    touch ${prefix}_snp_prioritization_known_effect.csv versions.yml
     """
 }
 
-
-workflow BIOC_GEWIST_WORKFLOW {
+workflow BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GenoSet, Trait, COV, SNPset, theta_gc, theta_c ] ]
 
     main:
-    BIOC_GEWIST(ch_input)
+    BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT(ch_input)
 
     emit:
-    results  = BIOC_GEWIST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GEWIST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GEWIST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GEWIST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT.out.tables
+    plots    = BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT.out.plots
+    objects  = BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT.out.objects
+    versions = BIOC_GEWIST_SNP_PRIORITIZATION_KNOWN_EFFECT.out.versions
 }

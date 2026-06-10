@@ -1,0 +1,13 @@
+{
+  "package": "msmstests",
+  "requirements": [
+    "MSnbase",
+    "msmsTests"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "msmsTests"
+    ]
+  }
+}

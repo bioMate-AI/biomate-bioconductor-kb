@@ -1,132 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: KEGGlincs
-// See what is going on 'under the hood' of KEGG pathways by explicitly re-creating the pathway maps fr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/KEGGlincs/inst/doc/Example-workflow.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("KEGGlincs")
+// Bioconductor workflow: KEGGlincs — visualize_expanded_kegg_pathway
+// Reconstruct and visualize detailed "expanded" KEGG pathways from KGML files without adding experimental data.
+// Input: hsa04068
+// Container: quay.io/biocontainers/bioconductor-kegglincs:1.36.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: KEGGlincs, graph, igraph
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Download and parse KGML file using get_KGML
+//  * 2. [Core Analysis] Expand node mappings using expand_KEGG_mappings
+//  * 3. [Core Analysis] Expand edge mappings using expand_KEGG_edges
+//  * 4. [Core Analysis] Generate node and edge mapping info using node_mapping_info and edge_mapping_info
+//  * 5. [Input & Preparation] Create an igraph object using get_graph_object
+//  * 6. [Visualization & Output] Visualize in Cytoscape using cyto_vis (or use the master function KEGG_lincs)
 
 nextflow.enable.dsl = 2
 
-process BIOC_KEGGLINCS {
+process BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-kegglincs"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-kegglincs:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-kegglincs:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_kegglincs_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_kegglincs_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_kegglincs_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(KEGGlincs)
-    library(KEGG_lincs)
-    library(jsonlite)
-
-    # --- Expand KEGG Mappings and Edges [] ---
-    # Key functions: expand_KEGG_mappings, expand_KEGG_edges
-    p53_KEGG_mappings <- expand_KEGG_mappings(
-        p53_KGML, 
-        convert_KEGG_IDs = TRUE
-    )
-    p53_edges <- expand_KEGG_edges(
-        p53_KGML, 
-        p53_KEGG_mappings
-    )
-
-
-    # --- Generate Graph Object [] ---
-    # Key functions: node_mapping_info, edge_mapping_info, get_graph_object
-    p53_node_info <- node_mapping_info(p53_KEGG_mappings)
-    p53_edge_info <- edge_mapping_info(p53_edges)
-    graph_obj <- get_graph_object(
-        p53_node_info, 
-        p53_edge_info
-    )
-
-
-    # --- Cell Type Specific Gene Coverage [] ---
-    # Key functions: path_genes_by_cell_type, overlap_info
-    p53_L1000_summary <- path_genes_by_cell_type(
-        p53_KEGG_mappings, 
-        get_KOs = TRUE,
-        generate_plot = FALSE
-    )
-    p53_PC3_data <- overlap_info(
-        p53_KGML, 
-        p53_KEGG_mappings, 
-        "PC3",
-        keep_counts_only = FALSE
-    )
-
-
-    # --- Integrate Edge Data [] ---
-    # Key functions: add_edge_data
-    p53_PC3_edges <- add_edge_data(
-        p53_edges, 
-        p53_KEGG_mappings,
-        p53_PC3_data, 
-        only_mapped = TRUE,
-        data_column_no = c(3, 10, 12)
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_kegglincs_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_kegglincs_results.csv")
+    library(graph)
+    library(igraph)
+    
+    # Read user input file
+    # The user input is a file named "hsa04068" containing the KEGG pathway ID string (e.g., "hsa04068")
+    input_file <- "hsa04068"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file", input_file, "does not exist in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_kegglincs_output.rds")
-    }
+    pathway_id <- trimws(readLines(input_file, n = 1, warn = FALSE))
+    
+    # 1. Download and parse KGML file using get_KGML
+    FoxO_KGML <- get_KGML(pathway_id)
+    slot(FoxO_KGML, "pathwayInfo")
+    slot(slot(FoxO_KGML, "pathwayInfo"), "image")
+    
+    # 2. Expand node mappings using expand_KEGG_mappings
+    FoxO_KEGG_mappings <- expand_KEGG_mappings(FoxO_KGML)
+    
+    # 3. Expand edge mappings using expand_KEGG_edges
+    FoxO_edges <- expand_KEGG_edges(FoxO_KGML, FoxO_KEGG_mappings)
+    
+    # Compare counts
+    length(graph::nodes(FoxO_KGML))
+    nrow(FoxO_KEGG_mappings)
+    length(graph::edges(FoxO_KGML))
+    nrow(FoxO_edges)
+    
+    # 4. Generate node and edge mapping info using node_mapping_info and edge_mapping_info
+    FoxO_node_mapping_info <- node_mapping_info(FoxO_KEGG_mappings)
+    FoxO_edge_mapping_info <- edge_mapping_info(FoxO_edges)
+    
+    # 5. Create an igraph object using get_graph_object
+    GO <- get_graph_object(FoxO_node_mapping_info, FoxO_edge_mapping_info)
+    class(GO)
+    
+    # 6. Visualize in Cytoscape using cyto_vis (or use the master function KEGG_lincs)
+    # Since Cytoscape might not be running in a headless/automated environment,
+    # we wrap these calls in tryCatch to ensure the pipeline completes and writes outputs.
+    tryCatch({
+      cyto_vis(GO, "FoxO Pathway with Expanded Edges[no data added]")
+    }, error = function(e) {
+      message("Cytoscape visualization skipped or failed (is Cytoscape running?): ", e\$message)
+    })
+    
+    tryCatch({
+      KEGG_lincs(pathway_id)
+    }, error = function(e) {
+      message("KEGG_lincs call 1 failed: ", e\$message)
+    })
+    
+    tryCatch({
+      FoxO_edges <- KEGG_lincs(pathway_id)
+    }, error = function(e) {
+      message("KEGG_lincs call 2 failed: ", e\$message)
+    })
+    
+    tryCatch({
+      KEGG_lincs(pathway_id, convert_KEGG_IDs = FALSE)
+    }, error = function(e) {
+      message("KEGG_lincs call 3 failed: ", e\$message)
+    })
+    
+    # Save outputs to the working directory
+    saveRDS(FoxO_KGML, "FoxO_KGML.rds")
+    write.csv(FoxO_KEGG_mappings, "FoxO_KEGG_mappings.csv", row.names = FALSE)
+    write.csv(FoxO_edges, "FoxO_edges.csv", row.names = FALSE)
+    write.csv(FoxO_node_mapping_info, "FoxO_node_mapping_info.csv", row.names = FALSE)
+    write.csv(FoxO_edge_mapping_info, "FoxO_edge_mapping_info.csv", row.names = FALSE)
+    saveRDS(GO, "GO_graph.rds")
+    
+    message("Pipeline completed successfully. Outputs saved.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_KEGGLINCS:", paste0("    kegglincs: ", packageVersion("KEGGlincs"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY":',
+        paste0('    KEGGlincs: ', as.character(packageVersion('KEGGlincs')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_kegglincs_results.csv
-    touch ${prefix}_kegglincs_output.rds
-    echo "BIOC_KEGGLINCS:" > versions.yml
-    echo "    kegglincs: 0.0.0" >> versions.yml
+    touch ${prefix}_visualize_expanded_kegg_pathway.csv versions.yml
     """
 }
 
-
-workflow BIOC_KEGGLINCS_WORKFLOW {
+workflow BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ hsa04068 ] ]
 
     main:
-    BIOC_KEGGLINCS(ch_input)
+    BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY(ch_input)
 
     emit:
-    results  = BIOC_KEGGLINCS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_KEGGLINCS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_KEGGLINCS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_KEGGLINCS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY.out.tables
+    plots    = BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY.out.plots
+    objects  = BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY.out.objects
+    versions = BIOC_KEGGLINCS_VISUALIZE_EXPANDED_KEGG_PATHWAY.out.versions
 }

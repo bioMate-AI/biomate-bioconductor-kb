@@ -1,0 +1,21 @@
+{
+  "package": "odseq",
+  "requirements": [
+    "Biostrings",
+    "kebabs",
+    "msa",
+    "odseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "msa",
+      "odseq"
+    ],
+    "unaligned_sequence_outliers.nf": [
+      "Biostrings",
+      "kebabs",
+      "odseq"
+    ]
+  }
+}

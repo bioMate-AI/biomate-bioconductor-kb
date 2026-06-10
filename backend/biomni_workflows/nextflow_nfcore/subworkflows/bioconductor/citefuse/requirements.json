@@ -1,0 +1,25 @@
+{
+  "package": "citefuse",
+  "requirements": [
+    "CiteFuse",
+    "SingleCellExperiment",
+    "ggplot2",
+    "gridExtra",
+    "scater"
+  ],
+  "by_workflow": {
+    "between_sample_analysis.nf": [
+      "CiteFuse",
+      "SingleCellExperiment",
+      "ggplot2",
+      "scater"
+    ],
+    "main.nf": [
+      "CiteFuse",
+      "SingleCellExperiment",
+      "ggplot2",
+      "gridExtra",
+      "scater"
+    ]
+  }
+}

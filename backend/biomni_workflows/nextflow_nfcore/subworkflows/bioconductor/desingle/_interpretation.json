@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=A raw read counts matrix (genes as rows, cells as columns) or a SingleCellExperiment object containing the counts ;; group=A factor vector specifying the two groups to be compared, corresponding to the columns in counts ;; parallel=Logical parameter (TRUE/FALSE) to enable parallel computing ;; BPPARAM=A BiocParallelParam object from BiocParallel to configure the parallel back-end ;; threshold=FDR threshold (e.g., 0.05) used in DEtype to classify DE genes\n- alternatives: None mentioned in the documentation, though standard visualization functions like heatmap() in stats or heatmap.2 in gplots are suggested for plotting results.\n- when_to_use: When analyzing single-cell RNA-seq raw read counts to find differentially expressed genes between two groups of cells, particularly when wanting to distinguish between differences in expression status (zero-inflation/dropouts) and expression abundance.\n- pitfalls: The input counts must be raw read counts, not normalized counts. When extracting significant DE genes after classification, the exact same FDR threshold must be used in the subsetting step as was specified in the DEtype function (e.g., using pvalue.adj.FDR < 0.05 if threshold = 0.05 was used). For parallelization, Windows users must use SnowParam, whereas Unix and Mac users should use MulticoreParam.",
+  "workflows": [
+    {
+      "name": "matrix_input_workflow",
+      "intent": "Detect and classify differentially expressed genes between two groups of cells using a raw read counts matrix.",
+      "input": [
+        "counts.ext (scRNA-seq raw read counts matrix where rows are genes and columns are cells)",
+        "group.ext (factor vector specifying the two groups of cells to be compared)"
+      ],
+      "stages": "1. Load the package and data ;; 2. Specify the two groups to be compared as a factor vector ;; 3. Detect DE genes using DEsingle() ;; 4. Classify DE genes into three categories using DEtype() ;; 5. Filter and extract significant DE genes and their subtypes",
+      "code": "library(DEsingle)\ndata(TestData)\ngroup <- factor(c(rep(1,50), rep(2,100)))\nresults <- DEsingle(counts = counts, group = group)\nresults.classified <- DEtype(results = results, threshold = 0.05)\nresults.sig <- results.classified[results.classified$pvalue.adj.FDR < 0.05, ]\nresults.DEs <- results.sig[results.sig$Type == \"DEs\", ]\nresults.DEa <- results.sig[results.sig$Type == \"DEa\", ]\nresults.DEg <- results.sig[results.sig$Type == \"DEg\", ]"
+    },
+    {
+      "name": "sce_input_workflow",
+      "intent": "Detect and classify differentially expressed genes between two groups of cells using a SingleCellExperiment object.",
+      "input": [
+        "sce.ext (SingleCellExperiment object containing the raw read counts matrix)",
+        "group.ext (factor vector specifying the two groups of cells to be compared)"
+      ],
+      "stages": "1. Load the packages and data ;; 2. Convert raw counts to a SingleCellExperiment object ;; 3. Specify the two groups to be compared as a factor vector ;; 4. Detect DE genes using DEsingle() with the SingleCellExperiment object ;; 5. Classify DE genes into three categories using DEtype()",
+      "code": "library(DEsingle)\nlibrary(SingleCellExperiment)\ndata(TestData)\nsce <- SingleCellExperiment(assays = list(counts = as.matrix(counts)))\ngroup <- factor(c(rep(1,50), rep(2,100)))\nresults <- DEsingle(counts = sce, group = group)\nresults.classified <- DEtype(results = results, threshold = 0.05)"
+    }
+  ]
+}

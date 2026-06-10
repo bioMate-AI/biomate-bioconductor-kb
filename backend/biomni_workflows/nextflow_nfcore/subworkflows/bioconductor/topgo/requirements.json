@@ -1,0 +1,20 @@
+{
+  "package": "topgo",
+  "requirements": [
+    "Biobase",
+    "genefilter",
+    "package",
+    "topGO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "topGO"
+    ],
+    "score_based_expression_enrichment.nf": [
+      "Biobase",
+      "genefilter",
+      "package",
+      "topGO"
+    ]
+  }
+}

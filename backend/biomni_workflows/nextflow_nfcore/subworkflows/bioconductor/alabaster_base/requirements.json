@@ -1,0 +1,15 @@
+{
+  "package": "alabaster_base",
+  "requirements": [
+    "S4Vectors",
+    "alabaster.base",
+    "alabaster_base"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "alabaster.base",
+      "alabaster_base"
+    ]
+  }
+}

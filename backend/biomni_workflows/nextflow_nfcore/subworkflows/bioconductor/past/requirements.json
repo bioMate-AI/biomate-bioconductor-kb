@@ -1,0 +1,11 @@
+{
+  "package": "past",
+  "requirements": [
+    "PAST"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PAST"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <expr=The input expression data, which can be a matrix, ExpressionSet, SummarizedExperiment, or sparse containers like dgCMatrix, SVT_SparseArray, DelayedMatrix, or SingleCellExperiment ;; gset=The gene sets, provided as a list or GeneSetCollection ;; kcdf=Character string specifying the kernel density estimation method: \"auto\" (default), \"Gaussian\" (for continuous data like microarrays, log-CPMs, log-TPMs), \"Poisson\" (for integer counts), or \"none\" (direct ECDF estimation) ;; kcdfNoneMinSampleSize=Minimum sample size to use kcdf=\"none\" when kcdf=\"auto\" (default is 200) ;; tau=Exponent defining the weight of the tail in the random walk (default is 1) ;; maxDiff=Logical flag; TRUE (default) calculates enrichment score as the magnitude difference between largest positive and negative random walk deviations, FALSE calculates it as the maximum distance from zero ;; absRanking=Logical flag used when maxDiff=TRUE; FALSE (default) uses a modified Kuiper statistic, TRUE uses the original Kuiper statistic ;; sparse=Logical flag; TRUE (default for sparse containers) runs a modified sparse GSVA algorithm, FALSE runs the classical algorithm ;; checkNA=Character string; \"auto\" (default), \"yes\", or \"no\" to control checking for missing values ;; use=Missing data policy; \"everything\" (default, propagates NAs), \"all.obs\" (errors if NAs present), or \"na.rm\" (discards NAs during calculation) ;; minSize/maxSize=Minimum and maximum gene set size filters (default min is 1, max is Inf)>\n- alternatives: <plageParam()=Runs PLAGE (Pathway Level Analysis of Gene Expression) which standardizes expression and performs SVD; prefer when a linear, SVD-based reduction per gene set is desired ;; zscoreParam()=Runs the z-score method, combining standardized values; prefer for a simple parametric combination of standardized gene expression ;; ssgseaParam()=Runs single-sample GSEA (ssGSEA), calculating enrichment as the normalized difference in empirical CDFs of ranks; prefer when the classic ssGSEA random walk is desired ;; GSEABase::getGmt()=Reads GMT files but throws an error on duplicated gene set names, whereas GSVA::readGMT() deduplicates them based on a policy (e.g., keeping the first occurrence)>\n- when_to_use: <Appropriate when you want to perform pathway-centric analyses (differential pathway activity, classification, survival analysis, clustering) on single samples rather than comparing groups of samples directly. It is suitable for bulk microarray, bulk RNA-seq (counts or log-transformed), proteomics (with missing values), and single-cell RNA-seq data.>\n- pitfalls: <Mismatched gene identifier nomenclatures between the expression matrix and gene sets (e.g., Ensembl vs Entrez) will cause all genes to be filtered out, resulting in an error. Use gsvaAnnotation() to set metadata for automatic mapping ;; Using kcdf=\"Poisson\" on continuous or log-transformed data (it is strictly for integer counts) ;; In proteomics or other datasets with missing values, the default use=\"everything\" will propagate NAs, often resulting in all-NA enrichment scores. Set use=\"na.rm\" to skip missing values ;; Duplicated gene set names in GMT files can cause errors in standard readers like GSEABase::getGmt(); use GSVA::readGMT() to handle them.>",
+  "workflows": [
+    {
+      "name": "bulk_expression_gsva",
+      "intent": "Calculate GSVA enrichment scores for bulk expression data (microarray or RNA-seq) and perform downstream differential pathway analysis.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix or SummarizedExperiment)",
+        "pathways.gmt (gene sets in GMT format)"
+      ],
+      "stages": "1. Read gene sets from GMT file using readGMT() ;; 2. Map gene identifiers if necessary using gsvaAnnotation() ;; 3. Build parameter object using gsvaParam() with appropriate kcdf ;; 4. Run GSVA using gsva() ;; 5. Perform differential pathway expression using limma and sva",
+      "code": "c7.genesets <- readGMT(URL)\ngsvaAnnotation(c7.genesets) <- SymbolIdentifier(\"org.Hs.eg.db\")\nhuangPar <- gsvaParam(huangArrayRMAnoBatchCommon_eset, canonicalC2BroadSets, minSize=5, maxSize=500)\nesmicro <- gsva(huangPar)\npickrellPar <- gsvaParam(pickrellCountsArgonneCQNcommon_eset, canonicalC2BroadSets, minSize=5, maxSize=500, kcdf=\"Poisson\")\nesrnaseq <- gsva(pickrellPar)\nmod <- model.matrix(~ FIR, colData(es))\nmod0 <- model.matrix(~ 1, colData(es))\nsv <- sva(assay(es), mod, mod0)\nmod <- cbind(mod, sv$sv)\nfit <- lmFit(assay(es), mod)\nfit.eb <- eBayes(fit, robust=TRUE)\ngssizes <- geneSetSizes(es)\nfit.eb.trend <- eBayes(fit, robust=TRUE, trend=sqrt(gssizes))\nres <- decideTests(fit.eb.trend)\ntt <- topTable(fit.eb.trend, coef=2, n=Inf)\nDEpwys <- rownames(tt)[tt$adj.P.Val <= 0.05]"
+    },
+    {
+      "name": "proteomics_missing_values",
+      "intent": "Calculate GSVA or ssGSEA enrichment scores on proteomics data containing missing values (NAs) without imputation.",
+      "input": [
+        "proteomics_expression.csv (protein expression matrix with NA values or SummarizedExperiment)",
+        "pathways.gmt (gene sets in GMT format)"
+      ],
+      "stages": "1. Read gene sets from GMT file using readGMT() ;; 2. Map gene identifiers using gsvaAnnotation() ;; 3. Build parameter object using gsvaParam() or ssgseaParam() with use=\"na.rm\" ;; 4. Run GSVA or ssGSEA using gsva()",
+      "code": "c7.genesets <- readGMT(URL)\ngsvaAnnotation(logCPMsWithNAs) <- EntrezIdentifier(\"org.Hs.eg.db\")\ngsvapar <- gsvaParam(logCPMsWithNAs, c7.genesets.filt, minSize=5, use=\"na.rm\")\nes_gsva_narm <- gsva(gsvapar)\nssgseapar <- ssgseaParam(logCPMsWithNAs, c7.genesets.filt, minSize=5, use=\"na.rm\")\nes_ssgsea_narm <- gsva(ssgseapar)"
+    },
+    {
+      "name": "single_cell_gsva",
+      "intent": "Calculate GSVA scores on sparse single-cell RNA-seq data to assign cell types and plot enrichment.",
+      "input": [
+        "sc_counts.rds (SingleCellExperiment or sparse matrix of UMI counts)",
+        "cell_type_signatures.gmt (cell-type marker gene sets)"
+      ],
+      "stages": "1. Read cell-type gene sets using readGMT() ;; 2. Annotate SingleCellExperiment gene identifiers using gsvaAnnotation() ;; 3. Build parameter object using gsvaParam() ;; 4. Calculate GSVA ranks using gsvaRanks() ;; 5. Calculate GSVA scores using gsvaScores() ;; 6. Plot GSEA enrichment for a specific cell and gene set using gsvaEnrichment()",
+      "code": "gsets <- readGMT(fname)\ngsvaAnnotation(sce) <- ENSEMBLIdentifier(\"org.Hs.eg.db\")\ngsvapar <- gsvaParam(sce, gsets)\ngsvaranks <- gsvaRanks(gsvapar)\nes <- gsvaScores(gsvaranks)\ngeneSets(gsvaranks) <- geneSets(gsvapar)[1:2]\nes2 <- gsvaScores(gsvaranks)\ngsvaEnrichment(gsvaranks, column=firsteosinophilcell, geneSet=\"EOSINOPHILS\", cex.axis=1.2, cex.lab=1.5, plot=\"ggplot\")"
+    }
+  ]
+}

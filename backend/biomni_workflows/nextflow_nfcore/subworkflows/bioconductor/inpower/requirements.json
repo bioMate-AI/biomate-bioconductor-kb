@@ -1,0 +1,11 @@
+{
+  "package": "inpower",
+  "requirements": [
+    "INPower"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "INPower"
+    ]
+  }
+}

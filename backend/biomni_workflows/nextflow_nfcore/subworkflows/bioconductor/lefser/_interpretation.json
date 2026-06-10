@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: classCol=The column name in colData representing the main sample classes of interest ;; subclassCol=The column name in colData representing the subclasses of interest for secondary testing ;; label.font.face=Customizes the font face of feature labels in lefserPlot (e.g., \"italic\") ;; label.font.color=Customizes the font color of feature labels in lefserPlot (e.g., \"red\")\n- alternatives: The original Python implementation of LEfSe (available via Galaxy UI or Conda), and other R implementations of LEfSe mentioned in the benchmarking section.\n- when_to_use: Use when identifying microbial taxa, genes, or pathways that act as biomarkers distinguishing two biological groups, while accounting for potential confounding subclasses.\n- pitfalls: Using raw counts instead of relative abundances (causes a warning; must use relativeAb) ;; Including both terminal and non-terminal taxonomic nodes, which causes collinearity and unstable LDA results (must use get_terminal_nodes) ;; Not setting a seed before running lefser, which can lead to non-reproducible results due to a random number generation step handling sparse 0s.",
+  "workflows": [
+    {
+      "name": "metagenomic_biomarker_discovery",
+      "intent": "Identify metagenomic biomarkers from taxonomic count data using relative abundance and terminal nodes.",
+      "input": [
+        "SummarizedExperiment object containing taxonomic count data in assays and class/subclass metadata in colData."
+      ],
+      "stages": "1. Filter non-terminal nodes to avoid collinearity using get_terminal_nodes ;; 2. Convert counts to relative abundances using relativeAb ;; 3. Run the LEfSe analysis using lefser with a set seed for reproducibility ;; 4. Visualize the biomarker discovery results using lefserPlot.",
+      "code": "tn <- get_terminal_nodes(rownames(zeller14))\nzeller14tn <- zeller14[tn,]\nzeller14tn_ra <- relativeAb(zeller14tn)\nset.seed(1234)\nres <- lefser(zeller14tn_ra, # relative abundance only with terminal nodes\n              classCol = \"study_condition\",\n              subclassCol = \"age_category\")\nhead(res)\nlefserPlot(res)\nlefserPlot(res, label.font.face = \"italic\")\nlefserPlot(res, label.font.color = \"red\")"
+    },
+    {
+      "name": "phyloseq_integration",
+      "intent": "Convert a phyloseq object to a SummarizedExperiment or TreeSummarizedExperiment for compatibility with lefser.",
+      "input": [
+        "phyloseq object containing OTU tables and sample data."
+      ],
+      "stages": "1. Extract OTU table and sample data from the phyloseq object ;; 2. Construct a SummarizedExperiment object, or alternatively use mia::makeTreeSummarizedExperimentFromPhyloseq.",
+      "code": "library(phyloseq)\nlibrary(SummarizedExperiment)\n\n## Load phyloseq object\nfp <- system.file(\"extdata\", \n                  \"study_1457_split_library_seqs_and_mapping.zip\",\n                  package = \"phyloseq\")\nkostic <- microbio_me_qiime(fp)\n\n## Split data tables\ncounts <- unclass(otu_table(kostic))\ncoldata <- as(sample_data(kostic), \"data.frame\")\n\n## Create a SummarizedExperiment object\nSummarizedExperiment(assays = list(counts = counts), colData = coldata)\nmia::makeTreeSummarizedExperimentFromPhyloseq(kostic)"
+    }
+  ]
+}

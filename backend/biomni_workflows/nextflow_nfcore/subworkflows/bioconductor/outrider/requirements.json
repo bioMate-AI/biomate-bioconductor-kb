@@ -1,0 +1,16 @@
+{
+  "package": "outrider",
+  "requirements": [
+    "OUTRIDER",
+    "peer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OUTRIDER"
+    ],
+    "peer_controlled_outlier_detection.nf": [
+      "OUTRIDER",
+      "peer"
+    ]
+  }
+}

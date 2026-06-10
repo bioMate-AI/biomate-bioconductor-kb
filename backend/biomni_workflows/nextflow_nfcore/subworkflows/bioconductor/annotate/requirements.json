@@ -1,0 +1,19 @@
+{
+  "package": "annotate",
+  "requirements": [
+    "GO.db",
+    "GenomicRanges",
+    "annotate",
+    "hgu95av2.db",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GO.db",
+      "GenomicRanges",
+      "annotate",
+      "hgu95av2.db",
+      "rtracklayer"
+    ]
+  }
+}

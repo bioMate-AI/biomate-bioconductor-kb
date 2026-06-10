@@ -1,0 +1,19 @@
+{
+  "package": "mutationalpatterns",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "MutationalPatterns",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "ggplot2",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "MutationalPatterns",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "ggplot2",
+      "gridExtra"
+    ]
+  }
+}

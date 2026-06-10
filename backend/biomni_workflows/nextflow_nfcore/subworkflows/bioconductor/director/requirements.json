@@ -1,0 +1,15 @@
+{
+  "package": "director",
+  "requirements": [
+    "Director",
+    "htmltools",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Director",
+      "htmltools",
+      "htmlwidgets"
+    ]
+  }
+}

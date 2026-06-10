@@ -1,0 +1,28 @@
+{
+  "package": "dmrseq",
+  "requirements": [
+    "DelayedMatrixStats",
+    "GenomicRanges",
+    "annotatr",
+    "bsseq",
+    "dmrseq"
+  ],
+  "by_workflow": {
+    "block_detection.nf": [
+      "bsseq",
+      "dmrseq"
+    ],
+    "dmr_simulation.nf": [
+      "GenomicRanges",
+      "bsseq",
+      "dmrseq"
+    ],
+    "main.nf": [
+      "DelayedMatrixStats",
+      "GenomicRanges",
+      "annotatr",
+      "bsseq",
+      "dmrseq"
+    ]
+  }
+}

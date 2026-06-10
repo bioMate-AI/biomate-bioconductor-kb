@@ -1,0 +1,17 @@
+{
+  "package": "easyrnaseq",
+  "requirements": [
+    "GenomicRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "easyRNASeq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "easyRNASeq"
+    ]
+  }
+}

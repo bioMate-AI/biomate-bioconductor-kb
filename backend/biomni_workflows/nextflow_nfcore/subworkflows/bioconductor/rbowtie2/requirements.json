@@ -1,0 +1,11 @@
+{
+  "package": "rbowtie2",
+  "requirements": [
+    "Rbowtie2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rbowtie2"
+    ]
+  }
+}

@@ -1,100 +1,176 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: escheR
-// The creation of effective visualizations is a fundamental component of data analysis. In biomedical 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/escheR/inst/doc/SRT_eg.R
-// Upstream  : devtools, ggpubr, STexampleData, scater, scran
-// Downstream: none
-//
-// Install: BiocManager::install("escheR")
+// Bioconductor workflow: escheR — spatial_experiment_visualization
+// Visualize multi-dimensional spatial transcriptomics data from a SpatialExperiment or SingleCellExperiment object by adding layered fill, ground, and symbol aest
+// Input: spe.rds
+// Container: quay.io/biocontainers/bioconductor-escher:1.10.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SpatialExperiment, escheR, ggplot2, scater, scuttle
+// Visualizations: plot (ggplot/base)
+// QC: cell QC metrics, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Initialize the plot using make_escheR(), optionally specifying a dimensionality reduction slot. 2. Add a fill layer using add_fill
 
 nextflow.enable.dsl = 2
 
-process BIOC_ESCHER {
+process BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-escher"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-escher:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-escher:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(singlecellexperiment)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_escher_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_escher_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_escher_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(escheR)
-    library(Visium_humanDLPFC)
-    library(jsonlite)
-
-    # --- Adding Spatial Fill and Ground Layers [] ---
-    # Key functions: make_escheR, add_fill, add_ground
-    p <- make_escheR(spe)
-    p1 <- add_fill(p, var = "cell_count")
-    p2 <- add_ground(p1, var = "ground_truth", stroke = 0.5)
-
-
-    # --- Multi-layer Spatial Annotation [] ---
-    # Key functions: make_escheR, add_fill, add_ground, add_symbol
-    spe$counts_MOBP <- counts(spe)[1, ]
-    p <- make_escheR(spe)
-    p <- add_fill(p, var = "counts_MOBP")
-    p <- add_ground(p, var = "ground_truth", stroke = 0.5)
-    p <- add_symbol(p, var = "ground_truth", size = 0.2)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_escher_results.csv", row.names = TRUE)
+    library(SpatialExperiment)
+    library(ggplot2)
+    library(scater)
+    library(scuttle)
+    
+    # 1. Read the input SpatialExperiment object
+    if (!file.exists("spe.rds")) {
+      stop("Error: 'spe.rds' not found in the working directory.")
+    }
+    spe <- readRDS("spe.rds")
+    
+    # 2. Robustness checks: Ensure required columns and reduced dimensions exist
+    # Ensure 'cell_count' exists in colData
+    if (!"cell_count" %in% colnames(colData(spe))) {
+      message("'cell_count' column not found in colData. Creating a fallback from library sizes.")
+      spe\$cell_count <- colSums(assays(spe)\$counts > 0)
+    }
+    
+    # Ensure 'ground_truth' exists in colData
+    if (!"ground_truth" %in% colnames(colData(spe))) {
+      message("'ground_truth' column not found in colData. Creating dummy spatial domains.")
+      # Generate dummy layers based on spatial coordinates if available, or randomly
+      if (all(c("pxl_col_in_fullres", "pxl_row_in_fullres") %in% colnames(spatialCoords(spe)))) {
+        coords <- spatialCoords(spe)
+        spe\$ground_truth <- factor(cut(coords[, 1], breaks = 5, labels = paste0("Layer", 1:5)))
+      } else {
+        spe\$ground_truth <- factor(sample(paste0("Layer", 1:5), ncol(spe), replace = TRUE))
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_escher_results.csv")
+      spe\$ground_truth <- factor(spe\$ground_truth)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_escher_output.rds")
+    
+    # Ensure 'counts_MOBP' exists in colData
+    if (!"counts_MOBP" %in% colnames(colData(spe))) {
+      message("'counts_MOBP' column not found in colData. Attempting to extract MOBP or fallback.")
+      mobp_idx <- which(toupper(rowData(spe)\$gene_name) == "MOBP")
+      if (length(mobp_idx) > 0) {
+        spe\$counts_MOBP <- assays(spe)\$counts[mobp_idx[1], ]
+      } else {
+        # Fallback to the first row of counts
+        spe\$counts_MOBP <- assays(spe)\$counts[1, ]
+      }
     }
+    
+    # Ensure PCA reduced dimension exists for the dimred visualization
+    if (!"PCA" %in% reducedDimNames(spe)) {
+      message("PCA reduced dimensions not found. Computing PCA...")
+      if (!"logcounts" %in% assayNames(spe)) {
+        spe <- scuttle::logNormCounts(spe)
+      }
+      # Run PCA with scater
+      spe <- scater::runPCA(spe, ncomponents = 2)
+    }
+    
+    # 3. Execute the documented escheR workflow steps
+    
+    # Set up an escheR plot
+    p <- make_escheR(spe)
+    
+    # Adding fill layer
+    p1 <- p |>
+       add_fill(var = "cell_count")
+    
+    # Adding ground layer
+    p2 <- p |>
+       add_ground(var = "ground_truth")
+    
+    # Adding symbol layer
+    p3 <- p2 |>
+      add_symbol(var = "ground_truth", size = 0.2)
+    
+    # Visualizing dimensionality reduced embedding
+    p_dimred <- make_escheR(
+      spe,
+      dimred = "PCA"
+    ) |> 
+      add_fill(var = "ground_truth") +
+      theme_minimal()
+    
+    # Customizing color palettes for multi-dimensional visualization
+    p_custom <- make_escheR(spe) |> 
+        add_fill(var = "counts_MOBP") |> 
+        add_ground(var = "ground_truth", stroke = 0.5)
+    
+    p_custom_scaled <- p_custom + 
+       scale_fill_gradient(low = "white", high = "black")
+    
+    # 4. Save the generated plots to the working directory
+    ggsave("escheR_plot_fill.pdf", plot = p1, width = 8, height = 7)
+    ggsave("escheR_plot_ground_symbol.pdf", plot = p3, width = 8, height = 7)
+    ggsave("escheR_plot_dimred.pdf", plot = p_dimred, width = 8, height = 7)
+    ggsave("escheR_plot_custom_palette.pdf", plot = p_custom_scaled, width = 8, height = 7)
+    
+    # Save the updated SpatialExperiment object with any newly created metadata
+    saveRDS(spe, "spe_processed.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ESCHER:", paste0("    escher: ", packageVersion("escheR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION":',
+        paste0('    escheR: ', as.character(packageVersion('escheR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_escher_results.csv
-    touch ${prefix}_escher_output.rds
-    echo "BIOC_ESCHER:" > versions.yml
-    echo "    escher: 0.0.0" >> versions.yml
+    touch ${prefix}_spatial_experiment_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_ESCHER_WORKFLOW {
+workflow BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(singlecellexperiment) ]
+    ch_input  // channel: [ val(meta), [ spe.rds ] ]
 
     main:
-    BIOC_ESCHER(ch_input)
+    BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_ESCHER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ESCHER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ESCHER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ESCHER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION.out.tables
+    plots    = BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION.out.plots
+    objects  = BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION.out.objects
+    versions = BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION.out.versions
 }

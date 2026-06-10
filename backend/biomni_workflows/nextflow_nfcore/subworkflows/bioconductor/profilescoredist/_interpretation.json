@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: matrix=The position count matrix (PCM) passed to regularizeMatrix() ;; x=The GC fraction (between 0 and 1) representing the background sequence composition in computeScoreDist() ;; granularity=The interval between discrete scores for which probabilities are computed in computeScoreDist() ;; dist=A profileScore object containing computed distributions passed to scoreDistCutoffs() ;; length=The sequence length (e.g., 500) used to scale the FDR/FNR in scoreDistCutoffs() ;; prior=The prior probability of a binding site (typically 1) in scoreDistCutoffs() ;; c=The tradeoff parameter where c * FDR = FNR in scoreDistCutoffs() ;; alpha=The significance level (e.g., 0.05) for FDR/FNR in scoreDistCutoffs()\n- alternatives: matchPWM from the Biostrings package is mentioned for computing log-odds scores, but it typically uses arbitrary percentage-based cutoffs (e.g., 80% of max value) rather than the precise FDR/FNR-based cutoffs calculated by profileScoreDist.\n- when_to_use: Use this package when predicting transcription factor binding sites (TFBS) in DNA sequences using position count matrices and requiring statistically rigorous score cutoffs (FDR, FNR, or balanced) rather than arbitrary percentage-based thresholds.\n- pitfalls: Step 2 (computeScoreDist) is a computational bottleneck due to the discrete convolution algorithm involved, though it is implemented in C++ to optimize performance. Choosing an inappropriate granularity can affect the precision and computation time of the score distributions. Background distributions are highly sensitive to GC content, so users must specify GC content matching their target sequences of interest.",
+  "workflows": [
+    {
+      "name": "tfbs_score_cutoff_estimation",
+      "intent": "Regularize a position count matrix, compute score distributions across GC contents, and estimate statistically rigorous score cutoffs for TFBS detection.",
+      "input": [
+        "INR (A position count matrix representing empirical frequencies of a motif)"
+      ],
+      "stages": "1. Regularize the position count matrix using regularizeMatrix() ;; 2. Define GC fractions and granularity parameters ;; 3. Compute probability distributions for log-odds scores using computeScoreDist() ;; 4. Plot the distribution using plotDist() ;; 5. Estimate score cutoffs for specified FDR/FNR thresholds using scoreDistCutoffs()",
+      "code": "library(profileScoreDist)\ndata(INR)\nINR\ninr.reg <- regularizeMatrix(INR)\ninr.reg\ngranularity <- 0.05\ngcgran <- 0.01\ngcmin <- 0.01\ngcmax <- 0.99\ngcs <- seq(gcgran*round(gcmin/gcgran), gcgran*round(gcmax/gcgran), gcgran)\ndistlist <- lapply(gcs, function(x) computeScoreDist(inr.reg, x, granularity))\ndistlist[[50]]\nplotDist(distlist[[50]])\nab5 <- scoreDistCutoffs(distlist[[50]], 500, 1, c=1, 0.05)\nab5$cutoffa\nab5$cutoffb\nab5$cutoffopt"
+    }
+  ]
+}

@@ -1,145 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: dearseq
-// Differential Expression Analysis RNA-seq data with variance component score test accounting for data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/dearseq/inst/doc/dearseqUserguide.R
-// Upstream  : BiocSet, GEOquery, SummarizedExperiment, edgeR, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("dearseq")
+// Bioconductor workflow: dearseq — gene_wise_analysis
+// Identify differentially expressed genes from RNA-seq data using the variance component score test.
+// Input: expression_matrix.xlsx, metadata.csv
+// Container: quay.io/biocontainers/bioconductor-dearseq:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, dearseq, edgeR, readxl
+// Visualizations: plot (ggplot/base)
+// QC: low-count filtering, count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Prepare expression data and metadata in a SummarizedExperiment object
+//  * 2. [Core Analysis] Filter out lowly expressed genes (if starting from raw counts)
+//  * 3. [Core Analysis] Run gene-wise differential analysis using dear_seq()
+//  * 4. [Visualization & Output] Summarize and plot results using summary() and plot()
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEARSEQ {
+process BIOC_DEARSEQ_GENE_WISE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dearseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dearseq:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dearseq:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dearseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dearseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dearseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(dearseq)
-    library(DGEList)
-    library(Meta)
-    library(SummarizedExperiment)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(dearseq)
+        library(readxl)
+        library(edgeR)
+        
+        # 1. Prepare expression data and metadata in a SummarizedExperiment object
+        # Read metadata from the user-provided CSV file
+        infos_df <- read.csv("metadata.csv", stringsAsFactors = TRUE)
+        
+        # Construct col_data and handle factor levels robustly
+        # Assuming first column is Sample ID and second column is the condition of interest
+        col_data <- data.frame("Condition" = infos_df[[2]])
+        if ("Control" %in% col_data\$Condition) {
+          col_data\$Condition <- stats::relevel(factor(col_data\$Condition), ref="Control")
+        } else {
+          col_data\$Condition <- factor(col_data\$Condition)
+        }
+        rownames(col_data) <- as.character(infos_df[[1]])
+        
+        # Read expression matrix from the user-provided Excel file
+        London_raw <- readxl::read_excel("expression_matrix.xlsx")
+        
+        # Identify the gene identifier column and numeric expression columns
+        if ("Genes" %in% colnames(London_raw)) {
+          genes_raw <- London_raw\$Genes
+        } else {
+          genes_raw <- London_raw[[1]]
+        }
+        
+        num_cols <- sapply(London_raw, is.numeric)
+        London_raw_mat <- as.matrix(London_raw[, num_cols])
+        rownames(London_raw_mat) <- genes_raw
+        
+        # Create SummarizedExperiment object
+        se_raw <- SummarizedExperiment(assays = London_raw_mat, 
+                                       colData = col_data)
+        
+        # 2. Filter out lowly expressed genes (if starting from raw counts)
+        group <- se_raw\$Condition
+        
+        dgList <- DGEList(counts = London_raw_mat, group = group)
+        cpm <- cpm(dgList)
+        countCheck <- cpm > 2
+        keep <- which(rowSums(countCheck) >= 5)
+        London_raw_mat <- London_raw_mat[keep,]
+        se_raw <- se_raw[keep, ]
+        
+        # 3. Run gene-wise differential analysis using dear_seq()
+        se_subset <- se_raw
+        
+        res_dearseq <- dearseq::dear_seq(object = se_subset,
+                                         variables2test = "Condition",
+                                         which_test='permutation',
+                                         preprocessed=FALSE, 
+                                         parallel_comp = interactive())
+        
+        # 4. Summarize and plot results using summary() and plot()
+        # Save summary text output
+        sink("dearseq_summary.txt")
+        summary(res_dearseq)
+        sink()
+        
+        # Save diagnostic plots to PDF
+        pdf("dearseq_plots.pdf")
+        plot(res_dearseq)
+        dev.off()
+        
+        # Save results to CSV and RDS files
+        write.csv(as.data.frame(res_dearseq\$pvals), "dearseq_results.csv", row.names = TRUE)
+        saveRDS(res_dearseq, "dearseq_results.rds")
 
-    # --- Asymptotic Differential Expression [] ---
-    # Key functions: dear_seq
-    res_dearseq <- dearseq::dear_seq(
-        object = se,
-        variables2test = "Status",
-        which_test = "asymptotic",
-        preprocessed = FALSE
-    )
-    res_summary <- summary(res_dearseq)
-
-
-    # --- Permutation Differential Expression [] ---
-    # Key functions: dear_seq
-    res_perm <- dearseq::dear_seq(
-        object = se,
-        variables2test = "Status",
-        which_test = "permutation",
-        preprocessed = FALSE,
-        n_perm = 100
-    )
-    res_perm_summary <- summary(res_perm)
-
-
-    # --- Gene Set Association Analysis [] ---
-    # Key functions: dgsa_seq
-    gs <- list(
-        set1 = paste0("Gene", 1:10),
-        set2 = paste0("Gene", 11:20)
-    )
-    res_dgsa <- dearseq::dgsa_seq(
-        object = se,
-        variables2test = "Status",
-        genesets = gs,
-        which_test = "permutation",
-        n_perm = 100,
-        preprocessed = FALSE
-    )
-    dgsa_pvals <- res_dgsa$pvals
-
-
-    # --- Visualisation [] ---
-    # Key functions: spaghettiPlot1GS
-    SummarizedExperiment::colData(se)[["Indiv"]] <- factor(rep(1:5, each = 2))
-    SummarizedExperiment::colData(se)[["Time"]] <- rep(1:2, 5)
-    SummarizedExperiment::colData(se)[["sample"]] <- colnames(se)
-    gs <- list(set1 = paste0("Gene", 1:10))
-    p <- dearseq::spaghettiPlot1GS(
-        gs_index = 1,
-        gmt = gs,
-        expr_mat = SummarizedExperiment::assay(se),
-        design = SummarizedExperiment::colData(se),
-        var_time = Time,
-        var_indiv = Indiv,
-        sampleIdColname = "sample",
-        var_group = Status,
-        loess_span = 1.5
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dearseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dearseq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dearseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEARSEQ:", paste0("    dearseq: ", packageVersion("dearseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEARSEQ_GENE_WISE_ANALYSIS":',
+        paste0('    dearseq: ', as.character(packageVersion('dearseq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dearseq_results.csv
-    touch ${prefix}_dearseq_output.rds
-    echo "BIOC_DEARSEQ:" > versions.yml
-    echo "    dearseq: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_wise_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEARSEQ_WORKFLOW {
+workflow BIOC_DEARSEQ_GENE_WISE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.xlsx, metadata.csv ] ]
 
     main:
-    BIOC_DEARSEQ(ch_input)
+    BIOC_DEARSEQ_GENE_WISE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DEARSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEARSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEARSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEARSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEARSEQ_GENE_WISE_ANALYSIS.out.tables
+    plots    = BIOC_DEARSEQ_GENE_WISE_ANALYSIS.out.plots
+    objects  = BIOC_DEARSEQ_GENE_WISE_ANALYSIS.out.objects
+    versions = BIOC_DEARSEQ_GENE_WISE_ANALYSIS.out.versions
 }

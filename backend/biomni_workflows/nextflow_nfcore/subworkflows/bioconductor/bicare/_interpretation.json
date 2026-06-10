@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: k=predetermined number of biclusters to build ;; pGene=probability of each gene to belong to each bicluster during random initialization ;; pSample=probability of each sample to belong to each bicluster during random initialization ;; r=residue threshold (smaller values mean more coherent biclusters) ;; N=minimal number of genes per bicluster ;; M=minimal number of conditions (samples) per bicluster ;; t=number of iterations ;; blocGene=boolean matrix indicating initial gene membership for directed initialization ;; blocSample=boolean matrix indicating initial sample membership for directed initialization ;; annot=data frame of sample covariates for enrichment testing ;; covariates=character vector of categorical covariates to test\n- alternatives: None explicitly mentioned in the documentation, though general biclustering surveys (such as Madeira and Oliveira, 2004) are referenced.\n- when_to_use: Use when you want to identify local patterns of co-expression where subsets of genes show similar expression profiles across only a subset of experimental conditions, rather than global clustering.\n- pitfalls: Constant or trivial biclusters can occur; users should check the rowvar column (mean of the variance of the genes in the bicluster) to identify and filter them out. testAnnot only accepts categorical covariates. Before running makeReport, ensure that the target directory can be created in the specified path.",
+  "workflows": [
+    {
+      "name": "biclustering_and_enrichment_workflow",
+      "intent": "Perform exploratory or directed biclustering on gene expression data, extract individual biclusters, test for gene set and sample covariate enrichment, and generate an interactive HTML report.",
+      "input": [
+        "expression_set.RData (An ExpressionSet object containing normalized gene expression data and sample phenoData)",
+        "gene_sets.RData (A GeneSetCollection object for functional enrichment analysis)"
+      ],
+      "stages": "1. Calculate the initial residue of the expression dataset using residue. ;; 2. Run the FLOC algorithm to find biclusters using FLOC (optionally using directed initialization matrices). ;; 3. Extract and plot a specific bicluster using bicluster and plot. ;; 4. Test for gene set enrichment in the biclusters using testSet. ;; 5. Test for sample covariate enrichment using testAnnot. ;; 6. Generate an interactive HTML report of the results using makeReport.",
+      "code": "residue(sample.bicData)  \nset.seed(1)\nres.biclustering <- FLOC(sample.bicData, k=15, pGene=0.3, pSample=0.6, r=0.01, 10, 8, 200)\ninit.genes <- matrix(data=0, nrow=352, ncol=5)\ninit.samples <- matrix(data=0, nrow=26, ncol=5)\ninit.genes[1:10,1] <- 1\ninit.genes[20:30,2] <- 1\ninit.genes[50:60,3] <- 1\ninit.samples[1:5,3] <- 1\ninit.samples[1:5,4] <- 1\ninit.samples[10:15,5] <- 1\nbic <- bicluster(res.biclustering, 6, graph=FALSE)\nplot(bic)\ngsc <- GeneSetCollection(res.biclustering$ExpressionSet[1:50], setType=GOCollection())\nres.bic2 <- testSet(res.biclustering, gsc)\npData(sample.bicData)\nres.bic2 <- testAnnot(res.biclustering, annot=pData(sample.bicData), covariates=c(\"sex\", \"type\"))\ndirPath <- getwd()\ndirName <- \"test\"\nmakeReport(dirPath=dirPath, dirName=dirName, resBic=res.bic2, browse=FALSE)"
+    }
+  ]
+}

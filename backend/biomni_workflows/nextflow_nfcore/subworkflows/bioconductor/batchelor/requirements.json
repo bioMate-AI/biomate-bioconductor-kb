@@ -1,0 +1,33 @@
+{
+  "package": "batchelor",
+  "requirements": [
+    "SingleCellExperiment",
+    "batchelor",
+    "ggplot2",
+    "scater",
+    "scran",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "batch_rescaling.nf": [
+      "SingleCellExperiment",
+      "batchelor",
+      "scater",
+      "scran",
+      "scuttle"
+    ],
+    "cluster_mnn_correction.nf": [
+      "SingleCellExperiment",
+      "batchelor",
+      "scran"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "batchelor",
+      "ggplot2",
+      "scater",
+      "scran",
+      "scuttle"
+    ]
+  }
+}

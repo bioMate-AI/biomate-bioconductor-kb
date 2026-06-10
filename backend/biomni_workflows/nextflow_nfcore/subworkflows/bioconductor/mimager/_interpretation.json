@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: select=Specifies a subset of samples to visualize, accepting a numeric vector of indices or a character vector of sample names ;; probes=Specifies probe types to include for PM/MM platforms (e.g., \"mm\" or \"all\"; default is PM only) ;; empty.rows=Controls how empty rows are handled (\"fill\" to interpolate from neighbors, \"ignore\" to leave empty) ;; empty.thresh=Numeric threshold (default 0.60) defining the proportion of missing values above which a row is considered empty and filled ;; nrow=Manually specifies the number of rows in the multi-array plotting grid ;; ncol=Manually specifies the number of columns in the multi-array plotting grid ;; type=For PLM objects, refers to the model value type (e.g., residuals or weights) rather than probe type ;; transform=A function (e.g., log2, arank, arle) that transforms the 3D array of intensities prior to visualization ;; colors=A vector of colors to use for the image palette ;; legend.label=Character string to customize the legend title\n- alternatives: affy::image() or oligo::image()=Standard plotting methods for specific microarray classes, but mimager::mimage() is preferred for its consistent interface across multiple classes, automatic legend generation, row-filling to prevent rasterization artifacts, and multi-array grid layouts ;; affyPLM::fitPLM() and oligo::fitProbeLevelModel()=Used to fit the probe-level models themselves, which mimager then visualizes\n- when_to_use: Use during the quality control (QC) phase of microarray data analysis to identify physical/spatial defects on the chips (e.g., bubbles, scratches, hybridization gradients) before downstream normalization and differential expression analysis\n- pitfalls: Excluding probe types (like MM probes) can cause abundant missing values and rasterization artifacts; use empty.rows = \"fill\" (default) to mitigate this ;; Using base R rank() as a transform function will fail because it returns a numeric vector instead of preserving the 3D array structure; use mimager::arank() instead ;; When visualizing PLM objects, the type argument changes its meaning from probe type to model value type (residuals or weights)",
+  "workflows": [
+    {
+      "name": "raw_microarray_visualization",
+      "intent": "Visualize raw probe-level intensities across one or more microarray chips to inspect for spatial artifacts.",
+      "input": [
+        "raw_microarray_data.RData (An AffyBatch, ExpressionFeatureSet, ExonFeatureSet, GeneFeatureSet, or SnpFeatureSet object containing raw microarray intensities)"
+      ],
+      "stages": "1. Load the microarray data; 2. Visualize a single array or multiple arrays in a grid layout; 3. Customize probe selection and row-filling options.",
+      "code": "library(mimager)\nlibrary(affydata)\ndata(\"Dilution\")\nmimage(Dilution, select = 1)\nmimage(Dilution)\nmimage(Dilution, select = c(\"10A\", \"20A\", \"10B\", \"20B\"), nrow = 1)"
+    },
+    {
+      "name": "plm_spatial_artifact_visualization",
+      "intent": "Fit a probe-level linear model (PLM) and visualize its residuals or weights to reveal subtle spatial artifacts.",
+      "input": [
+        "raw_microarray_data.RData (An AffyBatch or oligo-compatible FeatureSet object containing raw microarray intensities)"
+      ],
+      "stages": "1. Fit a probe-level linear model using affyPLM or oligo; 2. Plot the PLM residuals or weights using mimage.",
+      "code": "library(affyPLM)\nDilutionPLM <- fitPLM(Dilution)\nmimage(DilutionPLM)"
+    },
+    {
+      "name": "transformed_array_visualization",
+      "intent": "Convert microarray data to a 3D array and apply custom transformations (like RLE or rank) to highlight spatial biases.",
+      "input": [
+        "raw_microarray_data.RData (An AffyBatch or FeatureSet object containing raw microarray intensities)"
+      ],
+      "stages": "1. Convert microarray object to a 3D array; 2. Apply rank transformation or relative log expression (RLE) transformation; 3. Plot the transformed array with custom color palettes.",
+      "code": "div.colors <- scales::brewer_pal(palette = \"RdBu\")(9)\nmimage(Dilution, transform = arle, legend.label = \"RLE\", colors = div.colors)\nDilutionArray <- marray(Dilution)\ndim(DilutionArray)\nDilutionRank <- arank(DilutionArray)\ndim(DilutionRank)"
+    }
+  ]
+}

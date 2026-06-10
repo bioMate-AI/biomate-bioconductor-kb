@@ -1,0 +1,30 @@
+{
+  "package": "screpertoire",
+  "requirements": [
+    "Seurat",
+    "SingleCellExperiment",
+    "circlize",
+    "ggplot2",
+    "ggraph",
+    "scRepertoire",
+    "scales"
+  ],
+  "by_workflow": {
+    "bcr_repertoire_clustering.nf": [
+      "scRepertoire"
+    ],
+    "integrated_single_cell_analysis.nf": [
+      "Seurat",
+      "SingleCellExperiment",
+      "circlize",
+      "ggplot2",
+      "ggraph",
+      "scRepertoire",
+      "scales"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "scRepertoire"
+    ]
+  }
+}

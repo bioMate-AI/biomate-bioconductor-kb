@@ -1,138 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MSPrep
-// Package performs summarization of replicates, filtering by frequency, several different options for 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MSPrep/inst/doc/using_MSPrep.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MSPrep")
+// Bioconductor workflow: MSPrep — dataframe_pipeline
+// Pre-process mass spectrometry metabolomics data stored in a Data Frame format through summarization, filtering, imputation, and normalization.
+// Input: metabolomics_df.csv
+// Container: quay.io/biocontainers/bioconductor-msprep:1.20.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MSPrep
+// QC: batch-effect correction, missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Summarize technical replicates using msSummarize()
+//  * 2. [Core Analysis] Filter compounds based on presence threshold using msFilter()
+//  * 3. [Core Analysis] Impute missing values using msImpute()
+//  * 4. [Core Analysis] Transform and normalize data using msNormalize()
+//  * 5. [Core Analysis] Alternatively, run the entire pipeline in one step using msPrepare()
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSPREP {
+process BIOC_MSPREP_DATAFRAME_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msprep"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msprep:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msprep:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msprep_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msprep_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msprep_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MSPrep)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required library
+            library(MSPrep)
+            
+            # Read user input file
+            # The file must have the same structure as the 'msquant' dataset
+            msquant <- read.csv("metabolomics_df.csv", check.names = FALSE, stringsAsFactors = FALSE)
+            
+            # 1. Summarize technical replicates
+            summarizedDF <- msSummarize(msquant,
+                                        cvMax = 0.50,
+                                        minPropPresent = 1/3,
+                                        compVars = c("mz", "rt"),
+                                        sampleVars = c("batch", "replicate", "subject_id"),
+                                        separator = "_",
+                                        missingValue = 1)
+            
+            # 2. Filter compounds based on presence threshold
+            filteredDF <- msFilter(summarizedDF,
+                                   filterPercent = 0.8,
+                                   compVars = c("mz", "rt"),
+                                   sampleVars = c("batch", "subject_id"),
+                                   separator = "_")
+            
+            # 3. Impute missing values
+            imputedDF <- msImpute(filteredDF,
+                                  imputeMethod = "knn",
+                                  compVars = c("mz", "rt"),
+                                  sampleVars = c("batch", "subject_id"),
+                                  separator = "_",
+                                  returnToSE = FALSE,
+                                  missingValue = 0)
+            
+            # 4. Transform and normalize data
+            normalizedDF <- msNormalize(imputedDF,
+                                        normalizeMethod = "quantile + ComBat",
+                                        transform = "log10",
+                                        compVars = c("mz", "rt"),
+                                        sampleVars = c("batch", "subject_id"),
+                                        separator = "_")
+            
+            # 5. Alternatively, run the entire pipeline in one step
+            preparedDF <- msPrepare(msquant,
+                                    cvMax = 0.50,
+                                    minPropPresent = 1/3,
+                                    filterPercent = 0.8,
+                                    imputeMethod = "knn",
+                                    normalizeMethod = "quantile + ComBat",
+                                    transform = "log10",
+                                    compVars = c("mz", "rt"),
+                                    sampleVars = c("batch", "replicate", "subject_id"),
+                                    separator = "_",
+                                    missingValue = 1,
+                                    returnToSE = FALSE)
+            
+            # Save outputs to CSV files
+            write.csv(summarizedDF, "summarized_metabolomics.csv", row.names = FALSE)
+            write.csv(filteredDF, "filtered_metabolomics.csv", row.names = FALSE)
+            write.csv(imputedDF, "imputed_metabolomics.csv", row.names = FALSE)
+            write.csv(normalizedDF, "normalized_metabolomics.csv", row.names = FALSE)
+            write.csv(preparedDF, "prepared_metabolomics.csv", row.names = FALSE)
 
-    # --- Filtering [] ---
-    # Key functions: msFilter
-    filteredDF <- msFilter(
-        summarizedDF,
-        filterPercent = 0.8,
-        compVars = c("mz", "rt"),
-        sampleVars = c("spike", "batch", "subject_id"),
-        separator = "_"
-    )
-
-
-    # --- Imputation [] ---
-    # Key functions: msImpute
-    imputedDF <- msImpute(
-        filteredDF,
-        imputeMethod = "knn",
-        compVars = c("mz", "rt"),
-        sampleVars = c("spike", "batch", "subject_id"),
-        separator = "_",
-        returnToSE = FALSE,
-        missingValue = 0
-    )
-
-
-    # --- Normalisation [] ---
-    # Key functions: msNormalize
-    normalizedDF <- msNormalize(
-        imputedDF,
-        normalizeMethod = "quantile + ComBat",
-        transform = "log10",
-        compVars = c("mz", "rt"),
-        sampleVars = c("spike", "batch", "subject_id"),
-        covariatesOfInterest = c("spike"),
-        separator = "_"
-    )
-
-
-    # --- Pipeline Execution [] ---
-    # Key functions: msPrepare
-    preparedDF <- msPrepare(
-        msquant,
-        minPropPresent = 1/3,
-        missingValue = 1,
-        filterPercent = 0.8,
-        imputeMethod = "knn",
-        normalizeMethod = "quantile + ComBat",
-        transform = "log10",
-        covariatesOfInterest = c("spike"),
-        compVars = c("mz", "rt"),
-        sampleVars = c("spike", "batch", "replicate", "subject_id"),
-        colExtraText = "Neutral_Operator_Dif_Pos_",
-        separator = "_"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msprep_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msprep_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msprep_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSPREP:", paste0("    msprep: ", packageVersion("MSPrep"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MSPREP_DATAFRAME_PIPELINE":',
+        paste0('    MSPrep: ', as.character(packageVersion('MSPrep')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msprep_results.csv
-    touch ${prefix}_msprep_output.rds
-    echo "BIOC_MSPREP:" > versions.yml
-    echo "    msprep: 0.0.0" >> versions.yml
+    touch ${prefix}_dataframe_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSPREP_WORKFLOW {
+workflow BIOC_MSPREP_DATAFRAME_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ metabolomics_df.csv ] ]
 
     main:
-    BIOC_MSPREP(ch_input)
+    BIOC_MSPREP_DATAFRAME_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_MSPREP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSPREP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSPREP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSPREP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSPREP_DATAFRAME_PIPELINE.out.tables
+    plots    = BIOC_MSPREP_DATAFRAME_PIPELINE.out.plots
+    objects  = BIOC_MSPREP_DATAFRAME_PIPELINE.out.objects
+    versions = BIOC_MSPREP_DATAFRAME_PIPELINE.out.versions
 }

@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - s.len=The number of threshold values to test (default is 100; can be set lower, e.g., 25, to reduce computation time). ;;\n    - s.min=The minimum threshold value to test. ;;\n    - s.max=The maximum threshold value to test. ;;\n    - normalization=The normalization strategy to use prior to filtering (e.g., \"TMM\", \"DESeq\", \"pseudo.counts\", or \"none\"). ;;\n    - plot=Logical indicating whether to plot the global Jaccard index (default is TRUE). ;;\n    - DGEList=The DGEList object containing library sizes and normalization factors, required when filtering DGEExact objects. ;;\n    - DGEGLM=The DGEGLM object (fit), required when filtering DGELRT objects.\n- alternatives:\n    - DESeq2 independent filtering=DESeq2's default independent filtering procedure in the results() function is an alternative targeting the same weakly expressed genes. If using HTSFilter, set independentFiltering=FALSE in the DESeq2 results() function. ;;\n    - genefilter=A Bioconductor package designed for independent filtering of microarray data rather than RNA-seq data.\n- when_to_use:\n    - Use when performing gene-level differential expression analyses on replicated RNA-seq (or other count-based transcriptome sequencing) data. It is appropriate when biological replicates are present for each experimental condition and the data can be normalized to correct for systematic inter-sample biases.\n- pitfalls:\n    - Do not apply HTSFilter to data that has already been filtered, as this will result in a plateau of Jaccard index values and filter no genes. ;;\n    - Although the filter can be applied earlier in the edgeR pipeline (to DGEList or DGEGLM objects), it is not recommended because parameter estimation in edgeR makes use of pseudo-counts. Apply it to DGEExact or DGELRT objects instead. ;;\n    - When using HTSFilter within the DESeq2 pipeline, you must set independentFiltering=FALSE in the results() function to prevent DESeq2 from applying its own redundant filter.",
+  "workflows": [
+    {
+      "name": "matrix_and_dataframe",
+      "intent": "Filter high-throughput sequencing data in the form of a raw count matrix or data.frame using TMM normalization.",
+      "input": [
+        "counts_matrix.csv (raw count matrix where rows are features and columns are samples)",
+        "sample_metadata.csv (phenotype table containing sample condition labels)"
+      ],
+      "stages": "1. Extract the expression matrix and condition labels ;; 2. Run HTSFilter to find the optimal threshold and filter the matrix ;; 3. Extract the filtered and removed data matrices.",
+      "code": "mat <- exprs(sultan)\nconds <- as.character(pData(sultan)$cell.line)\n\n## Only 25 tested thresholds to reduce computation time\nfilter <- HTSFilter(mat, conds, s.min=1, s.max=200, s.len=25)\nmat <- filter$filteredData\ndim(mat)\ndim(filter$removedData)"
+    },
+    {
+      "name": "edger_pipeline",
+      "intent": "Filter edgeR differential expression results (DGEExact or DGELRT objects) using HTSFilter.",
+      "input": [
+        "counts_matrix.csv (raw count matrix)",
+        "sample_metadata.csv (phenotype table containing sample condition labels)"
+      ],
+      "stages": "1. Create a DGEList and calculate normalization factors ;; 2. Estimate dispersions and perform exact test (for DGEExact) or fit a GLM and perform a likelihood ratio test (for DGELRT) ;; 3. Apply HTSFilter to the exact test or LRT results ;; 4. Extract top tags from the filtered object.",
+      "code": "dge <- DGEList(counts=exprs(sultan), group=conds)\ndge <- calcNormFactors(dge)\ndge <- estimateDisp(dge)\net <- exactTest(dge)\net <- HTSFilter(et, DGEList=dge, s.len=25, plot=FALSE)$filteredData\ndim(et)\nclass(et)\ntopTags(et)\n\ndesign <- model.matrix(~conds)\ndge <- DGEList(counts=exprs(sultan), group=conds)\ndge <- calcNormFactors(dge)\ndge <- estimateDisp(dge, design)\nfit <- glmFit(dge,design)\nlrt <- glmLRT(fit,coef=2)\nlrt <- HTSFilter(lrt, DGEGLM=fit, s.len=25, plot=FALSE)$filteredData\ndim(lrt)\nclass(lrt)\ntopTags(lrt)"
+    },
+    {
+      "name": "deseq2_pipeline",
+      "intent": "Filter a DESeqDataSet object within the DESeq2 pipeline and perform differential analysis with independent filtering disabled in DESeq2.",
+      "input": [
+        "counts_matrix.csv (raw count matrix)",
+        "sample_metadata.csv (phenotype table containing sample condition labels)"
+      ],
+      "stages": "1. Create a DESeqDataSet from the count matrix ;; 2. Run DESeq differential analysis ;; 3. Filter the DESeqDataSet using HTSFilter ;; 4. Extract results with independentFiltering=FALSE.",
+      "code": "conds <- gsub(\" \", \".\", conds)\ndds <- DESeqDataSetFromMatrix(countData = exprs(sultan),\n                              colData = data.frame(cell.line = factor(conds)),\n                              design = ~ cell.line)\ndds <- DESeq(dds)\nfilter <- HTSFilter(dds, s.len=25, plot=FALSE)$filteredData\nclass(filter)\ndim(filter)\nres <- results(filter, independentFiltering=FALSE)\nhead(res)"
+    },
+    {
+      "name": "external_normalization",
+      "intent": "Filter count data that has been normalized using an external method (e.g., EDASeq full quantile normalization) by setting norm=\"none\".",
+      "input": [
+        "counts_matrix.csv (raw count matrix)",
+        "sample_metadata.csv (phenotype table containing sample condition labels)"
+      ],
+      "stages": "1. Create a SeqExpressionSet and normalize using EDASeq betweenLaneNormalization ;; 2. Apply HTSFilter with norm=\"none\" ;; 3. Identify filtered and unfiltered genes using the \"on\" vector.",
+      "code": "library(EDASeq)\nses <- newSeqExpressionSet(exprs(sultan),\n       phenoData=pData(sultan))\nses.norm <- betweenLaneNormalization(ses, which=\"full\")\nfilter <- HTSFilter(counts(ses.norm), conds, s.len=25, norm=\"none\",\n          plot=FALSE)\nhead(filter$on)\ntable(filter$on)"
+    }
+  ]
+}

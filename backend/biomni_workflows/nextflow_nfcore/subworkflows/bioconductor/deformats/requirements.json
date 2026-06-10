@@ -1,0 +1,17 @@
+{
+  "package": "deformats",
+  "requirements": [
+    "DEFormats",
+    "DESeq2",
+    "SummarizedExperiment",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DEFormats",
+      "DESeq2",
+      "SummarizedExperiment",
+      "edgeR"
+    ]
+  }
+}

@@ -1,0 +1,121 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: karyoploteR — zoomed_region_plotting
+// Zoom into a specific genomic region to plot detailed data points and arrows, controlling whether elements are clipped at the panel boundaries.
+// Input: detail.region
+// Container: quay.io/biocontainers/bioconductor-karyoploter:1.36.0--r45hdfd78af_0
+// R packages: GenomicRanges, karyoploteR, regioneR
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, karyoploteR, regioneR
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Define the detail region to zoom into. 2. Initialize the zoomed plot using plotKaryotype with the zoom parameter. 3. Add backgroun
+
+nextflow.enable.dsl = 2
+
+process BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "karyoploteR", "regioneR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(karyoploteR)
+    library(regioneR)
+    library(GenomicRanges)
+    
+    # 1. Define the detail region to zoom into
+    # Read the GRanges object from the declared user input file 'detail.region'
+    detail.region <- readRDS("detail.region")
+    
+    # Extract dynamic coordinates from the user-provided region
+    chrom <- as.character(seqnames(detail.region))[1]
+    r_start <- start(detail.region)[1]
+    r_end <- end(detail.region)[1]
+    r_width <- r_end - r_start
+    
+    # Set up PDF output file to save the plot
+    pdf("zoomed_region_plot.pdf", width = 10, height = 6)
+    
+    # 2. Initialize the zoomed plot using plotKaryotype with the zoom parameter
+    kp <- plotKaryotype(plot.type = 4, zoom = detail.region)
+    
+    # 3. Add background and base numbers
+    kpDataBackground(kp, data.panel = 1)
+    kpAddBaseNumbers(kp)
+    
+    # 4. Plot data points and arrows, specifying clipping=FALSE for elements that should extend beyond the panel boundaries
+    # Dynamically place them relative to the detail.region so they remain visible regardless of the input range
+    kpPoints(kp, chr = chrom, x = r_end, y = 0.5, pch = 16, cex = 8, col = "#FAC67A")
+    kpArrows(kp, chr = chrom, x0 = r_start - (r_width * 1.88), x1 = r_end - (r_width * 0.22), y0 = 0.2, y1 = 1.1, clipping = FALSE)
+    kpArrows(kp, chr = chrom, x0 = r_end - (r_width * 0.44), x1 = r_end + (r_width * 1.33), y0 = 0.9, y1 = 0.5, clipping = FALSE)
+    
+    # Close the PDF device
+    dev.off()
+    
+    # Save the resulting KaryoPlot object as an RDS file
+    saveRDS(kp, "karyoplot_output.rds")
+
+    writeLines(c(
+        '"BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING":',
+        paste0('    karyoploteR: ', as.character(packageVersion('karyoploteR')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_zoomed_region_plotting.csv versions.yml
+    """
+}
+
+workflow BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ detail.region ] ]
+
+    main:
+    BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING(ch_input)
+
+    emit:
+    tables   = BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING.out.tables
+    plots    = BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING.out.plots
+    objects  = BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING.out.objects
+    versions = BIOC_KARYOPLOTER_ZOOMED_REGION_PLOTTING.out.versions
+}

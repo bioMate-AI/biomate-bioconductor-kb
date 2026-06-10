@@ -1,111 +1,210 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BaalChIP
-// The package offers functions to process multiple ChIP-seq BAM files and detect allele-specific event
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BaalChIP/inst/doc/BaalChIP.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("BaalChIP")
+// Bioconductor workflow: BaalChIP — asb_with_precomputed_raf
+// Identify allele-specific binding events using pre-computed relative allele frequency (RAF) scores from heterozygous variant files.
+// Input: exampleChIP1.tsv, MCF7_hetSNP.txt, GM12891_hetSNP.txt, bamFiles/, bedFiles/
+// Container: quay.io/biocontainers/bioconductor-baalchip:1.36.0--r45hdfd78af_0
+// R packages: GenomicRanges, BaalChIP
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BAALCHIP {
+process BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-baalchip"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-baalchip:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-baalchip:1.32.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-baalchip:1.36.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_baalchip_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_baalchip_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_baalchip_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "BaalChIP")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(BaalChIP)
-    library(QCfilter)
-    library(jsonlite)
-
-    # --- Baal Ch I P [] ---
-    # Key functions: BaalChIP
-    res <- BaalChIP(samplesheet=samplesheet, hets=hets)
-    res <- BaalChIP.run(res, cores=4, verbose=TRUE) #cores for parallel computing
-    # --- Baal Ch I P [] ---
-    # Key functions: BaalChIP, alleleCounts, QCfilter, mergePerGroup, filter1allele
-    samplesheet <- file.path(wd, "exampleChIP1.tsv")
-    hets <- c("MCF7"="MCF7_hetSNP.txt", "GM12891"="GM12891_hetSNP.txt")
-    res <- BaalChIP(samplesheet=samplesheet, hets=hets)
-    # --- Baal Ch I P [] ---
-    # Key functions: BaalChIP
-    wd <- system.file("test",package="BaalChIP") #system directory
-    samplesheet <- file.path(wd, "exampleChIP2.tsv")
-    hets <- c("TaT1"="TaT1_hetSNP.txt", "AMOVC"="AMOVC_hetSNP.txt")
-    # --- Plot QC metrics [] ---
-    # Key functions: plotQC
-    plotQC(ENCODEexample, what="barplot_per_group")
-    # --- plot Simul [] ---
-    # Key functions: plotSimul, summaryASB
-    plotSimul(ENCODEexample)
-    a <- BaalChIP.get(ENCODEexample, "assayedVar")[["MCF7"]]
-    a <- BaalChIP.get(FAIREexample, "assayedVar")[["MDA134"]]
-    # --- adjustment Baal Plot [] ---
-    # Key functions: adjustmentBaalPlot
-    adjustmentBaalPlot(ENCODEexample)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_baalchip_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_baalchip_results.csv")
+    library(GenomicRanges)
+    
+    # -----------------------------------------------------------------------------
+    # 1. Validate User Input Files
+    # -----------------------------------------------------------------------------
+    required_files <- c("exampleChIP1.tsv", "MCF7_hetSNP.txt", "GM12891_hetSNP.txt")
+    for (f in required_files) {
+      if (!file.exists(f)) {
+        stop(paste("Required input file missing from working directory:", f))
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_baalchip_output.rds")
+    
+    if (!dir.exists("bamFiles")) {
+      stop("Required directory 'bamFiles/' is missing from working directory.")
     }
+    
+    if (!dir.exists("bedFiles")) {
+      stop("Required directory 'bedFiles/' is missing from working directory.")
+    }
+    
+    # Locate pre-computed simulation output directory
+    # First check the working directory, then fall back to the installed package directory
+    preComputed_output <- "simuloutput"
+    if (!dir.exists(preComputed_output)) {
+      package_path <- find.package("BaalChIP", quiet = TRUE)
+      if (length(package_path) > 0) {
+        preComputed_output <- file.path(package_path, "test", "simuloutput")
+      }
+    }
+    
+    if (!dir.exists(preComputed_output)) {
+      stop("Could not locate the pre-computed simulation output directory ('simuloutput').")
+    }
+    
+    # -----------------------------------------------------------------------------
+    # 2. Execute BaalChIP Pipeline
+    # -----------------------------------------------------------------------------
+    
+    # Define inputs
+    samplesheet <- "exampleChIP1.tsv"
+    hets <- c("MCF7" = "MCF7_hetSNP.txt", "GM12891" = "GM12891_hetSNP.txt")
+    
+    # Step 1: Construct BaalChIP object
+    message("Constructing BaalChIP object...")
+    res <- BaalChIP(samplesheet=samplesheet, hets=hets)
+    
+    # Step 2: Compute allele counts
+    message("Computing allele counts...")
+    res <- alleleCounts(res, min_base_quality=10, min_mapq=15, verbose=FALSE)
+    
+    # Step 3: Filter problematic regions
+    message("Filtering problematic regions (QCfilter)...")
+    res <- QCfilter(res, 
+                    RegionsToFilter=list("blacklist"=blacklist_hg19, "highcoverage"=pickrell2011cov1_hg19), 
+                    RegionsToKeep=list("UniqueMappability"=UniqueMappability50bp_hg19), 
+                    verbose=FALSE)
+    
+    # Step 4: Filter intrinsic bias
+    message("Filtering intrinsic bias...")
+    res <- filterIntbias(res, 
+                         simul_output=preComputed_output, 
+                         tmpfile_prefix="c67c6ec6c433", 
+                         skipScriptRun=TRUE, 
+                         verbose=FALSE)
+    
+    # Step 5: Merge replicates
+    message("Merging replicates per group...")
+    res <- mergePerGroup(res)
+    
+    # Step 6: Filter out homozygous SNPs
+    message("Filtering out homozygous SNPs...")
+    res <- filter1allele(res)
+    
+    # Step 7: Run Bayesian ASB detection
+    message("Running Bayesian ASB detection...")
+    res <- getASB(res, 
+                  Iter=5000, 
+                  conf_level=0.95, 
+                  cores=4, 
+                  RMcorrection=TRUE, 
+                  RAFcorrection=TRUE)
+    
+    # Step 8: Generate final report
+    message("Generating final report...")
+    result <- BaalChIP.report(res)
+    
+    # -----------------------------------------------------------------------------
+    # 3. Save Outputs and Generate Plots
+    # -----------------------------------------------------------------------------
+    
+    # Save the final report as CSV files
+    message("Saving report tables...")
+    for (group in names(result)) {
+      output_csv <- paste0("BaalChIP_report_", group, ".csv")
+      write.csv(result[[group]], file = output_csv, row.names = FALSE)
+      message(paste("Saved:", output_csv))
+    }
+    
+    # Save the complete BaalChIP object
+    output_rds <- "BaalChIP_results.rds"
+    saveRDS(res, file = output_rds)
+    message(paste("Saved BaalChIP object to:", output_rds))
+    
+    # Generate diagnostic plots
+    output_pdf <- "BaalChIP_plots.pdf"
+    message(paste("Generating diagnostic plots in:", output_pdf))
+    pdf(output_pdf, width = 10, height = 8)
+    
+    # Plot QC filtering statistics if available
+    tryCatch({
+      plotQC(res, what="barplot_per_group")
+      plotQC(res, what="boxplot_per_filter")
+      plotQC(res, what="overall_pie")
+    }, error = function(e) {
+      warning("Could not generate QC plots: ", e\$message)
+    })
+    
+    # Plot allelic ratio adjustments
+    tryCatch({
+      adjustmentBaalPlot(res)
+    }, error = function(e) {
+      warning("Could not generate adjustment plot: ", e\$message)
+    })
+    
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BAALCHIP:", paste0("    baalchip: ", packageVersion("BaalChIP"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF":
+        BaalChIP: \$(Rscript -e 'cat(as.character(packageVersion("BaalChIP")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_baalchip_results.csv
-    touch ${prefix}_baalchip_output.rds
-    echo "BIOC_BAALCHIP:" > versions.yml
-    echo "    baalchip: 0.0.0" >> versions.yml
+    touch ${prefix}_asb_with_precomputed_raf.csv versions.yml
     """
 }
 
-
-workflow BIOC_BAALCHIP_WORKFLOW {
+workflow BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exampleChIP1.tsv, MCF7_hetSNP.txt, GM12891_hetSNP.txt, bamFiles/, bedFiles/ ] ]
 
     main:
-    BIOC_BAALCHIP(ch_input)
+    BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF(ch_input)
 
     emit:
-    results  = BIOC_BAALCHIP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BAALCHIP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BAALCHIP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BAALCHIP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF.out.tables
+    plots    = BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF.out.plots
+    objects  = BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF.out.objects
+    versions = BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF.out.versions
 }

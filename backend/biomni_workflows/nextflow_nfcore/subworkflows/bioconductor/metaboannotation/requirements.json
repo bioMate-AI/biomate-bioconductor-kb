@@ -1,0 +1,27 @@
+{
+  "package": "metaboannotation",
+  "requirements": [
+    "MetaboAnnotation",
+    "MetaboCoreUtils",
+    "QFeatures",
+    "Spectra",
+    "SummarizedExperiment",
+    "msentropy"
+  ],
+  "by_workflow": {
+    "create_standard_mixes.nf": [
+      "MetaboAnnotation",
+      "MetaboCoreUtils"
+    ],
+    "main.nf": [
+      "MetaboAnnotation",
+      "QFeatures",
+      "SummarizedExperiment"
+    ],
+    "match_spectra.nf": [
+      "MetaboAnnotation",
+      "Spectra",
+      "msentropy"
+    ]
+  }
+}

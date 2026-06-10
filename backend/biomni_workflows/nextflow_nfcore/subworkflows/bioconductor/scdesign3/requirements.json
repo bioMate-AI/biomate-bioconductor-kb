@@ -1,0 +1,15 @@
+{
+  "package": "scdesign3",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggplot2",
+    "scDesign3"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scDesign3"
+    ]
+  }
+}

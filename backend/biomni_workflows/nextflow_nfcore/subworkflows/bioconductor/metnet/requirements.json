@@ -1,0 +1,17 @@
+{
+  "package": "metnet",
+  "requirements": [
+    "MetNet",
+    "MsCoreUtils",
+    "Spectra",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MetNet",
+      "MsCoreUtils",
+      "Spectra",
+      "igraph"
+    ]
+  }
+}

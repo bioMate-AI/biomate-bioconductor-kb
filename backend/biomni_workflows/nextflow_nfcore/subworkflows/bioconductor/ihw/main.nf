@@ -1,128 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: IHW
-// Independent hypothesis weighting (IHW) is a multiple testing procedure that increases power compared
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/IHW/inst/doc/introduction_to_ihw.R
-// Upstream  : DESeq2, dplyr, ggplot2
-// Downstream: IHWpaper
-//
-// Install: BiocManager::install("IHW")
+// Bioconductor workflow: IHW — standard_ihw_analysis
+// Perform independent hypothesis weighting for FDR or FWER control using a complete list of p-values and a continuous covariate.
+// Input: deRes.csv
+// Container: quay.io/biocontainers/bioconductor-ihw:1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: IHW, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the IHW procedure using the formula interface
+//  * 2. [Core Analysis] Retrieve the total number of rejections
+//  * 3. [Core Analysis] Extract adjusted p-values and weights
+//  * 4. [Visualization & Output] Generate diagnostic plots of weights and decision boundaries
+//  * 5. [Core Analysis] Convert the results to a data frame for downstream analysis
+//  * 6. [Core Analysis] Optionally perform FWER control using the Bonferroni adjustment type
 
 nextflow.enable.dsl = 2
 
-process BIOC_IHW {
+process BIOC_IHW_STANDARD_IHW_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ihw"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ihw:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ihw:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ihw_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ihw_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ihw_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(IHW)
-    library(DESeqDataSet)
-    library(jsonlite)
-
-    # --- Covariate Stratification [groups_by_filter] ---
-    # Key functions: groups_by_filter
-    de_results <- data.frame(
-        pvalue = runif(1000),
-        baseMean = rexp(1000, rate = 0.01),
-        log2FoldChange = rnorm(1000)
-    )
-    de_results$baseMeanGroup <- groups_by_filter(
-        de_results$baseMean,
-        8
-    )
-    de_results$lfcGroup <- groups_by_filter(
-        abs(de_results$log2FoldChange),
-        8
-    )
-
-    # --- Independent Hypothesis Weighting [ihw] ---
-    # Key functions: ihw, rejections, adj_pvalues
-    ihw_res <- ihw(
-        pvalue ~ baseMean,
-        data = de_results,
-        alpha = 0.1,
-        adjustment_type = "bh"
-    )
-    total_rejections <- rejections(ihw_res)
-    adjusted_pvals <- adj_pvalues(ihw_res)
-
-    # --- Model Diagnostics and Extraction [weights, nbins, nfolds] ---
-    # Key functions: weights, nbins, nfolds
-    ihw_weights <- weights(ihw_res)
-    level_weights <- weights(ihw_res, levels_only = TRUE)
-    num_bins <- nbins(ihw_res)
-    num_folds <- nfolds(ihw_res)
-
-    # --- Decision Boundary and Weight Visualization [plot] ---
-    # Key functions: plot
-    weight_plot <- plot(ihw_res)
-    boundary_plot <- plot(
-        ihw_res,
-        what = "decisionboundary"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ihw_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ihw_results.csv")
+    library(ggplot2)
+    
+    # 1. Read the user input file
+    # The file 'deRes.csv' must contain at least 'pvalue' and 'baseMean' columns.
+    if (!file.exists("deRes.csv")) {
+      stop("Error: 'deRes.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ihw_output.rds")
-    }
+    
+    deRes <- read.csv("deRes.csv", stringsAsFactors = FALSE)
+    
+    # 2. Run the IHW procedure using the formula interface
+    ihwRes <- ihw(pvalue ~ baseMean, data = deRes, alpha = 0.1)
+    
+    # 3. Retrieve the total number of rejections
+    num_rejections <- rejections(ihwRes)
+    cat("Number of rejections: ", num_rejections, "\n")
+    
+    # 4. Extract adjusted p-values and weights
+    adj_p <- adj_pvalues(ihwRes)
+    cat("First few adjusted p-values:\n")
+    print(head(adj_p))
+    
+    # Verify consistency of rejections
+    consistency_check <- sum(adj_pvalues(ihwRes) <= 0.1, na.rm = TRUE) == rejections(ihwRes)
+    cat("Consistency check (sum of adj_p <= 0.1 equals rejections): ", consistency_check, "\n")
+    
+    # Extract weights
+    w <- weights(ihwRes)
+    cat("First few weights:\n")
+    print(head(w))
+    
+    # Extract bins and folds
+    bins_folds <- c(nbins(ihwRes), nfolds(ihwRes))
+    cat("Number of bins and folds: ", paste(bins_folds, collapse = ", "), "\n")
+    
+    # Extract weights levels only
+    w_levels <- weights(ihwRes, levels_only = TRUE)
+    cat("Weights levels matrix:\n")
+    print(w_levels)
+    
+    # 5. Generate diagnostic plots of weights and decision boundaries
+    pdf("ihw_diagnostic_plots.pdf", width = 7, height = 5)
+    
+    # Plot 1: Estimated weights
+    p1 <- plot(ihwRes)
+    print(p1)
+    
+    # Plot 2: Decision boundary
+    p2 <- plot(ihwRes, what = "decisionboundary")
+    print(p2)
+    
+    dev.off()
+    cat("Diagnostic plots saved to 'ihw_diagnostic_plots.pdf'\n")
+    
+    # 6. Convert the results to a data frame for downstream analysis
+    ihwResDf <- as.data.frame(ihwRes)
+    write.csv(ihwResDf, "ihw_results.csv", row.names = FALSE)
+    cat("IHW results data frame saved to 'ihw_results.csv'\n")
+    
+    # 7. Optionally perform FWER control using the Bonferroni adjustment type
+    ihwBonferroni <- ihw(pvalue ~ baseMean, data = deRes, alpha = 0.1, adjustment_type = "bonferroni")
+    
+    # Save RDS objects for downstream R analysis
+    saveRDS(ihwRes, "ihwRes.rds")
+    saveRDS(ihwBonferroni, "ihwBonferroni.rds")
+    cat("IHW result objects saved to 'ihwRes.rds' and 'ihwBonferroni.rds'\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IHW:", paste0("    ihw: ", packageVersion("IHW"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IHW_STANDARD_IHW_ANALYSIS":',
+        paste0('    IHW: ', as.character(packageVersion('IHW')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ihw_results.csv
-    touch ${prefix}_ihw_output.rds
-    echo "BIOC_IHW:" > versions.yml
-    echo "    ihw: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_ihw_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_IHW_WORKFLOW {
+workflow BIOC_IHW_STANDARD_IHW_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ deRes.csv ] ]
 
     main:
-    BIOC_IHW(ch_input)
+    BIOC_IHW_STANDARD_IHW_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_IHW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IHW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IHW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IHW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IHW_STANDARD_IHW_ANALYSIS.out.tables
+    plots    = BIOC_IHW_STANDARD_IHW_ANALYSIS.out.plots
+    objects  = BIOC_IHW_STANDARD_IHW_ANALYSIS.out.objects
+    versions = BIOC_IHW_STANDARD_IHW_ANALYSIS.out.versions
 }

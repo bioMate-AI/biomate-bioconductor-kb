@@ -1,0 +1,13 @@
+{
+  "package": "scater",
+  "requirements": [
+    "ggplot2",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "scater"
+    ]
+  }
+}

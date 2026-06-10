@@ -1,0 +1,13 @@
+{
+  "package": "phantasuslite",
+  "requirements": [
+    "Biobase",
+    "phantasusLite"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "phantasusLite"
+    ]
+  }
+}

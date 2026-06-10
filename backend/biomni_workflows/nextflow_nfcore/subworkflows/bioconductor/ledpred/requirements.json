@@ -1,0 +1,14 @@
+{
+  "package": "ledpred",
+  "requirements": [
+    "LedPred"
+  ],
+  "by_workflow": {
+    "all_in_one_ledpred.nf": [
+      "LedPred"
+    ],
+    "main.nf": [
+      "LedPred"
+    ]
+  }
+}

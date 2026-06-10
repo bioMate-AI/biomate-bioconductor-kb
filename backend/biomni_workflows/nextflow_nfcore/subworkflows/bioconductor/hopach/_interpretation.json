@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dmat=A precomputed distance matrix passed to hopach() to save computation time ;; d=The distance metric (e.g., \"cosangle\" or \"euclid\") used if dmat is not precomputed ;; B=The number of bootstrap resampled data sets in boothopach() (default is 1000, lower values like 100 speed up execution) ;; ord=The ordering of elements in dplot() and bootplot() (e.g., \"final\" for final tree level, \"bootp\" for bootstrap reappearance proportions)\n- alternatives: The documentation mentions standard partitioning and agglomerative clustering methods as the two approaches combined by HOPACH. For gene selection prior to clustering, packages like genefilter and multtest are recommended. For visualization, MapleTree, TreeView, jtreeview, and GeneXPress are mentioned as compatible viewers.\n- when_to_use: Use this package when you want to perform unsupervised clustering on genes or arrays/samples, automatically determine the optimal number of clusters without manual pruning, order the clusters and elements, and estimate cluster membership confidence (fuzzy clustering) via bootstrap resampling.\n- pitfalls: Computing the distance matrix inside the hopach() function repeatedly is computationally expensive; it is highly recommended to compute it once using distancematrix() and pass it to dmat. Bootstrap resampling with boothopach() is computationally intensive and can take a long time for large datasets or high values of B. Unsupervised clustering of arrays does not use class labels, so it may not necessarily align with known clinical or phenotypic classes.",
+  "workflows": [
+    {
+      "name": "hopach_gene_and_array_clustering",
+      "intent": "Perform hybrid hierarchical clustering on genes and arrays, estimate cluster membership confidence using bootstrap resampling, and export the results for visualization.",
+      "input": [
+        "golub.subset (matrix of gene expression values with genes in rows and arrays in columns)",
+        "gnames.subset (matrix or data frame containing gene annotations/names)"
+      ],
+      "stages": "1. Compute gene distance matrix ;; 2. Run HOPACH clustering on genes ;; 3. Plot the ordered gene distance matrix ;; 4. Perform bootstrap resampling on gene clusters ;; 5. Plot bootstrap reappearance proportions ;; 6. Run HOPACH clustering on arrays ;; 7. Export gene clustering and bootstrap results to a text file ;; 8. Export fuzzy clustering files for MapleTree ;; 9. Export hierarchical tree files for MapleTree/TreeView",
+      "code": "gene.dist<-distancematrix(golub.subset,\"cosangle\")\ngene.hobj<-hopach(golub.subset,dmat=gene.dist)\ndplot(gene.dist,gene.hobj,ord=\"final\",main=\"Golub AML/ALL Data (1999): Gene Distance Matrix\",showclusters=FALSE)  \nbobj<-boothopach(golub.subset,gene.hobj,B=100)\nbootplot(bobj,gene.hobj,ord=\"bootp\",main=\"Golub AML/ALL Data (1999)\",showclusters=FALSE)\narray.hobj<-hopach(t(golub.subset),d=\"euclid\")\nmakeoutput(golub.subset,gene.hobj,bobj,file=\"Golub.out\",gene.names=gnames.subset[,3])\nboot2fuzzy(golub.subset,bobj,gene.hobj,array.hobj,file=\"GolubFuzzy\",gene.names=gnames.subset[,3]) \nhopach2tree(golub.subset,file=\"GolubTree\",hopach.genes=gene.hobj,hopach.arrays=NULL,dist.genes=gene.dist,gene.names=gnames.subset[,3])"
+    }
+  ]
+}

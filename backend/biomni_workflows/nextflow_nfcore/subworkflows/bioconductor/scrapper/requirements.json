@@ -1,0 +1,32 @@
+{
+  "package": "scrapper",
+  "requirements": [
+    "SingleCellExperiment",
+    "scater",
+    "scrapper",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "batch_blocked_analysis.nf": [
+      "SingleCellExperiment",
+      "scater",
+      "scrapper",
+      "scuttle"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "scater",
+      "scrapper"
+    ],
+    "modular_sc_rna_seq_analysis.nf": [
+      "SingleCellExperiment",
+      "scater",
+      "scrapper"
+    ],
+    "multimodal_rna_adt_analysis.nf": [
+      "SingleCellExperiment",
+      "scater",
+      "scrapper"
+    ]
+  }
+}

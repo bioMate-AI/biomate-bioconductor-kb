@@ -1,0 +1,11 @@
+{
+  "package": "fmrs",
+  "requirements": [
+    "fmrs"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "fmrs"
+    ]
+  }
+}

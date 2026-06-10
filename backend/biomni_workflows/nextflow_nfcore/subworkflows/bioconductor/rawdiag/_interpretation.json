@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Specifies the visualization style (e.g., 'trellis') in plotting functions to handle overplotting issues by using faceting, violin plots, or color coding ;; rawfile=Character vector of paths to Thermo Orbitrap .raw files\n- alternatives: rawMeat=A discontinued software (VAST Scientific) that inspired rawDiag ;; Spectra / MsBackendRawFileReader=Alternative Bioconductor infrastructures for raw MS data representation and potential future integration\n- when_to_use: Use after MS acquisition to perform empirical method optimization for liquid chromatography coupled to mass spectrometry (LC-MS) on Thermo Orbitrap instruments (e.g., Exactive or Fusion) ;; Use when needing to visualize the impact of method parameter choices (like AGC, injection time, cycle time) across multiple injections\n- pitfalls: File extensions=The proprietary .Net assemblies require a file extension of exactly '.raw' (case-sensitive, lowercase) ;; Overplotting=Scatter plots can suffer from overplotting when too many data points are present; users should switch to violin plots or trellis plots to handle large datasets ;; System dependencies=Requires the rawrr assembly to be installed and working, which may require Mono on non-Windows platforms",
+  "workflows": [
+    {
+      "name": "orbitrap_method_diagnostic_plots",
+      "intent": "Read Thermo Orbitrap raw files and generate diagnostic plots to optimize LC-MS method parameters.",
+      "input": [
+        "file1.raw (Thermo Orbitrap raw mass spectrometry file)",
+        "file2.raw (Thermo Orbitrap raw mass spectrometry file)"
+      ],
+      "stages": "1. Check and install rawrr assembly dependencies ;; 2. Read raw file headers ;; 3. Read and merge scan-level metadata from raw files ;; 4. Generate diagnostic plots",
+      "code": "rawDiag::checkRawrr()\n\nrawrr::installRawrrExe()\n\nrawrr::rawrrAssemblyPath()\nrawrr::rawrrAssemblyPath() |> list.files()\n\n(rawfile |>\n  lapply(FUN = rawrr::readFileHeader) -> rawFileHeader)\n\nrawfile |>\n  lapply(FUN = rawDiag::readRaw) |>\n  Reduce(f = rbind) -> x\n\nlibrary(rawDiag)\nls(\"package:rawDiag\") |>\n  grep(pattern = '^plot', value = TRUE) -> pm\n\npm |> \n  lapply(FUN = function(plotFUN) {\n    lapply(c('trellis'), function(method) {\n      message(\"plotting\", plotFUN, \"using method\", method, \"...\")\n      do.call(plotFUN, list(x, method)) \n    })\n  })"
+    },
+    {
+      "name": "launch_rawdiag_shiny_app",
+      "intent": "Build and launch the interactive Shiny application for exploring Thermo Orbitrap raw data.",
+      "input": [
+        "directory_path (Path to a directory containing Thermo Orbitrap .raw files)"
+      ],
+      "stages": "1. Build the Shiny application from the raw files directory ;; 2. Launch the application",
+      "code": "rawfile |>\n  dirname() |>\n  rawDiag::buildRawDiagShinyApp() -> app\n\nshiny::runApp(app)"
+    }
+  ]
+}

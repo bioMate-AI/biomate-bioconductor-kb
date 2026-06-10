@@ -1,0 +1,13 @@
+{
+  "package": "rifi",
+  "requirements": [
+    "SummarizedExperiment",
+    "rifi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "rifi"
+    ]
+  }
+}

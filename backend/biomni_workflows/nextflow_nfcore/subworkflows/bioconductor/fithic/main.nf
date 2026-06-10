@@ -1,114 +1,132 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: FitHiC
-// Fit-Hi-C is a tool for assigning statistical confidence estimates to intra-chromosomal contact maps 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/FitHiC/inst/doc/fithic.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("FitHiC")
+// Bioconductor workflow: FitHiC — fithic_standard_analysis
+// Run Fit-Hi-C on raw Hi-C contact maps without normalization bias files to estimate interaction significance.
+// Input: fragsfile.gz, intersfile.gz
+// Container: quay.io/biocontainers/bioconductor-fithic:1.36.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: FitHiC
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Define paths to input files and output directory
+//  * 2. [Core Analysis] Run the FitHiC function to perform spline fitting and calculate p-values/q-values
 
 nextflow.enable.dsl = 2
 
-process BIOC_FITHIC {
+process BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fithic"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fithic:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-fithic:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fithic_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fithic_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fithic_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(FitHiC)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # 1. Define paths to input files and output directory
+        fragsfile <- "fragsfile.gz"
+        intersfile <- "intersfile.gz"
+        libname <- "fithic_run"
+        outdir <- file.path(getwd(), libname)
+        
+        # Verify that the required user input files exist
+        if (!file.exists(fragsfile)) {
+          stop(paste("Required input file missing:", fragsfile))
+        }
+        if (!file.exists(intersfile)) {
+          stop(paste("Required input file missing:", intersfile))
+        }
+        
+        # Create output directory if it doesn't exist
+        if (!dir.exists(outdir)) {
+          dir.create(outdir, recursive = TRUE)
+        }
+        
+        # 2. Run the FitHiC function to perform spline fitting and calculate p-values/q-values
+        library("FitHiC")
+        
+        FitHiC(fragsfile, intersfile, outdir,
+            libname=libname, visual=TRUE)
+        
+        # 3. Post-processing: Export meaningful results to standard formats (CSV and RDS)
+        tryCatch({
+          # Define expected output file paths from Fit-Hi-C
+          pass1_stats_path <- file.path(outdir, paste0(libname, ".fithic_pass1.txt"))
+          pass2_stats_path <- file.path(outdir, paste0(libname, ".fithic_pass2.txt"))
+          pass1_sig_path <- file.path(outdir, paste0(libname, ".spline_pass1.significances.txt.gz"))
+          pass2_sig_path <- file.path(outdir, paste0(libname, ".spline_pass2.significances.txt.gz"))
+        
+          # Read and save Pass 2 significances (the final model results)
+          if (file.exists(pass2_sig_path)) {
+            sig_data <- read.table(gzfile(pass2_sig_path), header = TRUE)
+            
+            # Save as CSV
+            write.csv(sig_data, file = file.path(outdir, "fithic_final_significances.csv"), row.names = FALSE)
+            
+            # Save as RDS
+            saveRDS(sig_data, file = file.path(outdir, "fithic_final_significances.rds"))
+            
+            message("Successfully exported final significances to CSV and RDS.")
+          }
+        
+          # Read and save Pass 2 probability binning stats
+          if (file.exists(pass2_stats_path)) {
+            stats_data <- read.table(pass2_stats_path, header = TRUE)
+            write.csv(stats_data, file = file.path(outdir, "fithic_pass2_stats.csv"), row.names = FALSE)
+            saveRDS(stats_data, file = file.path(outdir, "fithic_pass2_stats.rds"))
+            message("Successfully exported fit statistics to CSV and RDS.")
+          }
+        }, error = function(e) {
+          warning("Post-processing of Fit-Hi-C output files failed: ", e\$message)
+        })
 
-    # --- FitHiC Analysis with Bias Correction [] ---
-    # Key functions: FitHiC
-    frags <- system.file("extdata",
-        "fragmentLists/Dixon_hESC_HindIII_hg18_w40000_chr1.gz",
-        package = "FitHiC")
-    inters <- system.file("extdata",
-        "contactCounts/Dixon_hESC_HindIII_hg18_w40000_chr1.gz",
-        package = "FitHiC")
-    bias <- system.file("extdata",
-        "biasPerLocus/Dixon_hESC_HindIII_hg18_w40000_chr1.gz",
-        package = "FitHiC")
-    outdir <- file.path(getwd(), "Dixon_hESC_HindIII_hg18_w40000_chr1.afterICE")
-    FitHiC(frags, inters, outdir, bias,
-        libname="Dixon_hESC_HindIII_hg18_w40000_chr1", noOfBins=50,
-        distUpThres=5000000, distLowThres=50000, visual=TRUE)
-
-
-    # --- FitHiC Analysis with HiC-Pro Format [] ---
-    # Key functions: FitHiC
-    frags <- system.file("extdata", "fragmentLists/data_5000000_abs.bed.gz",
-        package = "FitHiC")
-    inters <- system.file("extdata", "contactCounts/data_5000000.matrix.gz",
-        package = "FitHiC")
-    bias <- system.file("extdata",
-        "biasPerLocus/data_5000000_iced.matrix.biases.gz", package = "FitHiC")
-    outdir <- file.path(getwd(), "data_5000000")
-    FitHiC(frags, inters, outdir, bias, libname="data_5000000",
-        distUpThres=500000000, distLowThres=5000000, visual=TRUE,
-        useHiCPro=TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fithic_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fithic_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fithic_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FITHIC:", paste0("    fithic: ", packageVersion("FitHiC"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS":',
+        paste0('    FitHiC: ', as.character(packageVersion('FitHiC')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fithic_results.csv
-    touch ${prefix}_fithic_output.rds
-    echo "BIOC_FITHIC:" > versions.yml
-    echo "    fithic: 0.0.0" >> versions.yml
+    touch ${prefix}_fithic_standard_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_FITHIC_WORKFLOW {
+workflow BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ fragsfile.gz, intersfile.gz ] ]
 
     main:
-    BIOC_FITHIC(ch_input)
+    BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_FITHIC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FITHIC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FITHIC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FITHIC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS.out.tables
+    plots    = BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS.out.plots
+    objects  = BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS.out.objects
+    versions = BIOC_FITHIC_FITHIC_STANDARD_ANALYSIS.out.versions
 }

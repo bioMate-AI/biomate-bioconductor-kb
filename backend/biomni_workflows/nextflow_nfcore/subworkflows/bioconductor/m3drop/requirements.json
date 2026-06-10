@@ -1,0 +1,14 @@
+{
+  "package": "m3drop",
+  "requirements": [
+    "M3Drop"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "M3Drop"
+    ],
+    "umi_nbumi_workflow.nf": [
+      "M3Drop"
+    ]
+  }
+}

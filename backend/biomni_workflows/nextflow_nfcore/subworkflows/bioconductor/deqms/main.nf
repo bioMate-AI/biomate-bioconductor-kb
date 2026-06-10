@@ -1,129 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DEqMS
-// DEqMS is developped on top of Limma. However, Limma assumes same prior variance for all genes. In pr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DEqMS/inst/doc/DEqMS-package-vignette.R
-// Upstream  : matrixStats, ggrepel, ExperimentHub, LSD
-// Downstream: none
-//
-// Install: BiocManager::install("DEqMS")
+// Bioconductor workflow: DEqMS — protein_table_tmt
+// Perform differential protein expression analysis using a pre-summarized protein abundance table (e.g., TMT data).
+// Input: miR_Proteintable.txt
+// Container: quay.io/biocontainers/bioconductor-deqms:1.28.0--r45hdfd78af_0
+// R packages: DEqMS, ExperimentHub, ggrepel, limma, LSD, matrixStats
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DEqMS, limma, matrixStats
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read and filter protein table
+//  * 2. [Core Analysis] Log2 transform and check normalization
+//  * 3. [Input & Preparation] Define design matrix and contrasts
+//  * 4. [Core Analysis] Fit linear model using Limma (lmFit, contrasts.fit, eBayes)
+//  * 5. [Core Analysis] Assign PSM count to the fit object
+//  * 6. [Core Analysis] Run DEqMS variance estimation (spectraCounteBayes)
+//  * 7. [Visualization & Output] Visualize variance dependence (VarianceBoxplot, VarianceScatterplot)
+//  * 8. [Visualization & Output] Extract results (outputResult)
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEQMS {
+process BIOC_DEQMS_PROTEIN_TABLE_TMT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-deqms"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-deqms:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-deqms:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(marraylm)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_deqms_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_deqms_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_deqms_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DEqMS", "ExperimentHub", "ggrepel", "limma", "LSD", "matrixStats")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(DEqMS)
-    library(Residualplot)
-    library(VarianceBoxplot)
-    library(VarianceScatterplot)
-    library(jsonlite)
-
-    # --- Data Normalization and Filtering [Data Preparation] ---
-    # Key functions: equalMedianNormalization
-    dat_filtered <- dat[rowSums(is.na(dat)) == 0, ]
-    dat_log <- log2(dat_filtered)
-    dat_norm <- equalMedianNormalization(dat_log)
-
-    # --- Linear Modeling and Contrasts [Differential Expression] ---
-    # Key functions: lmFit, contrasts.fit, makeContrasts, eBayes
-    design <- model.matrix(~0 + cond)
-    colnames(design) <- gsub("cond", "", colnames(design))
-    contrast <- limma::makeContrasts(
-        contrasts = "treat-ctrl",
-        levels = design
-    )
-    fit1 <- limma::lmFit(dat_norm, design)
-    fit2 <- limma::contrasts.fit(fit1, contrasts = contrast)
-    fit3 <- limma::eBayes(fit2)
-
-    # --- DEqMS Spectral Count Correction [Statistical Modeling] ---
-    # Key functions: spectraCounteBayes
-    fit3$count <- psm_count_table[rownames(fit3$coefficients), "count"]
-    fit4 <- spectraCounteBayes(fit3)
-
-    # --- Variance Diagnostic Plotting [Visualisation] ---
-    # Key functions: VarianceBoxplot, VarianceScatterplot
-    pdf("deqms_variance_diagnostics.pdf")
-    VarianceBoxplot(fit4, n = 30, main = "PSM Count vs Variance")
-    VarianceScatterplot(fit4, main = "Protein Variance Scatterplot")
+    library(matrixStats)
+    library(limma)
+    
+    # 1. Read and filter protein table
+    df.prot = read.table("miR_Proteintable.txt", stringsAsFactors = FALSE,
+                         header = TRUE, quote = "", comment.char = "", sep = "\t")
+    TMT_columns = seq(15, 33, 2)
+    dat = df.prot[df.prot\$miR.FASP_q.value < 0.01, TMT_columns]
+    rownames(dat) = df.prot[df.prot\$miR.FASP_q.value < 0.01, ]\$Protein.accession
+    
+    # 2. Log2 transform and check normalization
+    dat.log = log2(dat)
+    dat.log = na.omit(dat.log)
+    
+    # 3. Define design matrix and contrasts
+    cond = as.factor(c("ctrl", "miR191", "miR372", "miR519", "ctrl",
+                       "miR372", "miR519", "ctrl", "miR191", "miR372"))
+    design = model.matrix(~0+cond)
+    colnames(design) = gsub("cond", "", colnames(design))
+    x <- c("miR372-ctrl", "miR519-ctrl", "miR191-ctrl",
+           "miR372-miR519", "miR372-miR191", "miR519-miR191")
+    contrast = makeContrasts(contrasts=x, levels=design)
+    
+    # 4. Fit linear model using Limma
+    fit1 <- lmFit(dat.log, design)
+    fit2 <- contrasts.fit(fit1, contrasts = contrast)
+    fit3 <- eBayes(fit2)
+    
+    # 5. Assign PSM count to the fit object
+    count_columns = seq(16, 34, 2)
+    psm.count.table = data.frame(count = rowMins(
+      as.matrix(df.prot[, count_columns])), row.names = df.prot\$Protein.accession)
+    fit3\$count = psm.count.table[rownames(fit3\$coefficients), "count"]
+    
+    # 6. Run DEqMS variance estimation
+    fit4 = spectraCounteBayes(fit3)
+    
+    # 7. Visualize variance dependence
+    pdf("DEqMS_variance_plots.pdf", width = 12, height = 6)
+    par(mfrow = c(1, 2))
+    VarianceBoxplot(fit4, n = 30, main = "TMT10plex dataset PXD004163", xlab = "PSM count")
+    VarianceScatterplot(fit4, main = "TMT10plex dataset PXD004163")
     dev.off()
+    
+    # 8. Extract results and save
+    DEqMS.results = outputResult(fit4, coef_col = 1)
+    write.table(DEqMS.results, "DEqMS.results.miR372-ctrl.txt", sep = "\t",
+                row.names = FALSE, quote = FALSE)
+    
+    # Save RDS objects for downstream analysis
+    saveRDS(fit4, "DEqMS_fit4.rds")
+    saveRDS(DEqMS.results, "DEqMS_results.rds")
 
-    # --- Differential Expression Results [Output Generation] ---
-    # Key functions: outputResult
-    deqms_results <- outputResult(fit4, coef_col = 1)
-    write.table(
-        deqms_results,
-        file = "DEqMS_results.txt",
-        sep = "\t",
-        row.names = FALSE,
-        quote = FALSE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_deqms_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_deqms_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_deqms_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEQMS:", paste0("    deqms: ", packageVersion("DEqMS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEQMS_PROTEIN_TABLE_TMT":',
+        paste0('    DEqMS: ', as.character(packageVersion('DEqMS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_deqms_results.csv
-    touch ${prefix}_deqms_output.rds
-    echo "BIOC_DEQMS:" > versions.yml
-    echo "    deqms: 0.0.0" >> versions.yml
+    touch ${prefix}_protein_table_tmt.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEQMS_WORKFLOW {
+workflow BIOC_DEQMS_PROTEIN_TABLE_TMT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(marraylm) ]
+    ch_input  // channel: [ val(meta), [ miR_Proteintable.txt ] ]
 
     main:
-    BIOC_DEQMS(ch_input)
+    BIOC_DEQMS_PROTEIN_TABLE_TMT(ch_input)
 
     emit:
-    results  = BIOC_DEQMS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEQMS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEQMS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEQMS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEQMS_PROTEIN_TABLE_TMT.out.tables
+    plots    = BIOC_DEQMS_PROTEIN_TABLE_TMT.out.plots
+    objects  = BIOC_DEQMS_PROTEIN_TABLE_TMT.out.objects
+    versions = BIOC_DEQMS_PROTEIN_TABLE_TMT.out.versions
 }

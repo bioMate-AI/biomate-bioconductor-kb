@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=Vector of chromosome names/factors ;; starts=Vector of genomic positions (must be sorted) ;; group=Logical or binary vector indicating the group of each site ;; kvals=Integer vector of window widths in terms of number of sites (e.g., 15L:30L) ;; nperm=Number of permutations for estimating false discoveries (e.g., 100L) ;; cutpt.tail.expr=Expression evaluated to set critical values (defaults to critVal.target(k, n, target=5, posdiff=x)) ;; cutpt.filter.expr=Expression evaluated to filter out wide windows (defaults to median width)\n- alternatives: None mentioned in the documentation, but references Berry et al. (2014) for scan statistics details.\n- when_to_use: Use when comparing the spatial distribution of genomic sites (e.g., viral integration sites) between two groups to find regions of localized enrichment in one group relative to the other.\n- pitfalls: Input genomic positions must be ordered from lowest to highest within each chromosome before running the analysis. Failing to apply appropriate filtering (or using non-specific filters) can significantly impact statistical power and the number of false discoveries.",
+  "workflows": [
+    {
+      "name": "differential_clustering_analysis",
+      "intent": "Detect and analyze genomic regions with differential clustering of integration sites between two groups.",
+      "input": [
+        "exptData.txt (A tab-delimited text file containing columns for chromosome, position, and group indicator)"
+      ],
+      "stages": "1. Read genomic site data from a file ;; 2. Run the differential clustering analysis using gRxCluster ;; 3. Summarize the discovered clusters and false discovery rate using gRxSummary ;; 4. Plot the critical regions using gRxPlot ;; 5. (Optional) Customize critical regions and filters to optimize discovery power",
+      "code": "df <- read.table(\"exptData.txt\", header=TRUE)\n\nrequire(geneRxCluster,quietly=TRUE)\nnull.results <-\n    gRxCluster(df$chromo,df$pos,df$grp,15L:30L,nperm=100L)\n\ngRxSummary( null.results )\n\ngRxPlot(alt.results,method=\"criticalRegions\")\n\ngenerous.target.expr <-\n    quote(critVal.target(k,n, target=20, posdiff=x))\ngenerous.results <-\n    gRxCluster(df3$chromo,df3$pos,df3$grp,\n\t       15L:30L,nperm=100L,\n\t       cutpt.tail.expr=generous.target.expr)\ngRxSummary(generous.results)\n\nno.filter.expr <- quote(rep(Inf,ncol(x)))\nno.filter.results <-\n    gRxCluster(df3$chromo,df3$pos,df3$grp,15L:30L,nperm=100L,\n\t       cutpt.filter.expr=no.filter.expr)\ngRxSummary(no.filter.results)\n\nhard.filter.expr <-\n    quote(apply(x,2,quantile, 0.15, na.rm=TRUE))\nhard.filter.results <-\n    gRxCluster(df3$chromo,df3$pos,df3$grp,15L:30L,\n\t       nperm=100L,\n\t       cutpt.filter.expr=hard.filter.expr)\ngRxSummary(hard.filter.results)"
+    }
+  ]
+}

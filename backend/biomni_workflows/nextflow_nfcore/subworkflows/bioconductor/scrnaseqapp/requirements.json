@@ -1,0 +1,13 @@
+{
+  "package": "scrnaseqapp",
+  "requirements": [
+    "Seurat",
+    "scRNAseqApp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Seurat",
+      "scRNAseqApp"
+    ]
+  }
+}

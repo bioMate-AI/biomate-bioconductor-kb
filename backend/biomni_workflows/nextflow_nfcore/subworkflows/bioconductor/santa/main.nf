@@ -1,120 +1,152 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SANTA
-// This package provides methods for measuring the strength of association between a network and a phen
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/SANTA/inst/doc/SANTA-vignette.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SANTA")
+// Bioconductor workflow: SANTA — network_association_analysis
+// Measure the clustering of a phenotype (binary or continuous vertex weights) across a network to quantify their strength of association.
+// Input: network.gml, phenotype_weights.csv
+// Container: quay.io/biocontainers/bioconductor-santa:2.46.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SANTA, igraph
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute pairwise vertex distances across the network using DistGraph
+//  * 2. [Core Analysis] Bin the distances into discrete intervals using BinGraph to optimize performance
+//  * 3. [Core Analysis] Assign the phenotype weights to the network vertices
+//  * 4. [Core Analysis] Run Knet to calculate the clustering significance (p-value) via permutation testing
 
 nextflow.enable.dsl = 2
 
-process BIOC_SANTA {
+process BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-santa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-santa:2.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-santa:2.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_santa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_santa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_santa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(SANTA)
-    library(BinGraph)
-    library(DistGraph)
-    library(Knet)
-    library(jsonlite)
-
-    # --- Spatial Binning [] ---
-    # Key functions: DistGraph, BinGraph
-    g <- igraph::make_ring(50)
-    igraph::V(g)$name <- as.character(1:50)
-    D <- DistGraph(g, dist.method="shortest.paths", verbose=FALSE)
+    library(igraph)
+    
+    # Define input file paths
+    network_file <- "network.gml"
+    phenotype_file <- "phenotype_weights.csv"
+    
+    # Check if input files exist
+    if (!file.exists(network_file)) {
+      stop(paste("Error: Input network file not found:", network_file))
+    }
+    if (!file.exists(phenotype_file)) {
+      stop(paste("Error: Input phenotype weights file not found:", phenotype_file))
+    }
+    
+    # Load the network
+    g <- read_graph(network_file, format="gml")
+    
+    # Load the phenotype weights
+    pheno_df <- read.csv(phenotype_file, stringsAsFactors=FALSE)
+    
+    # Identify columns: assume 1st column is gene/node name, 2nd column is weight
+    gene_col <- colnames(pheno_df)[1]
+    weight_col <- colnames(pheno_df)[2]
+    
+    # Map weights to network vertices
+    v_names <- V(g)\$name
+    if (is.null(v_names)) {
+      stop("Error: Network vertices do not have a 'name' attribute for mapping phenotype weights.")
+    }
+    
+    # Create a mapping vector
+    weight_map <- pheno_df[[weight_col]]
+    names(weight_map) <- as.character(pheno_df[[gene_col]])
+    
+    # Assign weights to the vertex attribute "hits", filling missing ones with NA
+    vertex_weights <- weight_map[v_names]
+    g <- set.vertex.attribute(g, name="hits", value=vertex_weights)
+    
+    # Define distance method
+    dist.method <- "shortest.paths"
+    
+    # 1. Compute pairwise vertex distances across the network using DistGraph
+    D <- DistGraph(g, dist.method=dist.method, verbose=FALSE)
+    
+    # 2. Bin the distances into discrete intervals using BinGraph to optimize performance
     B <- BinGraph(D, verbose=FALSE)
-
-
-    # --- Gene Set Clustering Analysis [] ---
-    # Key functions: Knet
-    g <- igraph::make_ring(50)
-    igraph::V(g)$name <- as.character(1:50)
-    igraph::V(g)$phenotype <- rnorm(50)
-    res <- Knet(g, nperm=100, dist.method="shortest.paths",
-                vertex.attr="phenotype", verbose=FALSE)
-    p_val <- res$pval
-
-
-    # --- Differential Clustering Analysis [] ---
-    # Key functions: Knet
-    g1 <- igraph::make_ring(50)
-    igraph::V(g1)$name <- as.character(1:50)
-    igraph::V(g1)$phenotype <- rnorm(50)
-    g2 <- igraph::make_ring(50)
-    igraph::V(g2)$name <- as.character(1:50)
-    igraph::V(g2)$phenotype <- rnorm(50)
-    networks <- list(net1=g1, net2=g2)
-    results <- sapply(networks, function(g) {
-        Knet(g, nperm=50, dist.method="shortest.paths",
-             vertex.attr="phenotype", verbose=FALSE)
-    }, simplify=FALSE)
-    p.values <- sapply(results, function(res) res$pval)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_santa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_santa_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_santa_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SANTA:", paste0("    santa: ", packageVersion("SANTA"))),
-        "versions.yml"
+    
+    # 3 & 4. Run Knet to calculate the clustering significance (p-value) via permutation testing
+    # Using nperm=100 as shown in the documented code (1000+ is recommended for publication-grade accuracy)
+    knet_res <- Knet(g, nperm=100, dist.method=dist.method, vertex.attr="hits", B=B, verbose=FALSE)
+    
+    # Save the complete Knet result object
+    saveRDS(knet_res, "knet_result.rds")
+    
+    # Create and save a summary table of the results
+    results_df <- data.frame(
+      observed_AUK = ifelse(!is.null(knet_res\$observed), knet_res\$observed, NA),
+      p_value = ifelse(!is.null(knet_res\$pval), knet_res\$pval, NA),
+      mean_perm_AUK = ifelse(!is.null(knet_res\$mean), knet_res\$mean, NA),
+      sd_perm_AUK = ifelse(!is.null(knet_res\$sd), knet_res\$sd, NA)
     )
+    write.csv(results_df, "knet_results.csv", row.names=FALSE)
+    
+    # Generate and save the Knet plot
+    tryCatch({
+      pdf("knet_plot.pdf")
+      plot(knet_res)
+      dev.off()
+    }, error = function(e) {
+      warning("Could not generate Knet plot: ", e\$message)
+    })
+
+    writeLines(c(
+        '"BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS":',
+        paste0('    SANTA: ', as.character(packageVersion('SANTA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_santa_results.csv
-    touch ${prefix}_santa_output.rds
-    echo "BIOC_SANTA:" > versions.yml
-    echo "    santa: 0.0.0" >> versions.yml
+    touch ${prefix}_network_association_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SANTA_WORKFLOW {
+workflow BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ network.gml, phenotype_weights.csv ] ]
 
     main:
-    BIOC_SANTA(ch_input)
+    BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SANTA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SANTA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SANTA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SANTA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS.out.tables
+    plots    = BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS.out.plots
+    objects  = BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS.out.objects
+    versions = BIOC_SANTA_NETWORK_ASSOCIATION_ANALYSIS.out.versions
 }

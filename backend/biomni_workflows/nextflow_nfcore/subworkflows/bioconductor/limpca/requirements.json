@@ -1,0 +1,21 @@
+{
+  "package": "limpca",
+  "requirements": [
+    "SummarizedExperiment",
+    "car",
+    "ggplot2",
+    "gridExtra",
+    "limpca",
+    "pander"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "car",
+      "ggplot2",
+      "gridExtra",
+      "limpca",
+      "pander"
+    ]
+  }
+}

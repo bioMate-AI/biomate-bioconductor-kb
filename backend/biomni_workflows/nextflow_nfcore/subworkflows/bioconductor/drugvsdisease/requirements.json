@@ -1,0 +1,11 @@
+{
+  "package": "drugvsdisease",
+  "requirements": [
+    "DrugVsDisease"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DrugVsDisease"
+    ]
+  }
+}

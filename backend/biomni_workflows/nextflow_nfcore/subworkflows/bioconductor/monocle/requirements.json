@@ -1,0 +1,13 @@
+{
+  "package": "monocle",
+  "requirements": [
+    "Biobase",
+    "monocle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "monocle"
+    ]
+  }
+}

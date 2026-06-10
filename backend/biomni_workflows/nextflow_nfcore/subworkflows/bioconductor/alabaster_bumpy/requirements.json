@@ -1,0 +1,19 @@
+{
+  "package": "alabaster_bumpy",
+  "requirements": [
+    "BumpyMatrix",
+    "S4Vectors",
+    "alabaster.base",
+    "alabaster.bumpy",
+    "alabaster_bumpy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BumpyMatrix",
+      "S4Vectors",
+      "alabaster.base",
+      "alabaster.bumpy",
+      "alabaster_bumpy"
+    ]
+  }
+}

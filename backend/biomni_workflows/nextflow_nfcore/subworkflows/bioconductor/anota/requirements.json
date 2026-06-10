@@ -1,0 +1,11 @@
+{
+  "package": "anota",
+  "requirements": [
+    "anota"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "anota"
+    ]
+  }
+}

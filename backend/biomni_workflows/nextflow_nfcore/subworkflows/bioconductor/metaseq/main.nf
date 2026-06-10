@@ -1,118 +1,183 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: metaSeq
-// The probabilities by one-sided NOISeq are combined by Fisher's method or Stouffer's method
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/metaSeq/inst/doc/metaSeq.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("metaSeq")
+// Bioconductor workflow: metaSeq — noiseq_meta_analysis
+// Perform meta-analysis on RNA-seq count data from multiple studies using one-sided NOISeq probabilities combined via Fisher's or Stouffer's method.
+// Input: BreastCancer, flag1, flag2
+// Container: quay.io/biocontainers/bioconductor-metaseq:1.50.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: metaSeq, snow
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Format the count data and metadata using meta.readData
+//  * 2. [Core Analysis] Run one-sided NOISeq on each study using meta.oneside.noiseq
+//  * 3. [Core Analysis] Combine the probabilities using Fisher.test and Stouffer.test
 
 nextflow.enable.dsl = 2
 
-process BIOC_METASEQ {
+process BIOC_METASEQ_NOISEQ_META_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-metaseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-metaseq:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-metaseq:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_metaseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_metaseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_metaseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(metaSeq)
-    library(jsonlite)
-
-    # --- Readdata [] ---
-    # Key functions: readData
+    
+    # Load required libraries
+    library("metaSeq")
+    library("snow")
+    
+    # Helper function to robustly read user input files from the working directory
+    read_input_file <- function(filename) {
+      if (!file.exists(filename)) {
+        stop(paste("Required input file not found in the working directory:", filename))
+      }
+      
+      # Try reading as RDS
+      res <- tryCatch(readRDS(filename), error = function(e) NULL)
+      if (!is.null(res)) return(res)
+      
+      # Try reading as CSV
+      res <- tryCatch({
+        df <- read.csv(filename, header = TRUE, row.names = 1, check.names = FALSE)
+        as.matrix(df)
+      }, error = function(e) NULL)
+      if (!is.null(res)) return(res)
+      
+      # Try reading as TSV
+      res <- tryCatch({
+        df <- read.table(filename, header = TRUE, row.names = 1, sep = "\t", check.names = FALSE)
+        as.matrix(df)
+      }, error = function(e) NULL)
+      if (!is.null(res)) return(res)
+      
+      # Try reading as a simple vector (for flag1 and flag2)
+      res <- tryCatch({
+        val <- scan(filename, what = character(), quiet = TRUE)
+        if (!any(is.na(as.numeric(val)))) {
+          as.numeric(val)
+        } else {
+          val
+        }
+      }, error = function(e) NULL)
+      if (!is.null(res)) return(res)
+      
+      stop(paste("Could not parse file format for:", filename))
+    }
+    
+    # 1. Read the declared user input files
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    BreastCancer <- read_input_file("BreastCancer")
+    flag1 <- read_input_file("flag1")
+    flag2 <- read_input_file("flag2")
+    
+    # 2. Format the count data and metadata
     cds <- meta.readData(data = BreastCancer, factor = flag1, studies = flag2)
-    # --- Makecluster [] ---
-    # Key functions: makeCluster, noiseq, stopCluster, result
-    ## This is very time consuming step.
-    # cl <- makeCluster(4, "SOCK")
-    # result <- meta.oneside.noiseq(cds, k = 0.5, norm = "tmm", replicates = "biological",
-    #  factor = flag1, conditions = c(1, 0), studies = flag2, cl = cl)
-    # stopCluster(cl)
-    # --- Test [] ---
-    # Key functions: test
+    
+    # 3. Run one-sided NOISeq on each study using parallel processing
+    cl <- makeCluster(4, "SOCK")
+    result <- meta.oneside.noiseq(cds, k = 0.5, norm = "tmm", replicates = "biological", factor = flag1, conditions = c(1, 0), studies = flag2, cl = cl)
+    stopCluster(cl)
+    
+    # 4. Combine the probabilities using Fisher's and Stouffer's methods
     F <- Fisher.test(result)
     S <- Stouffer.test(result)
-    # --- Method [] ---
-    # Key functions: method, runif
-    ## Assume this matrix as one-sided p-values
-    ## generated by non-NOISeq method (e.g., cuffdiff)
-    upper <- matrix(runif(300), ncol=3, nrow=100)
-    lower <- 1 - upper
-    rownames(upper) <- paste0("Gene", 1:100)
-    # --- Pvalues [] ---
-    # Key functions: pvalues
-    ## other.oneside.pvalues function return a matrix
-    ## which can input Fisher.test or Stouffer.test
-    result <- other.oneside.pvalues(upper, lower, weight)
-    # --- Test [] ---
-    # Key functions: test
-    F <- Fisher.test(result)
-    str(F)
-    head(F$Upper)
-    head(F$Lower)
-    F$Weight
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_metaseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_metaseq_results.csv")
+    
+    # Print documented outputs to console
+    head(F\$Upper)
+    head(F\$Lower)
+    F\$Weight
+    head(S\$Upper)
+    head(S\$Lower)
+    S\$Weight
+    
+    # 5. Write meaningful results to output files
+    # Align gene names for tabular output
+    genes <- names(F\$Upper)
+    if (is.null(genes)) {
+      genes <- seq_along(F\$Upper)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_metaseq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METASEQ:", paste0("    metaseq: ", packageVersion("metaSeq"))),
-        "versions.yml"
+    
+    # Save Fisher's method results
+    fisher_df <- data.frame(
+      Gene = genes,
+      Upper_Probability = F\$Upper,
+      Lower_Probability = F\$Lower,
+      row.names = NULL
     )
+    write.csv(fisher_df, "fisher_results.csv", row.names = FALSE)
+    
+    # Save Stouffer's method results
+    stouffer_df <- data.frame(
+      Gene = genes,
+      Upper_Probability = S\$Upper,
+      Lower_Probability = S\$Lower,
+      row.names = NULL
+    )
+    write.csv(stouffer_df, "stouffer_results.csv", row.names = FALSE)
+    
+    # Save RDS objects for downstream analysis
+    saveRDS(F, "fisher_results.rds")
+    saveRDS(S, "stouffer_results.rds")
+    saveRDS(result, "noiseq_raw_results.rds")
+    
+    # Generate diagnostic plots of the combined probabilities
+    pdf("meta_analysis_probabilities.pdf", width = 8, height = 8)
+    par(mfrow = c(2, 2))
+    hist(F\$Upper, main = "Fisher Upper Probabilities", xlab = "Probability", col = "skyblue", breaks = 20)
+    hist(F\$Lower, main = "Fisher Lower Probabilities", xlab = "Probability", col = "salmon", breaks = 20)
+    hist(S\$Upper, main = "Stouffer Upper Probabilities", xlab = "Probability", col = "lightgreen", breaks = 20)
+    hist(S\$Lower, main = "Stouffer Lower Probabilities", xlab = "Probability", col = "wheat", breaks = 20)
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_METASEQ_NOISEQ_META_ANALYSIS":',
+        paste0('    metaSeq: ', as.character(packageVersion('metaSeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_metaseq_results.csv
-    touch ${prefix}_metaseq_output.rds
-    echo "BIOC_METASEQ:" > versions.yml
-    echo "    metaseq: 0.0.0" >> versions.yml
+    touch ${prefix}_noiseq_meta_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_METASEQ_WORKFLOW {
+workflow BIOC_METASEQ_NOISEQ_META_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ BreastCancer, flag1, flag2 ] ]
 
     main:
-    BIOC_METASEQ(ch_input)
+    BIOC_METASEQ_NOISEQ_META_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_METASEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METASEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METASEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METASEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METASEQ_NOISEQ_META_ANALYSIS.out.tables
+    plots    = BIOC_METASEQ_NOISEQ_META_ANALYSIS.out.plots
+    objects  = BIOC_METASEQ_NOISEQ_META_ANALYSIS.out.objects
+    versions = BIOC_METASEQ_NOISEQ_META_ANALYSIS.out.versions
 }

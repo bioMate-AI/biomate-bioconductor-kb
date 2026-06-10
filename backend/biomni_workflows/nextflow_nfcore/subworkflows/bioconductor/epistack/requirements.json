@@ -1,0 +1,25 @@
+{
+  "package": "epistack",
+  "requirements": [
+    "EnrichedHeatmap",
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "epistack",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EnrichedHeatmap",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "epistack",
+      "rtracklayer"
+    ],
+    "promoter_epigenetics_expression.nf": [
+      "EnrichedHeatmap",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "epistack"
+    ]
+  }
+}

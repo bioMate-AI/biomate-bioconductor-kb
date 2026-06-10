@@ -1,0 +1,15 @@
+{
+  "package": "ggseqalign",
+  "requirements": [
+    "Biostrings",
+    "ggplot2",
+    "ggseqalign"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "ggplot2",
+      "ggseqalign"
+    ]
+  }
+}

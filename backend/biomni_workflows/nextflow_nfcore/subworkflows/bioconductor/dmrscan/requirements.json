@@ -1,0 +1,15 @@
+{
+  "package": "dmrscan",
+  "requirements": [
+    "DMRScan",
+    "GenomicRanges",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DMRScan",
+      "GenomicRanges",
+      "rtracklayer"
+    ]
+  }
+}

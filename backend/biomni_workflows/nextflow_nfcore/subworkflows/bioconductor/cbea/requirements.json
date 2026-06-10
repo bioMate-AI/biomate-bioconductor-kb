@@ -1,0 +1,11 @@
+{
+  "package": "cbea",
+  "requirements": [
+    "CBEA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CBEA"
+    ]
+  }
+}

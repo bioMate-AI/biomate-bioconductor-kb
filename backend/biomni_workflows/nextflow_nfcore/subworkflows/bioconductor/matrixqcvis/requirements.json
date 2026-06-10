@@ -1,0 +1,17 @@
+{
+  "package": "matrixqcvis",
+  "requirements": [
+    "MatrixQCvis",
+    "SummarizedExperiment",
+    "ggplot2",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MatrixQCvis",
+      "SummarizedExperiment",
+      "ggplot2",
+      "limma"
+    ]
+  }
+}

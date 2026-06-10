@@ -1,113 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: omada
-// Symptomatic heterogeneity in complex diseases reveals differences in molecular states that need to b
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/omada/inst/doc/omada-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("omada")
+// Bioconductor workflow: omada — automated_clustering_cascade
+// Run the entire automated machine learning cascade to select features, determine the optimal number of clusters, and perform clustering on gene expression data.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-omada:1.12.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: omada
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run the automated cascade using omada
+//  * 2. [Core Analysis] Extract partition agreement, feature selection, cluster voting, and sample membership results
+//  * 3. [Visualization & Output] Plot the diagnostic results
 
 nextflow.enable.dsl = 2
 
-process BIOC_OMADA {
+process BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-omada"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-omada:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-omada:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_omada_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_omada_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_omada_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(omada)
-    library(jsonlite)
-
-    # --- Clustering Method Selection [] ---
-    # Key functions: clusteringMethodSelection, get_partition_agreement_scores, plot_partition_agreement
-    method.results <- clusteringMethodSelection(toy_genes, method.upper.k = 3, 
-                                                number.of.comparisons = 2)
-    pa.scores <- get_partition_agreement_scores(method.results)
-    plot_partition_agreement(method.results)
-
-
-    # --- Feature Selection [] ---
-    # Key functions: featureSelection, get_average_feature_k_stabilities, get_optimal_features, plot_average_stabilities
-    feature.selection.results <- featureSelection(toy_genes, min.k = 3, 
-                                                   max.k = 6, step = 3)
-    feature.selection.scores <- get_average_feature_k_stabilities(
-        feature.selection.results
-    )
-    optimal.features <- get_optimal_features(feature.selection.results)
-    plot_average_stabilities(feature.selection.results)
-
-
-    # --- Cluster Voting and Optimal Clustering [] ---
-    # Key functions: clusterVoting, get_internal_metric_scores, optimalClustering, get_optimal_memberships, plot_vote_frequencies
-    cluster.voting.results <- clusterVoting(toy_genes, 4, 8, "sc")
-    internal.metric.scores <- get_internal_metric_scores(
-        cluster.voting.results
-    )
-    plot_vote_frequencies(cluster.voting.results)
-    sample.memberships <- optimalClustering(toy_genes, 4, "spectral")
-    memberships <- get_optimal_memberships(sample.memberships)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_omada_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_omada_results.csv")
+    
+    # Read the user-provided gene expression matrix
+    # The file must be in the working directory, with samples as rows/columns and no NA values.
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Error: 'expression_matrix.csv' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_omada_output.rds")
+    
+    # Load the data. We assume the first column contains row names (e.g., sample or gene IDs).
+    toy_genes <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    
+    # Run the automated machine learning cascade
+    omada.analysis <- omada(toy_genes, method.upper.k = 6)
+    
+    # Extract partition agreement, feature selection, cluster voting, and sample membership results
+    pa.scores <- get_partition_agreement_scores(omada.analysis)
+    fs.scores <- get_feature_selection_scores(omada.analysis)
+    fs.optimal.features <- 
+      get_feature_selection_optimal_features(omada.analysis)
+    fs.optimal.number.of.features <- 
+      get_feature_selection_optimal_number_of_features(omada.analysis)
+    
+    cv.scores <- get_cluster_voting_scores(omada.analysis)
+    cv.memberships <- get_cluster_voting_memberships(omada.analysis)
+    cv.metrics.votes <- get_cluster_voting_metric_votes(omada.analysis)
+    cv.k.votes <- get_cluster_voting_k_votes(omada.analysis)
+    sample.memberships <- get_sample_memberships(omada.analysis)
+    
+    # Save the main analysis object
+    saveRDS(omada.analysis, "omada_analysis.rds")
+    
+    # Helper function to safely write outputs to CSV or RDS depending on structure
+    save_output <- function(obj, filename) {
+      tryCatch({
+        if (is.data.frame(obj) || is.matrix(obj)) {
+          write.csv(obj, filename, row.names = TRUE)
+        } else if (is.list(obj)) {
+          saveRDS(obj, gsub("\\\\.csv\$", ".rds", filename))
+        } else {
+          write.csv(data.frame(Value = obj), filename, row.names = TRUE)
+        }
+      }, error = function(e) {
+        warning(paste("Could not write output to", filename, ":", e\$message))
+      })
     }
+    
+    # Save extracted results to files
+    save_output(pa.scores, "partition_agreement_scores.csv")
+    save_output(fs.scores, "feature_selection_scores.csv")
+    
+    tryCatch({
+      writeLines(as.character(fs.optimal.features), "fs_optimal_features.txt")
+    }, error = function(e) {
+      warning("Could not write fs_optimal_features.txt")
+    })
+    
+    tryCatch({
+      writeLines(as.character(fs.optimal.number.of.features), "fs_optimal_number_of_features.txt")
+    }, error = function(e) {
+      warning("Could not write fs_optimal_number_of_features.txt")
+    })
+    
+    save_output(cv.scores, "cluster_voting_scores.csv")
+    save_output(cv.memberships, "cluster_voting_memberships.csv")
+    save_output(cv.metrics.votes, "cluster_voting_metric_votes.csv")
+    save_output(cv.k.votes, "cluster_voting_k_votes.csv")
+    save_output(sample.memberships, "sample_memberships.csv")
+    
+    # Plot diagnostic results to PDF files
+    pdf("partition_agreement_plot.pdf")
+    print(plot_partition_agreement(omada.analysis))
+    dev.off()
+    
+    pdf("feature_selection_plot.pdf")
+    print(plot_feature_selection(omada.analysis))
+    dev.off()
+    
+    pdf("cluster_voting_plot.pdf")
+    print(plot_cluster_voting(omada.analysis))
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OMADA:", paste0("    omada: ", packageVersion("omada"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE":',
+        paste0('    omada: ', as.character(packageVersion('omada')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_omada_results.csv
-    touch ${prefix}_omada_output.rds
-    echo "BIOC_OMADA:" > versions.yml
-    echo "    omada: 0.0.0" >> versions.yml
+    touch ${prefix}_automated_clustering_cascade.csv versions.yml
     """
 }
 
-
-workflow BIOC_OMADA_WORKFLOW {
+workflow BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_OMADA(ch_input)
+    BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE(ch_input)
 
     emit:
-    results  = BIOC_OMADA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OMADA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OMADA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OMADA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE.out.tables
+    plots    = BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE.out.plots
+    objects  = BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE.out.objects
+    versions = BIOC_OMADA_AUTOMATED_CLUSTERING_CASCADE.out.versions
 }

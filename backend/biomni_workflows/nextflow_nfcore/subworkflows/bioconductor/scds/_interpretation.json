@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: retRes=logical indicating whether to return intermediate results and metadata (e.g., top gene pairs in cxds) ;; verb=logical indicating whether to print progress messages during bcds execution\n- alternatives: cxds (co-expression based, uses binary presence/absence of gene pairs) vs bcds (uses full count information and artificial doublets) vs cxds_bcds_hybrid (combines both for optimal performance)\n- when_to_use: When analyzing single-cell RNA-seq data to identify and filter out doublet cells (multiplets) that can bias downstream clustering and differential expression analyses.\n- pitfalls: The package expects raw counts to be stored in the \"counts\" assay of a SingleCellExperiment object (i.e., assay(sce, \"counts\")). Using normalized or log-transformed counts as the primary input to these functions is not supported.",
+  "workflows": [
+    {
+      "name": "doublet_annotation",
+      "intent": "Annotate and score doublets in single-cell RNA-seq data using co-expression, binary classification, and hybrid approaches.",
+      "input": [
+        "sce (SingleCellExperiment object containing raw counts in the \"counts\" assay)"
+      ],
+      "stages": "1. Run co-expression based doublet scoring (cxds) ;; 2. Run binary classification based doublet scoring (bcds) ;; 3. Run the hybrid doublet scoring approach (cxds_bcds_hybrid) ;; 4. Extract top gene pairs driving the co-expression doublet annotations",
+      "code": "sce = cxds(sce,retRes = TRUE)\nsce = bcds(sce,retRes = TRUE,verb=TRUE)\nsce = cxds_bcds_hybrid(sce)\nscds =\ntop3 = metadata(sce)$cxds$topPairs[1:3,]\nrs   = rownames(sce)\nhb   = rowData(sce)$cxds_hvg_bool\nho   = rowData(sce)$cxds_hvg_ordr[hb]\nhgs  = rs[ho]"
+    }
+  ]
+}

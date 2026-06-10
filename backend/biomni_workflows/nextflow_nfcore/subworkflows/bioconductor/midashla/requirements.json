@@ -1,0 +1,17 @@
+{
+  "package": "midashla",
+  "requirements": [
+    "midasHLA"
+  ],
+  "by_workflow": {
+    "hla_amino_acid_fine_mapping.nf": [
+      "midasHLA"
+    ],
+    "hla_kir_interaction_analysis.nf": [
+      "midasHLA"
+    ],
+    "main.nf": [
+      "midasHLA"
+    ]
+  }
+}

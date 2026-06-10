@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=Path to a file or an R object containing genomic data to be plotted ;; chrom=Chromosome name for the genomic locus ;; chromstart=Start coordinate of the genomic locus ;; chromend=End coordinate of the genomic locus ;; assembly=Genomic assembly version (e.g., \"hg19\") used for coordinate mapping ;; x=X-coordinate placement on the page ;; y=Y-coordinate placement on the page ;; width=Width of the plot or annotation ;; height=Height of the plot or annotation ;; default.units=Units for placement arguments (e.g., \"inches\") ;; plot=The plotgardener plot object passed to annotation functions ;; showGuides=Logical in pageCreate to show/hide alignment guides; set to FALSE to avoid PDF multi-page artifacts\n- alternatives: None mentioned in the provided documentation\n- when_to_use: Use when you need to programmatically generate precise, publication-quality, multi-paneled genomic visualizations (such as combining Hi-C, ChIP-seq signal, gene models, and GWAS data) with coordinate-based layout control.\n- pitfalls: Using pageGuideHide() inside a pdf() device call can result in an extra blank or new page being rendered due to grid removal implementation. To avoid this, hide guides directly in the pageCreate() call by setting showGuides = FALSE.",
+  "workflows": [
+    {
+      "name": "quick_genomic_data_inspection",
+      "intent": "Quickly visualize genomic data (Hi-C, signal tracks, genes, or GWAS) without page layout or placement arguments for rapid inspection.",
+      "input": [
+        "IMR90_HiC_10kb (Hi-C matrix data object)",
+        "IMR90_ChIP_H3K27ac_signal (ChIP-seq signal data object)",
+        "hg19_insulin_GWAS (GWAS summary statistics data object)"
+      ],
+      "stages": "1. Load the required libraries and data ;; 2. Quick plot Hi-C data using plotHicSquare() ;; 3. Quick plot signal data using plotSignal() ;; 4. Quick plot gene annotations using plotGenes() ;; 5. Quick plot GWAS Manhattan data using plotManhattan()",
+      "code": "library(plotgardener)\nlibrary(plotgardenerData)\ndata(\"IMR90_HiC_10kb\")\nplotHicSquare(\n    data = IMR90_HiC_10kb,\n    chrom = \"chr21\", chromstart = 28000000, chromend = 30300000,\n    assembly = \"hg19\"\n)\n\ndata(\"IMR90_ChIP_H3K27ac_signal\")\nplotSignal(\n    data = IMR90_ChIP_H3K27ac_signal,\n    chrom = \"chr21\", chromstart = 28000000, chromend = 30300000,\n    assembly = \"hg19\"\n)\n\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene)\nlibrary(org.Hs.eg.db)\nplotGenes(\n    assembly = \"hg19\",\n    chrom = \"chr21\", chromstart = 28000000, chromend = 30300000\n)\n\ndata(\"hg19_insulin_GWAS\")\nplotManhattan(\n    data = hg19_insulin_GWAS, \n    assembly = \"hg19\",\n    fill = c(\"steel blue\", \"grey\"),\n    ymax = 1.1, cex = 0.20\n)"
+    },
+    {
+      "name": "multi_panel_genomic_visualization",
+      "intent": "Create a coordinate-based page, plot genomic data, add annotations (legends and genome labels), and export the final figure to a PDF.",
+      "input": [
+        "IMR90_HiC_10kb (Hi-C matrix data object)"
+      ],
+      "stages": "1. Initialize a PDF graphics device with pdf() ;; 2. Create a coordinate page with pageCreate() ;; 3. Plot genomic data (e.g., Hi-C square) using plotHicSquare() ;; 4. Annotate the plot with a heatmap legend using annoHeatmapLegend() ;; 5. Annotate the plot with a genome coordinate label using annoGenomeLabel() ;; 6. Hide page guides using pageGuideHide() ;; 7. Close the graphics device with dev.off()",
+      "code": "pdf(width = 3.25, height = 3.25)\n\npageCreate(width = 3.25, height = 3.25, default.units = \"inches\")\ndata(\"IMR90_HiC_10kb\")\nhicPlot <- plotHicSquare(\n    data = IMR90_HiC_10kb,\n    chrom = \"chr21\", chromstart = 28000000, chromend = 30300000,\n    assembly = \"hg19\",\n    x = 0.25, y = 0.25, width = 2.5, height = 2.5, default.units = \"inches\"\n)\nannoHeatmapLegend(\n    plot = hicPlot,\n    x = 2.85, y = 0.25, width = 0.1, height = 1.25, default.units = \"inches\"\n)\n\nannoGenomeLabel(\n    plot = hicPlot,\n    x = 0.25, y = 2.75, width = 2.5, height = 0.25, default.units = \"inches\"\n)\npageGuideHide()\n\ndev.off()"
+    }
+  ]
+}

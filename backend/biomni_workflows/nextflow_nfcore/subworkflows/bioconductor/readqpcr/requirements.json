@@ -1,0 +1,14 @@
+{
+  "package": "readqpcr",
+  "requirements": [
+    "ReadqPCR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ReadqPCR"
+    ],
+    "taqman_sds_loading.nf": [
+      "ReadqPCR"
+    ]
+  }
+}

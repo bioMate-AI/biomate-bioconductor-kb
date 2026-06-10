@@ -1,0 +1,15 @@
+{
+  "package": "rnadecay",
+  "requirements": [
+    "RNAdecay",
+    "ggplot2",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RNAdecay",
+      "ggplot2",
+      "reshape2"
+    ]
+  }
+}

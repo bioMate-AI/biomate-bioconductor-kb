@@ -1,0 +1,24 @@
+{
+  "package": "spotsweeper",
+  "requirements": [
+    "SpatialExperiment",
+    "SpotSweeper",
+    "escheR",
+    "ggplot2",
+    "scuttle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "SpotSweeper",
+      "escheR",
+      "ggplot2",
+      "scuttle"
+    ],
+    "technical_artifact_detection.nf": [
+      "SpatialExperiment",
+      "SpotSweeper",
+      "ggplot2"
+    ]
+  }
+}

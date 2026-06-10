@@ -1,113 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SimFFPE
-// The NGS (Next-Generation Sequencing) reads from FFPE (Formalin-Fixed Paraffin-Embedded) samples cont
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SimFFPE/inst/doc/SimFFPE.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SimFFPE")
+// Bioconductor workflow: SimFFPE — genome_wide_simulation
+// Simulate FFPE NGS reads across whole genomes, chromosomes, or large genomic regions.
+// Input: example.bam, regionsBam.txt, example.fasta
+// Container: quay.io/biocontainers/bioconductor-simffpe:1.22.0--r45hdfd78af_0
+// R packages: Biostrings, SimFFPE
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biostrings, SimFFPE
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Estimate Phred score profile from a BAM file
+//  * 2. [Input & Preparation] Load reference genome sequences
+//  * 3. [Core Analysis] Simulate reads using readSimFFPE
 
 nextflow.enable.dsl = 2
 
-process BIOC_SIMFFPE {
+process BIOC_SIMFFPE_GENOME_WIDE_SIMULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-simffpe"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-simffpe:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-simffpe:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(bamfile)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_simffpe_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_simffpe_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_simffpe_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "SimFFPE")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(SimFFPE)
-    library(DNAStringSet)
-    library(jsonlite)
-
-    # --- Whole Genome FFPE Read Simulation [] ---
-    # Key functions: readSimFFPE
-    referencePath <- system.file("extdata", "example.fasta", package = "SimFFPE")
-    reference <- Biostrings::readDNAStringSet(referencePath)
-    sourceSeq <- reference[1:3]
-    outFile1 <- paste0(tempdir(), "/sim1")
-    PhredScoreProfilePath <- system.file(
-        "extdata", "PhredScoreProfile1.txt", package = "SimFFPE"
-    )
-    profile <- as.matrix(read.table(PhredScoreProfilePath, skip = 1))
-    SimFFPE::readSimFFPE(
-        sourceSeq, referencePath, profile, outFile1,
-        overWrite = TRUE, coverage = 10, readLen = 100,
-        enzymeCut = TRUE, threads = 1
-    )
-
-
-    # --- Targeted FFPE Read Simulation [] ---
-    # Key functions: targetReadSimFFPE
-    outFile3 <- paste0(tempdir(), "/sim3")
-    regionPath <- system.file("extdata", "regionsBam.txt", package = "SimFFPE")
-    targetRegions <- read.table(regionPath)
-    SimFFPE::targetReadSimFFPE(
-        referencePath, profile, targetRegions, outFile3,
-        coverage = 20, readLen = 100, meanInsertLen = 180,
-        sdInsertLen = 50, enzymeCut = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_simffpe_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_simffpe_results.csv")
+    library(Biostrings)
+    
+    # Define input file paths (reading EXACTLY the declared user input files from the working directory)
+    bamFilePath <- "example.bam"
+    regionPath <- "regionsBam.txt"
+    referencePath <- "example.fasta"
+    
+    # Verify input files exist
+    if (!file.exists(bamFilePath)) {
+      stop(paste("Required input BAM file is missing:", bamFilePath))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_simffpe_output.rds")
+    if (!file.exists(regionPath)) {
+      stop(paste("Required input regions file is missing:", regionPath))
     }
+    if (!file.exists(referencePath)) {
+      stop(paste("Required input reference FASTA file is missing:", referencePath))
+    }
+    
+    # 1. Estimate Phred score profile from the user's BAM file
+    message("Reading target regions...")
+    regions <- read.table(regionPath)
+    
+    message("Estimating Phred score profile...")
+    # We store the result in PhredScoreProfile2 to match the variable name used in the documented readSimFFPE call
+    PhredScoreProfile2 <- calcPhredScoreProfile(bamFilePath, targetRegions = regions)
+    
+    # Save the estimated Phred profile matrix as an RDS file for downstream analysis/inspection
+    saveRDS(PhredScoreProfile2, file = "estimated_PhredScoreProfile.rds")
+    message("Saved estimated Phred score profile to 'estimated_PhredScoreProfile.rds'")
+    
+    # 2. Load reference genome sequences
+    message("Loading reference genome...")
+    reference <- readDNAStringSet(referencePath)
+    
+    # Select the source sequences (first 3 sequences, or fewer if the reference contains fewer)
+    numSeqs <- min(3, length(reference))
+    sourceSeq <- reference[1:numSeqs]
+    
+    # 3. Simulate reads using readSimFFPE
+    # Define output file prefix in the current working directory
+    outFile1 <- "./sim1"
+    
+    message("Running genome-wide FFPE read simulation...")
+    readSimFFPE(sourceSeq, referencePath, PhredScoreProfile2, outFile1,
+                overWrite = TRUE, coverage = 80, readLen = 150,
+                enzymeCut = TRUE, threads = 2)
+    
+    message("Simulation completed successfully. Output files generated with prefix: ", outFile1)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SIMFFPE:", paste0("    simffpe: ", packageVersion("SimFFPE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SIMFFPE_GENOME_WIDE_SIMULATION":',
+        paste0('    SimFFPE: ', as.character(packageVersion('SimFFPE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_simffpe_results.csv
-    touch ${prefix}_simffpe_output.rds
-    echo "BIOC_SIMFFPE:" > versions.yml
-    echo "    simffpe: 0.0.0" >> versions.yml
+    touch ${prefix}_genome_wide_simulation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SIMFFPE_WORKFLOW {
+workflow BIOC_SIMFFPE_GENOME_WIDE_SIMULATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(bamfile) ]
+    ch_input  // channel: [ val(meta), [ example.bam, regionsBam.txt, example.fasta ] ]
 
     main:
-    BIOC_SIMFFPE(ch_input)
+    BIOC_SIMFFPE_GENOME_WIDE_SIMULATION(ch_input)
 
     emit:
-    results  = BIOC_SIMFFPE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SIMFFPE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SIMFFPE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SIMFFPE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SIMFFPE_GENOME_WIDE_SIMULATION.out.tables
+    plots    = BIOC_SIMFFPE_GENOME_WIDE_SIMULATION.out.plots
+    objects  = BIOC_SIMFFPE_GENOME_WIDE_SIMULATION.out.objects
+    versions = BIOC_SIMFFPE_GENOME_WIDE_SIMULATION.out.versions
 }

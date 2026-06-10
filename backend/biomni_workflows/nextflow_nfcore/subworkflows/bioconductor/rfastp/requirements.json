@@ -1,0 +1,28 @@
+{
+  "package": "rfastp",
+  "requirements": [
+    "Rfastp",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "custom_trimming_and_filtering.nf": [
+      "Rfastp",
+      "ggplot2"
+    ],
+    "fastq_concatenation.nf": [
+      "Rfastp",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "Rfastp",
+      "ggplot2"
+    ],
+    "paired_end_qc_and_merging.nf": [
+      "Rfastp",
+      "ggplot2"
+    ],
+    "umi_preprocessing.nf": [
+      "Rfastp"
+    ]
+  }
+}

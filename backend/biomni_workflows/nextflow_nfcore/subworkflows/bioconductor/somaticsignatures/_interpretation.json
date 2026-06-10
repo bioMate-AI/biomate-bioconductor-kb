@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: group=The metadata column name used to group samples (e.g., \"study\" or patient ID) when constructing the motif matrix ;; normalize=Logical value in motifMatrix; if TRUE, returns motif frequencies instead of raw counts ;; decomposition=The decomposition method function (e.g., nmfDecomposition or pcaDecomposition) passed to identifySignatures or assessNumberSignatures ;; nReplicates=Number of runs for randomly seeded decomposition methods (like NMF) in assessNumberSignatures to calculate average goodness-of-fit statistics\n- alternatives: WTSI Mutational Signature Framework (Matlab-based NMF approach) ;; EMu (probabilistic framework based on Poisson processes and Expectation-Maximization)\n- when_to_use: Use this package when you have somatic SNV calls across multiple samples or cohorts and want to identify the underlying mutational processes (signatures) and their relative contributions to each sample.\n- pitfalls: Technical batch effects (e.g., different sequencing centers or technologies) can confound signatures; use ComBat or similar methods to adjust the motif matrix before decomposition ;; Differences in genomic target regions (e.g., WES vs WGS) alter background k-mer frequencies; use normalizeMotifs to adjust motif frequencies before comparing datasets ;; NMF can be computationally expensive for very large datasets; PCA is a faster alternative though it allows negative values (depletion of motifs).",
+  "workflows": [
+    {
+      "name": "somatic_signature_extraction",
+      "intent": "Extract and analyze somatic mutational signatures from somatic SNV calls and a reference genome.",
+      "input": [
+        "somatic_variants.vcf (Somatic SNV calls)",
+        "reference_genome.fa (Reference genome sequence or a BSgenome object)"
+      ],
+      "stages": "1. Import somatic variants into a VRanges object ;; 2. Extract the trinucleotide sequence context of each variant using mutationContext ;; 3. Construct a normalized motif matrix grouped by sample or study using motifMatrix ;; 4. Assess the optimal number of signatures using assessNumberSignatures ;; 5. Identify mutational signatures using identifySignatures with NMF or PCA ;; 6. Visualize the signatures, sample contributions, and spectrum fits using plotting functions ;; 7. Cluster the mutational spectrum by motif or sample using clusterSpectrum.",
+      "code": "library(SomaticSignatures)\nlibrary(VariantAnnotation)\n\nvr = VRanges(\n    seqnames = \"chr1\",\n    ranges = IRanges(start = 1000, width = 1),\n    ref = \"A\",\n    alt = \"C\")\n\nsca_motifs = mutationContext(sca_vr, BSgenome.Hsapiens.1000genomes.hs37d5)\n\nsca_mm = motifMatrix(sca_motifs, group = \"study\", normalize = TRUE)\n\nplotMutationSpectrum(sca_motifs, \"study\")\n\nn_sigs = 5\n\nsigs_nmf = identifySignatures(sca_mm, n_sigs, nmfDecomposition)\n\nsigs_pca = identifySignatures(sca_mm, n_sigs, pcaDecomposition)\n\nn_sigs = 2:8\n\ngof_nmf = assessNumberSignatures(sca_mm, n_sigs, nReplicates = 5)\n\ngof_pca = assessNumberSignatures(sca_mm, n_sigs, pcaDecomposition)\n\nplotNumberSignatures(gof_nmf)\n\nplotNumberSignatures(gof_pca)\n\nplotSignatureMap(sigs_nmf) + ggtitle(\"Somatic Signatures: NMF - Heatmap\")\n\nplotSignatures(sigs_nmf) + ggtitle(\"Somatic Signatures: NMF - Barchart\")\n\nplotObservedSpectrum(sigs_nmf)\n\nplotFittedSpectrum(sigs_nmf)\n\nplotSampleMap(sigs_nmf)\n\nplotSamples(sigs_nmf)\n\nclu_motif = clusterSpectrum(sca_mm, \"motif\")"
+    },
+    {
+      "name": "signature_normalization_and_batch_correction",
+      "intent": "Correct the somatic motif matrix for technical batch effects and normalize for differences in genomic target k-mer frequencies.",
+      "input": [
+        "motif_matrix.rds (Somatic motif matrix from motifMatrix)",
+        "sample_metadata.csv (Sample covariates including batch/sequencing source)",
+        "target_regions.bed (Exome capture or targeted sequencing genomic intervals)"
+      ],
+      "stages": "1. Correct for technical batch effects in the motif matrix using ComBat ;; 2. Calculate background k-mer frequencies for the reference genome and target regions using kmerFrequency ;; 3. Normalize the motif matrix using normalizeMotifs to adjust for target region sequence composition.",
+      "code": "library(sva)\nlibrary(SomaticSignatures)\n\nsca_anno = as.data.frame(lapply(sca_metadata, unlist))\n\nmodel_null = model.matrix(~ 1, sca_anno)\n\nsca_mm_batch = ComBat(sca_mm, batch = sca_anno$Sequence_Source, mod = model_null)\n\nk = 3\nn = 1e4\n\nhs_chrs = as(seqinfo(BSgenome.Hsapiens.1000genomes.hs37d5), \"GRanges\")\nhs_chrs = keepSeqlevels(hs_chrs, c(1:22, \"X\", \"Y\"), pruning.mode = \"coarse\")\n\nk3_hs_chrs = kmerFrequency(BSgenome.Hsapiens.1000genomes.hs37d5, n, k, hs_chrs)\n\ndata(kmers)\nnorms = k3wg / k3we\n\nsca_mm_norm = normalizeMotifs(sca_mm, norms)"
+    }
+  ]
+}

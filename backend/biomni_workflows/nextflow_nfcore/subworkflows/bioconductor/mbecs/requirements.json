@@ -1,0 +1,15 @@
+{
+  "package": "mbecs",
+  "requirements": [
+    "MBECS",
+    "ggplot2",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MBECS",
+      "ggplot2",
+      "phyloseq"
+    ]
+  }
+}

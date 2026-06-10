@@ -1,0 +1,17 @@
+{
+  "package": "reactomepa",
+  "requirements": [
+    "ReactomePA",
+    "enrichplot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ReactomePA",
+      "enrichplot"
+    ],
+    "reactome_gsea.nf": [
+      "ReactomePA",
+      "enrichplot"
+    ]
+  }
+}

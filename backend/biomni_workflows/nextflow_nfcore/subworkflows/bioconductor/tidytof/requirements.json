@@ -1,0 +1,19 @@
+{
+  "package": "tidytof",
+  "requirements": [
+    "dplyr",
+    "ggplot2",
+    "readr",
+    "tidyr",
+    "tidytof"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "readr",
+      "tidyr",
+      "tidytof"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dist=Set to \"norm\" (Gaussian) or \"nbinom\" (negative binomial) to choose the distribution ;; phi=Optional dispersion estimate for the negative binomial distribution ;; gamma=Optional offset for the negative binomial distribution\n- alternatives: edgeR=For shrinkage estimation and scale normalization to improve the negative binomial mixture model ;; PDGEtest=For non-parametric mixture testing to increase robustness against outliers\n- when_to_use: When testing for association between quantitative traits (e.g., gene expression) and a grouping variable (e.g., SNPs) where one group is homogeneous (labelled, e.g., homozygous wild-type) and the other is a mixture of two classes (unlabelled, e.g., heterozygous/homozygous mutant).\n- pitfalls: The null distribution of the likelihood-ratio test statistic is unknown, requiring resampling (parametric bootstrapping or permutation via scrutor). The grouping variable must be correctly binarised with the labelled group as 0 and the unlabelled group as NA.",
+  "workflows": [
+    {
+      "name": "semi_supervised_association_testing",
+      "intent": "Fit semi-supervised mixture models and test for associations between quantitative traits and SNPs/grouping variables.",
+      "input": [
+        "y (vector of quantitative trait observations) or Y (matrix of quantitative traits)",
+        "snp (vector of SNP genotypes) or SNPs (matrix of SNP genotypes)"
+      ],
+      "stages": "1. Binarise the SNP/grouping variable to define labelled (0) and unlabelled (NA) groups ;; 2. Fit the mixture model to estimate parameters and predict class labels ;; 3. Perform hypothesis testing using parametric bootstrapping or permutation to calculate p-values",
+      "code": "n <- length(snp)\n\n\nz <- rep(NA,times=n)\nz[snp==0] <- 0\n\nn <- nrow(SNPs)\np <- ncol(SNPs)\n\nZ <- matrix(NA,nrow=n,ncol=p)\nZ[SNPs==0] <- 0\n\nfit <- mixtura(y,z)\nclass <- round(fit$posterior)\nfit$estim1\nfit$estim0\n\nscrutor(y,z)\nscrutor(y,Z)\nscrutor(Y,z)\nscrutor(Y,Z)"
+    }
+  ]
+}

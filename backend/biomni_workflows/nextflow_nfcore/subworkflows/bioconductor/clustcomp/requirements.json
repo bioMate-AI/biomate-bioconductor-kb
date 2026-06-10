@@ -1,0 +1,14 @@
+{
+  "package": "clustcomp",
+  "requirements": [
+    "clustComp"
+  ],
+  "by_workflow": {
+    "flat_vs_hierarchical_comparison.nf": [
+      "clustComp"
+    ],
+    "main.nf": [
+      "clustComp"
+    ]
+  }
+}

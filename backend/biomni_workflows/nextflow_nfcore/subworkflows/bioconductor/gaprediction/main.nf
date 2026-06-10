@@ -1,97 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GAprediction
-// [GAprediction] predicts gestational age using Illumina HumanMethylation450 CpG data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GAprediction/inst/doc/GAprediction.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GAprediction")
+// Bioconductor workflow: GAprediction — gestational_age_prediction
+// Predict gestational age from blood DNA methylation data.
+// Input: mlmatr
+// Container: quay.io/biocontainers/bioconductor-gaprediction:1.36.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GAprediction
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Extract required CpG sites using extractSites
+//  * 2. [Input & Preparation] Prepare the input matrix ensuring no NAs in required CpGs
+//  * 3. [Core Analysis] Predict gestational age using predictGA
 
 nextflow.enable.dsl = 2
 
-process BIOC_GAPREDICTION {
+process BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gaprediction"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gaprediction:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gaprediction:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gaprediction_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gaprediction_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gaprediction_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required package
     library(GAprediction)
-    library(jsonlite)
-
-    # --- extract Sites [] ---
-    # Key functions: extractSites
-    require(GAprediction)
+    
+    # 1. Read the user input file 'mlmatr' from the working directory.
+    # We support CSV and RDS formats.
+    if (file.exists("mlmatr.csv")) {
+      mlmatr <- read.csv("mlmatr.csv", row.names = 1, check.names = FALSE)
+    } else if (file.exists("mlmatr.rds")) {
+      mlmatr <- readRDS("mlmatr.rds")
+    } else {
+      stop("Error: Input file 'mlmatr.csv' or 'mlmatr.rds' not found in the working directory.")
+    }
+    
+    # Ensure mlmatr is a data frame
+    mlmatr <- as.data.frame(mlmatr)
+    
+    # 2. Extract required CpG sites
     cpgs <- extractSites( type="se" )
     allcpgs <- extractSites( type="all" )
-    # --- predict G A [] ---
-    # Key functions: predictGA
+    
+    # 3. Prepare the input matrix ensuring no NAs in required CpGs
+    # Check if required CpGs are present in the input data
+    missing_cpgs <- setdiff(cpgs, colnames(mlmatr))
+    if (length(missing_cpgs) > 0) {
+      message("Warning: Some required CpGs are missing. Adding them with default beta value of 0.5.")
+      for (cg in missing_cpgs) {
+        mlmatr[[cg]] <- 0.5
+      }
+    }
+    
+    # Ensure no NA values exist in the required CpG columns
+    for (cg in cpgs) {
+      if (any(is.na(mlmatr[[cg]]))) {
+        # Impute NA values with 0.5 (neutral beta value)
+        mlmatr[[cg]][is.na(mlmatr[[cg]])] <- 0.5
+      }
+    }
+    
+    # 4. Predict gestational age
     mypred <- predictGA( mlmatr )
-    head( mypred )
-    # --- extract Sites [] ---
-    # Key functions: extractSites
-    cpgs <- extractSites( type="se" )
+    
+    # Display the first few predictions
+    print("First few predictions:")
+    print(head( mypred ))
+    
+    # 5. Save the results to a CSV file
+    write.csv(mypred, "predicted_gestational_age.csv", row.names = TRUE)
+    message("Predictions successfully saved to 'predicted_gestational_age.csv'.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gaprediction_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gaprediction_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gaprediction_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GAPREDICTION:", paste0("    gaprediction: ", packageVersion("GAprediction"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION":',
+        paste0('    GAprediction: ', as.character(packageVersion('GAprediction')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gaprediction_results.csv
-    touch ${prefix}_gaprediction_output.rds
-    echo "BIOC_GAPREDICTION:" > versions.yml
-    echo "    gaprediction: 0.0.0" >> versions.yml
+    touch ${prefix}_gestational_age_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_GAPREDICTION_WORKFLOW {
+workflow BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mlmatr ] ]
 
     main:
-    BIOC_GAPREDICTION(ch_input)
+    BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_GAPREDICTION.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GAPREDICTION.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GAPREDICTION.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GAPREDICTION.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION.out.tables
+    plots    = BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION.out.plots
+    objects  = BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION.out.objects
+    versions = BIOC_GAPREDICTION_GESTATIONAL_AGE_PREDICTION.out.versions
 }

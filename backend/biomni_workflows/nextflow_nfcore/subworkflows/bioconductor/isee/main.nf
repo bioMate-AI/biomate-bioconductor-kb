@@ -1,102 +1,203 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iSEE
-// Create an interactive Shiny-based graphical user interface for exploring data stored in SummarizedEx
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iSEE/inst/doc/basic.R
-// Upstream  : TENxPBMCData, scRNAseq, scater
-// Downstream: iSEEde, iSEEhex, iSEEpathways, iSEEtree, iSEEu
-//
-// Install: BiocManager::install("iSEE")
+// Bioconductor workflow: iSEE — isee_single_cell_explorer
+// Build a complete SummarizedExperiment object from raw single-cell count and metadata files, perform normalization, compute PCA, calculate row/column statistics,
+// Input: counts.csv, coldata.csv
+// Container: 2.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, iSEE, viridis
+// Visualizations: PCA plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ISEE {
+process BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-isee"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-isee:2.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-isee:2.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_isee_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_isee_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_isee_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ReprocessedAllenData)
-    library(jsonlite)
-
-    # --- example [] ---
-    # Key functions: example
-    example(iSEE, ask=FALSE)
-    # --- Reprocessed Allen Data [] ---
-    # Key functions: ReprocessedAllenData
-    library(scRNAseq)
-    sce <- ReprocessedAllenData(assays = "tophat_counts")   # specifying the assays to speed up the example
-    # --- colData sce [] ---
-    # Key functions: logNormCounts
-    colnames(colData(sce))
-    library(scater)
-    sce <- logNormCounts(sce, exprs_values="tophat_counts")
-    # --- Run PCA [] ---
-    # Key functions: runPCA, runTSNE, reducedDimNames, rowData
-    set.seed(1000)
-    sce <- runPCA(sce)
-    sce <- runTSNE(sce)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_isee_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_isee_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load libraries and read input data
+    library(iSEE)
+    
+    # Read counts.csv (gene-by-cell count matrix, column 'gene_id' contains row names)
+    counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if (!"gene_id" %in% colnames(counts_df)) {
+      stop("counts.csv must contain a 'gene_id' column.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_isee_output.rds")
+    rownames(counts_df) <- counts_df\$gene_id
+    counts_df\$gene_id <- NULL
+    counts_matrix <- as.matrix(counts_df)
+    
+    # Read coldata.csv (per-cell metadata with 'cell' and optional 'group')
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if (!"cell" %in% colnames(coldata_df)) {
+      stop("coldata.csv must contain a 'cell' column.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ISEE:", paste0("    isee: ", packageVersion("iSEE"))),
-        "versions.yml"
+    rownames(coldata_df) <- coldata_df\$cell
+    
+    # Align cells between counts and coldata
+    common_cells <- intersect(colnames(counts_matrix), rownames(coldata_df))
+    if (length(common_cells) == 0) {
+      stop("No common cells found between counts.csv and coldata.csv.")
+    }
+    counts_matrix <- counts_matrix[, common_cells, drop = FALSE]
+    coldata_df <- coldata_df[common_cells, , drop = FALSE]
+    
+    # Stage 2: Normalization and Dimensionality Reduction (PCA)
+    # Compute log-normalized counts (log2 CPM-like values)
+    libsizes <- colSums(counts_matrix)
+    libsizes[libsizes == 0] <- 1  # Prevent division by zero
+    logcounts_matrix <- log2(t(t(counts_matrix) / libsizes) * 1e6 + 1)
+    
+    # Identify highly variable genes for PCA
+    gene_vars <- apply(logcounts_matrix, 1, var)
+    n_top <- min(500, nrow(logcounts_matrix))
+    top_genes <- names(sort(gene_vars, decreasing = TRUE))[1:n_top]
+    
+    # Run PCA manually using base R to ensure compatibility and robustness
+    pca_res <- prcomp(t(logcounts_matrix[top_genes, , drop = FALSE]), scale. = TRUE)
+    coldata_df\$PC1 <- pca_res\$x[, 1]
+    coldata_df\$PC2 <- pca_res\$x[, 2]
+    
+    # Stage 3: Construct SummarizedExperiment and compute metadata
+    se <- SummarizedExperiment(
+      assays = list(counts = counts_matrix, logcounts = logcounts_matrix),
+      colData = coldata_df
     )
+    
+    # Add gene-level metadata to rowData
+    rowData(se)\$mean_log <- rowMeans(logcounts_matrix)
+    rowData(se)\$var_log <- gene_vars
+    
+    # Stage 4: Configure Custom Colormaps (ExperimentColorMap)
+    col_list <- list()
+    if ("group" %in% colnames(coldata_df)) {
+      unique_groups <- unique(coldata_df\$group)
+      group_colors <- rainbow(length(unique_groups))
+      names(group_colors) <- unique_groups
+      group_color_fun <- function(n) {
+        group_colors
+      }
+      col_list\$group <- group_color_fun
+    }
+    
+    ecm <- ExperimentColorMap(
+      assays = list(
+        logcounts = viridis::viridis,
+        counts = heat.colors
+      ),
+      colData = col_list
+    )
+    
+    # Stage 5: Programmatically configure initial iSEE panels
+    # 1. ColumnDataPlot to visualize PCA coordinates computed manually
+    cdp <- ColumnDataPlot(
+      XAxis = "Column data",
+      XAxisColumnData = "PC1",
+      YAxis = "PC2",
+      ColorBy = if ("group" %in% colnames(coldata_df)) "Column data" else "None",
+      ColorByColumnData = if ("group" %in% colnames(coldata_df)) "group" else "PC1",
+      PanelWidth = 6L
+    )
+    
+    # 2. FeatureAssayPlot to visualize the top variable gene expression across groups
+    top_gene <- top_genes[1]
+    fap <- FeatureAssayPlot(
+      YAxisFeatureName = top_gene,
+      XAxis = if ("group" %in% colnames(coldata_df)) "Column data" else "None",
+      XAxisColumnData = if ("group" %in% colnames(coldata_df)) "group" else "PC1",
+      PanelWidth = 6L
+    )
+    
+    # 3. RowDataTable to allow interactive selection of genes
+    rdt <- RowDataTable(
+      PanelWidth = 12L
+    )
+    
+    # 4. ComplexHeatmapPlot to visualize expression patterns of top variable genes
+    chp <- ComplexHeatmapPlot(
+      PanelWidth = 12L
+    )
+    
+    initial_panels <- list(cdp, fap, rdt, chp)
+    
+    # Stage 6: Build and Save the iSEE App Configuration
+    app <- iSEE(se, initial = initial_panels, colormap = ecm)
+    saveRDS(app, "isee_app.rds")
+    
+    # Stage 7: Generate static diagnostic outputs
+    # Save static PCA plot
+    pdf("pca_summary.pdf", width = 7, height = 6)
+    if ("group" %in% colnames(coldata_df)) {
+      plot(coldata_df\$PC1, coldata_df\$PC2, col = as.factor(coldata_df\$group),
+           pch = 16, xlab = "PC1", ylab = "PC2", main = "Manually Computed PCA")
+      legend("topright", legend = levels(as.factor(coldata_df\$group)),
+             col = 1:length(unique(coldata_df\$group)), pch = 16)
+    } else {
+      plot(coldata_df\$PC1, coldata_df\$PC2, pch = 16, xlab = "PC1", ylab = "PC2",
+           main = "Manually Computed PCA")
+    }
+    dev.off()
+    
+    # Save top variable genes table
+    top_genes_df <- data.frame(
+      gene_id = top_genes,
+      mean_log = rowData(se)\$mean_log[top_genes],
+      var_log = rowData(se)\$var_log[top_genes]
+    )
+    write.csv(top_genes_df, "top_variable_genes.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER":',
+        paste0('    iSEE: ', as.character(packageVersion('iSEE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_isee_results.csv
-    touch ${prefix}_isee_output.rds
-    echo "BIOC_ISEE:" > versions.yml
-    echo "    isee: 0.0.0" >> versions.yml
+    touch ${prefix}_isee_single_cell_explorer.csv versions.yml
     """
 }
 
-
-workflow BIOC_ISEE_WORKFLOW {
+workflow BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ISEE(ch_input)
+    BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER(ch_input)
 
     emit:
-    results  = BIOC_ISEE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ISEE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ISEE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ISEE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER.out.tables
+    plots    = BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER.out.plots
+    objects  = BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER.out.objects
+    versions = BIOC_ISEE_ISEE_SINGLE_CELL_EXPLORER.out.versions
 }

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: N=The sample size to be simulated (e.g., 8128) ;; pop=Ancestry population for default parameters ('AFR', 'EAS', 'NFE', or 'SAS') ;; phi=Parameter representing the scaling factor in the number of variants function ;; omega=Parameter representing the exponent in the number of variants function ;; alpha=Parameter for the AFS power-law function ;; beta=Parameter for the AFS power-law function ;; b=Scaling parameter ensuring AFS proportions sum to the total proportion of rare variants ;; mac_bins=A data frame with 'Lower' and 'Upper' columns defining the boundaries of each MAC bin ;; Observed_bin_props=A data frame with 'Lower', 'Upper', and 'Prop' columns representing target observed AFS proportions ;; Total_num_var=The total expected number of variants in the simulation region ;; mac_bin_prop=A data frame containing the estimated proportion of variants per MAC bin\n- alternatives: None mentioned\n- when_to_use: Use when simulating rare variant genetic data (e.g., with HAPGEN2) and needing to determine the expected number of variants per MAC bin to prune simulated haplotypes to match real-world target data.\n- pitfalls: If the desired sample size is below 2000, the package recommends simulating 2000 individuals and taking a random sample to reach the target size rather than simulating the small sample size directly. ;; MAC bin boundaries must be defined based on the sample size to be simulated (different recommended bins for N > 3500 vs. 2000 <= N <= 3500). ;; The number of variants function estimates variants per Kb; users must multiply this estimate by the region size in Kb to obtain the total expected number of variants.",
+  "workflows": [
+    {
+      "name": "estimate_expected_variants_from_target_data",
+      "intent": "Estimate the expected number of rare variants per MAC bin by fitting model parameters to user-provided target population data.",
+      "input": [
+        "nvariant_target.csv (observed number of variants per Kb for various sample sizes)",
+        "afs_target.csv (observed proportion of variants within defined MAC bins)"
+      ],
+      "stages": "1. Fit the number of variants function to target data using fit_nvariant to estimate phi and omega.\n2. Calculate the expected number of variants per Kb for the target simulation sample size using nvariant.\n3. Scale the variants per Kb by the region size (in Kb) to get the total expected number of variants.\n4. Fit the allele frequency spectrum (AFS) function to target data using fit_afs to estimate alpha, beta, and b.\n5. Combine the total expected variants and the fitted AFS proportions using expected_variants to get the expected number of variants per MAC bin.",
+      "code": "library(RAREsim)\nlibrary(ggplot2)\ndata(\"nvariant_afr\")\nnvar <- fit_nvariant(nvariant_afr)\nnvariant(phi = nvar$phi, omega = nvar$omega, N = 8128)\n19.029*nvariant(nvar$phi, omega = nvar$omega, N = 8128)\ndata(\"afs_afr\")\naf <- fit_afs(Observed_bin_props = afs_afr)\nmac <- afs_afr[,c(1:2)]\nbin_estimates <- expected_variants(Total_num_var = 865.0634, mac_bin_prop = af$Fitted_results)"
+    },
+    {
+      "name": "estimate_expected_variants_with_defaults",
+      "intent": "Estimate the expected number of rare variants per MAC bin using ancestry-specific default parameters.",
+      "input": [
+        "mac_bins.csv (data frame defining the lower and upper boundaries of the MAC bins)"
+      ],
+      "stages": "1. Calculate the expected number of variants per Kb using default parameters for a specified ancestry with nvariant.\n2. Scale the variants per Kb by the region size (in Kb) to get the total expected number of variants.\n3. Estimate the proportion of variants in each MAC bin using default parameters for the specified ancestry with afs.\n4. Combine the total expected variants and default AFS proportions using expected_variants to get the expected number of variants per MAC bin.",
+      "code": "library(RAREsim)\nnvariant(N=8128, pop = 'AFR') \nmac <- afs_afr[,c(1:2)]\nafs(mac_bins = mac, pop = 'AFR')\nbin_estimates <- expected_variants(Total_num_var =\n                                     19.029*nvariant(phi = 0.1638108,\n                                                     omega = 0.6248848, N = 8128),\n                                   mac_bin_prop = afs(mac_bins = mac, pop = 'AFR'))"
+    }
+  ]
+}

@@ -1,114 +1,143 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BOBaFIT
-// This package provides a method to refit and correct the diploid region in copy number profiles. It u
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BOBaFIT/inst/doc/BOBaFIT.R
-// Upstream  : TCGAbiolinks, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("BOBaFIT")
+// Bioconductor workflow: BOBaFIT — copy_number_refitting
+// Prepare copy number segment data, identify normal chromosomes, refit the diploid region, and visualize the corrected profiles and clusters.
+// Input: data.txt
+// Container: quay.io/biocontainers/bioconductor-bobafit:1.14.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BOBaFIT
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Assign chromosome arms to segments using Popeye
+//  * 2. [Core Analysis] Calculate copy number values using a platform-specific compression factor
+//  * 3. [Core Analysis] Identify normal (unaltered) chromosomes using computeNormalChromosomes
+//  * 4. [Core Analysis] Refit and recalibrate copy number profiles using DRrefit
+//  * 5. [Visualization & Output] Plot the original vs corrected copy number profiles using DRrefit_plot
+//  * 6. [Visualization & Output] Visualize chromosome clustering using PlotChrCluster
 
 nextflow.enable.dsl = 2
 
-process BIOC_BOBAFIT {
+process BIOC_BOBAFIT_COPY_NUMBER_REFITTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bobafit"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bobafit:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bobafit:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bobafit_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bobafit_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bobafit_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BOBaFIT)
-    library(DRrefit)
-    library(DRrefit_plot)
-    library(PlotChrCluster)
-    library(jsonlite)
-
-    # --- Copy Number Refitting [] ---
-    # Key functions: DRrefit
-    results <- DRrefit(
-        segments_chort = TCGA_BRCA_CN_segments,
-        chrlist = chr_list
-    )
-    corrected_segments <- results$corrected_segments
-    report <- results$report
-
-
-    # --- Visualisation [] ---
-    # Key functions: DRrefit_plot
-    DRrefit_plot(
-        corrected_segments = corrected_segments,
-        DRrefit_report = report,
-        plot_viewer = TRUE
-    )
-
-
-    # --- Chromosome Clustering [] ---
-    # Key functions: PlotChrCluster
-    Cluster <- PlotChrCluster(
-        segs = TCGA_BRCA_CN_segments,
-        clust_method = "ward.D2",
-        plot_output = TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bobafit_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bobafit_results.csv")
+    
+    # 1. Read the user input file
+    if (!file.exists("data.txt")) {
+      stop("Error: Input file 'data.txt' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bobafit_output.rds")
+    
+    data <- read.delim("data.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Ensure column names match the expected BOBaFIT names
+    required_cols <- c("ID", "chr", "start", "end", "Num_Probes", "Segment_Mean", "Sample")
+    if (!all(required_cols %in% colnames(data))) {
+      stop(paste("Error: data.txt must contain the following columns:", paste(required_cols, collapse = ", ")))
     }
+    data <- data[, required_cols, drop = FALSE]
+    
+    # 2. Assign chromosome arms to segments using Popeye
+    segments <- Popeye(data)
+    
+    # 3. Calculate copy number values using a platform-specific compression factor
+    compression_factor <- 0.55
+    segments\$CN <- 2^(segments\$Segment_Mean/compression_factor + 1)
+    
+    # Map the prepared segments to the variable name used in the documented code
+    TCGA_BRCA_CN_segments <- segments
+    
+    # 4. Identify normal (unaltered) chromosomes using computeNormalChromosomes
+    # We wrap the plotting behavior of computeNormalChromosomes in a PDF device to capture the plot
+    pdf("normal_chromosomes_plot.pdf", width = 10, height = 6)
+    chr_list <- computeNormalChromosomes(segments = TCGA_BRCA_CN_segments, 
+    				     tolerance_val = 0.25)
+    dev.off()
+    
+    # 5. Refit and recalibrate copy number profiles using DRrefit
+    results <- DRrefit (segments_chort = TCGA_BRCA_CN_segments, chrlist = chr_list)
+    corrected_segments <- results\$corrected_segments
+    report <- results\$report
+    
+    # 6. Plot the original vs corrected copy number profiles using DRrefit_plot
+    # We open a PDF device to capture the plot generated by DRrefit_plot
+    pdf("DRrefit_corrected_profiles.pdf", width = 14, height = 8)
+    DRrefit_plot(corrected_segments = corrected_segments,
+                 DRrefit_report = report,
+                 plot_viewer = TRUE,
+                 plot_save = FALSE )
+    dev.off()
+    
+    # 7. Visualize chromosome clustering using PlotChrCluster
+    # We open a PDF device to capture the cluster visualization plot
+    pdf("Chromosome_Clusters.pdf", width = 10, height = 8)
+    Cluster <- PlotChrCluster(segs = TCGA_BRCA_CN_segments,
+                           clust_method = "ward.D2",
+                           plot_output= TRUE)
+    dev.off()
+    
+    # 8. Write meaningful output files
+    write.csv(corrected_segments, "corrected_segments.csv", row.names = FALSE)
+    write.csv(report, "DRrefit_report.csv", row.names = FALSE)
+    writeLines(chr_list, "normal_chromosomes_list.txt")
+    write.csv(Cluster\$report, "Cluster_report.csv", row.names = FALSE)
+    saveRDS(Cluster\$plot_tables, "Cluster_plot_tables.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BOBAFIT:", paste0("    bobafit: ", packageVersion("BOBaFIT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BOBAFIT_COPY_NUMBER_REFITTING":',
+        paste0('    BOBaFIT: ', as.character(packageVersion('BOBaFIT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bobafit_results.csv
-    touch ${prefix}_bobafit_output.rds
-    echo "BIOC_BOBAFIT:" > versions.yml
-    echo "    bobafit: 0.0.0" >> versions.yml
+    touch ${prefix}_copy_number_refitting.csv versions.yml
     """
 }
 
-
-workflow BIOC_BOBAFIT_WORKFLOW {
+workflow BIOC_BOBAFIT_COPY_NUMBER_REFITTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data.txt ] ]
 
     main:
-    BIOC_BOBAFIT(ch_input)
+    BIOC_BOBAFIT_COPY_NUMBER_REFITTING(ch_input)
 
     emit:
-    results  = BIOC_BOBAFIT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BOBAFIT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BOBAFIT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BOBAFIT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BOBAFIT_COPY_NUMBER_REFITTING.out.tables
+    plots    = BIOC_BOBAFIT_COPY_NUMBER_REFITTING.out.plots
+    objects  = BIOC_BOBAFIT_COPY_NUMBER_REFITTING.out.objects
+    versions = BIOC_BOBAFIT_COPY_NUMBER_REFITTING.out.versions
 }

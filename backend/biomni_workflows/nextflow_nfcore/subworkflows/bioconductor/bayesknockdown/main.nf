@@ -1,112 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BayesKnockdown
-// A simple, fast Bayesian method for computing posterior probabilities for relationships between a sin
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BayesKnockdown/inst/doc/BayesKnockdown.R
-// Upstream  : Biobase
-// Downstream: none
-//
-// Install: BiocManager::install("BayesKnockdown")
+// Bioconductor workflow: BayesKnockdown — bayes_knockdown_matrix
+// Calculate posterior probabilities of relationships between a single predictor variable and multiple target variables using numeric matrices.
+// Input: predictor_vector.csv, targets_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-bayesknockdown:1.36.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BayesKnockdown
+// Visualizations: bar plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and data
+//  * 2. [Core Analysis] Run BayesKnockdown with the predictor vector, target matrix, and optional prior
+//  * 3. [Visualization & Output] Visualize the posterior probabilities using a barplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_BAYESKNOCKDOWN {
+process BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bayesknockdown"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bayesknockdown:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bayesknockdown:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bayesknockdown_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bayesknockdown_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bayesknockdown_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BayesKnockdown)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # 1. Load the package
+        library(BayesKnockdown)
+        
+        # 2. Read the user input files robustly
+        if (!file.exists("predictor_vector.csv")) {
+          stop("Error: predictor_vector.csv not found in the working directory.")
+        }
+        if (!file.exists("targets_matrix.csv")) {
+          stop("Error: targets_matrix.csv not found in the working directory.")
+        }
+        
+        # Read predictor vector
+        predictor_raw <- read.csv("predictor_vector.csv", header = FALSE, stringsAsFactors = FALSE)
+        # If the first row contains non-numeric values, treat it as a header and re-read
+        if (any(is.na(suppressWarnings(as.numeric(predictor_raw[1, ]))))) {
+          predictor_raw <- read.csv("predictor_vector.csv", header = TRUE, stringsAsFactors = FALSE)
+        }
+        predictor_vector <- as.numeric(unlist(predictor_raw))
+        
+        # Read targets matrix (rows = genes, columns = samples)
+        targets_df <- tryCatch({
+          read.csv("targets_matrix.csv", row.names = 1, header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+        }, error = function(e) {
+          read.csv("targets_matrix.csv", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+        })
+        targets_matrix <- as.matrix(targets_df)
+        class(targets_matrix) <- "numeric"
+        
+        # Validate dimensions
+        if (length(predictor_vector) != ncol(targets_matrix)) {
+          stop(sprintf("Dimension mismatch: predictor vector has length %d, but targets matrix has %d columns (samples).", 
+                       length(predictor_vector), ncol(targets_matrix)))
+        }
+        
+        # 3. Run BayesKnockdown with the predictor vector, target matrix, and prior
+        kdResult <- BayesKnockdown(predictor_vector, targets_matrix, prior=0.0005);
+        kdResult;
+        
+        # 4. Visualize the posterior probabilities using a barplot and save to PDF
+        pdf("bayes_knockdown_barplot.pdf", width = 8, height = 6)
+        barplot(kdResult, names.arg="", xlab="Target Gene",
+                ylab="Posterior Probability", ylim=c(0,1));
+        dev.off()
+        
+        # 5. Save results to CSV and RDS
+        target_names <- names(kdResult)
+        if (is.null(target_names)) {
+          target_names <- paste0("Target_", seq_along(kdResult))
+        }
+        
+        results_df <- data.frame(
+          Target_Gene = target_names,
+          Posterior_Probability = as.numeric(kdResult),
+          stringsAsFactors = FALSE
+        )
+        write.csv(results_df, "bayes_knockdown_results.csv", row.names = FALSE)
+        saveRDS(kdResult, "bayes_knockdown_results.rds")
 
-    # --- Simulatedex [] ---
-    # Key functions: rnorm, BayesKnockdown
-    library(BayesKnockdown);
-    set.seed(1618);
-    n <- 100;
-    p <- 10;
-    x <- rnorm(n);
-    # --- Knockdownex [] ---
-    # Key functions: BayesKnockdown
-    data(lincs.kd);
-    kdResult <- BayesKnockdown(lincs.kd[1,], lincs.kd[-1,], prior=0.0005);
-    kdResult;
-    barplot(kdResult, names.arg="", xlab="Target Gene",
-            ylab="Posterior Probability", ylim=c(0,1));
-    # --- Knockdownes [] ---
-    # Key functions: es
-    library(Biobase);
-    data(sample.ExpressionSet);
-    subset <- sample.ExpressionSet[1:10,];
-    BayesKnockdown.es(subset, "AFFX-MurIL10_at");
-    # --- rnorm [] ---
-    # Key functions: rnorm, diffExp
-    n1 <- 25;
-    n2 <- 30;
-    p <- 10;
-    y1 <- matrix(nrow=p, data=rnorm(n1*p));
-    y2 <- matrix(nrow=p, data=rnorm(n2*p));
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bayesknockdown_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bayesknockdown_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bayesknockdown_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BAYESKNOCKDOWN:", paste0("    bayesknockdown: ", packageVersion("BayesKnockdown"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX":',
+        paste0('    BayesKnockdown: ', as.character(packageVersion('BayesKnockdown')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bayesknockdown_results.csv
-    touch ${prefix}_bayesknockdown_output.rds
-    echo "BIOC_BAYESKNOCKDOWN:" > versions.yml
-    echo "    bayesknockdown: 0.0.0" >> versions.yml
+    touch ${prefix}_bayes_knockdown_matrix.csv versions.yml
     """
 }
 
-
-workflow BIOC_BAYESKNOCKDOWN_WORKFLOW {
+workflow BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ predictor_vector.csv, targets_matrix.csv ] ]
 
     main:
-    BIOC_BAYESKNOCKDOWN(ch_input)
+    BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX(ch_input)
 
     emit:
-    results  = BIOC_BAYESKNOCKDOWN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BAYESKNOCKDOWN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BAYESKNOCKDOWN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BAYESKNOCKDOWN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX.out.tables
+    plots    = BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX.out.plots
+    objects  = BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX.out.objects
+    versions = BIOC_BAYESKNOCKDOWN_BAYES_KNOCKDOWN_MATRIX.out.versions
 }

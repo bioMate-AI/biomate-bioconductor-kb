@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data_miss=The input matrix, data.frame, or SummarizedExperiment containing missing values ;; MCAR_algorithm=The imputation algorithm to use for MCAR/MAR values (options include \"BPCA\", \"Multi_nsKNN\", \"Random Forest\") ;; MNAR_algorithm=The imputation algorithm to use for MNAR values (options include \"Single\", \"nsKNN\") ;; assay_ix=Integer designating which assay to impute if the input is a SummarizedExperiment (default is 1) ;; forest_list_args=A list of arguments passed to the random forest classifier for training (e.g., ntree, proximity) ;; verbose=Logical indicating whether to print console progress messages\n- alternatives: The package internally supports and allows choosing between BPCA, Multi_nsKNN, and Random Forest for MCAR/MAR imputation, and nsKNN or Single imputation for MNAR imputation.\n- when_to_use: Use this package when analyzing metabolomics datasets (such as untargeted LC-MS data) that contain missing values arising from a mixture of different missingness mechanisms (both random missingness and left-censored/abundance-dependent missingness).\n- pitfalls: Estimating the pattern of missingness involves randomly imposing MCAR/MAR into the data, which can introduce stochastic variation in the estimated parameters; users must set a random seed (set.seed) beforehand to ensure reproducible results.",
+  "workflows": [
+    {
+      "name": "data_frame_or_matrix_imputation",
+      "intent": "Perform mechanism-aware imputation on a standard data.frame or matrix containing missing metabolomics values.",
+      "input": [
+        "untargeted_LCMS_data (matrix or data.frame containing metabolomics abundance data with missing values)"
+      ],
+      "stages": "1. Load the MAI package and example dataset ;; 2. Set a random seed for reproducibility ;; 3. Run the MAI function to classify and impute missing values ;; 4. Extract the imputed data matrix and estimated missingness parameters from the results list",
+      "code": "library(MAI)\ndata(\"untargeted_LCMS_data\")\nset.seed(137690)\nResults = MAI(data_miss = untargeted_LCMS_data, # The data with missing values\n          MCAR_algorithm = \"BPCA\", # The MCAR algorithm to use\n          MNAR_algorithm = \"Single\", # The MNAR algorithm to use\n          assay_ix = 1, # If SE, designates the assay to impute\n          forest_list_args = list( # random forest arguments for training\n            ntree = 300,\n            proximity = FALSE\n        ),\n          verbose = TRUE # allows console message output\n        )\nResults[[\"Imputed_data\"]][1:5, 1:5]\nResults[[\"Estimated_Params\"]]"
+    },
+    {
+      "name": "summarized_experiment_imputation",
+      "intent": "Perform mechanism-aware imputation on a SummarizedExperiment object containing missing metabolomics values.",
+      "input": [
+        "se (SummarizedExperiment object containing metabolomics abundance data with missing values in its assay)"
+      ],
+      "stages": "1. Load the SummarizedExperiment and MAI packages ;; 2. Convert the data to a SummarizedExperiment object ;; 3. Set a random seed for reproducibility ;; 4. Run the MAI function on the SummarizedExperiment object ;; 5. Extract the imputed assay and estimated missingness parameters from the metadata of the returned SummarizedExperiment",
+      "code": "suppressMessages(\n  library(SummarizedExperiment)\n)\ndata(\"untargeted_LCMS_data\")\nse = SummarizedExperiment(untargeted_LCMS_data)\nset.seed(137690)\nResults = MAI(se, # The data with missing values\n          MCAR_algorithm = \"BPCA\", # The MCAR algorithm to use\n          MNAR_algorithm= \"Single\", # The MNAR algorithm to use\n          assay_ix = 1, # If SE, designates the assay to impute\n          forest_list_args = list( # random forest arguments for training\n            ntree = 300,\n            proximity = FALSE\n        ),\n          verbose = TRUE # allows console message output\n        )\nassay(Results)[1:5, 1:5]\nmetadata(Results)[[\"meta_assay_1\"]][[\"Estimated_Params\"]]"
+    }
+  ]
+}

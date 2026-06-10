@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n_genes=The total number of genes to simulate ;; proportion=The proportion of genes that will have no spatially varying patterns (i.e., random noise) ;; coords=A matrix of spatial coordinates (e.g., containing columns for x and y coordinates) ;; range_sigma.sq=A numeric vector of length 2 specifying the range of the spatial variance parameter (sigma^2) ;; range_beta=A numeric vector of length 2 specifying the range of the mean expression value (beta) ;; length_scale=A numeric vector specifying the length scale parameter(s) (l) which determine how quickly spatial correlation decays with distance ;; length_scale_option=A character string, either \"fixed\" or \"unique\", specifying whether to use a single fixed length scale or a unique length scale for each gene\n- alternatives: None mentioned for simulation; the simulated data is intended to benchmark downstream SVG detection methods available in Bioconductor\n- when_to_use: Use this package when you need to generate in silico spatial transcriptomics data with realistic spatial variation and mean-variance relationships to evaluate or develop spatial analysis methods\n- pitfalls: Simulating data with a unique length scale per gene (length_scale_option = \"unique\") is computationally slower than using a fixed length scale because the Gaussian Process covariance matrix must be recalculated for every individual gene",
+  "workflows": [
+    {
+      "name": "simulate_spatial_transcriptomics",
+      "intent": "Simulate spatial transcriptomics count data with spatial variation using a Gaussian Process model based on user-provided spatial coordinates.",
+      "input": [
+        "coords.csv (A matrix or data frame of spatial coordinates with columns representing spatial dimensions, such as pixel columns and rows)"
+      ],
+      "stages": "1. Define or load spatial coordinates matrix ;; 2. Set simulation parameters including gene count, noise proportion, variance range, mean range, and length scale ;; 3. Run the simulation using spatial_simulate with either fixed or unique length scale options to generate a SpatialExperiment object",
+      "code": "# 20 spots per side\nn_side <- 20\n\n# x and y coordinates for the grid\nx_coords <- rep(1:n_side, each = n_side)\ny_coords <- rep(1:n_side, times = n_side)\n\n# combine into a matrix\ncoords <- cbind(x_coords, y_coords)\ncolnames(coords) <- c(\"pxl_col_in_fullres\", \"pxl_row_in_fullres\")\n\nn_genes <- 5\nproportion <- 0.4\nrange_sigma.sq <- c(1.5, 3)\nrange_beta <- c(3, 7)\n\nlength_scale <- 60\n\nset.seed(16)\nspe <- spatial_simulate(n_genes, proportion, coords,\n                        range_sigma.sq, range_beta,\n                        length_scale, length_scale_option = \"fixed\")\n\nlength_scale <- c(60, 40, 20, 80, 100)\n\nset.seed(1)\nspe <- spatial_simulate(n_genes, proportion, coords,\n                        range_sigma.sq, range_beta,\n                        length_scale, length_scale_option = \"unique\")"
+    }
+  ]
+}

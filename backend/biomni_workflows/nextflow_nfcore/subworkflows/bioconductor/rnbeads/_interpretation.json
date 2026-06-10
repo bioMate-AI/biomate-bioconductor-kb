@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dir.reports=Directory path where HTML reports will be written (must not already exist) ;; sample.sheet=Path to the tabular sample annotation CSV file ;; data.dir=Directory path containing the raw methylation data files ;; data.type=Type of input data (e.g., \"infinium.idat.dir\", \"infinium.GEO\", \"bs.bed.dir\") ;; filtering.sex.chromosomes.removal=Logical indicating whether to remove probes on sex chromosomes ;; identifiers.column=Column name in the sample annotation sheet to use as sample identifiers ;; disk.dump.big.matrices=Logical indicating whether to cache large matrices on disk to manage RAM\n- alternatives: refFreeEWAS=Can be specified via the option \"differential.site.test.method\" for reference-free cell-type heterogeneity adjustment instead of standard methods ;; methylumi.noob=Can be specified as the background correction method during normalization\n- when_to_use: Use when performing a complete, automated, or step-by-step DNA methylation analysis workflow on microarray or sequencing data, especially when interactive, shareable HTML reports and batch-effect adjustments are required.\n- pitfalls: The output report directory (dir.reports) must not already exist prior to running the analysis, or the execution will fail ;; Ghostscript must be installed on the operating system to generate PDF plot files ;; Datasets imported directly from GEO (using \"infinium.GEO\") typically lack raw detection p-values and quality control probe information, which disables certain normalization and filtering steps ;; Large datasets can be extremely memory-intensive; users must configure disk dumping options (disk.dump.big.matrices=TRUE) and set fftempdir if RAM is limited.",
+  "workflows": [
+    {
+      "name": "infinium_microarray_analysis",
+      "intent": "Perform an automated end-to-end analysis of Infinium microarray data from raw IDAT files and sample annotations to generate comprehensive HTML reports.",
+      "input": [
+        "idat (directory containing raw IDAT files)",
+        "sample_annotation.csv (sample annotation table with phenotypic and batch information)"
+      ],
+      "stages": "1. Set global analysis options (e.g., sex chromosome removal, sample identifier column) ;; 2. Run the complete analysis pipeline using the automated runner function.",
+      "code": "rnb.options(filtering.sex.chromosomes.removal=TRUE,\n    identifiers.column=\"Sample_ID\")\n\nrnb.run.analysis(dir.reports=report.dir, sample.sheet=sample.annotation,\n    data.dir=idat.dir, data.type=\"infinium.idat.dir\")"
+    },
+    {
+      "name": "bisulfite_sequencing_analysis",
+      "intent": "Perform an automated end-to-end analysis of bisulfite sequencing data (WGBS or RRBS) starting from BED files.",
+      "input": [
+        "bed (directory containing methylation BED files)",
+        "sample_annotation.csv (sample annotation table)"
+      ],
+      "stages": "1. Define the data source paths ;; 2. Run the complete analysis pipeline specifying the sequencing data type.",
+      "code": "data.source <- c(idat.dir, sample.annotation)\n\nrnb.run.analysis(dir.reports=report.dir, data.source=data.source,\n    data.type=\"bs.bed.dir\")"
+    }
+  ]
+}

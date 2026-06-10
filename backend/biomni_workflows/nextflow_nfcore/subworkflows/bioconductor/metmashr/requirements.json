@@ -1,0 +1,17 @@
+{
+  "package": "metmashr",
+  "requirements": [
+    "MetMashR",
+    "cowplot",
+    "ggplot2",
+    "struct"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MetMashR",
+      "cowplot",
+      "ggplot2",
+      "struct"
+    ]
+  }
+}

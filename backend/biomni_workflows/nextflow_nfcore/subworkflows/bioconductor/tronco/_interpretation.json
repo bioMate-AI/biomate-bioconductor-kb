@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filter.freq=Minimum event frequency threshold (between 0 and 1) to filter events in events.selection ;; filter.in.names=Vector of gene names to force-include in events.selection ;; filter.out.names=Vector of gene names to force-exclude in events.selection ;; samples.cluster=Boolean flag to enable clustering of samples in oncoprint ;; genes.cluster=Boolean flag to enable clustering of alterations in oncoprint ;; group.samples=Matrix or vector of group assignments (e.g., stages) to group samples in oncoprint, overriding mutual exclusivity sorting ;; aggregate.pathways=Boolean to aggregate pathway events into a single signature or keep them separate in pathway.visualization\n- alternatives: CAPRESE=Best for individual-level data (single-cell or multi-region) using single edges ;; CAPRI=Best for ensemble-level cross-sectional data, supporting patterns ;; Edmonds/Gabow/Chow-Liu/Prim=Minimum Spanning Tree-based algorithms using Mutual Information or Likelihood-Fit, suitable for individual-level data ;; Network Based Stratification (NBS)=External tool for patient clustering, supported via export.nbs.input ;; MUTEX=External tool for identifying mutually exclusive gene alterations, supported via export.mutex and import.mutex.groups\n- when_to_use: Use when you have binary somatic mutation or structural variant data (0/1 matrix of presence/absence) across multiple tumor samples (cross-sectional) or within a single patient (multi-region/single-cell) and want to reconstruct the temporal/causal order of genomic alterations during cancer progression.\n- pitfalls: Using outdated versions (v1.0 with CAPRESE is outdated and not maintained; v2.0+ is parallel and redesigned, making it incompatible with older versions) ;; Bypassing the default mutual exclusivity sorting in oncoprint when clustering is enabled, which might obscure exclusivity patterns unless intended ;; Patterns are only supported by the CAPRI algorithm",
+  "workflows": [
+    {
+      "name": "data_manipulation_and_oncoprint_visualization",
+      "intent": "Prepare a TRONCO genomic alteration dataset by renaming, joining, filtering events, annotating clinical stages, and visualizing the cohort using oncoprints.",
+      "input": [
+        "dataset.RData (A TRONCO dataset object containing binary genotype data)"
+      ],
+      "stages": "1. Rename genes and event types ;; 2. Join events or types ;; 3. Delete unwanted genes, events, samples, or types ;; 4. Subset samples and filter events by frequency/names ;; 5. Annotate clinical stages ;; 6. Generate sorted or clustered oncoprints",
+      "code": "dataset = rename.gene(aCML, 'TET2', 'new name')\ndataset = rename.type(dataset, 'Ins/Del', 'new type')\ndataset = join.events(aCML, 'gene 4', 'gene 88', new.event='test', new.type='banana', event.color='yellow')\ndataset = join.types(dataset, 'Nonsense point', 'Nonsense Ins/Del')\ndataset = delete.gene(aCML, gene = 'TET2')\ndataset = delete.event(dataset, gene = 'ASXL1', type = 'Ins/Del')\ndataset = delete.samples(dataset, samples = c('patient 5', 'patient 6'))\ndataset = delete.type(dataset, type = 'Missense point')\ndataset = samples.selection(aCML, samples = as.samples(aCML)[1:3])\ndataset = events.selection(aCML, filter.freq = .05, filter.in.names = c('EZH1','EZH2'), filter.out.names = 'SETBP1')\nstages = c(rep('stage 1', 32), rep('stage 2', 32))\nstages = as.matrix(stages)\nrownames(stages) = as.samples(aCML)\ndataset = annotate.stages(aCML, stages = stages)\noncoprint(aCML)\noncoprint(aCML, legend = FALSE, samples.cluster = TRUE, gene.annot = list(one = list('NRAS', 'SETBP1'), two = list('EZH2', 'TET2')), gene.annot.color = 'Set2', genes.cluster = TRUE)\noncoprint(dataset, legend = FALSE)\noncoprint(dataset, group.samples = as.stages(dataset))"
+    },
+    {
+      "name": "pathway_level_visualization",
+      "intent": "Group genomic events into custom pathways and visualize their alteration patterns across samples.",
+      "input": [
+        "dataset.RData (A TRONCO dataset object containing binary genotype data)"
+      ],
+      "stages": "1. Define a custom pathway and extract its events ;; 2. Visualize the custom pathway using oncoprint ;; 3. Visualize multiple pathways simultaneously (aggregated or non-aggregated) using pathway.visualization",
+      "code": "pathway = as.pathway(aCML, pathway.genes = c('SETBP1', 'EZH2', 'WT1'), pathway.name = 'MyPATHWAY', pathway.color = 'red', aggregate.pathway = FALSE)\noncoprint(pathway, title = 'Custom pathway', font.row = 8, cellheight = 15, cellwidth = 4)\npathway.visualization(aCML, pathways=list(P1 = c('TET2', 'IRAK4'), P2=c('SETBP1', 'KIT')), aggregate.pathways=FALSE, font.row = 8)\npathway.visualization(aCML, pathways=list(P1 = c('TET2', 'IRAK4'), P2=c('SETBP1', 'KIT')), aggregate.pathways = TRUE, font.row = 8)"
+    },
+    {
+      "name": "export_to_external_tools",
+      "intent": "Export inferred progression models to GraphML format for visualization in Cytoscape.",
+      "input": [
+        "model.RData (An inferred TRONCO progression model object)"
+      ],
+      "stages": "1. Export the inferred progression model to GraphML format",
+      "code": "export.graphml(model.boot, file = 'graph.gml', fontsize = 12, scale.nodes = .6, height.logic = 0.25)"
+    }
+  ]
+}

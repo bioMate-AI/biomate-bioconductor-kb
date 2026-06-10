@@ -1,89 +1,205 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: made4
-// Multivariate data analysis and graphical display of microarray data. Functions include for supervise
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/made4/inst/doc/introduction.R
-// Upstream  : ade4, scatterplot3d
-// Downstream: none
-//
-// Install: BiocManager::install("made4")
+// Bioconductor workflow: made4 — supervised_and_unsupervised_ordination
+// Perform unsupervised ordination (Correspondence Analysis/PCA) and supervised Between Group Analysis (BGA) to identify discriminating genes and classify samples 
+// Input: counts.csv, coldata.csv
+// Container: 1.84.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ade4, made4, scatterplot3d
+// Visualizations: heat plot, ordination plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MADE4 {
+process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-made4"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-made4:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-made4:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_made4_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_made4_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_made4_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(made4)
-    library(jsonlite)
-
-    # --- Overview analysis [] ---
-    # Key functions: overview, plotarrays, plotgenes, topgenes, do3d, include_graphics, cia
-    overview(k.data, classvec=k.class, labels=k.class)
-    k.coa<- ord(k.data, type="coa")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_made4_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_made4_results.csv")
+    library(ade4)
+    library(scatterplot3d)
+    
+    # ---------------------------------------------------------
+    # Stage 1: Load and Preprocess Data
+    # ---------------------------------------------------------
+    # Read expression matrix (probe/gene-by-sample) and sample metadata
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(counts), coldata\$sample)
+    if (length(common_samples) == 0) {
+        stop("Error: No matching samples found between counts.csv and coldata.csv")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_made4_output.rds")
+    counts <- counts[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # Convert condition to factor for classification
+    classvec <- as.factor(coldata\$condition)
+    
+    # Convert expression data to a data frame suitable for made4/ade4
+    counts_df <- made4::asDataFrame(counts)
+    
+    # Determine appropriate ordination type: Correspondence Analysis (COA) 
+    # requires non-negative values. Fall back to PCA if negative values exist.
+    ord_type <- "pca"
+    if (all(counts_df >= 0)) {
+        ord_type <- "coa"
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MADE4:", paste0("    made4: ", packageVersion("made4"))),
-        "versions.yml"
+    message(paste("Using ordination type:", ord_type))
+    
+    # ---------------------------------------------------------
+    # Stage 2: Diagnostic Overview (QC)
+    # ---------------------------------------------------------
+    pdf("overview_plot.pdf", width = 8, height = 6)
+    tryCatch({
+        made4::overview(counts_df, classvec = classvec, labels = classvec)
+    }, error = function(e) {
+        warning("Overview plot failed: ", e\$message)
+        plot.new()
+        text(0.5, 0.5, "Overview Plot Failed", cex = 1.5)
+    })
+    dev.off()
+    
+    # ---------------------------------------------------------
+    # Stage 3: Unsupervised Ordination
+    # ---------------------------------------------------------
+    k.coa <- made4::ord(counts_df, type = ord_type)
+    
+    pdf("ordination_plot.pdf", width = 8, height = 8)
+    tryCatch({
+        plot(k.coa, classvec = classvec)
+    }, error = function(e) {
+        warning("Ordination plot failed: ", e\$message)
+        plot.new()
+        text(0.5, 0.5, "Ordination Plot Failed", cex = 1.5)
+    })
+    dev.off()
+    
+    # Extract top discriminating genes from unsupervised ordination
+    top_neg <- tryCatch(made4::topgenes(k.coa, axis = 1, n = 10, end = "neg"), error = function(e) NULL)
+    top_pos <- tryCatch(made4::topgenes(k.coa, axis = 1, n = 10, end = "pos"), error = function(e) NULL)
+    
+    top_df <- data.frame(
+        Direction = c(rep("Negative", length(top_neg)), rep("Positive", length(top_pos))),
+        Gene = c(top_neg, top_pos)
     )
+    write.csv(top_df, "top_genes.csv", row.names = FALSE)
+    
+    # ---------------------------------------------------------
+    # Stage 4: Supervised Between Group Analysis (BGA)
+    # ---------------------------------------------------------
+    k.bga <- made4::bga(counts_df, type = ord_type, classvec = classvec)
+    
+    pdf("bga_plot.pdf", width = 8, height = 8)
+    tryCatch({
+        plot(k.bga)
+    }, error = function(e) {
+        warning("BGA plot failed: ", e\$message)
+        plot.new()
+        text(0.5, 0.5, "BGA Plot Failed", cex = 1.5)
+    })
+    
+    tryCatch({
+        made4::between.graph(k.bga, ax = 1)
+    }, error = function(e) {
+        warning("Between graph failed: ", e\$message)
+    })
+    dev.off()
+    
+    # Run Jackknife cross-validation for BGA
+    jack_res <- tryCatch({
+        made4::bga.jackknife(counts_df, classvec = classvec, type = ord_type)
+    }, error = function(e) {
+        NULL
+    })
+    
+    if (!is.null(jack_res)) {
+        sink("jackknife_results.txt")
+        print(jack_res)
+        sink()
+    } else {
+        writeLines("Jackknife cross-validation could not be computed (possibly due to small sample size).", "jackknife_results.txt")
+    }
+    
+    # ---------------------------------------------------------
+    # Stage 5: Heatmap and 3D Visualizations
+    # ---------------------------------------------------------
+    pdf("heatplot.pdf", width = 8, height = 8)
+    tryCatch({
+        made4::heatplot(counts_df, classvec = classvec)
+    }, error = function(e) {
+        warning("Heatplot failed: ", e\$message)
+        plot.new()
+        text(0.5, 0.5, "Heatplot Failed", cex = 1.5)
+    })
+    dev.off()
+    
+    pdf("do3d_plot.pdf", width = 8, height = 8)
+    tryCatch({
+        made4::do3d(k.coa\$ord\$co, classvec = classvec, cex.symbols = 2)
+    }, error = function(e) {
+        warning("do3d failed: ", e\$message)
+        plot.new()
+        text(0.5, 0.5, "3D Plot Failed", cex = 1.5)
+    })
+    dev.off()
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION":',
+        paste0('    made4: ', as.character(packageVersion('made4')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_made4_results.csv
-    touch ${prefix}_made4_output.rds
-    echo "BIOC_MADE4:" > versions.yml
-    echo "    made4: 0.0.0" >> versions.yml
+    touch ${prefix}_supervised_and_unsupervised_ordination.csv versions.yml
     """
 }
 
-
-workflow BIOC_MADE4_WORKFLOW {
+workflow BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MADE4(ch_input)
+    BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION(ch_input)
 
     emit:
-    results  = BIOC_MADE4.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MADE4.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MADE4.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MADE4.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION.out.tables
+    plots    = BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION.out.plots
+    objects  = BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION.out.objects
+    versions = BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION.out.versions
 }

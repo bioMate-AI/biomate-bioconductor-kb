@@ -1,0 +1,31 @@
+{
+  "package": "escape",
+  "requirements": [
+    "GSEABase",
+    "RColorBrewer",
+    "Seurat",
+    "SeuratObject",
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "escape",
+    "ggplot2",
+    "scran"
+  ],
+  "by_workflow": {
+    "gsea_on_precomputed_deg.nf": [
+      "escape",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "GSEABase",
+      "RColorBrewer",
+      "Seurat",
+      "SeuratObject",
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "escape",
+      "ggplot2",
+      "scran"
+    ]
+  }
+}

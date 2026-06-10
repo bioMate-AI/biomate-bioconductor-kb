@@ -1,0 +1,11 @@
+{
+  "package": "recountmethylation",
+  "requirements": [
+    "recountmethylation"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "recountmethylation"
+    ]
+  }
+}

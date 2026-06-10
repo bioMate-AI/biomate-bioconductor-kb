@@ -1,0 +1,17 @@
+{
+  "package": "gsalightning",
+  "requirements": [
+    "GSALightning"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSALightning"
+    ],
+    "paired_gsa.nf": [
+      "GSALightning"
+    ],
+    "single_gene_testing.nf": [
+      "GSALightning"
+    ]
+  }
+}

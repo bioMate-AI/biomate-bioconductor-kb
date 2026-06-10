@@ -1,0 +1,14 @@
+{
+  "package": "prince",
+  "requirements": [
+    "PrInCE"
+  ],
+  "by_workflow": {
+    "detect_complexes_workflow.nf": [
+      "PrInCE"
+    ],
+    "main.nf": [
+      "PrInCE"
+    ]
+  }
+}

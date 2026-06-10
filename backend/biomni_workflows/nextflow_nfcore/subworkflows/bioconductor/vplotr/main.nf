@@ -1,99 +1,221 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: VplotR
-// The pattern of digestion and protection from DNA nucleases such as DNAse I, micrococcal nuclease, an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/VplotR/inst/doc/VplotR.R
-// Upstream  : GenomicRanges, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("VplotR")
+// Bioconductor workflow: VplotR — vplot_and_footprint_analysis
+// Import paired-end sequencing data, compute fragment size distributions, generate normalized V-plots, and plot footprints and local profiles over genomic loci.
+// Input: ex1.bam, genomic loci of interest
+// Container: quay.io/biocontainers/bioconductor-vplotr:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, VplotR, ggplot2, rtracklayer
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Import paired-end BAM files using `importPEBamFiles()`. 2. Compute and plot fragment size distribution using `getFragmentsDistribu
 
 nextflow.enable.dsl = 2
 
-process BIOC_VPLOTR {
+process BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-vplotr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-vplotr:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-vplotr:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(plot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_vplotr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_vplotr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_vplotr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(VplotR)
-    library(jsonlite)
-
-    # --- Plotfootprint [] ---
-    # Key functions: plotFootprint
-    ---------------------------------------------------------------------
-    p <- plotFootprint(
+    library(GenomicRanges)
+    library(ggplot2)
+    
+    # ==========================================
+    # 1. Load User Input Files
+    # ==========================================
+    
+    # Define input file paths
+    bamfile <- "ex1.bam"
+    loci_file_rds <- "loci.rds"
+    loci_file_bed <- "loci.bed"
+    annots_file_rds <- "annotations.rds"
+    annots_file_bed <- "annotations.bed"
+    
+    # Verify that the BAM file exists
+    if (!file.exists(bamfile)) {
+        stop(paste("Required BAM file not found in the working directory:", bamfile))
+    }
+    
+    # Load genomic loci of interest (GRanges object)
+    if (file.exists(loci_file_rds)) {
+        ABF1_sacCer3 <- readRDS(loci_file_rds)
+    } else if (file.exists(loci_file_bed)) {
+        if (!requireNamespace("rtracklayer", quietly = TRUE)) {
+            stop("rtracklayer package is required to import BED files.")
+        }
+        ABF1_sacCer3 <- rtracklayer::import(loci_file_bed)
+    } else {
+        stop("Required genomic loci file ('loci.rds' or 'loci.bed') not found in the working directory.")
+    }
+    
+    # Load genomic annotations (GRanges object)
+    if (file.exists(annots_file_rds)) {
+        genes_sacCer3 <- readRDS(annots_file_rds)
+    } else if (file.exists(annots_file_bed)) {
+        if (!requireNamespace("rtracklayer", quietly = TRUE)) {
+            stop("rtracklayer package is required to import BED files.")
+        }
+        genes_sacCer3 <- rtracklayer::import(annots_file_bed)
+    } else {
+        # Fallback to using the same loci of interest as annotations if none provided
+        genes_sacCer3 <- ABF1_sacCer3
+    }
+    
+    # ==========================================
+    # 2. Import Paired-End BAM Files
+    # ==========================================
+    
+    fragments <- importPEBamFiles(
+        bamfile, 
+        shift_ATAC_fragments = TRUE
+    )
+    
+    # Map imported fragments to the vignette variable names to preserve exact function calls
+    MNase_sacCer3_Henikoff2011 <- fragments
+    MNase_sacCer3_Henikoff2011_subset <- fragments
+    
+    # Save imported fragments to RDS
+    saveRDS(fragments, "imported_fragments.rds")
+    
+    # ==========================================
+    # 3. Fragment Size Distribution
+    # ==========================================
+    
+    df <- getFragmentsDistribution(
+        MNase_sacCer3_Henikoff2011, 
+        ABF1_sacCer3
+    )
+    
+    # Save distribution data frame
+    write.csv(df, "fragment_size_distribution.csv", row.names = FALSE)
+    
+    # Plot and save distribution
+    p_dist <- ggplot(df, aes(x = x, y = y)) + geom_line() + theme_ggplot2()
+    ggsave("fragment_size_distribution.pdf", plot = p_dist, width = 7, height = 5)
+    
+    # ==========================================
+    # 4. Generate V-plots
+    # ==========================================
+    
+    # Single V-plot
+    p_single <- plotVmat(x = MNase_sacCer3_Henikoff2011, granges = ABF1_sacCer3)
+    ggsave("vplot_single.pdf", plot = p_single, width = 7, height = 6)
+    
+    # Multiple V-plots
+    list_params <- list(
+        "MNase\n@ ABF1" = list(MNase_sacCer3_Henikoff2011, ABF1_sacCer3), 
+        "MNase\n@ random loci" = list(
+            MNase_sacCer3_Henikoff2011, sampleGRanges(ABF1_sacCer3)
+        )
+    )
+    
+    p_multi <- plotVmat(
+        list_params, 
+        cores = 1
+    )
+    ggsave("vplot_multiple.pdf", plot = p_multi, width = 10, height = 6)
+    
+    # Multiple V-plots with custom normalization (none)
+    p_multi_norm_none <- plotVmat(
+        list_params, 
+        cores = 1, 
+        nrow = 2, ncol = 5, 
+        verbose = FALSE,
+        normFun = 'none'
+    )
+    ggsave("vplot_multiple_norm_none.pdf", plot = p_multi_norm_none, width = 12, height = 6)
+    
+    # ==========================================
+    # 5. Generate Footprint Profiles
+    # ==========================================
+    
+    p_footprint <- plotFootprint(
         MNase_sacCer3_Henikoff2011,
         ABF1_sacCer3
     )
-    # --- Data [] ---
-    # Key functions: genes, plotProfile
-    ---------------------------------------------------------------------
-    data(MNase_sacCer3_Henikoff2011_subset)
-    genes_sacCer3 <- GenomicFeatures::genes(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene::
-        TxDb.Scerevisiae.UCSC.sacCer3.sgdGene
+    ggsave("footprint_profile.pdf", plot = p_footprint, width = 8, height = 5)
+    
+    # ==========================================
+    # 6. Plot Local Fragment Distribution
+    # ==========================================
+    
+    # Dynamically define a genomic window based on the first locus of interest to ensure overlap
+    first_locus <- ABF1_sacCer3[1]
+    chrom <- as.character(seqnames(first_locus))
+    w_start <- max(1, start(first_locus) - 500)
+    w_end <- end(first_locus) + 500
+    
+    # Format window string with commas (e.g., "seq1:100-1,100")
+    window_val <- paste0(chrom, ":", format(w_start, big.mark = ","), "-", format(w_end, big.mark = ","))
+    window_val <- gsub(" ", "", window_val)
+    
+    p_profile <- plotProfile(
+        fragments = MNase_sacCer3_Henikoff2011_subset,
+        window = window_val, 
+        loci = ABF1_sacCer3, 
+        annots = genes_sacCer3,
+        min = 20, max = 200, alpha = 0.1, size = 1.5
     )
+    ggsave("local_profile.pdf", plot = p_profile, width = 10, height = 6)
+    
+    # Save session info
+    writeLines(capture.output(sessionInfo()), "session_info.txt")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_vplotr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_vplotr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_vplotr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VPLOTR:", paste0("    vplotr: ", packageVersion("VplotR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS":',
+        paste0('    VplotR: ', as.character(packageVersion('VplotR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_vplotr_results.csv
-    touch ${prefix}_vplotr_output.rds
-    echo "BIOC_VPLOTR:" > versions.yml
-    echo "    vplotr: 0.0.0" >> versions.yml
+    touch ${prefix}_vplot_and_footprint_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_VPLOTR_WORKFLOW {
+workflow BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(plot_object) ]
+    ch_input  // channel: [ val(meta), [ ex1.bam, genomic loci of interest ] ]
 
     main:
-    BIOC_VPLOTR(ch_input)
+    BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_VPLOTR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VPLOTR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VPLOTR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VPLOTR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS.out.tables
+    plots    = BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS.out.plots
+    objects  = BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS.out.objects
+    versions = BIOC_VPLOTR_VPLOT_AND_FOOTPRINT_ANALYSIS.out.versions
 }

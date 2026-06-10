@@ -1,0 +1,13 @@
+{
+  "package": "immunoclust",
+  "requirements": [
+    "flowCore",
+    "immunoClust"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCore",
+      "immunoClust"
+    ]
+  }
+}

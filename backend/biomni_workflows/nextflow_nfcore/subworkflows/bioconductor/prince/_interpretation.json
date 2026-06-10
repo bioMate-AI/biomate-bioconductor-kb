@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: profiles=Matrix of co-elution proteomics data with quantitations for each protein in each fraction ;; gold_standard=List of experimentally verified protein complexes used to train the classifier ;; gaussians=Pre-computed list of fitted Gaussians to save computation time ;; cv_folds=Number of folds to use in k-fold cross-validation ;; classifier=Type of classifier to use (NB, SVM, RF, LR, or ensemble) ;; models=Size of the ensemble for each classifier type ;; min_consecutive=Minimum number of consecutive points to retain a profile ;; min_R_squared=Minimum r2 value to retain the fitted curve ;; threshold=Precision threshold used to filter the predicted network\n- alternatives: The permutation-based approach in detect_complexes is inspired by Thermal Proximity Co-Aggregation (TPCA) methods. For classification, users can choose between Naive Bayes (NB, default), Support Vector Machine (SVM), Random Forest (RF), Logistic Regression (LR), or heterogeneous classifier fusion (ensemble).\n- when_to_use: Use when reconstructing protein-protein interaction networks from co-elution, co-migration, co-fractionation, or protein correlation profiling proteomics data, or when testing whether known protein complexes show statistically significant co-elution.\n- pitfalls: Fitting Gaussian mixture models is highly computationally intensive; pre-compute them using build_gaussians to save time when testing parameters. Small datasets or small gold-standard sets can cause unstable precision curves at the top of the ranked list. Proteins that cannot be fit by a mixture of Gaussians with an r2 above the threshold (default 0.5) are excluded from interaction prediction by default.",
+  "workflows": [
+    {
+      "name": "predict_interactions_workflow",
+      "intent": "Predict binary protein-protein interactions from co-elution proteomics data using a machine learning classifier trained on gold-standard complexes.",
+      "input": [
+        "co_elution_matrix.csv (matrix of protein quantitations across fractions)",
+        "gold_standard_complexes.rds (list of known protein complexes)"
+      ],
+      "stages": "1. Fit Gaussian mixture models to elution profiles using build_gaussians. 2. Calculate pairwise features using calculate_features. 3. Predict interactions using predict_interactions or the end-to-end PrInCE function. 4. Filter the predicted interactions at a user-defined precision threshold using threshold_precision.",
+      "code": "# set the seed to ensure reproducible output\nset.seed(0)\n# one-step analysis\ninteractions <- PrInCE(scott, gold_standard,\n                       gaussians = scott_gaussians, \n                       cv_folds = 3,\n                       verbose = TRUE)\nhead(interactions, 50)\n\nprecision <- interactions$precision[1:10000]\nplot(precision)\n\nnetwork <- threshold_precision(interactions, threshold = 0.5)\nnrow(network)\n\n# Alternative step-by-step analysis\ndata(scott)\n# set the seed to ensure reproducible output\nset.seed(0)\n# fit Gaussians\ngauss <- build_gaussians(scott[seq_len(500), ], \n                         min_points = 10, min_consecutive = 5, \n                         max_gaussians = 3, min_R_squared = 0.75,\n                         max_iterations = 10)\n# filter profiles that were not fit\nscott <- scott[names(gauss), ]\n\nfeat <- calculate_features(scott, gauss, euclidean_distance = FALSE)\nhead(feat)\n\ndata(gold_standard)\nreference <- adjacency_matrix_from_list(gold_standard)\n# set the seed to ensure reproducible output\nset.seed(0)\n# predict interactions\nppi <- predict_interactions(feat, reference, classifier = \"SVM\",\n                            models = 1, cv_folds = 3)\n\nprecision <- ppi$precision[seq_len(2e4)]\nplot(precision)\n\nnet <- threshold_precision(ppi, threshold = 0.7)\nnrow(net)"
+    },
+    {
+      "name": "detect_complexes_workflow",
+      "intent": "Identify known protein complexes that show statistically significant co-elution in a proteomics dataset using a permutation-based approach.",
+      "input": [
+        "co_elution_matrix.csv (matrix of protein quantitations across fractions)",
+        "gold_standard_complexes.rds (list of known protein complexes)"
+      ],
+      "stages": "1. Filter low-information chromatograms using filter_profiles. 2. Clean and smooth chromatograms using clean_profiles. 3. Calculate statistical significance of complex co-elution using detect_complexes.",
+      "code": "# analyze cleaned profiles\ndata(scott)\nfiltered = filter_profiles(scott)\nchromatograms = clean_profiles(filtered)\n\n# detect significantly co-eluting complexes\nset.seed(0)\nz_scores = detect_complexes(chromatograms, gold_standard)\n\n# remove complexes that could not be analyzed\nz_scores = na.omit(z_scores)\n# how many could be tested?\nlength(z_scores)\n# how many were significant at uncorrected, two-tailed p < 0.05?\nsum(z_scores > 1.96)\n# print the top complexes\nhead(sort(z_scores, decreasing = TRUE))"
+    }
+  ]
+}

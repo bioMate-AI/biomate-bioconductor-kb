@@ -1,0 +1,13 @@
+{
+  "package": "sitepath",
+  "requirements": [
+    "ape",
+    "sitePath"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ape",
+      "sitePath"
+    ]
+  }
+}

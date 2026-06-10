@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: abatch=An AffyBatch object containing probe-level data passed to pvacFilter ;; cutoff=The PVAC score threshold (default is the 99th percentile of the \"Absent\" null set, capped at a maximum of 0.5)\n- alternatives: Other gene filtering methods such as variance-based or intensity-based independent filtering (e.g., genefilter package). PVAC is preferred specifically for Affymetrix arrays where probe-level correlation within a probeset can be leveraged.\n- when_to_use: Use when analyzing Affymetrix microarray gene expression data with at least 6 samples, where probe-level data (CEL files) is available.\n- pitfalls: Outlier samples must be removed before running the filtering. The method requires at least 6 samples to perform effective PCA. The input to pvacFilter must be probe-level data (AffyBatch), not summarized expression data.",
+  "workflows": [
+    {
+      "name": "pvac_microarray_filtering",
+      "intent": "Perform PCA-based gene filtering on Affymetrix microarray data to remove non-informative probesets before differential expression testing.",
+      "input": [
+        "celfiles (directory containing raw Affymetrix CEL files)"
+      ],
+      "stages": "1. Read raw CEL files into an AffyBatch object ;; 2. Summarize probe-level data to probeset-level expression using RMA ;; 3. Calculate PVAC scores and identify passing probesets ;; 4. Subset the summarized ExpressionSet to keep only the filtered probesets",
+      "code": "library(affy)\nlibrary(pvac)\nlibrary(ALLMLL)\ndata(MLL.A)\nmyeset <- rma(MLL.A)\nft <- pvacFilter(MLL.A)\nmyeset.filtered <- myeset[ft$aset,]\nplot(density(ft$pvac[ft$nullset]),xlab=\"PVAC score\",main=\"\",\n          col=\"gray\",cex.lab=0.5,xlim=c(0,1))\nlines(density(ft$pvac),col=1)\nabline(v=ft$cutoff,lty=2,col=\"gray\")"
+    }
+  ]
+}

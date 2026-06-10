@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=1 for Monte Carlo simulation (slower, provides p-values), 2 for regularised consensus clustering (faster, uses penalty term, no p-values) ;; iters=Number of Monte Carlo iterations (default 25, can reduce to 5-20 for speed) ;; repsreal=Inner replications for real data (at least 100x, up to 250x for stability) ;; objective='entropy' (default, theoretically preferred, no window/CDF needed) or 'PAC' (Proportion of Ambiguous Clustering) ;; des=Optional annotation data frame matching sample IDs ;; removeplots=Logical, whether to remove plots during execution ;; percentile=Percentile of features to keep in featurefilter ;; method (in featurefilter)=Metric for filtering, e.g., 'MAD' (Median Absolute Deviation), 'variance', 'A', or 'A2'\n- alternatives: SC3 or Spectrum=Preferred for single-cell RNA-seq data (M3C is not well suited for single-cell due to complexity) ;; Spectrum=Preferred for fast clustering of multi-omic data (integrates heterogeneous data sources, reduces noise) ;; bioplotr::plot_drivers=For quantitative analysis of clinical/categorical variables before clustering ;; clusterlab=For generating Gaussian clusters to test class discovery algorithms\n- when_to_use: Appropriate for clustering large patient cohort datasets (e.g., 60-1000 samples) with normalized continuous expression data (microarray, RNA-seq, methylation, protein arrays) to identify stable patient strata/classes.\n- pitfalls: Do not use on single-cell RNA-seq data (use SC3 or Spectrum instead) ;; Ensure data is homoskedastic (e.g., VST or log2 transformed) before running PCA or clustering, otherwise high-variance features will dominate ;; Ensure sample IDs in the expression matrix columns match the \"ID\" column in the annotation data frame ;; Avoid using manual visual inspection of consensus matrices to decide K; use RCSI or p-values instead ;; Be aware of clustering assumptions (spherical clusters, equal variance) for PAM, K-means, and HC.",
+  "workflows": [
+    {
+      "name": "monte_carlo_consensus_clustering",
+      "intent": "Run Monte Carlo reference-based consensus clustering to find the optimal number of clusters (K) with statistical significance (p-values) and visualize the results.",
+      "input": [
+        "mydata (matrix or data frame of normalized continuous expression data where columns are samples and rows are features)",
+        "desx (optional annotation data frame with sample IDs in a column named \"ID\")"
+      ],
+      "stages": "1. Filter features by variance/MAD using featurefilter ;; 2. Perform exploratory data analysis using pca ;; 3. Run M3C with Monte Carlo simulation (method=1) to calculate stability scores and p-values ;; 4. Inspect scores and p-values ;; 5. Test association of clinical variables with discovered clusters using a chi-squared test ;; 6. Plot CDF, PAC, RCSI, and p-value curves ;; 7. Extract ordered data, annotations, and consensus matrix for downstream visualization ;; 8. Perform visual check of cluster structure in principal component space",
+      "code": "filtered_results <- featurefilter(mydata, percentile=10, method='MAD', topN=5)\npca(mydata,legendtextsize = 10,axistextsize = 10,dotsize=2)\nres <- M3C(mydata, des = desx, removeplots = TRUE, iters=25, \n           objective='PAC', fsize=8, lthick=1, dotsize=1.25)\nres$scores\nfor (k in seq(2,10)){\n  myresults <- res$realdataresults[[k]]$ordered_annotation\n  chifit <- suppressWarnings(chisq.test(table(myresults[c('consensuscluster','class')])))\n  print(chifit$p.value)\n}\nres$plots[[1]]\nres$plots[[2]]\nres$plots[[4]]\nres$plots[[3]]\ndata <- res$realdataresults[[4]]$ordered_data \nannon <- res$realdataresults[[4]]$ordered_annotation \nccmatrix <- res$realdataresults[[4]]$consensus_matrix\nhead(annon)\npca(data,labels=annon$consensuscluster,legendtextsize = 10,axistextsize = 10,dotsize=2)"
+    },
+    {
+      "name": "regularised_consensus_clustering",
+      "intent": "Run fast regularized consensus clustering using a penalty term to find the optimal K without Monte Carlo simulations.",
+      "input": [
+        "mydata (matrix or data frame of normalized continuous expression data where columns are samples and rows are features)"
+      ],
+      "stages": "1. Run M3C with regularized consensus clustering (method=2) and lambda tuning ;; 2. Plot the Penalized Cluster Stability Index (PCSI) or Entropy curves to identify the optimal K",
+      "code": "res <- M3C(mydata, method = 2, objective='PAC',fsize=8, lthick=1, dotsize=1.25)\nres$plots[[3]]\nres <- M3C(mydata, method = 2,fsize=8, lthick=1, dotsize=1.25)\nres$plots[[2]]\nres$plots[[3]]"
+    }
+  ]
+}

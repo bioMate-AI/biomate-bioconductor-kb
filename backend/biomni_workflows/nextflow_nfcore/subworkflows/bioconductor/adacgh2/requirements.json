@@ -1,0 +1,20 @@
+{
+  "package": "adacgh2",
+  "requirements": [
+    "ADaCGH2",
+    "ff"
+  ],
+  "by_workflow": {
+    "directory_ff_forking.nf": [
+      "ADaCGH2",
+      "ff"
+    ],
+    "ff_objects_cluster.nf": [
+      "ADaCGH2",
+      "ff"
+    ],
+    "main.nf": [
+      "ADaCGH2"
+    ]
+  }
+}

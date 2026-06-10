@@ -1,126 +1,155 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GSALightning
-// GSALightning provides a fast implementation of permutation-based gene set analysis for two-sample pr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GSALightning/inst/doc/vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GSALightning")
+// Bioconductor workflow: GSALightning — unpaired_gsa
+// Perform permutation-based gene set analysis on unpaired two-sample expression data with optional restandardization.
+// Input: expression_matrix.csv, sample_metadata.csv, gene_sets.gmt
+// Container: quay.io/biocontainers/bioconductor-gsalightning:1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSALightning
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter out genes with zero variance
+//  * 2. [Core Analysis] Run GSALight with specified statistics, size filters, and missing gene handling
+//  * 3. [Core Analysis] Run GSALight with restandardization enabled to obtain corrected p-values and q-values
 
 nextflow.enable.dsl = 2
 
-process BIOC_GSALIGHTNING {
+process BIOC_GSALIGHTNING_UNPAIRED_GSA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gsalightning"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gsalightning:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gsalightning:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gsalightning_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gsalightning_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gsalightning_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GSALight)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(GSALightning)
+        
+        # Helper function to read GMT files into a list of gene sets
+        read_gmt <- function(file) {
+          lines <- readLines(file)
+          gsets <- list()
+          for (line in lines) {
+            if (trimws(line) == "") next
+            parts <- strsplit(line, "\t")[[1]]
+            if (length(parts) >= 3) {
+              genes <- parts[3:length(parts)]
+              genes <- genes[genes != "" & !is.na(genes)]
+              gsets[[parts[1]]] <- genes
+            }
+          }
+          return(gsets)
+        }
+        
+        # 1. Read User Input Files
+        expression <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+        mode(expression) <- "numeric"
+        expression <- na.omit(expression)
+        
+        sampleInfo <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
+        # Ensure the TN column exists; if not, fallback to the second column
+        if (!"TN" %in% colnames(sampleInfo)) {
+          colnames(sampleInfo)[2] <- "TN"
+        }
+        
+        targetGenes <- read_gmt("gene_sets.gmt")
+        
+        # 2. Filter out genes with zero variance
+        expression <- expression[apply(expression,1,sd) != 0,]
+        
+        # 3. Run GSALight with specified statistics, size filters, and missing gene handling
+        GSALightResults <- GSALight(eset = expression, fac = factor(sampleInfo\$TN), gs = targetGenes, nperm = 1000, minsize = 10, rmGSGenes = 'gene')
+        write.csv(GSALightResults, "gsa_results_basic.csv", row.names = TRUE)
+        
+        GSALightResults <- GSALight(eset = expression, fac = factor(sampleInfo\$TN), gs = targetGenes, nperm = 1000, method = 'maxmean', restandardize = FALSE, minsize = 10, maxsize = 30, rmGSGenes = 'gene', verbose = FALSE)
+        write.csv(GSALightResults, "gsa_results_maxmean_norestand.csv", row.names = TRUE)
+        
+        # Save the non-restandardized results for plotting
+        GSALightResultsNoReStand <- GSALightResults
+        
+        # 4. Run GSALight with restandardization enabled to obtain corrected p-values and q-values
+        GSALightResultsReStand <- GSALight(eset = expression, fac = factor(sampleInfo\$TN), gs = targetGenes, nperm = NULL, method = 'maxmean', restandardize = TRUE, minsize = 10, rmGSGenes = 'gene', verbose = FALSE)
+        write.csv(GSALightResultsReStand, "gsa_results_restandardized.csv", row.names = TRUE)
+        
+        # 5. Generate Diagnostic Plots (Histogram of P-values)
+        pdf("pvalue_comparison_histogram.pdf", width = 10, height = 5)
+        par(mfrow = c(1, 2))
+        
+        pcol_norestand <- grep("p-value", colnames(GSALightResultsNoReStand), value = TRUE)[1]
+        pcol_restand <- grep("p-value", colnames(GSALightResultsReStand), value = TRUE)[1]
+        
+        if (!is.na(pcol_norestand)) {
+          hist(GSALightResultsNoReStand[, pcol_norestand], 
+               main = "Without Restandardization", 
+               xlab = "p-value", 
+               col = "skyblue", 
+               border = "white")
+        }
+        
+        if (!is.na(pcol_restand)) {
+          hist(GSALightResultsReStand[, pcol_restand], 
+               main = "With Restandardization", 
+               xlab = "p-value", 
+               col = "tomato", 
+               border = "white")
+        }
+        dev.off()
+        
+        # Save R objects for downstream analysis
+        saveRDS(GSALightResultsNoReStand, "GSALightResultsNoReStand.rds")
+        saveRDS(GSALightResultsReStand, "GSALightResultsReStand.rds")
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(expression)
-    data(sampleInfo)
-    # --- Gsalight [] ---
-    # Key functions: GSALight, factor
-    ---------------------------------------------------------------------
-    GSALightResults <- GSALight(eset = expression, fac = factor(sampleInfo$TN), gs = targetGenes,
-    		   		   	       nperm = 1000, minsize = 10, rmGSGenes = 'gene')
-    head(GSALightResults)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(expression)
-    expression[1:4,1:3]
-    # --- Gsalight [] ---
-    # Key functions: GSALight, factor
-    ---------------------------------------------------------------------
-    GSALightResults <- GSALight(eset = expression, fac = factor(sampleInfo$TN), gs = targetGenes,
-    		   		   	       nperm = 1000, rmGSGenes = 'gene')
-    head(GSALightResults)
-    # --- Permtestlight [] ---
-    # Key functions: permTestLight, factor
-    ---------------------------------------------------------------------
-    singleGeneAnalysis <- permTestLight(eset = expression, fac = factor(sampleInfo$TN),
-    		   		  	   	             nperm = 1000,  method = 'mean', verbose = TRUE)
-    head(singleGeneAnalysis)
-    # --- Wilcoxtest [] ---
-    # Key functions: wilcoxTest, factor
-    ---------------------------------------------------------------------
-    singleWilcox <- wilcoxTest(eset = expression, fac = factor(sampleInfo$TN),
-    		   		  	   	             tests = "unpaired")
-    head(singleWilcox)
-    # --- Gsalight [] ---
-    # Key functions: GSALight
-    ---------------------------------------------------------------------
-    GSALightResultsPaired <- GSALight(eset = expression, fac = fac, gs = targetGenes,
-    		   		   	       nperm = 1000, tests = 'paired', method = 'maxmean', restandardize = TRUE, minsize = 10,
-    					       rmGSGenes = 'gene', verbose = FALSE)
-    head(GSALightResultsPaired)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gsalightning_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gsalightning_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gsalightning_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GSALIGHTNING:", paste0("    gsalightning: ", packageVersion("GSALightning"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GSALIGHTNING_UNPAIRED_GSA":',
+        paste0('    GSALightning: ', as.character(packageVersion('GSALightning')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gsalightning_results.csv
-    touch ${prefix}_gsalightning_output.rds
-    echo "BIOC_GSALIGHTNING:" > versions.yml
-    echo "    gsalightning: 0.0.0" >> versions.yml
+    touch ${prefix}_unpaired_gsa.csv versions.yml
     """
 }
 
-
-workflow BIOC_GSALIGHTNING_WORKFLOW {
+workflow BIOC_GSALIGHTNING_UNPAIRED_GSA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, sample_metadata.csv, gene_sets.gmt ] ]
 
     main:
-    BIOC_GSALIGHTNING(ch_input)
+    BIOC_GSALIGHTNING_UNPAIRED_GSA(ch_input)
 
     emit:
-    results  = BIOC_GSALIGHTNING.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GSALIGHTNING.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GSALIGHTNING.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GSALIGHTNING.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GSALIGHTNING_UNPAIRED_GSA.out.tables
+    plots    = BIOC_GSALIGHTNING_UNPAIRED_GSA.out.plots
+    objects  = BIOC_GSALIGHTNING_UNPAIRED_GSA.out.objects
+    versions = BIOC_GSALIGHTNING_UNPAIRED_GSA.out.versions
 }

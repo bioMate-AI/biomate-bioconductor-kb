@@ -1,0 +1,29 @@
+{
+  "package": "snprelate",
+  "requirements": [
+    "SNPRelate",
+    "gdsfmt"
+  ],
+  "by_workflow": {
+    "fst_estimation.nf": [
+      "SNPRelate",
+      "gdsfmt"
+    ],
+    "identity_by_state_clustering.nf": [
+      "SNPRelate",
+      "gdsfmt"
+    ],
+    "main.nf": [
+      "SNPRelate",
+      "gdsfmt"
+    ],
+    "pca_and_ld_pruning.nf": [
+      "SNPRelate",
+      "gdsfmt"
+    ],
+    "relatedness_and_ibd_analysis.nf": [
+      "SNPRelate",
+      "gdsfmt"
+    ]
+  }
+}

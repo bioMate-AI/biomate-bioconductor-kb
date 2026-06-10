@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: o=The first argument to mgsa(), representing the observed active genes (study set) as a character vector ;; sets=The second argument to mgsa(), representing the gene sets (can be a list, MgsaSets, or MgsaGoSets object) ;; alpha=The false positive rate parameter (probability of an inactive gene to be observed) ;; beta=The false negative rate parameter (probability of an active gene to not be observed) ;; p=The prior probability for any set to be active\n- alternatives: Classical gene set enrichment analysis (which analyzes each set in isolation and often yields redundant, overlapping results)\n- when_to_use: When performing gene set enrichment analysis on a list of active genes (e.g., differentially expressed genes or screen hits) and wanting to account for gene set overlaps to obtain a concise, non-redundant list of active pathways\n- pitfalls: Running mgsa() repeatedly on the same gene sets with different observations can be slow; users should pre-index the sets by creating an MgsaSets object using new(\"MgsaSets\", sets=...) to speed up computations. Also, readGAF() requires the GO.db and RSQLite packages to be installed.",
+  "workflows": [
+    {
+      "name": "mgsa_gene_ontology",
+      "intent": "Perform model-based gene set enrichment analysis using Gene Ontology annotations loaded from a GAF file.",
+      "input": [
+        "gene_association.gaf (Gene Ontology annotation file)",
+        "study_genes.txt (character vector of observed genes)"
+      ],
+      "stages": "1. Load GO annotations from a GAF file using readGAF ;; 2. Run MGSA using mgsa ;; 3. Plot the posterior probabilities using plot ;; 4. Extract and filter results using setsResults and subset",
+      "code": "library(mgsa)\nreadGAF(\n\tsystem.file(\n\t\t\"example_files/gene_association_head.sgd\",\n\t\tpackage=\"mgsa\"\n\t)\n)\nset.seed(0)\nfit = mgsa(example_o, example_go)\nfit\nplot(fit)\nres = setsResults(fit)\nsubset(res, estimate > 0.5)"
+    },
+    {
+      "name": "mgsa_custom_sets",
+      "intent": "Perform model-based gene set enrichment analysis using custom-defined gene sets.",
+      "input": [
+        "study_genes.txt (character vector of observed genes)",
+        "custom_sets.rds (list of custom gene sets)"
+      ],
+      "stages": "1. Run MGSA directly with a list of custom sets, or pre-index them by creating an MgsaSets object ;; 2. Run MGSA using mgsa with the pre-indexed sets for multiple observations",
+      "code": "mgsa( c(\"A\", \"B\"), list(set1=LETTERS[1:3], set2=LETTERS[2:5]) ) \nmyset = new( \"MgsaSets\", sets=list(set1=LETTERS[1:3], set2=LETTERS[2:5]) )\nmgsa(c(\"A\", \"B\"), myset)\nmgsa(c(\"B\", \"C\"), myset)"
+    }
+  ]
+}

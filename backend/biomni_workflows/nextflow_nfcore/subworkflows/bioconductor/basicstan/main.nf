@@ -1,127 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BASiCStan
-// Provides an interface to infer the parameters of BASiCS using the variational inference (ADVI), Mark
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BASiCStan/inst/doc/BASiCStan.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("BASiCStan")
+// Bioconductor workflow: BASiCStan — basics_stan_inference
+// Perform parameter estimation for single-cell RNA-seq data using Stan-based inference and convert the output for downstream BASiCS analysis.
+// Input: sce
+// Container: quay.io/biocontainers/bioconductor-basicstan:1.12.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, BASiCStan
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BASiCStan, SingleCellExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and generate or load the SingleCellExperiment dataset
+//  * 2. [Core Analysis] Run parameter estimation using BASiCStan to obtain a BASiCS_Chain object
+//  * 3. [Core Analysis] Run BASiCStan with ReturnBASiCS = FALSE to obtain a raw Stan object for diagnostics
+//  * 4. [Core Analysis] Convert the raw Stan object to a BASiCS_Chain object using Stan2BASiCS
 
 nextflow.enable.dsl = 2
 
-process BIOC_BASICSTAN {
+process BIOC_BASICSTAN_BASICS_STAN_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-basicstan"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-basicstan:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-basicstan:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_basicstan_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_basicstan_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_basicstan_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BASiCS_MCMC)
-    library(BASiCS_ShowFit)
-    library(BASiCStan)
-    library(Stan2BASiCS)
-    library(jsonlite)
-
-    # --- Standard MCMC Estimation [] ---
-    # Key functions: BASiCS_MCMC
-    amwg_fit <- BASiCS_MCMC(
-        sce,
-        N = 200,
-        Thin = 10,
-        Burn = 100,
-        Regression = TRUE
-    )
-
-
-    # --- Stan-based Parameter Estimation [] ---
-    # Key functions: BASiCStan
-    stan_fit <- BASiCStan(
-        sce,
-        Method = "sampling",
-        iter = 10,
-        warmup = 5,
-        chains = 1
-    )
-
-
-    # --- Model Fit Comparison [] ---
-    # Key functions: BASiCS_ShowFit
-    # Display diagnostic summaries for the standard MCMC fit
-    BASiCS_ShowFit(amwg_fit)
-    # Display diagnostic summaries for the Stan-based fit
-    BASiCS_ShowFit(stan_fit)
-
-
-    # --- Raw Stan Object Extraction and Conversion [] ---
-    # Key functions: BASiCStan, Stan2BASiCS
-    stan_obj <- BASiCStan(
-        sce,
-        ReturnBASiCS = FALSE,
-        Method = "sampling",
-        iter = 10
-    )
-    converted_fit <- Stan2BASiCS(stan_obj)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_basicstan_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "BASiCStan")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    suppressPackageStartupMessages({
+      library("BASiCStan")
+      library("SingleCellExperiment")
+    })
+    
+    set.seed(42)
+    
+    # Read input SingleCellExperiment object from the working directory
+    if (file.exists("sce")) {
+      sce <- readRDS("sce")
+    } else if (file.exists("sce.rds")) {
+      sce <- readRDS("sce.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_basicstan_results.csv")
+      stop("Error: Input file 'sce' or 'sce.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_basicstan_output.rds")
-    }
+    
+    # 1. Run parameter estimation using BASiCStan to obtain a BASiCS_Chain object
+    stan_fit <- BASiCStan(sce, Method = "sampling")
+    saveRDS(stan_fit, "stan_fit.rds")
+    
+    # 2. Generate and save the fit plot
+    pdf("basics_fit_plot.pdf", width = 7, height = 7)
+    tryCatch({
+      BASiCS_ShowFit(stan_fit)
+    }, error = function(e) {
+      warning("BASiCS_ShowFit failed: ", e\$message)
+    })
+    dev.off()
+    
+    # 3. Run BASiCStan with ReturnBASiCS = FALSE to obtain a raw Stan object for diagnostics
+    stan_obj <- BASiCStan(sce, ReturnBASiCS = FALSE, Method = "sampling")
+    saveRDS(stan_obj, "stan_obj.rds")
+    
+    # 4. Extract and save summary diagnostics
+    stan_summary_df <- summary(stan_obj)\$summary
+    write.csv(stan_summary_df, "stan_summary.csv", row.names = TRUE)
+    print(head(stan_summary_df))
+    
+    # 5. Convert the raw Stan object to a BASiCS_Chain object using Stan2BASiCS
+    converted_chain <- Stan2BASiCS(stan_obj)
+    saveRDS(converted_chain, "converted_chain.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BASICSTAN:", paste0("    basicstan: ", packageVersion("BASiCStan"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BASICSTAN_BASICS_STAN_INFERENCE":',
+        paste0('    BASiCStan: ', as.character(packageVersion('BASiCStan')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_basicstan_results.csv
-    touch ${prefix}_basicstan_output.rds
-    echo "BIOC_BASICSTAN:" > versions.yml
-    echo "    basicstan: 0.0.0" >> versions.yml
+    touch ${prefix}_basics_stan_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_BASICSTAN_WORKFLOW {
+workflow BIOC_BASICSTAN_BASICS_STAN_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce ] ]
 
     main:
-    BIOC_BASICSTAN(ch_input)
+    BIOC_BASICSTAN_BASICS_STAN_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_BASICSTAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BASICSTAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BASICSTAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BASICSTAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BASICSTAN_BASICS_STAN_INFERENCE.out.tables
+    plots    = BIOC_BASICSTAN_BASICS_STAN_INFERENCE.out.plots
+    objects  = BIOC_BASICSTAN_BASICS_STAN_INFERENCE.out.objects
+    versions = BIOC_BASICSTAN_BASICS_STAN_INFERENCE.out.versions
 }

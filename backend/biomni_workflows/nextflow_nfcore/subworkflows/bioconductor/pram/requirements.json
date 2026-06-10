@@ -1,0 +1,18 @@
+{
+  "package": "pram",
+  "requirements": [
+    "GenomicRanges",
+    "data.table",
+    "pram"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "pram"
+    ],
+    "step_by_step_pram_analysis.nf": [
+      "GenomicRanges",
+      "data.table",
+      "pram"
+    ]
+  }
+}

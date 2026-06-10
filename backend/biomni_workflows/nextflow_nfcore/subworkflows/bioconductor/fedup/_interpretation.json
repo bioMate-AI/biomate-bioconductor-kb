@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: genes=A list containing a background vector of genes and one or more test set vectors of genes ;; pathways=A list of pathway annotations (e.g., loaded from a GMT file) ;; chartData=Specifies the data type to plot on nodes in EnrichmentMap (e.g., \"DATA_SET\" or \"NES_VALUE\") ;; qvalue=FDR threshold for filtering significant pathways (e.g., 0.05)\n- alternatives: None mentioned in the documentation.\n- when_to_use: When you have one or more sets of genes (e.g., from CRISPR screens, differential expression, or genetic interactions) and a background gene list, and you want to test them for both pathway enrichment and depletion using a Fisher's exact test with custom or standard pathway annotations.\n- pitfalls: High overlap across test gene sets can lead to similar enrichment results across tests (the package throws a warning: \"X% of genes overlap across your test gene sets\"). Cytoscape and the EnrichmentMap (>= v3.3.0) and AutoAnnotate apps must be open and running on the computer before calling plotFemap().",
+  "workflows": [
+    {
+      "name": "pathway_enrichment_and_depletion_analysis",
+      "intent": "Test one or more gene sets against a background for pathway enrichment and depletion using Fisher's exact test, visualize with a dot plot, and generate an enrichment map in Cytoscape.",
+      "input": [
+        "gene_list.rds (A named list containing a 'background' character vector and one or more test set character vectors)",
+        "pathways.gmt (Pathway annotations in GMT format)"
+      ],
+      "stages": "1. Run the enrichment/depletion analysis using runFedup ;; 2. Format and filter results using dplyr and tidyr ;; 3. Plot significant results using plotDotPlot ;; 4. Write out formatted results for EnrichmentMap using writeFemap ;; 5. Write out pathway annotations to GMT format using writePathways ;; 6. Generate and visualize the enrichment map in Cytoscape using plotFemap",
+      "code": "fedupRes <- runFedup(geneDouble, pathwaysGMT)\n\nfedupPlot <- fedupRes %>%\n    bind_rows(.id = \"set\") %>%\n    separate(col = \"set\", into = c(\"set\", \"sign\"), sep = \"_\") %>%\n    subset(qvalue < 0.05) %>%\n    mutate(log10qvalue = -log10(qvalue)) %>%\n    mutate(pathway = gsub(\"\\\\%.*\", \"\", pathway)) %>%\n    as.data.frame()\n\np <- plotDotPlot(\n        df = fedupPlot,\n        xVar = \"log10qvalue\",\n        yVar = \"pathway\",\n        xLab = \"-log10(qvalue)\",\n        fillVar = \"sign\",\n        fillLab = \"Genetic interaction\",\n        fillCol = c(\"#6D90CA\", \"#F6EB13\"),\n        sizeVar = \"fold_enrichment\",\n        sizeLab = \"Fold enrichment\") +\n    facet_grid(\"sign\", scales = \"free\", space = \"free\") +\n    theme(strip.text.y = element_blank())\nprint(p)\n\nresultsFolder <- tempdir()\nwriteFemap(fedupRes, resultsFolder)\n\ngmtFile <- tempfile(\"pathwaysGMT\", fileext = \".gmt\")\nwritePathways(pathwaysGMT, gmtFile)\n\nnetFile <- tempfile(\"fedupEM_geneDouble\", fileext = \".png\")\nplotFemap(\n    gmtFile = gmtFile,\n    resultsFolder = resultsFolder,\n    qvalue = 0.05,\n    chartData = \"DATA_SET\",\n    hideNodeLabels = TRUE,\n    netName = \"fedupEM_geneDouble\",\n    netFile = netFile\n)"
+    }
+  ]
+}

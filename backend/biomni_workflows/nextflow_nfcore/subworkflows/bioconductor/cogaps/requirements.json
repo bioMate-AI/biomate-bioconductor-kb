@@ -1,0 +1,14 @@
+{
+  "package": "cogaps",
+  "requirements": [
+    "CoGAPS"
+  ],
+  "by_workflow": {
+    "distributed_sc_cogaps_workflow.nf": [
+      "CoGAPS"
+    ],
+    "main.nf": [
+      "CoGAPS"
+    ]
+  }
+}

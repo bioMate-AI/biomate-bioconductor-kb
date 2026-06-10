@@ -1,0 +1,16 @@
+{
+  "package": "cosmiq",
+  "requirements": [
+    "cosmiq",
+    "xcms"
+  ],
+  "by_workflow": {
+    "cosmiq_step_by_step.nf": [
+      "cosmiq",
+      "xcms"
+    ],
+    "main.nf": [
+      "cosmiq"
+    ]
+  }
+}

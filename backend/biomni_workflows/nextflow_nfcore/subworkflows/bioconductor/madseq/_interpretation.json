@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bam_file=Path to the BAM file for coverage calculation ;; vcf_file=Path to the VCF file containing heterozygous SNVs ;; target_chr=The target chromosome to analyze (e.g., \"chr21\") ;; md=GRanges object containing bin coverage and GC content metadata ;; model=The model to fit, such as \"all\", \"normal\", \"trisomy\", \"monosomy\", \"mosaic trisomy\", or \"mosaic monosomy\" ;; steps=Number of MCMC iterations for posterior distribution estimation\n- alternatives: MADloy (specifically optimized for detecting loss of Y chromosome) ;; MoChA (for mosaic chromosomal alterations from WGS/WES) ;; PennCNV (for microarray-based mosaicism detection)\n- when_to_use: Appropriate when analyzing high-depth next-generation sequencing data (WGS or WES) to detect and precisely quantify the fraction of cells carrying mosaic chromosomal aneuploidies.\n- pitfalls: Low sequencing depth (less than 30x) significantly reduces the accuracy of mosaic fraction estimation. Constitutional copy number variants (CNVs) can be misclassified as mosaic aneuploidies if not pre-filtered. Mismatched reference genomes for GC content correction will lead to false positives.",
+  "workflows": [
+    {
+      "name": "mosaic_aneuploidy_detection",
+      "intent": "Detect, classify, and quantify mosaic aneuploidy from BAM and VCF files using a Bayesian framework.",
+      "input": [
+        "sample.bam (alignment file for coverage calculation)",
+        "sample.vcf (variant call file for B-allele frequency calculation)"
+      ],
+      "stages": "1. Prepare coverage bins using prepareCoverageBin ;; 2. Run the mosaic aneuploidy detection model using runMadSeq ;; 3. Plot the posterior distribution of the mosaic fraction using plotFraction ;; 4. Plot the coverage and BAF data with the model fit using plotMadSeq",
+      "code": "md <- prepareCoverageBin(bam_file = \"sample.bam\", bin_size = 100000, genome = \"hg19\")\nres <- runMadSeq(bam_file = \"sample.bam\", vcf_file = \"sample.vcf\", target_chr = \"chr21\", md = md, model = \"all\", steps = 10000)\nplotFraction(res)\nplotMadSeq(res)"
+    }
+  ]
+}

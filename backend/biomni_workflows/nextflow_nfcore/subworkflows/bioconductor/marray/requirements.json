@@ -1,0 +1,11 @@
+{
+  "package": "marray",
+  "requirements": [
+    "marray"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "marray"
+    ]
+  }
+}

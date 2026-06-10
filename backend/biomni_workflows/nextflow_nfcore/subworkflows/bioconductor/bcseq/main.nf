@@ -1,126 +1,107 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bcSeq
-// This Rcpp-based package implements a highly efficient data structure and algorithm for performing al
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bcSeq/inst/doc/bcSeq.R
-// Upstream  : Matrix, Rcpp, gdata, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("bcSeq")
+// Bioconductor workflow: bcSeq — barcode_alignment_hamming
+// Align short reads to a reference barcode library using Hamming distance to generate a barcode count table.
+// Input: readFile.fastq, libFile.fasta
+// Container: quay.io/biocontainers/bioconductor-bcseq:1.32.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Matrix, bcSeq
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the bcSeq and Matrix libraries. 2. Define paths for the input read file, reference barcode file, and output CSV file. 3. Run 
 
 nextflow.enable.dsl = 2
 
-process BIOC_BCSEQ {
+process BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bcseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bcseq:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bcseq:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bcseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bcseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bcseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(Matrix)
     library(bcSeq)
-    library(jsonlite)
-
-    # --- Barcode Alignment and Counting [bcSeq] ---
-    # Key functions: bcSeq
-    bcSeq(
-        barcodeFile = "./libFile.fasta",
-        readFile = "./readFile.fastq",
-        outFile = "./count.csv",
-        misMatch = 2,
-        gap = 1,
-        ext = 1,
-        countOnly = TRUE
-    )
-
-    # --- Custom Penalty Alignment [bcSeq] ---
-    # Key functions: bcSeq
-    customizeP <- function(max_pen, prob, pen_val) {
-        prob * (1 - log(2) + log(1 + max_pen / (max_pen + pen_val)))
+    
+    # Define paths for the input read file, reference barcode file, and output CSV file
+    ReadFile <- "./readFile.fastq"
+    BarFile  <- "./libFile.fasta"
+    outFile  <- "./count.csv"
+    
+    # Verify that the required user input files exist in the working directory
+    if (!file.exists(ReadFile)) {
+      stop(paste("Required input file missing:", ReadFile))
     }
-    bcSeq(
-        barcodeFile = "./libFile.fasta",
-        readFile = "./readFile.fastq",
-        outFile = "./count_custom.csv",
-        misMatch = 2,
-        gap = 1,
-        ext = 1,
-        user_pen = customizeP
-    )
-
-    # --- Parallelized Barcode Quantification [bcSeq] ---
-    # Key functions: bcSeq
-    bcSeq(
-        barcodeFile = "./libFile.fasta",
-        readFile = "./readFile.fastq",
-        outFile = "./count_parallel.csv",
-        misMatch = 3,
-        gap = 2,
-        ext = 1,
-        numThread = 4,
-        show_progress = FALSE,
-        quiet = TRUE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bcseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bcseq_results.csv")
+    if (!file.exists(BarFile)) {
+      stop(paste("Required input file missing:", BarFile))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bcseq_output.rds")
-    }
+    
+    # Run bcSeq_hamming with specified mismatch tolerance and threading
+    # This aligns short reads to the reference barcode library using Hamming distance
+    res_list <- bcSeq_hamming(ReadFile, BarFile, outFile, misMatch = 2,
+        tMat = NULL, numThread = 4, count_only = TRUE )
+    
+    # Read the resulting CSV file containing barcode sequences and their corresponding alignment counts
+    res <- read.csv(outFile, header=FALSE)
+    
+    # Save the final counts table as an RDS object for downstream analysis
+    saveRDS(res, file = "./barcode_counts.rds")
+    
+    # Print a brief summary of the alignment results
+    cat("Alignment completed successfully.\n")
+    cat(paste("Total unique barcodes with alignments:", nrow(res), "\n"))
+    cat(paste("Total aligned reads:", sum(res[, 2], na.rm = TRUE), "\n"))
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BCSEQ:", paste0("    bcseq: ", packageVersion("bcSeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING":',
+        paste0('    bcSeq: ', as.character(packageVersion('bcSeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bcseq_results.csv
-    touch ${prefix}_bcseq_output.rds
-    echo "BIOC_BCSEQ:" > versions.yml
-    echo "    bcseq: 0.0.0" >> versions.yml
+    touch ${prefix}_barcode_alignment_hamming.csv versions.yml
     """
 }
 
-
-workflow BIOC_BCSEQ_WORKFLOW {
+workflow BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ readFile.fastq, libFile.fasta ] ]
 
     main:
-    BIOC_BCSEQ(ch_input)
+    BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING(ch_input)
 
     emit:
-    results  = BIOC_BCSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BCSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BCSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BCSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING.out.tables
+    plots    = BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING.out.plots
+    objects  = BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING.out.objects
+    versions = BIOC_BCSEQ_BARCODE_ALIGNMENT_HAMMING.out.versions
 }

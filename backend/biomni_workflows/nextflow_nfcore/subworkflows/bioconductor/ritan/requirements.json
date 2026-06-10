@@ -1,0 +1,23 @@
+{
+  "package": "ritan",
+  "requirements": [
+    "RITAN",
+    "RITANdata",
+    "igraph"
+  ],
+  "by_workflow": {
+    "comparative_subset_enrichment.nf": [
+      "RITAN",
+      "RITANdata"
+    ],
+    "induced_subnetwork_extraction.nf": [
+      "RITAN",
+      "RITANdata",
+      "igraph"
+    ],
+    "main.nf": [
+      "RITAN",
+      "RITANdata"
+    ]
+  }
+}
