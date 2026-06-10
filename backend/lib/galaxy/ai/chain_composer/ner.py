@@ -115,6 +115,14 @@ _DICTS: Dict[str, List[str]] = {
         "peak calling", "binding", "co-expression",
         "meta-analysis", "replication", "validation",
         "biomarker discovery", "biomarker validation",
+        # verb forms (queries often use action language)
+        "validate", "validate biomarkers", "validating",
+        "biomarker", "biomarkers", "biomarker discovery",
+        "replicate", "replicating", "pool", "pooling",
+        "discovery cohort", "validation cohort", "hold-out",
+        # branching-on-QC cues for retrieval (also useful as entities)
+        "rrna", "ribosomal rna", "rrna depletion", "rrna contamination",
+        "contamination", "depletion",
     ],
     "assemblies": [
         "grch38", "grch37", "hg38", "hg19", "mm10", "mm9", "mm39",

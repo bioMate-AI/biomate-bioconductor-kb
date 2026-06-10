@@ -16,7 +16,7 @@
 
 ## 1. `sequential_omics_pipeline`
 
-**When**: Single modality, raw data → final result, no fork-in-the-road decisions. Most common shape. Triggered by "do X analysis on Y data" with a clear endpoint, single-modality work. Covers bulk RNA-seq alone, WGBS / methylation, miRNA-seq, ribosome profiling, proteomics alone, metabolomics alone — anything that is one modality from raw input to interpreted result. Distinguished from `multi_omics_integration` by the **absence** of integration / joint / combined / cross-modality language in the query.
+**When**: Single modality, raw data → final result, no fork-in-the-road decisions. Most common shape. Triggered by "do X analysis on Y data" with a clear endpoint, single-modality work. Covers bulk RNA-seq alone, WGBS / methylation, miRNA-seq, proteomics alone, metabolomics alone — anything that is one modality from raw input to interpreted result. Distinguished from `multi_omics_integration` by the **absence** of integration / joint / combined / cross-modality language in the query, and from `branching_on_qc` by the absence of conditional / if-then language.
 
 **Shape**:
 ```
@@ -164,7 +164,7 @@ validation_data ─────────────────────�
 
 ## 8. `branching_on_qc`
 
-**When**: A QC outcome cleanly partitions the data into branches that need different downstream pipelines. Not a retry loop; the branches are alternative paths, not the same path retried. Triggered by "if X exceeds Y, switch to / use Z" or "when QC fails / passes, branch to". Conditional language: "if/else", "switch", "threshold", "depending on", "split into", "route to". Common cases: rRNA contamination level → different pipeline; library quality QC → branch by protocol; WGS vs WES coverage profile → different variant callers; ploidy / aneuploidy QC → different normalization.
+**When**: A QC outcome cleanly partitions the data into branches that need different downstream pipelines. Not a retry loop; the branches are alternative paths, not the same path retried. Triggered by "if X exceeds Y, switch to / use Z" or "when QC fails / passes, branch to". Conditional language: "if/else", "switch", "threshold", "depending on", "split into", "route to", "when X then Y", "case X / case Y". Common cases: **rRNA / ribosomal RNA contamination → switch to rRNA-depletion pipeline (ribosomal RNA contamination over a threshold percentage)**; library quality QC → branch by protocol; WGS vs WES coverage profile → different variant callers; ploidy / aneuploidy QC → different normalization. The rRNA-depletion branch is the textbook example: when rRNA contamination exceeds the threshold, the standard mRNA pipeline becomes inappropriate and an alternative rRNA-depletion or total-RNA pipeline must be substituted.
 
 **Shape**:
 ```

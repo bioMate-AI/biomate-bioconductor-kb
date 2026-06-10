@@ -73,6 +73,16 @@ def default_llm(
         log.warning("chain_composer.llm_adapter: client init failed (%s) — using stub", exc)
         return None
 
+    # Bind billing emits to the canonical unified test user when no explicit
+    # user_id has been set. Lets us trace all chain_composer LLM cost to one
+    # sink during calibration + live testing. Production wiring should
+    # override this by setting client.user_id with the real user before each
+    # call.
+    if not getattr(client, "user_id", None):
+        client.user_id = os.environ.get(
+            "BIOMATE_COMPOSER_TEST_USER", "lifeifei163361@163.com"
+        )
+
     def _call(prompt: str) -> str:
         # Composer prompts are deliberately short (under 4K tokens). Use a
         # conservative temperature for chain composition — we want stable
