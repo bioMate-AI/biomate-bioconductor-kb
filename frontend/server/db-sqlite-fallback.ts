@@ -16,7 +16,7 @@ sqlite.exec(`
     organization TEXT,
     phone TEXT,
     trial_started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    trial_ends_at DATETIME DEFAULT (datetime('now', '+7 days')),
+    trial_ends_at DATETIME DEFAULT (datetime('now', '+14 days')),
     trial_used INTEGER DEFAULT 0,
     stripe_customer_id TEXT,
     subscription_status TEXT DEFAULT 'trialing',
