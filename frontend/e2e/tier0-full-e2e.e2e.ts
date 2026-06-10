@@ -178,7 +178,37 @@ async function shot(page: Page, a: DemoAudit, name: string): Promise<void> {
 const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "e2e-admet-fixture@biomate.test";
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "AdmetE2ETest!2026";
 
+async function instrumentStepFetch(page: Page): Promise<void> {
+  // Bridge: every /api/nextflow/steps fetch the page makes gets logged into
+  // window.__T01_STEPS_CALLS so the test can diagnose lazy-fetch failures.
+  await page.addInitScript(() => {
+    (window as any).__T01_STEPS_CALLS = [];
+    const origFetch = window.fetch.bind(window);
+    window.fetch = async (input: any, init?: any) => {
+      const url = typeof input === 'string' ? input : (input?.url || '');
+      if (typeof url === 'string' && url.includes('/api/nextflow/steps')) {
+        const t0 = Date.now();
+        const resp = await origFetch(input, init);
+        const dt = Date.now() - t0;
+        const body = await resp.clone().text().catch(() => '');
+        let parsed: any = null;
+        try { parsed = JSON.parse(body); } catch {}
+        (window as any).__T01_STEPS_CALLS.push({
+          url,
+          status: resp.status,
+          dt_ms: dt,
+          count: parsed?.count,
+          first_phase_group: parsed?.steps && Object.values<any>(parsed.steps)[0]?.phase_group,
+        });
+        return resp;
+      }
+      return origFetch(input, init);
+    };
+  });
+}
+
 async function registerUser(page: Page, label: string): Promise<{ email: string; token: string }> {
+  await instrumentStepFetch(page);
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
   await page.context().clearCookies();
   await page.addInitScript(() => {
@@ -333,9 +363,21 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
     null,
     { timeout: 120_000 },
   ).catch(() => {});
-  // Step 5a: click each phase head to expand the phase card
-  const heads = await page.locator('[data-testid^="phase-group-"] .phase-head').elementHandles();
-  for (const h of heads) {
+  // Step 5a: click each phase head to expand the phase card.
+  // Diagnostic discovery: Playwright .click() with force:true silently no-ops
+  // here — aria-expanded stays "false" after the click loop. Fall back to a
+  // page.evaluate() pass that walks the .phase-head elements and dispatches a
+  // raw click event on each, which DOES propagate React's onClick.
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid^="phase-group-"] .phase-head').forEach(el => {
+      const exp = el.getAttribute('aria-expanded');
+      if (exp !== 'true') (el as HTMLElement).click();
+    });
+  });
+  await page.waitForTimeout(500);
+  // Verify the expand worked; fall back to Playwright click on any still-closed phases
+  const stillClosed = await page.locator('[data-testid^="phase-group-"] .phase-head[aria-expanded="false"]').elementHandles();
+  for (const h of stillClosed) {
     await h.click({ force: true }).catch(() => {});
   }
   await page.waitForTimeout(400);
@@ -352,6 +394,33 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
     await t.click({ force: true }).catch(() => {});
   }
   await page.waitForTimeout(500);
+  // Diagnostic dump — kept lightly so future regressions are debuggable.
+  // Set process.env.T01_DEBUG=1 to dump DOM state + fetch counts to the
+  // test log when the test fails. See docs/20260610_TIER0_CHAT_TO_FORM_FIX_ARC.md
+  // for what we found via this dump (Galaxy /api/nextflow/steps occasionally
+  // returns HTTP 500 → viewer falls back to the 'all' phase group → no
+  // phase-card param rows render).
+  if (process.env.T01_DEBUG === '1') {
+    const stepCalls = await page.evaluate(() => (window as any).__T01_STEPS_CALLS || []);
+    console.log('[T01-FETCH] /api/nextflow/steps calls:', JSON.stringify(stepCalls));
+    const diag = await page.evaluate(() => {
+      const out: any = {};
+      out.activeTab = document.querySelector('[aria-selected="true"][data-testid^="panel-tab-"]')?.getAttribute('data-testid') || null;
+      out.phaseGroups = Array.from(document.querySelectorAll('[data-testid^="phase-group-"]'))
+        .map(el => ({
+          testid: el.getAttribute('data-testid'),
+          open: (el.getAttribute('class') || '').includes(' open'),
+          ariaExpanded: el.querySelector('.phase-head')?.getAttribute('aria-expanded'),
+        }));
+      out.phaseToggles = Array.from(document.querySelectorAll('[data-testid^="phase-params-toggle-"]'))
+        .map(el => el.getAttribute('data-testid'));
+      out.paramRowCount = document.querySelectorAll('.param-row').length;
+      out.allInputsWithId = Array.from(document.querySelectorAll<HTMLInputElement>('input[id]'))
+        .slice(0, 12).map(el => ({ id: el.id, value: el.value, visible: el.offsetParent !== null }));
+      return out;
+    });
+    console.log('[T01-DIAG]', JSON.stringify(diag, null, 2));
+  }
   const phaseOut = await page.evaluate(() => {
     const result: Record<string, string> = {};
     document.querySelectorAll('.param-row').forEach(row => {
