@@ -69,6 +69,7 @@ process NLMIXR2_POPULATION_PK {
     tuple val(meta), path("vpc_plot.pdf"),                emit: vpc,            optional: true
     tuple val(meta), path("goodness_of_fit.pdf"),         emit: gof,            optional: true
     tuple val(meta), path("nlmixr2_results.json"),        emit: results
+    tuple val(meta), path("qc_metrics.json"),             emit: qc_metrics
     path "versions.yml",                                  emit: versions
 
     script:
@@ -270,6 +271,25 @@ process NLMIXR2_POPULATION_PK {
     )
     write_json(results_json, "nlmixr2_results.json", pretty = TRUE, auto_unbox = TRUE)
     cat("\\nResults written to nlmixr2_results.json\\n")
+
+    # qc_metrics.json — gate metrics consumed by the QC monitor's
+    # pop-PK gates. Key names normalized to what qc_gate_reader expects:
+    #   eta_shrinkage_pct_max — Savic & Karlsson 2007 (GOLD <20%, SILVER <30%)
+    #   condition_number      — community Pop-PK convention (SILVER <100, BRONZE <1000)
+    # ofv_delta_max NOT emitted because the workflow runs a single fit;
+    # OFV-stability gate needs successive-iteration ΔOFV which would
+    # require a refit pipeline. Gate skips with None — by design.
+    qc_metrics <- list(
+        eta_shrinkage_pct_max = results_json$max_eta_shrinkage_pct,
+        condition_number      = results_json$condition_number,
+        ofv                   = results_json$ofv,
+        convergence_status    = results_json$convergence_status,
+        n_subjects            = results_json$n_subjects,
+        n_observations        = results_json$n_observations,
+        model_type            = results_json$model_type,
+        algorithm             = results_json$algorithm
+    )
+    write_json(qc_metrics, "qc_metrics.json", pretty = TRUE, auto_unbox = TRUE)
     REOF
 
     cat <<-END_VERSIONS > versions.yml
