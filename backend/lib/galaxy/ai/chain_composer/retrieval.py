@@ -329,6 +329,36 @@ def retrieve_workflows(
     return out[:top_k]
 
 
+def _load_proposed_chains() -> List[tuple]:
+    """Load JSON chain files from chain_composer/proposed_chains/ when
+    BIOMATE_INCLUDE_PROPOSED_CHAINS=1. Returns rows in the same shape as
+    `workflow_chains` SELECT so they can be merged in retrieve_curated_chains.
+
+    Used to measure the calibration impact of proposed chains BEFORE
+    committing them to the live DB.
+    """
+    if not os.environ.get("BIOMATE_INCLUDE_PROPOSED_CHAINS"):
+        return []
+    proposed_dir = Path(__file__).resolve().parent / "proposed_chains"
+    if not proposed_dir.exists():
+        return []
+    rows = []
+    for f in sorted(proposed_dir.glob("*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        rows.append((
+            data.get("name", f.stem),
+            data.get("display_name", ""),
+            data.get("domain", ""),
+            data.get("description", ""),
+            json.dumps(data.get("example_queries", [])),
+            json.dumps(data.get("steps", [])),
+        ))
+    return rows
+
+
 def retrieve_curated_chains(
     query: str,
     db_path: Optional[Path] = None,
@@ -340,6 +370,9 @@ def retrieve_curated_chains(
     Filters out `bioc_reactive` chains — those are post-completion suggestions,
     not upfront exemplars (matches the intent_hint=true filter in production).
     Uses BM25 + entity boost.
+
+    When BIOMATE_INCLUDE_PROPOSED_CHAINS=1, also includes any JSON files
+    under `proposed_chains/` so we can measure their impact before committing.
     """
     db_path = db_path or _DEFAULT_DB
     if not db_path.exists():
@@ -354,6 +387,7 @@ def retrieve_curated_chains(
         ).fetchall()
     finally:
         conn.close()
+    rows = list(rows) + _load_proposed_chains()
 
     # Cache parsed rows so we can look them up by name after BM25.
     cache: Dict[str, ScoredChain] = {}
