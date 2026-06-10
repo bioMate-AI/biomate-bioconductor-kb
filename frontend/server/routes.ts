@@ -1857,6 +1857,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('[Auth] Failed to send verification email:', err)
       );
 
+      // Notify the admin of every new registration (fire-and-forget; never fails the signup)
+      try {
+        const _adminNotifyEmail = process.env.ADMIN_NOTIFY_EMAIL || 'contact@biomate.ai';
+        const _regSummary =
+          `Email: ${result.user.email}\n` +
+          `Name: ${result.user.fullName || '(none)'}\n` +
+          `Plan: ${result.user.subscriptionTier || 'base'}\n` +
+          `User ID: ${result.user.id}\n` +
+          `Time: ${new Date().toISOString()}`;
+        emailService.sendEmail({
+          to: _adminNotifyEmail,
+          subject: `New BioMate registration: ${result.user.email}`,
+          html: `<h3>New BioMate registration</h3><pre>${_regSummary.replace(/</g, '&lt;')}</pre>`,
+          text: `A new user registered.\n\n${_regSummary}`,
+        }).catch((err) => console.error('[Auth] Failed to send admin registration notice:', err));
+      } catch (err) {
+        console.error('[Auth] admin registration notice error:', err);
+      }
+
       // Register user in Lago for usage-based billing (fire-and-forget)
       const _galaxyUrlReg = process.env.GALAXY_URL || 'http://localhost:8081';
       const _billingKeyReg = process.env.BILLING_INTERNAL_KEY;
