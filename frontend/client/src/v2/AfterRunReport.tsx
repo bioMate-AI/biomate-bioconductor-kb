@@ -197,7 +197,12 @@ export function AfterRunReport({
       </div>
       <div style={styles.body}>
         {tab === "findings" && (
-          <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} />
+          <>
+            <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} />
+            {findings?.figures && findings.figures.length > 0 && (
+              <FindingsFiguresPanel figures={findings.figures} />
+            )}
+          </>
         )}
         {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
@@ -425,6 +430,16 @@ interface FindingsKeyResult {
   interpretation?: string;
 }
 
+/**
+ * Per-figure shape from the Bioconductor handoff (§5.1).
+ * Hide-when-empty per CLAUDE.md — backend opt-in, no placeholders.
+ */
+export type FindingsFigure =
+  | { kind: "bars"; title: string; unit?: string; highlight?: string;
+      data: Array<[string, number]> }
+  | { kind: "composition"; title: string; data: Array<[string, number]> }
+  | { kind: "qc"; title: string; unit?: string; kept: number; total: number };
+
 interface FindingsData {
   status: string;
   summary?: string;
@@ -432,6 +447,8 @@ interface FindingsData {
   caveats?: string[];
   next_steps?: string[];
   reportMd?: string;
+  /** Data-driven figures from the run manifest (Bioconductor handoff §5.1). */
+  figures?: FindingsFigure[];
 }
 
 function useFetchFindings(runId: string): FindingsData | null {
@@ -983,6 +1000,125 @@ function QcAuditTab({ events, eSignature }: QcAuditTabProps) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Findings figures (Bioconductor handoff §5.1).
+ * Three kinds, all data-driven from the manifest (never LLM):
+ *   - FigBars: horizontal bar chart with optional highlighted row
+ *   - FigComposition: stacked bar + percentage legend
+ *   - FigQc: conic-gradient retention ring (kept/total)
+ */
+const SEG_COLORS = [
+  "oklch(0.62 0.16 240)", "oklch(0.62 0.16 145)", "oklch(0.65 0.16 60)",
+  "oklch(0.62 0.16 320)", "oklch(0.62 0.16 25)",  "oklch(0.65 0.16 200)",
+  "oklch(0.62 0.16 100)", "oklch(0.62 0.16 280)",
+];
+
+function FigBars({ fig }: { fig: Extract<FindingsFigure, { kind: "bars" }> }) {
+  const max = Math.max(...fig.data.map(d => d[1]), 1);
+  return (
+    <div data-testid="finding-fig-bars" style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
+        {fig.title}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {fig.data.map(([label, val], i) => {
+          const isHl = label === fig.highlight;
+          return (
+            <div key={i}
+              data-testid={isHl ? "finding-fig-bars-row-highlight" : undefined}
+              style={{ display: "grid", gridTemplateColumns: "140px 1fr 60px", alignItems: "center",
+                gap: 8, fontSize: 11.5, color: isHl ? "oklch(0.45 0.16 240)" : "oklch(0.40 0.012 260)",
+                fontWeight: isHl ? 600 : 400 }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+              <span style={{ background: "oklch(0.94 0.008 260)", height: 8, borderRadius: 2 }}>
+                <span style={{ display: "block", width: `${(100 * val) / max}%`, height: "100%",
+                  background: isHl ? "oklch(0.55 0.18 240)" : "oklch(0.65 0.12 240)", borderRadius: 2 }} />
+              </span>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, textAlign: "right" }}>{val}</span>
+            </div>
+          );
+        })}
+      </div>
+      {fig.unit && <div style={{ fontSize: 10, color: "oklch(0.48 0.012 260)", marginTop: 4 }}>{fig.unit}</div>}
+    </div>
+  );
+}
+
+function FigComposition({ fig }: { fig: Extract<FindingsFigure, { kind: "composition" }> }) {
+  const total = fig.data.reduce((s, d) => s + d[1], 0) || 1;
+  return (
+    <div data-testid="finding-fig-composition" style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
+        {fig.title}
+      </div>
+      <div style={{ display: "flex", width: "100%", height: 10, borderRadius: 4, overflow: "hidden",
+        border: "1px solid oklch(0.92 0.008 260)" }}>
+        {fig.data.map(([label, val], i) => (
+          <span key={i} title={`${label}: ${val}`}
+            style={{ width: `${(100 * val) / total}%`, background: SEG_COLORS[i % SEG_COLORS.length] }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 8, fontSize: 11,
+        color: "oklch(0.40 0.012 260)" }}>
+        {fig.data.map(([label, val], i) => (
+          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 8, height: 8, background: SEG_COLORS[i % SEG_COLORS.length], borderRadius: 2 }} />
+            {label} <b>{Math.round((100 * val) / total)}%</b>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FigQc({ fig }: { fig: Extract<FindingsFigure, { kind: "qc" }> }) {
+  const pct = Math.round((100 * fig.kept) / Math.max(fig.total, 1));
+  return (
+    <div data-testid="finding-fig-qc" style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: "oklch(0.22 0.012 260)" }}>
+        {fig.title}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div aria-label={`${pct}% retained`}
+          style={{ width: 56, height: 56, borderRadius: "50%",
+            background: `conic-gradient(oklch(0.55 0.18 240) ${pct}%, oklch(0.94 0.008 260) 0)`,
+            display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ background: "white", width: 38, height: 38, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: 600, color: "oklch(0.22 0.012 260)" }}>{pct}%</span>
+        </div>
+        <div style={{ fontSize: 11.5, color: "oklch(0.40 0.012 260)", lineHeight: 1.45 }}>
+          <div><b style={{ color: "oklch(0.22 0.012 260)" }}>{fig.kept.toLocaleString()}</b>{" "}{fig.unit ?? "retained"}</div>
+          <div style={{ fontSize: 10.5, color: "oklch(0.48 0.012 260)" }}>
+            {(fig.total - fig.kept).toLocaleString()} dropped of {fig.total.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
+  return (
+    <div data-testid="findings-figures-panel" style={{ marginTop: 16,
+      paddingTop: 14, borderTop: "1px solid oklch(0.92 0.008 260)" }}>
+      <div style={{ fontSize: 10, color: "oklch(0.48 0.012 260)", textTransform: "uppercase",
+        letterSpacing: 0.5, marginBottom: 8 }}>
+        Headline figures
+      </div>
+      {figures.map((fig, i) => {
+        if (fig.kind === "bars") return <FigBars key={i} fig={fig} />;
+        if (fig.kind === "composition") return <FigComposition key={i} fig={fig} />;
+        if (fig.kind === "qc") return <FigQc key={i} fig={fig} />;
+        return null;
+      })}
+      <div style={{ fontSize: 10.5, color: "oklch(0.48 0.012 260)", fontStyle: "italic", marginTop: 6 }}>
+        Figures are generated from the run manifest, not the LLM.
+      </div>
     </div>
   );
 }
