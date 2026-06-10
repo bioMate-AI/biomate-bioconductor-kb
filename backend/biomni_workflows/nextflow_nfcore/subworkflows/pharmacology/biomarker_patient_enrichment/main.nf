@@ -730,6 +730,31 @@ results_out = {
 with open('biomarker_enrichment_results.json', 'w') as f:
     json.dump(results_out, f, indent=2, default=str)
 
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# biomarker_enrichment gates.
+# - biomarker_prevalence  (SILVER, FDA Enrichment 2019: clinically
+#   actionable prevalence ∈ [0.10, 0.50])
+# - enrichment_factor     (BRONZE, Phase III convention ≥1.5)
+# biomarker_pos_hr deliberately NOT emitted because this workflow uses
+# binary-outcome relative risk; the gate expects time-to-event hazard
+# ratio. Emitting RR under HR's key would mis-fire the gate.
+_top = top_data if isinstance(top_data, dict) else {}
+qc_metrics = {
+    "biomarker_prevalence": _top.get("prev_pos"),
+    "enrichment_factor":    _top.get("enrichment_ratio"),
+    "rr_positive":          _top.get("rr_positive"),
+    "rr_negative":          _top.get("rr_negative"),
+    "NNT":                  _top.get("NNT"),
+    "PEF_pct":              _top.get("PEF_pct"),
+    "NNS":                  _top.get("NNS"),
+    "top_biomarker_id":     top_bm,
+    "n_patients":           n_total,
+    "n_fdr_significant":    len(sig_bms),
+    "response_type":        response_type,
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2, default=str)
+
 with open('phase3_sample_size_comparison.csv', 'w', newline='') as f:
     csv.writer(f).writerows(ss_rows)
 
