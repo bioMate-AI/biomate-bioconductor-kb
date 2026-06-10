@@ -1541,6 +1541,7 @@ class NextflowQCGateHandler:
         "BOLTZ_SUMMARISE_RESULTS":   ("*", "qc_metrics.json"),  # Boltz pLDDT ≥70 / PAE ≤8Å (GOLD, Jumper 2021)
         "LNP_FORMULATION_OPTIMIZATION": ("*", "qc_metrics.json"),  # LNP z-avg 60-120 nm (SILVER, CLT range)
         "ANTIBODY_DEVELOPABILITY":   ("*", "qc_metrics.json"),  # TAP total CDR 43-63 (GOLD, Raybould 2019)
+        "SIRNA_OFFTARGET_ANALYSIS":  ("*", "qc_metrics.json"),  # ΔdG asymmetry ≥0.5 (GOLD, Khvorova 2003)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:

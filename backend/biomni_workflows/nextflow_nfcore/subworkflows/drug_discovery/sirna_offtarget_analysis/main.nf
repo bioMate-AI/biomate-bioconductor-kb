@@ -68,6 +68,7 @@ process SIRNA_OFFTARGET_ANALYSIS {
     tuple val(meta), path("offtargets.csv"),           emit: offtargets
     tuple val(meta), path("modifications.csv"),        emit: modifications
     tuple val(meta), path("summary_report.txt"),       emit: summary
+    tuple val(meta), path("qc_metrics.json"),          emit: qc_metrics
     path "versions.yml",                               emit: versions
 
     script:
@@ -348,6 +349,22 @@ if not recs:
 
 with open('offtarget_report.json', 'w') as f:
     json.dump(report, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's siRNA
+# gates. delta_dg_asymmetry_kcal_mol is dg5_pass - dg5_guide directly
+# (Khvorova 2003 GOLD). min_seed_mismatches is NOT emitted because the
+# off-target list uses seed_match_type categorical labels, not raw
+# mismatch counts; computing min across the table reliably would
+# require the underlying alignment data.
+qc_metrics = {
+    'delta_dg_asymmetry_kcal_mol': strand_sel_score,
+    'strand_selection':            strand_sel,
+    'dG5_guide':                   dg5_guide,
+    'dG5_passenger':               dg5_pass,
+    'n_high_concern_offtargets':   n_high_concern,
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 with open('offtargets.csv', 'w', newline='') as f:
     w = csv.writer(f)
