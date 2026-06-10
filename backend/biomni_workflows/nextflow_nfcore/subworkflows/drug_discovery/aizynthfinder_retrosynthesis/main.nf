@@ -102,49 +102,37 @@ process AIZYNTHFINDER_PREDICT {
     def max_depth  = params.max_depth
     def config     = params.aizynthfinder_config
     """
-        # Runtime guard for missing expansion policy.  The container's
-        # download_public_data step at build time is non-fatal (network can
-        # be unavailable inside QEMU); when that download silently failed,
-        # the rendered config has no expansion: section and aizynthcli
-        # crashes with IndexError on policy.items[0] before producing any
-        # output. Detect that state, attempt to download the public USPTO
-        # models on the fly, and re-render the config — keeps the workflow
-        # honest (no fake-pass with empty results) without requiring an
-        # image rebuild.
+        # Pre-flight: ensure expansion policy is configured. The container's
+        # build-time download_public_data step uses '|| true' so silent failures
+        # leave the config with no expansion: section, and aizynthcli crashes
+        # with IndexError on policy.items[0] before producing any output.
+        # Runtime download isn't viable on the Batch container (the aizynthfinder
+        # API surface for download_public_data varies across versions and Batch
+        # task containers may have no outbound network to figshare). Fail loud
+        # so a missing model is visible in logs instead of being silently
+        # masked, and ship the route_count=0 honest result file so QC can
+        # still observe an empty-routes outcome.
         if ! grep -q "^expansion:" "${config}" 2>/dev/null; then
-            echo "[aizynth-predict] no expansion policy in ${config}; attempting runtime download" >&2
-            mkdir -p /opt/aizynthfinder/models
-            # API name varies by version — try both module attributes and the
-            # CLI subcommand. Whichever path lands the ONNX + templates wins.
-            (python3 -c "from aizynthfinder.tools.download_public_data import main; main(['/opt/aizynthfinder/models'])" 2>/dev/null \
-             || python3 -c "import aizynthfinder.tools.download_public_data as m; getattr(m, 'download_public_data', getattr(m, 'download_public_files', lambda d: None))('/opt/aizynthfinder/models')" 2>/dev/null \
-             || aizynthcli --download_public_data /opt/aizynthfinder/models 2>/dev/null \
-             || aizynthcli --download-public-data /opt/aizynthfinder/models 2>/dev/null) || true
-            ls -la /opt/aizynthfinder/models/ >&2 || true
-            if [ -f /opt/aizynthfinder/models/uspto_model.onnx ] && [ -f /opt/aizynthfinder/models/uspto_templates.csv ]; then
-                python3 /tmp/setup_aizynthfinder.py 2>/dev/null \
-                    || python3 -c "
-import os
-cfg = '''expansion:
-  uspto:
-    - /opt/aizynthfinder/models/uspto_model.onnx
-    - /opt/aizynthfinder/models/uspto_templates.csv
-stock:
-  biomate_stock: /opt/aizynthfinder/stock/starting_materials.smi
-search:
-  algorithm: mcts
-  max_transforms: 5
-  iteration_limit: 100
-  return_first: true
-  time_limit: 120
-'''
-open('${config}', 'w').write(cfg)
-print('[aizynth-predict] config updated with downloaded expansion model')
+            echo "[aizynth-predict] FATAL: ${config} has no expansion policy." >&2
+            echo "[aizynth-predict] The container biomate/biomni-drug-discovery-nf:x86 was" >&2
+            echo "[aizynth-predict] built without USPTO models. Rebuild the container with the" >&2
+            echo "[aizynth-predict] models baked in (backend/docker/drug-discovery-nf/Dockerfile)." >&2
+            echo "[aizynth-predict] Writing honest zero-routes result so QC can observe the failure." >&2
+            python3 -c "
+import json
+compound_id = '${compound_id}'
+out = {
+    'compound_id':       compound_id,
+    'smiles':            '${smiles}',
+    'success':           False,
+    'error':             'no_expansion_policy_in_container',
+    'routes':            [],
+    'route_count':       0,
+}
+open(f'{compound_id}_routes.json', 'w').write(json.dumps(out, indent=2))
 "
-            else
-                echo "[aizynth-predict] FATAL: expansion model download failed and no fallback available" >&2
-                exit 1
-            fi
+            python3 -c "print('aizynthfinder: x.y.z')" > versions.yml
+            exit 1
         fi
 
         # Run aizynthcli and normalize its output into BioMate JSON format.
