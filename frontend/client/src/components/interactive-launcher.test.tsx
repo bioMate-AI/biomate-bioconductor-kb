@@ -54,10 +54,9 @@ describe("InteractiveLauncher", () => {
     // Select RStudio
     fireEvent.click(screen.getByText("RStudio"));
 
-    // Select first output. NOTE: clicking the Radix Checkbox directly in
-    // jsdom causes the parent row's onClick to also fire (event bubble),
-    // so toggle fires twice and nets to no-change. Click the file-name
-    // text instead — only the row div's onClick fires (one toggle).
+    // Row is now a <label htmlFor="..."> wrapping the Checkbox — clicking
+    // the row text fires the checkbox once via native label association
+    // (no double-bind on the parent).
     fireEvent.click(screen.getByText("dds.rds"));
 
     // Click launch
