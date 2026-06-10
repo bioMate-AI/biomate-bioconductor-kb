@@ -13,21 +13,26 @@ import { test, expect, type Page } from "@playwright/test";
 
 const BASE   = process.env.BIOMATE_URL    || "https://dev-public.biomate.ai";
 const TOKEN  = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
-const EMAIL  = "tabs_smoke@biomate.test";
-const PASS   = "TabsTest123!";
+
+// CLAUDE.md: ALWAYS use the canonical shared fixture account. Per-test users
+// hit the registration rate limiter, accumulate quota debt, and provoke
+// Galaxy provisioning timeouts (the dev /internal/users/provision endpoint
+// doesn't exist, so each new user provisioning attempt hangs for 10s before
+// falling back to a shared admin key that downstream routes reject as 401).
+const EMAIL = process.env.E2E_FIXTURE_EMAIL    || "lifeifei163361@163.com";
+const PASS  = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 
 async function silentAuth(page: Page) {
   const ctx = page.context();
-  const reg = await ctx.request.post(`${BASE}/api/auth/register`, {
-    data: { name: "Tabs Smoke", email: EMAIL, password: PASS, terms_accepted: true },
-    headers: { "Content-Type": "application/json", "X-E2E-Test-Token": TOKEN },
+  // Register-or-login: register is a no-op if the fixture already exists.
+  await ctx.request.post(`${BASE}/api/auth/register`, {
+    data: { name: "BioMate E2E Fixture", email: EMAIL, password: PASS, terms_accepted: true },
+    headers: { "Content-Type": "application/json", "x-e2e-test-token": TOKEN },
   });
-  if (!reg.ok()) {
-    await ctx.request.post(`${BASE}/api/auth/login`, {
-      data: { email: EMAIL, password: PASS },
-      headers: { "Content-Type": "application/json", "X-E2E-Test-Token": TOKEN },
-    });
-  }
+  await ctx.request.post(`${BASE}/api/auth/login`, {
+    data: { email: EMAIL, password: PASS },
+    headers: { "Content-Type": "application/json", "x-e2e-test-token": TOKEN },
+  });
 }
 
 test.describe("Live horizontal-tabs MVP on dev", () => {
