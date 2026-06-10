@@ -895,7 +895,7 @@ lines += [
     '=' * 70,
 ]
 
-narrative = '\n'.join(lines)
+narrative = chr(10).join(lines)
 with open('enrichment_summary.txt', 'w') as f:
     f.write(narrative)
 print(narrative)
