@@ -275,35 +275,39 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
     await acc.click({ force: true }).catch(() => {});
     await page.waitForTimeout(300);
   }
-  // Step 4: also expand any phase params toggles so phase-specific params
-  // (target_a, target_b, format, indication for bispecific Phase A) become
-  // readable via their inline inputs. These inputs don't have an id attribute,
-  // so we read them via the label text → adjacent value approach in (5).
-  await page.evaluate(() => {
-    document.querySelectorAll('[data-testid^="phase-params-toggle-"]').forEach(btn => {
-      const opened = (btn.getAttribute('aria-expanded') || '').toLowerCase() === 'true' ||
-                     /\bopen\b/.test((btn as HTMLElement).className || '');
-      if (!opened) (btn as HTMLElement).click();
-    });
-  });
-  await page.waitForTimeout(400);
-  // Step 5: read all input/textarea values keyed by id (Settings tab) AND
-  // pair label-key + value for phase-card params (inline rows have label spans
-  // and value inputs sitting next to each other in .param-row).
-  const out = await page.evaluate(() => {
+  // Step 4: read Settings-tab inputs first (keyed by <Input id={paramName}>).
+  const settingsOut = await page.evaluate(() => {
     const result: Record<string, string> = {};
-    // (a) Settings-tab inputs: <Input id={paramName} ...>
     document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[id], textarea[id]')
       .forEach(el => {
         const id = el.id;
         const v = (el as any).value as string | undefined;
         if (id && v != null && v !== '') result[id] = v;
       });
-    // (b) Phase-card inline params: .param-row has <span class="k">{label}</span>
-    //     and <input value={...}>. Convert label → snake_case as a key best-effort.
+    return result;
+  });
+  // Step 5: switch to the Phases tab — phase-specific params (target_a,
+  // target_b, indication for Phase A on bispecific) live inside each phase
+  // card's params toggle there, NOT in the Settings strip. Then expand every
+  // phase-params-toggle-${groupKey} and read the .param-row label/value pairs.
+  const phasesTab = page.locator('[data-testid="panel-tab-phases"]').first();
+  if (await phasesTab.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await phasesTab.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
+  }
+  // Click each phase-params toggle so the inline param rows mount in DOM.
+  // (phase-card inline inputs don't carry an id attribute, so step 6 keys them
+  // by label-derived snake_case.)
+  const toggles = await page.locator('[data-testid^="phase-params-toggle-"]').elementHandles();
+  for (const t of toggles) {
+    await t.click({ force: true }).catch(() => {});
+  }
+  await page.waitForTimeout(500);
+  const phaseOut = await page.evaluate(() => {
+    const result: Record<string, string> = {};
     document.querySelectorAll('.param-row').forEach(row => {
       const labelEl = row.querySelector('.k');
-      const inputEl = row.querySelector<HTMLInputElement>('input, select');
+      const inputEl = row.querySelector<HTMLInputElement>('input, select, textarea');
       if (!labelEl || !inputEl) return;
       const label = (labelEl.textContent || '').trim().replace(/\s*\*\s*$/, '');
       const snake = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -312,7 +316,7 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
     });
     return result;
   });
-  return out;
+  return { ...settingsOut, ...phaseOut };
 }
 
 async function clickRunAndCaptureId(page: Page, a: DemoAudit): Promise<string | null> {
