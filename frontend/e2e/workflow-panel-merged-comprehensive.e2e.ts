@@ -44,8 +44,11 @@ const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-on
 const SS_DIR = path.join(__dirname, "screenshots", "workflow-panel-merged");
 if (!fs.existsSync(SS_DIR)) fs.mkdirSync(SS_DIR, { recursive: true });
 
-const FIXTURE_EMAIL = "wpm_fixture@biomate.test";
-const FIXTURE_PASSWORD = "WpmFixture!2026";
+// Real, deliverable fixture email per CLAUDE.md / Testing Rules. Made-up
+// addresses cause unverified-email quota degradation that surfaces as
+// intermittent 401s from /api/ai_assistant/generate_workflow.
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 
 async function getAuthToken(request: APIRequestContext): Promise<string> {
   await request.post(`${BASE_URL}/api/auth/register`, {
