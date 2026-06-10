@@ -102,6 +102,49 @@ process AIZYNTHFINDER_PREDICT {
     def max_depth  = params.max_depth
     def config     = params.aizynthfinder_config
     """
+        # Runtime guard for missing expansion policy.  The container's
+        # download_public_data step at build time is non-fatal (network can
+        # be unavailable inside QEMU); when that download silently failed,
+        # the rendered config has no expansion: section and aizynthcli
+        # crashes with IndexError on policy.items[0] before producing any
+        # output. Detect that state, attempt to download the public USPTO
+        # models on the fly, and re-render the config — keeps the workflow
+        # honest (no fake-pass with empty results) without requiring an
+        # image rebuild.
+        if ! grep -q "^expansion:" "${config}" 2>/dev/null; then
+            echo "[aizynth-predict] no expansion policy in ${config}; attempting runtime download" >&2
+            python3 -c "
+from aizynthfinder.tools.download_public_data import download_public_data
+import os
+os.makedirs('/opt/aizynthfinder/models', exist_ok=True)
+download_public_data('/opt/aizynthfinder/models')
+" >&2 || true
+            if [ -f /opt/aizynthfinder/models/uspto_model.onnx ] && [ -f /opt/aizynthfinder/models/uspto_templates.csv ]; then
+                python3 /tmp/setup_aizynthfinder.py 2>/dev/null \
+                    || python3 -c "
+import os
+cfg = '''expansion:
+  uspto:
+    - /opt/aizynthfinder/models/uspto_model.onnx
+    - /opt/aizynthfinder/models/uspto_templates.csv
+stock:
+  biomate_stock: /opt/aizynthfinder/stock/starting_materials.smi
+search:
+  algorithm: mcts
+  max_transforms: 5
+  iteration_limit: 100
+  return_first: true
+  time_limit: 120
+'''
+open('${config}', 'w').write(cfg)
+print('[aizynth-predict] config updated with downloaded expansion model')
+"
+            else
+                echo "[aizynth-predict] FATAL: expansion model download failed and no fallback available" >&2
+                exit 1
+            fi
+        fi
+
         # Run aizynthcli and normalize its output into BioMate JSON format.
         # aizynthcli writes a JSON file containing a list of solved route trees.
         aizynthcli \
