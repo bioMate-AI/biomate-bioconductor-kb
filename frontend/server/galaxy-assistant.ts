@@ -2020,6 +2020,19 @@ export class GalaxyAssistant {
     let ambiguity = intent.workflowAmbiguity;
     if (!ambiguity || !actions.needsWorkflowGeneration) return null;
 
+    // Canonical-fixture gate (Plan C): when the user already named a built-in
+    // fixture or accession (airway, pasilla, pbmc3k, SRR\d+, etc.), the
+    // dataset is resolved — the workflow knows how to load it. Suppress the
+    // clarification ask deterministically so verbose phrasings like
+    // "Run DESeq2 on airway; treated vs untreated; export CSV + MA plot"
+    // don't re-trigger an "I need the counts matrix" reply. See
+    // docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md (Plan C).
+    const _canonicalFixture = matchesCanonicalFixture(message);
+    if (_canonicalFixture) {
+      console.log(`[_clarificationGate] suppressed by canonical fixture: ${_canonicalFixture}`);
+      return null;
+    }
+
     // Suppress ambiguity when the user's message already resolves it.
     // AMBIGUITY_RESOLVERS maps each fork type → regex that detects the disambiguating terms.
     // This is generalizable: adding a new fork point only requires adding one resolver entry.
@@ -2408,6 +2421,24 @@ Rules:
       const _isBoInIntentEarly = /\b(boin|phase\s*i\s*(dose\s*escalation|trial)|dose[\s-]escalation[\s-](trial|study)|dose[\s-]finding[\s-](trial|study)|bayesian[\s-]optimal[\s-]interval|clinical[\s-]dose[\s-]escalation|phase[\s-]i[\s-]oncology|dlt[\s-]based[\s-]escalation|mtd[\s-]estimation|3\+3[\s-]design)\b/i.test(message);
       if (_isBoInIntentEarly) {
         log('BOIN intent override: forcing needsWorkflowGeneration=true for prereq gate');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Canonical-fixture intent override (Plan C):
+    // When the user names a built-in fixture or accession (airway, pasilla,
+    // pbmc3k, SRR\d+, etc.) the input is resolved — they want a workflow,
+    // not a chat about it. The intent classifier sometimes returns chat_only
+    // because the verbose phrasing ("treated vs untreated; export CSV + MA
+    // plot") triggers heuristics that look like missing-data signals. Force
+    // workflow_generation so the chat doesn't go down the "I need files"
+    // path. See docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md.
+    if (!actions.needsWorkflowGeneration) {
+      const _fixture = matchesCanonicalFixture(message);
+      const _isExplanationQuery = /\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe)\b/i.test(message);
+      if (_fixture && !_isExplanationQuery) {
+        log(`Canonical-fixture override: ${_fixture} present — forcing needsWorkflowGeneration=true`);
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
