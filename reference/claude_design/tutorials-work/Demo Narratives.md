@@ -289,6 +289,75 @@ Voiceover scripts for the four primary tutorials. Each beat is tagged `[mm:ss–
 
 ---
 
+## 5 · Bioconductor · DESeq2 chain (`bioc-kb-routing`, 21 steps, ~3 min)
+
+> **Scenario context.** A scientist asks BioMate for "end-to-end differential expression on a count matrix, human, control vs treated, with pathway and GO enrichment." We follow BioMate's knowledge-base match, the disambig card, the routing decision, the six-phase DESeq2 chain, and the seven-tab after-run report.
+
+**[00:00–00:11]** · **[Step 1 — Welcome, centered]**
+"We're going to run a Bioconductor differential expression analysis, end to end. BioMate matches your request to a curated workflow, routes each step to the right package, runs the six-phase chain, then hands you a full report. About three minutes — match, route, run, report."
+
+**[00:13–00:21]** · **[Step 2 — Empty workflow panel]**
+"BioMate embeds your request against the Bioconductor knowledge base. The panel stays empty for now — BioMate won't commit to a pipeline before the match is resolved."
+
+**[00:23–00:39]** · **[Step 3 — Disambig card]**
+"Two curated chains scored close — a count-matrix DeSeq-two path at zero point seven one, and a fuller FASTQ pipeline at zero point six six. Rather than guess, BioMate surfaces both with their scores. The top match is pre-selected, with a commit countdown."
+
+**[00:41–00:53]** · **[Step 4 — Phase list populates]**
+"With bulk RNA-seq DeSeq-two chosen, the panel fills with its six phases. QC, normalise, DE test, shrink, enrich, visualise. Only now does a pipeline exist; chat and panel track the same run."
+
+**[00:55–01:08]** · **[Step 5 — Routing reasoning]**
+"BioMate explains the choice. A raw integer count matrix calls for a negative-binomial model — DeSeq-two — not limma-voom, which expects continuous log-two intensities. The reasoning is grounded in the Love twenty-fourteen citation."
+
+**[01:10–01:21]** · **[Step 6 — Phase A QC]**
+"Execution starts. The active phase auto-expands. edgeR's filterByExpr drops genes under ten counts. As each step finishes, its parameters and output files appear inline."
+
+**[01:23–01:33]** · **[Step 7 — DESeqDataSet handoff]**
+"After normalisation, counts, metadata and size factors fold into one DeSeq Data Set. That object class is the contract every downstream DeSeq-two step reads from — typed handoffs all the way through."
+
+**[01:35–01:47]** · **[Step 8 — Phase C DE testing]**
+"The Wald test runs on design tilde condition. Two thousand eight hundred and forty-one genes pass at false discovery rate under zero point zero five. The result is a DeSeq Results table."
+
+**[01:49–01:59]** · **[Step 9 — apeglm shrinkage]**
+"Before ranking, apeglm shrinks low-count fold-changes toward zero. The gene list feeding enrichment isn't dominated by noisy extremes. apeglm isn't a blind default; the reasoning block says why."
+
+**[02:01–02:11]** · **[Step 10 — Phase E enrichment]**
+"clusterProfiler's gseGO runs on the shrunk ranked list. Top GO term — regulation of apoptotic process. Phase F then renders the volcano plot, dot plot and heatmap."
+
+**[02:13–02:24]** · **[Step 11 — Chain complete card, centered]**
+"All six phases done — DeSeq-two, apeglm, clusterProfiler, EnhancedVolcano. The chat drops a findings card and the panel flips to the after-run report. Next, we walk every tab."
+
+**[02:26–02:38]** · **[Step 12 — Tabs overview]**
+"Every completed run produces a structured report. Seven tabs — findings, outputs, methods, parameters, software, citations, and the QC audit. Findings first, raw artifacts next, then reproducibility, ending with audit."
+
+**[02:40–02:54]** · **[Step 13 — Findings tab]**
+"The findings tab. Headline metric, a few bullets, and figures read straight from the run manifest. Figures are data-driven — bars for top GO terms, a stacked bar for DE direction, a retention ring for gene filtering. No numbers are invented."
+
+**[02:56–03:07]** · **[Step 14 — Outputs tab]**
+"Outputs. One row per file, grouped by phase and step. DeSeq results, the volcano PNG, the GO dot plot, the top fifty heatmap. View previews each file inline; download grabs one or all."
+
+**[03:09–03:21]** · **[Step 15 — Inline preview detour]**
+"Clicking view on the volcano PNG renders it inline — log-two fold change versus negative log-ten adjusted p, up genes in red, down in blue, cutoff lines drawn. BioMate picks the volcano viewer from the file type."
+
+**[03:23–03:31]** · **[Step 16 — Methods tab]**
+"The methods tab. Paragraph-form prose you can paste straight into a manuscript — tools, versions, exact parameters, written so peers can replicate the DeSeq-two run."
+
+**[03:33–03:43]** · **[Step 17 — Parameters tab]**
+"Parameters. Phase, step, parameter, value — for everything the run touched, from filterByExpr thresholds to apeglm's shrinkage type. A ready supplementary table."
+
+**[03:45–03:54]** · **[Step 18 — Software tab]**
+"Software. Every package with its exact version — DeSeq-two, apeglm, edgeR, clusterProfiler, EnhancedVolcano. Match these with the parameters tab and you reproduce the run."
+
+**[03:56–04:07]** · **[Step 19 — Citations tab]**
+"Citations. An auto-generated reference list — Love twenty-fourteen for DeSeq-two, Zhu twenty-nineteen for apeglm, Wu twenty twenty-one for clusterProfiler. Methods and citations ship together in the download report export."
+
+**[04:09–04:23]** · **[Step 20 — QC audit tab]**
+"The QC audit tab. Every gate that fired, with threshold, observed value, result, and action. A four-stat header summarises pass, auto-corrected, and manual interventions. Twenty-one CFR Part Eleven friendly, with chain of custody."
+
+**[04:25–04:38]** · **[Step 21 — Wrap-up, centered]**
+"That's the full DeSeq-two thread. Match, route, run six phases, and a seven-tab report — all from one request. Try the scRNA-seq and methylation tutorials next: same agent, different science."
+
+---
+
 ## Recording notes
 
 - **Timings.** Each beat is tagged `[mm:ss–mm:ss]` cumulative. Computed at **150 wpm + 1.5 s pause** between beats, 5 s floor per beat. Target budgets: tutorials 1–3 ≈ 3 min, tutorial 4a ≈ 7 min, tutorial 4b ≈ 3 min. Treat as a target, not a metronome — leave room to breathe.
