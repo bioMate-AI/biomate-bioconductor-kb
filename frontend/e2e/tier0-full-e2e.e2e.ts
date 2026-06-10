@@ -322,17 +322,16 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
     await phasesTab.click({ force: true }).catch(() => {});
     await page.waitForTimeout(250);
   }
-  // Wait up to 60s for the lazy-fetched phase cards to mount on the Phases
-  // tab. Bumped from 20s after observing on the shared-fixture path: with
-  // background load the /api/nextflow/steps fetch sometimes lands at 25-40s
-  // (the screenshot 03_form_prefilled would still show "Click a phase to
-  // expand…" hint instead of cards). The downstream phase-cards-render
-  // assertion confirms the cards eventually arrive within the test timeout,
-  // so we just need to be patient here.
+  // Wait up to 120s for the lazy-fetched phase cards to mount on the Phases
+  // tab AND for at least one of them to expose its param values (which only
+  // happens after the chat-stream's `final` event lands — the workflow chip
+  // appears mid-stream but inline_parameters propagate on final). Bumped
+  // from 20s → 60s → 120s after observing the shared-fixture path with a
+  // longer chat-stream response taking ~70-90s to fully settle.
   await page.waitForFunction(
     () => document.querySelectorAll('[data-testid^="phase-group-"]').length >= 4,
     null,
-    { timeout: 60_000 },
+    { timeout: 120_000 },
   ).catch(() => {});
   // Step 5a: click each phase head to expand the phase card
   const heads = await page.locator('[data-testid^="phase-group-"] .phase-head').elementHandles();
@@ -498,6 +497,23 @@ async function runFullDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     if (!cardAppeared) return a;
 
     // ── 4. Verify form prefill ──
+    // The workflow chip appears mid-stream but inline_parameters land on the
+    // chat-stream's `final` event. Give the stream up to 90s to settle —
+    // poll for either the panelWorkflow to carry inline_parameters (visible
+    // as a non-empty workflow-card title) or just wait until the textarea
+    // is back to the idle placeholder state.
+    await page.waitForFunction(
+      () => {
+        const ta = document.querySelector('textarea') as HTMLTextAreaElement | null;
+        // Idle when no in-flight indicator + textarea empty
+        const idle = !document.querySelector('[data-testid="chat-stream-indicator"]') && (ta?.value ?? '') === '';
+        // OR: chat shows the final assistant turn (workflow chip with In-panel badge)
+        const hasFinal = !!document.querySelector('[data-testid^="workflow-card-"]');
+        return idle && hasFinal;
+      },
+      null,
+      { timeout: 90_000 },
+    ).catch(() => {});
     const params = await readPrefilledParams(page);
     a.inlineParameters = params;
     for (const chk of spec.expectedParams) {
