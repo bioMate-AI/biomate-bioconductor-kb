@@ -67,6 +67,7 @@ process BIOMARKER_PATIENT_ENRICHMENT {
     tuple val(meta), path("biomarker_enrichment_results.json"),  emit: results
     tuple val(meta), path("enrichment_summary.txt"),             emit: summary
     tuple val(meta), path("phase3_sample_size_comparison.csv"),  emit: sample_size
+    tuple val(meta), path("qc_metrics.json"),                    emit: qc_metrics
     path "versions.yml",                                         emit: versions
 
     script:
