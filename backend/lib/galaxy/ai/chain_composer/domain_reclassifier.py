@@ -87,11 +87,20 @@ _OFFLINE_KEYWORD_HINTS: Dict[str, List[str]] = {
 
 
 def _offline_classify(text: str) -> Tuple[str, float]:
-    """Score each domain by keyword hits; return (best_domain, hit_count_normalized)."""
+    """Score each domain by keyword hits; return (best_domain, hit_count_normalized).
+
+    Filtered to only emit domains in the canonical taxonomy so the offline
+    fallback can't propose labels (e.g. `phylogenetics`) that the catalog
+    doesn't actually use.
+    """
     t = (text or "").lower()
     scores: Dict[str, int] = {}
     for d, kws in _OFFLINE_KEYWORD_HINTS.items():
+        if d not in _DOMAIN_TAXONOMY:
+            continue
         scores[d] = sum(1 for kw in kws if kw in t)
+    if not scores:
+        return "general", 0.0
     best = max(scores, key=lambda d: scores[d])
     if scores[best] == 0:
         return "general", 0.0
