@@ -1538,6 +1538,7 @@ class NextflowQCGateHandler:
         "RETROSYNTHESIS_REPORT":     ("*", "qc_metrics.json"),  # aizynthfinder ≥1 solved route (GOLD, Genheden 2020)
         "P0_PKPD_SEMAGLUTIDE":       ("*", "qc_metrics.json"),  # semaglutide wk30 Δweight ∈ [-6,+3] kg (GOLD, Overgaard 2019)
         "CLINICAL_TRIAL_SIMULATION": ("*", "qc_metrics.json"),  # BOIN MTD DLT≤φ (GOLD, Liu & Yuan 2015)
+        "BOLTZ_SUMMARISE_RESULTS":   ("*", "qc_metrics.json"),  # Boltz pLDDT ≥70 / PAE ≤8Å (GOLD, Jumper 2021)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
