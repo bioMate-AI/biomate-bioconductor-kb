@@ -27,7 +27,13 @@ from .pattern_loader import load_patterns
 from .retrieval import retrieve_workflows
 
 
-_DEFAULT_DB = Path(__file__).resolve().parents[4] / "database" / "galaxy_ai_tools.db"
+import os
+_DEFAULT_DB = Path(
+    os.environ.get(
+        "BIOMATE_AI_TOOLS_DB",
+        Path(__file__).resolve().parents[4] / "database" / "galaxy_ai_tools.db",
+    )
+)
 
 
 def _q(conn, sql, params=()) -> List[tuple]:
