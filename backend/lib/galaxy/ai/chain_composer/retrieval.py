@@ -242,6 +242,35 @@ def retrieve_patterns(
 _WF_INDEX_CACHE: Dict[Tuple[str, float], Tuple["_BM25Index", Dict[str, "ScoredWorkflow"]]] = {}
 
 
+def _extract_v2_signal(annotation_v2: str) -> str:
+    """Extract just the high-signal portions of annotation_v2 for retrieval.
+
+    Returns a concatenation of:
+    - the `alternatives` field's named tools (multi_method_consensus tokens)
+    - the first short fragment of `when_to_use` (semantic-intent phrase)
+
+    Skips `key_parameters` (jargon-heavy) and `pitfalls` (failure-mode prose)
+    which add noise to BM25 ranking without changing the topical signal.
+    """
+    if not annotation_v2:
+        return ""
+    parts = []
+    # alternatives names — these are explicit substitution tokens
+    m = re.search(r"^- alternatives: (.+?)(?=\n- |\Z)", annotation_v2, re.MULTILINE | re.DOTALL)
+    if m:
+        # Names live before "=" markers in "Name=description ;; Name2=desc2"
+        chunks = re.split(r";;|;", m.group(1))
+        for chunk in chunks:
+            lhs = chunk.split("=", 1)[0].strip()
+            if lhs and len(lhs) <= 60:
+                parts.append(lhs)
+    # when_to_use — semantic intent (cap to 200 chars to avoid prose noise)
+    m = re.search(r"^- when_to_use: (.+?)(?=\n- |\Z)", annotation_v2, re.MULTILINE | re.DOTALL)
+    if m:
+        parts.append(m.group(1)[:200])
+    return " ".join(parts)
+
+
 def _load_workflow_index(db_path: Path) -> Tuple["_BM25Index", Dict[str, "ScoredWorkflow"]]:
     """Return (index, by_name) for the workflow catalog, cached on mtime."""
     key = (str(db_path), db_path.stat().st_mtime)
@@ -253,7 +282,8 @@ def _load_workflow_index(db_path: Path) -> Tuple["_BM25Index", Dict[str, "Scored
     try:
         rows = conn.execute(
             "SELECT name, COALESCE(domain,''), COALESCE(description,''), "
-            "       COALESCE(tools_used,''), COALESCE(annotation,'') "
+            "       COALESCE(tools_used,''), COALESCE(annotation,''), "
+            "       COALESCE(annotation_v2,'') "
             "FROM workflows WHERE executable=1 AND name IS NOT NULL"
         ).fetchall()
     finally:
@@ -261,7 +291,7 @@ def _load_workflow_index(db_path: Path) -> Tuple["_BM25Index", Dict[str, "Scored
 
     by_name: Dict[str, ScoredWorkflow] = {}
     docs: List[Tuple[str, str]] = []
-    for name, domain, description, tools_used, annotation in rows:
+    for name, domain, description, tools_used, annotation, annotation_v2 in rows:
         # Compose the searchable text. tools_used is a JSON array; annotation
         # is often the package's full description — useful for Bioc retrieval.
         try:
@@ -272,7 +302,13 @@ def _load_workflow_index(db_path: Path) -> Tuple["_BM25Index", Dict[str, "Scored
         # Annotation can be very long (1-2 paragraphs for Bioc); cap to keep
         # BM25 dl reasonable. The first ~400 chars carry the topical signal.
         annotation = (annotation or "")[:400]
-        doc_text = " ".join(filter(None, [name, domain, description, tools_text, annotation]))
+        # Extract just the HIGH-SIGNAL portions of annotation_v2:
+        # - alternatives: the substitution-cluster member names (e.g.
+        #   "edgeR, limma, DSS, EBSeq, baySeq" — multi_method_consensus tokens)
+        # - when_to_use: short semantic-intent phrase
+        # Skip key_parameters (jargon-heavy) and pitfalls (failure-mode prose).
+        v2_signal = _extract_v2_signal(annotation_v2)
+        doc_text = " ".join(filter(None, [name, domain, description, tools_text, annotation, v2_signal]))
         by_name[name] = ScoredWorkflow(
             name=name,
             domain=domain or "",
