@@ -498,6 +498,158 @@ TUTORIALS = {
     ],
   },
 
+  # ── Bioconductor · DESeq2 chain (bioc-kb-routing) — 21 steps ────────────────
+  # Voiceover sourced from src/BiocTours.jsx step bodies + the shared
+  # afterRunSteps generator. JSX markup stripped, package / class names
+  # spelled out for clarity (DESeqDataSet → "DeSeq Data Set", etc).
+  # Audit notes from docs/20260610_BIOC_TUTORIAL_NARRATIVE_AUDIT.md:
+  # D1 (step 3 disambig) needs a longer dwell — handled at the playwright
+  # tour layer, not here, since this is just voiceover length.
+  "bioc_kb": {
+    "label": "Bioconductor · DESeq2 chain",
+    "steps": [
+      # 1 — center welcome
+      ("We're going to run a Bioconductor differential expression analysis, "
+       "end to end. BioMate matches your request to a curated workflow, "
+       "routes each step to the right package, runs the six-phase chain, "
+       "then hands you a full report. "
+       "About three minutes — match, route, run, report.",
+       True, CLOSING_SPEED),
+
+      # 2 — spotlight: empty workflow panel
+      ("BioMate embeds your request against the Bioconductor knowledge base. "
+       "The panel stays empty for now — BioMate won't commit to a pipeline "
+       "before the match is resolved.",
+       False, None),
+
+      # 3 — spotlight: disambiguation card (D1 — content-dense)
+      ("Two curated chains scored close — a count-matrix DeSeq2 path at "
+       "zero point seven one, and a fuller F-A-S-T-Q pipeline at zero point "
+       "six six. Rather than guess, BioMate surfaces both with their scores. "
+       "The top match is pre-selected, with a commit countdown.",
+       False, None),
+
+      # 4 — spotlight: phase list populates
+      ("With bulk RNA-seq DeSeq2 chosen, the panel fills with its six phases. "
+       "Q-C, normalise, D-E test, shrink, enrich, visualise. "
+       "Only now does a pipeline exist; chat and panel track the same run.",
+       False, None),
+
+      # 5 — spotlight: reason block (routing)
+      ("BioMate explains the choice. A raw integer count matrix calls for "
+       "a negative-binomial model — DeSeq2 — not limma-voom, which expects "
+       "continuous log-two intensities. "
+       "The reasoning is grounded in the Love twenty-fourteen citation.",
+       False, None),
+
+      # 6 — spotlight: Phase A running
+      ("Execution starts. The active phase auto-expands. "
+       "edgeR's filterByExpr drops genes under ten counts. "
+       "As each step finishes, its parameters and output files appear inline.",
+       False, None),
+
+      # 7 — spotlight: object handoff
+      ("After normalisation, counts, metadata and size factors fold into one "
+       "DeSeq Data Set. That object class is the contract every downstream "
+       "DeSeq2 step reads from — typed handoffs all the way through.",
+       False, None),
+
+      # 8 — spotlight: Phase C running, DE testing
+      ("The Wald test runs on design tilde condition. "
+       "Two thousand eight hundred and forty-one genes pass at "
+       "false discovery rate under zero point zero five. "
+       "The result is a DeSeq Results table.",
+       False, None),
+
+      # 9 — spotlight: shrinkage explanation
+      ("Before ranking, apeglm shrinks low-count fold-changes toward zero. "
+       "The gene list feeding enrichment isn't dominated by noisy extremes. "
+       "apeglm isn't a blind default; the reasoning block says why.",
+       False, None),
+
+      # 10 — spotlight: Phase E enrichment
+      ("clusterProfiler's gseGO runs on the shrunk ranked list. "
+       "Top GO term — regulation of apoptotic process. "
+       "Phase F then renders the volcano plot, dot plot and heatmap.",
+       False, None),
+
+      # ── shared afterRunSteps (10 steps) ─────────────────────────────────────
+      # 11 — center: chain complete card
+      ("All six phases done — DeSeq2, apeglm, clusterProfiler, "
+       "EnhancedVolcano. The chat drops a findings card and the panel "
+       "flips to the after-run report. Next, we walk every tab.",
+       True, None),
+
+      # 12 — spotlight: after-run tabs overview
+      ("Every completed run produces a structured report. "
+       "Seven tabs — findings, outputs, methods, parameters, software, "
+       "citations, and the Q-C audit. Findings first, raw artifacts next, "
+       "then reproducibility, ending with audit.",
+       False, None),
+
+      # 13 — spotlight: Findings tab
+      ("The findings tab. Headline metric, a few bullets, and figures read "
+       "straight from the run manifest. "
+       "Figures are data-driven — bars for top G-O terms, a stacked bar for "
+       "D-E direction, a retention ring for gene filtering. "
+       "No numbers are invented.",
+       False, None),
+
+      # 14 — spotlight: Outputs tab
+      ("Outputs. One row per file, grouped by phase and step. "
+       "DeSeq results, the volcano P-N-G, the G-O dot plot, the top fifty "
+       "heatmap. View previews each file inline; download grabs one or all.",
+       False, None),
+
+      # 15 — spotlight: inline preview detour
+      ("Clicking view on the volcano P-N-G renders it inline — "
+       "log-two fold change versus negative log-ten adjusted p, "
+       "up genes in red, down in blue, cutoff lines drawn. "
+       "BioMate picks the volcano viewer from the file type.",
+       False, None),
+
+      # 16 — spotlight: Methods tab
+      ("The methods tab. Paragraph-form prose you can paste straight into "
+       "a manuscript — tools, versions, exact parameters, written so peers "
+       "can replicate the DeSeq2 run.",
+       False, None),
+
+      # 17 — spotlight: Parameters tab
+      ("Parameters. Phase, step, parameter, value — for everything the run "
+       "touched, from filterByExpr thresholds to apeglm's shrinkage type. "
+       "A ready supplementary table.",
+       False, None),
+
+      # 18 — spotlight: Software tab
+      ("Software. Every package with its exact version — DeSeq2, apeglm, "
+       "edgeR, clusterProfiler, EnhancedVolcano. Match these with the "
+       "parameters tab and you reproduce the run.",
+       False, None),
+
+      # 19 — spotlight: Citations tab
+      ("Citations. An auto-generated reference list — "
+       "Love twenty-fourteen for DeSeq2, Zhu twenty-nineteen for apeglm, "
+       "Wu twenty twenty-one for clusterProfiler. "
+       "Methods and citations ship together in the download report export.",
+       False, None),
+
+      # 20 — spotlight: QC audit tab (D2 — strong claim now backed by the
+      # rich panel shipped in commit 8050e6c3d on the BioMate side)
+      ("The Q-C audit tab. Every gate that fired, with threshold, observed "
+       "value, result, and action. A four-stat header summarises pass, "
+       "auto-corrected, and manual interventions. "
+       "Twenty-one C-F-R Part Eleven friendly, with chain of custody.",
+       False, None),
+
+      # 21 — center: wrap-up
+      ("That's the full DeSeq2 thread. Match, route, run six phases, "
+       "and a seven-tab report — all from one request. "
+       "Try the scRNA-seq and methylation tutorials next: "
+       "same agent, different science.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
 }
 
 
