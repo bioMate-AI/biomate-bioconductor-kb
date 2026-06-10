@@ -72,6 +72,99 @@ async function openQcTab() {
   fireEvent.click(qcTabBtn);
 }
 
+describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    // Mock the findings job pipeline: enqueue → state-ready → artifact returns FindingsData
+    const findingsArtifact = {
+      status: "ok",
+      summary: "DESeq2 found 2,841 differentially expressed genes.",
+      figures: [
+        { kind: "bars", title: "Top GO terms", unit: "−log₁₀ adj. p",
+          highlight: "apoptotic process",
+          data: [["apoptotic process", 10.7], ["immune response", 8.4]] },
+        { kind: "composition", title: "DE direction",
+          data: [["Up", 1612], ["Down", 1229]] },
+        { kind: "qc", title: "Gene filtering", unit: "genes retained",
+          kept: 14203, total: 18421 },
+      ],
+    };
+    vi.spyOn(global, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (url.endsWith("/api/jobs") && method === "POST") {
+        return { ok: true, status: 200,
+          json: async () => ({ jobId: "job-1", state: "ready" }),
+          text: async () => "" } as Response;
+      }
+      if (url === "/api/jobs/job-1/artifact") {
+        return { ok: true, status: 200,
+          json: async () => findingsArtifact, text: async () => "" } as Response;
+      }
+      if (url.startsWith("/api/jobs/job-1")) {
+        return { ok: true, status: 200,
+          json: async () => ({ state: "ready" }), text: async () => "" } as Response;
+      }
+      if (url.includes("qc-events")) {
+        return { ok: true, status: 200, json: async () => ({ events: [] }),
+          text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+  });
+
+  it("renders all 3 figure kinds when findings.figures is populated", async () => {
+    render(<AfterRunReport {...baseProps} />);
+    // Findings is the default tab — wait for the panel to mount after the job poll
+    const panel = await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
+    expect(within(panel).getByTestId("finding-fig-bars")).toBeInTheDocument();
+    expect(within(panel).getByTestId("finding-fig-composition")).toBeInTheDocument();
+    expect(within(panel).getByTestId("finding-fig-qc")).toBeInTheDocument();
+  });
+
+  it("highlights the row matching figure.highlight in FigBars", async () => {
+    render(<AfterRunReport {...baseProps} />);
+    const hl = await screen.findByTestId("finding-fig-bars-row-highlight", {}, { timeout: 5000 });
+    expect(hl).toHaveTextContent(/apoptotic process/);
+  });
+
+  it("renders the 'figures from manifest, not LLM' contract footer", async () => {
+    render(<AfterRunReport {...baseProps} />);
+    const panel = await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
+    expect(panel).toHaveTextContent(/Figures are generated from the run manifest/i);
+  });
+
+  it("hides the figures panel entirely when findings.figures is undefined (hide-when-empty)", async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(global, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (url.endsWith("/api/jobs") && method === "POST") {
+        return { ok: true, status: 200,
+          json: async () => ({ jobId: "j2", state: "ready" }), text: async () => "" } as Response;
+      }
+      if (url === "/api/jobs/j2/artifact") {
+        // No `figures` key → panel should not mount
+        return { ok: true, status: 200,
+          json: async () => ({ status: "ok", summary: "no figures here" }),
+          text: async () => "" } as Response;
+      }
+      if (url.startsWith("/api/jobs/j2")) {
+        return { ok: true, status: 200, json: async () => ({ state: "ready" }),
+          text: async () => "" } as Response;
+      }
+      if (url.includes("qc-events")) {
+        return { ok: true, status: 200, json: async () => ({ events: [] }),
+          text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+    render(<AfterRunReport {...baseProps} />);
+    await new Promise(r => setTimeout(r, 200));
+    expect(screen.queryByTestId("findings-figures-panel")).toBeNull();
+  });
+});
+
 describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
   it("renders 4-stat summary with correct counts", async () => {
     render(<AfterRunReport {...baseProps} />);
