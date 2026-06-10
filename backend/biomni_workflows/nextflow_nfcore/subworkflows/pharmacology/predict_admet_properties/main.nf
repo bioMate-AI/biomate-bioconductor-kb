@@ -38,6 +38,7 @@ process PREDICT_ADMET_PROPERTIES {
     tuple val(meta), path("predict_admet_properties_output.txt"), emit: output
     tuple val(meta), path("toxicity_report.json"), emit: toxicity_report
     tuple val(meta), path("pk_summary.json"), emit: pk_summary
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml", emit: versions
 
     script:
@@ -633,6 +634,38 @@ except Exception as pk_err:
 
 with open("pk_summary.json", "w") as f:
     json.dump(pk_summary, f, indent=2, default=str)
+
+# ── Emit qc_metrics.json for QC-gate consumption ──────────────────────────────
+# hERG ≥10μM (GOLD Redfern 2003 / ICH S7B); Ames neg (SILVER Kazius 2005);
+# DILI != high (SILVER Mulliner 2016 / Lammert 2010).
+qc_metrics = {
+    "success": success,
+    "process": "PREDICT_ADMET_PROPERTIES",
+    "domain": "pharmacology",
+}
+try:
+    if os.path.exists("toxicity_report.json"):
+        with open("toxicity_report.json") as _f:
+            _tr = json.load(_f)
+        tox = _tr.get("toxicity", {})
+        herg_ic50 = tox.get("herg_ic50_uM")
+        if herg_ic50 is not None:
+            qc_metrics["herg_ic50_uM"]      = herg_ic50
+            qc_metrics["herg_safe_above_10uM"] = bool(herg_ic50 >= 10.0)
+        if "ames_positive" in tox:
+            qc_metrics["ames_positive"]     = bool(tox["ames_positive"])
+            qc_metrics["ames_probability"]  = tox.get("ames_probability")
+        if "dili_risk" in tox:
+            qc_metrics["dili_risk"]         = tox["dili_risk"]
+            qc_metrics["dili_probability"]  = tox.get("dili_probability")
+        qc_metrics["compounds_assessed"] = _tr.get("compounds_assessed", 0)
+        qc_metrics["evidence_tier"] = "GOLD-Redfern2003 / SILVER-Kazius2005"
+        qc_metrics["citation"]      = "Redfern 2003 Cardiovasc Res 58:32; Kazius 2005 J Med Chem 48:312"
+except Exception as _qc_err:
+    qc_metrics["qc_emit_error"] = str(_qc_err)
+
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2, default=str)
 
 if not success:
     exit(1)

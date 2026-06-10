@@ -1544,6 +1544,9 @@ class NextflowQCGateHandler:
         "SIRNA_OFFTARGET_ANALYSIS":  ("*", "qc_metrics.json"),  # ΔdG asymmetry ≥0.5 (GOLD, Khvorova 2003)
         "NLMIXR2_POPULATION_PK":     ("*", "qc_metrics.json"),  # η-shrinkage <20% (GOLD, Savic & Karlsson 2007)
         "BIOMARKER_PATIENT_ENRICHMENT": ("*", "qc_metrics.json"),  # prev 0.10-0.50 (SILVER, FDA 2019), EF≥1.5 (BRONZE)
+        "IVIVE_HEPATIC_CLEARANCE":   ("*", "qc_metrics.json"),  # ivive_fold_error ≤ 2 (GOLD, Obach 1999)
+        "PREDICT_ADMET_PROPERTIES":  ("*", "qc_metrics.json"),  # hERG ≥10μM (GOLD, Redfern 2003) / Ames neg (SILVER, Kazius 2005) / DILI
+        "DDI_RISK_ASSESSMENT":       ("*", "qc_metrics.json"),  # FDA 2020 DDI R1/R2 INVESTIGATE/CLINICAL_STUDY (GOLD)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
