@@ -1,92 +1,141 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rGenomeTracks
-// rGenomeTracks package leverages the power of pyGenomeTracks software with the interactivity of R. py
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rGenomeTracks/inst/doc/rGenomeTracks.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("rGenomeTracks")
+// Bioconductor workflow: rgenometracks — visualize_genomic_tracks
+// Combine and plot multiple genomic data tracks (such as TADs, arcs, and BigWig) for a specific genomic region.
+// Input: tad_classification.bed, links2.links, bigwig2_X_2.5e6_3.5e6.bw, h5_dir
+// Container: quay.io/biocontainers/bioconductor-rgenometracks:1.16.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RGENOMETRACKS {
+process BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rgenometracks"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rgenometracks:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rgenometracks:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rgenometracks:1.16.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rgenometracks_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rgenometracks_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rgenometracks_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rgenometracks")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the rGenomeTracks library
     library(rGenomeTracks)
-    library(jsonlite)
-
-    # --- Files [] ---
-    # Key functions: files, bed
-    ---------------------------------------------------------------------
-    dirs <- list.files(system.file("extdata", package = "rGenomeTracks"), full.names = TRUE)
-    # filter only bed files (without bedgraphs or narrowpeaks)
-    bed_dirs <- grep(
-      dirs,  pattern = ".bed(?!graph)", perl = TRUE, value = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rgenometracks_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rgenometracks_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rgenometracks_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RGENOMETRACKS:", paste0("    rgenometracks: ", packageVersion("rGenomeTracks"))),
-        "versions.yml"
+    
+    # 1. Install pyGenomeTracks dependency
+    tryCatch({
+      install_pyGenomeTracks()
+    }, error = function(e) {
+      message("Note: pyGenomeTracks installation step encountered an issue or is already satisfied: ", e\$message)
+    })
+    
+    # Define input file paths from the working directory
+    tads_dir <- "tad_classification.bed"
+    arcs_dir <- "links2.links"
+    bw_dir <- "bigwig2_X_2.5e6_3.5e6.bw"
+    h5_dir <- "h5_dir"
+    
+    # 2. Create individual track objects
+    # Create HiC track from HiC matrix
+    h5 <- track_hic_matrix(
+      file = h5_dir, depth = 250000, min_value = 5, max_value = 200,
+      transform = "log1p", show_masked_bins = FALSE
     )
+    
+    # Create TADS track
+    tads <- track_domains(
+      file = tads_dir, border_color = "black",
+      color = "none", height = 5,
+      line_width = 5,
+      show_data_range = FALSE,
+      overlay_previous = "share-y"
+    )
+    
+    # Create arcs track
+    arcs <- track_links(
+      file = arcs_dir, links_type = "triangles",
+      line_style = "dashed",
+      overlay_previous = "share-y",
+      color = "darkred",
+      line_width = 3,
+      show_data_range = FALSE
+    )
+    
+    # Create bigwig track
+    bw <- track_bigwig(
+      file = bw_dir, color = "red",
+      max_value = 50,
+      min_value = 0,
+      height = 4,
+      overlay_previous = "no",
+      show_data_range = FALSE
+    )
+    
+    # 3. Combine track objects using the + operator
+    tracks <- tads + arcs + bw
+    
+    # Save the combined track objects as RDS files
+    saveRDS(tracks, "tracks_tads_arcs_bw.rds")
+    saveRDS(h5 + tads + bw, "tracks_h5_tads_bw.rds")
+    
+    # 4. Plot the combined tracks for a specific genomic region using plot_gtracks()
+    pdf("genomic_tracks_output.pdf", width = 10, height = 12)
+    
+    layout(matrix(c(1,1,2,3,4,4), nrow = 3, ncol = 2, byrow = TRUE))
+    plot_gtracks(tracks, chr = "X", start = 25 * 10^5, end = 31 * 10^5)
+    
+    # Reset layout for the second plot to avoid layout carryover issues
+    par(mfrow = c(1, 1))
+    
+    # Plot HiC, TADS and bigwig tracks
+    plot_gtracks(h5 + tads + bw, chr = "X", start = 25 * 10^5, end = 31 * 10^5)
+    
+    dev.off()
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS":
+        rgenometracks: \$(Rscript -e 'cat(as.character(packageVersion("rgenometracks")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rgenometracks_results.csv
-    touch ${prefix}_rgenometracks_output.rds
-    echo "BIOC_RGENOMETRACKS:" > versions.yml
-    echo "    rgenometracks: 0.0.0" >> versions.yml
+    touch ${prefix}_visualize_genomic_tracks.csv versions.yml
     """
 }
 
-
-workflow BIOC_RGENOMETRACKS_WORKFLOW {
+workflow BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tad_classification.bed, links2.links, bigwig2_X_2.5e6_3.5e6.bw, h5_dir ] ]
 
     main:
-    BIOC_RGENOMETRACKS(ch_input)
+    BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS(ch_input)
 
     emit:
-    results  = BIOC_RGENOMETRACKS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RGENOMETRACKS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RGENOMETRACKS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RGENOMETRACKS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS.out.tables
+    plots    = BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS.out.plots
+    objects  = BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS.out.objects
+    versions = BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS.out.versions
 }

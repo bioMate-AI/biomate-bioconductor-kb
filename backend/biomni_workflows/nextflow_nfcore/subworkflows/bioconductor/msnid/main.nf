@@ -1,118 +1,249 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MSnID
-// Extracts MS/MS ID data from mzIdentML (leveraging mzID package) or text files. After collating the s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MSnID/inst/doc/handling_mods.R
-// Upstream  : Biostrings, MSnbase, dplyr, ggplot2, xtable
-// Downstream: none
-//
-// Install: BiocManager::install("MSnID")
+// Bioconductor workflow: msnid — msms_filtering_and_fdr_optimization
+// Load MS/MS search results, assess cleavage properties, correct mass errors, optimize filtering criteria to maximize identifications within a target FDR, and exp
+// Input: human_brain.txt, c_elegans.mzid.gz
+// Container: quay.io/biocontainers/bioconductor-msnid:1.44.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSNID {
+process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msnid"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msnid:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msnid:1.40.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-msnid:1.44.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msnid_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msnid_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msnid_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MSnID)
-    library(jsonlite)
-
-    # --- Data Loading and Parsing [Data Loading and Parsing] ---
-    # Key functions: MSnID, read_mzIDs, id_files, peptides
-    msnid <- MSnID()
-    mzid_files <- c("sample1.mzid", "sample2.mzid")
-    msnid <- read_mzIDs(msnid, mzid_files)
-    loaded_files <- id_files(msnid)
-    peptide_sequences <- peptides(msnid)
-
-    # --- Peptide-Spectrum Match Filtering [Peptide-Spectrum Match Filtering] ---
-    # Key functions: MSnIDFilter, apply_filter
-    filtObj <- MSnIDFilter(msnid)
-    filtObj$msmsScore <- list(comparison = ">", value = 20)
-    filtObj$absParentMassErrorPPM <- list(comparison = "<", value = 10)
-    msnid <- apply_filter(msnid, filtObj)
-
-    # --- FDR Assessment and Optimization [FDR Assessment and Optimization] ---
-    # Key functions: MSnIDFilter, optimize_filter, apply_filter, assess_fdr
-    filtObj <- MSnIDFilter(msnid)
-    filtObj$msmsScore <- list(comparison = ">", value = 10)
-    filtObj$absParentMassErrorPPM <- list(comparison = "<", value = 20)
-    filtObj_opt <- optimize_filter(
-        filtObj, msnid, fdr.max = 0.01,
-        method = "Grid", level = "peptide"
-    )
-    msnid <- apply_filter(msnid, filtObj_opt)
-    fdr_summary <- assess_fdr(msnid, level = "peptide")
-
-    # --- Data Conversion and Export [Data Conversion and Export] ---
-    # Key functions: psms, as
-    psm_table <- psms(msnid)
-    msnset_data <- as(msnid, "MSnSet")
-    flat_dataframe <- as(msnid, "data.frame")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msnid_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msnid_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biostrings", "dplyr", "ggplot2", "msnbase", "msnid", "xtable")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msnid_output.rds")
-    }
+    
+    # Load required libraries
+    library("MSnID")
+    library("ggplot2")
+    library("MSnbase")
+    
+    # 1. Initialize MSnID object and load PSM data
+    msnid <- MSnID(".")
+    
+    # Read user input files from the working directory
+    PSMresults <- read.delim("human_brain.txt", stringsAsFactors=FALSE)
+    psms(msnid) <- PSMresults
+    show(msnid)
+    
+    mzids <- "c_elegans.mzid.gz"
+    msnid <- read_mzIDs(msnid, mzids)
+    show(msnid)
+    
+    # Start PDF for diagnostic plots
+    pdf("msnid_diagnostic_plots.pdf", width=8, height=6)
+    
+    # 2. Assess cleavage termini and missed cleavages
+    msnid <- assess_termini(msnid, validCleavagePattern="[KR]\\.[^P]")
+    msnid <- assess_missed_cleavages(msnid, missedCleavagePattern="[KR](?=[^P\$])")
+    
+    # Plot missed cleavages
+    pepCleav <- unique(psms(msnid)[,c("numMissCleavages", "isDecoy", "peptide")])
+    pepCleav <- as.data.frame(table(pepCleav[,c("numMissCleavages", "isDecoy")]))
+    p1 <- ggplot(pepCleav, aes(x=numMissCleavages, y=Freq, fill=isDecoy)) +
+        geom_bar(stat='identity', position='dodge') +
+        ggtitle("Number of Missed Cleavages")
+    print(p1)
+    
+    # 3. Calculate peptide length and other sequence properties
+    msnid\$numCys <- sapply(lapply(strsplit(msnid\$peptide,''),'==','C'),sum)
+    msnid\$PepLength <- nchar(msnid\$peptide) - 4
+    
+    # Plot peptide lengths
+    pepLen <- unique(psms(msnid)[,c("PepLength", "isDecoy", "peptide")])
+    p2 <- ggplot(pepLen, aes(x=PepLength, fill=isDecoy)) +
+        geom_histogram(position='dodge', binwidth=3) +
+        ggtitle("Distribution of Peptide Lengths")
+    print(p2)
+    
+    show(msnid)
+    
+    # Apply initial tryptic filters
+    msnid <- apply_filter(msnid, "numIrregCleavages == 0")
+    show(msnid)
+    
+    msnid <- apply_filter(msnid, "numMissCleavages <= 2")
+    show(msnid)
+    
+    # Plot original mass measurement error
+    ppm <- mass_measurement_error(msnid)
+    p3 <- ggplot(as.data.frame(ppm), aes(x=ppm)) +
+        geom_histogram(binwidth=100) +
+        ggtitle("Original Mass Measurement Error")
+    print(p3)
+    
+    # Plot delta mass
+    dM <- with(psms(msnid),
+        (experimentalMassToCharge-calculatedMassToCharge)*chargeState)
+    x <- data.frame(dM, isDecoy=msnid\$isDecoy)
+    p4 <- ggplot(x, aes(x=dM, fill=isDecoy)) +
+        geom_histogram(position='stack', binwidth=0.1) +
+        ggtitle("Delta Mass Distribution")
+    print(p4)
+    
+    # 4. Correct parent ion mass measurement errors and recalibrate
+    msnid.fixed <- correct_peak_selection(msnid)
+    ppm <- mass_measurement_error(msnid.fixed)
+    p5 <- ggplot(as.data.frame(ppm), aes(x=ppm)) +
+        geom_histogram(binwidth=0.25) +
+        ggtitle("Corrected Peak Selection Mass Error")
+    print(p5)
+    
+    msnid.chopped <- apply_filter(msnid, "abs(mass_measurement_error(msnid)) < 20")
+    ppm <- mass_measurement_error(msnid.chopped)
+    p6 <- ggplot(as.data.frame(ppm), aes(x=ppm)) +
+        geom_histogram(binwidth=0.25) +
+        ggtitle("Chopped Mass Error (< 20 ppm)")
+    print(p6)
+    
+    msnid <- recalibrate(msnid.chopped)
+    ppm <- mass_measurement_error(msnid)
+    p7 <- ggplot(as.data.frame(ppm), aes(x=ppm)) +
+        geom_histogram(binwidth=0.25) +
+        ggtitle("Recalibrated Mass Error")
+    print(p7)
+    
+    # Calculate scores
+    msnid\$msmsScore <- -log10(msnid\$`MS-GF:SpecEValue`)
+    params <- psms(msnid)[,c("msmsScore","isDecoy")]
+    p8 <- ggplot(params) +
+        geom_density(aes(x = msmsScore, color = isDecoy, y = ..count..)) +
+        ggtitle("MS-GF SpecEValue Score Distribution")
+    print(p8)
+    
+    msnid\$absParentMassErrorPPM <- abs(mass_measurement_error(msnid))
+    params2 <- psms(msnid)[,c("absParentMassErrorPPM","isDecoy")]
+    p9 <- ggplot(params2) +
+        geom_density(aes(x = absParentMassErrorPPM, color = isDecoy, y = ..count..)) +
+        ggtitle("Absolute Parent Mass Error Distribution")
+    print(p9)
+    
+    # 5. Define filtering criteria and optimize thresholds using Grid and Nelder-Mead methods
+    filtObj <- MSnIDFilter(msnid)
+    filtObj\$absParentMassErrorPPM <- list(comparison="<", threshold=10.0)
+    filtObj\$msmsScore <- list(comparison=">", threshold=10.0)
+    show(filtObj)
+    
+    evaluate_filter(msnid, filtObj, level="PSM")
+    evaluate_filter(msnid, filtObj, level="peptide")
+    evaluate_filter(msnid, filtObj, level="accession")
+    
+    # Grid search optimization
+    filtObj.grid <- optimize_filter(filtObj, msnid, fdr.max=0.01,
+                                    method="Grid", level="peptide",
+                                    n.iter=500)
+    show(filtObj.grid)
+    
+    # Nelder-Mead optimization
+    filtObj.nm <- optimize_filter(filtObj.grid, msnid, fdr.max=0.01,
+                                    method="Nelder-Mead", level="peptide",
+                                    n.iter=500)
+    show(filtObj.nm)
+    
+    evaluate_filter(msnid, filtObj, level="peptide")
+    evaluate_filter(msnid, filtObj.nm, level="peptide")
+    
+    # Close PDF device
+    dev.off()
+    
+    # 6. Apply optimized filters and remove decoy/contaminant matches
+    msnid <- apply_filter(msnid, filtObj.nm)
+    show(msnid)
+    
+    msnid <- apply_filter(msnid, "isDecoy == FALSE")
+    show(msnid)
+    
+    msnid <- apply_filter(msnid, "!grepl('Contaminant',accession)")
+    show(msnid)
+    
+    # Extract tables
+    psm.df <- psms(msnid)
+    psm.dt <- as(msnid, "data.table")
+    
+    peps <- peptides(msnid)
+    head(peps)
+    
+    prots <- accessions(msnid)
+    head(prots)
+    
+    prots <- proteins(msnid)
+    head(prots)
+    
+    # Write tabular outputs
+    write.csv(psm.df, "psm_filtered.csv", row.names=FALSE)
+    writeLines(peps, "peptides_filtered.txt")
+    writeLines(prots, "proteins_filtered.txt")
+    
+    # 7. Export to MSnSet for downstream spectral counting
+    msnset <- as(msnid, "MSnSet")
+    head(fData(msnset))
+    head(exprs(msnset))
+    
+    # Combine features to protein level
+    msnset <- combineFeatures(msnset,
+                                fData(msnset)\$accession,
+                                redundancy.handler="unique",
+                                fun="sum",
+                                cv=FALSE)
+    head(fData(msnset))
+    head(exprs(msnset))
+    
+    # Save final MSnSet object
+    saveRDS(msnset, "msnset_combined.rds")
+    
+    # Clean up cache
+    unlink(".Rcache", recursive=TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSNID:", paste0("    msnid: ", packageVersion("MSnID"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION":
+        msnid: \$(Rscript -e 'cat(as.character(packageVersion("msnid")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msnid_results.csv
-    touch ${prefix}_msnid_output.rds
-    echo "BIOC_MSNID:" > versions.yml
-    echo "    msnid: 0.0.0" >> versions.yml
+    touch ${prefix}_msms_filtering_and_fdr_optimization.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSNID_WORKFLOW {
+workflow BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ human_brain.txt, c_elegans.mzid.gz ] ]
 
     main:
-    BIOC_MSNID(ch_input)
+    BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION(ch_input)
 
     emit:
-    results  = BIOC_MSNID.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSNID.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSNID.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSNID.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION.out.tables
+    plots    = BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION.out.plots
+    objects  = BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION.out.objects
+    versions = BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION.out.versions
 }

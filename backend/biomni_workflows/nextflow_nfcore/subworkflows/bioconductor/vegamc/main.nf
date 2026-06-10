@@ -1,96 +1,121 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: VegaMC
-// This package enables the detection of driver chromosomal imbalances including loss of heterozygosity
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/VegaMC/inst/doc/VegaMC.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("VegaMC")
+// Bioconductor workflow: vegamc — chromosomal_imbalance_analysis
+// Identify driver chromosomal imbalances (deletions, amplifications, LOH) from sorted or unsorted aCGH/SNP array data.
+// Input: breast_Affy500K.txt, gist.txt
+// Container: quay.io/biocontainers/bioconductor-vegamc:3.48.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_VEGAMC {
+process BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-vegamc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-vegamc:3.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-vegamc:3.44.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-vegamc:3.48.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_vegamc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_vegamc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_vegamc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("vegamc")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required library
     library(VegaMC)
-    library(jsonlite)
-
-    # --- Copy Dataset [] ---
-    # Key functions: copy
-    file.copy(system.file("example/breast_Affy500K.txt",
-        package="VegaMC"),".")
-    # --- Runvegamc Breast [] ---
-    # Key functions: vegaMC
-    results <-
-    vegaMC("breast_Affy500K.txt",
-    	output_file_name="breast.analysis",
-    	beta=1,	min_region_bp_size=2000, bs=5000,
-    	html=FALSE, getGenes=FALSE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_vegamc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_vegamc_results.csv")
+    
+    # Define input file paths (assumed to be in the working directory as per user input specification)
+    breast_input <- "breast_Affy500K.txt"
+    gist_input <- "gist.txt"
+    
+    # Verify input files exist before proceeding
+    if (!file.exists(breast_input)) {
+      stop(paste("Required input file missing:", breast_input))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_vegamc_output.rds")
+    if (!file.exists(gist_input)) {
+      stop(paste("Required input file missing:", gist_input))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VEGAMC:", paste0("    vegamc: ", packageVersion("VegaMC"))),
-        "versions.yml"
+    
+    # 1. Run the joint segmentation, classification, and significance testing on the breast dataset
+    results <- vegaMC(
+      breast_input,
+      output_file_name = "breast.analysis",
+      beta = 1,
+      min_region_bp_size = 2000,
+      bs = 5000,
+      html = FALSE,
+      getGenes = FALSE
     )
+    
+    # Retrieve the results matrix and view the column names
+    cat("Column names of breast analysis results:\n")
+    print(colnames(results))
+    
+    # Save breast results to output files
+    write.csv(results, "breast_analysis_results.csv", row.names = FALSE)
+    saveRDS(results, "breast_analysis_results.rds")
+    
+    # 2. Sort the unsorted GIST dataset by genomic position using sortData
+    gist_sorted <- "gist.sorted.txt"
+    sortData(gist_input, gist_sorted)
+    
+    # 3. Run the joint segmentation, classification, and significance testing on the sorted GIST dataset
+    gist.results <- vegaMC(
+      gist_sorted,
+      output_file_name = "gist.analysis.default",
+      min_region_bp_size = 1000
+    )
+    
+    # Retrieve the GIST results matrix and view the column names
+    cat("Column names of GIST analysis results:\n")
+    print(colnames(gist.results))
+    
+    # Save GIST results to output files
+    write.csv(gist.results, "gist_analysis_results.csv", row.names = FALSE)
+    saveRDS(gist.results, "gist_analysis_results.rds")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS":
+        vegamc: \$(Rscript -e 'cat(as.character(packageVersion("vegamc")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_vegamc_results.csv
-    touch ${prefix}_vegamc_output.rds
-    echo "BIOC_VEGAMC:" > versions.yml
-    echo "    vegamc: 0.0.0" >> versions.yml
+    touch ${prefix}_chromosomal_imbalance_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_VEGAMC_WORKFLOW {
+workflow BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ breast_Affy500K.txt, gist.txt ] ]
 
     main:
-    BIOC_VEGAMC(ch_input)
+    BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_VEGAMC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VEGAMC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VEGAMC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VEGAMC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS.out.tables
+    plots    = BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS.out.plots
+    objects  = BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS.out.objects
+    versions = BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS.out.versions
 }

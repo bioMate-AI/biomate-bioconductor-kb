@@ -1,126 +1,204 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TFBSTools
-// TFBSTools is a package for the analysis and manipulation of transcription factor binding sites. It i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TFBSTools/inst/doc/TFBSTools.R
-// Upstream  : Biostrings, CNEr, JASPAR2014, rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("TFBSTools")
+// Bioconductor workflow: tfbstools — tfbs_sequence_scanning
+// Scan a nucleotide sequence with a PWM to identify putative TFBSs, calculate empirical p-values, and export results to GFF format.
+// Input: sequence.fasta, pfm_data.txt
+// Container: quay.io/biocontainers/bioconductor-tfbstools:1.48.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TFBSTOOLS {
+process BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tfbstools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tfbstools:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tfbstools:1.44.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-tfbstools:1.48.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tfbstools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tfbstools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tfbstools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biostrings", "cner", "jaspar2014", "rtracklayer", "tfbstools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(TFBSTools)
-    library(Matrix)
-    library(PFMatrix)
-    library(PFMatrixList)
-    library(jsonlite)
-
-    # --- Transcription Factor Motif Similarity Analysis [] ---
-    # Key functions: PFMSimilarity, PWMSimilarity, permuteMatrix
-    pfm_seq <- permuteMatrix(pfm, type="intra")
-    pfm_list <- PFMatrixList(pfm1=pfm, pfm2=pfm_seq, use.names=TRUE)
-    sim_pfm <- PFMSimilarity(pfm_list, pfm)
-    pwm1 <- toPWM(pfm, type="prob")
-    pwm2 <- toPWM(pfm_seq, type="prob")
-    sim_pwm <- PWMSimilarity(pwm1, pwm2, method="Pearson")
-
-
-    # --- Transcription Factor Binding Site Search [] ---
-    # Key functions: searchSeq, writeGFF3, relScore, pvalues
-    subject_seq <- Biostrings::DNAString("GAATTCTCTCTTGTTGTAGTCTCTTGACAAAATG")
-    siteset <- searchSeq(
-        pwm, subject_seq, seqname="seq1", 
-        min.score="60%", strand="*"
-    )
-    gff_output <- writeGFF3(siteset)
-    scores <- relScore(siteset)
-    p_vals <- pvalues(siteset, type="TFMPvalue")
-
-
-    # --- Genomic Alignment Search [] ---
-    # Key functions: searchAln, toGRangesList
-    aln1 <- Biostrings::DNAString("ACTTCACCAGCTCCCTGGCGGTAAGTTGATC")
-    aln2 <- Biostrings::DNAString("GTTTCACTACTTCCTTTCGGGTAAGTAAATA")
-    site_pair <- searchAln(
-        pwm, aln1, aln2, seqname1="seq1", seqname2="seq2",
-        min.score="50%", cutoff=0.5, strand="*", type="any"
-    )
-    gff_aln <- writeGFF3(site_pair)
-
-
-    # --- Transcription Factor Flexible Models [] ---
-    # Key functions: readXMLTFFM, getPosProb
-    xml_file <- system.file("extdata", "tffm_first_order.xml", package="TFBSTools")
-    tffm_first <- readXMLTFFM(xml_file, type="First")
-    pos_prob <- getPosProb(tffm_first)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tfbstools_results.csv", row.names = TRUE)
+    library(Biostrings)
+    
+    # ==========================================
+    # 1. Read User Input Files & Construct PFM
+    # ==========================================
+    
+    # Read DNA sequence of interest
+    if (!file.exists("sequence.fasta")) {
+      stop("Error: 'sequence.fasta' not found in the working directory.")
+    }
+    seqs <- readDNAStringSet("sequence.fasta")
+    if (length(seqs) == 0) {
+      stop("Error: 'sequence.fasta' is empty.")
+    }
+    subject <- seqs[[1]]
+    
+    # Read PFM data or JASPAR ID
+    if (!file.exists("pfm_data.txt")) {
+      stop("Error: 'pfm_data.txt' not found in the working directory.")
+    }
+    pfm_lines <- readLines("pfm_data.txt")
+    pfm_lines <- pfm_lines[nzchar(trimws(pfm_lines))]
+    
+    if (length(pfm_lines) == 0) {
+      stop("Error: 'pfm_data.txt' is empty.")
+    }
+    
+    # Determine if input is a JASPAR ID or a raw matrix
+    if (length(pfm_lines) == 1 && grepl("^MA\\d", trimws(pfm_lines[1]))) {
+      # Input is a JASPAR ID
+      jaspar_id <- trimws(pfm_lines[1])
+      message("Loading PFM from JASPAR2014 database for ID: ", jaspar_id)
+      if (!requireNamespace("JASPAR2014", quietly = TRUE)) {
+        stop("Error: JASPAR2014 package is required to fetch JASPAR IDs.")
+      }
+      library(JASPAR2014)
+      opts <- list(ID = jaspar_id)
+      pfm_list <- getMatrixSet(JASPAR2014, opts)
+      if (length(pfm_list) == 0) {
+        stop(paste("Error: JASPAR ID", jaspar_id, "not found in JASPAR2014."))
+      }
+      pfm <- pfm_list[[1]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tfbstools_results.csv")
+      # Input is a raw matrix
+      message("Parsing raw PFM matrix from pfm_data.txt")
+      matrix_rows <- list()
+      for (line in pfm_lines) {
+        # Extract all integers from the line
+        nums <- as.integer(regmatches(line, gregexpr("\\d+", line))[[1]])
+        if (length(nums) > 0) {
+          matrix_rows[[length(matrix_rows) + 1]] <- nums
+        }
+      }
+      if (length(matrix_rows) != 4) {
+        stop("Error: Raw PFM matrix must contain exactly 4 rows of counts (A, C, G, T).")
+      }
+      
+      profile_mat <- do.call(rbind, matrix_rows)
+      rownames(profile_mat) <- c("A", "C", "G", "T")
+      
+      # Construct PFMatrix object using documented arguments
+      pfm <- PFMatrix(ID="User_PFM", name="User_Motif", 
+                      matrixClass="Unknown", strand="+",
+                      bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                      tags=list(family="Unknown", species="Unknown"),
+                      profileMatrix=profile_mat)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tfbstools_output.rds")
-    }
+    
+    # ==========================================
+    # 2. Convert PFMatrix to PWMatrix
+    # ==========================================
+    pwm <- toPWM(pfm, type="log2probratio", pseudocounts=0.8,
+                 bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    # ==========================================
+    # 3. Scan Sequence with PWMatrix
+    # ==========================================
+    siteset <- searchSeq(pwm, subject, seqname="seq1", min.score="60%", strand="*")
+    
+    # ==========================================
+    # 4. Calculate Empirical P-values
+    # ==========================================
+    p_tfm <- tryCatch({
+      pvalues(siteset, type="TFMPvalue")
+    }, error = function(e) {
+      warning("Could not calculate TFMPvalue p-values: ", e\$message)
+      rep(NA, length(siteset))
+    })
+    
+    p_samp <- tryCatch({
+      pvalues(siteset, type="sampling")
+    }, error = function(e) {
+      warning("Could not calculate sampling p-values: ", e\$message)
+      rep(NA, length(siteset))
+    })
+    
+    # ==========================================
+    # 5. Export Results
+    # ==========================================
+    
+    # Generate GFF3 and GFF2 data frames
+    gff3_df <- writeGFF3(siteset)
+    gff2_df <- writeGFF2(siteset)
+    
+    # Print head of GFF outputs to console as in documented code
+    message("\n--- GFF3 Output Head ---")
+    print(head(gff3_df))
+    
+    message("\n--- GFF2 Output Head ---")
+    print(head(gff2_df))
+    
+    # Write GFF files
+    write.table(gff3_df, "siteset.gff3", sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+    write.table(gff2_df, "siteset.gff2", sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+    
+    # Create a comprehensive CSV summary table
+    summary_df <- gff3_df
+    summary_df\$relScore <- relScore(siteset)
+    summary_df\$pvalue_TFMPvalue <- p_tfm
+    summary_df\$pvalue_sampling <- p_samp
+    
+    write.csv(summary_df, "tfbs_scan_results.csv", row.names=FALSE)
+    
+    # Save R objects for downstream analysis
+    saveRDS(pwm, "pwm.rds")
+    saveRDS(siteset, "siteset.rds")
+    
+    message("\nPipeline completed successfully. Outputs saved:")
+    message("- siteset.gff3 (GFF3 format predictions)")
+    message("- siteset.gff2 (GFF2 format predictions)")
+    message("- tfbs_scan_results.csv (Comprehensive CSV summary with scores and p-values)")
+    message("- pwm.rds (Serialized PWMatrix object)")
+    message("- siteset.rds (Serialized SiteSet object)")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TFBSTOOLS:", paste0("    tfbstools: ", packageVersion("TFBSTools"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING":
+        tfbstools: \$(Rscript -e 'cat(as.character(packageVersion("tfbstools")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tfbstools_results.csv
-    touch ${prefix}_tfbstools_output.rds
-    echo "BIOC_TFBSTOOLS:" > versions.yml
-    echo "    tfbstools: 0.0.0" >> versions.yml
+    touch ${prefix}_tfbs_sequence_scanning.csv versions.yml
     """
 }
 
-
-workflow BIOC_TFBSTOOLS_WORKFLOW {
+workflow BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sequence.fasta, pfm_data.txt ] ]
 
     main:
-    BIOC_TFBSTOOLS(ch_input)
+    BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING(ch_input)
 
     emit:
-    results  = BIOC_TFBSTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TFBSTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TFBSTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TFBSTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING.out.tables
+    plots    = BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING.out.plots
+    objects  = BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING.out.objects
+    versions = BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING.out.versions
 }

@@ -1,132 +1,274 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SeqVarTools
-// An interface to the fast-access storage format for VCF data provided in SeqArray, with tools for com
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SeqVarTools/inst/doc/Iterators.R
-// Upstream  : Biobase, GenomicRanges
-// Downstream: none
-//
-// Install: BiocManager::install("SeqVarTools")
+// Bioconductor workflow: seqvartools — variant_qc_and_association_testing
+// Convert VCF to GDS, perform variant quality control checks (TiTv, heterozygosity, PCA, HWE, Mendelian errors), and run single-variant association tests.
+// Input: file.vcf, pedigree_data.RData
+// Container: quay.io/biocontainers/bioconductor-seqvartools:1.48.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEQVARTOOLS {
+process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seqvartools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seqvartools:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seqvartools:1.44.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-seqvartools:1.48.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seqvartools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seqvartools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seqvartools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(GRangesList)
-    library(IRanges)
-    library(SeqVarBlockIterator)
-    library(SeqVarData)
-    library(SeqVarListIterator)
-    library(SeqVarRangeIterator)
-    library(SeqVarWindowIterator)
-    library(jsonlite)
-
-    # --- Seqopen [] ---
-    # Key functions: seqOpen, seqExampleFileName, SeqVarData, SeqVarBlockIterator, variantInfo
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biobase", "genomicranges", "seqvartools")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(SeqVarTools)
-    gds <- seqOpen(seqExampleFileName("gds"))
-    seqData <- SeqVarData(gds)
-    iterator <- SeqVarBlockIterator(seqData, variantBlock=500)
-    var.info <- list(variantInfo(iterator))
-    # --- Seqsetfilter [] ---
-    # Key functions: seqSetFilter, SeqVarBlockIterator, variantInfo, iterateFilter, seqResetFilter
-    seqSetFilter(seqData, variant.sel=1:100)
-    iterator <- SeqVarBlockIterator(seqData, variantBlock=500)
-    var.info <- variantInfo(iterator)
-    nrow(var.info)
-    iterateFilter(iterator)
-    # --- Granges [] ---
-    # Key functions: GRanges, IRanges, SeqVarRangeIterator, variantInfo
     library(GenomicRanges)
-    gr <- GRanges(seqnames=rep(1,3),
-                  ranges=IRanges(start=c(1e6, 2e6, 3e6), width=1e6))
-    iterator <- SeqVarRangeIterator(seqData, variantRanges=gr)
-    var.info <- list(variantInfo(iterator))
-    # --- Seqsetfilterchrom [] ---
-    # Key functions: seqSetFilterChrom, SeqVarWindowIterator, variantInfo, iterateFilter, seqResetFilter
-    seqSetFilterChrom(seqData, include="22")
-    iterator <- SeqVarWindowIterator(seqData, windowSize=10000,
-                                     windowShift=5000)
-    var.info <- list(variantInfo(iterator))
-    i <- 2
-    # --- Grangeslist [] ---
-    # Key functions: GRangesList, GRanges, IRanges, SeqVarListIterator, variantInfo
-    gr <- GRangesList(
-      GRanges(seqnames=rep(22,2),
-              ranges=IRanges(start=c(16e6, 17e6), width=1e6)),
-      GRanges(seqnames=rep(22,2),
-              ranges=IRanges(start=c(18e6, 20e6), width=1e6)))
-    # --- Variantinfo [] ---
-    # Key functions: variantInfo, resetIterator
-    variantInfo(iterator)
-    resetIterator(iterator)
-    variantInfo(iterator)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seqvartools_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seqvartools_results.csv")
+    library(Biobase)
+    
+    # Define input files
+    vcffile <- "file.vcf"
+    gdsfile <- "tmp.gds"
+    pedigree_file <- "pedigree_data.RData"
+    
+    # 1. Convert VCF to GDS format and open it
+    seqVCF2GDS(vcffile, gdsfile, verbose=FALSE)
+    gds <- seqOpen(gdsfile)
+    gds
+    
+    # 2. Extract basic variant info
+    head(refChar(gds))
+    head(altChar(gds))
+    table(nAlleles(gds))
+    
+    multi.allelic <- which(nAlleles(gds) > 2)
+    if (length(multi.allelic) > 0) {
+      altChar(gds)[multi.allelic]
+      altChar(gds, n=1)[multi.allelic]
+      altChar(gds, n=2)[multi.allelic]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seqvartools_output.rds")
+    
+    table(isSNV(gds))
+    if (length(multi.allelic) > 0) {
+      isSNV(gds)[multi.allelic]
     }
+    
+    head(seqGetData(gds, "chromosome"))
+    head(seqGetData(gds, "position"))
+    granges(gds)
+    head(seqGetData(gds, "sample.id"))
+    head(seqGetData(gds, "variant.id"))
+    
+    rsID <- seqGetData(gds, "annotation/id")
+    head(rsID)
+    length(unique(rsID)) == length(rsID)
+    
+    # Ensure rsID is unique and non-empty before setting variant IDs
+    if (any(is.na(rsID)) || any(rsID == "") || length(unique(rsID)) != length(rsID)) {
+      rsID[is.na(rsID) | rsID == ""] <- paste0("var", seq_along(rsID))[is.na(rsID) | rsID == ""]
+      rsID <- make.unique(rsID)
+    }
+    
+    seqClose(gds)
+    setVariantID(gdsfile, rsID)
+    gds <- seqOpen(gdsfile)
+    head(seqGetData(gds, "variant.id"))
+    
+    # Genotype extraction
+    geno <- getGenotype(gds)
+    dim(geno)
+    geno[1:min(10, nrow(geno)), 1:min(5, ncol(geno))]
+    
+    geno <- getGenotypeAlleles(gds)
+    geno[1:min(10, nrow(geno)), 1:min(5, ncol(geno))]
+    
+    samp.id <- seqGetData(gds, "sample.id")[1:min(10, length(seqGetData(gds, "sample.id")))]
+    var.id <- seqGetData(gds, "variant.id")[1:min(5, length(seqGetData(gds, "variant.id")))]
+    applyMethod(gds, getGenotype, variant=var.id, sample=samp.id)
+    
+    # Genomic Ranges query (using the first chromosome dynamically)
+    first_chrom <- as.character(seqGetData(gds, "chromosome")[1])
+    gr <- GRanges(seqnames=first_chrom, IRanges(start=1, end=250000000))
+    geno <- applyMethod(gds, getGenotype, variant=gr)
+    dim(geno)
+    
+    # Open PDF for all QC and association plots
+    pdf("qc_and_association_plots.pdf", width=10, height=8)
+    
+    # 3. Calculate QC metrics
+    titv(gds)
+    head(titv(gds, by.sample=TRUE))
+    
+    binVar <- function(var, names, breaks) {
+      names(var) <- names
+      var <- sort(var)
+      mids <- breaks[1:length(breaks)-1] + 
+        (breaks[2:length(breaks)] - breaks[1:length(breaks)-1])/2
+      bins <- cut(var, breaks, labels=mids, right=FALSE)
+      split(names(var), bins)
+    }
+    
+    variant.id <- seqGetData(gds, "variant.id")
+    afreq <- alleleFrequency(gds)
+    maf <- pmin(afreq, 1-afreq)
+    maf.bins <- binVar(maf, variant.id, seq(0,0.5,0.02))
+    nbins <- length(maf.bins)
+    titv.maf <- rep(NA, nbins)
+    for (i in 1:nbins) {
+      capture.output(titv.maf[i] <- applyMethod(gds, titv, variant=maf.bins[[i]]))
+    }
+    plot(as.numeric(names(maf.bins)), titv.maf, xlab="MAF", ylab="TiTv")
+    
+    miss <- missingGenotypeRate(gds)
+    miss.bins <- binVar(miss, variant.id, c(seq(0,0.5,0.05),1))
+    nbins <- length(miss.bins)
+    titv.miss <- rep(NA, nbins)
+    for (i in 1:nbins) {
+      capture.output(titv.miss[i] <- applyMethod(gds, titv, variant=miss.bins[[i]]))
+    }
+    plot(as.numeric(names(miss.bins)), titv.miss, xlab="missing rate", ylab="TiTv")
+    
+    # Optional depth calculation (wrapped in tryCatch in case DP is not in VCF)
+    tryCatch({
+      depth <- seqApply(gds, "annotation/format/DP", mean, margin="by.variant", 
+                        as.is="double", na.rm=TRUE)
+      depth.bins <- binVar(depth, variant.id, seq(0,200,20))
+      nbins <- length(depth.bins)
+      titv.depth <- rep(NA, nbins)
+      for (i in 1:nbins) {
+        capture.output(titv.depth[i] <- applyMethod(gds, titv, variant=depth.bins[[i]]))
+      }
+      plot(as.numeric(names(depth.bins)), titv.depth, xlab="mean depth", ylab="TiTv")
+    }, error = function(e) {
+      message("DP format field not found or error in depth calculation: ", e\$message)
+    })
+    
+    miss.var <- missingGenotypeRate(gds, margin="by.variant")
+    het.var <- heterozygosity(gds, margin="by.variant")
+    filt <- seqGetData(gds, "variant.id")[miss.var <= 0.1 & het.var <= 0.6]
+    
+    # Ensure we have variants left after filtering
+    if (length(filt) == 0) {
+      filt <- seqGetData(gds, "variant.id")
+    }
+    
+    seqSetFilter(gds, variant.id=filt)
+    hethom <- hethom(gds)
+    hist(hethom, main="", xlab="Het/Hom Non-Ref")
+    seqSetFilter(gds)
+    
+    # 4. Population structure and Hardy-Weinberg Equilibrium
+    pc <- pca(gds)
+    saveRDS(pc, "pca_results.rds")
+    names(pc)
+    plot(pc\$eigenvect[,1], pc\$eigenvect[,2])
+    
+    hw <- hwe(gds)
+    write.csv(hw, "hwe_results.csv", row.names=FALSE)
+    pval <- -log10(sort(hw\$p))
+    hw.perm <- hwe(gds, permute=TRUE)
+    x <- -log10(sort(hw.perm\$p))
+    plot(x, pval, xlab="-log10(expected P)", ylab="-log10(observed P)")	
+    abline(0,1,col="red")
+    hist(hw\$f)
+    
+    ic <- inbreedCoeff(gds, margin="by.sample")
+    range(ic)
+    
+    # 5. Check for Mendelian errors using pedigree data
+    loaded_objs <- load(pedigree_file)
+    # Ensure the loaded pedigree object is correctly named 'pedigree'
+    if (!"pedigree" %in% loaded_objs) {
+      for (obj in loaded_objs) {
+        if (is.data.frame(get(obj))) {
+          pedigree <- get(obj)
+          break
+        }
+      }
+    }
+    
+    err <- mendelErr(gds, pedigree, verbose=FALSE)
+    saveRDS(err, "mendelian_errors.rds")
+    table(err\$by.variant)
+    err\$by.trio
+    
+    # 6. Combine GDS and sample annotation into a SeqVarData object and run association tests
+    sample.id <- seqGetData(gds, "sample.id")
+    pedigree <- pedigree[match(sample.id, pedigree\$sample.id),]
+    sample.data <- AnnotatedDataFrame(pedigree)
+    seqData <- SeqVarData(gds, sample.data)
+    
+    # Continuous phenotype association (Linear regression)
+    assoc <- regression(seqData, outcome="phenotype", covar="sex",
+                        model.type="linear")
+    write.csv(assoc, "association_results_linear.csv", row.names=FALSE)
+    head(assoc)
+    pval <- -log10(sort(assoc\$Wald.Pval))
+    n <- length(pval)
+    x <- -log10((1:n)/n)
+    plot(x, pval, xlab="-log10(expected P)", ylab="-log10(observed P)")
+    abline(0, 1, col = "red")
+    
+    # Binary phenotype association (Firth regression)
+    assoc <- regression(seqData, outcome="case.status", covar="sex",
+                        model.type="firth")
+    write.csv(assoc, "association_results_firth.csv", row.names=FALSE)
+    head(assoc)
+    pval <- -log10(sort(assoc\$PPL.Pval))
+    n <- length(pval)
+    x <- -log10((1:n)/n)
+    plot(x, pval, xlab="-log10(expected P)", ylab="-log10(observed P)")
+    abline(0, 1, col = "red")
+    
+    # Close PDF device
+    dev.off()
+    
+    # Clean up and close GDS
+    seqClose(gds)
+    unlink(gdsfile)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEQVARTOOLS:", paste0("    seqvartools: ", packageVersion("SeqVarTools"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING":
+        seqvartools: \$(Rscript -e 'cat(as.character(packageVersion("seqvartools")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seqvartools_results.csv
-    touch ${prefix}_seqvartools_output.rds
-    echo "BIOC_SEQVARTOOLS:" > versions.yml
-    echo "    seqvartools: 0.0.0" >> versions.yml
+    touch ${prefix}_variant_qc_and_association_testing.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEQVARTOOLS_WORKFLOW {
+workflow BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file.vcf, pedigree_data.RData ] ]
 
     main:
-    BIOC_SEQVARTOOLS(ch_input)
+    BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING(ch_input)
 
     emit:
-    results  = BIOC_SEQVARTOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEQVARTOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEQVARTOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEQVARTOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING.out.tables
+    plots    = BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING.out.plots
+    objects  = BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING.out.objects
+    versions = BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING.out.versions
 }

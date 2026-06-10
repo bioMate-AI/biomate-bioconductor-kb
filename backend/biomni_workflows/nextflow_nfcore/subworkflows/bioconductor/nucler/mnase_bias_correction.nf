@@ -1,17 +1,11 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor workflow: nucleR — mnase_bias_correction
-// Correct nucleosomal DNA coverage profiles using a mock control of naked DNA digested with MNase.
-// Input: nucleosome_reads.bam, control_reads.bam
+// Bioconductor workflow: nucler — mnase_bias_correction
+// Correct nucleosomal DNA coverage profiles using a mock control sample of naked DNA digested with MNase.
+// Input: nucleosomal_coverage.RData, control_coverage.RData
 // Container: quay.io/biocontainers/bioconductor-nucler:2.42.0--r45hdfd78af_0
-// Requires: GenomicRanges, IRanges, ggplot2, nucleR
-// Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
-
-// Steps:
-//  * 1. [Input & Preparation] Generate or load experimental and control coverages
-//  * 2. [Core Analysis] Correct the experimental coverage using controlCorrection
 
 nextflow.enable.dsl = 2
 
@@ -19,7 +13,7 @@ process BIOC_NUCLER_MNASE_BIAS_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
+    container "quay.io/biocontainers/bioconductor-nucler:2.42.0--r45hdfd78af_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -37,97 +31,110 @@ process BIOC_NUCLER_MNASE_BIAS_CORRECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
-        }
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "IRanges", "ggplot2", "nucleR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
     
     # Load required libraries
     library(nucleR)
-    library(GenomicRanges)
     library(IRanges)
+    library(GenomicRanges)
     library(ggplot2)
     
-    # 1. Load experimental and control coverages from BAM files
-    message("Reading input BAM files...")
-    exp_reads <- tryCatch({
-      readBAM("nucleosome_reads.bam", type="paired")
-    }, error = function(e) {
-      message("Failed to read as paired-end, trying single-end...")
-      readBAM("nucleosome_reads.bam", type="single")
-    })
+    # ------------------------------------------------------------------------------
+    # 1. Load User Input Files
+    # ------------------------------------------------------------------------------
+    # Load nucleosomal coverage (RleList)
+    if (!file.exists("nucleosomal_coverage.RData")) {
+      stop("Error: 'nucleosomal_coverage.RData' not found in the working directory.")
+    }
+    env_exp <- new.env()
+    load("nucleosomal_coverage.RData", envir = env_exp)
+    exp_objs <- ls(env_exp)
+    if (length(exp_objs) == 0) {
+      stop("Error: 'nucleosomal_coverage.RData' is empty.")
+    }
+    exp <- env_exp[[exp_objs[1]]]
     
-    ctr_reads <- tryCatch({
-      readBAM("control_reads.bam", type="paired")
-    }, error = function(e) {
-      message("Failed to read as paired-end, trying single-end...")
-      readBAM("control_reads.bam", type="single")
-    })
+    # Load control coverage (RleList)
+    if (!file.exists("control_coverage.RData")) {
+      stop("Error: 'control_coverage.RData' not found in the working directory.")
+    }
+    env_ctr <- new.env()
+    load("control_coverage.RData", envir = env_ctr)
+    ctr_objs <- ls(env_ctr)
+    if (length(ctr_objs) == 0) {
+      stop("Error: 'control_coverage.RData' is empty.")
+    }
+    ctr <- env_ctr[[ctr_objs[1]]]
     
-    # Generate coverages
-    exp <- coverage(exp_reads)
-    ctr <- coverage(ctr_reads)
-    
-    # 2. Correct the experimental coverage using controlCorrection
-    message("Applying MNase bias correction...")
+    # ------------------------------------------------------------------------------
+    # 2. MNase Bias Correction
+    # ------------------------------------------------------------------------------
+    # Correct nucleosomal DNA coverage profiles using the mock control sample
     corrected <- controlCorrection(exp, ctr)
     
-    # Save results
-    message("Saving results...")
-    saveRDS(corrected, "corrected_coverage.rds")
+    # ------------------------------------------------------------------------------
+    # 3. Save Outputs
+    # ------------------------------------------------------------------------------
+    # Save the corrected coverage object
+    saveRDS(corrected, file = "corrected_coverage.rds")
+    save(corrected, file = "corrected_coverage.RData")
     
-    # Export to WIG format
+    # Generate a comparison plot for the first chromosome/scaffold
     tryCatch({
-      export.wig(corrected, "corrected_coverage.wig")
-    }, error = function(e) {
-      message("Could not export to WIG: ", e\$message)
-    })
-    
-    # Generate a plot for the first chromosome (first 10,000 bp)
-    tryCatch({
-      chr <- names(exp)[1]
-      max_len <- min(10000, length(exp[[chr]]), length(corrected[[chr]]))
-      
-      exp_sub <- as.vector(exp[[chr]])[1:max_len]
-      corrected_sub <- as.vector(corrected[[chr]])[1:max_len]
-      
-      plot_data <- rbind(
-          data.frame(
-              position = 1:max_len,
-              coverage = exp_sub,
-              type = "Uncorrected"
-          ),
-          data.frame(
-              position = 1:max_len,
-              coverage = corrected_sub,
+      chr_name <- names(exp)[1]
+      if (!is.null(chr_name)) {
+        exp_vec <- as.vector(exp[[chr_name]])
+        corr_vec <- as.vector(corrected[[chr_name]])
+        
+        # Limit plot to the first 5000 bp (or maximum available length)
+        plot_len <- min(5000, length(exp_vec), length(corr_vec))
+        
+        if (plot_len > 0) {
+          plot_data <- rbind(
+            data.frame(
+              position = 1:plot_len,
+              coverage = exp_vec[1:plot_len],
+              type = "Original"
+            ),
+            data.frame(
+              position = 1:plot_len,
+              coverage = corr_vec[1:plot_len],
               type = "Corrected"
+            )
           )
-      )
-      
-      p <- ggplot(plot_data, aes(x = position, y = coverage, color = type)) +
-          geom_line(alpha = 0.8) +
-          theme_minimal() +
-          labs(
-              title = paste("MNase Bias Correction - Chromosome", chr),
-              x = "Genomic Position",
+          
+          pdf("mnase_bias_correction_plot.pdf", width = 8, height = 4)
+          p <- ggplot(plot_data, aes(x = position, y = coverage, color = type)) +
+            geom_line(alpha = 0.8) +
+            labs(
+              title = paste("MNase Bias Correction -", chr_name),
+              x = "Genomic Position (bp)",
               y = "Coverage",
-              color = "Status"
-          ) +
-          theme(legend.position = "bottom")
-      
-      ggsave("mnase_correction_plot.pdf", plot = p, width = 8, height = 4)
-      message("Plot saved to mnase_correction_plot.pdf")
+              color = "Profile"
+            ) +
+            theme_minimal()
+          print(p)
+          dev.off()
+          message("Plot saved to 'mnase_bias_correction_plot.pdf'")
+        }
+      }
     }, error = function(e) {
-      message("Could not generate plot: ", e\$message)
+      warning("Could not generate comparison plot: ", e\$message)
     })
     
-    message("Pipeline completed successfully!")
+    message("Pipeline completed successfully. Corrected coverage saved to 'corrected_coverage.rds' and 'corrected_coverage.RData'.")
 
-    writeLines(c(
-        '"BIOC_NUCLER_MNASE_BIAS_CORRECTION":',
-        paste0('    nucleR: ', as.character(packageVersion('nucleR')))
-    ), "versions.yml")
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_NUCLER_MNASE_BIAS_CORRECTION":
+        nucler: \$(Rscript -e 'cat(as.character(packageVersion("nucler")))')
+    END_VERSIONS
     """
 
     stub:
@@ -139,7 +146,7 @@ process BIOC_NUCLER_MNASE_BIAS_CORRECTION {
 
 workflow BIOC_NUCLER_MNASE_BIAS_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), [ nucleosome_reads.bam, control_reads.bam ] ]
+    ch_input  // channel: [ val(meta), [ nucleosomal_coverage.RData, control_coverage.RData ] ]
 
     main:
     BIOC_NUCLER_MNASE_BIAS_CORRECTION(ch_input)

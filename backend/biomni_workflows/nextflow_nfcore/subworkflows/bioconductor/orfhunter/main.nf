@@ -1,105 +1,120 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ORFhunteR
-// The ORFhunteR package is a R and C++ library for an automatic determination and annotation of open r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ORFhunteR/inst/doc/ORFhunteR.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ORFhunteR")
+// Bioconductor workflow: orfhunter — train_orf_classifier
+// Train a custom Random Forest classifier to distinguish true ORFs from pseudo-ORFs using known lncRNA and mRNA sequences.
+// Input: fileORFLncRNAs.fasta.gz, fileORFmRNAs.fasta.gz
+// Container: quay.io/biocontainers/bioconductor-orfhunter:1.18.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ORFHUNTER {
+process BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-orfhunter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-orfhunter:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-orfhunter:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-orfhunter:1.18.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_orfhunter_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_orfhunter_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_orfhunter_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAStringSet)
-    library(jsonlite)
-
-    # --- Loadtrexper [] ---
-    # Key functions: loadTrExper
-    ---------------------------------------------------------------------
-    seq.set <- loadTrExper(tr = trans)
-    # --- Findorfs [] ---
-    # Key functions: findORFs
-    ---------------------------------------------------------------------
-    x <- "AAAATGGCTGCGTAATGCAAAATGGCTGCGAATGCAAAATGGCTGCGAATGCCGGCACGTTGCTACGT"
-    orf <- findORFs(x, codStart="ATG")
-    # --- Vectorizeorfs [] ---
-    # Key functions: vectorizeORFs, DNAStringSet
-    ---------------------------------------------------------------------
-    feats <- vectorizeORFs(x=DNAStringSet(x="ATGGGCCTCA"))
-    # --- Predictorf [] ---
-    # Key functions: predictORF
-    ---------------------------------------------------------------------
-    model <- "http://www.sstcenter.com/download/ORFhunteR/classRFmodel_1.rds"
-    ORFs <- predictORF(tr = trans,
-                       model= model,
-                       prThr = 0)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_orfhunter_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_orfhunter_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("orfhunter")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_orfhunter_output.rds")
+    
+    # Load required libraries
+    library(ORFhunteR)
+    
+    # Define input files as specified by the user
+    fileORFLncRNAs <- "fileORFLncRNAs.fasta.gz"
+    fileORFmRNAs <- "fileORFmRNAs.fasta.gz"
+    
+    # Verify that the required input files exist in the working directory
+    if (!file.exists(fileORFLncRNAs)) {
+      stop(paste("Error: Required input file missing:", fileORFLncRNAs))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ORFHUNTER:", paste0("    orfhunter: ", packageVersion("ORFhunteR"))),
-        "versions.yml"
+    if (!file.exists(fileORFmRNAs)) {
+      stop(paste("Error: Required input file missing:", fileORFmRNAs))
+    }
+    
+    # Load transcript/ORF sequences using loadTrExper
+    ORFLncRNAs <- loadTrExper(tr = fileORFLncRNAs)
+    ORFmRNAs <- loadTrExper(tr = fileORFmRNAs)
+    
+    # Define the number of sequences to use for training
+    N <- 1000
+    
+    # Robust check to prevent out-of-bounds subscripting if input files have fewer than 1000 sequences
+    N <- min(N, length(ORFLncRNAs), length(ORFmRNAs))
+    
+    ORFLncRNAs <- ORFLncRNAs[1:N]
+    ORFmRNAs <- ORFmRNAs[1:N]
+    
+    # Train the Random Forest classifier using classifyORFsCandidates
+    clt <- classifyORFsCandidates(
+      ORFLncRNAs = ORFLncRNAs,
+      ORFmRNAs = ORFmRNAs,
+      pLearn = 0.75,
+      nTrees = 500,
+      modelRF = NULL,
+      workDir = NULL,
+      showAccuracy = TRUE
     )
+    
+    # Save the trained Random Forest model object
+    saveRDS(clt, "trained_orf_classifier.rds")
+    
+    # Export meaningful classification metrics if available
+    if (!is.null(clt)) {
+      if (!is.null(clt\$confusion)) {
+        write.csv(clt\$confusion, "classifier_confusion_matrix.csv", row.names = TRUE)
+      }
+      if (!is.null(clt\$importance)) {
+        write.csv(clt\$importance, "classifier_variable_importance.csv", row.names = TRUE)
+      }
+    }
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER":
+        orfhunter: \$(Rscript -e 'cat(as.character(packageVersion("orfhunter")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_orfhunter_results.csv
-    touch ${prefix}_orfhunter_output.rds
-    echo "BIOC_ORFHUNTER:" > versions.yml
-    echo "    orfhunter: 0.0.0" >> versions.yml
+    touch ${prefix}_train_orf_classifier.csv versions.yml
     """
 }
 
-
-workflow BIOC_ORFHUNTER_WORKFLOW {
+workflow BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ fileORFLncRNAs.fasta.gz, fileORFmRNAs.fasta.gz ] ]
 
     main:
-    BIOC_ORFHUNTER(ch_input)
+    BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER(ch_input)
 
     emit:
-    results  = BIOC_ORFHUNTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ORFHUNTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ORFHUNTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ORFHUNTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER.out.tables
+    plots    = BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER.out.plots
+    objects  = BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER.out.objects
+    versions = BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER.out.versions
 }

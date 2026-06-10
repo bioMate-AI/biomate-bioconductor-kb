@@ -1,120 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MSnbase
-// MSnbase provides infrastructure for manipulation, processing and visualisation of mass spectrometry 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MSnbase/inst/doc/v01-MSnbase-demo.R
-// Upstream  : BiocParallel, BiocStyle, Rdisop, doParallel, ggplot2
-// Downstream: bandle, msmsEDA, msmsTests, pRoloc, pRolocGUI
-//
-// Install: BiocManager::install("MSnbase")
+// Bioconductor workflow: msnbase — isobaric_tagging_quantitation
+// Import raw MS data, integrate peptide identifications, clean spectra, quantify reporter ions, correct for isotopic impurities, normalize, and aggregate spectrum
+// Input: quantFile.mzXML, identFile.mzid
+// Container: quay.io/biocontainers/bioconductor-msnbase:2.36.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSNBASE {
+process BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msnbase"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msnbase:2.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msnbase:2.32.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-msnbase:2.36.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msnbase_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msnbase_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msnbase_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biocparallel", "biocstyle", "doparallel", "ggplot2", "msnbase", "rdisop")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(MSnbase)
-    library(MSmap)
-    library(PXDataset)
-    library(jsonlite)
-
-    # --- Peptide Identification Integration [] ---
-    # Key functions: readMzIdData, filterIdentificationDataFrame, addIdentificationData
-    iddf <- MSnbase::readMzIdData("sample.mzid")
-    iddf_filtered <- MSnbase::filterIdentificationDataFrame(iddf)
-    msexp <- MSnbase::addIdentificationData(
-        rawdata,
-        id = iddf_filtered
-    )
-
-
-    # --- Spectrum Quality Control [] ---
-    # Key functions: removePeaks, clean, pickPeaks
-    cleaned_exp <- MSnbase::removePeaks(
-        rawdata,
-        t = 400,
-        verbose = FALSE
-    )
-    cleaned_exp <- MSnbase::clean(
-        cleaned_exp,
-        verbose = FALSE
-    )
-    peaks_picked <- MSnbase::pickPeaks(
-        cleaned_exp,
-        verbose = FALSE
-    )
-
-
-    # --- Chromatogram Extraction [] ---
-    # Key functions: chromatogram
-    mtof_tic <- MSnbase::chromatogram(
-        rawdata,
-        aggregationFun = "max"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msnbase_results.csv", row.names = TRUE)
+    
+    # Define input file paths in the working directory
+    quantFile <- "quantFile.mzXML"
+    identFile <- "identFile.mzid"
+    
+    # Verify that input files exist before proceeding
+    if (!file.exists(quantFile)) {
+      stop(paste("Required raw MS data file missing:", quantFile))
+    }
+    if (!file.exists(identFile)) {
+      stop(paste("Required identification file missing:", identFile))
+    }
+    
+    # Define standard iTRAQ 4-plex impurity matrix for purity correction
+    # Rows correspond to reporters 114, 115, 116, 117
+    impurities <- matrix(c(
+      0.929, 0.059, 0.002, 0.000,
+      0.020, 0.923, 0.056, 0.001,
+      0.000, 0.030, 0.924, 0.045,
+      0.000, 0.001, 0.040, 0.929
+    ), nrow = 4, byrow = TRUE)
+    rownames(impurities) <- colnames(impurities) <- c("114", "115", "116", "117")
+    
+    # 1. Import raw MS data
+    msexp <- readMSData(quantFile, verbose = FALSE)
+    
+    # 2. Integrate peptide identification data
+    msexp <- addIdentificationData(msexp, id = identFile)
+    
+    # 3. Filter out unidentified spectra
+    msexp <- removeNoId(msexp)
+    
+    # 4. Clean low-intensity peaks and remove empty data points
+    experiment <- removePeaks(msexp, t = 400, verbose = FALSE)
+    experiment <- clean(experiment, verbose = FALSE)
+    
+    # 5. Focus on the reporter ion m/z range
+    experiment <- filterMz(experiment, mzlim = c(112,120))
+    
+    # 6. Quantify reporter ions
+    qnt <- quantify(experiment, method = "trap", reporters = iTRAQ4, strict = FALSE, verbose = FALSE)
+    
+    # 7. Filter out features with missing values
+    qnt <- filterNA(qnt, pNA = 0)
+    
+    # 8. Correct for isotopic impurities
+    qnt.crct <- purityCorrect(qnt, impurities)
+    
+    # 9. Normalize reporter intensities
+    qnt.max <- normalise(qnt, "max")
+    
+    # 10. Aggregate spectrum-level quantitation to protein-level abundances
+    gb <- fData(qnt)\$ProteinAccession
+    qnt2 <- combineFeatures(qnt, groupBy = gb, method = "median")
+    
+    # --- Export Results ---
+    
+    # Save quantitative data as CSV tables
+    write.csv(exprs(qnt2), file = "protein_abundances.csv", row.names = TRUE)
+    write.csv(exprs(qnt.crct), file = "spectrum_purity_corrected.csv", row.names = TRUE)
+    write.csv(exprs(qnt.max), file = "spectrum_normalized_max.csv", row.names = TRUE)
+    
+    # Save R objects for downstream analysis
+    saveRDS(qnt2, file = "protein_abundances.rds")
+    saveRDS(qnt.crct, file = "spectrum_purity_corrected.rds")
+    saveRDS(qnt.max, file = "spectrum_normalized_max.rds")
+    
+    # Generate a PDF plot of the final protein-level abundances
+    pdf("protein_abundance_heatmap.pdf", width = 7, height = 7)
+    if (nrow(qnt2) > 1) {
+      heatmap(exprs(qnt2), main = "Protein Abundances (iTRAQ4)", Colv = NA)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msnbase_results.csv")
+      barplot(exprs(qnt2), main = "Protein Abundances (iTRAQ4)", beside = TRUE, legend.text = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msnbase_output.rds")
-    }
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs written to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSNBASE:", paste0("    msnbase: ", packageVersion("MSnbase"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION":
+        msnbase: \$(Rscript -e 'cat(as.character(packageVersion("msnbase")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msnbase_results.csv
-    touch ${prefix}_msnbase_output.rds
-    echo "BIOC_MSNBASE:" > versions.yml
-    echo "    msnbase: 0.0.0" >> versions.yml
+    touch ${prefix}_isobaric_tagging_quantitation.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSNBASE_WORKFLOW {
+workflow BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ quantFile.mzXML, identFile.mzid ] ]
 
     main:
-    BIOC_MSNBASE(ch_input)
+    BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION(ch_input)
 
     emit:
-    results  = BIOC_MSNBASE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSNBASE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSNBASE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSNBASE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION.out.tables
+    plots    = BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION.out.plots
+    objects  = BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION.out.objects
+    versions = BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION.out.versions
 }

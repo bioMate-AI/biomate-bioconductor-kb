@@ -1,90 +1,107 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tanggle
-// Offers functions for plotting split (or implicit) networks (unrooted, undirected) and explicit netwo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tanggle/inst/doc/tanggle_vignette.R
-// Upstream  : ggtree, phangorn
-// Downstream: none
-//
-// Install: BiocManager::install("tanggle")
+// Bioconductor workflow: tanggle — split_networks
+// Visualize unrooted, undirected split networks (such as consensus networks or neighbor-nets) from Nexus files.
+// Input: woodmouse.nxs
+// Container: quay.io/biocontainers/bioconductor-tanggle:1.16.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TANGGLE {
+process BIOC_TANGGLE_SPLIT_NETWORKS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tanggle"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tanggle:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tanggle:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-tanggle:1.16.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tanggle_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tanggle_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tanggle_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(tanggle)
-    library(jsonlite)
-
-    # --- ggsplitnet [] ---
-    # Key functions: ggsplitnet, geom_nodepoint, ggevonet
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggplot2", "ggtree", "phangorn", "tanggle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(tanggle)
     library(phangorn)
     library(ggtree)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tanggle_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tanggle_results.csv")
+    library(ggplot2)
+    
+    # 1. Read the split network Nexus file from the working directory
+    input_file <- "woodmouse.nxs"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tanggle_output.rds")
-    }
+    
+    Nnet <- phangorn::read.nexus.networx(input_file)
+    
+    # 2. Generate the base split network plot using ggsplitnet and add tip labels
+    p1 <- ggsplitnet(Nnet) + geom_tiplab2()
+    
+    # 3. Adjust x and y axis limits to ensure labels are fully visible
+    p2 <- p1 + xlim(-0.019, .003) + ylim(-.01, .012)
+    
+    # 4. Rename tip labels and customize tip/node aesthetics
+    Nnet\$translate\$label <- seq_along(Nnet\$tip.label)
+    
+    p3 <- ggsplitnet(Nnet) + geom_tiplab2(col = "blue", font = 4, hjust = -0.15) + 
+        geom_nodepoint(col = "green", size = 0.25)
+    
+    p4 <- ggsplitnet(Nnet) + geom_point(aes(shape = isTip, color = isTip), size = 2)
+    
+    # Save the generated plots to a multi-page PDF file
+    pdf("split_networks_visualization.pdf", width = 10, height = 8)
+    print(p1)
+    print(p2)
+    print(p3)
+    print(p4)
+    dev.off()
+    
+    # Save the processed network object
+    saveRDS(Nnet, "processed_split_network.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TANGGLE:", paste0("    tanggle: ", packageVersion("tanggle"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_TANGGLE_SPLIT_NETWORKS":
+        tanggle: \$(Rscript -e 'cat(as.character(packageVersion("tanggle")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tanggle_results.csv
-    touch ${prefix}_tanggle_output.rds
-    echo "BIOC_TANGGLE:" > versions.yml
-    echo "    tanggle: 0.0.0" >> versions.yml
+    touch ${prefix}_split_networks.csv versions.yml
     """
 }
 
-
-workflow BIOC_TANGGLE_WORKFLOW {
+workflow BIOC_TANGGLE_SPLIT_NETWORKS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ woodmouse.nxs ] ]
 
     main:
-    BIOC_TANGGLE(ch_input)
+    BIOC_TANGGLE_SPLIT_NETWORKS(ch_input)
 
     emit:
-    results  = BIOC_TANGGLE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TANGGLE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TANGGLE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TANGGLE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TANGGLE_SPLIT_NETWORKS.out.tables
+    plots    = BIOC_TANGGLE_SPLIT_NETWORKS.out.plots
+    objects  = BIOC_TANGGLE_SPLIT_NETWORKS.out.objects
+    versions = BIOC_TANGGLE_SPLIT_NETWORKS.out.versions
 }

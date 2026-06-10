@@ -1,123 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RiboDiPA
-// This package performs differential pattern analysis for Ribo-seq data. It identifies genes with sign
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RiboDiPA/inst/doc/RiboDiPA.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("RiboDiPA")
+// Bioconductor workflow: ribodipa — ribodipa_wrapper_pipeline
+// Run the entire RiboDiPA pipeline using the single wrapper function with default parameters.
+// Input: bam_path[1:4], bam_path[5]
+// Container: quay.io/biocontainers/bioconductor-ribodipa:1.18.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RIBODIPA {
+process BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ribodipa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ribodipa:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ribodipa:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ribodipa:1.18.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ribodipa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ribodipa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ribodipa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ribodipa")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
     library(RiboDiPA)
-    library(jsonlite)
-
-    # --- Differential Pattern Analysis [] ---
-    # Key functions: RiboDiPA
-    bfc <- BiocFileCache::BiocFileCache()
-    file_names <- c("WT1.bam", "WT2.bam", "MUT1.bam", "MUT2.bam", "eg.gtf")
-    url <- "https://github.com/jipingw/RiboDiPA-data/raw/master/"
-    bam_path <- BiocFileCache::bfcrpath(bfc, paste0(url, file_names))
+    
+    # 1. Define experimental design and comparison groups
+    # Locate the user input files in the working directory
+    bam_files <- list.files(pattern = "\\.bam\$", full.names = TRUE)
+    gtf_files <- list.files(pattern = "\\.gtf\$", full.names = TRUE)
+    
+    if (length(bam_files) < 4) {
+        stop("Error: At least 4 BAM files are required in the working directory.")
+    }
+    if (length(gtf_files) < 1) {
+        stop("Error: At least 1 GTF file is required in the working directory.")
+    }
+    
+    # Construct the bam_path vector as specified: bam_path[1:4] are BAMs, bam_path[5] is GTF
+    bam_path <- c(bam_files[1:4], gtf_files[1])
+    
+    # Define the experimental design and comparison groups
     classlabel <- data.frame(
         condition = c("mutant", "mutant", "wildtype", "wildtype"),
         comparison = c(2, 2, 1, 1)
     )
-    rownames(classlabel) <- c("mutant1", "mutant2", "wildtype1", "wildtype2")
-    result_wrp <- RiboDiPA(
-        bam_path[1:4], 
-        bam_path[5], 
-        classlabel, 
-        cores = 2
-    )
-    top_genes <- head(result_wrp$gene[order(result_wrp$gene$qvalue), ])
-
-
-    # --- Visualization of Ribosome Tracks [] ---
-    # Key functions: plotTrack, plotTest
-    bfc <- BiocFileCache::BiocFileCache()
-    file_names <- c("WT1.bam", "WT2.bam", "MUT1.bam", "MUT2.bam", "eg.gtf")
-    url <- "https://github.com/jipingw/RiboDiPA-data/raw/master/"
-    bam_path <- BiocFileCache::bfcrpath(bfc, paste0(url, file_names))
-    data_psite <- psiteMapping(
-        bam_file_list = bam_path[1:4], 
-        gtf_file = bam_path[5], 
-        psite.mapping = "auto", 
-        cores = 2
-    )
-    plotTrack(
-        data = data_psite, 
-        genes.list = c("YDR050C", "YDR064W"),
-        replicates = NULL, 
-        exons = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ribodipa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ribodipa_results.csv")
+    rownames(classlabel) <- c("mutant1","mutant2","wildtype1","wildtype2")
+    
+    # 2. Run the wrapper function to map P-sites, bin data, and perform differential testing
+    result.wrp <- RiboDiPA(bam_path[1:4], bam_path[5], classlabel, cores = 2)
+    
+    # 3. View significant gene results
+    head(result.wrp\$gene[order(result.wrp\$gene\$qvalue), ])
+    
+    # 4. Write named output files for the meaningful results
+    # Save the complete RiboDiPA result object
+    saveRDS(result.wrp, file = "ribodipa_results.rds")
+    
+    # Save the gene-level results table
+    write.csv(result.wrp\$gene, file = "ribodipa_gene_results.csv", row.names = TRUE)
+    
+    # Save the bin-level results table if available
+    if (!is.null(result.wrp\$bin)) {
+        write.csv(result.wrp\$bin, file = "ribodipa_bin_results.csv", row.names = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ribodipa_output.rds")
+    
+    # Generate and save visualization plots
+    pdf("ribodipa_plots.pdf", width = 10, height = 8)
+    
+    # Plot ribosome per nucleotide tracks of top significant genes
+    top_genes <- rownames(result.wrp\$gene[order(result.wrp\$gene\$qvalue), ])[1:2]
+    top_genes <- top_genes[!is.na(top_genes)]
+    
+    if (length(top_genes) > 0 && !is.null(result.wrp\$data.psite)) {
+        tryCatch({
+            plotTrack(data = result.wrp\$data.psite, genes.list = top_genes, replicates = NULL, exons = FALSE)
+        }, error = function(e) {
+            message("Could not generate track plot: ", e\$message)
+        })
     }
+    
+    # Plot binned ribosome tracks of significant genes
+    tryCatch({
+        plotTest(result = result.wrp, genes.list = NULL, threshold = 0.05)
+    }, error = function(e) {
+        message("Could not generate test plot: ", e\$message)
+    })
+    
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RIBODIPA:", paste0("    ribodipa: ", packageVersion("RiboDiPA"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE":
+        ribodipa: \$(Rscript -e 'cat(as.character(packageVersion("ribodipa")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ribodipa_results.csv
-    touch ${prefix}_ribodipa_output.rds
-    echo "BIOC_RIBODIPA:" > versions.yml
-    echo "    ribodipa: 0.0.0" >> versions.yml
+    touch ${prefix}_ribodipa_wrapper_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_RIBODIPA_WORKFLOW {
+workflow BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bam_path[1:4], bam_path[5] ] ]
 
     main:
-    BIOC_RIBODIPA(ch_input)
+    BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_RIBODIPA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RIBODIPA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RIBODIPA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RIBODIPA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE.out.tables
+    plots    = BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE.out.plots
+    objects  = BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE.out.objects
+    versions = BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE.out.versions
 }

@@ -1,100 +1,105 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: fmcsR
-// The fmcsR package introduces an efficient maximum common substructure (MCS) algorithms combined with
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/fmcsR/inst/doc/fmcsR.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("fmcsR")
+// Bioconductor workflow: fmcsr — pairwise_mcs_analysis
+// Compute, extract, and visualize the exact or mismatch-tolerant maximum common substructure between two compounds.
+// Input: sdfset.sdf
+// Container: quay.io/biocontainers/bioconductor-fmcsr:1.52.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_FMCSR {
+process BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-fmcsr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-fmcsr:1.48.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-fmcsr:1.48.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-fmcsr:1.52.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_fmcsr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_fmcsr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_fmcsr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(fmcsR)
-    library(jsonlite)
-
-    # --- fmcs [] ---
-    # Key functions: fmcs, plotMCS
-    test <- fmcs(fmcstest[1], fmcstest[2], au=2, bu=1)
-    plotMCS(test,regenCoords=TRUE)
-    # --- plot M C S [] ---
-    # Key functions: plotMCS
-    plotMCS(fmcs(sdfset[1], sdfset[2], au=0, bu=0))
-    # --- Hierarchical clustering [] ---
-    # Key functions: hclust
-    d <- sapply(cid(sdf), function(x) fmcsBatch(sdf[x], sdf, au=0, bu=0, matching.mode="aromatic")[,"Overlap_Coefficient"])
-    hc <- hclust(as.dist(1-d), method="complete")
-    plot(as.dendrogram(hc), edgePar=list(col=4, lwd=2), horiz=TRUE)
-    # --- plot M C S [] ---
-    # Key functions: plotMCS
-    plotMCS(fmcs(sdf[3], sdf[7], au=0, bu=0, matching.mode="aromatic"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_fmcsr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_fmcsr_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("fmcsr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_fmcsr_output.rds")
-    }
+    
+    library("fmcsR")
+    
+    # 1. Import compound structures from an SDF file
+    sdfset <- read.SDFset(file="sdfset.sdf")
+    mysdf <- sdfset
+    
+    # 2. Compute the MCS/FMCS between two compounds
+    mcsa <- fmcs(sdfset[[1]], sdfset[[2]])
+    mcsa_stats <- stats(mcsa)
+    
+    # Save stats to CSV
+    write.csv(as.data.frame(t(mcsa_stats)), file="mcsa_stats.csv", row.names=FALSE)
+    
+    # Extract MCS components
+    mcsa1 <- mcs1(mcsa)
+    mcsa2 <- mcs2(mcsa)
+    
+    # Save MCS components to RDS
+    saveRDS(mcsa1, file="mcsa1.rds")
+    saveRDS(mcsa2, file="mcsa2.rds")
+    
+    # 3. Extract the MCS substructure as an SDFset
+    mcstosdfset <- mcs2sdfset(mcsa, type="new")
+    write.SDF(mcstosdfset, file="mcstosdfset.sdf")
+    
+    # Plot the extracted substructure
+    pdf("mcstosdfset_plot.pdf")
+    plot(mcstosdfset[[1]], print=FALSE)
+    dev.off()
+    
+    # 4. Visualize the MCS highlighted in the compound structures
+    test <- fmcs(sdfset[1], sdfset[2], au=2, bu=1)
+    
+    pdf("plotMCS_test.pdf")
+    plotMCS(test, regenCoords=TRUE)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FMCSR:", paste0("    fmcsr: ", packageVersion("fmcsR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS":
+        fmcsr: \$(Rscript -e 'cat(as.character(packageVersion("fmcsr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_fmcsr_results.csv
-    touch ${prefix}_fmcsr_output.rds
-    echo "BIOC_FMCSR:" > versions.yml
-    echo "    fmcsr: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_mcs_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_FMCSR_WORKFLOW {
+workflow BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sdfset.sdf ] ]
 
     main:
-    BIOC_FMCSR(ch_input)
+    BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_FMCSR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FMCSR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FMCSR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FMCSR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS.out.tables
+    plots    = BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS.out.plots
+    objects  = BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS.out.objects
+    versions = BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS.out.versions
 }

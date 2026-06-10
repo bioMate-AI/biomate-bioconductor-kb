@@ -1,102 +1,119 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ACME
-// ACME (Algorithms for Calculating Microarray Enrichment) is a set of tools for analysing tiling array
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ACME/inst/doc/ACME.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ACME")
+// Bioconductor workflow: acme — tiling_microarray_enrichment_analysis
+// Identify, visualize, and export genomic regions of enrichment from tiling microarray GFF files.
+// Input: fnames
+// Container: quay.io/biocontainers/bioconductor-acme:2.62.0--r44h3df3fcb_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ACME {
+process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-acme"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-acme:2.62.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-acme:2.62.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-acme:2.62.0--r44h3df3fcb_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_acme_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_acme_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_acme_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("acme")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required library
     library(ACME)
-    library(jsonlite)
-
-    # --- Calc [] ---
-    # Key functions: calc
-    calc <- do.aGFF.calc(example.agff,window=1000,thresh=0.95)
-    # --- Findregions [] ---
-    # Key functions: findRegions
+    
+    # 1. Read GFF files from the working directory
+    # Identify GFF files in the current working directory
+    fnames <- list.files(pattern = "\\.gff\$", ignore.case = TRUE)
+    
+    if (length(fnames) == 0) {
+      stop("Error: No GFF files found in the working directory. Please provide GFF files.")
+    }
+    
+    # Read the GFF files to construct the ACMESet object
+    example.agff <- read.resultsGFF(fnames, path = ".")
+    print(example.agff)
+    
+    # 2. Calculate enrichment probabilities
+    calc <- do.aGFF.calc(example.agff, window = 1000, thresh = 0.95)
+    
+    # 3. Plot results for a specific chromosome and sample
+    # Save the plot to a PDF file.
+    # A tryCatch block is used to handle cases where 'chr1' might not be present in the user's GFF files.
+    pdf("acme_plot.pdf")
+    tryCatch({
+      plot(calc, chrom = 'chr1', sample = 1)
+    }, error = function(e) {
+      message("Warning: Failed to plot for chrom='chr1' and sample=1. Error: ", e\$message)
+    })
+    dev.off()
+    
+    # 4. Identify significant regions of enrichment
     regs <- findRegions(calc)
-    regs[1:5,]
-    # --- Sgr [] ---
-    # Key functions: sgr
-    # write both calculated values and raw data
-    write.sgr(calc)
-    # OR write only calculated data
-    write.sgr(calc,raw=FALSE)
-    # --- Bedgraph [] ---
-    # Key functions: bedGraph
-    # or for the UCSC genome browser
-    write.bedGraph(calc)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_acme_results.csv", row.names = TRUE)
+    if (!is.null(regs) && nrow(regs) > 0) {
+      print(regs[1:min(5, nrow(regs)), , drop = FALSE])
+      write.csv(regs, file = "regions_of_enrichment.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_acme_results.csv")
+      message("No regions of enrichment found.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_acme_output.rds")
-    }
+    
+    # 5. Export results to SGR and bedGraph formats
+    # Write both calculated values and raw data
+    write.sgr(calc)
+    
+    # Write only calculated data
+    write.sgr(calc, raw = FALSE)
+    
+    # Export to UCSC genome browser bedGraph format
+    write.bedGraph(calc)
+    
+    # Save the calculated ACMESet object for downstream analysis
+    saveRDS(calc, file = "acme_calc.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ACME:", paste0("    acme: ", packageVersion("ACME"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS":
+        acme: \$(Rscript -e 'cat(as.character(packageVersion("acme")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_acme_results.csv
-    touch ${prefix}_acme_output.rds
-    echo "BIOC_ACME:" > versions.yml
-    echo "    acme: 0.0.0" >> versions.yml
+    touch ${prefix}_tiling_microarray_enrichment_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ACME_WORKFLOW {
+workflow BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ fnames ] ]
 
     main:
-    BIOC_ACME(ch_input)
+    BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ACME.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ACME.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ACME.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ACME.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS.out.tables
+    plots    = BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS.out.plots
+    objects  = BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS.out.objects
+    versions = BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS.out.versions
 }

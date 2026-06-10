@@ -1,113 +1,122 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DiffLogo
-// DiffLogo is an easy-to-use tool to visualize motif differences.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DiffLogo/inst/doc/DiffLogoBasics.R
-// Upstream  : MotifDb, seqLogo
-// Downstream: none
-//
-// Install: BiocManager::install("DiffLogo")
+// Bioconductor workflow: difflogo — pairwise_motif_comparison
+// Compare two PWMs (of the same or different lengths), optionally align them, calculate statistical significance of differences, and plot the pairwise difference 
+// Input: pwm1.pwm, pwm2.pwm
+// Container: quay.io/biocontainers/bioconductor-difflogo:2.34.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DIFFLOGO {
+process BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-difflogo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-difflogo:2.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-difflogo:2.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-difflogo:2.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_difflogo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_difflogo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_difflogo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("difflogo", "motifdb", "seqlogo")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required library
     library(DiffLogo)
-    library(jsonlite)
-
-    # --- Sequence Logo Plotting [] ---
-    # Key functions: seqLogo
-    pwm1 = motifs_dna[["H1-hESC"]]
-    pwm2 = motifs_dna[["MCF7"]]
-    DiffLogo::seqLogo(pwm = pwm1)
-    DiffLogo::seqLogo(pwm = pwm2, stackHeight = sumProbabilities)
-
-
-    # --- Difference Logo Generation [] ---
-    # Key functions: diffLogoFromPwm, createDiffLogoObject, enrichDiffLogoObjectWithPvalues, diffLogo
-    diffLogoFromPwm(pwm1 = pwm1, pwm2 = pwm2)
-    diffLogoObj = createDiffLogoObject(pwm1 = pwm1, pwm2 = pwm2)
-    diffLogoObj = enrichDiffLogoObjectWithPvalues(diffLogoObj, 100, 100)
-    diffLogo(diffLogoObj)
-
-
-    # --- Difference Logo Table [] ---
-    # Key functions: diffLogoTable
-    sampleSizes_dna = c("H1-hESC" = 100, "MCF7" = 100)
-    diffLogoTable(PWMs = motifs_dna, sampleSizes = sampleSizes_dna)
-
-
-    # --- Motif Alignment [] ---
-    # Key functions: multipleLocalPwmsAlignment, extendPwmsFromAlignmentVector
-    pwms = list(pwm1, pwm2)
-    multiple_pwms_alignment = multipleLocalPwmsAlignment(pwms)
-    aligned_pwms = extendPwmsFromAlignmentVector(pwms,
-        multiple_pwms_alignment$alignment$vector)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_difflogo_results.csv", row.names = TRUE)
+    
+    # 1. Load PWMs from the user-provided files in the working directory
+    pwm1_file <- "pwm1.pwm"
+    pwm2_file <- "pwm2.pwm"
+    
+    if (!file.exists(pwm1_file) || !file.exists(pwm2_file)) {
+      stop("Error: Both 'pwm1.pwm' and 'pwm2.pwm' must exist in the working directory.")
+    }
+    
+    pwm1 <- getPwmFromPwmFile(pwm1_file)
+    pwm2 <- getPwmFromPwmFile(pwm2_file)
+    
+    # Define sample sizes (sequence counts) for p-value enrichment
+    n1 <- 100
+    n2 <- 100
+    
+    # Determine long and short PWMs for the alignment demonstration
+    if (ncol(pwm1) >= ncol(pwm2)) {
+      pwm_long <- pwm1
+      pwm_short <- pwm2
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_difflogo_results.csv")
+      pwm_long <- pwm2
+      pwm_short <- pwm1
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_difflogo_output.rds")
-    }
+    
+    # 2. Generate and export the basic DiffLogo directly from PWMs
+    pdf("diffLogo_from_pwm.pdf", width = 10, height = 6)
+    diffLogoFromPwm(pwm1 = pwm1, pwm2 = pwm2)
+    dev.off()
+    
+    # 3. Create a DiffLogo object and plot it
+    diffLogoObj = createDiffLogoObject(pwm1 = pwm1, pwm2 = pwm2)
+    
+    pdf("diffLogo_from_object.pdf", width = 10, height = 6)
+    diffLogo(diffLogoObj)
+    dev.off()
+    
+    # 4. Enrich the DiffLogo object with p-values and plot
+    diffLogoObj = enrichDiffLogoObjectWithPvalues(diffLogoObj, n1, n2)
+    
+    pdf("diffLogo_enriched.pdf", width = 10, height = 6)
+    diffLogo(diffLogoObj)
+    dev.off()
+    
+    # Save the enriched DiffLogo object as an RDS file
+    saveRDS(diffLogoObj, file = "diffLogoObj.rds")
+    
+    # 5. Plot DiffLogo for PWMs with alignment (handles different lengths)
+    pdf("diffLogo_aligned.pdf", width = 10, height = 6)
+    diffLogoFromPwm(pwm1 = pwm_long, pwm2 = pwm_short, align_pwms=TRUE)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DIFFLOGO:", paste0("    difflogo: ", packageVersion("DiffLogo"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON":
+        difflogo: \$(Rscript -e 'cat(as.character(packageVersion("difflogo")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_difflogo_results.csv
-    touch ${prefix}_difflogo_output.rds
-    echo "BIOC_DIFFLOGO:" > versions.yml
-    echo "    difflogo: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_motif_comparison.csv versions.yml
     """
 }
 
-
-workflow BIOC_DIFFLOGO_WORKFLOW {
+workflow BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pwm1.pwm, pwm2.pwm ] ]
 
     main:
-    BIOC_DIFFLOGO(ch_input)
+    BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON(ch_input)
 
     emit:
-    results  = BIOC_DIFFLOGO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DIFFLOGO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DIFFLOGO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DIFFLOGO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON.out.tables
+    plots    = BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON.out.plots
+    objects  = BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON.out.objects
+    versions = BIOC_DIFFLOGO_PAIRWISE_MOTIF_COMPARISON.out.versions
 }

@@ -1,128 +1,105 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cfDNAPro
-// cfDNA fragments carry important features for building cancer sample classification ML models, such a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cfDNAPro/inst/doc/cfDNAPro.R
-// Upstream  : scales, ggpubr, ggplot2, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("cfDNAPro")
+// Bioconductor workflow: cfdnapro — single_cohort_analysis
+// Characterize and visualize fragment size distribution (proportions and cumulative distribution functions) for a single cohort.
+// Input: data_path
+// Container: quay.io/biocontainers/bioconductor-cfdnapro:1.16.1--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CFDNAPRO {
+process BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cfdnapro"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cfdnapro:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cfdnapro:1.12.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-cfdnapro:1.16.1--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cfdnapro_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cfdnapro_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cfdnapro_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cfdnapro", "dplyr", "ggplot2", "ggpubr", "scales")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(cfDNAPro)
-    library(jsonlite)
-
-    # --- Fragment Size Profiling [Fragment Size Profiling] ---
-    # Key functions: examplePath, callSize, plotSingleGroup
-    data_path <- examplePath("groups_picard")
-    cohort1_plot <- callSize(path = data_path) %>%
-        dplyr::filter(group == "cohort_1") %>%
-        plotSingleGroup()
-
-    # --- Cohort Metrics Comparison [Cohort Metrics Comparison] ---
-    # Key functions: callMetrics, plotMetrics
-    data_path <- examplePath("groups_picard")
-    order_groups <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
-    compare_grps <- callMetrics(data_path) %>%
-        plotMetrics(order = order_groups)
-    p1 <- compare_grps$median_prop_plot
-    p2 <- compare_grps$median_cdf_plot
-
-    # --- Modal Size Analysis [Modal Size Analysis] ---
-    # Key functions: callMode, plotMode, plotModeSummary
-    data_path <- examplePath("groups_picard")
-    order_groups <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
-    mode_bin <- callMode(data_path) %>%
-        plotMode(order = order_groups, hline = c(167, 111, 81))
-    mode_stacked <- callMode(data_path) %>%
-        plotModeSummary(
-            order = order_groups,
-            mode_partition = list(c(166, 167))
-        )
-
-    # --- Peak and Valley Distance Analysis [Peak and Valley Distance Analysis] ---
-    # Key functions: callPeakDistance, plotPeakDistance, callValleyDistance, plotValleyDistance
-    data_path <- examplePath("groups_picard")
-    order_groups <- c("cohort_1", "cohort_2", "cohort_4", "cohort_3")
-    inter_peak_dist <- callPeakDistance(
-        path = data_path,
-        limit = c(50, 135)
-    ) %>%
-        plotPeakDistance(order = order_groups)
-    inter_valley_dist <- callValleyDistance(
-        path = data_path,
-        limit = c(50, 135)
-    ) %>%
-        plotValleyDistance(order = order_groups)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cfdnapro_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cfdnapro_results.csv")
+    library(dplyr)
+    library(ggplot2)
+    
+    # Stage 1: Retrieve the path to the input data directory
+    # (Adapted from the documented cfDNAPro::examplePath("groups_picard") to read the user-provided directory)
+    data_path <- "data_path"
+    
+    # Verify that the input directory exists and contains sub-folders
+    if (!dir.exists(data_path)) {
+      stop(paste("Error: Input directory 'data_path' does not exist at:", normalizePath(data_path, mustWork = FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cfdnapro_output.rds")
+    
+    # Stage 2, 3, & 4: Extract fragment size distribution data, filter for the target cohort,
+    # and generate proportion and cumulative distribution plots.
+    # Keeping the exact documented function calls and arguments.
+    cohort1_plot <- cfDNAPro::callSize(path = data_path) %>%
+      dplyr::filter(group == as.character("cohort_1")) %>%
+      cfDNAPro::plotSingleGroup()
+    
+    # Save the resulting list of ggplot2 objects as an RDS file
+    saveRDS(cohort1_plot, file = "cohort1_plot.rds")
+    
+    # Save the generated plots (prop_plot, cdf_plot, etc.) to a PDF file
+    pdf("cohort1_fragment_size_plots.pdf", width = 10, height = 7)
+    for (plot_name in names(cohort1_plot)) {
+      tryCatch({
+        print(cohort1_plot[[plot_name]])
+      }, error = function(e) {
+        warning(paste("Could not print plot:", plot_name, "-", e\$message))
+      })
     }
+    invisible(dev.off())
+    
+    message("Pipeline completed successfully. Outputs saved to 'cohort1_plot.rds' and 'cohort1_fragment_size_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CFDNAPRO:", paste0("    cfdnapro: ", packageVersion("cfDNAPro"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS":
+        cfdnapro: \$(Rscript -e 'cat(as.character(packageVersion("cfdnapro")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cfdnapro_results.csv
-    touch ${prefix}_cfdnapro_output.rds
-    echo "BIOC_CFDNAPRO:" > versions.yml
-    echo "    cfdnapro: 0.0.0" >> versions.yml
+    touch ${prefix}_single_cohort_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CFDNAPRO_WORKFLOW {
+workflow BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data_path ] ]
 
     main:
-    BIOC_CFDNAPRO(ch_input)
+    BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CFDNAPRO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CFDNAPRO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CFDNAPRO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CFDNAPRO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS.out.tables
+    plots    = BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS.out.plots
+    objects  = BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS.out.objects
+    versions = BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS.out.versions
 }

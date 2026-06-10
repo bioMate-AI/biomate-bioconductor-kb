@@ -1,128 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: geva
-// Statistic methods to evaluate variations of differential expression (DE) between multiple biological
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/geva/inst/doc/geva.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("geva")
+// Bioconductor workflow: geva — detailed_geva_pipeline
+// Perform a detailed, step-by-step Gene Expression Variation Analysis (GEVA) from input files to final gene classification, allowing fine-tuning of each intermedi
+// Input: cond_A_2h.txt, cond_B_2h.txt, cond_C_2h.txt, cond_A_4h.txt, cond_B_4h.txt, cond_C_4h.txt
+// Container: quay.io/biocontainers/bioconductor-geva:1.18.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GEVA {
+process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-geva"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-geva:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-geva:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-geva:1.18.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_geva_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_geva_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_geva_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("geva")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required Bioconductor package
     library(geva)
-    library(jsonlite)
-
-    # --- Data Preparation and Filtering [Data Preparation] ---
-    # Key functions: geva.ideal.example, geva.input.correct, geva.input.filter, factors<-
-    ginput <- geva.ideal.example()
+    
+    # 1. Read input files
+    filenms <- c("cond_A_2h.txt", "cond_B_2h.txt", "cond_C_2h.txt",
+                 "cond_A_4h.txt", "cond_B_4h.txt", "cond_C_4h.txt")
+    ginput <- geva.read.tables(filenms)
+    
+    # 2. Correct numeric tables
     ginput <- geva.input.correct(ginput)
+    
+    # 3. Filter out insignificant rows
     ginput <- geva.input.filter(ginput, p.value.cutoff = 0.05)
-    factors(ginput) <- factor(c(
-        "g1", "g1", "g1", "g2", "g2", "g2"
-    ))
-
-    # --- Summarisation [Summarisation] ---
-    # Key functions: geva.summarize
-    gsummary <- geva.summarize(
-        ginput,
-        summary.method = "median",
-        variation.method = "mad"
-    )
+    
+    # 4. Rename row names and resolve duplicates
+    ginput <- geva.input.rename.rows(ginput,
+                                     attr.column = "Symbol")
+    
+    # 5. Summarize logFC and variation
+    gsummary <- geva.summarize(ginput)
+    
+    # Save GEVASummary plot
+    pdf("gsummary_plot.pdf", width = 9, height = 6)
     plot(gsummary)
-
-    # --- Quantile Analysis [Quantile Detection] ---
-    # Key functions: geva.quantiles
-    gquants <- geva.quantiles(
-        gsummary,
-        initial.thresholds = c(S = 1, V = 0.5)
-    )
+    dev.off()
+    
+    # 6. Calculate SV-space quantiles
+    gquants <- geva.quantiles(gsummary)
+    
+    # Save GEVAQuantiles plot
+    pdf("gquants_plot.pdf", width = 9, height = 6)
     plot(gquants)
-
-    # --- Cluster Analysis [Clustering] ---
-    # Key functions: geva.cluster
-    gcluster <- geva.cluster(
-        gsummary,
-        cluster.method = "hierarchical",
-        resolution = 0.3
-    )
+    dev.off()
+    
+    # 7. Perform cluster analysis
+    gcluster <- geva.cluster(gsummary,
+                             cluster.method="hierarchical",
+                             resolution=0.3)
+    
+    # Save GEVACluster plot
+    pdf("gcluster_plot.pdf", width = 9, height = 6)
     plot(gcluster)
-
-    # --- Final Classification [Classification] ---
-    # Key functions: groupsets<-, geva.finalize
+    dev.off()
+    
+    # 8. Combine intermediate results
     ggroupedsummary <- gsummary
     groupsets(ggroupedsummary) <- gquants
     groupsets(ggroupedsummary) <- gcluster
-    gresults <- geva.finalize(ggroupedsummary)
+    
+    # Save GEVAGroupedSummary plot
+    pdf("ggroupedsummary_plot.pdf", width = 9, height = 6)
     plot(ggroupedsummary)
+    dev.off()
+    
+    # 9. Finalize classifications
+    gresults <- geva.finalize(ggroupedsummary)
+    
+    # Save GEVAResults plot
+    pdf("gresults_plot.pdf", width = 9, height = 6)
+    plot(gresults)
+    dev.off()
+    
+    # Extract and save the final classifications table
+    res_table <- results.table(gresults)
+    write.csv(res_table, "geva_results_table.csv", row.names = TRUE)
+    
+    # Print the last 10 rows of the results table to console
+    print(tail(res_table, 10))
+    
+    # 10. Extract top relevant genes
+    dtgens <- top.genes(gresults, add.cols = "Symbol")
+    write.csv(dtgens, "geva_top_genes.csv", row.names = TRUE)
+    
+    # Save the final results object as an RDS file
+    saveRDS(gresults, "geva_results.rds")
 
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_geva_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_geva_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_geva_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GEVA:", paste0("    geva: ", packageVersion("geva"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_GEVA_DETAILED_GEVA_PIPELINE":
+        geva: \$(Rscript -e 'cat(as.character(packageVersion("geva")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_geva_results.csv
-    touch ${prefix}_geva_output.rds
-    echo "BIOC_GEVA:" > versions.yml
-    echo "    geva: 0.0.0" >> versions.yml
+    touch ${prefix}_detailed_geva_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_GEVA_WORKFLOW {
+workflow BIOC_GEVA_DETAILED_GEVA_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cond_A_2h.txt, cond_B_2h.txt, cond_C_2h.txt, cond_A_4h.txt, cond_B_4h.txt, cond_C_4h.txt ] ]
 
     main:
-    BIOC_GEVA(ch_input)
+    BIOC_GEVA_DETAILED_GEVA_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_GEVA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GEVA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GEVA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GEVA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GEVA_DETAILED_GEVA_PIPELINE.out.tables
+    plots    = BIOC_GEVA_DETAILED_GEVA_PIPELINE.out.plots
+    objects  = BIOC_GEVA_DETAILED_GEVA_PIPELINE.out.objects
+    versions = BIOC_GEVA_DETAILED_GEVA_PIPELINE.out.versions
 }

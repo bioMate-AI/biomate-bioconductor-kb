@@ -1,143 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bambu
-// bambu is a R package for multi-sample transcript discovery and quantification using long read RNA-Se
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bambu/inst/doc/bambu.R
-// Upstream  : BiocFileCache, DESeq2, DEXSeq, ExperimentHub, NanoporeRNASeq
-// Downstream: none
-//
-// Install: BiocManager::install("bambu")
+// Bioconductor workflow: bambu — transcript_discovery_and_quantification
+// Perform transcript discovery and expression quantification from long-read RNA-Seq alignments and reference annotations, then export and visualize the results.
+// Input: test.bam, Homo_sapiens.GRCh38.91_chr9_1_1000000.gtf, Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa
+// Container: quay.io/biocontainers/bioconductor-bambu:3.12.1--r45ha27e39d_1
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BAMBU {
+process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bambu"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bambu:3.8.3--r44_0' :
-        'quay.io/biocontainers/bioconductor-bambu:3.8.3--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-bambu:3.12.1--r45ha27e39d_1"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bambu_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bambu_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bambu_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bambu", "biocfilecache", "deseq2", "dexseq", "experimenthub", "nanoporernaseq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
     library(bambu)
-    library(BamFileList)
-    library(BiocFileCache)
-    library(DESeq)
-    library(DESeqDataSetFromMatrix)
-    library(DEXSeq)
-    library(DEXSeqDataSet)
-    library(ExperimentHub)
-    library(jsonlite)
-
-    # --- Transcript Discovery and Quantification [] ---
-    # Key functions: bambu
-    test.bam <- system.file("extdata",
-        "SGNex_A549_directRNA_replicate5_run1_chr9_1_1000000.bam",
-        package = "bambu")
-    fa.file <- system.file("extdata",
-        "Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa",
-        package = "bambu")
-    se <- bambu(
-        reads = test.bam,
-        annotations = bambuAnnotations,
-        genome = fa.file
-    )
-
-
-    # --- Gene Expression Summarization [] ---
-    # Key functions: transcriptToGeneExpression
-    seGene <- transcriptToGeneExpression(se)
-    sample_conditions <- rep(
-        c("Control", "Treatment"),
-        length.out = ncol(seGene)
-    )
-    SummarizedExperiment::colData(seGene)$condition <- as.factor(
-        sample_conditions
-    )
-
-
-    # --- Visualization [] ---
-    # Key functions: plotBambu
-    plotBambu(se, type = "heatmap")
-    plotBambu(se, type = "pca")
-    plotBambu(
-        se,
-        type = "annotation",
-        gene_id = "ENSG00000099968"
-    )
-
-
-    # --- Exporting Results [] ---
-    # Key functions: writeBambuOutput, writeToGTF
-    save.dir <- tempdir()
-    writeBambuOutput(
-        se,
-        path = save.dir,
-        prefix = "bambu_output_"
-    )
-    save.file <- tempfile(fileext = ".gtf")
-    writeToGTF(
-        SummarizedExperiment::rowRanges(se),
-        file = save.file
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bambu_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bambu_results.csv")
+    
+    # Define input files from the working directory as specified by the user
+    test.bam <- "test.bam"
+    gtf.file <- "Homo_sapiens.GRCh38.91_chr9_1_1000000.gtf"
+    fa.file <- "Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa"
+    
+    # 1. Prepare reference annotations
+    bambuAnnotations <- prepareAnnotations(gtf.file)
+    
+    # 2. Run bambu to perform transcript discovery and quantification (single sample)
+    se <- bambu(reads = test.bam, annotations = bambuAnnotations, genome = fa.file)
+    
+    # Set up variables for the multi-sample documented steps using our input data
+    bamFiles <- test.bam
+    HsChr22BambuAnnotation <- bambuAnnotations
+    genomeSequence <- fa.file
+    
+    # Run bambu for the multi-sample workflow
+    se.multiSample <- bambu(reads = bamFiles, annotations = HsChr22BambuAnnotation, genome = genomeSequence)
+    
+    # 3. Convert transcript expression estimates to gene expression estimates
+    seGene.multiSample <- transcriptToGeneExpression(se.multiSample)
+    
+    # 4. Export the extended annotations and expression estimates
+    save.dir <- "bambu_outputs"
+    if (!dir.exists(save.dir)) {
+        dir.create(save.dir, recursive = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bambu_output.rds")
-    }
+    writeBambuOutput(se.multiSample, path = save.dir, prefix = "NanoporeRNASeq_")
+    
+    save.file <- "extended_annotations.gtf"
+    writeToGTF(rowRanges(se.multiSample), file = save.file)
+    
+    # Save RDS objects of the results for downstream analysis
+    saveRDS(se.multiSample, file = file.path(save.dir, "se_multiSample.rds"))
+    saveRDS(seGene.multiSample, file = file.path(save.dir, "seGene_multiSample.rds"))
+    
+    # 5. Visualize sample correlations and annotations
+    # We write the plots to a PDF file and wrap them in tryCatch blocks to ensure
+    # robustness (e.g., if single-sample limits PCA/heatmap or if the specific gene is absent)
+    pdf("bambu_visualizations.pdf", width = 8, height = 8)
+    
+    tryCatch({
+        plotBambu(se.multiSample, type = "heatmap")
+    }, error = function(e) {
+        message("Could not generate heatmap plot: ", e\$message)
+    })
+    
+    tryCatch({
+        plotBambu(se.multiSample, type = "pca")
+    }, error = function(e) {
+        message("Could not generate PCA plot: ", e\$message)
+    })
+    
+    tryCatch({
+        plotBambu(se.multiSample, type = "annotation", gene_id = "ENSG00000099968")
+    }, error = function(e) {
+        message("Could not plot annotation for ENSG00000099968: ", e\$message)
+        # Fallback: attempt to plot the first available gene ID from the results
+        genes <- unique(as.character(rowData(se.multiSample)\$GENEID))
+        if (length(genes) > 0) {
+            fallback_gene <- genes[1]
+            message("Attempting fallback plot with available gene_id: ", fallback_gene)
+            try(plotBambu(se.multiSample, type = "annotation", gene_id = fallback_gene))
+        }
+    })
+    
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BAMBU:", paste0("    bambu: ", packageVersion("bambu"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION":
+        bambu: \$(Rscript -e 'cat(as.character(packageVersion("bambu")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bambu_results.csv
-    touch ${prefix}_bambu_output.rds
-    echo "BIOC_BAMBU:" > versions.yml
-    echo "    bambu: 0.0.0" >> versions.yml
+    touch ${prefix}_transcript_discovery_and_quantification.csv versions.yml
     """
 }
 
-
-workflow BIOC_BAMBU_WORKFLOW {
+workflow BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ test.bam, Homo_sapiens.GRCh38.91_chr9_1_1000000.gtf, Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa ] ]
 
     main:
-    BIOC_BAMBU(ch_input)
+    BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION(ch_input)
 
     emit:
-    results  = BIOC_BAMBU.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BAMBU.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BAMBU.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BAMBU.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION.out.tables
+    plots    = BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION.out.plots
+    objects  = BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION.out.objects
+    versions = BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION.out.versions
 }

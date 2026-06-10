@@ -1,137 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BBCAnalyzer
-// BBCAnalyzer is a package for visualizing the relative or absolute number of bases, deletions and ins
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BBCAnalyzer/inst/doc/BBCAnalyzer.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("BBCAnalyzer")
+// Bioconductor workflow: bbcanalyzer — complete_base_analysis
+// Run the complete pipeline to analyze BAM files at target regions, output frequency and calling text files, and generate visual barplots.
+// Input: SampleNames.txt, targetRegions.txt, [Sample].bam and [Sample].bai, [Sample].vcf, dbsnp_138.part.vcf.gz
+// Container: quay.io/biocontainers/bioconductor-bbcanalyzer:1.40.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BBCANALYZER {
+process BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bbcanalyzer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bbcanalyzer:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bbcanalyzer:1.36.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-bbcanalyzer:1.40.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bbcanalyzer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bbcanalyzer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bbcanalyzer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg19", "bbcanalyzer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(BBCAnalyzer)
-    library(jsonlite)
-
-    # --- Base Analysis [analyzeBases] ---
-    # Key functions: analyzeBases
-    ref_genome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    library(BSgenome.Hsapiens.UCSC.hg19)
+    
+    # Define input file paths in the working directory
+    sample_file <- "SampleNames.txt"
+    target_file <- "targetRegions.txt"
+    bam_folder <- "."
+    output_folder <- "."
+    output_pics_folder <- "."
+    known_polymorphisms <- "dbsnp_138.part.vcf.gz"
+    
+    # Validate mandatory inputs
+    if (!file.exists(sample_file)) {
+      stop(paste("Required sample names file missing:", sample_file))
+    }
+    if (!file.exists(target_file)) {
+      stop(paste("Required target regions file missing:", target_file))
+    }
+    
+    # Determine if optional VCF files are present in the working directory
+    vcf_folder <- ""
+    vcf_files <- list.files(path = ".", pattern = "\\.vcf\$", full.names = TRUE)
+    if (length(vcf_files) > 0) {
+      vcf_folder <- "."
+    }
+    
+    # Determine if optional known polymorphisms file is present
+    known_file_path <- ""
+    if (file.exists(known_polymorphisms)) {
+      known_file_path <- known_polymorphisms
+    }
+    
+    # 1. Load reference genome
+    ref_genome <- BSgenome.Hsapiens.UCSC.hg19
+    
+    # 2. Run analyzeBases to determine target positions, analyze reads, sum up frequencies,
+    # report variants, and generate plots.
     output1 <- analyzeBases(
-        sample_names = system.file("extdata", "SampleNames.txt",
-            package = "BBCAnalyzer"),
-        bam_input = system.file("extdata", package = "BBCAnalyzer"),
-        target_regions = system.file("extdata", "targetRegions.txt",
-            package = "BBCAnalyzer"),
-        vcf_input = "",
-        output = tempdir(),
-        output_pictures = "",
-        known_file = system.file("extdata", "dbsnp_138.part.vcf.gz",
-            package = "BBCAnalyzer"),
-        genome = ref_genome,
-        MQ_threshold = 60,
-        BQ_threshold = 50,
-        frequency_threshold = 0.01,
-        qual_lower_bound = 58,
-        qual_upper_bound = 63,
-        marks = c(0.01),
-        relative = TRUE,
-        per_sample = TRUE
+      sample_names = sample_file,
+      bam_input = bam_folder,
+      target_regions = target_file,
+      vcf_input = vcf_folder,
+      output = output_folder,
+      output_pictures = output_pics_folder,
+      known_file = known_file_path,
+      genome = ref_genome,
+      MQ_threshold = 60,
+      BQ_threshold = 50,
+      frequency_threshold = 0.01,
+      qual_lower_bound = 58,
+      qual_upper_bound = 63,
+      marks = c(0.01),
+      relative = TRUE,
+      per_sample = TRUE
     )
+    
+    # Save the returned list of lists as an RDS object for downstream analysis
+    saveRDS(output1, file = "BBCAnalyzer_output.rds")
+    
+    message("BBCAnalyzer pipeline completed successfully. Output files and plots generated in the working directory.")
 
-    # --- Visualise Base Analysis [analyzeBasesPlot] ---
-    # Key functions: analyzeBasesPlot
-    analyzeBasesPlot(
-        output = output1,
-        output_pictures = tempdir(),
-        vcf_input = system.file("extdata", "Example_IonTorrent.vcf",
-            package = "BBCAnalyzer"),
-        vcf_names = "IonTorrent",
-        target_regions = system.file("extdata", "targetRegions.txt",
-            package = "BBCAnalyzer"),
-        colors = c("blue", "green", "red", "yellow", "purple", "orange"),
-        height = 10,
-        width = 10,
-        per_sample = TRUE,
-        relative = TRUE,
-        plots_per_page = 1
-    )
-
-    # --- Extract Analysis Results [analyzeBases] ---
-    # Key functions: analyzeBases
-    sample_1_freq <- output1[[1]][[1]]
-    sample_1_counts <- output1[[1]][[2]]
-    sample_2_freq <- output1[[2]][[1]]
-    sample_2_counts <- output1[[2]][[2]]
-    head(sample_1_freq)
-    head(sample_1_counts)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bbcanalyzer_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bbcanalyzer_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bbcanalyzer_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BBCANALYZER:", paste0("    bbcanalyzer: ", packageVersion("BBCAnalyzer"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS":
+        bbcanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("bbcanalyzer")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bbcanalyzer_results.csv
-    touch ${prefix}_bbcanalyzer_output.rds
-    echo "BIOC_BBCANALYZER:" > versions.yml
-    echo "    bbcanalyzer: 0.0.0" >> versions.yml
+    touch ${prefix}_complete_base_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_BBCANALYZER_WORKFLOW {
+workflow BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ SampleNames.txt, targetRegions.txt, [Sample].bam and [Sample].bai, [Sample].vcf, dbsnp_138.part.vcf.gz ] ]
 
     main:
-    BIOC_BBCANALYZER(ch_input)
+    BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_BBCANALYZER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BBCANALYZER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BBCANALYZER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BBCANALYZER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS.out.tables
+    plots    = BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS.out.plots
+    objects  = BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS.out.objects
+    versions = BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS.out.versions
 }

@@ -1,120 +1,246 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ribosomeProfilingQC
-// Ribo-Seq (also named ribosome profiling or footprinting) measures translatome (unlike RNA-Seq, which
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ribosomeProfilingQC/inst/doc/ribosomeProfilingQC.R
-// Upstream  : AnnotationDbi, AnnotationHub, BiocManager, ChIPpeakAnno, GenomicFeatures
-// Downstream: none
-//
-// Install: BiocManager::install("ribosomeProfilingQC")
+// Bioconductor workflow: ribosomeprofilingqc — qc_and_psite_estimation
+// Perform quality control on Ribo-Seq BAM files, estimate the P-site offset, and check reading frame alignment.
+// Input: bamfile, txdb, genome
+// Container: quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RIBOSOMEPROFILINGQC {
+process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ribosomeprofilingqc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ribosomeprofilingqc:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.18.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(dgelist)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ribosomeprofilingqc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ribosomeprofilingqc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ribosomeprofilingqc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "Rsamtools", "annotationdbi", "annotationhub", "biocmanager", "chippeakanno", "genomicfeatures", "ribosomeprofilingqc")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(ribosomeProfilingQC)
-    library(BamFile)
-    library(DGEList)
-    library(jsonlite)
-
-    # --- P-site Estimation and Read Length Analysis [] ---
-    # Key functions: estimatePsite, getPsiteCoordinates, summaryReadsLength
-    psite_val <- estimatePsite(
-        bamfile, CDS, BSgenome.Drerio.UCSC.danRer10::Drerio
-    )
+    library(Rsamtools)
+    library(AnnotationDbi)
+    library(Biostrings)
+    
+    message("Starting ribosomeProfilingQC pipeline...")
+    
+    # ==========================================
+    # 1. RESOLVE USER INPUTS FROM WORKING DIR
+    # ==========================================
+    
+    # Locate BAM file
+    bamfilename <- "bamfile"
+    if (!file.exists(bamfilename)) {
+      if (file.exists("bamfile.bam")) {
+        bamfilename <- "bamfile.bam"
+      } else {
+        bam_files <- list.files(pattern = "\\.bam\$")
+        if (length(bam_files) > 0) {
+          bamfilename <- bam_files[1]
+        } else {
+          stop("Error: BAM file ('bamfile' or '*.bam') not found in the working directory.")
+        }
+      }
+    }
+    message("Using BAM file: ", bamfilename)
+    
+    # Ensure BAM index exists
+    if (!file.exists(paste0(bamfilename, ".bai")) && !file.exists(sub("\\.bam\$", ".bai", bamfilename))) {
+      message("BAM index not found. Creating index...")
+      Rsamtools::indexBam(bamfilename)
+    }
+    bamfile <- Rsamtools::BamFile(bamfilename, yieldSize = 10000000)
+    
+    # Locate TxDb
+    txdb <- NULL
+    if (file.exists("txdb")) {
+      txdb <- tryCatch(readRDS("txdb"), error = function(e) NULL)
+      if (is.null(txdb)) {
+        txdb <- tryCatch(AnnotationDbi::loadDb("txdb"), error = function(e) NULL)
+      }
+    }
+    if (is.null(txdb) && file.exists("txdb.rds")) {
+      txdb <- readRDS("txdb.rds")
+    }
+    if (is.null(txdb) && file.exists("txdb.sqlite")) {
+      txdb <- AnnotationDbi::loadDb("txdb.sqlite")
+    }
+    if (is.null(txdb)) {
+      db_files <- list.files(pattern = "\\.(sqlite|sqlite3|db|rds)\$")
+      for (f in db_files) {
+        obj <- tryCatch(if (grepl("\\.rds\$", f)) readRDS(f) else AnnotationDbi::loadDb(f), error = function(e) NULL)
+        if (!is.null(obj) && (inherits(obj, "TxDb") || inherits(obj, "GenomicFeatures"))) {
+          txdb <- obj
+          break
+        }
+      }
+    }
+    if (is.null(txdb)) {
+      stop("Error: TxDb object ('txdb', 'txdb.rds', or 'txdb.sqlite') not found or could not be loaded.")
+    }
+    message("Loaded TxDb annotation successfully.")
+    
+    # Locate Genome
+    genome <- NULL
+    if (file.exists("genome")) {
+      genome <- tryCatch(readRDS("genome"), error = function(e) NULL)
+      if (is.null(genome)) {
+        genome <- tryCatch(Biostrings::readDNAStringSet("genome"), error = function(e) NULL)
+      }
+    }
+    if (is.null(genome) && file.exists("genome.rds")) {
+      genome <- readRDS("genome.rds")
+    }
+    if (is.null(genome)) {
+      fa_files <- list.files(pattern = "\\.(fa|fasta|fna)\$")
+      if (length(fa_files) > 0) {
+        genome <- Biostrings::readDNAStringSet(fa_files[1])
+      }
+    }
+    if (is.null(genome)) {
+      rds_files <- list.files(pattern = "\\.rds\$")
+      for (f in rds_files) {
+        obj <- tryCatch(readRDS(f), error = function(e) NULL)
+        if (!is.null(obj) && (inherits(obj, "BSgenome") || inherits(obj, "DNAStringSet"))) {
+          genome <- obj
+          break
+        }
+      }
+    }
+    if (is.null(genome)) {
+      stop("Error: Genome object ('genome', 'genome.rds', or FASTA file) not found or could not be loaded.")
+    }
+    message("Loaded Genome successfully.")
+    
+    
+    # ==========================================
+    # 2. RUN WORKFLOW: qc_and_psite_estimation
+    # ==========================================
+    
+    # Stage 1: Prepare CDS annotation
+    message("Stage 1: Preparing CDS annotation...")
+    CDS <- prepareCDS(txdb)
+    
+    # Stage 2: Estimate P-site offset
+    message("Stage 2: Estimating P-site offset...")
+    p5 <- estimatePsite(bamfile, CDS, genome)
+    p3 <- estimatePsite(bamfile, CDS, genome, anchor = "3end")
+    writeLines(c(
+      paste("Estimated P-site (5' end anchor):", p5),
+      paste("Estimated P-site (3' end anchor):", p3)
+    ), "psite_estimation_results.txt")
+    
+    # Stage 3: Plot start/stop windows
+    message("Stage 3: Plotting start/stop windows...")
+    pdf("reads_end_plots.pdf", width = 8, height = 6)
+    re <- readsEndPlot(bamfile, CDS, toStartCodon=TRUE)
+    readsEndPlot(re\$reads, CDS, toStartCodon=TRUE, fiveEnd=FALSE)
+    dev.off()
+    
+    # Stage 4: Get P-site coordinates
+    message("Stage 4: Getting P-site coordinates...")
     pc <- getPsiteCoordinates(bamfile, bestpsite = 13)
+    
+    # Stage 5: Summarize fragment length
+    message("Stage 5: Summarizing fragment length...")
     readsLen <- summaryReadsLength(pc)
-    pc.sub <- pc[pc$qwidth %in% c(28, 29)]
-
-
-    # --- Quality Control and Strand Distribution [] ---
-    # Key functions: strandPlot, readsDistribution
+    write.csv(as.data.frame(readsLen), "summary_reads_length.csv", row.names = TRUE)
+    
+    # Filter reads by fragment size (28-29 nt)
+    pc.sub <- pc[pc\$qwidth %in% c(28, 29)]
+    
+    # Stage 6: Plot strand specificity
+    message("Stage 6: Plotting strand specificity...")
+    pdf("strand_plot.pdf", width = 6, height = 6)
     strandPlot(pc.sub, CDS)
+    dev.off()
+    
+    # Stage 7: Check genomic element distribution
+    message("Stage 7: Checking genomic element distribution...")
+    pdf("reads_distribution_plot.pdf", width = 8, height = 6)
     pc.sub <- readsDistribution(pc.sub, txdb, las=2)
-
-
-    # --- Metagene Analysis and Reading Frame Assignment [] ---
-    # Key functions: coverageDepth, metaPlot, assignReadingFrame, plotFrameDensity
+    dev.off()
+    saveRDS(pc.sub, "pc_sub_distribution.rds")
+    
+    # Stage 8: Plot metagene coverage
+    message("Stage 8: Calculating coverage depth and plotting metagene coverage...")
     cvgs.utr5 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="utr5")
     cvgs.CDS <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="cds")
     cvgs.utr3 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="utr3")
+    
+    pdf("metagene_plot.pdf", width = 8, height = 6)
     metaPlot(cvgs.utr5, cvgs.CDS, cvgs.utr3, sample=1)
+    dev.off()
+    
+    # Stage 9: Assign reading frames and plot frame density
+    message("Stage 9: Assigning reading frames and plotting frame density...")
     pc.sub <- assignReadingFrame(pc.sub, CDS)
+    
+    pdf("distance_to_codon_plot.pdf", width = 8, height = 6)
+    plotDistance2Codon(pc.sub)
+    dev.off()
+    
+    pdf("frame_density_plot.pdf", width = 6, height = 6)
     plotFrameDensity(pc.sub)
+    dev.off()
+    
+    # Stage 10: Calculate ORFscore and coverage rate
+    message("Stage 10: Calculating ORFscore and coverage rate...")
+    cvg <- frameCounts(pc.sub, coverageRate=TRUE)
+    saveRDS(cvg, "frame_counts_coverage.rds")
+    
+    ORFscore <- getORFscore(pc.sub)
+    write.csv(as.data.frame(ORFscore), "orf_scores.csv", row.names = TRUE)
+    
+    message("Pipeline completed successfully! All outputs saved to the working directory.")
 
-
-    # --- Ribosome Protected Fragment Counting [] ---
-    # Key functions: countReads
-    path <- system.file("extdata", package="ribosomeProfilingQC")
-    RPFs <- dir(path, "RPF.*?\\.[12].bam$", full.names=TRUE)
-    gtf <- file.path(path, "Danio_rerio.GRCz10.91.chr1.gtf.gz")
-    cnts <- countReads(RPFs, gtf=gtf, level="gene",
-                       bestpsite=13, readsLen=c(28,29))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ribosomeprofilingqc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ribosomeprofilingqc_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ribosomeprofilingqc_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RIBOSOMEPROFILINGQC:", paste0("    ribosomeprofilingqc: ", packageVersion("ribosomeProfilingQC"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION":
+        ribosomeprofilingqc: \$(Rscript -e 'cat(as.character(packageVersion("ribosomeprofilingqc")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ribosomeprofilingqc_results.csv
-    touch ${prefix}_ribosomeprofilingqc_output.rds
-    echo "BIOC_RIBOSOMEPROFILINGQC:" > versions.yml
-    echo "    ribosomeprofilingqc: 0.0.0" >> versions.yml
+    touch ${prefix}_qc_and_psite_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_RIBOSOMEPROFILINGQC_WORKFLOW {
+workflow BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(dgelist) ]
+    ch_input  // channel: [ val(meta), [ bamfile, txdb, genome ] ]
 
     main:
-    BIOC_RIBOSOMEPROFILINGQC(ch_input)
+    BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_RIBOSOMEPROFILINGQC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RIBOSOMEPROFILINGQC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RIBOSOMEPROFILINGQC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RIBOSOMEPROFILINGQC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION.out.tables
+    plots    = BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION.out.plots
+    objects  = BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION.out.objects
+    versions = BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION.out.versions
 }

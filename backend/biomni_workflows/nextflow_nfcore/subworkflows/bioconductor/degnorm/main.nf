@@ -1,106 +1,178 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DegNorm
-// This package performs degradation normalization in bulk RNA-seq data to improve differential express
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DegNorm/inst/doc/DegNorm.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("DegNorm")
+// Bioconductor workflow: degnorm — degradation_normalization_workflow
+// Perform degradation normalization on bulk RNA-seq BAM files using a GTF annotation to obtain degradation-normalized read counts and visualize degradation indice
+// Input: bam_files, gtf_file
+// Container: quay.io/biocontainers/bioconductor-degnorm:1.20.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEGNORM {
+process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-degnorm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-degnorm:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-degnorm:1.16.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-degnorm:1.20.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_degnorm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_degnorm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_degnorm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("degnorm")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(DegNorm)
-    library(jsonlite)
-
-    # --- Files [] ---
-    # Key functions: files
-    ---------------------------------------------------------------------
-    ## specify bam_files from RNA-seq, you should replace it by your own bam files
-    bam_file_list=list.files(path=system.file("extdata",package="DegNorm"),
-                            pattern=".bam$",full.names=TRUE)
-    # --- Data [] ---
-    # Key functions: summary_CoverageClass
-    ---------------------------------------------------------------------
-    data("coverage_res_chr21")
-    ## summarize the coverage results
+    
+    # 1. Identify and list BAM and GTF files from the working directory
+    bam_file_list = list.files(path=".", pattern="\\.bam\$", full.names=TRUE)
+    if (length(bam_file_list) == 0) {
+      stop("Error: No BAM files found in the working directory.")
+    }
+    
+    gtf_files = list.files(path=".", pattern="\\.gtf\$", full.names=TRUE)
+    if (length(gtf_files) == 0) {
+      stop("Error: No GTF files found in the working directory.")
+    }
+    gtf_file = gtf_files[1]
+    
+    message("Found ", length(bam_file_list), " BAM files.")
+    message("Using GTF file: ", gtf_file)
+    
+    # 2. Calculate read coverage scores and counts across samples
+    message("Calculating read coverage...")
+    coverage_res_chr21 = read_coverage_batch(bam_file_list, gtf_file, cores=2)
+    
+    # Summarize coverage results
     summary_CoverageClass(coverage_res_chr21)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("res_DegNorm_chr21")
-    # --- Summary Degnormclass [] ---
-    # Key functions: summary_DegNormClass
-    ---------------------------------------------------------------------
-    ## summary of the DegNorm output
+    
+    # Extract coverage scores and counts
+    coverage_matrix = coverage_res_chr21\$coverage
+    counts = coverage_res_chr21\$counts
+    
+    # Save raw coverage results
+    saveRDS(coverage_res_chr21, file="coverage_results.rds")
+    write.csv(counts, file="raw_counts.csv", row.names=TRUE)
+    
+    # 3. Run the DegNorm core algorithm
+    message("Running DegNorm core algorithm...")
+    res_DegNorm_chr21 = degnorm(read_coverage = coverage_res_chr21[[1]],
+                                counts = coverage_res_chr21[[2]],
+                                iteration = 5,
+                                down_sampling = 1,
+                                grid_size = 10,
+                                loop = 100,
+                                cores = 2)
+    
+    # Summary of DegNorm output
     summary_DegNormClass(res_DegNorm_chr21)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_degnorm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_degnorm_results.csv")
+    
+    # Extract normalized read counts
+    counts_normed = res_DegNorm_chr21\$counts_normed
+    
+    # Save normalized counts and full results
+    write.csv(counts_normed, file="degnorm_normalized_counts.csv", row.names=TRUE)
+    saveRDS(res_DegNorm_chr21, file="degnorm_results.rds")
+    
+    # 4. Visualize coverage curves, degradation index boxplots, heatmaps, and correlation matrices
+    message("Generating diagnostic plots...")
+    pdf("degnorm_diagnostic_plots.pdf", width=7, height=6)
+    
+    # Determine a valid gene name to plot (fallback to first available if SOD1 is not present)
+    available_genes = names(coverage_res_chr21\$coverage)
+    gene_name_val = if ("SOD1" %in% available_genes) "SOD1" else available_genes[1]
+    
+    # Determine group vector based on number of samples
+    num_samples = ncol(coverage_res_chr21\$counts)
+    group_val = c(0, rep(1, max(0, num_samples - 1)))
+    
+    # Plot coverage for all samples
+    if (!is.null(gene_name_val)) {
+      tryCatch({
+        plot_coverage(gene_name=gene_name_val, coverage_output=coverage_res_chr21, 
+                      degnorm_output=res_DegNorm_chr21, group=group_val)
+      }, error = function(e) {
+        message("Warning: plot_coverage failed: ", e\$message)
+      })
+      
+      # Plot coverage for a subset of samples (up to 2)
+      samples_val = colnames(coverage_res_chr21\$counts)[1:min(2, num_samples)]
+      group_val_sub = c(0, rep(1, max(0, length(samples_val) - 1)))
+      tryCatch({
+        plot_coverage(gene_name=gene_name_val, coverage_output=coverage_res_chr21, 
+                      degnorm_output=res_DegNorm_chr21, group=group_val_sub, 
+                      samples=samples_val)
+      }, error = function(e) {
+        message("Warning: subset plot_coverage failed: ", e\$message)
+      })
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_degnorm_output.rds")
-    }
+    
+    # Boxplot of degradation index (DI) scores
+    tryCatch({
+      plot_boxplot(DI=res_DegNorm_chr21\$DI)
+    }, error = function(e) {
+      message("Warning: plot_boxplot failed: ", e\$message)
+    })
+    
+    # Heatmap plot of DI scores
+    tryCatch({
+      plot_heatmap(DI=res_DegNorm_chr21\$DI)
+    }, error = function(e) {
+      message("Warning: plot_heatmap failed: ", e\$message)
+    })
+    
+    # Correlation matrix plot of DI scores
+    tryCatch({
+      plot_corr(DI=res_DegNorm_chr21\$DI)
+    }, error = function(e) {
+      message("Warning: plot_corr failed: ", e\$message)
+    })
+    
+    dev.off()
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEGNORM:", paste0("    degnorm: ", packageVersion("DegNorm"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW":
+        degnorm: \$(Rscript -e 'cat(as.character(packageVersion("degnorm")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_degnorm_results.csv
-    touch ${prefix}_degnorm_output.rds
-    echo "BIOC_DEGNORM:" > versions.yml
-    echo "    degnorm: 0.0.0" >> versions.yml
+    touch ${prefix}_degradation_normalization_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEGNORM_WORKFLOW {
+workflow BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ bam_files, gtf_file ] ]
 
     main:
-    BIOC_DEGNORM(ch_input)
+    BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_DEGNORM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEGNORM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEGNORM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEGNORM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW.out.tables
+    plots    = BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW.out.plots
+    objects  = BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW.out.objects
+    versions = BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW.out.versions
 }

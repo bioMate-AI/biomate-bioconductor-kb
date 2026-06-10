@@ -1,100 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SwathXtend
-// Contains utility functions for integrating spectral libraries for SWATH and statistical data analysi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SwathXtend/inst/doc/SwathXtend_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("SwathXtend")
+// Bioconductor workflow: swathxtend — build_extended_library
+// Clean, check matching quality, align retention times, and merge a seed library and an add-on library to build and export an extended SWATH assay library.
+// Input: seed_library.txt, addon_library.txt, hydro_index.txt
+// Container: quay.io/biocontainers/bioconductor-swathxtend:2.32.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SWATHXTEND {
+process BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-swathxtend"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-swathxtend:2.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-swathxtend:2.28.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-swathxtend:2.32.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_swathxtend_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_swathxtend_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_swathxtend_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("swathxtend")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
+    if (!requireNamespace("SwathXtend", quietly = TRUE)) {
+      stop("Package 'SwathXtend' is required but not installed.")
+    }
     library(SwathXtend)
-    library(jsonlite)
-
-    # --- Quality Control Assessment [] ---
-    # Key functions: checkQuality
-    qc_results <- checkQuality(
-        lib1 = lib2_data,
-        lib2 = lib3_data
-    )
-
-
-    # --- Library Comparison Visualization [] ---
-    # Key functions: plotAll
-    plotAll(
-        lib1 = lib2_data,
-        lib2 = lib3_data,
-        file = "library_comparison_plots.xlsx"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_swathxtend_results.csv", row.names = TRUE)
+    
+    # Define input file paths
+    seed_file <- "seed_library.txt"
+    addon_file <- "addon_library.txt"
+    hydro_file <- "hydro_index.txt"
+    
+    # Verify required input files exist
+    if (!file.exists(seed_file)) {
+      stop(paste("Required input file missing:", seed_file))
+    }
+    if (!file.exists(addon_file)) {
+      stop(paste("Required input file missing:", addon_file))
+    }
+    
+    # 1. Load libraries using readLibFile
+    message("Reading library files...")
+    Lib2 <- readLibFile(seed_file, clean = TRUE)
+    Lib3 <- readLibFile(addon_file, clean = TRUE)
+    
+    # 2. Clean libraries using cleanLib
+    message("Cleaning libraries...")
+    Lib2 <- cleanLib(Lib2, intensity.cutoff = 5, conf.cutoff = 0.99, 
+                     nomod = FALSE, nomc = FALSE)
+    Lib3 <- cleanLib(Lib3, intensity.cutoff = 5, conf.cutoff = 0.99, 
+                     nomod = FALSE, nomc = FALSE)
+    
+    # 3. Check matching quality using checkQuality
+    message("Checking matching quality...")
+    quality_metrics <- checkQuality(Lib2, Lib3)
+    sink("matching_quality_metrics.txt")
+    print(quality_metrics)
+    sink()
+    
+    # 4. Visualize matching quality
+    message("Generating diagnostic plots...")
+    pdf("matching_quality_plots.pdf", width = 8, height = 8)
+    plotRTCor(Lib2, Lib3, "Seed Library", "Add-on Library")
+    plotRTResd(Lib2, Lib3)
+    plotRIICor(Lib2, Lib3)
+    dev.off()
+    
+    # Generate multi-tab Excel sheet with all plots
+    # Note: plotAll requires the openxlsx package internally
+    tryCatch({
+      plotAll(Lib2, Lib3, file = "allplots.xlsx")
+    }, error = function(e) {
+      warning("Could not generate allplots.xlsx: ", e\$message)
+    })
+    
+    # 5. Build the extended library using buildSpectraLibPair (Time-based alignment)
+    message("Building extended library (time-based alignment)...")
+    Lib2_3 <- buildSpectraLibPair(seed_file, addon_file, clean = TRUE, 
+                                  nomc = TRUE, nomod = TRUE, plot = FALSE, 
+                                  outputFormat = "peakview",
+                                  outputFile = "extended_library.txt")
+    
+    # 6. Export the extended library using outputLib
+    message("Exporting time-aligned extended library...")
+    outputLib(Lib2_3, filename = "extended_library.txt", format = "peakview")
+    
+    # Optional: Hydrophobicity-based alignment if hydro_index.txt is provided
+    if (file.exists(hydro_file)) {
+      message("Hydrophobicity index file found. Building hydrophobicity-aligned library...")
+      
+      # Load hydrophobicity index
+      hydro <- readLibFile(hydro_file, type = "hydro")
+      
+      # Build library using hydrophobicity-based alignment
+      Lib2_3.hydro <- buildSpectraLibPair(seed_file, addon_file, hydro, 
+                                          clean = TRUE, 
+                                          nomc = TRUE, nomod = TRUE, plot = FALSE, 
+                                          method = "hydro",
+                                          outputFormat = "peakview",
+                                          outputFile = "extended_library_hydro.txt")
+      
+      # Export the hydrophobicity-aligned library
+      outputLib(Lib2_3.hydro, filename = "extended_library_hydro.txt", format = "peakview")
+      message("Hydrophobicity-aligned library exported successfully.")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_swathxtend_results.csv")
+      message("Optional hydro_index.txt not found. Skipping hydrophobicity-based alignment.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_swathxtend_output.rds")
-    }
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SWATHXTEND:", paste0("    swathxtend: ", packageVersion("SwathXtend"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY":
+        swathxtend: \$(Rscript -e 'cat(as.character(packageVersion("swathxtend")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_swathxtend_results.csv
-    touch ${prefix}_swathxtend_output.rds
-    echo "BIOC_SWATHXTEND:" > versions.yml
-    echo "    swathxtend: 0.0.0" >> versions.yml
+    touch ${prefix}_build_extended_library.csv versions.yml
     """
 }
 
-
-workflow BIOC_SWATHXTEND_WORKFLOW {
+workflow BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ seed_library.txt, addon_library.txt, hydro_index.txt ] ]
 
     main:
-    BIOC_SWATHXTEND(ch_input)
+    BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY(ch_input)
 
     emit:
-    results  = BIOC_SWATHXTEND.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SWATHXTEND.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SWATHXTEND.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SWATHXTEND.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY.out.tables
+    plots    = BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY.out.plots
+    objects  = BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY.out.objects
+    versions = BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY.out.versions
 }

@@ -1,150 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ribor
-// The ribor package provides an R Interface for .ribo files. It provides functionality to read the .ri
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ribor/inst/doc/ribor.R
-// Upstream  : devtools
-// Downstream: none
-//
-// Install: BiocManager::install("ribor")
+// Bioconductor workflow: ribor — ribo_qc_and_quantification
+// Load a .ribo file, perform quality control checks (read length distribution and metagene analysis), and extract region-specific counts.
+// Input: HEK293_ingolia.ribo
+// Container: quay.io/biocontainers/bioconductor-ribor:1.22.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RIBOR {
+process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ribor"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ribor:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ribor:1.18.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ribor:1.22.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ribor_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ribor_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ribor_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("devtools", "ribor")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
     library(ribor)
-    library(jsonlite)
-
-    # --- Read Length Distribution Analysis [] ---
-    # Key functions: plot_length_distribution, get_length_distribution
-    file_path <- system.file(
-        "extdata", "HEK293_ingolia.ribo", 
-        package = "ribor"
-    )
-    original_ribo <- Ribo(file_path, rename = rename_default)
-    plot_length_distribution(
-        x = original_ribo,
-        region = "CDS",
-        range.lower = 28,
-        range.upper = 32,
-        fraction = TRUE
-    )
-    rc <- get_length_distribution(
-        ribo.object = original_ribo,
-        region = "CDS",
-        range.lower = 28,
-        range.upper = 32
-    )
-
-
-    # --- Metagene Analysis [] ---
-    # Key functions: plot_metagene, get_metagene, get_tidy_metagene
-    file_path <- system.file(
-        "extdata", "HEK293_ingolia.ribo", 
-        package = "ribor"
-    )
-    original_ribo <- Ribo(file_path, rename = rename_default)
-    plot_metagene(
-        original_ribo,
-        site = "start",
-        experiment = c("GSM1606107"),
-        range.lower = 28,
-        range.upper = 32
-    )
-    tidy_meta_start <- get_tidy_metagene(
-        ribo.object = original_ribo,
-        site = "start",
-        range.lower = 28,
-        range.upper = 32,
-        length = TRUE
-    )
-    plot_metagene(tidy_meta_start, normalize = TRUE)
-
-
-    # --- Region Counts Analysis [] ---
-    # Key functions: plot_region_counts, get_region_counts
-    file_path <- system.file(
-        "extdata", "HEK293_ingolia.ribo", 
-        package = "ribor"
-    )
-    original_ribo <- Ribo(file_path, rename = rename_default)
-    plot_region_counts(
-        x = original_ribo,
-        range.lower = 28,
-        range.upper = 32
-    )
-    rc_info <- get_region_counts(
-        ribo.object = original_ribo,
-        region = c("UTR5", "CDS", "UTR3"),
-        range.lower = 28,
-        range.upper = 32
-    )
-    plot_region_counts(rc_info)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ribor_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ribor_results.csv")
+    
+    # Define input file path
+    file.path <- "HEK293_ingolia.ribo"
+    
+    # Check if the required input file exists in the working directory
+    if (!file.exists(file.path)) {
+      stop(paste("Required input file '", file.path, "' not found in the working directory.", sep = ""))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ribor_output.rds")
-    }
+    
+    # 1. Initialize the Ribo object
+    original.ribo <- Ribo(file.path, rename = rename_default)
+    print(original.ribo)
+    
+    # Open PDF device to save all plots
+    pdf("ribo_qc_plots.pdf", width = 8, height = 6)
+    
+    # 2. Plot and retrieve read length distribution
+    plot_length_distribution(x           = original.ribo,
+                             region      = "CDS",
+                             range.lower = 28,
+                             range.upper = 32,
+                             fraction    = TRUE)
+    
+    plot_length_distribution(x           = original.ribo,
+                             region      = "CDS",
+                             range.lower = 28,
+                             range.upper = 32,
+                             fraction    = FALSE)
+    
+    rc <- get_length_distribution(ribo.object      = original.ribo,
+                                  region      = "CDS",
+                                  range.lower = 28,
+                                  range.upper = 32)
+    write.csv(as.data.frame(rc), "length_distribution.csv", row.names = FALSE)
+    
+    # 3. Perform metagene analysis around start/stop sites
+    metagene_radius <- get_info(original.ribo)\$attributes\$metagene_radius
+    message(paste("Metagene radius:", metagene_radius))
+    
+    plot_metagene(original.ribo,
+                  site        = "start",
+                  experiment  = c("GSM1606107"),
+                  range.lower = 28,
+                  range.upper = 32)
+    
+    plot_metagene(original.ribo,
+                  site        = "stop",
+                  normalize   = TRUE,
+                  title       = "Stop Site Coverage",
+                  range.lower = 28,
+                  range.upper = 32)
+    
+    meta.start <- get_metagene(ribo.object = original.ribo, 
+                               site        = "start",
+                               range.lower = 28,
+                               range.upper = 32,
+                               length      = TRUE,
+                               transcript  = TRUE)
+    write.csv(as.data.frame(meta.start), "meta_start.csv", row.names = FALSE)
+    
+    tidy.meta.start <- get_tidy_metagene(ribo.object = original.ribo,
+                                         site        = "start",
+                                         range.lower = 28,
+                                         range.upper = 32,
+                                         length      = TRUE)
+    write.csv(as.data.frame(tidy.meta.start), "tidy_meta_start.csv", row.names = FALSE)
+    
+    plot_metagene(tidy.meta.start, normalize = TRUE)
+    
+    # 4. Quantify and plot region counts
+    plot_region_counts(x           = original.ribo,
+                       range.lower = 28,
+                       range.upper = 32)
+    
+    rc_cds <- get_region_counts(original.ribo,
+                                range.lower = 28,
+                                range.upper = 32,
+                                length      = TRUE,
+                                transcript  = TRUE,
+                                region      = c("CDS"))
+    write.csv(as.data.frame(rc_cds), "region_counts_cds.csv", row.names = FALSE)
+    
+    rc_non_tidy <- get_region_counts(original.ribo,
+                                     range.lower = 28,
+                                     range.upper = 32,
+                                     tidy        = FALSE)
+    write.csv(as.data.frame(rc_non_tidy), "region_counts_non_tidy.csv", row.names = FALSE)
+    
+    # Close PDF device
+    dev.off()
+    
+    # 5. Retrieve region coordinates and lengths using alias
+    alias.ribo <- Ribo(file.path, rename = rename_default)
+    
+    region_coord <- get_internal_region_coordinates(ribo.object = alias.ribo, alias = TRUE)
+    write.csv(as.data.frame(region_coord), "internal_region_coordinates.csv", row.names = FALSE)
+    
+    region_lengths <- get_internal_region_lengths(ribo.object = alias.ribo, alias = TRUE)
+    write.csv(as.data.frame(region_lengths), "internal_region_lengths.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully. Outputs saved to 'ribo_qc_plots.pdf', 'length_distribution.csv', 'meta_start.csv', 'tidy_meta_start.csv', 'region_counts_cds.csv', 'region_counts_non_tidy.csv', 'internal_region_coordinates.csv', and 'internal_region_lengths.csv'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RIBOR:", paste0("    ribor: ", packageVersion("ribor"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION":
+        ribor: \$(Rscript -e 'cat(as.character(packageVersion("ribor")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ribor_results.csv
-    touch ${prefix}_ribor_output.rds
-    echo "BIOC_RIBOR:" > versions.yml
-    echo "    ribor: 0.0.0" >> versions.yml
+    touch ${prefix}_ribo_qc_and_quantification.csv versions.yml
     """
 }
 
-
-workflow BIOC_RIBOR_WORKFLOW {
+workflow BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ HEK293_ingolia.ribo ] ]
 
     main:
-    BIOC_RIBOR(ch_input)
+    BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION(ch_input)
 
     emit:
-    results  = BIOC_RIBOR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RIBOR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RIBOR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RIBOR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION.out.tables
+    plots    = BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION.out.plots
+    objects  = BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION.out.objects
+    versions = BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION.out.versions
 }

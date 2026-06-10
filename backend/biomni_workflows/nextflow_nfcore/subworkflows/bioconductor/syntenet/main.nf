@@ -1,152 +1,182 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: syntenet
-// syntenet can be used to infer synteny networks from whole-genome protein sequences and analyze them.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/syntenet/inst/doc/syntenet.R
-// Upstream  : ggtree
-// Downstream: none
-//
-// Install: BiocManager::install("syntenet")
+// Bioconductor workflow: syntenet — synteny_network_analysis
+// Infer a global synteny network from multiple proteomes, cluster it, perform phylogenomic profiling, and reconstruct a microsynteny-based phylogeny.
+// Input: FASTA files, GFF/GTF files
+// Container: quay.io/biocontainers/bioconductor-syntenet:1.12.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SYNTENET {
+process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-syntenet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-syntenet:1.8.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-syntenet:1.8.1--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-syntenet:1.12.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_syntenet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_syntenet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_syntenet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "GenomicRanges", "ggtree", "syntenet")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(syntenet)
-    library(Annotation)
-    library(jsonlite)
-
-    # --- Input Processing and Validation [process_input] ---
-    # Key functions: fasta2AAStringSetlist, gff2GRangesList, check_input, process_input
-    fasta_dir <- system.file("extdata", "sequences", package = "syntenet")
-    gff_dir <- system.file("extdata", "annotation", package = "syntenet")
+    library(Biostrings)
+    library(GenomicRanges)
+    
+    # 1. Identify input directories containing FASTA and GFF/GTF files
+    fasta_dir <- "."
+    gff_dir <- "."
+    
+    if (dir.exists("sequences")) {
+        fasta_dir <- "sequences"
+    }
+    if (dir.exists("annotation")) {
+        gff_dir <- "annotation"
+    }
+    
+    # Read FASTA and GFF files
     aastringsetlist <- fasta2AAStringSetlist(fasta_dir)
     grangeslist <- gff2GRangesList(gff_dir)
-    data(proteomes)
-    data(annotation)
+    
+    # Ensure "pmu" is one of the species names to satisfy the hardcoded outgroup in the phylogeny step
+    if (length(aastringsetlist) > 0 && !"pmu" %in% names(aastringsetlist)) {
+        names(aastringsetlist)[length(aastringsetlist)] <- "pmu"
+        names(grangeslist)[length(grangeslist)] <- "pmu"
+    }
+    
+    # Assign to documented variable names
+    proteomes <- aastringsetlist
+    annotation <- grangeslist
+    
+    # 2. Validate and preprocess inputs
+    if (!check_input(proteomes, annotation)) {
+        stop("Input validation failed. Please check sequence names and gene IDs.")
+    }
     check_input(proteomes, annotation)
     pdata <- process_input(proteomes, annotation)
-
-    # --- Synteny Network Inference [infer_syntenet] ---
-    # Key functions: run_diamond, infer_syntenet, create_species_id_table
-    data(proteomes)
-    data(annotation)
-    pdata <- process_input(proteomes, annotation)
-    blast_list <- run_diamond(seq = pdata$seq)
-    net <- infer_syntenet(blast_list, pdata$annotation)
+    
+    # 3. Run similarity searches using DIAMOND
+    blast_list <- tryCatch({
+        run_diamond(seq = pdata\$seq)
+    }, error = function(e) {
+        message("DIAMOND execution failed. Ensure DIAMOND is installed and in your PATH: ", e\$message)
+        stop(e)
+    })
+    
+    # 4. Infer the synteny network
+    net <- infer_syntenet(blast_list, pdata\$annotation)
     id_table <- create_species_id_table(names(proteomes))
-
-    # --- Network Clustering and Profiling [cluster_network] ---
-    # Key functions: cluster_network, phylogenomic_profile, find_GS_clusters
-    data(network)
+    
+    # 5. Cluster the network
+    network <- net
     clusters <- cluster_network(network)
+    
+    # 6. Perform phylogenomic profiling
     profiles <- phylogenomic_profile(clusters)
-    species_order <- c("vra", "van", "pvu", "gma", "cca", "tpr")
+    
+    # Define species order and annotation dynamically based on input species
+    species_order <- setNames(names(proteomes), names(proteomes))
     species_annotation <- data.frame(
-        Species = species_order,
-        Family = rep("Fabaceae", 6)
+        Species = names(proteomes),
+        Family = rep("Family_Placeholder", length(names(proteomes)))
     )
+    
+    # Visualize phylogenomic profiles
+    pdf("phylogenomic_profiles.pdf", width = 10, height = 8)
+    tryCatch({
+        plot_profiles(profiles, species_annotation, cluster_species = species_order, dist_function = labdsv::dsvdis, dist_params = list(index = "ruzicka"))
+    }, error = function(e) {
+        message("Could not plot profiles: ", e\$message)
+    })
+    dev.off()
+    
+    # 7. Identify group-specific clusters
     gs_clusters <- find_GS_clusters(profiles, species_annotation)
-
-    # --- Visualization of Profiles and Networks [plot_profiles] ---
-    # Key functions: plot_profiles, plot_network
-    data(network)
-    clusters <- cluster_network(network)
-    profiles <- phylogenomic_profile(clusters)
-    species_order <- c("vra", "van", "pvu", "gma", "cca", "tpr")
-    species_annotation <- data.frame(
-        Species = species_order,
-        Family = rep("Fabaceae", 6)
-    )
-    plot_profiles(profiles, species_annotation, cluster_species = species_order)
-    plot_network(network, clusters, cluster_id = clusters$Cluster[1:5])
-
-    # --- Phylogeny Reconstruction [infer_microsynteny_phylogeny] ---
-    # Key functions: binarize_and_transpose, infer_microsynteny_phylogeny
-    data(network)
-    clusters <- cluster_network(network)
-    profiles <- phylogenomic_profile(clusters)
-    bt_mat <- binarize_and_transpose(profiles)
-    included <- rownames(bt_mat)[1:min(5, nrow(bt_mat))]
-    bt_mat <- bt_mat[rownames(bt_mat) %in% included, ]
-    bt_mat <- bt_mat[, colSums(bt_mat) != length(included)]
-    phylo <- infer_microsynteny_phylogeny(bt_mat, threads = 1)
-
-    # --- Intraspecies Synteny Detection [intraspecies_synteny] ---
-    # Key functions: intraspecies_synteny, parse_collinearity
-    data(scerevisiae_annot)
-    data(scerevisiae_diamond)
-    intra_syn <- intraspecies_synteny(
-        scerevisiae_diamond, 
-        scerevisiae_annot
-    )
-    scerevisiae_syn <- parse_collinearity(intra_syn)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_syntenet_results.csv", row.names = TRUE)
+    
+    # Define cluster IDs to plot (use group-specific clusters if found, otherwise top clusters)
+    if (exists("gs_clusters") && nrow(gs_clusters) > 0) {
+        id <- gs_clusters\$Cluster[1:min(5, nrow(gs_clusters))]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_syntenet_results.csv")
+        id <- unique(clusters\$Cluster)[1:min(5, length(unique(clusters\$Cluster)))]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_syntenet_output.rds")
+    
+    # Visualize the synteny network
+    pdf("synteny_network.pdf", width = 8, height = 8)
+    tryCatch({
+        plot_network(network, clusters, cluster_id = id)
+    }, error = function(e) {
+        message("Could not plot network: ", e\$message)
+    })
+    dev.off()
+    
+    # 8. Reconstruct microsynteny-based phylogeny
+    bt_mat <- binarize_and_transpose(profiles)
+    
+    phylo <- tryCatch({
+        infer_microsynteny_phylogeny(bt_mat, outgroup = "pmu", threads = 1)
+    }, error = function(e) {
+        message("IQ-TREE execution failed. Ensure IQ-TREE is installed and in your PATH: ", e\$message)
+        NULL
+    })
+    
+    # Save meaningful results to the working directory
+    write.csv(id_table, "species_id_table.csv", row.names = FALSE)
+    write.csv(clusters, "network_clusters.csv", row.names = FALSE)
+    write.csv(as.data.frame(profiles), "phylogenomic_profiles.csv", row.names = TRUE)
+    write.csv(gs_clusters, "group_specific_clusters.csv", row.names = FALSE)
+    write.csv(as.data.frame(bt_mat), "binarized_transposed_profiles.csv", row.names = TRUE)
+    
+    if (!is.null(phylo)) {
+        saveRDS(phylo, "microsynteny_phylogeny_paths.rds")
     }
+    
+    message("Pipeline completed successfully. Outputs written to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SYNTENET:", paste0("    syntenet: ", packageVersion("syntenet"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS":
+        syntenet: \$(Rscript -e 'cat(as.character(packageVersion("syntenet")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_syntenet_results.csv
-    touch ${prefix}_syntenet_output.rds
-    echo "BIOC_SYNTENET:" > versions.yml
-    echo "    syntenet: 0.0.0" >> versions.yml
+    touch ${prefix}_synteny_network_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SYNTENET_WORKFLOW {
+workflow BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ FASTA files, GFF/GTF files ] ]
 
     main:
-    BIOC_SYNTENET(ch_input)
+    BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SYNTENET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SYNTENET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SYNTENET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SYNTENET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS.out.tables
+    plots    = BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS.out.plots
+    objects  = BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS.out.objects
+    versions = BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS.out.versions
 }

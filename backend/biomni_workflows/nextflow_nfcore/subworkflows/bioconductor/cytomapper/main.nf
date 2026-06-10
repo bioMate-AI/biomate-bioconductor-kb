@@ -1,95 +1,113 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cytomapper
-// Highly multiplexed imaging acquires the single-cell expression of selected proteins in a spatially-r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cytomapper/inst/doc/cytomapper.R
-// Upstream  : HDF5Array, cowplot, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("cytomapper")
+// Bioconductor workflow: cytomapper — pixel_and_cell_visualization
+// Load, scale, measure, and visualize pixel-level intensities and cell-level expression/metadata from multiplexed images and segmentation masks in memory.
+// Input: multi_channel_images.tiff, segmentation_masks.tiff
+// Container: quay.io/biocontainers/bioconductor-cytomapper:1.22.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CYTOMAPPER {
+process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cytomapper"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cytomapper:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cytomapper:1.18.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-cytomapper:1.22.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cytomapper_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cytomapper_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cytomapper_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "cowplot", "cytomapper", "ggplot2", "hdf5array")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(cytomapper)
-    library(jsonlite)
+    library(SingleCellExperiment)
+    
+    # 1. Load segmentation masks and multi-channel images
+    all_masks <- loadImages("segmentation_masks.tiff")
+    all_stacks <- loadImages("multi_channel_images.tiff")
+    
+    # 2. Add image metadata to the elementMetadata slot of both CytoImageList objects
+    mcols(all_masks)\$ImageNb <- as.character(seq_along(all_masks))
+    mcols(all_stacks)\$ImageNb <- as.character(seq_along(all_stacks))
+    
+    # 3. Scale segmentation masks to restore integer cell IDs
+    all_masks <- scaleImages(all_masks, 2^16-1)
+    
+    # 4. Set channel names
+    channelNames(all_stacks) <- c("H3", "CD99", "PIN", "CD8a", "CDH")
+    
+    # 5. Measure cell-specific intensities and morphological features to generate a SingleCellExperiment
+    sce <- measureObjects(all_masks, all_stacks, img_id = "ImageNb")
+    
+    # Prepare the SingleCellExperiment object with required metadata columns for plotting
+    sce\$CellNb <- sce\$object_id
+    cd99_expr <- assay(sce, "counts")["CD99", ]
+    sce\$CellType <- ifelse(cd99_expr > median(cd99_expr), "CD99_high", "CD99_low")
+    
+    # 6. Plot pixel-level intensities and save to PDF
+    pdf("pixel_intensities_plot.pdf")
+    plotPixels(image = all_stacks, colour_by = c("H3", "CD99", "CDH"))
+    dev.off()
+    
+    # 7. Plot cell-level expression and metadata on segmentation masks and save to PDFs
+    pdf("cell_expression_plot.pdf")
+    plotCells(mask = all_masks, object = sce, cell_id = "CellNb", img_id = "ImageNb", colour_by = "CD99", outline_by = "CellType")
+    dev.off()
+    
+    pdf("cell_metadata_plot.pdf")
+    plotCells(mask = all_masks, object = sce, cell_id = "CellNb", img_id = "ImageNb", colour_by = "CellType")
+    dev.off()
+    
+    # 8. Write named output files for the results
+    saveRDS(sce, "measured_cells_sce.rds")
+    write.csv(as.data.frame(colData(sce)), "cell_metadata.csv", row.names = FALSE)
+    write.csv(as.data.frame(assay(sce, "counts")), "cell_counts.csv", row.names = TRUE)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, plotCells, ggdraw, plot_grid
-    library(cowplot)
-    library(ggplot2)
-    g1 <- ggplot(mtcars) + geom_point(aes(cyl, hp))
-    # --- Sample metadata inspection [] ---
-    # Key functions: plotPixels, plotCells, mcols, channelNames, imageData, loadImages, scaleImages, measureObjects
-    path.to.images <- system.file("extdata", package = "cytomapper")
-    all_masks <- loadImages(path.to.images, pattern = "_mask.tiff")
-    all_stacks <- loadImages(path.to.images, pattern = "_imc.tiff")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cytomapper_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cytomapper_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cytomapper_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CYTOMAPPER:", paste0("    cytomapper: ", packageVersion("cytomapper"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION":
+        cytomapper: \$(Rscript -e 'cat(as.character(packageVersion("cytomapper")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cytomapper_results.csv
-    touch ${prefix}_cytomapper_output.rds
-    echo "BIOC_CYTOMAPPER:" > versions.yml
-    echo "    cytomapper: 0.0.0" >> versions.yml
+    touch ${prefix}_pixel_and_cell_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_CYTOMAPPER_WORKFLOW {
+workflow BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ multi_channel_images.tiff, segmentation_masks.tiff ] ]
 
     main:
-    BIOC_CYTOMAPPER(ch_input)
+    BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_CYTOMAPPER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CYTOMAPPER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CYTOMAPPER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CYTOMAPPER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION.out.tables
+    plots    = BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION.out.plots
+    objects  = BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION.out.objects
+    versions = BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION.out.versions
 }

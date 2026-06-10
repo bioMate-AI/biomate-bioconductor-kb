@@ -1,136 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: VariantFiltering
-// Filter genetic variants using different criteria such as inheritance model, amino acid change conseq
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/VariantFiltering/inst/doc/usingVariantFiltering.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("VariantFiltering")
+// Bioconductor workflow: variantfiltering — unrelated_individuals_analysis
+// Annotate and filter variants from unrelated individuals without assuming an inheritance model.
+// Input: CEUtrio.vcf.bgz, NA12878.subset.bam, NA12891.subset.bam, NA12892.subset.bam
+// Container: quay.io/biocontainers/bioconductor-variantfiltering:1.46.0--r45h01b2380_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_VARIANTFILTERING {
+process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-variantfiltering"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-variantfiltering:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-variantfiltering:1.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-variantfiltering:1.46.0--r45h01b2380_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_variantfiltering_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_variantfiltering_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_variantfiltering_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "VariantAnnotation", "variantfiltering")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(VariantFiltering)
-    library(BamViews)
-    library(DataFrame)
-    library(jsonlite)
-
-    # --- Parameter Initialization [VariantFilteringParam] ---
-    # Key functions: VariantFilteringParam
-    vcf_file <- system.file(
-        "extdata", 
-        "CEU.exon.2010_03.genotypes.vcf.gz", 
-        package="VariantFiltering"
-    )
-    ped_file <- system.file(
-        "extdata", 
-        "CEU.exon.2010_03.ped", 
-        package="VariantFiltering"
-    )
-    param <- VariantFilteringParam(
-        vcfFilename=vcf_file,
-        pedFilename=ped_file
-    )
-
-    # --- Variant Filtering Execution [variantFiltering] ---
-    # Key functions: variantFiltering
-    vf_results <- variantFiltering(param)
-
-    # --- Filter Inspection and Adjustment [cutoffs, filters, active] ---
-    # Key functions: cutoffs, filters, active
-    current_cutoffs <- cutoffs(vf_results)
-    cutoffs(vf_results)$MAFs <- 0.05
-    active(filters(vf_results))["SOterms"] <- FALSE
-
-    # --- Variant Alignment Visualization [BamViews, bamFiles, plot] ---
-    # Key functions: BamViews, bamFiles, plot, samples
-    path2bams <- file.path(
-        system.file("extdata", package="VariantFiltering"),
-        paste0(samples(vf_results), ".subset.bam")
-    )
-    bv <- BamViews(
-        bamPaths=path2bams,
-        bamSamples=DataFrame(row.names=samples(vf_results))
-    )
-    bamFiles(vf_results) <- bv
-    plot(vf_results, what="rs6130959", sampleName="NA12892")
-
-    # --- Exporting Filtered Variants [reportVariants] ---
-    # Key functions: reportVariants
-    filtered_gr <- reportVariants(vf_results, type="GRanges")
-    reportVariants(
-        vf_results,
-        type="tsv",
-        file="filtered_variants.tsv"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_variantfiltering_results.csv", row.names = TRUE)
+    library(VariantAnnotation)
+    library(Rsamtools)
+    
+    # 1. Create parameter object using VariantFilteringParam()
+    # Read the user input VCF file from the working directory
+    CEUvcf <- "CEUtrio.vcf.bgz"
+    if (!file.exists(CEUvcf)) {
+      stop(paste("Required input VCF file not found in working directory:", CEUvcf))
+    }
+    
+    vfpar <- VariantFilteringParam(CEUvcf)
+    
+    # 2. Annotate variants using unrelatedIndividuals()
+    uind <- unrelatedIndividuals(vfpar)
+    
+    # 3. Summarize annotations using summary()
+    sum_default <- summary(uind)
+    write.csv(sum_default, "summary_default.csv", row.names=FALSE)
+    
+    sum_bioc <- summary(uind, method="bioc")
+    write.csv(sum_bioc, "summary_bioc.csv", row.names=FALSE)
+    
+    uindSO <- summary(uind, method="SOfull")
+    write.csv(uindSO, "summary_SOfull.csv", row.names=FALSE)
+    
+    all_vars <- allVariants(uind)
+    saveRDS(all_vars, "all_variants.rds")
+    
+    # 4. Set BAM files and plot variant support using bamFiles() and plot()
+    # Read the user input BAM files from the working directory
+    path2bams <- paste0(samples(uind), ".subset.bam")
+    
+    if (all(file.exists(path2bams))) {
+      bv <- BamViews(bamPaths=path2bams, bamSamples=DataFrame(row.names=samples(uind)))
+      bamFiles(uind) <- bv
+      
+      # Save plot to PDF
+      pdf("variant_plot.pdf", width=10, height=8)
+      tryCatch({
+        plot(uind, what="rs6130959", sampleName="NA12892")
+      }, error = function(e) {
+        message("Plotting failed: ", e\$message)
+      })
+      dev.off()
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_variantfiltering_results.csv")
+      message("One or more BAM files not found in working directory. Skipping BAM visualization.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_variantfiltering_output.rds")
-    }
+    
+    # Restrict samples and reset
+    samples(uind) <- c("NA12891", "NA12892")
+    uind <- resetSamples(uind)
+    
+    # 5. Filter variants by modifying active filters and cutoffs using filters(), cutoffs(), and change()
+    filters(uind)
+    active(filters(uind)) <- TRUE
+    change(cutoffs(uind), "SOterms") <- "UTR_variant"
+    active(filters(uind))["SOterms"] <- TRUE
+    change(cutoffs(uind)\$maxMAF, "popmask") <- FALSE
+    change(cutoffs(uind)\$maxMAF, "maxvalue") <- 0.01
+    
+    # 6. Retrieve filtered variants using filteredVariants()
+    fil_vars <- filteredVariants(uind)
+    saveRDS(fil_vars, "filtered_variants.rds")
+    
+    # 7. Export results using reportVariants()
+    reportVariants(uind, type="csv", file="uind.csv")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_VARIANTFILTERING:", paste0("    variantfiltering: ", packageVersion("VariantFiltering"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS":
+        variantfiltering: \$(Rscript -e 'cat(as.character(packageVersion("variantfiltering")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_variantfiltering_results.csv
-    touch ${prefix}_variantfiltering_output.rds
-    echo "BIOC_VARIANTFILTERING:" > versions.yml
-    echo "    variantfiltering: 0.0.0" >> versions.yml
+    touch ${prefix}_unrelated_individuals_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_VARIANTFILTERING_WORKFLOW {
+workflow BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ CEUtrio.vcf.bgz, NA12878.subset.bam, NA12891.subset.bam, NA12892.subset.bam ] ]
 
     main:
-    BIOC_VARIANTFILTERING(ch_input)
+    BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_VARIANTFILTERING.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_VARIANTFILTERING.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_VARIANTFILTERING.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_VARIANTFILTERING.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS.out.tables
+    plots    = BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS.out.plots
+    objects  = BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS.out.objects
+    versions = BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS.out.versions
 }

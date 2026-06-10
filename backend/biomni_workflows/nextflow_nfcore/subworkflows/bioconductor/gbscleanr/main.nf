@@ -1,92 +1,182 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GBScleanR
-// GBScleanR is a package for quality check, filtering, and error correction of genotype data derived f
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GBScleanR/inst/doc/BasicUsageOfGBScleanR.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GBScleanR")
+// Bioconductor workflow: gbscleanr — gbs_genotype_error_correction
+// Convert raw VCF genotype data to GDS, perform quality control and filtering, define the breeding scheme, estimate true genotypes using HMM, and export the corre
+// Input: sample.vcf
+// Container: quay.io/biocontainers/bioconductor-gbscleanr:2.4.4--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GBSCLEANR {
+process BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gbscleanr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gbscleanr:2.0.3--r44_0' :
-        'quay.io/biocontainers/bioconductor-gbscleanr:2.0.3--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-gbscleanr:2.4.4--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gbscleanr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gbscleanr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gbscleanr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Position)
-    library(jsonlite)
-
-    # --- GbsrVCF2GDS analysis [] ---
-    # Key functions: gbsrVCF2GDS, loadGDS, nsam, nmar, getChromosome, Position, getPosition, getAllele
-    ---------------------------------------------------------------------
-    # As always the first step of breeding scheme would be "pairing" cross(es) of
-    # parents, never be "selfing" and a "sibling" cross,
-    # the argument `crosstype` in initScheme() was deprecated on the update on April 6, 2023.
-    # gds <- initScheme(gds, crosstype = "pairing", mating = matrix(1:2, 2))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gbscleanr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gbscleanr_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("gbscleanr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gbscleanr_output.rds")
+    
+    # Load the required library
+    library("GBScleanR")
+    
+    # Define input file path (must exist in the working directory)
+    vcf_fn <- "sample.vcf"
+    
+    if (!file.exists(vcf_fn)) {
+      stop("Required input file 'sample.vcf' not found in the working directory.")
     }
+    
+    # Define output GDS file path
+    gds_fn <- "sample.gds"
+    
+    # Convert VCF to GDS
+    gbsrVCF2GDS(vcf_fn = vcf_fn, out_fn = gds_fn, force = TRUE, verbose = FALSE)
+    
+    # Load GDS
+    gds <- loadGDS(gds_fn, verbose = FALSE)
+    
+    # Summarize raw data
+    nsam(gds)
+    nmar(gds) 
+    head(getChromosome(gds)) 
+    head(getPosition(gds)) 
+    head(getAllele(gds)) 
+    head(getMarID(gds)) 
+    head(getSamID(gds)) 
+    
+    geno <- getGenotype(gds)
+    geno <- getRead(gds)
+    
+    gds <- countGenotype(gds)
+    gds <- countRead(gds)
+    
+    # Open PDF device to save all visualizations
+    pdf("gbscleanr_plots.pdf", width = 10, height = 8)
+    
+    # Plot histograms of raw data statistics
+    print(histGBSR(gds, stats = "missing")) 
+    print(histGBSR(gds, stats = "het")) 
+    print(histGBSR(gds, stats = "raf")) 
+    print(histGBSR(gds, stats = "dp")) 
+    print(histGBSR(gds, stats = "ad_ref")) 
+    print(histGBSR(gds, stats = "ad_alt")) 
+    print(histGBSR(gds, stats = "rrf")) 
+    print(histGBSR(gds, stats = "mean_ref")) 
+    print(histGBSR(gds, stats = "sd_ref")) 
+    print(histGBSR(gds, stats = "sd_ref")) 
+    
+    # Plot marker statistics along chromosomes and relationships
+    print(plotGBSR(gds, stats = "missing"))
+    print(plotGBSR(gds, stats = "geno"))
+    print(pairsGBSR(gds, stats1 = "missing", stats2 = "dp"))
+    
+    # Apply quality control and filtering
+    gds <- setCallFilter(gds, dp_count = c(5, Inf))
+    gds <- setCallFilter(gds, dp_qtile = c(0, 0.9))
+    gds <- setCallFilter(gds, ref_qtile = c(0, 0.9), alt_qtile = c(0, 0.9))
+    gds <- setMarFilter(gds, missing = 0.2)
+    gds <- thinMarker(gds, range = 150) 
+    
+    # Recalculate statistics on filtered node
+    gds <- countGenotype(gds, node = "filt")
+    gds <- countRead(gds, node = "filt")
+    
+    # Define replicates and parents
+    sample_id <- getSamID(gds, valid = FALSE)
+    gds <- setReplicates(gds, replicates = rep(1:51, each = 2))
+    
+    p1 <- grep("Founder1", getSamID(gds, valid = FALSE), value = TRUE)
+    p2 <- grep("Founder2", getSamID(gds, valid = FALSE), value = TRUE)
+    gds <- setParents(gds, parents = c(p1, p2), mono = TRUE, bi = TRUE)
+    
+    # Define breeding scheme
+    gds <- makeScheme(gds, generation = 2, crosstype = "self")
+    
+    # Estimate true genotypes using HMM
+    gds <- estGeno(gds, node = "filt", iter = 4)
+    
+    # Retrieve estimated genotypes, parent genotypes, and haplotypes
+    est_geno <- getGenotype(gds, node = "cor")
+    parent_geno <- getGenotype(gds, node = "parents")
+    est_hap <- getHaplotype(gds)
+    
+    # Save retrieved objects to RDS files
+    saveRDS(est_geno, "estimated_genotypes.rds")
+    saveRDS(parent_geno, "parent_genotypes.rds")
+    saveRDS(est_hap, "estimated_haplotypes.rds")
+    
+    # Export corrected genotypes to VCF
+    out_fn <- "sample_est.vcf.gz"
+    gbsrGDS2VCF(gds, out_fn)
+    gbsrGDS2VCF(gds, out_fn, node = "cor")
+    
+    # Export corrected genotypes to CSV
+    out_fn <- "sample_est.csv"
+    gbsrGDS2CSV(gds, out_fn)
+    gbsrGDS2CSV(gds, out_fn, node = "cor")
+    
+    # Reopen GDS connection for plotting
+    gds <- reopenGDS(gds)
+    
+    # Plot read ratios and dosages
+    print(plotReadRatio(x = gds, coord = c(3, 4), ind = 3, node = "raw", size = 2))
+    print(plotReadRatio(x = gds, coord = c(3, 4), ind = 3, node = "filt", size = 2))
+    print(plotDosage(x = gds, coord = c(3, 4), ind = 3, node = "raw", size = 2))
+    print(plotDosage(x = gds, coord = c(3, 4), ind = 3, node = "filt", size = 2))
+    
+    # Close PDF device
+    dev.off()
+    
+    # Safely close GDS connection
+    closeGDS(gds)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GBSCLEANR:", paste0("    gbscleanr: ", packageVersion("GBScleanR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION":
+        gbscleanr: \$(Rscript -e 'cat(as.character(packageVersion("gbscleanr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gbscleanr_results.csv
-    touch ${prefix}_gbscleanr_output.rds
-    echo "BIOC_GBSCLEANR:" > versions.yml
-    echo "    gbscleanr: 0.0.0" >> versions.yml
+    touch ${prefix}_gbs_genotype_error_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_GBSCLEANR_WORKFLOW {
+workflow BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample.vcf ] ]
 
     main:
-    BIOC_GBSCLEANR(ch_input)
+    BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_GBSCLEANR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GBSCLEANR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GBSCLEANR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GBSCLEANR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION.out.tables
+    plots    = BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION.out.plots
+    objects  = BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION.out.objects
+    versions = BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION.out.versions
 }

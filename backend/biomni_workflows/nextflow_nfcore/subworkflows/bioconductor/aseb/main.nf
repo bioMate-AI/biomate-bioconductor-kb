@@ -1,105 +1,113 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ASEB
-// ASEB is an R package to predict lysine sites that can be acetylated by a specific KAT-family.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ASEB/inst/doc/ASEB.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("ASEB")
+// Bioconductor workflow: aseb — site_specific_prediction
+// Predict which specific lysine sites can be acetylated by a specific KAT-family and visualize the running-sum enrichment score curves.
+// Input: background_sites.fa, predefined_sites.fa, sites_to_test.fa
+// Container: quay.io/biocontainers/bioconductor-aseb:1.54.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ASEB {
+process BIOC_ASEB_SITE_SPECIFIC_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-aseb"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-aseb:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-aseb:1.50.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-aseb:1.54.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_aseb_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_aseb_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_aseb_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("aseb")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required library
     library(ASEB)
-    library(jsonlite)
-
-    # --- Readsequence [] ---
-    # Key functions: readSequence, asebSites
-    backgroundSites <- readSequence(system.file("extdata", "background_sites.fa", package="ASEB"))
-      prodefinedSites <- readSequence(system.file("extdata", "predefined_sites.fa", package="ASEB"))
-      testSites <- readSequence(system.file("extdata", "sites_to_test.fa", package="ASEB"))
-      resultList <- asebSites(backgroundSites, prodefinedSites, testSites, permutationTimes=100)
-      resultList$results[1:2,]
-    # --- Drawescurve [] ---
-    # Key functions: drawEScurve
-    drawEScurve(resultList$curveInfo, max_p_value=0.1, min_es=0.1)
-    # --- Readsequence [] ---
-    # Key functions: readSequence, asebProteins
-    backgroundSites <- readSequence(system.file("extdata", "background_sites.fa", package="ASEB"))
-      prodefinedSites <- readSequence(system.file("extdata", "predefined_sites.fa", package="ASEB"))
-      testProteins <- readSequence(system.file("extdata", "proteins_to_test.fa", package="ASEB"))
-      resultList <- asebProteins(backgroundSites, prodefinedSites, testProteins, permutationTimes=100)
-      resultList$results[1:2,]
-    # --- Drawstat [] ---
-    # Key functions: drawStat
-    drawStat(curveInfoDataFrame=resultList$curveInfo);
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_aseb_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_aseb_results.csv")
+    
+    # Define input file paths as specified by the user
+    background_file <- "background_sites.fa"
+    predefined_file <- "predefined_sites.fa"
+    test_file       <- "sites_to_test.fa"
+    
+    # Verify that the required input files exist
+    for (f in c(background_file, predefined_file, test_file)) {
+      if (!file.exists(f)) {
+        stop(paste("Required input file missing:", f))
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_aseb_output.rds")
-    }
+    
+    # 1. Load sequences using readSequence
+    message("Loading sequences...")
+    backgroundSites <- readSequence(background_file)
+    prodefinedSites <- readSequence(predefined_file)
+    testSites       <- readSequence(test_file)
+    
+    # 2. Run site-specific prediction using asebSites
+    message("Running site-specific prediction (asebSites)...")
+    resultList <- asebSites(backgroundSites, prodefinedSites, testSites, permutationTimes=100)
+    
+    # Save the prediction results table to a CSV file
+    message("Saving prediction results...")
+    write.csv(resultList\$results, file = "aseb_prediction_results.csv", row.names = FALSE)
+    
+    # Save the complete result list object as an RDS file for downstream analysis
+    saveRDS(resultList, file = "aseb_results.rds")
+    
+    # 3. Draw enrichment score curves using drawEScurve and save to a PDF file
+    message("Generating enrichment score curve plots...")
+    pdf("enrichment_score_curves.pdf", width = 8, height = 6)
+    tryCatch({
+      drawEScurve(resultList\$curveInfo, max_p_value=0.1, min_es=0.1)
+    }, error = function(e) {
+      warning("Could not draw ES curves. This can happen if no sites meet the max_p_value or min_es thresholds.")
+      print(e)
+    })
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs generated: 'aseb_prediction_results.csv', 'aseb_results.rds', and 'enrichment_score_curves.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ASEB:", paste0("    aseb: ", packageVersion("ASEB"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ASEB_SITE_SPECIFIC_PREDICTION":
+        aseb: \$(Rscript -e 'cat(as.character(packageVersion("aseb")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_aseb_results.csv
-    touch ${prefix}_aseb_output.rds
-    echo "BIOC_ASEB:" > versions.yml
-    echo "    aseb: 0.0.0" >> versions.yml
+    touch ${prefix}_site_specific_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_ASEB_WORKFLOW {
+workflow BIOC_ASEB_SITE_SPECIFIC_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ background_sites.fa, predefined_sites.fa, sites_to_test.fa ] ]
 
     main:
-    BIOC_ASEB(ch_input)
+    BIOC_ASEB_SITE_SPECIFIC_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_ASEB.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ASEB.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ASEB.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ASEB.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ASEB_SITE_SPECIFIC_PREDICTION.out.tables
+    plots    = BIOC_ASEB_SITE_SPECIFIC_PREDICTION.out.plots
+    objects  = BIOC_ASEB_SITE_SPECIFIC_PREDICTION.out.objects
+    versions = BIOC_ASEB_SITE_SPECIFIC_PREDICTION.out.versions
 }

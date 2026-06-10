@@ -1,122 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChIPseeker
-// This package implements functions to retrieve the nearest genes around the peak, annotate genomic re
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChIPseeker/inst/doc/ChIPseeker.html
-// Upstream  : GenomicFeatures, GenomicRanges, ReactomePA, clusterProfiler, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("ChIPseeker")
+// Bioconductor workflow: chipseeker — peak_profiling_and_visualization
+// Profile and visualize ChIP peak binding distributions around TSS or gene body regions using heatmaps and average profiles.
+// Input: files[[4]], txdb
+// Container: quay.io/biocontainers/bioconductor-chipseeker:1.46.1--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIPSEEKER {
+process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chipseeker"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chipseeker:1.42.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-chipseeker:1.42.1--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chipseeker:1.46.1--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chipseeker_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chipseeker_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chipseeker_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("chipseeker", "clusterprofiler", "genomicfeatures", "genomicranges", "ggplot2", "reactomepa")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(ChIPseeker)
-    library(GRanges)
-    library(IRanges)
-    library(Region)
-    library(jsonlite)
-
-    # --- Profile and Heatmap Generation [] ---
-    # Key functions: getTagMatrix, tagHeatmap, peakHeatmap
-    data("tagMatrixList")
-    tagMatrix <- tagMatrixList[[4]]
+    library(GenomicFeatures)
+    library(ggplot2)
+    
+    # 1. Locate the BED file in the working directory
+    # The user specified files[[4]] is the BED file.
+    # We search for any BED file in the current directory to populate files[[4]].
+    bed_files <- list.files(pattern = "\\.(bed|BED)(\\.gz)?\$")
+    if (length(bed_files) == 0) {
+      stop("Error: No BED file found in the working directory.")
+    }
+    files <- list(NULL, NULL, NULL, bed_files[1])
+    
+    # 2. Load the TxDb object
+    # The user specified 'txdb' is a TxDb object. We read it from 'txdb.rds' in the working directory.
+    if (!file.exists("txdb.rds")) {
+      stop("Error: txdb.rds not found in the working directory.")
+    }
+    txdb <- readRDS("txdb.rds")
+    
+    # 3. Read peak file
+    message("Reading peak file...")
+    peak <- readPeakFile(files[[4]])
+    saveRDS(peak, "peak_object.rds")
+    
+    # 4. Plot peak coverage over chromosomes
+    message("Generating coverage plots...")
+    pdf("covplot_all.pdf", width = 10, height = 8)
+    print(covplot(peak, weightCol="V5"))
+    dev.off()
+    
+    # Optional subset coverage plot (wrapped in tryCatch in case chr17/18 are absent or named differently in user data)
+    tryCatch({
+      pdf("covplot_subset.pdf", width = 10, height = 4)
+      print(covplot(peak, weightCol="V5", chrs=c("chr17", "chr18"), xlim=c(4.5e7, 5e7)))
+      dev.off()
+    }, error = function(e) {
+      warning("Could not generate subset covplot: ", e\$message)
+    })
+    
+    # 5. Retrieve tag matrix around genomic regions
+    message("Calculating tag matrix...")
+    promoter <- getPromoters(TxDb=txdb, upstream=3000, downstream=3000)
+    tagMatrix <- getTagMatrix(peak, windows=promoter)
+    saveRDS(tagMatrix, "tagMatrix.rds")
+    
+    # 6. Generate heatmaps of peak binding
+    message("Generating heatmaps...")
+    pdf("tagHeatmap.pdf", width = 6, height = 9)
     tagHeatmap(tagMatrix)
+    dev.off()
+    
+    pdf("peakHeatmap.pdf", width = 6, height = 9)
+    peakHeatmap(peak = files[[4]], TxDb = txdb, upstream = rel(0.2), downstream = rel(0.2), by = "gene", type = "body", nbin = 800)
+    dev.off()
+    
+    # 7. Plot average profiles of peak binding
+    message("Generating average profiles...")
+    pdf("plotAvgProf.pdf", width = 7, height = 4)
+    print(plotAvgProf(tagMatrix, xlim=c(-3000, 3000), xlab="Genomic Region (5'->3')", ylab = "Read Count Frequency"))
+    dev.off()
+    
+    pdf("plotPeakProf2.pdf", width = 7, height = 4)
+    print(plotPeakProf2(peak = peak, upstream = rel(0.2), downstream = rel(0.2), conf = 0.95, by = "gene", type = "body", nbin = 800, TxDb = txdb, weightCol = "V5", ignore_strand = F))
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-
-    # --- Genomic Region Profiling [] ---
-    # Key functions: plotAvgProf2, plotPeakProf2
-    files <- getSampleFiles()
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    plotAvgProf2(
-        files[[4]], 
-        TxDb=txdb, 
-        upstream=3000, 
-        downstream=3000,
-        xlab="Genomic Region (5'->3')", 
-        ylab="Read Count Frequency"
-    )
-
-
-    # --- Peak Annotation [] ---
-    # Key functions: annotatePeak, plotAnnoPie, plotAnnoBar, upsetplot
-    files <- getSampleFiles()
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    peakAnno <- annotatePeak(
-        files[[4]], 
-        tssRegion=c(-3000, 3000),
-        TxDb=txdb, 
-        annoDb="org.Hs.eg.db"
-    )
-    plotAnnoPie(peakAnno)
-    plotAnnoBar(peakAnno)
-    upsetplot(peakAnno, vennpie=TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chipseeker_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chipseeker_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chipseeker_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIPSEEKER:", paste0("    chipseeker: ", packageVersion("ChIPseeker"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION":
+        chipseeker: \$(Rscript -e 'cat(as.character(packageVersion("chipseeker")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chipseeker_results.csv
-    touch ${prefix}_chipseeker_output.rds
-    echo "BIOC_CHIPSEEKER:" > versions.yml
-    echo "    chipseeker: 0.0.0" >> versions.yml
+    touch ${prefix}_peak_profiling_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIPSEEKER_WORKFLOW {
+workflow BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ files[[4]], txdb ] ]
 
     main:
-    BIOC_CHIPSEEKER(ch_input)
+    BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_CHIPSEEKER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIPSEEKER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIPSEEKER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIPSEEKER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION.out.tables
+    plots    = BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION.out.plots
+    objects  = BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION.out.objects
+    versions = BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION.out.versions
 }

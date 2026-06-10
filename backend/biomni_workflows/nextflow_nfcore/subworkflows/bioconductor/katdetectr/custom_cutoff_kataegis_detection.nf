@@ -1,17 +1,11 @@
 #!/usr/bin/env nextflow
 // ============================================================
 // Bioconductor workflow: katdetectr — custom_cutoff_kataegis_detection
-// Detect kataegis foci using a custom segment-specific IMD cutoff function instead of a fixed threshold.
-// Input: genomic_variants.rds
+// Detect kataegis foci using a custom user-defined function to calculate segment-specific IMD cutoffs.
+// Input: syntheticData
 // Container: quay.io/biocontainers/bioconductor-katdetectr:1.12.0--r45hdfd78af_0
-// Requires: dplyr, katdetectr
-// Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
-
-// Steps:
-//  * 1. [Input & Preparation] Define custom functions for modeling sample rate and calculating segment-specific IMD cutoffs
-//  * 2. [Core Analysis] Run detectKataegis with the custom IMD cutoff function
 
 nextflow.enable.dsl = 2
 
@@ -19,7 +13,7 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
+    container "quay.io/biocontainers/bioconductor-katdetectr:1.12.0--r45hdfd78af_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -37,21 +31,29 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
-        }
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomicRanges", "VariantAnnotation", "dplyr", "katdetectr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
     
     # Load required libraries
     library(katdetectr)
     library(dplyr)
+    library(VariantAnnotation)
+    library(GenomicRanges)
     
-    # 1. Read the user input file
-    if (!file.exists("genomic_variants.rds")) {
-        stop("Error: genomic_variants.rds not found in the working directory.")
+    # 1. Read the user input file from the working directory
+    if (file.exists("syntheticData")) {
+        syntheticData <- readRDS("syntheticData")
+    } else if (file.exists("syntheticData.rds")) {
+        syntheticData <- readRDS("syntheticData.rds")
+    } else {
+        stop("Error: Input file 'syntheticData' or 'syntheticData.rds' not found in the working directory.")
     }
-    syntheticData <- readRDS("genomic_variants.rds")
     
     # 2. Define custom functions for modeling sample rate and calculating segment-specific IMD cutoffs
     modelSampleRate <- function(IMDs) {
@@ -82,39 +84,40 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
         return(IMDcutoff)
     }
     
-    # 3. Run detectKataegis with the custom IMD cutoff function
+    # 3. Run detectKataegis() with the custom function passed to the IMDcutoff parameter
     kdCustom <- detectKataegis(syntheticData, IMDcutoff = IMDcutoffFun)
     
     # 4. Write named output files for the meaningful results
-    # Save the full KatDetect object
-    saveRDS(kdCustom, "kd_custom_results.rds")
+    saveRDS(kdCustom, "kdCustom.rds")
     
-    # Save genomic variants as CSV
-    variants_df <- as.data.frame(getGenomicVariants(kdCustom))
-    write.csv(variants_df, "custom_genomic_variants.csv", row.names = FALSE)
+    # Extract and save genomic variants
+    gv <- getGenomicVariants(kdCustom)
+    gv_df <- as.data.frame(gv)
+    write.csv(gv_df, "genomic_variants.csv", row.names = FALSE)
     
-    # Save segments as CSV
-    segments_df <- as.data.frame(getSegments(kdCustom))
-    write.csv(segments_df, "custom_segments.csv", row.names = FALSE)
+    # Extract and save segments
+    seg <- getSegments(kdCustom)
+    seg_df <- as.data.frame(seg)
+    write.csv(seg_df, "segments.csv", row.names = FALSE)
     
-    # Save kataegis foci as CSV
-    foci_df <- as.data.frame(getKataegisFoci(kdCustom))
-    write.csv(foci_df, "custom_kataegis_foci.csv", row.names = FALSE)
+    # Extract and save kataegis foci
+    foci <- getKataegisFoci(kdCustom)
+    foci_df <- as.data.frame(foci)
+    write.csv(foci_df, "kataegis_foci.csv", row.names = FALSE)
     
-    # Save rainfall plot as PDF
-    pdf("custom_rainfall_plot.pdf", width = 12, height = 7)
+    # Generate and save rainfall plot
+    pdf("rainfall_plot.pdf", width = 10, height = 6)
     tryCatch({
-        plot_obj <- rainfallPlot(kdCustom, showKataegis = TRUE, showSegmentation = TRUE)
-        print(plot_obj)
+        rainfallPlot(kdCustom, showKataegis = TRUE, showSegmentation = TRUE)
     }, error = function(e) {
-        warning("Could not generate rainfall plot: ", e\$message)
+        message("Rainfall plot generation failed: ", e\$message)
     })
     dev.off()
 
-    writeLines(c(
-        '"BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION":',
-        paste0('    katdetectr: ', as.character(packageVersion('katdetectr')))
-    ), "versions.yml")
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION":
+        katdetectr: \$(Rscript -e 'cat(as.character(packageVersion("katdetectr")))')
+    END_VERSIONS
     """
 
     stub:
@@ -126,7 +129,7 @@ process BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION {
 
 workflow BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), [ genomic_variants.rds ] ]
+    ch_input  // channel: [ val(meta), [ syntheticData ] ]
 
     main:
     BIOC_KATDETECTR_CUSTOM_CUTOFF_KATAEGIS_DETECTION(ch_input)

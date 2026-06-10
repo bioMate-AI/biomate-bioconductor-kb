@@ -1,90 +1,194 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: AlpsNMR
-// Reads Bruker NMR data directories both zipped and unzipped. It provides automated and efficient sign
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/AlpsNMR/inst/doc/Vig01-introduction-to-alpsnmr.R
-// Upstream  : dplyr, readxl
-// Downstream: none
-//
-// Install: BiocManager::install("AlpsNMR")
+// Bioconductor workflow: alpsnmr — modern_peak_clustering
+// Process raw 1D NMR spectra using the modern peak clustering workflow to generate a clean, aligned, and normalized peak table.
+// Input: zip_files.zip, dummy_metadata.xlsx
+// Container: quay.io/biocontainers/bioconductor-alpsnmr:4.12.0--r45h575d39b_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ALPSNMR {
+process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-alpsnmr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-alpsnmr:4.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-alpsnmr:4.8.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-alpsnmr:4.12.0--r45h575d39b_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_alpsnmr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_alpsnmr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_alpsnmr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocParallel", "alpsnmr", "dplyr", "ggplot2", "readxl")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    library(dplyr)
+    library(ggplot2)
+    library(readxl)
+    library(BiocParallel)
     library(AlpsNMR)
-    library(jsonlite)
-
-    # --- dir_ls [] ---
-    # Key functions: dir_ls, nmr_read_samples, nmr_meta_add, nmr_meta_get, nmr_autophase
-    zip_files <- fs::dir_ls(MeOH_plasma_extraction_dir, glob = "*.zip")
+    
+    # Enable parallelization
+    register(SnowParam(workers = 2, exportglobals = FALSE), default = TRUE)
+    
+    # 1. Load samples from user input zip_files.zip
+    unzip_dir <- "unzipped_spectra"
+    if (!dir.exists(unzip_dir)) {
+      dir.create(unzip_dir)
+    }
+    unzip("zip_files.zip", exdir = unzip_dir)
+    
+    # Find zip files or Bruker directories recursively
+    zip_files <- fs::dir_ls(unzip_dir, recurse = TRUE, glob = "*.zip")
+    if (length(zip_files) == 0) {
+      acqus_files <- fs::dir_ls(unzip_dir, recurse = TRUE, glob = "*acqus")
+      if (length(acqus_files) > 0) {
+        zip_files <- unique(fs::path_dir(acqus_files))
+      } else {
+        zip_files <- fs::dir_ls(unzip_dir, type = "directory", recurse = TRUE)
+      }
+    }
+    
     dataset <- nmr_read_samples(sample_names = zip_files)
+    
+    # 2. Add metadata
+    annotations <- readxl::read_excel("dummy_metadata.xlsx")
     dataset <- nmr_meta_add(dataset, metadata = annotations, by = "NMRExperiment")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_alpsnmr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_alpsnmr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_alpsnmr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ALPSNMR:", paste0("    alpsnmr: ", packageVersion("AlpsNMR"))),
-        "versions.yml"
+    
+    # 3. Interpolate 1D spectra
+    dataset <- nmr_interpolate_1D(dataset, axis = c(min = -0.5, max = 10))
+    
+    # 4. Exclude uninformative regions
+    regions_to_exclude <- list(water = c(4.6, 5), methanol = c(3.33, 3.39))
+    dataset <- nmr_exclude_region(dataset, exclude = regions_to_exclude)
+    
+    # 5. Robust PCA outlier detection
+    pca_outliers_rob <- nmr_pca_outliers_robust(dataset, ncomp = 3)
+    
+    pdf("pca_outliers_plot.pdf")
+    nmr_pca_outliers_plot(dataset, pca_outliers_rob)
+    dev.off()
+    
+    # 6. Baseline estimation
+    dataset <- nmr_baseline_estimation(dataset, lambda = 9, p = 0.01)
+    
+    # 7. Baseline threshold calculation
+    baselineThresh <- nmr_baseline_threshold(dataset, range_without_peaks = c(9.5, 10), method = "median3mad")
+    
+    # 8. Initial peak detection
+    peak_list_initial <- nmr_detect_peaks(
+        dataset,
+        nDivRange_ppm = 0.1,
+        scales = seq(1, 16, 2),
+        baselineThresh = baselineThresh,
+        SNR.Th = 3,
+        fit_lorentzians = TRUE
     )
+    
+    # 9. Filter/accept peaks
+    peak_list_initial_accepted <- peaklist_accept_peaks(
+        peak_list_initial,
+        dataset,
+        area_min = 50, 
+        keep_rejected = FALSE,
+        verbose = TRUE
+    )
+    
+    # 10. Find reference spectrum
+    NMRExp_ref <- nmr_align_find_ref(dataset, peak_list_initial_accepted)
+    
+    # 11. Align spectra
+    dataset_align <- nmr_align(
+        nmr_dataset = dataset, 
+        peak_data = peak_list_initial_accepted, 
+        NMRExp_ref = NMRExp_ref, 
+        maxShift_ppm = 0.0015, 
+        acceptLostPeak = TRUE
+    )
+    
+    # 12. Normalize spectra
+    dataset_norm <- nmr_normalize(dataset_align, method = "pqn")
+    
+    # 13. Recalculate baseline threshold and detect peaks on normalized spectra
+    baselineThresh <- nmr_baseline_threshold(dataset_norm, range_without_peaks = c(9.5, 10), method = "median3mad")
+    
+    peak_list_for_clustering_unfiltered <- nmr_detect_peaks(
+        dataset_norm,
+        nDivRange_ppm = 0.1,
+        scales = seq(1, 16, 2),
+        baselineThresh = baselineThresh,
+        SNR.Th = 3,
+        fit_lorentzians = TRUE,
+        verbose = TRUE
+    )
+    
+    peak_list_for_clustering <- peaklist_accept_peaks(
+        peak_list_for_clustering_unfiltered,
+        dataset_norm,
+        area_min = 50, 
+        keep_rejected = FALSE,
+        verbose = TRUE
+    )
+    
+    # 14. Peak clustering
+    clustering <- nmr_peak_clustering(peak_list_for_clustering, verbose = TRUE)
+    peak_list_clustered <- clustering\$peak_data
+    
+    # 15. Build peak table
+    peak_table <- nmr_build_peak_table(peak_list_clustered, dataset_norm)
+    
+    # 16. Extract peak matrix
+    peak_matrix <- nmr_data(peak_table)
+    
+    # Save outputs
+    saveRDS(peak_table, "peak_table.rds")
+    write.csv(as.data.frame(peak_table), "peak_table.csv", row.names = FALSE)
+    write.csv(peak_matrix, "peak_matrix.csv", row.names = TRUE)
+    saveRDS(clustering, "clustering_results.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING":
+        alpsnmr: \$(Rscript -e 'cat(as.character(packageVersion("alpsnmr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_alpsnmr_results.csv
-    touch ${prefix}_alpsnmr_output.rds
-    echo "BIOC_ALPSNMR:" > versions.yml
-    echo "    alpsnmr: 0.0.0" >> versions.yml
+    touch ${prefix}_modern_peak_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_ALPSNMR_WORKFLOW {
+workflow BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ zip_files.zip, dummy_metadata.xlsx ] ]
 
     main:
-    BIOC_ALPSNMR(ch_input)
+    BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_ALPSNMR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ALPSNMR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ALPSNMR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ALPSNMR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING.out.tables
+    plots    = BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING.out.plots
+    objects  = BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING.out.objects
+    versions = BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING.out.versions
 }

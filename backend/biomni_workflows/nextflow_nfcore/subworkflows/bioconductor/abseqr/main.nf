@@ -1,90 +1,97 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: abseqR
-// AbSeq is a comprehensive bioinformatic pipeline for the analysis of sequencing datasets generated fr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/abseqR/inst/doc/abseqR.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("abseqR")
+// Bioconductor workflow: abseqr — basic_and_comparative_report
+// Generate individual and comparative quality, abundance, productivity, and diversity reports from a single directory of abseqPy outputs.
+// Input: dataPath
+// Container: quay.io/biocontainers/bioconductor-abseqr:1.28.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ABSEQR {
+process BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-abseqr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-abseqr:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-abseqr:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-abseqr:1.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(ggplot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_abseqr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_abseqr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_abseqr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SerialParam)
-    library(jsonlite)
-
-    # --- NormalizePath analysis [] ---
-    # Key functions: include_graphics, normalizePath, read_png, tempdir, SerialParam, bpparam, abseqReport, report
-    unscaled <- file.path(sdir, "diversity", "composition_logos", "CDR3", "PCR1_cumulative_logo.png")
-    scaled <- file.path(sdir, "diversity", "composition_logos", "CDR3", "PCR1_cumulative_logo_scaled.png")
-    img1 <-  rasterGrob(as.raster(readPNG(unscaled)), interpolate = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_abseqr_results.csv", row.names = TRUE)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocParallel", "abseqr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(abseqR)
+    library(BiocParallel)
+    
+    # Define user input path
+    dataPath <- "dataPath"
+    
+    # Validate input directory
+    if (!dir.exists(dataPath)) {
+        stop(paste("Error: Input directory 'dataPath' does not exist at:", normalizePath(dataPath, mustWork = FALSE)))
+    }
+    
+    # 1. Configure parallelization parameters based on the operating system
+    if (Sys.info()["sysname"] == "Darwin") {
+        BPPARAM <- BiocParallel::SerialParam()
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_abseqr_results.csv")
+        BPPARAM <- BiocParallel::bpparam()
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_abseqr_output.rds")
-    }
+    
+    # 2. Run abseqReport to generate static/interactive plots and HTML reports
+    # for individual samples and specified comparative groups.
+    samples <- abseqReport(dataPath,
+                           compare = c("PCR1, PCR2, PCR3"),
+                           report = 1,
+                           BPPARAM = BPPARAM)
+    
+    # Save the resulting S4 object to an RDS file
+    saveRDS(samples, file = "abseq_samples.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ABSEQR:", paste0("    abseqr: ", packageVersion("abseqR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT":
+        abseqr: \$(Rscript -e 'cat(as.character(packageVersion("abseqr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_abseqr_results.csv
-    touch ${prefix}_abseqr_output.rds
-    echo "BIOC_ABSEQR:" > versions.yml
-    echo "    abseqr: 0.0.0" >> versions.yml
+    touch ${prefix}_basic_and_comparative_report.csv versions.yml
     """
 }
 
-
-workflow BIOC_ABSEQR_WORKFLOW {
+workflow BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(ggplot_object) ]
+    ch_input  // channel: [ val(meta), [ dataPath ] ]
 
     main:
-    BIOC_ABSEQR(ch_input)
+    BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT(ch_input)
 
     emit:
-    results  = BIOC_ABSEQR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ABSEQR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ABSEQR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ABSEQR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT.out.tables
+    plots    = BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT.out.plots
+    objects  = BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT.out.objects
+    versions = BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT.out.versions
 }

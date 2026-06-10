@@ -1,90 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: crisprScore
-// Provides R wrappers of several on-target and off-target scoring methods for CRISPR guide RNAs (gRNAs
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/crisprScore/inst/doc/crisprScore.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("crisprScore")
+// Bioconductor workflow: crisprscore — on_target_efficiency_prediction
+// Predict on-target cutting efficiency for Cas9, Cas12a, or Cas13d gRNAs using sequence-based algorithms.
+// Input: sequences.txt, test.fa
+// Container: quay.io/biocontainers/bioconductor-crisprscore:1.14.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CRISPRSCORE {
+process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-crisprscore"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-crisprscore:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-crisprscore:1.10.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-crisprscore:1.14.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_crisprscore_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_crisprscore_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_crisprscore_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "crisprscore")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(crisprScore)
-    library(jsonlite)
+    library(Biostrings)
+    
+    # Read user input sequences from sequences.txt
+    # We assume line 1 is a 20bp spacer and line 2 is a 23bp spacer for Cas12a.
+    # If only one line is present, we use it for both (or fallback to default lengths).
+    seq_lines <- readLines("sequences.txt", warn = FALSE)
+    spacer20 <- trimws(seq_lines[1])
+    spacer23 <- if (length(seq_lines) > 1) trimws(seq_lines[2]) else "AATCGATGCTGATGCTAGATATT"
+    
+    # 1. Run RuleSet1 scoring using getRuleSet1Scores
+    flank5 <- "ACCT" #4bp
+    spacer <- spacer20 #20bp
+    pam    <- "AGG" #3bp 
+    flank3 <- "TTG" #3bp
+    input  <- paste0(flank5, spacer, pam, flank3) 
+    results <- getRuleSet1Scores(input)
+    write.csv(as.data.frame(results), "results_ruleset1.csv", row.names = FALSE)
+    
+    # 2. Run RuleSet3 scoring using getRuleSet3Scores with a specified conda environment
+    condaEnv <- "/Users/fortin946/miniforge3/envs/rs3-env"
+    tryCatch({
+        results <- getRuleSet3Scores(input, tracrRNA = "Hsu2013", condaEnv = condaEnv)
+        write.csv(as.data.frame(results), "results_ruleset3.csv", row.names = FALSE)
+    }, error = function(e) {
+        message("RuleSet3 scoring skipped or failed: ", e\$message)
+    })
+    
+    # 3. Run DeepHF scoring using getDeepHFScores with a specified conda environment
+    spacer  <- spacer20 #20bp
+    pam     <- "AGG" #3bp
+    input   <- paste0(spacer, pam)
+    condaEnv <- "/Users/fortin946/miniforge3/envs/deephf-env"
+    tryCatch({
+        results <- getDeepHFScores(input, condaEnv = condaEnv)
+        write.csv(as.data.frame(results), "results_deephf.csv", row.names = FALSE)
+    }, error = function(e) {
+        message("DeepHF scoring skipped or failed: ", e\$message)
+    })
+    
+    # 4. Run CRISPRscan scoring using getCRISPRscanScores
+    flank5 <- "ACCTAA" #6bp
+    spacer <- spacer20 #20bp
+    pam    <- "AGG" #3bp 
+    flank3 <- "TTGAAT" #6bp
+    input  <- paste0(flank5, spacer, pam, flank3) 
+    results <- getCRISPRscanScores(input)
+    write.csv(as.data.frame(results), "results_crisprscan.csv", row.names = FALSE)
+    
+    # 5. Run CRISPRater scoring using getCRISPRaterScores
+    spacer <- spacer20 #20bp
+    results <- getCRISPRaterScores(spacer)
+    write.csv(as.data.frame(results), "results_crisprater.csv", row.names = FALSE)
+    
+    # 6. Run enPAM+GB scoring for Cas12a using getEnPAMGBScores
+    flank5 <- "ACCG" #4bp
+    pam    <- "TTTT" #4bp
+    spacer <- spacer23 #23bp
+    flank3 <- "AAG" #3bp
+    input  <- paste0(flank5, pam, spacer, flank3)
+    condaEnv <- "/Users/fortin946/miniforge3/envs/enpamgb-env"
+    tryCatch({
+        results <- getEnPAMGBScores(input, condaEnv = condaEnv)
+        write.csv(as.data.frame(results), "results_enpamgb.csv", row.names = FALSE)
+    }, error = function(e) {
+        message("enPAM+GB scoring skipped or failed: ", e\$message)
+    })
+    
+    # 7. Run CasRxRF scoring for Cas13d using getCasRxRFScores on a DNAStringSet
+    mrnaSequence <- Biostrings::readDNAStringSet(filepath = "test.fa",
+                                                 format = "fasta",
+                                                 use.names = TRUE)
+    tryCatch({
+        results <- getCasRxRFScores(mrnaSequence)
+        write.csv(as.data.frame(results), "results_casrxrf.csv", row.names = FALSE)
+    }, error = function(e) {
+        message("CasRxRF scoring skipped or failed: ", e\$message)
+    })
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(scoringMethodsInfo)
-    print(scoringMethodsInfo)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_crisprscore_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_crisprscore_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_crisprscore_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CRISPRSCORE:", paste0("    crisprscore: ", packageVersion("crisprScore"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION":
+        crisprscore: \$(Rscript -e 'cat(as.character(packageVersion("crisprscore")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_crisprscore_results.csv
-    touch ${prefix}_crisprscore_output.rds
-    echo "BIOC_CRISPRSCORE:" > versions.yml
-    echo "    crisprscore: 0.0.0" >> versions.yml
+    touch ${prefix}_on_target_efficiency_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_CRISPRSCORE_WORKFLOW {
+workflow BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sequences.txt, test.fa ] ]
 
     main:
-    BIOC_CRISPRSCORE(ch_input)
+    BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_CRISPRSCORE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CRISPRSCORE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CRISPRSCORE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CRISPRSCORE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION.out.tables
+    plots    = BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION.out.plots
+    objects  = BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION.out.objects
+    versions = BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION.out.versions
 }

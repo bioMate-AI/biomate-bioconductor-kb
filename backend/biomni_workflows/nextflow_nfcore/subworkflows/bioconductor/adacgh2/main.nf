@@ -1,114 +1,127 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ADaCGH2
-// Analysis and plotting of array CGH data. Allows usage of Circular Binary Segementation, wavelet-base
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ADaCGH2/inst/doc/ADaCGH2.R
-// Upstream  : CGHregions, limma
-// Downstream: none
-//
-// Install: BiocManager::install("ADaCGH2")
+// Bioconductor workflow: adacgh2 — ram_objects_forking
+// Analyze small to moderate aCGH datasets entirely in memory using fast forking parallelization on Unix-like operating systems.
+// Input: inputEx.RData
+// Container: quay.io/biocontainers/bioconductor-adacgh2:2.50.0--r45h01b2380_1
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ADACGH2 {
+process BIOC_ADACGH2_RAM_OBJECTS_FORKING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-adacgh2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-adacgh2:2.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-adacgh2:2.46.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-adacgh2:2.50.0--r45h01b2380_1"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_adacgh2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_adacgh2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_adacgh2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("adacgh2", "cghregions", "limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
     library(ADaCGH2)
-    library(CGHregions)
-    library(jsonlite)
-
-    # --- Parallel Segmentation [] ---
-    # Key functions: pSegmentHaarSeg
-    haar.ff.fork <- pSegmentHaarSeg(
-        "cghData.RData",
-        "chromData.RData",
-        merging = "MAD",
-        typeParall = "fork",
-        mc.core = 2
-    )
-
-
-    # --- Genomic Visualization [] ---
-    # Key functions: pChromPlot
-    pChromPlot(
-        outRDataName = "haar.ff.fork.RData",
-        cghRDataName = "cghData.RData",
-        chromRDataName = "chromData.RData",
-        posRDataName = "posData.RData",
-        probenamesRDataName = "probeNames.RData",
-        imgheight = 350,
-        typeParall = "fork",
-        mc.cores = 2
-    )
-
-
-    # --- Region Conversion [] ---
-    # Key functions: outputToCGHregions
-    forcghr <- outputToCGHregions(haar.ff.fork)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_adacgh2_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_adacgh2_results.csv")
+    
+    # 1. Read the declared USER INPUT file from the working directory
+    input_file <- "inputEx.RData"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file", input_file, "not found in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_adacgh2_output.rds")
+    
+    # Load the RData file which contains the 'inputEx' data frame
+    load(input_file)
+    
+    if (!exists("inputEx")) {
+      stop("The loaded RData file did not contain an object named 'inputEx'.")
     }
+    
+    # 2. Prepare RAM objects from the input data frame
+    cgh.dat <- inputEx[, -c(1, 2, 3)]
+    chrom.dat <- as.integer(inputEx[, 2])
+    pos.dat <- inputEx[, 3]
+    probenames.dat <- as.character(inputEx[, 1])
+    
+    # 3. Run parallelized segmentation using HaarSeg with forking
+    # (Reproducing the documented function call and arguments exactly)
+    haar.RAM.fork <- pSegmentHaarSeg(cgh.dat, chrom.dat,
+                                     merging = "MAD",
+                                     typeParall = "fork",
+                                     mc.cores = 2)
+    
+    # 4. Plot the chromosome results
+    # (Reproducing the documented function call and arguments exactly)
+    pChromPlot(haar.RAM.fork,
+               cghRDataName = cgh.dat,
+               chromRDataName = chrom.dat,
+               posRDataName = pos.dat,
+               probenamesRDataName = probenames.dat,
+               imgheight = 350,
+               typeParall = "fork",
+               mc.cores = 2)
+    
+    # 5. Write meaningful output files
+    # Save the segmentation results object
+    saveRDS(haar.RAM.fork, file = "haar_RAM_fork_results.rds")
+    
+    # Export smoothed values and states to CSV files
+    if (!is.null(haar.RAM.fork\$outSmoothed)) {
+      write.csv(as.data.frame(haar.RAM.fork\$outSmoothed), 
+                file = "segmented_smoothed_values.csv", 
+                row.names = FALSE)
+    }
+    
+    if (!is.null(haar.RAM.fork\$outState)) {
+      write.csv(as.data.frame(haar.RAM.fork\$outState), 
+                file = "segmented_state_calls.csv", 
+                row.names = FALSE)
+    }
+    
+    cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ADACGH2:", paste0("    adacgh2: ", packageVersion("ADaCGH2"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ADACGH2_RAM_OBJECTS_FORKING":
+        adacgh2: \$(Rscript -e 'cat(as.character(packageVersion("adacgh2")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_adacgh2_results.csv
-    touch ${prefix}_adacgh2_output.rds
-    echo "BIOC_ADACGH2:" > versions.yml
-    echo "    adacgh2: 0.0.0" >> versions.yml
+    touch ${prefix}_ram_objects_forking.csv versions.yml
     """
 }
 
-
-workflow BIOC_ADACGH2_WORKFLOW {
+workflow BIOC_ADACGH2_RAM_OBJECTS_FORKING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ inputEx.RData ] ]
 
     main:
-    BIOC_ADACGH2(ch_input)
+    BIOC_ADACGH2_RAM_OBJECTS_FORKING(ch_input)
 
     emit:
-    results  = BIOC_ADACGH2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ADACGH2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ADACGH2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ADACGH2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ADACGH2_RAM_OBJECTS_FORKING.out.tables
+    plots    = BIOC_ADACGH2_RAM_OBJECTS_FORKING.out.plots
+    objects  = BIOC_ADACGH2_RAM_OBJECTS_FORKING.out.objects
+    versions = BIOC_ADACGH2_RAM_OBJECTS_FORKING.out.versions
 }

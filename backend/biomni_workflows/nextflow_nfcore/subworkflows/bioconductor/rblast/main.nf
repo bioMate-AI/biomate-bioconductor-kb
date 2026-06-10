@@ -1,101 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rBLAST
-// Seamlessly interfaces the Basic Local Alignment Search Tool (BLAST) to search genetic sequence data 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rBLAST/inst/doc/blast.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("rBLAST")
+// Bioconductor workflow: rblast — query_existing_blast_db
+// Download, extract, and query an existing NCBI BLAST database using local BLAST.
+// Input: 16S_ribosomal_RNA.tar.gz, RNA_example.fasta
+// Container: quay.io/biocontainers/bioconductor-rblast:1.6.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RBLAST {
+process BIOC_RBLAST_QUERY_EXISTING_BLAST_DB {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rblast"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rblast:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rblast:1.2.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rblast:1.6.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(xstringset)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rblast_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rblast_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rblast_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocFileCache", "Biostrings", "rblast")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(rBLAST)
-    library(jsonlite)
-
-    # --- Readrnastringset [] ---
-    # Key functions: readRNAStringSet
-    ---------------------------------------------------------------------
-    seq <- readRNAStringSet(system.file("examples/RNA_example.fasta",
-        package = "rBLAST"
-    ))
-    seq
-    # --- Writexstringset [] ---
-    # Key functions: writeXStringSet
-    ---------------------------------------------------------------------
-    writeXStringSet(seq, filepath = "seqs.fasta")
-    # --- Unlink [] ---
-    # Key functions: unlink
-    ---------------------------------------------------------------------
-    unlink("seqs.fasta")
-    unlink("db", recursive = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rblast_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rblast_results.csv")
+    library(Biostrings)
+    library(BiocFileCache)
+    
+    # Check if BLAST+ is installed and in the PATH
+    if (Sys.which("blastn") == "") {
+      message("Warning: 'blastn' executable not found in PATH. Please ensure BLAST+ is installed.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rblast_output.rds")
+    
+    # To satisfy the requirement of reading the user-provided '16S_ribosomal_RNA.tar.gz'
+    # from the working directory while faithfully calling 'blast_db_get', we pre-populate
+    # the BiocFileCache used by rBLAST with our local file.
+    message("Populating BLAST database cache with local '16S_ribosomal_RNA.tar.gz'...")
+    bfc <- blast_db_cache()
+    db_url <- "https://ftp.ncbi.nlm.nih.gov/blast/db/16S_ribosomal_RNA.tar.gz"
+    
+    # Add the local file to the cache if it is not already present
+    if (nrow(bfcquery(bfc, db_url, field = "rname")) == 0) {
+      bfcadd(bfc, rname = db_url, fpath = "16S_ribosomal_RNA.tar.gz", action = "copy")
     }
+    
+    # 1. Download/retrieve the database archive using blast_db_get
+    message("Retrieving database archive path...")
+    tgz_file <- blast_db_get ( "16S_ribosomal_RNA.tar.gz" )
+    
+    # 2. Extract the database files using untar
+    message("Extracting database files...")
+    untar (tgz_file, exdir = "16S_rRNA_DB" )
+    
+    # 3. Load the BLAST database using blast
+    message("Loading BLAST database...")
+    bl <- blast ( db = "./16S_rRNA_DB/16S_ribosomal_RNA" )
+    
+    # 4. Read query sequences using readRNAStringSet (adapted from user input file)
+    message("Reading query sequences...")
+    seq <- readRNAStringSet ( "RNA_example.fasta" )[ 1 ]
+    
+    # 5. Query the database using predict with default arguments
+    message("Running BLAST query (default)...")
+    cl <- predict (bl, seq)
+    
+    # Save default query results
+    write.csv(cl, "blast_results_default.csv", row.names = FALSE)
+    saveRDS(cl, "blast_results_default.rds")
+    
+    # 6. Query the database using predict with custom arguments and formats
+    message("Running BLAST query (custom format and identity threshold)...")
+    fmt <- paste ( "qaccver saccver pident length mismatch gapopen qstart qend" , "sstart send evalue bitscore qseq sseq" )
+    cl <- predict (bl, seq, BLAST_args = "-perc_identity 99" , custom_format = fmt )
+    
+    # Save custom query results
+    write.csv(cl, "blast_results_custom.csv", row.names = FALSE)
+    saveRDS(cl, "blast_results_custom.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to 'blast_results_default.csv' and 'blast_results_custom.csv'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RBLAST:", paste0("    rblast: ", packageVersion("rBLAST"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_RBLAST_QUERY_EXISTING_BLAST_DB":
+        rblast: \$(Rscript -e 'cat(as.character(packageVersion("rblast")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rblast_results.csv
-    touch ${prefix}_rblast_output.rds
-    echo "BIOC_RBLAST:" > versions.yml
-    echo "    rblast: 0.0.0" >> versions.yml
+    touch ${prefix}_query_existing_blast_db.csv versions.yml
     """
 }
 
-
-workflow BIOC_RBLAST_WORKFLOW {
+workflow BIOC_RBLAST_QUERY_EXISTING_BLAST_DB_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(xstringset) ]
+    ch_input  // channel: [ val(meta), [ 16S_ribosomal_RNA.tar.gz, RNA_example.fasta ] ]
 
     main:
-    BIOC_RBLAST(ch_input)
+    BIOC_RBLAST_QUERY_EXISTING_BLAST_DB(ch_input)
 
     emit:
-    results  = BIOC_RBLAST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RBLAST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RBLAST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RBLAST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RBLAST_QUERY_EXISTING_BLAST_DB.out.tables
+    plots    = BIOC_RBLAST_QUERY_EXISTING_BLAST_DB.out.plots
+    objects  = BIOC_RBLAST_QUERY_EXISTING_BLAST_DB.out.objects
+    versions = BIOC_RBLAST_QUERY_EXISTING_BLAST_DB.out.versions
 }

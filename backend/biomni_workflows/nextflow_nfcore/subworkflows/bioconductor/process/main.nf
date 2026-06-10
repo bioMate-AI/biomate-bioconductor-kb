@@ -1,137 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PROcess
-// A package for processing protein mass spectrometry data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PROcess/inst/doc/howtoprocess.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("PROcess")
+// Bioconductor workflow: process — individual_spectrum_alignment
+// Process individual mass spectrometry files, normalize them, detect peaks, assess quality, and align peaks across spectra to identify proto-biomarkers.
+// Input: testdir
+// Container: quay.io/biocontainers/bioconductor-process:1.86.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PROCESS {
+process BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-process"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-process:1.82.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-process:1.82.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-process:1.86.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_process_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_process_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_process_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("process")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the required Bioconductor package
     library(PROcess)
-    library(jsonlite)
-
-    # --- Bslnoffsingle [] ---
-    # Key functions: files, bslnoff
-    library(PROcess)
-    fdat <- system.file("Test", package="PROcess")
-    fs <- list.files(fdat, pattern="\\.*csv\\.*", full.names=TRUE)
-    f1 <- read.files(fs[1])
-    fcut <- f1[f1[,1]>0,]
-    # --- Ispeaksingle [] ---
-    # Key functions: isPeak
-    pkgobj <- isPeak(bseoff,span=81,sm.span=11,plot=TRUE)
-    # --- Speczoom [] ---
-    # Key functions: specZoom
-    specZoom(pkgobj, xlim=c(5000,10000))
-    # --- Rmbaselinebatch [] ---
-    # Key functions: rmBaseline
-    testdir <- system.file("Test", package = "PROcess")
+    
+    # Define the input directory containing raw mass spectrometry CSV files
+    testdir <- "testdir"
+    
+    # Robustness check: Ensure the input directory exists and contains files
+    if (!dir.exists(testdir)) {
+      stop(paste("Error: Input directory '", testdir, "' does not exist in the working directory.", sep = ""))
+    }
+    
+    csv_files <- list.files(testdir, pattern = "\\.csv\$", full.names = TRUE)
+    if (length(csv_files) == 0) {
+      stop(paste("Error: No CSV files found in '", testdir, "'.", sep = ""))
+    }
+    
+    # 1. Baseline subtraction of raw spectra using rmBaseline
+    message("Performing baseline subtraction...")
     testM <- rmBaseline(testdir)
-    # --- Renorm [] ---
-    # Key functions: renorm
-    rtM <- renorm(testM, cutoff=1500)
-    # --- Getpeaksbatch [] ---
-    # Key functions: tempdir, getPeaks
-    peakfile <- paste(tempdir(), "testpeakinfo.csv", sep = "/")
+    
+    # 2. Renormalization of spectra using renorm
+    message("Renormalizing spectra...")
+    rtM <- renorm(testM, cutoff = 1500)
+    
+    # Define output file paths
+    peakfile <- "testpeakinfo.csv"
+    bmkfile <- "testbiomarker.csv"
+    quality_file <- "quality_assessment.csv"
+    plot_file <- "proto_biomarkers_plot.pdf"
+    normalized_spectra_file <- "normalized_spectra.rds"
+    biomarkers_rds_file <- "proto_biomarkers.rds"
+    
+    # 3. Peak identification in individual spectra using getPeaks
+    message("Identifying peaks...")
     getPeaks(rtM, peakfile)
-    # --- Qc [] ---
-    # Key functions: quality
-    qualRes <- quality(testM, peakfile, cutoff=1500)
+    
+    # 4. Quality assessment of spectra using quality
+    message("Assessing quality...")
+    qualRes <- quality(testM, peakfile, cutoff = 1500)
     print(qualRes)
-    # --- tempdir [] ---
-    # Key functions: tempdir, pk2bmkr, matplot, getMzs
-    bmkfile <- paste(tempdir(), "testbiomarker.csv", sep = "/")
+    
+    # Save quality assessment results
+    write.csv(qualRes, file = quality_file, row.names = TRUE)
+    
+    # 5. Peak alignment and proto-biomarker identification using pk2bmkr
+    message("Aligning peaks and identifying proto-biomarkers...")
     testBio <- pk2bmkr(peakfile, rtM, bmkfile)
+    
+    # Save processed objects
+    saveRDS(rtM, file = normalized_spectra_file)
+    saveRDS(testBio, file = biomarkers_rds_file)
+    
+    # Extract m/z values of the proto-biomarkers
+    bks <- getMzs(testBio)
+    message("Identified proto-biomarkers (rounded m/z):")
+    print(round(bks))
+    
+    # Save the list of biomarker m/z values
+    writeLines(as.character(round(bks)), "biomarker_mzs.txt")
+    
+    # Generate and save the visualization plot
+    message("Generating plot...")
+    pdf(plot_file, width = 10, height = 7)
     mzs <- as.numeric(rownames(rtM))
     matplot(mzs, rtM, type = "l", xlim = c(1000, 10000),
-    ylab="intensities", main="proto-biomarkers")
-    # --- Overallmean [] ---
-    # Key functions: aveSpec
-    grandAve <- aveSpec(fs)
-    mzs <- grandAve[,1]
-    # --- Bslnoffrawmean [] ---
-    # Key functions: bslnoff
-    grandOff <- bslnoff(grandAve[mzs>0,], method="loess",
-            plot=T, bw=0.1)
-    # --- Rawmeanpeak [] ---
-    # Key functions: isPeak
-    grandPkg <- isPeak(grandOff[grandOff[,1]>1500,], zerothrsh=1,
-    plot=T, ratio=0.1)
-    grandpvec <- round(grandPkg[grandPkg$peak, "mz"])
-    print(as.vector(grandpvec))
-    # --- Getpeaks2 [] ---
-    # Key functions: getPeaks2
-    grandBmk <- getPeaks2(rtM, grandpvec)
+            ylab = "intensities", main = "proto-biomarkers")
+    abline(v = bks, col = "green")
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs generated:")
+    message("- ", peakfile)
+    message("- ", bmkfile)
+    message("- ", quality_file)
+    message("- ", plot_file)
+    message("- ", normalized_spectra_file)
+    message("- ", biomarkers_rds_file)
+    message("- biomarker_mzs.txt")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_process_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_process_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_process_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PROCESS:", paste0("    process: ", packageVersion("PROcess"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT":
+        process: \$(Rscript -e 'cat(as.character(packageVersion("process")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_process_results.csv
-    touch ${prefix}_process_output.rds
-    echo "BIOC_PROCESS:" > versions.yml
-    echo "    process: 0.0.0" >> versions.yml
+    touch ${prefix}_individual_spectrum_alignment.csv versions.yml
     """
 }
 
-
-workflow BIOC_PROCESS_WORKFLOW {
+workflow BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ testdir ] ]
 
     main:
-    BIOC_PROCESS(ch_input)
+    BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT(ch_input)
 
     emit:
-    results  = BIOC_PROCESS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PROCESS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PROCESS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PROCESS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT.out.tables
+    plots    = BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT.out.plots
+    objects  = BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT.out.objects
+    versions = BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT.out.versions
 }

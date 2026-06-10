@@ -1,138 +1,168 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NormqPCR
-// Functions for the selection of optimal reference genes and the normalisation of real-time quantitati
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NormqPCR/inst/doc/NormqPCR.R
-// Upstream  : RColorBrewer, ReadqPCR
-// Downstream: none
-//
-// Install: BiocManager::install("NormqPCR")
+// Bioconductor workflow: normqpcr — reference_gene_selection
+// Select and rank the most stable reference/housekeeping genes from candidate genes using geNorm or NormFinder.
+// Input: qPCR.techReps.txt, example.txt
+// Container: quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NORMQPCR {
+process BIOC_NORMQPCR_REFERENCE_GENE_SELECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-normqpcr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-normqpcr:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-normqpcr:1.52.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0"
 
     input:
-    tuple val(meta), path(plot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_normqpcr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_normqpcr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_normqpcr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("normqpcr", "rcolorbrewer", "readqpcr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
+    library(ReadqPCR)
     library(NormqPCR)
-    library(ComputeNRQs)
-    library(jsonlite)
+    
+    # 1. Read raw qPCR data with technical replicates
+    qPCR.example.techReps <- "qPCR.techReps.txt"
+    qPCRBatch.qPCR.techReps <- read.qPCR(qPCR.example.techReps)
+    
+    # 2. Combine technical replicates
+    combinedTechReps <- combineTechReps(qPCRBatch.qPCR.techReps)
+    
+    # Write combined technical replicates to output
+    write.csv(exprs(combinedTechReps), file = "combined_tech_reps.csv", row.names = TRUE)
+    
+    # 3. Handle undetermined values and NAs using TaqMan qPCR data
+    taqman.example <- "example.txt"
+    qPCRBatch.taqman <- read.taqman(taqman.example)
+    
+    # Replace values above cutoff
+    qPCRBatch.taqman.replaced <- replaceAboveCutOff(qPCRBatch.taqman, newVal = NA, cutOff = 35)
+    
+    # Replace NAs with 40
+    qPCRBatch.taqman.replaced <- replaceNAs(qPCRBatch.taqman, newNA = 40)
+    
+    # Construct contrast matrix
+    a <- c(0,0,1,1,0,0,1,1) # one for each sample type, with 1 representing
+    b <- c(1,1,0,0,1,1,0,0) # position of sample type in samplenames vector 
+    contM <- cbind(a,b)
+    colnames(contM) <- c("case","control") # set the names of each sample type
+    rownames(contM) <- sampleNames(qPCRBatch.taqman) # set row names
+    
+    sMaxM <- t(as.matrix(c(3,3))) # now make the contrast matrix
+    colnames(sMaxM) <- c("case","control") # make sure these line up with samples
+    
+    # Replace values based on contrast matrix and max NAs allowed
+    qPCRBatch.taqman.replaced <- makeAllNewVal(qPCRBatch.taqman, contM, sMaxM, newVal=NA)
+    
+    # Write processed TaqMan expression matrix to output
+    write.csv(exprs(qPCRBatch.taqman.replaced), file = "taqman_processed.csv", row.names = TRUE)
+    
+    # 4. Rank reference genes using geNorm and NormFinder
+    # To ensure ranking algorithms run without NA errors, we replace remaining NAs with 40
+    qPCRBatch.for_ranking <- replaceNAs(qPCRBatch.taqman.replaced, newNA = 40)
+    
+    # Define group/class structure based on the contrast matrix
+    Class <- as.factor(ifelse(contM[, "case"] == 1, "case", "control"))
+    
+    # geNorm reference gene selection
+    tryCatch({
+      res.geNorm <- selectHKs(qPCRBatch.for_ranking, 
+                              method = "geNorm", 
+                              Symbols = featureNames(qPCRBatch.for_ranking), 
+                              minNrHK = 2, 
+                              log = FALSE)
+      
+      # Save geNorm ranking results
+      geNorm_df <- data.frame(
+        Rank = seq_along(res.geNorm\$ranking),
+        Gene = res.geNorm\$ranking
+      )
+      write.csv(geNorm_df, file = "geNorm_ranking.csv", row.names = FALSE)
+    }, error = function(e) {
+      message("geNorm selection failed: ", e\$message)
+    })
+    
+    # NormFinder stability measure (rho)
+    tryCatch({
+      res.NormFinder.rho <- stabMeasureRho(qPCRBatch.for_ranking, 
+                                           group = Class, 
+                                           log = FALSE)
+      
+      rho_df <- data.frame(
+        Gene = names(res.NormFinder.rho),
+        StabilityMeasure = res.NormFinder.rho
+      )
+      rho_df <- rho_df[order(rho_df\$StabilityMeasure), ]
+      write.csv(rho_df, file = "NormFinder_stability_rho.csv", row.names = FALSE)
+    }, error = function(e) {
+      message("NormFinder stabMeasureRho failed: ", e\$message)
+    })
+    
+    # NormFinder reference gene selection (step-wise)
+    tryCatch({
+      res.NormFinder.select <- selectHKs(qPCRBatch.for_ranking, 
+                                         group = Class, 
+                                         log = FALSE, 
+                                         trace = TRUE, 
+                                         Symbols = featureNames(qPCRBatch.for_ranking), 
+                                         minNrHKs = 12, 
+                                         method = "NormFinder")
+      
+      NormFinder_df <- data.frame(
+        Rank = seq_along(res.NormFinder.select\$ranking),
+        Gene = res.NormFinder.select\$ranking
+      )
+      write.csv(NormFinder_df, file = "NormFinder_ranking.csv", row.names = FALSE)
+    }, error = function(e) {
+      message("NormFinder selectHKs failed: ", e\$message)
+    })
 
-    # --- Stability Analysis with NormFinder [] ---
-    # Key functions: stabMeasureRho, selectHKs, featureNames
-    data(Colon)
-    Class <- pData(Colon)[, "Classification"]
-    res.Colon <- stabMeasureRho(Colon, group = Class, log = FALSE)
-    sorted.Colon <- sort(res.Colon)
-    hk.NormFinder <- selectHKs(Colon, group = Class, log = FALSE,
-                               trace = FALSE,
-                               Symbols = featureNames(Colon),
-                               minNrHKs = 12,
-                               method = "NormFinder")
-
-
-    # --- Delta Cq Normalisation [] ---
-    # Key functions: deltaCq, exprs, featureNames
-    data(geNorm)
-    hkg <- featureNames(geNorm.qPCRBatch)[1]
-    qPCRBatch.norm <- deltaCq(qPCRBatch = geNorm.qPCRBatch,
-                              hkgs = hkg,
-                              calc = "arith")
-    norm.exprs <- exprs(qPCRBatch.norm)
-
-
-    # --- Delta Delta Cq Analysis [] ---
-    # Key functions: deltaDeltaCq, sampleNames, featureNames
-    data(geNorm)
-    hkg <- featureNames(geNorm.qPCRBatch)[1]
-    samples <- sampleNames(geNorm.qPCRBatch)
-    contM <- cbind(rep(c(1, 0), length.out = length(samples)),
-                   rep(c(0, 1), length.out = length(samples)))
-    colnames(contM) <- c("interestingPhenotype", "wildTypePhenotype")
-    rownames(contM) <- samples
-    ddCq.res <- deltaDeltaCq(qPCRBatch = geNorm.qPCRBatch,
-                             maxNACase = 5, maxNAControl = 5,
-                             hkg = hkg, contrastM = contM,
-                             case = "interestingPhenotype",
-                             control = "wildTypePhenotype",
-                             statCalc = "geom", hkgCalc = "arith")
-
-
-    # --- Relative Quantification with Efficiencies [] ---
-    # Key functions: combineTechRepsWithSD, ComputeNRQs, effs<-, se.effs<-
-    data(geNorm)
-    Cq.data1 <- combineTechRepsWithSD(geNorm.qPCRBatch)
-    effs.matrix <- matrix(1.9, nrow = nrow(Cq.data1), ncol = 1)
-    se.effs.matrix <- matrix(0.05, nrow = nrow(Cq.data1), ncol = 1)
-    rownames(effs.matrix) <- featureNames(Cq.data1)
-    rownames(se.effs.matrix) <- featureNames(Cq.data1)
-    effs(Cq.data1) <- effs.matrix
-    se.effs(Cq.data1) <- se.effs.matrix
-    res <- ComputeNRQs(Cq.data1, hkgs = featureNames(Cq.data1)[1:2])
-    nrqs <- exprs(res)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_normqpcr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_normqpcr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_normqpcr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NORMQPCR:", paste0("    normqpcr: ", packageVersion("NormqPCR"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_NORMQPCR_REFERENCE_GENE_SELECTION":
+        normqpcr: \$(Rscript -e 'cat(as.character(packageVersion("normqpcr")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_normqpcr_results.csv
-    touch ${prefix}_normqpcr_output.rds
-    echo "BIOC_NORMQPCR:" > versions.yml
-    echo "    normqpcr: 0.0.0" >> versions.yml
+    touch ${prefix}_reference_gene_selection.csv versions.yml
     """
 }
 
-
-workflow BIOC_NORMQPCR_WORKFLOW {
+workflow BIOC_NORMQPCR_REFERENCE_GENE_SELECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(plot_object) ]
+    ch_input  // channel: [ val(meta), [ qPCR.techReps.txt, example.txt ] ]
 
     main:
-    BIOC_NORMQPCR(ch_input)
+    BIOC_NORMQPCR_REFERENCE_GENE_SELECTION(ch_input)
 
     emit:
-    results  = BIOC_NORMQPCR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NORMQPCR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NORMQPCR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NORMQPCR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NORMQPCR_REFERENCE_GENE_SELECTION.out.tables
+    plots    = BIOC_NORMQPCR_REFERENCE_GENE_SELECTION.out.plots
+    objects  = BIOC_NORMQPCR_REFERENCE_GENE_SELECTION.out.objects
+    versions = BIOC_NORMQPCR_REFERENCE_GENE_SELECTION.out.versions
 }

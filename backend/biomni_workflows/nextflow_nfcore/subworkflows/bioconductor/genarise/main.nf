@@ -1,116 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: genArise
-// genArise is an easy to use tool for dual color microarray data. Its GUI-Tk based environment let any
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/genArise/inst/doc/genArise.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("genArise")
+// Bioconductor workflow: genarise — dual_color_microarray_analysis
+// Preprocess raw dual-color microarray data, perform background correction, normalize, filter low-quality spots, resolve replicates, and identify differentially e
+// Input: raw_intensities.txt
+// Container: quay.io/biocontainers/bioconductor-genarise:1.86.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENARISE {
+process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genarise"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genarise:1.82.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genarise:1.82.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-genarise:1.86.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genarise_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genarise_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genarise_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("genarise")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load the genArise package
     library(genArise)
-    library(jsonlite)
+    
+    # Define the input file name
+    file.name <- "raw_intensities.txt"
+    
+    # 1. Read raw data using read.spot
+    my.spot <- read.spot(file.name, cy3 = 1, cy5 = 2, bg.cy3 = 3, bg.cy5 = 4, ids = 5, header = FALSE, sep = "\t", is.ifc = FALSE)
+    
+    # Save the raw spot object
+    saveRDS(my.spot, "raw_spot.rds")
+    
+    # Extract spot data for diagnostic plots
+    datos <- attr(my.spot, "spotData")
+    M <- log(datos\$Cy3, 2) - log(datos\$Cy5, 2)
+    R <- log(datos\$BgCy3, 2)
+    G <- log(datos\$BgCy5, 2)
+    
+    # Open PDF device to save diagnostic and Z-score plots
+    pdf("diagnostic_and_zscore_plots.pdf")
+    
+    # Diagnostic plots using imageLimma
+    tryCatch({
+      imageLimma(z = M, row = 23, column = 24, meta.row = 2, meta.column = 2, low = NULL, high = NULL)
+    }, error = function(e) {
+      warning("imageLimma for M failed: ", e\$message)
+    })
+    
+    tryCatch({
+      imageLimma(z = R, row = 23, column = 24, meta.row = 2, meta.column = 2, low = "white", high = "red")
+    }, error = function(e) {
+      warning("imageLimma for R failed: ", e\$message)
+    })
+    
+    tryCatch({
+      imageLimma(z = G, row = 23, column = 24, meta.row = 2, meta.column = 2, low = "white", high = "green")
+    }, error = function(e) {
+      warning("imageLimma for G failed: ", e\$message)
+    })
+    
+    # Diagnostic plots: ri.plot, ma.plot, cys.plot
+    tryCatch({ ri.plot(my.spot) }, error = function(e) { warning("ri.plot failed: ", e\$message) })
+    tryCatch({ ma.plot(my.spot) }, error = function(e) { warning("ma.plot failed: ", e\$message) })
+    tryCatch({ cys.plot(my.spot) }, error = function(e) { warning("cys.plot failed: ", e\$message) })
+    
+    # 2. Perform background correction using bg.correct
+    c.spot <- bg.correct(my.spot)
+    saveRDS(c.spot, "background_corrected_spot.rds")
+    write.csv(attr(c.spot, "spotData"), "background_corrected_data.csv", row.names = FALSE)
+    
+    # 3. Normalize data using grid.norm and global.norm
+    # Grid normalization
+    tryCatch({
+      n.spot_grid <- grid.norm(mySpot = my.spot, nr = 23, nc = 24)
+      saveRDS(n.spot_grid, "grid_normalized_spot.rds")
+    }, error = function(e) {
+      warning("grid.norm failed: ", e\$message)
+    })
+    
+    # Global normalization
+    n.spot <- global.norm(mySpot = my.spot)
+    saveRDS(n.spot, "global_normalized_spot.rds")
+    write.csv(attr(n.spot, "spotData"), "global_normalized_data.csv", row.names = FALSE)
+    
+    # 4. Filter low-quality spots using filter.spot
+    f.spot <- filter.spot(mySpot = my.spot)
+    saveRDS(f.spot, "filtered_spot.rds")
+    write.csv(attr(f.spot, "spotData"), "filtered_data.csv", row.names = FALSE)
+    
+    # 5. Handle replicate spots using spotUnique, alter.unique, and meanUnique
+    u.spot_unique <- spotUnique(mySpot = my.spot)
+    saveRDS(u.spot_unique, "unique_spot.rds")
+    
+    u.spot_alter <- alter.unique(mySpot = my.spot)
+    saveRDS(u.spot_alter, "alter_unique_spot.rds")
+    
+    u.spot <- meanUnique(mySpot = my.spot)
+    saveRDS(u.spot, "mean_unique_spot.rds")
+    write.csv(attr(u.spot, "spotData"), "mean_unique_data.csv", row.names = FALSE)
+    
+    # 6. Calculate Z-scores using Zscore
+    s.spot_ri <- Zscore(my.spot, type="ri")
+    saveRDS(s.spot_ri, "zscore_ri_dataset.rds")
+    
+    s.spot <- Zscore(my.spot, type="ma")
+    saveRDS(s.spot, "zscore_ma_dataset.rds")
+    
+    # 7. Plot Z-score plots using Zscore.plot
+    tryCatch({
+      Zscore.plot(s.spot_ri, Zscore.min=1)
+    }, error = function(e) {
+      warning("Zscore.plot for RI failed: ", e\$message)
+    })
+    
+    tryCatch({
+      Zscore.plot(s.spot, Zscore.min=1)
+    }, error = function(e) {
+      warning("Zscore.plot for MA failed: ", e\$message)
+    })
+    
+    # Close PDF device
+    dev.off()
 
-    # --- Data [] ---
-    # Key functions: attr, imageLimma
-    data(Simon)
-    datos <- attr(Simon, "spotData")
-    M <- log(datos$Cy3, 2) - log(datos$Cy5, 2)
-    imageLimma(M, 23, 24, 2, 2)
-    # --- Data [] ---
-    # Key functions: correct
-    data(Simon)
-    c.spot <- bg.correct(Simon)
-    ri.plot(c.spot)
-    # --- Data [] ---
-    # Key functions: norm
-    data(Simon)
-    n.spot <- grid.norm(mySpot = Simon, nr = 23, nc = 24)
-    ri.plot(n.spot)
-    # --- Data [] ---
-    # Key functions: spot
-    data(Simon)
-    f.spot <- filter.spot(mySpot = Simon)
-    ri.plot(f.spot)
-    # --- Data [] ---
-    # Key functions: spotUnique
-    data(Simon)
-    u.spot <- spotUnique(mySpot = Simon)
-    ri.plot(u.spot)
-    # --- Data [] ---
-    # Key functions: meanUnique
-    data(Simon)
-    u.spot <- meanUnique(mySpot = Simon)
-    ri.plot(u.spot)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genarise_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genarise_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genarise_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENARISE:", paste0("    genarise: ", packageVersion("genArise"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS":
+        genarise: \$(Rscript -e 'cat(as.character(packageVersion("genarise")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genarise_results.csv
-    touch ${prefix}_genarise_output.rds
-    echo "BIOC_GENARISE:" > versions.yml
-    echo "    genarise: 0.0.0" >> versions.yml
+    touch ${prefix}_dual_color_microarray_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENARISE_WORKFLOW {
+workflow BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_intensities.txt ] ]
 
     main:
-    BIOC_GENARISE(ch_input)
+    BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GENARISE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENARISE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENARISE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENARISE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS.out.tables
+    plots    = BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS.out.plots
+    objects  = BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS.out.objects
+    versions = BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS.out.versions
 }

@@ -1,104 +1,123 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: QSutils
-// Set of utility functions for viral quasispecies analysis with NGS data. Most functions are equally u
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/QSutils/inst/doc/QSUtils-Alignment.R
-// Upstream  : Biostrings, ape, ggplot2, psych
-// Downstream: none
-//
-// Install: BiocManager::install("QSutils")
+// Bioconductor workflow: qsutils — collapse_and_correct_gaps_ns
+// Load raw amplicon reads, collapse them to unique haplotypes with frequencies, correct gaps and indeterminate bases (Ns) against a reference sequence, and recoll
+// Input: Toy.GapsAndNs.fna
+// Container: quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_QSUTILS {
+process BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-qsutils"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-qsutils:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-qsutils:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_qsutils_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_qsutils_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_qsutils_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Collapse)
-    library(CorrectGapsAndNs)
-    library(DottedAlignment)
-    library(FreqMat)
-    library(GetQSData)
-    library(IntersectStrandHpls)
-    library(MutsTbl)
-    library(ReadAmplSeqs)
-    library(Recollapse)
-    library(SortByMutations)
-    library(jsonlite)
-
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, scale_x_continuous, theme
-    dplot <- data.frame(IC=GetInfProfile(lst$hseqs,lst$nr),
-    pos=1:width(lst$hseqs)[1])
-    ggplot(dplot, aes(x=pos, y=IC)) + geom_point() +
-    # --- ReadAmplSeqs analysis [] ---
-    # Key functions: ReadAmplSeqs, GetQSData, readDNAStringSet, Collapse, DottedAlignment, CorrectGapsAndNs, Recollapse, IntersectStrandHpls
-    lstI <- IntersectStrandHpls(lstFW$nr,lstFW$hseqs,lstRV$nr,lstRV$hseqs)
-    cat("FW and Rv total reads:",sum(lstFW$nr)+sum(lstRV$nr),"\n")
-    cat("FW and Rv reads above thr:",sum(lstI$pFW)+sum(lstI$pRV),"\n")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_qsutils_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_qsutils_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ape", "biostrings", "ggplot2", "psych", "qsutils")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_qsutils_output.rds")
+    
+    # Load required libraries
+    library(Biostrings)
+    library(QSutils)
+    
+    # Define input file path (must be in the working directory)
+    filepath <- "Toy.GapsAndNs.fna"
+    
+    # Check if the input file exists
+    if (!file.exists(filepath)) {
+      stop(paste("Error: Input file", filepath, "not found in the working directory."))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QSUTILS:", paste0("    qsutils: ", packageVersion("QSutils"))),
-        "versions.yml"
+    
+    # 1. Read raw sequences using readDNAStringSet
+    reads <- readDNAStringSet(filepath)
+    
+    # 2. Collapse reads to unique haplotypes and frequencies using Collapse
+    lstCollapsed <- Collapse(reads)
+    
+    # 3. Correct gaps and Ns against a reference sequence (dominant haplotype) using CorrectGapsAndNs
+    lstCorrected <- CorrectGapsAndNs(lstCollapsed\$hseqs[2:length(lstCollapsed\$hseqs)],
+                                      lstCollapsed\$hseqs[[1]])
+    
+    # Add again the most abundant haplotype
+    lstCorrected <- c(lstCollapsed\$hseqs[1], lstCorrected)
+    
+    # 4. Recollapse the corrected sequences to update frequencies using Recollapse
+    lstRecollapsed <- Recollapse(lstCorrected, lstCollapsed\$nr)
+    
+    # Save meaningful results to output files
+    # Save RDS objects for downstream R analysis
+    saveRDS(lstCollapsed, "collapsed_data.rds")
+    saveRDS(lstCorrected, "corrected_sequences.rds")
+    saveRDS(lstRecollapsed, "recollapsed_data.rds")
+    
+    # Export collapsed haplotypes to CSV
+    collapsed_df <- data.frame(
+      Haplotype = as.character(lstCollapsed\$hseqs),
+      Count = lstCollapsed\$nr,
+      stringsAsFactors = FALSE
     )
+    write.csv(collapsed_df, "collapsed_haplotypes.csv", row.names = FALSE)
+    
+    # Export recollapsed (corrected) haplotypes to CSV
+    recollapsed_df <- data.frame(
+      Haplotype = as.character(lstRecollapsed\$seqs),
+      Count = lstRecollapsed\$nr,
+      stringsAsFactors = FALSE
+    )
+    write.csv(recollapsed_df, "recollapsed_haplotypes.csv", row.names = FALSE)
+    
+    # Export final corrected haplotypes to a FASTA file
+    writeXStringSet(lstRecollapsed\$seqs, "recollapsed_haplotypes.fasta")
+    
+    cat("Pipeline completed successfully. Outputs saved to working directory.\n")
+
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS":
+        qsutils: \$(Rscript -e 'cat(as.character(packageVersion("qsutils")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_qsutils_results.csv
-    touch ${prefix}_qsutils_output.rds
-    echo "BIOC_QSUTILS:" > versions.yml
-    echo "    qsutils: 0.0.0" >> versions.yml
+    touch ${prefix}_collapse_and_correct_gaps_ns.csv versions.yml
     """
 }
 
-
-workflow BIOC_QSUTILS_WORKFLOW {
+workflow BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Toy.GapsAndNs.fna ] ]
 
     main:
-    BIOC_QSUTILS(ch_input)
+    BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS(ch_input)
 
     emit:
-    results  = BIOC_QSUTILS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QSUTILS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QSUTILS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QSUTILS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS.out.tables
+    plots    = BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS.out.plots
+    objects  = BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS.out.objects
+    versions = BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS.out.versions
 }

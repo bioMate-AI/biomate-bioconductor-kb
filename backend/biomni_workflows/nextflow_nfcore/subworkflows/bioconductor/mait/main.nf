@@ -1,155 +1,153 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MAIT
-// The MAIT package contains functions to perform end-to-end statistical analysis of LC/MS Metabolomic 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MAIT/inst/doc/MAIT_Vignette.R
-// Upstream  : faahKO
-// Downstream: none
-//
-// Install: BiocManager::install("MAIT")
+// Bioconductor workflow: mait — external_peak_table_analysis
+// Import pre-processed external peak tables, masses, and retention times to perform annotation and metabolite identification.
+// Input: peaks_matrix, masses_vector, rt_vector
+// Container: quay.io/biocontainers/bioconductor-mait:1.44.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MAIT {
+process BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mait"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mait:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mait:1.40.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-mait:1.44.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mait_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mait_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mait_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Biotransformations)
-    library(MAITbuilder)
-    library(Validation)
-    library(jsonlite)
-
-    # --- Sampleprocessing [] ---
-    # Key functions: sampleProcessing
-    library(faahKO)
-    cdfFiles<-system.file("cdf", package="faahKO", mustWork=TRUE)
-    MAIT <- sampleProcessing(dataDir = cdfFiles, project = "MAIT_Demo",
-    snThres=2,rtStep=0.03)
-    # --- Peakannotation [] ---
-    # Key functions: peakAnnotation
-    MAIT <- peakAnnotation(MAIT.object = MAIT,corrWithSamp = 0.7,
-    corrBetSamp = 0.75,perfwhm = 0.6)
-    # --- Spectralsigfeatures [] ---
-    # Key functions: spectralSigFeatures
-    MAIT<- spectralSigFeatures(MAIT.object = MAIT,pvalue=0.05,
-           p.adj="none",scale=FALSE)
-    summary(MAIT)
-    # --- Sigpeakstable [] ---
-    # Key functions: sigPeaksTable
-    signTable <- sigPeaksTable(MAIT.object = MAIT, printCSVfile = FALSE)
-    # --- Boxheatplots [] ---
-    # Key functions: plotBoxplot, plotHeatmap
-    ## plotBoxplot(MAIT)
-    ## plotHeatmap(MAIT)
-    # --- Plspca [] ---
-    # Key functions: plotPCA, plotPLS, model
-    MAIT<-plotPCA(MAIT,plot3d=FALSE)
-    MAIT<-plotPLS(MAIT,plot3d=FALSE)
-    PLSmodel <- model(MAIT, type = "PLS")
-    PCAmodel <- model(MAIT, type = "PCA")
-    # --- Biotransformations [] ---
-    # Key functions: Biotransformations
-    Biotransformations(MAIT.object = MAIT, peakPrecision = 0.005)
-    # --- Mybiotransf [] ---
-    # Key functions: factor
-    data(MAITtables)
-    myBiotransformation<-c("custom_biotrans",105.0)
-    myBiotable<-biotransformationsTable
-    myBiotable[,1]<-as.character(myBiotable[,1])
-    myBiotable<-rbind(myBiotable,myBiotransformation)
-    # --- Identifymetabolites [] ---
-    # Key functions: identifyMetabolites
-    MAIT <- identifyMetabolites(MAIT.object = MAIT, peakTolerance = 0.005)
-    # --- Metabolitetable [] ---
-    # Key functions: metaboliteTable
-    metTable<-metaboliteTable(MAIT)
-    head(metTable)
-    # --- Validation [] ---
-    # Key functions: Validation
-    MAIT <- Validation(Iterations = 20, trainSamples= 3,
-    MAIT.object = MAIT)
-    # --- Classifratioclasses [] ---
-    # Key functions: classifRatioClasses
-    classifRatioClasses(MAIT)
-    # --- Defdata [] ---
-    # Key functions: scores, getPeaklist
-    peaks <- scores(MAIT)
-    masses <- getPeaklist(MAIT)$mz
-    rt <- getPeaklist(MAIT)$rt/60
-    # --- Maitbuilder [] ---
-    # Key functions: MAITbuilder
-    importMAIT <- MAITbuilder(data = peaks, masses = masses,
-                  rt = rt,significantFeatures = TRUE,
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("faahko", "mait")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required library
+    library(MAIT)
+    
+    # Helper function to load peaks matrix from RDS or CSV
+    load_peaks <- function(file_base) {
+      if (file.exists(paste0(file_base, ".rds"))) {
+        return(as.matrix(readRDS(paste0(file_base, ".rds"))))
+      } else if (file.exists(paste0(file_base, ".csv"))) {
+        df <- read.csv(paste0(file_base, ".csv"), header = TRUE, check.names = FALSE)
+        if (is.character(df[[1]]) || is.factor(df[[1]])) {
+          rownames(df) <- df[[1]]
+          df <- df[-1]
+        }
+        return(as.matrix(df))
+      } else {
+        stop(paste("Error: Input file", file_base, "not found in RDS or CSV format."))
+      }
+    }
+    
+    # Helper function to load numeric vectors from RDS or CSV
+    load_vector <- function(file_base) {
+      if (file.exists(paste0(file_base, ".rds"))) {
+        return(as.numeric(readRDS(paste0(file_base, ".rds"))))
+      } else if (file.exists(paste0(file_base, ".csv"))) {
+        df <- read.csv(paste0(file_base, ".csv"), header = TRUE, check.names = FALSE)
+        numeric_cols <- sapply(df, is.numeric)
+        if (any(numeric_cols)) {
+          return(as.numeric(df[[which(numeric_cols)[1]]]))
+        } else {
+          return(as.numeric(df[[1]]))
+        }
+      } else {
+        stop(paste("Error: Input file", file_base, "not found in RDS or CSV format."))
+      }
+    }
+    
+    # Read user inputs from the working directory
+    peaks <- load_peaks("peaks_matrix")
+    masses <- load_vector("masses_vector")
+    rt <- load_vector("rt_vector")
+    
+    # 1. Build MAIT object from external data
+    importMAIT <- MAITbuilder(data = peaks, masses = masses, 
+                  rt = rt,significantFeatures = TRUE, 
                   spectraEstimation = TRUE,rtRange=0.2,
                   corThresh=0.7)
-    # --- Biotransformationsbuilder [] ---
-    # Key functions: Biotransformations
-    importMAIT <- Biotransformations(MAIT.object = importMAIT,
-                  adductAnnotation = TRUE,
+    
+    # 2. Perform biotransformation and adduct annotation
+    importMAIT <- Biotransformations(MAIT.object = importMAIT, 
+                  adductAnnotation = TRUE, 
                   peakPrecision = 0.005, adductTable = NULL)
+    
+    # 3. Identify metabolites against the database
+    importMAIT <- identifyMetabolites(MAIT.object = importMAIT, 
+                  peakTolerance=0.005,polarity="positive")
+    
+    # Save the final MAIT object
+    saveRDS(importMAIT, "importMAIT_results.rds")
+    
+    # Extract and save metabolite table
+    tryCatch({
+      metTable <- metaboliteTable(importMAIT)
+      write.csv(metTable, "identified_metabolites.csv", row.names = FALSE)
+    }, error = function(e) {
+      warning("Could not extract metabolite table: ", e\$message)
+    })
+    
+    # Extract and save significant peaks table if available
+    tryCatch({
+      sigTable <- sigPeaksTable(importMAIT, printCSVfile = FALSE)
+      write.csv(sigTable, "significant_peaks.csv", row.names = FALSE)
+    }, error = function(e) {
+      warning("Could not extract significant peaks table: ", e\$message)
+    })
+    
+    # Save summary of the analysis
+    tryCatch({
+      sink("mait_summary.txt")
+      summary(importMAIT)
+      sink()
+    }, error = function(e) {
+      if (sink.number() > 0) sink()
+      warning("Could not write summary: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mait_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mait_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mait_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MAIT:", paste0("    mait: ", packageVersion("MAIT"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS":
+        mait: \$(Rscript -e 'cat(as.character(packageVersion("mait")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mait_results.csv
-    touch ${prefix}_mait_output.rds
-    echo "BIOC_MAIT:" > versions.yml
-    echo "    mait: 0.0.0" >> versions.yml
+    touch ${prefix}_external_peak_table_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MAIT_WORKFLOW {
+workflow BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peaks_matrix, masses_vector, rt_vector ] ]
 
     main:
-    BIOC_MAIT(ch_input)
+    BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MAIT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MAIT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MAIT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MAIT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS.out.tables
+    plots    = BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS.out.plots
+    objects  = BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS.out.objects
+    versions = BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS.out.versions
 }

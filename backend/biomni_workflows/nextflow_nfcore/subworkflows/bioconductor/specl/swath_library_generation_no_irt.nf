@@ -1,0 +1,126 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: specL — swath_library_generation_no_irt
+// Generate a SWATH/DIA spectral library using original experimental retention times when iRT standard peptides are not present.
+// Input: peptideStd.sqlite, SP201602-specL.fasta.gz
+// Container: quay.io/biocontainers/bioconductor-specl:1.44.0--r45hdfd78af_0
+// Requires: seqinr, specL
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Read the non-redundant BiblioSpec sqlite file. 2. Load the FASTA database and re-annotate protein IDs to the PSM set. 3. Generate 
+
+nextflow.enable.dsl = 2
+
+process BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("seqinr", "specL")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+    
+    # Load required libraries
+    library(specL)
+    library(seqinr)
+    
+    # Define input files as specified by the user
+    blib_file <- "peptideStd.sqlite"
+    fasta_file <- "SP201602-specL.fasta.gz"
+    
+    # Verify input files exist in the working directory
+    if (!file.exists(blib_file)) {
+      stop(paste("Required input file missing:", blib_file))
+    }
+    if (!file.exists(fasta_file)) {
+      stop(paste("Required input file missing:", fasta_file))
+    }
+    
+    # 1. Read the non-redundant BiblioSpec sqlite file
+    BLIB_FILTERED <- read.bibliospec(blib_file)
+    
+    # 2. Load the FASTA database
+    FASTA <- read.fasta(fasta_file, 
+                        seqtype = "AA", 
+                        as.string = TRUE)
+    
+    # Re-annotate protein IDs to the PSM set
+    BLIB_FILTERED <- annotate.protein_id(BLIB_FILTERED, 
+                                         fasta = FASTA)
+    
+    # 3. Generate the SWATH ion library without providing redundant data or iRT standards
+    res.genSwathIonLib.no_iRT <- genSwathIonLib(BLIB_FILTERED)
+    
+    # 4. Export the library to a Spectronaut-compatible text file
+    write.spectronaut(res.genSwathIonLib.no_iRT, file="specL-Spectronaut.txt")
+    
+    # Save additional meaningful results (RDS object and PDF plots)
+    saveRDS(res.genSwathIonLib.no_iRT, file="specL_no_iRT_library.rds")
+    
+    # Generate and save diagnostic plots to a PDF file
+    pdf("specL_no_iRT_plots.pdf", width=10, height=7)
+    op <- par(mfrow = c(2, 3))
+    plot(res.genSwathIonLib.no_iRT)
+    par(op)
+    dev.off()
+    
+    # Print summary to console
+    cat("\n--- SWATH Ion Library Generation Summary (No iRT) ---\n")
+    print(summary(res.genSwathIonLib.no_iRT))
+
+    writeLines(c(
+        '"BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT":',
+        paste0('    specL: ', as.character(packageVersion('specL')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_swath_library_generation_no_irt.csv versions.yml
+    """
+}
+
+workflow BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ peptideStd.sqlite, SP201602-specL.fasta.gz ] ]
+
+    main:
+    BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT(ch_input)
+
+    emit:
+    tables   = BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT.out.tables
+    plots    = BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT.out.plots
+    objects  = BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT.out.objects
+    versions = BIOC_SPECL_SWATH_LIBRARY_GENERATION_NO_IRT.out.versions
+}

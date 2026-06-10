@@ -1,133 +1,194 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: AlphaBeta
-// AlphaBeta is a computational method for estimating epimutation rates and spectra from high-throughpu
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/AlphaBeta/inst/doc/AlphaBeta.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("AlphaBeta")
+// Bioconductor workflow: alphabeta — selfing_epimutation_analysis
+// Estimate germline epimutation rates and test for selection in selfing-derived mutation accumulation lines.
+// Input: nodelist.fn, edgelist.fn, methylome_files
+// Container: quay.io/biocontainers/bioconductor-alphabeta:1.24.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ALPHABETA {
+process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-alphabeta"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-alphabeta:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-alphabeta:1.20.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-alphabeta:1.24.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_alphabeta_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_alphabeta_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_alphabeta_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("alphabeta", "data.table", "ggplot2", "igraph")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(AlphaBeta)
-    library(ABneutral)
-    library(jsonlite)
-
-    # --- Selection Model Estimation [] ---
-    # Key functions: ABselectMM, ABselectUU
-    rFile <- system.file("extdata/dm", "output.rds", package = "AlphaBeta")
-    output <- readRDS(rFile)
-    pedigree <- output$Pdata
-    p0uu_in <- output$tmpp0
-    output.data.dir <- tempdir()
-    selectMM_out <- ABselectMM(
-        pedigree.data = pedigree,
-        p0uu = p0uu_in,
-        eqp = p0uu_in,
-        eqp.weight = 1,
-        Nstarts = 2,
-        out.dir = output.data.dir,
-        out.name = "ABselectMM_estimates"
+    library(data.table)
+    library(igraph)
+    library(ggplot2)
+    
+    # Define input file paths from the working directory
+    sampleFile <- "nodelist.fn"
+    edgesFile <- "edgelist.fn"
+    out.dir <- getwd()
+    output.data.dir <- getwd()
+    
+    # 1. Build the pedigree and calculate pairwise divergence values
+    output <- buildPedigree(
+      nodelist = sampleFile,
+      edgelist = edgesFile,
+      cytosine = "CG",
+      posteriorMaxFilter = 0.99
+    )
+    
+    # 2. Generate diagnostic pedigree plots
+    plotPedigree(
+      nodelist = sampleFile,
+      edgelist = edgesFile,
+      sampling.design = "progenitor.endpoint",
+      output.dir = out.dir,
+      plot.width = 5,
+      plot.height = 5,
+      aspect.ratio = 1,
+      vertex.size = 6,
+      vertex.label = FALSE,
+      out.pdf = "MA1_1"
+    )
+    
+    # 3. Plot divergence values against delta.t to inspect for outliers
+    pedigree <- output\$Pdata
+    dt <- pedigree[, 2] + pedigree[, 3] - 2 * pedigree[, 1]
+    
+    pdf("divergence_vs_deltat.pdf", width = 6, height = 6)
+    plot(dt, pedigree[, "D.value"], ylab = "Divergence value", xlab = expression(paste(Delta, " t")))
+    dev.off()
+    
+    # 4. Fit the neutral epimutation model
+    p0uu_in <- output\$tmpp0
+    output_neutral <- ABneutral(
+      pedigree.data = pedigree,
+      p0uu = p0uu_in,
+      eqp = p0uu_in,
+      eqp.weight = 1,
+      Nstarts = 2,
+      out.dir = output.data.dir,
+      out.name = "ABneutral_CG_global_estimates"
+    )
+    
+    # 5. Fit selection models (against gains or losses)
+    outputABselectMM <- ABselectMM(
+      pedigree.data = pedigree,
+      p0uu = p0uu_in,
+      eqp = p0uu_in,
+      eqp.weight = 1,
+      Nstarts = 2,
+      out.dir = output.data.dir,
+      out.name = "ABselectMM_CG_global_estimates"
+    )
+    
+    outputABselectUU <- ABselectUU(
+      pedigree.data = pedigree,
+      p0uu = p0uu_in,
+      eqp = p0uu_in,
+      eqp.weight = 1,
+      Nstarts = 2,
+      out.dir = output.data.dir,
+      out.name = "ABselectUU_CG_global_estimates"
+    )
+    
+    # 6. Fit the null model (no epimutation accumulation)
+    outputABnull <- ABnull(
+      pedigree.data = pedigree,
+      out.dir = output.data.dir,
+      out.name = "ABnull_CG_global_estimates"
+    )
+    
+    # 7. Compare models using FtestRSS to select the best-fitting model
+    file_neutral <- file.path(output.data.dir, "ABneutral_CG_global_estimates.Rdata")
+    file_selectMM <- file.path(output.data.dir, "ABselectMM_CG_global_estimates.Rdata")
+    file_selectUU <- file.path(output.data.dir, "ABselectUU_CG_global_estimates.Rdata")
+    file_null <- file.path(output.data.dir, "ABnull_CG_global_estimates.Rdata")
+    
+    out_neutral_vs_null <- FtestRSS(pedigree.select = file_neutral, pedigree.null = file_null)
+    out_selectMM_vs_null <- FtestRSS(pedigree.select = file_selectMM, pedigree.null = file_null)
+    out_selectUU_vs_null <- FtestRSS(pedigree.select = file_selectUU, pedigree.null = file_null)
+    
+    # Save F-test results to a CSV file
+    ftest_df <- data.frame(
+      Comparison = c("Neutral_vs_Null", "SelectMM_vs_Null", "SelectUU_vs_Null"),
+      RSS_F = c(out_neutral_vs_null\$Ftest\$RSS_F, out_selectMM_vs_null\$Ftest\$RSS_F, out_selectUU_vs_null\$Ftest\$RSS_F),
+      RSS_R = c(out_neutral_vs_null\$Ftest\$RSS_R, out_selectMM_vs_null\$Ftest\$RSS_R, out_selectUU_vs_null\$Ftest\$RSS_R),
+      df_F = c(out_neutral_vs_null\$Ftest\$df_F, out_selectMM_vs_null\$Ftest\$df_F, out_selectUU_vs_null\$Ftest\$df_F),
+      df_R = c(out_neutral_vs_null\$Ftest\$df_R, out_selectMM_vs_null\$Ftest\$df_R, out_selectUU_vs_null\$Ftest\$df_R),
+      Fvalue = c(out_neutral_vs_null\$Ftest\$Fvalue, out_selectMM_vs_null\$Ftest\$Fvalue, out_selectUU_vs_null\$Ftest\$Fvalue),
+      pvalue = c(out_neutral_vs_null\$Ftest\$pvalue, out_selectMM_vs_null\$Ftest\$pvalue, out_selectUU_vs_null\$Ftest\$pvalue)
+    )
+    write.csv(ftest_df, "Ftest_results.csv", row.names = FALSE)
+    
+    # 8. Perform bootstrap analysis on the best-fitting model (using Neutral as baseline)
+    inputModel <- file_neutral
+    Boutput <- BOOTmodel(
+      pedigree.data = inputModel,
+      Nboot = 2,
+      out.dir = getwd(),
+      out.name = "ABneutral_Boot_CG_global_estimates"
+    )
+    
+    # Save bootstrap standard errors
+    write.csv(as.data.frame(Boutput\$standard.errors), "bootstrap_standard_errors.csv")
+    
+    # 9. Plot the final model fit
+    ABfile <- file_neutral
+    ABplot(
+      pedigree.names = ABfile,
+      output.dir = getwd(),
+      out.name = "ABneutral",
+      plot.height = 8,
+      plot.width = 11
     )
 
-
-    # --- Null Model Estimation [] ---
-    # Key functions: ABnull
-    rFile <- system.file("extdata/dm", "output.rds", package = "AlphaBeta")
-    output <- readRDS(rFile)
-    pedigree <- output$Pdata
-    output.data.dir <- tempdir()
-    null_out <- ABnull(
-        pedigree.data = pedigree,
-        out.dir = output.data.dir,
-        out.name = "ABnull_estimates"
-    )
-
-
-    # --- Model Comparison [] ---
-    # Key functions: FtestRSS
-    file1 <- system.file(
-        "extdata/models/",
-        "ABneutral_CG_global_estimates.Rdata",
-        package = "AlphaBeta"
-    )
-    file2 <- system.file(
-        "extdata/models/",
-        "ABnull_CG_global_estimates.Rdata",
-        package = "AlphaBeta"
-    )
-    comparison <- FtestRSS(
-        pedigree.select = file1,
-        pedigree.null = file2
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_alphabeta_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_alphabeta_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_alphabeta_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ALPHABETA:", paste0("    alphabeta: ", packageVersion("AlphaBeta"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS":
+        alphabeta: \$(Rscript -e 'cat(as.character(packageVersion("alphabeta")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_alphabeta_results.csv
-    touch ${prefix}_alphabeta_output.rds
-    echo "BIOC_ALPHABETA:" > versions.yml
-    echo "    alphabeta: 0.0.0" >> versions.yml
+    touch ${prefix}_selfing_epimutation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ALPHABETA_WORKFLOW {
+workflow BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ nodelist.fn, edgelist.fn, methylome_files ] ]
 
     main:
-    BIOC_ALPHABETA(ch_input)
+    BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ALPHABETA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ALPHABETA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ALPHABETA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ALPHABETA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS.out.tables
+    plots    = BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS.out.plots
+    objects  = BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS.out.objects
+    versions = BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS.out.versions
 }

@@ -1,114 +1,185 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BSgenome
-// Infrastructure shared by all the Biostrings-based genome data packages.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BSgenome/inst/doc/GenomeSearching.R
-// Upstream  : hgu95av2probe
-// Downstream: bambu, BSgenomeForge, ChIPanalyser, GOTHiC, HelloRanges
-//
-// Install: BiocManager::install("BSgenome")
+// Bioconductor workflow: bsgenome — variable_length_pattern_search
+// Find exact or inexact matches of a set of variable-length nucleotide patterns across both strands of all chromosomes in a genome and write the hits to a tab-del
+// Input: ce2dict0.fa
+// Container: quay.io/biocontainers/bioconductor-bsgenome:1.78.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BSGENOME {
+process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bsgenome"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bsgenome:1.74.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bsgenome:1.74.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-bsgenome:1.78.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(bsgenome)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bsgenome_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bsgenome_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bsgenome_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Celegans.UCSC.ce2", "Biostrings", "bsgenome", "hgu95av2probe")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library(BSgenome)
-    library(DNAString)
-    library(jsonlite)
-
-    # --- Sequence Frequency Analysis [] ---
-    # Key functions: alphabetFrequency
-    genome <- BSgenome::getBSgenome("BSgenome.Celegans.UCSC.ce2")
-    chrI <- genome$chrI
-    af_chrI <- alphabetFrequency(chrI)
-    total_bases <- sum(af_chrI)
-    is_valid <- total_bases == length(chrI)
-
-
-    # --- Pattern Matching and Hit Identification [] ---
-    # Key functions: matchPattern, countPattern, mismatch
-    genome <- BSgenome::getBSgenome("BSgenome.Celegans.UCSC.ce2")
-    chrI <- genome$chrI
-    p1 <- "ACCCAGGGC"
-    cnt <- countPattern(p1, chrI, max.mismatch = 1)
-    m1 <- matchPattern(p1, chrI, max.mismatch = 1)
-    mismatches <- mismatch(p1, m1[1:min(3, length(m1))])
-
-
-    # --- Masking and Genomic Gap Analysis [] ---
-    # Key functions: masks, active, gaps, alphabetFrequency
-    genome <- BSgenome::getBSgenome("BSgenome.Hsapiens.UCSC.hg38.masked")
-    chrY <- genome$chrY
-    active(masks(chrY))["RM"] <- TRUE
-    active(masks(chrY))["AGAPS"] <- TRUE
-    af_masked <- alphabetFrequency(chrY)
-    gap_views <- gaps(as(chrY, "XStringViews"))
-    gap_widths <- width(gap_views)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bsgenome_results.csv", row.names = TRUE)
+    library(Biostrings)
+    library(BSgenome.Celegans.UCSC.ce2)
+    
+    # 1. Read the input query patterns from the FASTA file in the working directory
+    # (Replacing the demo-data system.file setup with direct file reading)
+    ce2dict0_file <- "ce2dict0.fa"
+    if (!file.exists(ce2dict0_file)) {
+        stop("Required input file 'ce2dict0.fa' not found in the working directory.")
+    }
+    ce2dict0 <- readDNAStringSet(ce2dict0_file, "fasta")
+    
+    # 2. Define the documented writeHits function exactly as shown in the vignette
+    writeHits <- function(seqname, matches, strand, file="", append=FALSE)
+    {
+        if (file.exists(file) && !append)
+            warning("existing file ", file, " will be overwritten with 'append=FALSE'")
+        if (!file.exists(file) && append)
+            warning("new file ", file, " will have no header with 'append=TRUE'")
+        hits <- data.frame(seqname=rep.int(seqname, length(matches)),
+                           start=start(matches),
+                           end=end(matches),
+                           strand=rep.int(strand, length(matches)),
+                           patternID=names(matches),
+                           check.names=FALSE)
+        write.table(hits, file=file, append=append, quote=FALSE, sep="\t",
+                    row.names=FALSE, col.names=!append)
+    }
+    
+    # 3. Define the documented runAnalysis1 function exactly as shown in the vignette
+    runAnalysis1 <- function(dict0, outfile="")
+    {
+        library(BSgenome.Celegans.UCSC.ce2)
+        genome <- BSgenome.Celegans.UCSC.ce2
+        seqnames <- seqnames(genome)
+        seqnames_in1string <- paste(seqnames, collapse=", ")
+        cat("Target:", metadata(genome)\$genome,
+            "chromosomes", seqnames_in1string, "\n")
+        append <- FALSE
+        for (seqname in seqnames) {
+            subject <- genome[[seqname]]
+            cat(">>> Finding all hits in chromosome", seqname, "...\n")
+            for (i in seq_len(length(dict0))) {
+                patternID <- names(dict0)[i]
+                pattern <- dict0[[i]]
+                plus_matches <- matchPattern(pattern, subject)
+                names(plus_matches) <- rep.int(patternID, length(plus_matches))
+                writeHits(seqname, plus_matches, "+", file=outfile, append=append)
+                append <- TRUE
+                rcpattern <- reverseComplement(pattern)
+                minus_matches <- matchPattern(rcpattern, subject)
+                names(minus_matches) <- rep.int(patternID, length(minus_matches))
+                writeHits(seqname, minus_matches, "-", file=outfile, append=append)
+            }
+            cat(">>> DONE\n")
+        }
+    }
+    
+    # 4. Run the analysis and write hits to the output file
+    output_file <- "ce2dict0_ana1.txt"
+    runAnalysis1(ce2dict0, outfile=output_file)
+    
+    # 5. Post-analysis: Read results and generate summary statistics
+    if (file.exists(output_file)) {
+        hits1 <- read.table(output_file, header=TRUE)
+        
+        cat("\n--- ANALYSIS SUMMARY ---\n")
+        cat("Total hits found:", nrow(hits1), "\n\n")
+        
+        cat("Hits per chromosome:\n")
+        print(table(hits1\$seqname))
+        cat("\n")
+        
+        cat("Hits per pattern:\n")
+        print(table(hits1\$patternID))
+        cat("\n")
+        
+        # 6. Define the documented plotGenomeHits function
+        plotGenomeHits <- function(bsgenome, seqnames, hits)
+        {
+            chrlengths <- seqlengths(bsgenome)[seqnames]
+            XMAX <- max(chrlengths)
+            YMAX <- length(seqnames)
+            plot.new()
+            plot.window(c(1, XMAX), c(0, YMAX))
+            axis(1)
+            axis(2, at=seq_len(length(seqnames)), labels=rev(seqnames), tick=FALSE, las=1)
+            ## Plot the chromosomes
+            for (i in seq_len(length(seqnames)))
+                lines(c(1, chrlengths[i]), c(YMAX + 1 - i, YMAX + 1 - i), type="l")
+            ## Plot the hits
+            for (i in seq_len(nrow(hits))) {
+                seqname <- hits\$seqname[i]
+                y0 <- YMAX + 1 - match(seqname, seqnames)
+                if (hits\$strand[i] == "+") {
+                    y <- y0 + 0.05
+                    col <- "red"
+                } else {
+                    y <- y0 - 0.05
+                    col <- "blue"
+                }
+                lines(c(hits\$start[i], hits\$end[i]), c(y, y), type="l", col=col, lwd=3)
+            }
+        }
+        
+        # Save the visualization to a PDF file
+        pdf_file <- "ce2dict0_hits_plot.pdf"
+        pdf(pdf_file, width=10, height=6)
+        genome <- BSgenome.Celegans.UCSC.ce2
+        plotGenomeHits(genome, seqnames(genome), hits1)
+        dev.off()
+        cat("Visualization saved to:", pdf_file, "\n")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bsgenome_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bsgenome_output.rds")
+        stop("Output file was not created successfully.")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BSGENOME:", paste0("    bsgenome: ", packageVersion("BSgenome"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH":
+        bsgenome: \$(Rscript -e 'cat(as.character(packageVersion("bsgenome")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bsgenome_results.csv
-    touch ${prefix}_bsgenome_output.rds
-    echo "BIOC_BSGENOME:" > versions.yml
-    echo "    bsgenome: 0.0.0" >> versions.yml
+    touch ${prefix}_variable_length_pattern_search.csv versions.yml
     """
 }
 
-
-workflow BIOC_BSGENOME_WORKFLOW {
+workflow BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(bsgenome) ]
+    ch_input  // channel: [ val(meta), [ ce2dict0.fa ] ]
 
     main:
-    BIOC_BSGENOME(ch_input)
+    BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH(ch_input)
 
     emit:
-    results  = BIOC_BSGENOME.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BSGENOME.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BSGENOME.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BSGENOME.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH.out.tables
+    plots    = BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH.out.plots
+    objects  = BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH.out.objects
+    versions = BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH.out.versions
 }

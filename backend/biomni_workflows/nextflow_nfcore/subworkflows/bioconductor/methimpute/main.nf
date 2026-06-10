@@ -1,118 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: methimpute
-// This package implements functions for calling methylation for all cytosines in the genome.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/methimpute/inst/doc/methimpute.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("methimpute")
+// Bioconductor workflow: methimpute — separate_context_calling
+// Call and impute methylation status for individual cytosines using a separate HMM for each sequence context to prevent between-context information diffusion in l
+// Input: arabidopsis_bsseeker.txt.gz, arabidopsis_sequence.fa.gz
+// Container: quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_METHIMPUTE {
+process BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-methimpute"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-methimpute:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-methimpute:1.28.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_methimpute_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_methimpute_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_methimpute_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(methimpute)
-    library(jsonlite)
-
-    # --- methylation status calling separate [] ---
-    # Key functions: inflateMethylome, distanceCorrelation, estimateTransDist, callMethylationSeparate
-    library(methimpute)
-    file <- system.file("extdata","arabidopsis_bsseeker.txt.gz", package="methimpute")
-    bsseeker.data <- importBSSeeker(file)
-    # --- methylation status calling separate checkresults [] ---
-    # Key functions: plotConvergence, plotTransitionProbs, plotHistogram
-    plotConvergence(model)
-    plotTransitionProbs(model)
-    plotHistogram(model, total.counts = 10)
-    # --- methylation status calling [] ---
-    # Key functions: inflateMethylome, distanceCorrelation, estimateTransDist, callMethylation
-    library(methimpute)
-    file <- system.file("extdata","arabidopsis_bsseeker.txt.gz", package="methimpute")
-    bsseeker.data <- importBSSeeker(file)
-    # --- methylation status calling binned [] ---
-    # Key functions: inflateMethylome, binMethylome, callMethylation
-    library(methimpute)
-    file <- system.file("extdata","arabidopsis_bsseeker.txt.gz", package="methimpute")
-    bsseeker.data <- importBSSeeker(file)
-    # --- methylation status calling binned checkresults [] ---
-    # Key functions: plotConvergence, plotTransitionProbs, plotHistogram
-    plotConvergence(binnedModel)
-    plotTransitionProbs(binnedModel)
-    plotHistogram(binnedModel, total.counts = 150)
-    # --- enrichment analysis [] ---
-    # Key functions: seqlengths, plotEnrichment
-    model$data$category <- factor('covered', levels=c('missing', 'covered'))
-    data(arabidopsis_genes)
-    seqlengths(model$data) <- seqlengths(arabidopsis_genes)[seqlevels(model$data)] # this
-    # --- export Methylome [] ---
-    # Key functions: exportMethylome
-    exportMethylome(model, filename = tempfile())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_methimpute_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_methimpute_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("methimpute")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_methimpute_output.rds")
-    }
+    
+    # Load required library
+    library(methimpute)
+    
+    # Define input file paths as specified by the user
+    file <- "arabidopsis_bsseeker.txt.gz"
+    fasta.file <- "arabidopsis_sequence.fa.gz"
+    
+    # ===== Step 1: Importing the data ===== #
+    message("Importing BSSeeker data...")
+    bsseeker.data <- importBSSeeker(file)
+    print(bsseeker.data)
+    
+    # Extract all genomic cytosine positions from the FASTA reference
+    message("Extracting cytosine positions from FASTA...")
+    cytosine.positions <- extractCytosinesFromFASTA(fasta.file,
+                                                    contexts = c('CG','CHG','CHH'))
+    
+    # Inflate the methylome to include non-covered cytosines
+    message("Inflating methylome...")
+    methylome <- inflateMethylome(bsseeker.data, cytosine.positions)
+    print(methylome)
+    
+    # ===== Step 2: Obtain correlation parameters ===== #
+    message("Calculating distance correlation...")
+    distcor <- distanceCorrelation(methylome, separate.contexts = TRUE)
+    
+    message("Estimating transition distance parameters...")
+    fit <- estimateTransDist(distcor)
+    print(fit)
+    
+    # ===== Step 3: Methylation status calling (and imputation) ===== #
+    message("Calling methylation status using separate-context HMM...")
+    model <- callMethylationSeparate(data = methylome, transDist = fit\$transDist,
+                                     verbosity = 0)
+    print(model)
+    
+    # Calculate bisulfite conversion rates
+    message("Calculating bisulfite conversion rates...")
+    conversion_rates <- 1 - model\$params\$emissionParams\$Unmethylated
+    print(conversion_rates)
+    
+    # ===== Step 4: Exporting results and diagnostics ===== #
+    message("Exporting results and saving diagnostic plots...")
+    
+    # Save the model object for downstream analysis
+    saveRDS(model, file = "methimpute_model.rds")
+    
+    # Save bisulfite conversion rates to a CSV file
+    write.csv(as.data.frame(conversion_rates), file = "bisulfite_conversion_rates.csv", row.names = TRUE)
+    
+    # Export the imputed methylome to a TSV file
+    exportMethylome(model, filename = "imputed_methylome.tsv")
+    
+    # Save diagnostic plots to a PDF file
+    pdf("diagnostic_plots.pdf", width = 10, height = 7)
+    print(plotConvergence(model))
+    print(plotTransitionProbs(model))
+    print(plotHistogram(model, total.counts = 10))
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to 'methimpute_model.rds', 'bisulfite_conversion_rates.csv', 'imputed_methylome.tsv', and 'diagnostic_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METHIMPUTE:", paste0("    methimpute: ", packageVersion("methimpute"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING":
+        methimpute: \$(Rscript -e 'cat(as.character(packageVersion("methimpute")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_methimpute_results.csv
-    touch ${prefix}_methimpute_output.rds
-    echo "BIOC_METHIMPUTE:" > versions.yml
-    echo "    methimpute: 0.0.0" >> versions.yml
+    touch ${prefix}_separate_context_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_METHIMPUTE_WORKFLOW {
+workflow BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ arabidopsis_bsseeker.txt.gz, arabidopsis_sequence.fa.gz ] ]
 
     main:
-    BIOC_METHIMPUTE(ch_input)
+    BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING(ch_input)
 
     emit:
-    results  = BIOC_METHIMPUTE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METHIMPUTE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METHIMPUTE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METHIMPUTE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING.out.tables
+    plots    = BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING.out.plots
+    objects  = BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING.out.objects
+    versions = BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING.out.versions
 }

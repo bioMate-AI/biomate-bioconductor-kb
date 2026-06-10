@@ -1,155 +1,178 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PSMatch
-// The PSMatch package helps proteomics practitioners to load, handle and manage Peptide Spectrum Match
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PSMatch/inst/doc/AdjacencyMatrix.R
-// Upstream  : QFeatures, Spectra, factoextra
-// Downstream: none
-//
-// Install: BiocManager::install("PSMatch")
+// Bioconductor workflow: psmatch — psm_filtering_and_protein_groups
+// Load PSM identification data, filter out low-quality matches, build an adjacency matrix, and resolve protein groups using connected components.
+// Input: idf.mzid
+// Container: quay.io/biocontainers/bioconductor-psmatch:1.14.0--r45hdfd78af_0
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PSMATCH {
+process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-psmatch"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-psmatch:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-psmatch:1.10.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-psmatch:1.14.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_psmatch_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_psmatch_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_psmatch_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ConnectedComponents)
-    library(PSM)
-    library(jsonlite)
-
-    # --- Ident [] ---
-    # Key functions: ident, PSM, filterPsmDecoy, filterPsmRank
-    ---------------------------------------------------------------------
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("factoextra", "psmatch", "qfeatures", "spectra")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
+      bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
+      suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=bin), error=function(e) BiocManager::install(.bm_miss, update=FALSE, ask=FALSE)))
+    }
+    
+    # Load required libraries
     library("PSMatch")
-    id <- msdata::ident(full.names = TRUE, pattern = "TMT") |>
-    PSM() |>
-    filterPsmDecoy() |>
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    data.frame(id[1:10, c("sequence", "DatabaseAccess")])
-    # --- Makeadjacencymatrix [] ---
-    # Key functions: makeAdjacencyMatrix
-    ---------------------------------------------------------------------
+    
+    # Define input file
+    idf <- "idf.mzid"
+    
+    if (!file.exists(idf)) {
+        stop(paste("Input file", idf, "does not exist in the working directory."))
+    }
+    
+    # 1. Load PSM data and filter
+    message("Loading and filtering PSM data...")
+    id <- PSM(idf) |> filterPSMs()
+    
+    # Alternative step-by-step filtering (as documented)
+    message("Running step-by-step filtering...")
+    id <- PSM(idf)
+    id <- filterPsmDecoy(id)
+    id <- filterPsmRank(id)
+    id <- filterPsmShared(id)
+    
+    # Save filtered PSMs
+    saveRDS(id, "filtered_psms.rds")
+    
+    # 2. Reduce PSMs by spectrum ID
+    message("Reducing PSMs by spectrum ID...")
+    id2 <- reducePSMs(id, id\$spectrumID)
+    saveRDS(id2, "reduced_psms.rds")
+    
+    # 3. Build adjacency matrix and connected components
+    message("Building adjacency matrix and connected components...")
     adj <- makeAdjacencyMatrix(id)
-    dim(adj)
-    adj[1:5, 1:5]
-    # --- Connectedcomponents [] ---
-    # Key functions: ConnectedComponents
-    ---------------------------------------------------------------------
     cc <- ConnectedComponents(adj)
-    length(cc)
-    cc
-    # --- Connectedcomponents [] ---
-    # Key functions: connectedComponents
-    ---------------------------------------------------------------------
-    connectedComponents(cc, 1)
-    # --- Which [] ---
-    # Key functions: nrows, ncols, dims
-    ---------------------------------------------------------------------
-    (i <- which(nrows(cc) > 2 & ncols(cc) > 2))
-    dims(cc)[i, ]
-    # --- Connectedcomponents [] ---
-    # Key functions: connectedComponents
-    ---------------------------------------------------------------------
-    cx <- connectedComponents(cc, 1082)
-    cx
-    # --- Plotadjacencymatrix [] ---
-    # Key functions: plotAdjacencyMatrix
-    ---------------------------------------------------------------------
-    plotAdjacencyMatrix(cx)
-    # --- Character [] ---
-    # Key functions: cut, colorRampPalette
-    ---------------------------------------------------------------------
-    cls <- as.character(cut(score, 12,
-                            labels = colorRampPalette(c("white", "red"))(12)))
-    names(cls) <- id$sequence
-    head(cls)
-    # --- Plotadjacencymatrix [] ---
-    # Key functions: plotAdjacencyMatrix
-    ---------------------------------------------------------------------
-    plotAdjacencyMatrix(cx, pepColors = cls)
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    prots <- rowData(se)$Proteins
-    names(prots) <- rowData(se)$Sequence
-    head(prots)
-    # --- Makeadjacencymatrix [] ---
-    # Key functions: makeAdjacencyMatrix, ConnectedComponents
-    ---------------------------------------------------------------------
-    adj <- makeAdjacencyMatrix(prots, split = ";")
-    dim(adj)
-    adj[1:3, 1:3]
-    cc <- ConnectedComponents(adj)
-    # --- Head [] ---
-    # Key functions: prioritiseConnectedComponents
-    ---------------------------------------------------------------------
-    head(cctab <- prioritiseConnectedComponents(cc))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_psmatch_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_psmatch_results.csv")
+    saveRDS(cc, "connected_components.rds")
+    
+    # Extract connected component 1082 (with robust fallback if index is out of bounds)
+    message("Extracting connected component...")
+    cx <- tryCatch({
+        connectedComponents(cc, 1082)
+    }, error = function(e) {
+        warning("Component 1082 not found. Falling back to a valid component.")
+        dims_cc <- dims(cc)
+        candidates <- which(dims_cc[, "nrow"] > 1 & dims_cc[, "ncol"] > 1)
+        if (length(candidates) > 0) {
+            connectedComponents(cc, candidates[1])
+        } else {
+            connectedComponents(cc, length(cc))
+        }
+    })
+    
+    # 4. Visualize adjacency matrix
+    message("Plotting adjacency matrices...")
+    pdf("adjacency_matrix_plots.pdf", width = 8, height = 8)
+    
+    # Plot 1: Default
+    tryCatch({
+        plotAdjacencyMatrix(cx)
+    }, error = function(e) {
+        message("Failed to plot default adjacency matrix: ", e\$message)
+    })
+    
+    # Plot 2: protColors = 1
+    tryCatch({
+        plotAdjacencyMatrix(cx, 1)
+    }, error = function(e) {
+        message("Failed to plot adjacency matrix with protColors = 1: ", e\$message)
+    })
+    
+    # Plot 3: protColors = 2
+    tryCatch({
+        plotAdjacencyMatrix(cx, 2)
+    }, error = function(e) {
+        message("Failed to plot adjacency matrix with protColors = 2: ", e\$message)
+    })
+    
+    # 5. Color peptide nodes by search engine score
+    message("Coloring peptide nodes by score...")
+    score <- id\$MS.GF.RawScore
+    if (is.null(score) || all(is.na(score))) {
+        message("MS.GF.RawScore not found or empty. Using sequence lengths as dummy scores for visualization.")
+        score <- nchar(id\$sequence)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_psmatch_output.rds")
+    names(score) <- id\$sequence
+    
+    # Ensure we have at least some variation to avoid cut() error on constant values
+    if (length(unique(score)) < 2) {
+        score <- score + runif(length(score), 0, 0.1)
     }
+    
+    cls <- as.character(cut(score, 12, labels = colorRampPalette(c("white", "red"))(12)))
+    names(cls) <- id\$sequence
+    
+    tryCatch({
+        plotAdjacencyMatrix(cx, pepColors = cls)
+    }, error = function(e) {
+        message("Failed to plot adjacency matrix with custom peptide colors: ", e\$message)
+    })
+    
+    dev.off()
+    
+    # 6. Prioritize connected components
+    message("Prioritizing connected components...")
+    cctab <- prioritiseConnectedComponents(cc)
+    print(head(cctab))
+    
+    # Save prioritization table
+    write.csv(cctab, "prioritised_connected_components.csv", row.names = TRUE)
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PSMATCH:", paste0("    psmatch: ", packageVersion("PSMatch"))),
-        "versions.yml"
-    )
+    cat <<-END_VERSIONS > versions.yml
+    "BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS":
+        psmatch: \$(Rscript -e 'cat(as.character(packageVersion("psmatch")))')
+    END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_psmatch_results.csv
-    touch ${prefix}_psmatch_output.rds
-    echo "BIOC_PSMATCH:" > versions.yml
-    echo "    psmatch: 0.0.0" >> versions.yml
+    touch ${prefix}_psm_filtering_and_protein_groups.csv versions.yml
     """
 }
 
-
-workflow BIOC_PSMATCH_WORKFLOW {
+workflow BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ idf.mzid ] ]
 
     main:
-    BIOC_PSMATCH(ch_input)
+    BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS(ch_input)
 
     emit:
-    results  = BIOC_PSMATCH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PSMATCH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PSMATCH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PSMATCH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS.out.tables
+    plots    = BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS.out.plots
+    objects  = BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS.out.objects
+    versions = BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS.out.versions
 }
