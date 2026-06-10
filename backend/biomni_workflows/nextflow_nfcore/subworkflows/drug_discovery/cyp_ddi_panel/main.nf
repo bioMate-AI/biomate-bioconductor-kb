@@ -584,6 +584,7 @@ process DDI_RISK_ASSESSMENT {
 
     output:
     path "ddi_risk_assessment.json", emit: ddi_risk
+    path "qc_metrics.json",          emit: qc_metrics
 
     script:
     def max_dose_mg   = params.max_clinical_dose_mg ?: 'null'
@@ -753,6 +754,23 @@ result = {
 with open('ddi_risk_assessment.json', 'w') as f:
     json.dump(result, f, indent=2)
 print("DDI risk assessment complete:", json.dumps(result, indent=2))
+
+# ── Emit qc_metrics.json for QC-gate consumption ──────────────────────────────
+# FDA 2020 DDI Guidance (GOLD): R1 ≥ 1.02 INVESTIGATE; R1 ≥ 1.1 CLINICAL_STUDY.
+qc_metrics = {
+    'success': True,
+    'process': 'DDI_RISK_ASSESSMENT',
+    'domain': 'drug_discovery',
+    'overall_recommendation': result['summary']['overall_recommendation'],
+    'n_clinical_study_recommended': result['summary']['n_clinical_study_recommended'],
+    'n_investigate': result['summary']['n_investigate'],
+    'n_tdi_flagged': result['summary']['n_tdi_flagged'],
+    'highest_risk_isoform': result['summary']['highest_risk_isoform'],
+    'evidence_tier': 'GOLD',
+    'citation': 'FDA 2020 In Vitro Drug Interaction Studies Guidance for Industry',
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
 PYEOF
     """
 }
