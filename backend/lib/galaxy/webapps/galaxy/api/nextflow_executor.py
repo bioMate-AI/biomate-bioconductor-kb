@@ -407,12 +407,34 @@ _NF_LOG_WORKFLOW_STATS_RE = re.compile(
     r"WorkflowStats\[succeededCount=(\d+);\s*failedCount=(\d+)",
 )
 
+# CLI-side summary format emitted at workflow completion. Matches:
+#   Succeeded   : 4
+#   Cached      : 0
+#   Failed      : 0
+# All three keys are emitted by Nextflow's terminal summary. The internal
+# WorkflowStats[...] form is Java-DSL-internal and not always present in
+# the head log, so this regex is the reliable fallback for the false-
+# failure salvage (without it, sub-workflows that exit non-zero after
+# clean Batch tasks were being mis-marked as failed — observed on dev
+# 2026-06-09 for pocket / ich_s7a / LNP among others).
+_NF_CLI_WORKFLOW_SUCCEEDED_RE = re.compile(
+    r"^\s*Succeeded\s*:\s*(\d+)\s*$", re.MULTILINE
+)
+_NF_CLI_WORKFLOW_FAILED_RE = re.compile(
+    r"^\s*Failed\s*:\s*(\d+)\s*$", re.MULTILINE
+)
+
 
 def _parse_workflow_stats_from_log(
     log_full_text: str = "",
     log_tail: Optional[Union[list, str]] = None,
 ) -> Optional[Tuple[int, int]]:
-    """Return (succeeded_count, failed_count) from the last WorkflowStats line in logs."""
+    """Return (succeeded_count, failed_count) from the last WorkflowStats line in logs.
+
+    Tries the internal WorkflowStats[...] form first; falls back to the
+    CLI summary lines (``Succeeded : N`` / ``Failed : M``) that Nextflow
+    prints at workflow completion. Either form is acceptable evidence.
+    """
     text_parts: list[str] = []
     if log_full_text:
         text_parts.append(log_full_text)
@@ -423,10 +445,21 @@ def _parse_workflow_stats_from_log(
             text_parts.append(str(log_tail))
     combined = "\n".join(text_parts)
     matches = list(_NF_LOG_WORKFLOW_STATS_RE.finditer(combined))
-    if not matches:
-        return None
-    m = matches[-1]
-    return int(m.group(1)), int(m.group(2))
+    if matches:
+        m = matches[-1]
+        return int(m.group(1)), int(m.group(2))
+
+    # Fallback: parse the CLI summary block ("Succeeded : N" / "Failed : M").
+    succ = _NF_CLI_WORKFLOW_SUCCEEDED_RE.findall(combined)
+    fail = _NF_CLI_WORKFLOW_FAILED_RE.findall(combined)
+    # Use the LAST occurrence of each (workflow may print summaries multiple
+    # times during long runs; the trailing one is authoritative). If only
+    # one of the two appears, treat the missing count as zero.
+    if succ or fail:
+        s = int(succ[-1]) if succ else 0
+        f = int(fail[-1]) if fail else 0
+        return s, f
+    return None
 
 
 def _log_indicates_nextflow_failure(
@@ -2225,15 +2258,37 @@ def _start_qc_monitor(
         idle_seconds = 0
         max_idle = 1800 if is_batch else 120  # 30 min for Batch cold-start; 2 min local
         hard_cap = 12 * 3600  # 12-hour hard stop
+        # Sub-2min workflows (e.g. pocket_detection, antibody_developability)
+        # can complete entirely between two 5s polls. Track whether the run
+        # has reached a terminal state in _runs[] — if so, do one final poll
+        # immediately and exit, rather than continuing to idle.
+        finished_seen = False
 
         def _short_phase_name(full: str) -> str:
             # "NFCORE_RNASEQ:RNASEQ:FASTQ_QC_TRIM_FILTER:STAR_ALIGN" → "STAR_ALIGN"
             return full.rsplit(":", 1)[-1] if ":" in full else full
 
+        def _is_run_terminal() -> bool:
+            # Look up the run by invocation_id → run_id and check status.
+            try:
+                with _runs_lock:
+                    for _rid, _r in _runs.items():
+                        if _r.get("invocation_id") == invocation_id:
+                            st = (_r.get("status") or "").lower()
+                            return st in ("succeeded", "completed", "failed", "interrupted")
+            except Exception:
+                pass
+            return False
+
         deadline = _time.monotonic() + hard_cap
 
         while _time.monotonic() < deadline:
             _time.sleep(5)
+            # If the run is already terminal, this loop should drain any
+            # final trace updates and exit. finished_seen latches so we
+            # poll once more then break.
+            if not finished_seen and _is_run_terminal():
+                finished_seen = True
             if not trace_file.exists():
                 idle_seconds += 5
                 if idle_seconds >= max_idle:
@@ -2344,6 +2399,18 @@ def _start_qc_monitor(
                 idle_seconds += 5
                 if idle_seconds >= max_idle:
                     break
+
+            # After the run reached terminal state we've had one more pass
+            # through the trace file to catch any final-second updates.
+            # Now exit cleanly so we don't burn 30 min of idle polling on
+            # sub-minute workflows.
+            if finished_seen:
+                log.info(
+                    "[QC Monitor] Run terminal — exiting monitor for %s "
+                    "(saw_tasks=%d, phases_terminal=%d)",
+                    invocation_id, len(seen_tasks), len(seen_phase_terminal),
+                )
+                break
 
         log.debug(f"[QC Monitor] Monitoring thread for {invocation_id} exiting")
         # Keep handler in registry even after thread exits — it holds the
