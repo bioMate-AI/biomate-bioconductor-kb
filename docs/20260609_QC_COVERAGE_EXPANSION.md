@@ -4,7 +4,7 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 10 of 12 candidate workflows verified end-to-end. 2 are
+**Result:** 11 of 14 candidate workflows verified end-to-end. 3 are
 code-ready, each blocked by an issue independent of the QC code path.
 
 ## Verified workflows
@@ -25,6 +25,7 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 8 | lnp_formulation_optimization | LNP_FORMULATION_OPTIMIZATION | `z_avg_nm` | ∈ [60, 120] | SILVER, CLT range; `pdi` not computed | 222a9c10 06-10 16:13:20 |
 | 9 | antibody_developability | ANTIBODY_DEVELOPABILITY | `tap_total_cdr_length` | ∈ [43, 63] residues | GOLD Raybould 2019 Table 1 (CST 5th-95th); `tap_psh_score` + `camsol_intrinsic_score` deliberately omitted (scale mismatch) | 5f1828dc 06-10 16:45:28 |
 | 10 | sirna_offtarget_analysis | SIRNA_OFFTARGET_ANALYSIS | `delta_dg_asymmetry_kcal_mol` | ≥ 0.5 kcal/mol | GOLD Khvorova 2003; `min_seed_mismatches` omitted (categorical labels, no raw counts) | 512bb06d 06-10 17:02:19 |
+| 11 | biomarker_patient_enrichment | BIOMARKER_PATIENT_ENRICHMENT | `biomarker_prevalence` + `enrichment_factor` | prev ∈ [0.10, 0.50] + EF ≥ 1.5 | SILVER FDA Enrichment 2019 + BRONZE Phase III convention; `biomarker_pos_hr` omitted (binary-outcome RR ≠ time-to-event HR) | 10467ddc 06-10 17:43:03 |
 
 ## Code-ready but blocked
 
@@ -32,6 +33,7 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 |---|---|---|---|
 | 9 | aizynthfinder_retrosynthesis | `num_solved_routes ≥ 1` (GOLD Genheden 2020) | Container `biomate/biomni-drug-discovery-nf:x86` ships without any expansion policy. PREDICT fails at `policy.items[0]` IndexError before RETROSYNTHESIS_REPORT can run. The qc_metrics.json emit + `_S3_REPORT_PATHS` entry are correct and will fire once the container is fixed. |
 | 10 | boltz_structure_prediction | `mean_plddt ≥ 70`, `max_pae ≤ 8 Å`, `confident_fraction ≥ 0.70` (GOLD Jumper 2021 / Tunyasuvunakool 2021) | GPU Batch run, ~$ per minute. Verification deferred pending dedicated GPU-budget session. Code path validated: SUMMARISE_RESULTS renamed BOLTZ_SUMMARISE_RESULTS so process name contains the "BOLTZ" `_PROCESS_KEYWORDS` substring. |
+| 11 | nlmixr2_population_pk | `eta_shrinkage_pct_max < 20%` (GOLD Savic & Karlsson 2007) + `condition_number` | No input fixture (`params.pk_data_csv=null` and no built-in synthetic generator). Verification deferred pending PK dataset fixture in S3. |
 
 ## Recipe
 
