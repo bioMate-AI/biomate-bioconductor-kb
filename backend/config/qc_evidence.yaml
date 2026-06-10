@@ -83,7 +83,10 @@ pbpk:
         verification criterion in PBPK submissions.
       rule_text: >
         BioMate enforces |log2(AUC_pred / AUC_obs)| ≤ 1 (IND profile,
-        2-fold) or ≤ log2(3) (screening, 3-fold).
+        2-fold) or ≤ log2(3) (screening, 3-fold). The 2-fold IND tier
+        is GOLD-anchored to FDA 2018 verbatim; the 3-fold screening
+        tier is BioMate-operational (a relaxed pre-IND filter, not in
+        the guidance).
       finding: >
         Remediation: adjust tissue partition coefficients (Kp scale).
         Reduce when overpredicting, increase when underpredicting.
@@ -196,7 +199,10 @@ nca_pk:
         indicate inadequate sampling duration.
       rule_text: >
         BioMate halts when AUC_extrap_pct > 20% (nca_standard);
-        regulatory profile tightens to > 15%.
+        regulatory profile tightens to > 15%. The 20% cutoff is
+        GOLD-anchored to FDA 2003 verbatim; the 15% regulatory tier
+        is BioMate-operational (a stricter pre-NDA filter, not in
+        the guidance).
       finding: >
         Remediation: extend last_sampling_time_h by 1.5× to capture
         more of the terminal elimination phase.
@@ -350,7 +356,10 @@ ich_s5:
         clinical exposure should be ≥10× Cmax.
       rule_text: >
         BioMate flags compounds with safety margin < 10× Cmax under the
-        WOCBP scenario (RED) or 10-30× (YELLOW).
+        WOCBP scenario (RED) or 10-30× (YELLOW). The < 10× RED tier is
+        GOLD-anchored to ICH S5(R3) §3.1 verbatim; the 10-30× YELLOW
+        intermediate band is BioMate-operational (early-warning tier,
+        not in the guidance).
       finding: >
         Remediation: dose reduction, alternative formulation to reduce
         Cmax, or additional reproductive tox studies.
