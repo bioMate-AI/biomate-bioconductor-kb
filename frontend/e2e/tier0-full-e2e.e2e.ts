@@ -322,11 +322,17 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
     await phasesTab.click({ force: true }).catch(() => {});
     await page.waitForTimeout(250);
   }
-  // Wait up to 20s for the lazy-fetched phase cards to mount on the Phases tab.
+  // Wait up to 60s for the lazy-fetched phase cards to mount on the Phases
+  // tab. Bumped from 20s after observing on the shared-fixture path: with
+  // background load the /api/nextflow/steps fetch sometimes lands at 25-40s
+  // (the screenshot 03_form_prefilled would still show "Click a phase to
+  // expand…" hint instead of cards). The downstream phase-cards-render
+  // assertion confirms the cards eventually arrive within the test timeout,
+  // so we just need to be patient here.
   await page.waitForFunction(
-    () => document.querySelectorAll('[data-testid^="phase-group-"]').length >= 1,
+    () => document.querySelectorAll('[data-testid^="phase-group-"]').length >= 4,
     null,
-    { timeout: 20_000 },
+    { timeout: 60_000 },
   ).catch(() => {});
   // Step 5a: click each phase head to expand the phase card
   const heads = await page.locator('[data-testid^="phase-group-"] .phase-head').elementHandles();
