@@ -213,6 +213,47 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     expect(screen.queryByTestId("qc-e-signature")).toBeNull();
   });
 
+  it("auto-corrected count tracks fail/loop keywords; manual is the leftover", async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(global, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("qc-events")) {
+        return { ok: true, status: 200, json: async () => ({
+          events: [
+            { ts: "t1", gate: "g1", status: "pass", measured: "1", threshold: "≥1" },
+            { ts: "t2", gate: "g2", status: "blocked", measured: "0", threshold: "≥1",
+              message: "manual review required" },
+          ],
+        }), text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+    render(<AfterRunReport {...baseProps} />);
+    await openQcTab();
+    const summary = await screen.findByTestId("qc-summary");
+    expect(within(summary).getByTestId("qc-stat-evaluated")).toHaveTextContent("2");
+    expect(within(summary).getByTestId("qc-stat-passed")).toHaveTextContent("1");
+    expect(within(summary).getByTestId("qc-stat-autoloop")).toHaveTextContent("0");
+    expect(within(summary).getByTestId("qc-stat-manual")).toHaveTextContent("1");
+  });
+
+  it("renders em-dash placeholders when event fields are missing (partial backend payload)", async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(global, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("qc-events")) {
+        return { ok: true, status: 200, json: async () => ({ events: [{}] }),
+          text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+    render(<AfterRunReport {...baseProps} />);
+    await openQcTab();
+    const row = await screen.findByTestId("qc-row-0");
+    expect(within(row).getAllByText("—").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByTestId("qc-row-0-result")).toHaveTextContent("✓ PASS");
+  });
+
   it("renders 'No QC gates fired' empty state when qcEvents is []", async () => {
     vi.restoreAllMocks();
     vi.spyOn(global, "fetch").mockImplementation(async (input) => {

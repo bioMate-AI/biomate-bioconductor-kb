@@ -108,6 +108,29 @@ describe("v2/DisambigCard", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it("does not crash and shows the footer when options is empty", () => {
+    render(<DisambigCard options={[]} onSelect={() => {}} />);
+    expect(screen.getByTestId("disambig-card")).toBeInTheDocument();
+    expect(screen.getByTestId("disambig-footer")).toBeInTheDocument();
+    expect(screen.queryByTestId(/disambig-option-/)).toBeNull();
+  });
+
+  it("hides countdown footer when options is empty even if countdownSeconds is set", () => {
+    render(<DisambigCard options={[]} onSelect={() => {}} countdownSeconds={5} />);
+    // top is undefined → useCountdown short-circuits → no ring
+    expect(screen.queryByTestId("disambig-countdown-ring")).toBeNull();
+  });
+
+  it("option detail and badge are optional — gracefully omits them", () => {
+    const minimal: DisambigOption[] = [
+      { id: "min", label: "Minimal Option", score: "0.5" },
+    ];
+    render(<DisambigCard options={minimal} onSelect={() => {}} />);
+    expect(screen.getByText("Minimal Option")).toBeInTheDocument();
+    expect(screen.getByTestId("disambig-score-min")).toHaveTextContent("0.5");
+    expect(screen.queryByTestId("disambig-badge-min")).toBeNull();
+  });
+
   it("falls back to options[0] when no option is marked recommended", () => {
     const noRec: DisambigOption[] = OPTIONS.map(o => ({ ...o, recommended: false }));
     const onSelect = vi.fn();
