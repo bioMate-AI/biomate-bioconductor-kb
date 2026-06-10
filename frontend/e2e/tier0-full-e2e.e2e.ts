@@ -167,28 +167,46 @@ async function shot(page: Page, a: DemoAudit, name: string): Promise<void> {
 // Test helpers
 // ---------------------------------------------------------------------------
 
+// Shared E2E fixture account. Per CLAUDE.md "E2E test user — use the real
+// shared fixture account": ALWAYS reuse the same registered user. Per-test
+// users hit the registration rate limiter and accumulate quota debt; they
+// also miss verification flows and stay in a degraded state. Pattern:
+// register-or-login (register is a no-op on the second test run), then drop
+// the JWT into the biomate_token cookie. Falls back to the same fixture used
+// by the canonical e2e example (allometric-qc-coverage.e2e.ts) when the
+// env vars aren't set, so the test runs without local .env setup.
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "e2e-admet-fixture@biomate.test";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "AdmetE2ETest!2026";
+
 async function registerUser(page: Page, label: string): Promise<{ email: string; token: string }> {
-  const email = `e2e_tier0full_${label}_${Date.now()}@biomate.test`;
-  const password = "TestPass123!";
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
   await page.context().clearCookies();
   await page.addInitScript(() => {
     try { localStorage.clear(); sessionStorage.clear(); } catch {}
   });
 
-  const resp = await page.request.post(`${BASE_URL}/api/auth/register`, {
+  // Try register first — succeeds on the very first run, returns
+  // EMAIL_EXISTS / 4xx on subsequent runs. Either way we then login to get
+  // a fresh JWT (and a guaranteed populated galaxyApiKey post the
+  // fff31ec23 auth-await provisioning fix).
+  await page.request.post(`${BASE_URL}/api/auth/register`, {
     headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
     data: {
-      fullName: `Tier0Full ${label}`,
-      email,
-      password,
+      fullName: `Tier0 Fixture (${label})`,
+      email: FIXTURE_EMAIL,
+      password: FIXTURE_PASSWORD,
       termsAccepted: true,
       privacyAccepted: true,
     },
-  });
+  }).catch(() => null);
+
   let token = "";
-  if (resp.ok()) {
-    const data = await resp.json();
+  const loginResp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
+  });
+  if (loginResp.ok()) {
+    const data = await loginResp.json();
     token = data?.token ?? "";
     if (token) {
       await page.context().addCookies([{
@@ -202,7 +220,7 @@ async function registerUser(page: Page, label: string): Promise<{ email: string;
       }]);
     }
   } else {
-    console.warn(`[registerUser:${label}] HTTP ${resp.status()}`);
+    console.warn(`[registerUser:${label}] login HTTP ${loginResp.status()}`);
   }
   await page.goto(BASE_URL);
   await page.waitForLoadState("load");
@@ -216,7 +234,7 @@ async function registerUser(page: Page, label: string): Promise<{ email: string;
   }
   await page.waitForSelector("textarea", { state: "visible", timeout: 20_000 }).catch(() => {});
   await page.waitForTimeout(600);
-  return { email, token };
+  return { email: FIXTURE_EMAIL, token };
 }
 
 async function sendChatQuery(page: Page, query: string): Promise<void> {
