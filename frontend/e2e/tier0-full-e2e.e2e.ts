@@ -382,15 +382,27 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
   }
   await page.waitForTimeout(400);
   // Step 5b: wait for at least one phase-params-toggle to appear, then click
-  // every one so the inline param rows mount. (phase-card inline inputs don't
-  // carry an id attribute, so step 6 keys them by label-derived snake_case.)
+  // every one so the inline param rows mount. Same Playwright force:true
+  // silently no-ops as the phase-head case → use DOM-level click via
+  // page.evaluate(), which DOES propagate React's onClick (the toggle reads
+  // `phaseParamsOpen ? 'collapse' : 'edit'` after each click, so we use that
+  // text content to decide whether to fire).
   await page.waitForFunction(
     () => document.querySelectorAll('[data-testid^="phase-params-toggle-"]').length >= 1,
     null,
     { timeout: 5_000 },
   ).catch(() => {});
-  const toggles = await page.locator('[data-testid^="phase-params-toggle-"]').elementHandles();
-  for (const t of toggles) {
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid^="phase-params-toggle-"]').forEach(el => {
+      const text = (el.textContent || '').trim().toLowerCase();
+      if (text !== 'collapse') (el as HTMLElement).click();
+    });
+  });
+  await page.waitForTimeout(500);
+  // Fallback: any still-collapsed toggles get a Playwright click
+  const togglesStillEdit = await page.locator('[data-testid^="phase-params-toggle-"]')
+    .filter({ hasText: /edit/i }).elementHandles();
+  for (const t of togglesStillEdit) {
     await t.click({ force: true }).catch(() => {});
   }
   await page.waitForTimeout(500);
