@@ -293,20 +293,37 @@ async function readPrefilledParams(page: Page): Promise<Record<string, string>> 
   // .phase-head FIRST to expand the card, only then does the
   // phase-params-toggle-${groupKey} button appear inside. Then click each
   // toggle to surface the .param-row inputs.
+  //
+  // Phase cards are LAZY: viewer fires /api/nextflow/steps for the workflow
+  // path when workflowDefinition.steps is empty (which it is — generate_workflow
+  // returns 0 steps and the viewer fetches them on mount). We MUST wait for
+  // the phase-group cards to actually mount before clicking, or our clicks
+  // hit nothing and the cards never open.
   const phasesTab = page.locator('[data-testid="panel-tab-phases"]').first();
   if (await phasesTab.isVisible({ timeout: 1500 }).catch(() => false)) {
     await phasesTab.click({ force: true }).catch(() => {});
     await page.waitForTimeout(250);
   }
+  // Wait up to 20s for the lazy-fetched phase cards to mount on the Phases tab.
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="phase-group-"]').length >= 1,
+    null,
+    { timeout: 20_000 },
+  ).catch(() => {});
   // Step 5a: click each phase head to expand the phase card
   const heads = await page.locator('[data-testid^="phase-group-"] .phase-head').elementHandles();
   for (const h of heads) {
     await h.click({ force: true }).catch(() => {});
   }
-  await page.waitForTimeout(300);
-  // Step 5b: click each phase-params toggle so the inline param rows mount.
-  // (phase-card inline inputs don't carry an id attribute, so step 6 keys
-  // them by label-derived snake_case.)
+  await page.waitForTimeout(400);
+  // Step 5b: wait for at least one phase-params-toggle to appear, then click
+  // every one so the inline param rows mount. (phase-card inline inputs don't
+  // carry an id attribute, so step 6 keys them by label-derived snake_case.)
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="phase-params-toggle-"]').length >= 1,
+    null,
+    { timeout: 5_000 },
+  ).catch(() => {});
   const toggles = await page.locator('[data-testid^="phase-params-toggle-"]').elementHandles();
   for (const t of toggles) {
     await t.click({ force: true }).catch(() => {});
