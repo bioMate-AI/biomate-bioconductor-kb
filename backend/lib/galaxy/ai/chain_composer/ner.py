@@ -123,6 +123,36 @@ _DICTS: Dict[str, List[str]] = {
         # branching-on-QC cues for retrieval (also useful as entities)
         "rrna", "ribosomal rna", "rrna depletion", "rrna contamination",
         "contamination", "depletion",
+        # cryoEM
+        "single particle analysis", "spa", "particle picking",
+        "ctf estimation", "ctf", "motion correction", "motioncor",
+        "3d refinement", "3d classification", "3d variability",
+        "conformational heterogeneity", "helical reconstruction",
+        "focused refinement", "cryosparc", "relion", "cryodrgn",
+        # pharmacology / drug development
+        "pbpk", "pbpk simulation", "ddi", "cyp450", "cyp inhibition",
+        "ic50", "ec50", "hepatic clearance", "dose-response",
+        "dose response", "exposure-response", "virtual patient",
+        "phase ii", "phase iii", "clinical trial design",
+        "phase 2 dose justification", "renal impairment",
+        "hepatic impairment", "trial simulation", "pkpd",
+        # drug discovery / chemistry
+        "antibody developability", "scaffold hopping", "lead optimization",
+        "matched molecular pair", "mmp", "codon optimization",
+        "mrna therapeutic", "ivt", "alphafold", "target tractability",
+        "high-content screening", "hts", "plate qc", "hit calling",
+        "fragment", "recap fragmentation", "synthesizability",
+        # imaging / spatial / flow
+        "merfish", "spatial transcriptomics", "spatial",
+        "flow cytometry", "mass cytometry", "cytof", "fcs",
+        "tissue segmentation", "cell painting",
+        # metagenomics / microbiome
+        "metagenomics", "16s", "shotgun metagenomics", "amplicon",
+        "concoct", "binning", "contig", "mmseqs", "taxonomy",
+        "microbiome", "abundance",
+        # single cell flavors
+        "cite-seq", "citeseq", "mars-seq", "marsseq", "10x",
+        "cellranger", "spatial transcriptomics", "smart-seq",
     ],
     "assemblies": [
         "grch38", "grch37", "hg38", "hg19", "mm10", "mm9", "mm39",
