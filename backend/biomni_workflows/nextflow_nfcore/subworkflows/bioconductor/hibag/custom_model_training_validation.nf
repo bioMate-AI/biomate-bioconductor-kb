@@ -172,10 +172,10 @@ process BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION {
     mobj <- hlaPublish (model, platform = "Illumina 1M Duo" , information = "Training set -- HapMap Phase II" , warning = NULL , rm.unused.snp= TRUE , anonymize= TRUE )
     save (mobj, file= "Your_HIBAG_Model.RData" )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION":
-        HIBAG: \$(Rscript -e 'cat(as.character(packageVersion("HIBAG")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HIBAG_CUSTOM_MODEL_TRAINING_VALIDATION":',
+        paste0('        HIBAG: ', as.character(packageVersion("HIBAG")))
+    ), "versions.yml")
     """
 
     stub:

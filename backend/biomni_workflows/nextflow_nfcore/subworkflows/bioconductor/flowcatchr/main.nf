@@ -139,10 +139,10 @@ process BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS {
     
     cat("Pipeline completed successfully. Outputs saved to 'pipeline_output/'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS":
-        flowcatchr: \$(Rscript -e 'cat(as.character(packageVersion("flowcatchr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS":',
+        paste0('        flowcatchr: ', as.character(packageVersion("flowcatchr")))
+    ), "versions.yml")
     """
 
     stub:

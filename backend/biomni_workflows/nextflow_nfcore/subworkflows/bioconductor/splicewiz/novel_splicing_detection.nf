@@ -138,10 +138,10 @@ process BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION {
       message("This is expected if there are insufficient replicates or samples for the contrast.")
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION":
-        splicewiz: \$(Rscript -e 'cat(as.character(packageVersion("splicewiz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPLICEWIZ_NOVEL_SPLICING_DETECTION":',
+        paste0('        splicewiz: ', as.character(packageVersion("splicewiz")))
+    ), "versions.yml")
     """
 
     stub:

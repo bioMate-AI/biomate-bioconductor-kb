@@ -143,10 +143,10 @@ process BIOC_NUCLER_MNASE_BIAS_CORRECTION {
     
     message("Pipeline completed successfully. Corrected coverage saved to 'corrected_coverage.rds' and 'corrected_coverage.RData'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NUCLER_MNASE_BIAS_CORRECTION":
-        nucler: \$(Rscript -e 'cat(as.character(packageVersion("nucler")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NUCLER_MNASE_BIAS_CORRECTION":',
+        paste0('        nucler: ', as.character(packageVersion("nucler")))
+    ), "versions.yml")
     """
 
     stub:

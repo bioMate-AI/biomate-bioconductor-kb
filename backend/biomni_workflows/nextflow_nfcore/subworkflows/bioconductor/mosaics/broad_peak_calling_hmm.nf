@@ -194,10 +194,10 @@ process BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM":
-        mosaics: \$(Rscript -e 'cat(as.character(packageVersion("mosaics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOSAICS_BROAD_PEAK_CALLING_HMM":',
+        paste0('        mosaics: ', as.character(packageVersion("mosaics")))
+    ), "versions.yml")
     """
 
     stub:

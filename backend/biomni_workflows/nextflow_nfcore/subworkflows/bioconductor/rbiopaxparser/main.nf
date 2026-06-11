@@ -114,10 +114,10 @@ process BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX {
     
     message("Pipeline completed successfully. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX":
-        rbiopaxparser: \$(Rscript -e 'cat(as.character(packageVersion("rbiopaxparser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX":',
+        paste0('        rbiopaxparser: ', as.character(packageVersion("rbiopaxparser")))
+    ), "versions.yml")
     """
 
     stub:

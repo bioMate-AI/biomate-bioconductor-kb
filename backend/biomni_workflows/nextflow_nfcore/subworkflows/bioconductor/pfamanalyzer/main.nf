@@ -109,10 +109,10 @@ process BIOC_PFAMANALYZER_PFAM_DOMAIN_ISOTYPE_ANALYSIS {
     cat("- domain_isotype_simple_summary.csv\n")
     cat("- type_vs_isotype_summary.csv\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PFAMANALYZER_PFAM_DOMAIN_ISOTYPE_ANALYSIS":
-        pfamanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("pfamanalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PFAMANALYZER_PFAM_DOMAIN_ISOTYPE_ANALYSIS":',
+        paste0('        pfamanalyzer: ', as.character(packageVersion("pfamanalyzer")))
+    ), "versions.yml")
     """
 
     stub:

@@ -139,10 +139,10 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY":
-        specl: \$(Rscript -e 'cat(as.character(packageVersion("specl")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY":',
+        paste0('        specl: ', as.character(packageVersion("specl")))
+    ), "versions.yml")
     """
 
     stub:

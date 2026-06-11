@@ -124,10 +124,10 @@ process BIOC_RNITS_EXPRESSIONSET_WORKFLOW {
     write.csv(as.data.frame(cid_table), "cluster_distribution.csv", row.names = FALSE)
     saveRDS(rnitsobj, "fitted_rnitsobj.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNITS_EXPRESSIONSET_WORKFLOW":
-        Rnits: \$(Rscript -e 'cat(as.character(packageVersion("Rnits")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNITS_EXPRESSIONSET_WORKFLOW":',
+        paste0('        Rnits: ', as.character(packageVersion("Rnits")))
+    ), "versions.yml")
     """
 
     stub:

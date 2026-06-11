@@ -164,10 +164,10 @@ process BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT {
     
     message("Pipeline completed successfully. Outputs saved to digests.csv, digests_full.csv, se_update.rds, and se_with_ranges.rds.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT":
-        tximeta: \$(Rscript -e 'cat(as.character(packageVersion("tximeta")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TXIMETA_MIXED_REFERENCE_OARFISH_IMPORT":',
+        paste0('        tximeta: ', as.character(packageVersion("tximeta")))
+    ), "versions.yml")
     """
 
     stub:

@@ -227,10 +227,10 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION":
-        simpleseg: \$(Rscript -e 'cat(as.character(packageVersion("simpleseg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION":',
+        paste0('        simpleseg: ', as.character(packageVersion("simpleseg")))
+    ), "versions.yml")
     """
 
     stub:

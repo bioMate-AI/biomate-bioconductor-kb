@@ -149,10 +149,10 @@ process BIOC_DECIPHER_PCR_PRIMER_DESIGN {
     # Close database connection
     dbDisconnect(dbConn)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECIPHER_PCR_PRIMER_DESIGN":
-        decipher: \$(Rscript -e 'cat(as.character(packageVersion("decipher")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECIPHER_PCR_PRIMER_DESIGN":',
+        paste0('        decipher: ', as.character(packageVersion("decipher")))
+    ), "versions.yml")
     """
 
     stub:

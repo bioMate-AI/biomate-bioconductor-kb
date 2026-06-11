@@ -109,10 +109,10 @@ process BIOC_RNBEADS_BISULFITE_SEQUENCING_ANALYSIS {
       cat("An error occurred during explicit data export: ", e\$message, "\n")
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNBEADS_BISULFITE_SEQUENCING_ANALYSIS":
-        rnbeads: \$(Rscript -e 'cat(as.character(packageVersion("rnbeads")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNBEADS_BISULFITE_SEQUENCING_ANALYSIS":',
+        paste0('        rnbeads: ', as.character(packageVersion("rnbeads")))
+    ), "versions.yml")
     """
 
     stub:

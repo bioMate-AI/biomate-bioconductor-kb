@@ -181,10 +181,10 @@ process BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION":
-        monalisa: \$(Rscript -e 'cat(as.character(packageVersion("monalisa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MONALISA_RANDOMIZED_LASSO_STABILITY_SELECTION":',
+        paste0('        monalisa: ', as.character(packageVersion("monalisa")))
+    ), "versions.yml")
     """
 
     stub:

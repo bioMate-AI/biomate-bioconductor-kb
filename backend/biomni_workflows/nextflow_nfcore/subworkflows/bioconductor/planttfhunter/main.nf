@@ -100,10 +100,10 @@ process BIOC_PLANTTFHUNTER_SINGLE_SPECIES_TF_CLASSIFICATION {
     
     saveRDS(gsu_families, "gsu_families.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PLANTTFHUNTER_SINGLE_SPECIES_TF_CLASSIFICATION":
-        planttfhunter: \$(Rscript -e 'cat(as.character(packageVersion("planttfhunter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PLANTTFHUNTER_SINGLE_SPECIES_TF_CLASSIFICATION":',
+        paste0('        planttfhunter: ', as.character(packageVersion("planttfhunter")))
+    ), "versions.yml")
     """
 
     stub:

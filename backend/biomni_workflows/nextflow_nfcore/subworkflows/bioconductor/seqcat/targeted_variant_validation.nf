@@ -96,10 +96,10 @@ process BIOC_SEQCAT_TARGETED_VARIANT_VALIDATION {
     ggsave("genotype_grid.pdf", plot = genotype_grid, width = 8, height = 6)
     saveRDS(genotype_grid, "genotype_grid.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQCAT_TARGETED_VARIANT_VALIDATION":
-        seqcat: \$(Rscript -e 'cat(as.character(packageVersion("seqcat")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQCAT_TARGETED_VARIANT_VALIDATION":',
+        paste0('        seqcat: ', as.character(packageVersion("seqcat")))
+    ), "versions.yml")
     """
 
     stub:

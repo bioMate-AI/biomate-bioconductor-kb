@@ -104,10 +104,10 @@ process BIOC_TWODDPCR_KNN_CLASSIFICATION {
     print(dropletPlot(plate, cMethod="knn"))
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TWODDPCR_KNN_CLASSIFICATION":
-        twoddpcr: \$(Rscript -e 'cat(as.character(packageVersion("twoddpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TWODDPCR_KNN_CLASSIFICATION":',
+        paste0('        twoddpcr: ', as.character(packageVersion("twoddpcr")))
+    ), "versions.yml")
     """
 
     stub:

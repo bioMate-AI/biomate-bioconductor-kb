@@ -82,10 +82,10 @@ process BIOC_BIOCSKLEARN_INCREMENTAL_PCA {
     correlation_matrix <- round(cor(transformed_coords, fullpc), 3)
     write.csv(as.data.frame(correlation_matrix), "correlation_matrix.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BIOCSKLEARN_INCREMENTAL_PCA":
-        BiocSklearn: \$(Rscript -e 'cat(as.character(packageVersion("BiocSklearn")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BIOCSKLEARN_INCREMENTAL_PCA":',
+        paste0('        BiocSklearn: ', as.character(packageVersion("BiocSklearn")))
+    ), "versions.yml")
     """
 
     stub:

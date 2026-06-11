@@ -109,10 +109,10 @@ process BIOC_WPM_CSV_TO_PLATE_MAP {
     write.csv(wpm_result, "wpm_result.csv", row.names = FALSE)
     saveRDS(wpm_result, "wpm_result.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_WPM_CSV_TO_PLATE_MAP":
-        wpm: \$(Rscript -e 'cat(as.character(packageVersion("wpm")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_WPM_CSV_TO_PLATE_MAP":',
+        paste0('        wpm: ', as.character(packageVersion("wpm")))
+    ), "versions.yml")
     """
 
     stub:

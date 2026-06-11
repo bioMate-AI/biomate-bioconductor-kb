@@ -232,10 +232,10 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING":
-        fastqcleaner: \$(Rscript -e 'cat(as.character(packageVersion("fastqcleaner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING":',
+        paste0('        fastqcleaner: ', as.character(packageVersion("fastqcleaner")))
+    ), "versions.yml")
     """
 
     stub:

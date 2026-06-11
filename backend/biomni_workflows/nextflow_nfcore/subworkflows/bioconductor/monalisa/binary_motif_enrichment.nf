@@ -123,10 +123,10 @@ process BIOC_MONALISA_BINARY_MOTIF_ENRICHMENT {
     )
     write.csv(results_df, "binary_motif_enrichment_results.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MONALISA_BINARY_MOTIF_ENRICHMENT":
-        monalisa: \$(Rscript -e 'cat(as.character(packageVersion("monalisa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MONALISA_BINARY_MOTIF_ENRICHMENT":',
+        paste0('        monalisa: ', as.character(packageVersion("monalisa")))
+    ), "versions.yml")
     """
 
     stub:

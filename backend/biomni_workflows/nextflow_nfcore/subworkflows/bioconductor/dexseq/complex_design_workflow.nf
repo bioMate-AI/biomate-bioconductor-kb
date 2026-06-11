@@ -119,10 +119,10 @@ process BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW {
     
     message("Workflow completed successfully. Outputs written to 'dexseq_results_complex.rds', 'dexseq_results_complex.csv', and PDF plots.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW":
-        dexseq: \$(Rscript -e 'cat(as.character(packageVersion("dexseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEXSEQ_COMPLEX_DESIGN_WORKFLOW":',
+        paste0('        dexseq: ', as.character(packageVersion("dexseq")))
+    ), "versions.yml")
     """
 
     stub:

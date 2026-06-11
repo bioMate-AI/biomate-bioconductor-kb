@@ -127,10 +127,10 @@ process BIOC_VARIANTTOOLS_SINGLE_SAMPLE_CALLING {
     vcf <- asVCF(called.variants)
     writeVcf(vcf, "H1993.vcf", index = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VARIANTTOOLS_SINGLE_SAMPLE_CALLING":
-        varianttools: \$(Rscript -e 'cat(as.character(packageVersion("varianttools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VARIANTTOOLS_SINGLE_SAMPLE_CALLING":',
+        paste0('        varianttools: ', as.character(packageVersion("varianttools")))
+    ), "versions.yml")
     """
 
     stub:

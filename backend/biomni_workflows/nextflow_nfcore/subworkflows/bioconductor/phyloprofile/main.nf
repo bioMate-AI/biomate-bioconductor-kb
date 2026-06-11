@@ -133,10 +133,10 @@ process BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION {
     ggsave("phyloprofile_heatmap.pdf", plot = p, width = 12, height = 10)
     saveRDS(p, "phyloprofile_plot.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION":
-        phyloprofile: \$(Rscript -e 'cat(as.character(packageVersion("phyloprofile")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION":',
+        paste0('        phyloprofile: ', as.character(packageVersion("phyloprofile")))
+    ), "versions.yml")
     """
 
     stub:

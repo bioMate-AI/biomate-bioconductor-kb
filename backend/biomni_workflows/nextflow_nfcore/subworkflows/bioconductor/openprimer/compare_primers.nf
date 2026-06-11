@@ -101,10 +101,10 @@ process BIOC_OPENPRIMER_COMPARE_PRIMERS {
     saveRDS(primer.data, "compared_primers.rds")
     saveRDS(template.data, "compared_templates.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPENPRIMER_COMPARE_PRIMERS":
-        openprimer: \$(Rscript -e 'cat(as.character(packageVersion("openprimer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPENPRIMER_COMPARE_PRIMERS":',
+        paste0('        openprimer: ', as.character(packageVersion("openprimer")))
+    ), "versions.yml")
     """
 
     stub:

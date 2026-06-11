@@ -105,10 +105,10 @@ process BIOC_YAPSA_STRATIFIED_SIGNATURE_ANALYSIS {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_YAPSA_STRATIFIED_SIGNATURE_ANALYSIS":
-        YAPSA: \$(Rscript -e 'cat(as.character(packageVersion("YAPSA")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_YAPSA_STRATIFIED_SIGNATURE_ANALYSIS":',
+        paste0('        YAPSA: ', as.character(packageVersion("YAPSA")))
+    ), "versions.yml")
     """
 
     stub:

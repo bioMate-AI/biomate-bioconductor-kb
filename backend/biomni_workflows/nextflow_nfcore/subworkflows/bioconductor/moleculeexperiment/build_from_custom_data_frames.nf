@@ -122,10 +122,10 @@ process BIOC_MOLECULEEXPERIMENT_BUILD_FROM_CUSTOM_DATA_FRAMES {
       message("Could not generate PDF plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOLECULEEXPERIMENT_BUILD_FROM_CUSTOM_DATA_FRAMES":
-        moleculeexperiment: \$(Rscript -e 'cat(as.character(packageVersion("moleculeexperiment")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOLECULEEXPERIMENT_BUILD_FROM_CUSTOM_DATA_FRAMES":',
+        paste0('        moleculeexperiment: ', as.character(packageVersion("moleculeexperiment")))
+    ), "versions.yml")
     """
 
     stub:

@@ -92,10 +92,10 @@ process BIOC_CHEMMINER_DATABASE_STORAGE_AND_QUERYING {
     # Close database connection
     dbDisconnect(conn)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHEMMINER_DATABASE_STORAGE_AND_QUERYING":
-        chemminer: \$(Rscript -e 'cat(as.character(packageVersion("chemminer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHEMMINER_DATABASE_STORAGE_AND_QUERYING":',
+        paste0('        chemminer: ', as.character(packageVersion("chemminer")))
+    ), "versions.yml")
     """
 
     stub:

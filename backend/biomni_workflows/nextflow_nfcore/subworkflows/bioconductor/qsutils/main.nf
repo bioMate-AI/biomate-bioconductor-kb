@@ -107,10 +107,10 @@ process BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS {
     
     cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS":
-        qsutils: \$(Rscript -e 'cat(as.character(packageVersion("qsutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS":',
+        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+    ), "versions.yml")
     """
 
     stub:

@@ -141,10 +141,10 @@ process BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS {
     saveRDS(thresholdTable, "threshold_table.rds")
     saveRDS(ampData, "amplitude_data.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS":
-        podcall: \$(Rscript -e 'cat(as.character(packageVersion("podcall")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS":',
+        paste0('        podcall: ', as.character(packageVersion("podcall")))
+    ), "versions.yml")
     """
 
     stub:

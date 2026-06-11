@@ -105,10 +105,10 @@ process BIOC_BASECALLQC_SAMPLE_SHEET_PREP_AND_COMMAND_GENERATION {
     message("- bcl2fastq_command.sh")
     message("- bcl2fastqparams.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BASECALLQC_SAMPLE_SHEET_PREP_AND_COMMAND_GENERATION":
-        basecallqc: \$(Rscript -e 'cat(as.character(packageVersion("basecallqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BASECALLQC_SAMPLE_SHEET_PREP_AND_COMMAND_GENERATION":',
+        paste0('        basecallqc: ', as.character(packageVersion("basecallqc")))
+    ), "versions.yml")
     """
 
     stub:

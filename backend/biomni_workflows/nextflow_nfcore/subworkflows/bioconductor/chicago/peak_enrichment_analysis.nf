@@ -96,10 +96,10 @@ process BIOC_CHICAGO_PEAK_ENRICHMENT_ANALYSIS {
     write.csv(as.data.frame(enrichmentResults), "enrichment_results.csv", row.names=TRUE)
     saveRDS(enrichmentResults, "enrichment_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHICAGO_PEAK_ENRICHMENT_ANALYSIS":
-        chicago: \$(Rscript -e 'cat(as.character(packageVersion("chicago")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHICAGO_PEAK_ENRICHMENT_ANALYSIS":',
+        paste0('        chicago: ', as.character(packageVersion("chicago")))
+    ), "versions.yml")
     """
 
     stub:

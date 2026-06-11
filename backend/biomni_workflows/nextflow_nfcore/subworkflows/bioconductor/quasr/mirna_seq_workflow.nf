@@ -92,10 +92,10 @@ process BIOC_QUASR_MIRNA_SEQ_WORKFLOW {
     
     saveRDS(proj3, "qProject_mirna.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QUASR_MIRNA_SEQ_WORKFLOW":
-        quasr: \$(Rscript -e 'cat(as.character(packageVersion("quasr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QUASR_MIRNA_SEQ_WORKFLOW":',
+        paste0('        quasr: ', as.character(packageVersion("quasr")))
+    ), "versions.yml")
     """
 
     stub:

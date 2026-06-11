@@ -100,10 +100,10 @@ process BIOC_DROPLETUTILS_REMOVE_BARCODE_SWAPPING {
     summary_df <- do.call(rbind, summary_data)
     write.csv(summary_df, file = "barcode_swapping_summary.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DROPLETUTILS_REMOVE_BARCODE_SWAPPING":
-        dropletutils: \$(Rscript -e 'cat(as.character(packageVersion("dropletutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DROPLETUTILS_REMOVE_BARCODE_SWAPPING":',
+        paste0('        dropletutils: ', as.character(packageVersion("dropletutils")))
+    ), "versions.yml")
     """
 
     stub:

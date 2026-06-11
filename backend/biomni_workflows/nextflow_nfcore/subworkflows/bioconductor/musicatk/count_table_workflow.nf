@@ -92,10 +92,10 @@ process BIOC_MUSICATK_COUNT_TABLE_WORKFLOW {
     plot_exposures(musica_from_counts, "ex_result", plot_type = "bar")
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUSICATK_COUNT_TABLE_WORKFLOW":
-        musicatk: \$(Rscript -e 'cat(as.character(packageVersion("musicatk")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUSICATK_COUNT_TABLE_WORKFLOW":',
+        paste0('        musicatk: ', as.character(packageVersion("musicatk")))
+    ), "versions.yml")
     """
 
     stub:

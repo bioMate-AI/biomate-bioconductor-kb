@@ -89,10 +89,10 @@ process BIOC_RAWDIAG_LAUNCH_RAWDIAG_SHINY_APP {
     # 2. Launch the application
     shiny::runApp(app)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAWDIAG_LAUNCH_RAWDIAG_SHINY_APP":
-        rawdiag: \$(Rscript -e 'cat(as.character(packageVersion("rawdiag")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAWDIAG_LAUNCH_RAWDIAG_SHINY_APP":',
+        paste0('        rawdiag: ', as.character(packageVersion("rawdiag")))
+    ), "versions.yml")
     """
 
     stub:

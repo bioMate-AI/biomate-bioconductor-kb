@@ -270,10 +270,10 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
         unlink(s, recursive = TRUE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS":
-        ballgown: \$(Rscript -e 'cat(as.character(packageVersion("ballgown")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS":',
+        paste0('        ballgown: ', as.character(packageVersion("ballgown")))
+    ), "versions.yml")
     """
 
     stub:

@@ -96,10 +96,10 @@ process BIOC_NUCLER_NGS_NUCLEOSOME_CALLING {
     # Close PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NUCLER_NGS_NUCLEOSOME_CALLING":
-        nucler: \$(Rscript -e 'cat(as.character(packageVersion("nucler")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NUCLER_NGS_NUCLEOSOME_CALLING":',
+        paste0('        nucler: ', as.character(packageVersion("nucler")))
+    ), "versions.yml")
     """
 
     stub:

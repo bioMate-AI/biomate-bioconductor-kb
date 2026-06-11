@@ -101,10 +101,10 @@ process BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2 {
     saveRDS(diagdds, "deseq2_dataset.rds")
     ggsave("differential_abundance_plot.pdf", plot = p, width = 12, height = 8)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2":
-        phyloseq: \$(Rscript -e 'cat(as.character(packageVersion("phyloseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2":',
+        paste0('        phyloseq: ', as.character(packageVersion("phyloseq")))
+    ), "versions.yml")
     """
 
     stub:

@@ -88,10 +88,10 @@ process BIOC_MUNGESUMSTATS_LIFTOVER_GENOME_BUILD {
     data.table::fwrite(sumstats_dt_hg38, "sumstats_dt_hg38.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
     saveRDS(sumstats_dt_hg38, "sumstats_dt_hg38.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUNGESUMSTATS_LIFTOVER_GENOME_BUILD":
-        mungesumstats: \$(Rscript -e 'cat(as.character(packageVersion("mungesumstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUNGESUMSTATS_LIFTOVER_GENOME_BUILD":',
+        paste0('        mungesumstats: ', as.character(packageVersion("mungesumstats")))
+    ), "versions.yml")
     """
 
     stub:

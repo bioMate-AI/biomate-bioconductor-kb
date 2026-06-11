@@ -125,10 +125,10 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
     
     message("Pipeline completed successfully. Outputs saved.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG":
-        pgxRpi: \$(Rscript -e 'cat(as.character(packageVersion("pgxRpi")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG":',
+        paste0('        pgxRpi: ', as.character(packageVersion("pgxRpi")))
+    ), "versions.yml")
     """
 
     stub:

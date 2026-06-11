@@ -132,10 +132,10 @@ process BIOC_LEA_GEA_LEAST_SQUARES_LFMM2 {
     saveRDS(mod.lfmm2, "mod_lfmm2_K2.rds")
     saveRDS(mod, "mod_lfmm2_K3.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LEA_GEA_LEAST_SQUARES_LFMM2":
-        lea: \$(Rscript -e 'cat(as.character(packageVersion("lea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LEA_GEA_LEAST_SQUARES_LFMM2":',
+        paste0('        lea: ', as.character(packageVersion("lea")))
+    ), "versions.yml")
     """
 
     stub:

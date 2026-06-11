@@ -100,10 +100,10 @@ process BIOC_KMCUT_OPTIMAL_CUTOFF_EXPLORATORY {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KMCUT_OPTIMAL_CUTOFF_EXPLORATORY":
-        kmcut: \$(Rscript -e 'cat(as.character(packageVersion("kmcut")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KMCUT_OPTIMAL_CUTOFF_EXPLORATORY":',
+        paste0('        kmcut: ', as.character(packageVersion("kmcut")))
+    ), "versions.yml")
     """
 
     stub:

@@ -78,10 +78,10 @@ process BIOC_KISSDE_CUSTOM_COUNT_TABLE_ANALYSIS {
     # Save the complete results object as an RDS file
     saveRDS(myResults, file = "kissDE_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KISSDE_CUSTOM_COUNT_TABLE_ANALYSIS":
-        kissde: \$(Rscript -e 'cat(as.character(packageVersion("kissde")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KISSDE_CUSTOM_COUNT_TABLE_ANALYSIS":',
+        paste0('        kissde: ', as.character(packageVersion("kissde")))
+    ), "versions.yml")
     """
 
     stub:

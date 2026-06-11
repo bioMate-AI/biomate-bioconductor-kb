@@ -81,10 +81,10 @@ process BIOC_CHEMMINER_LARGE_SDF_STREAMING {
     # Export the retrieved molecules to a new SD file
     write.SDF(sdfset, file = "filtered.sdf")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHEMMINER_LARGE_SDF_STREAMING":
-        chemminer: \$(Rscript -e 'cat(as.character(packageVersion("chemminer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHEMMINER_LARGE_SDF_STREAMING":',
+        paste0('        chemminer: ', as.character(packageVersion("chemminer")))
+    ), "versions.yml")
     """
 
     stub:

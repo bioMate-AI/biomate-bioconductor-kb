@@ -155,10 +155,10 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATIO
       message("Error details: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATION":
-        rWikiPathways: \$(Rscript -e 'cat(as.character(packageVersion("rWikiPathways")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATION":',
+        paste0('        rWikiPathways: ', as.character(packageVersion("rWikiPathways")))
+    ), "versions.yml")
     """
 
     stub:

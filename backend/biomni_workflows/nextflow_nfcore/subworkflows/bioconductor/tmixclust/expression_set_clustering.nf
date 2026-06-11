@@ -99,10 +99,10 @@ process BIOC_TMIXCLUST_EXPRESSION_SET_CLUSTERING {
     
     cat("Pipeline completed successfully. Outputs saved: 'sos_data.csv', 'cluster_obj.rds', 'silhouette_plot.pdf', 'time_series_plot.pdf'\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TMIXCLUST_EXPRESSION_SET_CLUSTERING":
-        tmixclust: \$(Rscript -e 'cat(as.character(packageVersion("tmixclust")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TMIXCLUST_EXPRESSION_SET_CLUSTERING":',
+        paste0('        tmixclust: ', as.character(packageVersion("tmixclust")))
+    ), "versions.yml")
     """
 
     stub:

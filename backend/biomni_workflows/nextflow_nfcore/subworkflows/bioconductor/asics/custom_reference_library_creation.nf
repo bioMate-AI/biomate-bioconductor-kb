@@ -89,10 +89,10 @@ process BIOC_ASICS_CUSTOM_REFERENCE_LIBRARY_CREATION {
     
     cat("Custom reference library creation and merging completed successfully.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ASICS_CUSTOM_REFERENCE_LIBRARY_CREATION":
-        asics: \$(Rscript -e 'cat(as.character(packageVersion("asics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ASICS_CUSTOM_REFERENCE_LIBRARY_CREATION":',
+        paste0('        asics: ', as.character(packageVersion("asics")))
+    ), "versions.yml")
     """
 
     stub:

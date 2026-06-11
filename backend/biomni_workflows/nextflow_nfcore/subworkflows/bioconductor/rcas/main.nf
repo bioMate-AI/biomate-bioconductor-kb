@@ -153,10 +153,10 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     # 10. Generate a full HTML report
     runReport(queryFilePath = 'queryRegions.bed', gffFilePath = 'annotation.gtf')
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS":
-        rcas: \$(Rscript -e 'cat(as.character(packageVersion("rcas")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS":',
+        paste0('        rcas: ', as.character(packageVersion("rcas")))
+    ), "versions.yml")
     """
 
     stub:

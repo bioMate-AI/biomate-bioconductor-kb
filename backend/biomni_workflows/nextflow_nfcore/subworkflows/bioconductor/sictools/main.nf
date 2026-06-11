@@ -146,10 +146,10 @@ process BIOC_SICTOOLS_SNP_DIFF_DETECTION {
     
     message("Workflow completed successfully. Outputs written to 'snp_diff_results.csv', 'snp_diff_results.rds', and 'snp_diff_plot.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SICTOOLS_SNP_DIFF_DETECTION":
-        sictools: \$(Rscript -e 'cat(as.character(packageVersion("sictools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SICTOOLS_SNP_DIFF_DETECTION":',
+        paste0('        sictools: ', as.character(packageVersion("sictools")))
+    ), "versions.yml")
     """
 
     stub:

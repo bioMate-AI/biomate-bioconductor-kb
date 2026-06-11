@@ -98,10 +98,10 @@ process BIOC_CHIPSEEKER_OVERLAP_TESTING_AND_GEO_MINING {
     print(head(hg19))
     write.csv(hg19, "geo_hg19_info.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPSEEKER_OVERLAP_TESTING_AND_GEO_MINING":
-        chipseeker: \$(Rscript -e 'cat(as.character(packageVersion("chipseeker")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPSEEKER_OVERLAP_TESTING_AND_GEO_MINING":',
+        paste0('        chipseeker: ', as.character(packageVersion("chipseeker")))
+    ), "versions.yml")
     """
 
     stub:

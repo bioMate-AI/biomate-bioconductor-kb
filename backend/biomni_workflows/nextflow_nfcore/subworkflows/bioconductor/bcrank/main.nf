@@ -125,10 +125,10 @@ process BIOC_BCRANK_DE_NOVO_MOTIF_PREDICTION {
     write.csv(bindingSites, file="predicted_binding_sites.csv", row.names=FALSE)
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BCRANK_DE_NOVO_MOTIF_PREDICTION":
-        bcrank: \$(Rscript -e 'cat(as.character(packageVersion("bcrank")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BCRANK_DE_NOVO_MOTIF_PREDICTION":',
+        paste0('        bcrank: ', as.character(packageVersion("bcrank")))
+    ), "versions.yml")
     """
 
     stub:

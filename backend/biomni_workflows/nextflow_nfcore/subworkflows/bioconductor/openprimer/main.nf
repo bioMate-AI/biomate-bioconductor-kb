@@ -116,10 +116,10 @@ process BIOC_OPENPRIMER_DESIGN_PRIMERS {
       write_primers(optimal.primers\$filtered, "filtered_primers.csv", "CSV")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPENPRIMER_DESIGN_PRIMERS":
-        openprimer: \$(Rscript -e 'cat(as.character(packageVersion("openprimer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPENPRIMER_DESIGN_PRIMERS":',
+        paste0('        openprimer: ', as.character(packageVersion("openprimer")))
+    ), "versions.yml")
     """
 
     stub:

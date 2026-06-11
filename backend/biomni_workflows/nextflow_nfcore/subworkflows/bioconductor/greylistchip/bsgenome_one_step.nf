@@ -81,10 +81,10 @@ process BIOC_GREYLISTCHIP_BSGENOME_ONE_STEP {
     message("Grey List Generation Complete. Summary:")
     print(gl)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GREYLISTCHIP_BSGENOME_ONE_STEP":
-        greylistchip: \$(Rscript -e 'cat(as.character(packageVersion("greylistchip")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GREYLISTCHIP_BSGENOME_ONE_STEP":',
+        paste0('        greylistchip: ', as.character(packageVersion("greylistchip")))
+    ), "versions.yml")
     """
 
     stub:

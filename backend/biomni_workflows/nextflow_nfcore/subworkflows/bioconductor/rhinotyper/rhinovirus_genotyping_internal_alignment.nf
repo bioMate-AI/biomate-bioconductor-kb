@@ -99,10 +99,10 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_INTERNAL_ALIGNMENT {
     plotAA(aa_aln)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_INTERNAL_ALIGNMENT":
-        rhinotyper: \$(Rscript -e 'cat(as.character(packageVersion("rhinotyper")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_INTERNAL_ALIGNMENT":',
+        paste0('        rhinotyper: ', as.character(packageVersion("rhinotyper")))
+    ), "versions.yml")
     """
 
     stub:

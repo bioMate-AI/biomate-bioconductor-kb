@@ -103,10 +103,10 @@ process BIOC_GDRIMPORT_MAE_TO_PHARMACOSET {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GDRIMPORT_MAE_TO_PHARMACOSET":
-        gDRimport: \$(Rscript -e 'cat(as.character(packageVersion("gDRimport")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GDRIMPORT_MAE_TO_PHARMACOSET":',
+        paste0('        gDRimport: ', as.character(packageVersion("gDRimport")))
+    ), "versions.yml")
     """
 
     stub:

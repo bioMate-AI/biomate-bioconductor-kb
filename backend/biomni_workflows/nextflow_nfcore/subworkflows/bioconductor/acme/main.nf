@@ -103,10 +103,10 @@ process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
     # Save the calculated ACMESet object for downstream analysis
     saveRDS(calc, file = "acme_calc.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS":
-        acme: \$(Rscript -e 'cat(as.character(packageVersion("acme")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS":',
+        paste0('        acme: ', as.character(packageVersion("acme")))
+    ), "versions.yml")
     """
 
     stub:

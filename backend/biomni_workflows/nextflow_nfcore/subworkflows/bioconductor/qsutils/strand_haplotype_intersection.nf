@@ -108,10 +108,10 @@ process BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION {
     cat(" - intersected_haplotypes.rds (Full intersection list object)\n")
     cat(" - intersection_summary.csv (Summary statistics table)\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION":
-        qsutils: \$(Rscript -e 'cat(as.character(packageVersion("qsutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QSUTILS_STRAND_HAPLOTYPE_INTERSECTION":',
+        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+    ), "versions.yml")
     """
 
     stub:

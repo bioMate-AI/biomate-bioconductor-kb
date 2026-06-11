@@ -95,10 +95,10 @@ process BIOC_GOTHIC_HICUP_GOTHIC_PIPELINE {
     
     message("Pipeline completed successfully. Outputs saved to 'significant_interactions.csv' and 'significant_interactions.rds'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GOTHIC_HICUP_GOTHIC_PIPELINE":
-        gothic: \$(Rscript -e 'cat(as.character(packageVersion("gothic")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GOTHIC_HICUP_GOTHIC_PIPELINE":',
+        paste0('        gothic: ', as.character(packageVersion("gothic")))
+    ), "versions.yml")
     """
 
     stub:

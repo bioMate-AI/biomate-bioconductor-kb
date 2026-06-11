@@ -102,10 +102,10 @@ process BIOC_NORMR_DIFFERENTIAL_ENRICHMENT_CALLING {
     results_df\$class <- classes
     write.csv(results_df, file = "k4k36Dif_results.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMR_DIFFERENTIAL_ENRICHMENT_CALLING":
-        normr: \$(Rscript -e 'cat(as.character(packageVersion("normr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMR_DIFFERENTIAL_ENRICHMENT_CALLING":',
+        paste0('        normr: ', as.character(packageVersion("normr")))
+    ), "versions.yml")
     """
 
     stub:

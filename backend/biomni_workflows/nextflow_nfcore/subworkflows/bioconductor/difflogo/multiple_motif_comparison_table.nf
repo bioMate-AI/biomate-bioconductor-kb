@@ -198,10 +198,10 @@ process BIOC_DIFFLOGO_MULTIPLE_MOTIF_COMPARISON_TABLE {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DIFFLOGO_MULTIPLE_MOTIF_COMPARISON_TABLE":
-        difflogo: \$(Rscript -e 'cat(as.character(packageVersion("difflogo")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DIFFLOGO_MULTIPLE_MOTIF_COMPARISON_TABLE":',
+        paste0('        difflogo: ', as.character(packageVersion("difflogo")))
+    ), "versions.yml")
     """
 
     stub:

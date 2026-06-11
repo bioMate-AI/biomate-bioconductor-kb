@@ -185,10 +185,10 @@ process BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS {
     
     message("Pipeline completed successfully. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS":
-        saser: \$(Rscript -e 'cat(as.character(packageVersion("saser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SASER_DIFFERENTIAL_USAGE_ANALYSIS_WITH_ADAPTED_OFFSETS":',
+        paste0('        saser: ', as.character(packageVersion("saser")))
+    ), "versions.yml")
     """
 
     stub:

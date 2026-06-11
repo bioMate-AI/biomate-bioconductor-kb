@@ -117,10 +117,10 @@ process BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION":
-        grafgen: \$(Rscript -e 'cat(as.character(packageVersion("grafgen")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION":',
+        paste0('        grafgen: ', as.character(packageVersion("grafgen")))
+    ), "versions.yml")
     """
 
     stub:

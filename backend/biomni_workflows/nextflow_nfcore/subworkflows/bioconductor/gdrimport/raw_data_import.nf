@@ -93,10 +93,10 @@ process BIOC_GDRIMPORT_RAW_DATA_IMPORT {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GDRIMPORT_RAW_DATA_IMPORT":
-        gDRimport: \$(Rscript -e 'cat(as.character(packageVersion("gDRimport")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GDRIMPORT_RAW_DATA_IMPORT":',
+        paste0('        gDRimport: ', as.character(packageVersion("gDRimport")))
+    ), "versions.yml")
     """
 
     stub:

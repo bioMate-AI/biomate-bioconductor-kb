@@ -116,10 +116,10 @@ process BIOC_MARINER_EXTRACT_AND_AGGREGATE_HIC_MATRICES {
     mgi_df <- as.data.frame(mgi)
     write.csv(mgi_df, "merged_interactions.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MARINER_EXTRACT_AND_AGGREGATE_HIC_MATRICES":
-        mariner: \$(Rscript -e 'cat(as.character(packageVersion("mariner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MARINER_EXTRACT_AND_AGGREGATE_HIC_MATRICES":',
+        paste0('        mariner: ', as.character(packageVersion("mariner")))
+    ), "versions.yml")
     """
 
     stub:

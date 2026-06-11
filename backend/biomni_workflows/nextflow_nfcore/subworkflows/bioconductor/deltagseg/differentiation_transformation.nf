@@ -76,10 +76,10 @@ process BIOC_DELTAGSEG_DIFFERENTIATION_TRANSFORMATION {
     # Print completion message
     cat("Pipeline completed successfully. Outputs saved: 'simtraj.tr2.rds' and 'plotDiff_1_2.pdf'\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DELTAGSEG_DIFFERENTIATION_TRANSFORMATION":
-        deltagseg: \$(Rscript -e 'cat(as.character(packageVersion("deltagseg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DELTAGSEG_DIFFERENTIATION_TRANSFORMATION":',
+        paste0('        deltagseg: ', as.character(packageVersion("deltagseg")))
+    ), "versions.yml")
     """
 
     stub:

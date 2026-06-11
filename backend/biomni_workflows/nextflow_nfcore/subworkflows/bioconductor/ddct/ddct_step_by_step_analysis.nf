@@ -106,10 +106,10 @@ process BIOC_DDCT_DDCT_STEP_BY_STEP_ANALYSIS {
     print(br)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DDCT_DDCT_STEP_BY_STEP_ANALYSIS":
-        ddct: \$(Rscript -e 'cat(as.character(packageVersion("ddct")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DDCT_DDCT_STEP_BY_STEP_ANALYSIS":',
+        paste0('        ddct: ', as.character(packageVersion("ddct")))
+    ), "versions.yml")
     """
 
     stub:

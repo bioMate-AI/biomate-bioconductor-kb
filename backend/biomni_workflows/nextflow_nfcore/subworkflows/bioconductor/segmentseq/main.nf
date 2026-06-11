@@ -131,10 +131,10 @@ process BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS":
-        segmentseq: \$(Rscript -e 'cat(as.character(packageVersion("segmentseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS":',
+        paste0('        segmentseq: ', as.character(packageVersion("segmentseq")))
+    ), "versions.yml")
     """
 
     stub:

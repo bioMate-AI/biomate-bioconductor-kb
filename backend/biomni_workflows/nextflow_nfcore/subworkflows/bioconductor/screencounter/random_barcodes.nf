@@ -84,10 +84,10 @@ process BIOC_SCREENCOUNTER_RANDOM_BARCODES {
     # 2. Save the quantified barcode counts as a CSV table
     write.csv(as.matrix(counts_matrix), file = "random_barcodes_counts.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCREENCOUNTER_RANDOM_BARCODES":
-        screencounter: \$(Rscript -e 'cat(as.character(packageVersion("screencounter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCREENCOUNTER_RANDOM_BARCODES":',
+        paste0('        screencounter: ', as.character(packageVersion("screencounter")))
+    ), "versions.yml")
     """
 
     stub:

@@ -94,10 +94,10 @@ process BIOC_GENEGA_CUSTOM_W_TABLE_COMPUTATION {
     
     cat("Computation complete. Outputs saved to 'custom_w_table.csv' and 'custom_w_table.rds'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENEGA_CUSTOM_W_TABLE_COMPUTATION":
-        genega: \$(Rscript -e 'cat(as.character(packageVersion("genega")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENEGA_CUSTOM_W_TABLE_COMPUTATION":',
+        paste0('        genega: ', as.character(packageVersion("genega")))
+    ), "versions.yml")
     """
 
     stub:

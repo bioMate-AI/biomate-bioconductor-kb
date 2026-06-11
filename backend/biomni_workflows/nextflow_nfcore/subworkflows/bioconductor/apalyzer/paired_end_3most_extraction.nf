@@ -110,10 +110,10 @@ process BIOC_APALYZER_PAIRED_END_3MOST_EXTRACTION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_APALYZER_PAIRED_END_3MOST_EXTRACTION":
-        apalyzer: \$(Rscript -e 'cat(as.character(packageVersion("apalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_APALYZER_PAIRED_END_3MOST_EXTRACTION":',
+        paste0('        apalyzer: ', as.character(packageVersion("apalyzer")))
+    ), "versions.yml")
     """
 
     stub:

@@ -101,10 +101,10 @@ process BIOC_HIBAG_HLA_ASSOCIATION_TESTING {
     res_aa_recessive <- hlaAssocTest (aa, disease ~ h, data= dat, model= "recessive" )
     write.csv(res_aa_recessive, "aa_assoc_disease_recessive.csv", row.names=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HIBAG_HLA_ASSOCIATION_TESTING":
-        HIBAG: \$(Rscript -e 'cat(as.character(packageVersion("HIBAG")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HIBAG_HLA_ASSOCIATION_TESTING":',
+        paste0('        HIBAG: ', as.character(packageVersion("HIBAG")))
+    ), "versions.yml")
     """
 
     stub:

@@ -165,10 +165,10 @@ process BIOC_CAFE_AFFY_CEL_ANALYSIS {
     dev.off()
     message("Pipeline complete. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAFE_AFFY_CEL_ANALYSIS":
-        cafe: \$(Rscript -e 'cat(as.character(packageVersion("cafe")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAFE_AFFY_CEL_ANALYSIS":',
+        paste0('        cafe: ', as.character(packageVersion("cafe")))
+    ), "versions.yml")
     """
 
     stub:

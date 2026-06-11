@@ -83,10 +83,10 @@ process BIOC_COVERAGEVIEW_SAMPLE_RATIO_AND_INTERVAL_ANALYSIS {
     # 5. Export interval ratios to WIG format
     export.wig(chr19_246050_247000.ratios, outfile="chr19_246050_247000.ratios.wig")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COVERAGEVIEW_SAMPLE_RATIO_AND_INTERVAL_ANALYSIS":
-        coverageview: \$(Rscript -e 'cat(as.character(packageVersion("coverageview")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COVERAGEVIEW_SAMPLE_RATIO_AND_INTERVAL_ANALYSIS":',
+        paste0('        coverageview: ', as.character(packageVersion("coverageview")))
+    ), "versions.yml")
     """
 
     stub:

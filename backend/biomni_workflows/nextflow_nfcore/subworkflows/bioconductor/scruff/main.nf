@@ -132,10 +132,10 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
       device = "pdf"
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER":
-        scruff: \$(Rscript -e 'cat(as.character(packageVersion("scruff")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER":',
+        paste0('        scruff: ', as.character(packageVersion("scruff")))
+    ), "versions.yml")
     """
 
     stub:

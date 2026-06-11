@@ -181,10 +181,10 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
         message("Skipping differential testing: less than 2 treatment groups defined.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW":
-        descan2: \$(Rscript -e 'cat(as.character(packageVersion("descan2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW":',
+        paste0('        descan2: ', as.character(packageVersion("descan2")))
+    ), "versions.yml")
     """
 
     stub:

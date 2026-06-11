@@ -119,10 +119,10 @@ process BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING {
     # Save performance test results
     saveRDS(perf_test, "performance_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING":
-        eiR: \$(Rscript -e 'cat(as.character(packageVersion("eiR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING":',
+        paste0('        eiR: ', as.character(packageVersion("eiR")))
+    ), "versions.yml")
     """
 
     stub:

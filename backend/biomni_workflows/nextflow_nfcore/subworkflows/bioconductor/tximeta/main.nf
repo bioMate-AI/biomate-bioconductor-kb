@@ -212,10 +212,10 @@ process BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION":
-        tximeta: \$(Rscript -e 'cat(as.character(packageVersion("tximeta")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TXIMETA_SALMON_IMPORT_AND_SUMMARIZATION":',
+        paste0('        tximeta: ', as.character(packageVersion("tximeta")))
+    ), "versions.yml")
     """
 
     stub:

@@ -157,10 +157,10 @@ process BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS {
       dev.off()
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS":
-        crlmm: \$(Rscript -e 'cat(as.character(packageVersion("crlmm")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRLMM_GWAS_PREPARATION_WITH_SNPSTATS":',
+        paste0('        crlmm: ', as.character(packageVersion("crlmm")))
+    ), "versions.yml")
     """
 
     stub:

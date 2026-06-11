@@ -135,10 +135,10 @@ process BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT":
-        rbwa: \$(Rscript -e 'cat(as.character(packageVersion("rbwa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT":',
+        paste0('        rbwa: ', as.character(packageVersion("rbwa")))
+    ), "versions.yml")
     """
 
     stub:

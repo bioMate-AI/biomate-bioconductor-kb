@@ -146,10 +146,10 @@ process BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA {
     geneRegionScan(exampleProbeLevelSet, gene=mrna, genomicData=genomic, label="genotype3", testType="linear model", correlationCutoff=0.5, probeLevelInfo=c("probeid","sequence"), verbose=FALSE)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA":
-        generegionscan: \$(Rscript -e 'cat(as.character(packageVersion("generegionscan")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENEREGIONSCAN_ANALYZE_AND_VISUALIZE_PROBE_LEVEL_DATA":',
+        paste0('        generegionscan: ', as.character(packageVersion("generegionscan")))
+    ), "versions.yml")
     """
 
     stub:

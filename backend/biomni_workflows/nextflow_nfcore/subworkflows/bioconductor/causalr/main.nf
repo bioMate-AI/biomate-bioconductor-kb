@@ -120,10 +120,10 @@ process BIOC_CAUSALR_STANDARD_CAUSAL_REASONING {
     # This will generate .sif and annotation files in the working directory
     WriteExplainedNodesToSifFile("Node1", +1, ccg, experimentalData, delta=2)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAUSALR_STANDARD_CAUSAL_REASONING":
-        causalr: \$(Rscript -e 'cat(as.character(packageVersion("causalr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAUSALR_STANDARD_CAUSAL_REASONING":',
+        paste0('        causalr: ', as.character(packageVersion("causalr")))
+    ), "versions.yml")
     """
 
     stub:

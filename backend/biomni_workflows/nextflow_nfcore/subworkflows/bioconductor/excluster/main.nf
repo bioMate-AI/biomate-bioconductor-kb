@@ -141,10 +141,10 @@ process BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS {
     
     message("Pipeline completed successfully! Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS":
-        excluster: \$(Rscript -e 'cat(as.character(packageVersion("excluster")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS":',
+        paste0('        excluster: ', as.character(packageVersion("excluster")))
+    ), "versions.yml")
     """
 
     stub:

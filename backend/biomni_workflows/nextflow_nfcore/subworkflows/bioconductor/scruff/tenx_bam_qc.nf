@@ -94,10 +94,10 @@ process BIOC_SCRUFF_TENX_BAM_QC {
     
     message("Pipeline completed successfully. Outputs saved: 'tenx_qc_sce.rds', 'tenx_qc_metrics.csv', 'tenx_qc_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCRUFF_TENX_BAM_QC":
-        scruff: \$(Rscript -e 'cat(as.character(packageVersion("scruff")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCRUFF_TENX_BAM_QC":',
+        paste0('        scruff: ', as.character(packageVersion("scruff")))
+    ), "versions.yml")
     """
 
     stub:

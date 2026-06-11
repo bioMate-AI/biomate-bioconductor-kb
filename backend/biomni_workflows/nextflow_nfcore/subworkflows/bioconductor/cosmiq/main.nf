@@ -93,10 +93,10 @@ process BIOC_COSMIQ_COSMIQ_WRAPPER {
     saveRDS(x, file = rds_file)
     message("Saved cosmiq result object to ", rds_file)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COSMIQ_COSMIQ_WRAPPER":
-        cosmiq: \$(Rscript -e 'cat(as.character(packageVersion("cosmiq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COSMIQ_COSMIQ_WRAPPER":',
+        paste0('        cosmiq: ', as.character(packageVersion("cosmiq")))
+    ), "versions.yml")
     """
 
     stub:

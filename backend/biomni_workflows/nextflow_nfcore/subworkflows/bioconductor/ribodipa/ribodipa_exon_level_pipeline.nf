@@ -108,10 +108,10 @@ process BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE":
-        ribodipa: \$(Rscript -e 'cat(as.character(packageVersion("ribodipa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBODIPA_RIBODIPA_EXON_LEVEL_PIPELINE":',
+        paste0('        ribodipa: ', as.character(packageVersion("ribodipa")))
+    ), "versions.yml")
     """
 
     stub:

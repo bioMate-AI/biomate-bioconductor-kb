@@ -83,10 +83,10 @@ process BIOC_OPENCYTO_INTERACTIVE_GATING_PROTOTYPING {
     plot(gs[[1]])
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPENCYTO_INTERACTIVE_GATING_PROTOTYPING":
-        opencyto: \$(Rscript -e 'cat(as.character(packageVersion("opencyto")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPENCYTO_INTERACTIVE_GATING_PROTOTYPING":',
+        paste0('        opencyto: ', as.character(packageVersion("opencyto")))
+    ), "versions.yml")
     """
 
     stub:

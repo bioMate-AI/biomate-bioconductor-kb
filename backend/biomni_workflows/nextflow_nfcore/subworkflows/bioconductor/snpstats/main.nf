@@ -126,10 +126,10 @@ process BIOC_SNPSTATS_DATA_INPUT {
     print(summary(gdata))
     sink()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPSTATS_DATA_INPUT":
-        snpstats: \$(Rscript -e 'cat(as.character(packageVersion("snpstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPSTATS_DATA_INPUT":',
+        paste0('        snpstats: ', as.character(packageVersion("snpstats")))
+    ), "versions.yml")
     """
 
     stub:

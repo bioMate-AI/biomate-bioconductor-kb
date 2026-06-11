@@ -133,10 +133,10 @@ process BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON {
     saveRDS(de_table.10X_pbmc4k_k7, "de_table_10X_pbmc4k_k7.rds")
     saveRDS(de_table.Watkins2009PBMCs, "de_table_Watkins2009PBMCs.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON":
-        celaref: \$(Rscript -e 'cat(as.character(packageVersion("celaref")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CELAREF_SCRNASEQ_TO_MICROARRAY_COMPARISON":',
+        paste0('        celaref: ', as.character(packageVersion("celaref")))
+    ), "versions.yml")
     """
 
     stub:

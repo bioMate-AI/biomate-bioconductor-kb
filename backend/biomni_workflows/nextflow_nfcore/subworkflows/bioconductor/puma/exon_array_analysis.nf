@@ -82,10 +82,10 @@ process BIOC_PUMA_EXON_ARRAY_ANALYSIS {
     write.reslts(eset_igmoExon\$gene, file = "eset_igmoExon_gene")
     write.reslts(eset_igmoExon\$transcript, file = "eset_igmoExon_transcript")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PUMA_EXON_ARRAY_ANALYSIS":
-        puma: \$(Rscript -e 'cat(as.character(packageVersion("puma")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PUMA_EXON_ARRAY_ANALYSIS":',
+        paste0('        puma: ', as.character(packageVersion("puma")))
+    ), "versions.yml")
     """
 
     stub:

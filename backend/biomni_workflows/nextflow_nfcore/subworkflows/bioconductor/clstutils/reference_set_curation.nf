@@ -143,10 +143,10 @@ process BIOC_CLSTUTILS_REFERENCE_SET_CURATION {
     )
     write.csv(selected_df, "selected_sequences.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLSTUTILS_REFERENCE_SET_CURATION":
-        clstutils: \$(Rscript -e 'cat(as.character(packageVersion("clstutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLSTUTILS_REFERENCE_SET_CURATION":',
+        paste0('        clstutils: ', as.character(packageVersion("clstutils")))
+    ), "versions.yml")
     """
 
     stub:

@@ -134,10 +134,10 @@ process BIOC_METASEQR2_RNA_SEQ_PIPELINE {
         message("Pipeline execution complete, but temporary output directory was not found.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METASEQR2_RNA_SEQ_PIPELINE":
-        metaseqr2: \$(Rscript -e 'cat(as.character(packageVersion("metaseqr2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METASEQR2_RNA_SEQ_PIPELINE":',
+        paste0('        metaseqr2: ', as.character(packageVersion("metaseqr2")))
+    ), "versions.yml")
     """
 
     stub:

@@ -92,10 +92,10 @@ process BIOC_SCREENCOUNTER_SINGLE_BARCODES {
     cat("\nExtracted Count Matrix:\n")
     print(counts_matrix)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCREENCOUNTER_SINGLE_BARCODES":
-        screencounter: \$(Rscript -e 'cat(as.character(packageVersion("screencounter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCREENCOUNTER_SINGLE_BARCODES":',
+        paste0('        screencounter: ', as.character(packageVersion("screencounter")))
+    ), "versions.yml")
     """
 
     stub:

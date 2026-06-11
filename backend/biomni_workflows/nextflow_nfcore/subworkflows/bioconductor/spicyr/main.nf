@@ -138,10 +138,10 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     write.csv(mixedResults, "spicyMixedTest_results.csv", row.names = TRUE)
     saveRDS(spicyMixedTest, "spicyMixedTest.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING":
-        spicyR: \$(Rscript -e 'cat(as.character(packageVersion("spicyR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING":',
+        paste0('        spicyR: ', as.character(packageVersion("spicyR")))
+    ), "versions.yml")
     """
 
     stub:

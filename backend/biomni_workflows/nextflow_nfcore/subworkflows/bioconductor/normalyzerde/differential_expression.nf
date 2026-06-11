@@ -114,10 +114,10 @@ process BIOC_NORMALYZERDE_DIFFERENTIAL_EXPRESSION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMALYZERDE_DIFFERENTIAL_EXPRESSION":
-        normalyzerde: \$(Rscript -e 'cat(as.character(packageVersion("normalyzerde")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMALYZERDE_DIFFERENTIAL_EXPRESSION":',
+        paste0('        normalyzerde: ', as.character(packageVersion("normalyzerde")))
+    ), "versions.yml")
     """
 
     stub:

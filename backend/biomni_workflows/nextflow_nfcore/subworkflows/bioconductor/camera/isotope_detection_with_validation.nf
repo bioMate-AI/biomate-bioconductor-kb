@@ -125,10 +125,10 @@ process BIOC_CAMERA_ISOTOPE_DETECTION_WITH_VALIDATION {
     
     message("Pipeline completed successfully. Outputs written to 'annotated_peak_table.csv', 'xsAnnotate_object.rds', and 'pseudospectra_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAMERA_ISOTOPE_DETECTION_WITH_VALIDATION":
-        camera: \$(Rscript -e 'cat(as.character(packageVersion("camera")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAMERA_ISOTOPE_DETECTION_WITH_VALIDATION":',
+        paste0('        camera: ', as.character(packageVersion("camera")))
+    ), "versions.yml")
     """
 
     stub:

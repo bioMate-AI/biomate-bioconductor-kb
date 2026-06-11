@@ -83,10 +83,10 @@ process BIOC_CFDNAKIT_CREATE_PANEL_OF_NORMALS {
     
     cat("Workflow complete. Panel of Normals profile saved to 'PoN.rds'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CFDNAKIT_CREATE_PANEL_OF_NORMALS":
-        cfdnakit: \$(Rscript -e 'cat(as.character(packageVersion("cfdnakit")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CFDNAKIT_CREATE_PANEL_OF_NORMALS":',
+        paste0('        cfdnakit: ', as.character(packageVersion("cfdnakit")))
+    ), "versions.yml")
     """
 
     stub:

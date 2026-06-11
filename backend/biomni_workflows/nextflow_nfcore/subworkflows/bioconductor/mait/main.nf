@@ -137,10 +137,10 @@ process BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS {
       warning("Could not write summary: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS":
-        mait: \$(Rscript -e 'cat(as.character(packageVersion("mait")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MAIT_EXTERNAL_PEAK_TABLE_ANALYSIS":',
+        paste0('        mait: ', as.character(packageVersion("mait")))
+    ), "versions.yml")
     """
 
     stub:

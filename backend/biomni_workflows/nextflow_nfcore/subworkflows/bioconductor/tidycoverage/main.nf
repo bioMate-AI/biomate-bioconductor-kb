@@ -98,10 +98,10 @@ process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
     # Save the generated plot to a PDF file
     ggsave("coverage_plot.pdf", plot = p, width = 10, height = 8)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE":
-        tidycoverage: \$(Rscript -e 'cat(as.character(packageVersion("tidycoverage")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE":',
+        paste0('        tidycoverage: ', as.character(packageVersion("tidycoverage")))
+    ), "versions.yml")
     """
 
     stub:

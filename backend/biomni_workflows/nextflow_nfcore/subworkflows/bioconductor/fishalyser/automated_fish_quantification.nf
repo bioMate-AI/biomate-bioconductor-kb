@@ -108,10 +108,10 @@ process BIOC_FISHALYSER_AUTOMATED_FISH_QUANTIFICATION {
     )
     saveRDS(config, file = file.path(writedir, "fishalyser_config.rds"))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FISHALYSER_AUTOMATED_FISH_QUANTIFICATION":
-        fishalyser: \$(Rscript -e 'cat(as.character(packageVersion("fishalyser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FISHALYSER_AUTOMATED_FISH_QUANTIFICATION":',
+        paste0('        fishalyser: ', as.character(packageVersion("fishalyser")))
+    ), "versions.yml")
     """
 
     stub:

@@ -116,10 +116,10 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_3D_SPACE {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_3D_SPACE":
-        genomautomorphism: \$(Rscript -e 'cat(as.character(packageVersion("genomautomorphism")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_3D_SPACE":',
+        paste0('        genomautomorphism: ', as.character(packageVersion("genomautomorphism")))
+    ), "versions.yml")
     """
 
     stub:

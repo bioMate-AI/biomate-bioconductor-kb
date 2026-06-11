@@ -90,10 +90,10 @@ process BIOC_GEVA_QUICK_GEVA_PIPELINE {
     plot(gresults)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GEVA_QUICK_GEVA_PIPELINE":
-        geva: \$(Rscript -e 'cat(as.character(packageVersion("geva")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GEVA_QUICK_GEVA_PIPELINE":',
+        paste0('        geva: ', as.character(packageVersion("geva")))
+    ), "versions.yml")
     """
 
     stub:

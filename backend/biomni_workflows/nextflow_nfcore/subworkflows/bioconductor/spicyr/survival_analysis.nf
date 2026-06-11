@@ -87,10 +87,10 @@ process BIOC_SPICYR_SURVIVAL_ANALYSIS {
     write.csv(spicySurvival\$survivalResults, "spicy_survival_results.csv", row.names = FALSE)
     saveRDS(spicySurvival, "spicySurvival.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPICYR_SURVIVAL_ANALYSIS":
-        spicyR: \$(Rscript -e 'cat(as.character(packageVersion("spicyR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPICYR_SURVIVAL_ANALYSIS":',
+        paste0('        spicyR: ', as.character(packageVersion("spicyR")))
+    ), "versions.yml")
     """
 
     stub:

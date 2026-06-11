@@ -87,10 +87,10 @@ process BIOC_SPATIALHEATMAP_COEXPRESSION_CLUSTERING_NETWORK {
     network(ID="Kif5c", data=sub.mat, adj.mod=adj.mod, adj.min=0, vertex.label.cex=1.2, vertex.cex=3, edge.cex=3, mar.key=c(3, 10, 1, 10), static=TRUE)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPATIALHEATMAP_COEXPRESSION_CLUSTERING_NETWORK":
-        spatialHeatmap: \$(Rscript -e 'cat(as.character(packageVersion("spatialHeatmap")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPATIALHEATMAP_COEXPRESSION_CLUSTERING_NETWORK":',
+        paste0('        spatialHeatmap: ', as.character(packageVersion("spatialHeatmap")))
+    ), "versions.yml")
     """
 
     stub:

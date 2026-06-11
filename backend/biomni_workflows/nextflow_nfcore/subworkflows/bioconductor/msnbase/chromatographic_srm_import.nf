@@ -86,10 +86,10 @@ process BIOC_MSNBASE_CHROMATOGRAPHIC_SRM_IMPORT {
       warning("Could not generate chromatogram plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSNBASE_CHROMATOGRAPHIC_SRM_IMPORT":
-        msnbase: \$(Rscript -e 'cat(as.character(packageVersion("msnbase")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSNBASE_CHROMATOGRAPHIC_SRM_IMPORT":',
+        paste0('        msnbase: ', as.character(packageVersion("msnbase")))
+    ), "versions.yml")
     """
 
     stub:

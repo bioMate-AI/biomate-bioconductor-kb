@@ -118,10 +118,10 @@ process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION":
-        katdetectr: \$(Rscript -e 'cat(as.character(packageVersion("katdetectr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION":',
+        paste0('        katdetectr: ', as.character(packageVersion("katdetectr")))
+    ), "versions.yml")
     """
 
     stub:

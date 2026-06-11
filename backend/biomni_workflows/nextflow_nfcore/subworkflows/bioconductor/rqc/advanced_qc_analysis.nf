@@ -170,10 +170,10 @@ process BIOC_RQC_ADVANCED_QC_ANALYSIS {
     customReportFile <- rqcReport(qa, templateFile = "custom_report.Rmd")
     file.copy(customReportFile, "rqc_custom_report.html", overwrite = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RQC_ADVANCED_QC_ANALYSIS":
-        rqc: \$(Rscript -e 'cat(as.character(packageVersion("rqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RQC_ADVANCED_QC_ANALYSIS":',
+        paste0('        rqc: ', as.character(packageVersion("rqc")))
+    ), "versions.yml")
     """
 
     stub:

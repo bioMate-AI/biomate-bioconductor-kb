@@ -108,10 +108,10 @@ process BIOC_RSVSIM_STRUCTURAL_VARIATION_SIMULATION {
       write.csv(meta3\$inversions, "sim3_inversions_metadata.csv", row.names=FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RSVSIM_STRUCTURAL_VARIATION_SIMULATION":
-        rsvsim: \$(Rscript -e 'cat(as.character(packageVersion("rsvsim")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RSVSIM_STRUCTURAL_VARIATION_SIMULATION":',
+        paste0('        rsvsim: ', as.character(packageVersion("rsvsim")))
+    ), "versions.yml")
     """
 
     stub:

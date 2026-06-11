@@ -95,10 +95,10 @@ process BIOC_RBWA_BWA_MEM_ALIGNMENT {
       stop("Error: SAM file was not generated.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RBWA_BWA_MEM_ALIGNMENT":
-        rbwa: \$(Rscript -e 'cat(as.character(packageVersion("rbwa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RBWA_BWA_MEM_ALIGNMENT":',
+        paste0('        rbwa: ', as.character(packageVersion("rbwa")))
+    ), "versions.yml")
     """
 
     stub:

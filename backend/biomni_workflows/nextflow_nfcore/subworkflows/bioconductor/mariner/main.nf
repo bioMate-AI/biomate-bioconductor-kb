@@ -110,10 +110,10 @@ process BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON {
         write.csv(unique_df, file = paste0("unique_interactions_", set_name, ".csv"), row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON":
-        mariner: \$(Rscript -e 'cat(as.character(packageVersion("mariner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON":',
+        paste0('        mariner: ', as.character(packageVersion("mariner")))
+    ), "versions.yml")
     """
 
     stub:

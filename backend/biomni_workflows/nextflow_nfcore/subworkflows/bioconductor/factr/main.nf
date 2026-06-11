@@ -139,10 +139,10 @@ process BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION {
                   "Custom_new_domains.txt", sep = "\t", row.names = FALSE, quote = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION":
-        factr: \$(Rscript -e 'cat(as.character(packageVersion("factr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION":',
+        paste0('        factr: ', as.character(packageVersion("factr")))
+    ), "versions.yml")
     """
 
     stub:

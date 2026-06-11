@@ -75,10 +75,10 @@ process BIOC_CHIPENRICH_PROXIMITY_ANALYSIS {
     write.csv(results.prox, "proximity_analysis_results.csv", row.names = FALSE)
     saveRDS(results.prox, "proximity_analysis_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPENRICH_PROXIMITY_ANALYSIS":
-        chipenrich: \$(Rscript -e 'cat(as.character(packageVersion("chipenrich")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPENRICH_PROXIMITY_ANALYSIS":',
+        paste0('        chipenrich: ', as.character(packageVersion("chipenrich")))
+    ), "versions.yml")
     """
 
     stub:

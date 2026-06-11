@@ -84,10 +84,10 @@ process BIOC_TRANSMOGR_DIRECT_TRANSCRIPTOME_MODIFICATION {
     saveRDS(trans_mod, "modified_transcripts.rds")
     saveRDS(var, "cleaned_variants.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRANSMOGR_DIRECT_TRANSCRIPTOME_MODIFICATION":
-        transmogr: \$(Rscript -e 'cat(as.character(packageVersion("transmogr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRANSMOGR_DIRECT_TRANSCRIPTOME_MODIFICATION":',
+        paste0('        transmogr: ', as.character(packageVersion("transmogr")))
+    ), "versions.yml")
     """
 
     stub:

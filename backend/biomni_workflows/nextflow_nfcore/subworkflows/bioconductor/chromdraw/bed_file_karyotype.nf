@@ -71,10 +71,10 @@ process BIOC_CHROMDRAW_BED_FILE_KARYOTYPE {
     chromDraw(argc=7,  
               argv=c("chromDraw", "-f", "bed", "-d", INPUTPATH, "-o", OUTPUTPATH))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHROMDRAW_BED_FILE_KARYOTYPE":
-        chromdraw: \$(Rscript -e 'cat(as.character(packageVersion("chromdraw")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHROMDRAW_BED_FILE_KARYOTYPE":',
+        paste0('        chromdraw: ', as.character(packageVersion("chromdraw")))
+    ), "versions.yml")
     """
 
     stub:

@@ -156,10 +156,10 @@ process BIOC_ACGH_STANDARD_ACGH_PIPELINE {
     # Save the final processed S4 object
     saveRDS(ex.acgh, "processed_ex_acgh.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ACGH_STANDARD_ACGH_PIPELINE":
-        acgh: \$(Rscript -e 'cat(as.character(packageVersion("acgh")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ACGH_STANDARD_ACGH_PIPELINE":',
+        paste0('        acgh: ', as.character(packageVersion("acgh")))
+    ), "versions.yml")
     """
 
     stub:

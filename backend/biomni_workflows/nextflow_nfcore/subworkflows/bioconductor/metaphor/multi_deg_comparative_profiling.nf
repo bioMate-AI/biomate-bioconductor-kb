@@ -99,10 +99,10 @@ process BIOC_METAPHOR_MULTI_DEG_COMPARATIVE_PROFILING {
     )
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METAPHOR_MULTI_DEG_COMPARATIVE_PROFILING":
-        metaphor: \$(Rscript -e 'cat(as.character(packageVersion("metaphor")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METAPHOR_MULTI_DEG_COMPARATIVE_PROFILING":',
+        paste0('        metaphor: ', as.character(packageVersion("metaphor")))
+    ), "versions.yml")
     """
 
     stub:

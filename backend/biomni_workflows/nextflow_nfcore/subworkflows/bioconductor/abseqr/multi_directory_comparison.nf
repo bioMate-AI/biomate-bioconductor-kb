@@ -81,10 +81,10 @@ process BIOC_ABSEQR_MULTI_DIRECTORY_COMPARISON {
     saveRDS(SRRExp, file = "SRRExp_loaded.rds")
     saveRDS(all.samples, file = "all_samples_combined.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ABSEQR_MULTI_DIRECTORY_COMPARISON":
-        abseqr: \$(Rscript -e 'cat(as.character(packageVersion("abseqr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ABSEQR_MULTI_DIRECTORY_COMPARISON":',
+        paste0('        abseqr: ', as.character(packageVersion("abseqr")))
+    ), "versions.yml")
     """
 
     stub:

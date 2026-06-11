@@ -114,10 +114,10 @@ process BIOC_CRISPRSEEK_BULGE_OFFTARGET_ANALYSIS {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRISPRSEEK_BULGE_OFFTARGET_ANALYSIS":
-        crisprseek: \$(Rscript -e 'cat(as.character(packageVersion("crisprseek")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRISPRSEEK_BULGE_OFFTARGET_ANALYSIS":',
+        paste0('        crisprseek: ', as.character(packageVersion("crisprseek")))
+    ), "versions.yml")
     """
 
     stub:

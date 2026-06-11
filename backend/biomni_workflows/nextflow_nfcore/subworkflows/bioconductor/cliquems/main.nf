@@ -98,10 +98,10 @@ process BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION {
     write.csv(clique6_subset, "clique6_annotated_subset.csv", row.names = TRUE)
     saveRDS(ex.Adducts, "cliqueMS_annotated.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION":
-        cliquems: \$(Rscript -e 'cat(as.character(packageVersion("cliquems")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION":',
+        paste0('        cliquems: ', as.character(packageVersion("cliquems")))
+    ), "versions.yml")
     """
 
     stub:

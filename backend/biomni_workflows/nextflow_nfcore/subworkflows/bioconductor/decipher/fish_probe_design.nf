@@ -123,10 +123,10 @@ process BIOC_DECIPHER_FISH_PROBE_DESIGN {
     # Disconnect from the database
     dbDisconnect(dbConn)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECIPHER_FISH_PROBE_DESIGN":
-        decipher: \$(Rscript -e 'cat(as.character(packageVersion("decipher")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECIPHER_FISH_PROBE_DESIGN":',
+        paste0('        decipher: ', as.character(packageVersion("decipher")))
+    ), "versions.yml")
     """
 
     stub:

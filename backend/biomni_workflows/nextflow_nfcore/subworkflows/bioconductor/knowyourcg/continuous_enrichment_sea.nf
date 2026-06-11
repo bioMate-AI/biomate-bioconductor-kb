@@ -97,10 +97,10 @@ process BIOC_KNOWYOURCG_CONTINUOUS_ENRICHMENT_SEA {
     saveRDS(res, "enrichment_sea_betas_chromHMM.rds")
     message("Analysis complete. Results saved successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KNOWYOURCG_CONTINUOUS_ENRICHMENT_SEA":
-        knowyourcg: \$(Rscript -e 'cat(as.character(packageVersion("knowyourcg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KNOWYOURCG_CONTINUOUS_ENRICHMENT_SEA":',
+        paste0('        knowyourcg: ', as.character(packageVersion("knowyourcg")))
+    ), "versions.yml")
     """
 
     stub:

@@ -87,10 +87,10 @@ process BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS {
     
     message("Workflow completed successfully. Outputs generated in the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS":
-        rarevariantvis: \$(Rscript -e 'cat(as.character(packageVersion("rarevariantvis")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS":',
+        paste0('        rarevariantvis: ', as.character(packageVersion("rarevariantvis")))
+    ), "versions.yml")
     """
 
     stub:

@@ -99,10 +99,10 @@ process BIOC_NORMALYZERDE_RETENTION_TIME_NORMALIZATION {
     saveRDS(rtNormMat, file="rt_normalized_matrix.rds")
     saveRDS(layeredRtNormMat, file="layered_rt_normalized_matrix.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMALYZERDE_RETENTION_TIME_NORMALIZATION":
-        normalyzerde: \$(Rscript -e 'cat(as.character(packageVersion("normalyzerde")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMALYZERDE_RETENTION_TIME_NORMALIZATION":',
+        paste0('        normalyzerde: ', as.character(packageVersion("normalyzerde")))
+    ), "versions.yml")
     """
 
     stub:

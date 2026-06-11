@@ -114,10 +114,10 @@ process BIOC_CYTOMAPPER_ON_DISK_IMAGE_HANDLING {
     plotPixels(pancreasImages_norm, colour_by = channelNames(pancreasImages_norm)[1:min(3, num_channels)])
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CYTOMAPPER_ON_DISK_IMAGE_HANDLING":
-        cytomapper: \$(Rscript -e 'cat(as.character(packageVersion("cytomapper")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CYTOMAPPER_ON_DISK_IMAGE_HANDLING":',
+        paste0('        cytomapper: ', as.character(packageVersion("cytomapper")))
+    ), "versions.yml")
     """
 
     stub:

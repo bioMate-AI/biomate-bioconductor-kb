@@ -140,10 +140,10 @@ process BIOC_TOPDOWNR_METHOD_GENERATION {
         message(e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TOPDOWNR_METHOD_GENERATION":
-        topdownr: \$(Rscript -e 'cat(as.character(packageVersion("topdownr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TOPDOWNR_METHOD_GENERATION":',
+        paste0('        topdownr: ', as.character(packageVersion("topdownr")))
+    ), "versions.yml")
     """
 
     stub:

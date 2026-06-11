@@ -168,10 +168,10 @@ process BIOC_SEQVARTOOLS_ITERATIVE_VARIANT_PROCESSING {
     # Close the GDS file
     seqClose(gds)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQVARTOOLS_ITERATIVE_VARIANT_PROCESSING":
-        seqvartools: \$(Rscript -e 'cat(as.character(packageVersion("seqvartools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQVARTOOLS_ITERATIVE_VARIANT_PROCESSING":',
+        paste0('        seqvartools: ', as.character(packageVersion("seqvartools")))
+    ), "versions.yml")
     """
 
     stub:

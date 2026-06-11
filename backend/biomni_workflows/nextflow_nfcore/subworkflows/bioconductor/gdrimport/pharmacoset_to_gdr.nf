@@ -78,10 +78,10 @@ process BIOC_GDRIMPORT_PHARMACOSET_TO_GDR {
     fwrite(dt, "converted_pset.csv")
     saveRDS(se, "processed_se.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GDRIMPORT_PHARMACOSET_TO_GDR":
-        gDRimport: \$(Rscript -e 'cat(as.character(packageVersion("gDRimport")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GDRIMPORT_PHARMACOSET_TO_GDR":',
+        paste0('        gDRimport: ', as.character(packageVersion("gDRimport")))
+    ), "versions.yml")
     """
 
     stub:

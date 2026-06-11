@@ -168,10 +168,10 @@ process BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW":
-        proteodisco: \$(Rscript -e 'cat(as.character(packageVersion("proteodisco")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROTEODISCO_GENOMIC_VARIANTS_WORKFLOW":',
+        paste0('        proteodisco: ', as.character(packageVersion("proteodisco")))
+    ), "versions.yml")
     """
 
     stub:

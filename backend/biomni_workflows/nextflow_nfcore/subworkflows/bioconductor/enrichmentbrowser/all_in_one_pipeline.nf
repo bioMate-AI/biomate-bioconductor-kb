@@ -106,10 +106,10 @@ process BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE {
       })
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE":
-        enrichmentbrowser: \$(Rscript -e 'cat(as.character(packageVersion("enrichmentbrowser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE":',
+        paste0('        enrichmentbrowser: ', as.character(packageVersion("enrichmentbrowser")))
+    ), "versions.yml")
     """
 
     stub:

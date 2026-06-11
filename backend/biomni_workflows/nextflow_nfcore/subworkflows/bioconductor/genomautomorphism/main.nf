@@ -226,10 +226,10 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
           col = c("white", "red"))
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP":
-        genomautomorphism: \$(Rscript -e 'cat(as.character(packageVersion("genomautomorphism")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP":',
+        paste0('        genomautomorphism: ', as.character(packageVersion("genomautomorphism")))
+    ), "versions.yml")
     """
 
     stub:

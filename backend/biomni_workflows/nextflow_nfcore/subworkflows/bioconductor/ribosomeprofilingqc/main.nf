@@ -230,10 +230,10 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     
     message("Pipeline completed successfully! All outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION":
-        ribosomeprofilingqc: \$(Rscript -e 'cat(as.character(packageVersion("ribosomeprofilingqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION":',
+        paste0('        ribosomeprofilingqc: ', as.character(packageVersion("ribosomeprofilingqc")))
+    ), "versions.yml")
     """
 
     stub:

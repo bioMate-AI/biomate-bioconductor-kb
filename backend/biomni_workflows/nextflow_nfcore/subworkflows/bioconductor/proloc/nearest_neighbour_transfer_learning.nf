@@ -150,10 +150,10 @@ process BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING {
     addLegend(andy2011, where = "topright", fcol = "markers.tl", bty = "n", cex = .7)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING":
-        proloc: \$(Rscript -e 'cat(as.character(packageVersion("proloc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING":',
+        paste0('        proloc: ', as.character(packageVersion("proloc")))
+    ), "versions.yml")
     """
 
     stub:

@@ -108,10 +108,10 @@ process BIOC_BIOCSKLEARN_MANUAL_INCREMENTAL_PCA {
     # Save the final PCA state/object attributes if possible, or save the R matrix as RDS
     saveRDS(transformed_r, "transformed_subset.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BIOCSKLEARN_MANUAL_INCREMENTAL_PCA":
-        BiocSklearn: \$(Rscript -e 'cat(as.character(packageVersion("BiocSklearn")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BIOCSKLEARN_MANUAL_INCREMENTAL_PCA":',
+        paste0('        BiocSklearn: ', as.character(packageVersion("BiocSklearn")))
+    ), "versions.yml")
     """
 
     stub:

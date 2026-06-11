@@ -156,10 +156,10 @@ process BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION":
-        syntenet: \$(Rscript -e 'cat(as.character(packageVersion("syntenet")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SYNTENET_PAIRWISE_SYNTENY_DETECTION":',
+        paste0('        syntenet: ', as.character(packageVersion("syntenet")))
+    ), "versions.yml")
     """
 
     stub:

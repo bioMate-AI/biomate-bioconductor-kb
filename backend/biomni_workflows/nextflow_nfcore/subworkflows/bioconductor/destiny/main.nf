@@ -119,10 +119,10 @@ process BIOC_DESTINY_QPCR_DIFFUSION_MAP_AND_DPT {
     if (!is.null(dpt\$DPT3)) dpt_df\$DPT3 <- dpt\$DPT3
     write.csv(dpt_df, "dpt_results.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DESTINY_QPCR_DIFFUSION_MAP_AND_DPT":
-        destiny: \$(Rscript -e 'cat(as.character(packageVersion("destiny")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DESTINY_QPCR_DIFFUSION_MAP_AND_DPT":',
+        paste0('        destiny: ', as.character(packageVersion("destiny")))
+    ), "versions.yml")
     """
 
     stub:

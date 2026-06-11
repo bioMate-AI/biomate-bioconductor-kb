@@ -99,10 +99,10 @@ process BIOC_DECOMPTUMOR2SIG_MAPPING_AND_COMPARING_SIGNATURE_SETS {
     saveRDS(sign_a2s, "sign_a2s.rds")
     saveRDS(sign_sdown, "sign_sdown.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECOMPTUMOR2SIG_MAPPING_AND_COMPARING_SIGNATURE_SETS":
-        decomptumor2sig: \$(Rscript -e 'cat(as.character(packageVersion("decomptumor2sig")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECOMPTUMOR2SIG_MAPPING_AND_COMPARING_SIGNATURE_SETS":',
+        paste0('        decomptumor2sig: ', as.character(packageVersion("decomptumor2sig")))
+    ), "versions.yml")
     """
 
     stub:

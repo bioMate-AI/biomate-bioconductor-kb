@@ -122,10 +122,10 @@ process BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS {
     
     message("Pipeline completed successfully. Outputs generated: 'raw_file_headers.rds', 'scan_metadata.csv', 'scan_metadata.rds', and 'diagnostic_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS":
-        rawdiag: \$(Rscript -e 'cat(as.character(packageVersion("rawdiag")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS":',
+        paste0('        rawdiag: ', as.character(packageVersion("rawdiag")))
+    ), "versions.yml")
     """
 
     stub:

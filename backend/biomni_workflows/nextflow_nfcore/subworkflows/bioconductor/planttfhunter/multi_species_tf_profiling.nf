@@ -107,10 +107,10 @@ process BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_PROFILING {
     
     message("Workflow completed successfully. Outputs saved to 'tf_counts_matrix.csv', 'tf_counts_metadata.csv', and 'tf_counts_se.rds'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_PROFILING":
-        planttfhunter: \$(Rscript -e 'cat(as.character(packageVersion("planttfhunter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PLANTTFHUNTER_MULTI_SPECIES_TF_PROFILING":',
+        paste0('        planttfhunter: ', as.character(packageVersion("planttfhunter")))
+    ), "versions.yml")
     """
 
     stub:

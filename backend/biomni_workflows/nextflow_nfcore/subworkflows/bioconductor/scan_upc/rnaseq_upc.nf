@@ -78,10 +78,10 @@ process BIOC_SCAN_UPC_RNASEQ_UPC {
     
     message("Pipeline completed successfully. Outputs saved to 'upc_values.rds' and 'upc_probabilities.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCAN_UPC_RNASEQ_UPC":
-        scan_upc: \$(Rscript -e 'cat(as.character(packageVersion("scan_upc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCAN_UPC_RNASEQ_UPC":',
+        paste0('        scan_upc: ', as.character(packageVersion("scan_upc")))
+    ), "versions.yml")
     """
 
     stub:

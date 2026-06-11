@@ -133,10 +133,10 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION {
                                  genomes[[1]], plot=TRUE)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION":
-        decomptumor2sig: \$(Rscript -e 'cat(as.character(packageVersion("decomptumor2sig")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECOMPTUMOR2SIG_SIGNATURE_REFITTING_AND_QUALITY_EVALUATION":',
+        paste0('        decomptumor2sig: ', as.character(packageVersion("decomptumor2sig")))
+    ), "versions.yml")
     """
 
     stub:

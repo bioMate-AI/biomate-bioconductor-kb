@@ -86,10 +86,10 @@ process BIOC_KMCUT_FIXED_OR_QUANTILE_CUTOFF {
     message("  - test_KM_ucut_5.txt")
     message("  - test_KM_ucut_5_labels.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KMCUT_FIXED_OR_QUANTILE_CUTOFF":
-        kmcut: \$(Rscript -e 'cat(as.character(packageVersion("kmcut")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KMCUT_FIXED_OR_QUANTILE_CUTOFF":',
+        paste0('        kmcut: ', as.character(packageVersion("kmcut")))
+    ), "versions.yml")
     """
 
     stub:

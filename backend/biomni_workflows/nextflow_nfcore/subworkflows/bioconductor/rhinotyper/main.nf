@@ -118,10 +118,10 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT {
     SNPeek(rhinovirusVP4)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT":
-        rhinotyper: \$(Rscript -e 'cat(as.character(packageVersion("rhinotyper")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT":',
+        paste0('        rhinotyper: ', as.character(packageVersion("rhinotyper")))
+    ), "versions.yml")
     """
 
     stub:

@@ -107,10 +107,10 @@ process BIOC_SEQGSEA_DE_ONLY_GSEA {
     # Clean up parallel backend
     stopCluster(cl)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQGSEA_DE_ONLY_GSEA":
-        seqgsea: \$(Rscript -e 'cat(as.character(packageVersion("seqgsea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQGSEA_DE_ONLY_GSEA":',
+        paste0('        seqgsea: ', as.character(packageVersion("seqgsea")))
+    ), "versions.yml")
     """
 
     stub:

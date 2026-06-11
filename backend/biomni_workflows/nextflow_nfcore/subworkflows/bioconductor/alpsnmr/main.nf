@@ -178,10 +178,10 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING":
-        alpsnmr: \$(Rscript -e 'cat(as.character(packageVersion("alpsnmr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING":',
+        paste0('        alpsnmr: ', as.character(packageVersion("alpsnmr")))
+    ), "versions.yml")
     """
 
     stub:

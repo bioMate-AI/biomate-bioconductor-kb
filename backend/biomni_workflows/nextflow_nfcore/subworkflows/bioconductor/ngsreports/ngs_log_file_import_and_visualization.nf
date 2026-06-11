@@ -133,10 +133,10 @@ process BIOC_NGSREPORTS_NGS_LOG_FILE_IMPORT_AND_VISUALIZATION {
       file = "imported_ngs_logs.rds"
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NGSREPORTS_NGS_LOG_FILE_IMPORT_AND_VISUALIZATION":
-        ngsreports: \$(Rscript -e 'cat(as.character(packageVersion("ngsreports")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NGSREPORTS_NGS_LOG_FILE_IMPORT_AND_VISUALIZATION":',
+        paste0('        ngsreports: ', as.character(packageVersion("ngsreports")))
+    ), "versions.yml")
     """
 
     stub:

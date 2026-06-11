@@ -145,10 +145,10 @@ process BIOC_SEQSQC_ALL_IN_ONE_QC {
         message("Could not render HTML report: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQSQC_ALL_IN_ONE_QC":
-        seqsqc: \$(Rscript -e 'cat(as.character(packageVersion("seqsqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQSQC_ALL_IN_ONE_QC":',
+        paste0('        seqsqc: ', as.character(packageVersion("seqsqc")))
+    ), "versions.yml")
     """
 
     stub:

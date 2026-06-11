@@ -89,10 +89,10 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     
     cat("Pipeline completed successfully. Outputs saved: read_counts.csv, summarized_overlaps.rds, deseq_dataset.rds, edger_dgelist.rds\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION":
-        genomicalignments: \$(Rscript -e 'cat(as.character(packageVersion("genomicalignments")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION":',
+        paste0('        genomicalignments: ', as.character(packageVersion("genomicalignments")))
+    ), "versions.yml")
     """
 
     stub:

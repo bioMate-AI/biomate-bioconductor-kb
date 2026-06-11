@@ -148,10 +148,10 @@ process BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP {
     # Save the spatial heatmap plot object
     saveRDS(res.hum, "spatial_heatmap_result.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP":
-        spatialHeatmap: \$(Rscript -e 'cat(as.character(packageVersion("spatialHeatmap")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP":',
+        paste0('        spatialHeatmap: ', as.character(packageVersion("spatialHeatmap")))
+    ), "versions.yml")
     """
 
     stub:

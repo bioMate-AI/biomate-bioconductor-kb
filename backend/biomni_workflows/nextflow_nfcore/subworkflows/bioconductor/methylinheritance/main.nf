@@ -146,10 +146,10 @@ process BIOC_METHYLINHERITANCE_MULTIGENERATIONAL_METHYLATION_INHERITANCE {
     write.csv(F1_and_F2_results, "F1_and_F2_conserved_sites.csv", row.names = FALSE)
     saveRDS(allResults, "all_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METHYLINHERITANCE_MULTIGENERATIONAL_METHYLATION_INHERITANCE":
-        methylinheritance: \$(Rscript -e 'cat(as.character(packageVersion("methylinheritance")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METHYLINHERITANCE_MULTIGENERATIONAL_METHYLATION_INHERITANCE":',
+        paste0('        methylinheritance: ', as.character(packageVersion("methylinheritance")))
+    ), "versions.yml")
     """
 
     stub:

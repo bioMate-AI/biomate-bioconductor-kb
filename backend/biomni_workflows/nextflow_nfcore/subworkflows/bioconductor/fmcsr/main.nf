@@ -89,10 +89,10 @@ process BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS {
     plotMCS(test, regenCoords=TRUE)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS":
-        fmcsr: \$(Rscript -e 'cat(as.character(packageVersion("fmcsr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS":',
+        paste0('        fmcsr: ', as.character(packageVersion("fmcsr")))
+    ), "versions.yml")
     """
 
     stub:

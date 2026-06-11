@@ -115,10 +115,10 @@ process BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW":
-        spotclean: \$(Rscript -e 'cat(as.character(packageVersion("spotclean")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPOTCLEAN_SPATIAL_EXPERIMENT_WORKFLOW":',
+        paste0('        spotclean: ', as.character(packageVersion("spotclean")))
+    ), "versions.yml")
     """
 
     stub:

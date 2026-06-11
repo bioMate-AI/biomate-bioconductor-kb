@@ -102,10 +102,10 @@ process BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION {
         VisualizeInCytoscape = FALSE
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION":
-        mogamun: \$(Rscript -e 'cat(as.character(packageVersion("mogamun")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOGAMUN_ACTIVE_MODULE_IDENTIFICATION":',
+        paste0('        mogamun: ', as.character(packageVersion("mogamun")))
+    ), "versions.yml")
     """
 
     stub:

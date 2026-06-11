@@ -132,10 +132,10 @@ process BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION {
     
     cat("Pipeline completed successfully. Outputs written to working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION":
-        msnbase: \$(Rscript -e 'cat(as.character(packageVersion("msnbase")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION":',
+        paste0('        msnbase: ', as.character(packageVersion("msnbase")))
+    ), "versions.yml")
     """
 
     stub:

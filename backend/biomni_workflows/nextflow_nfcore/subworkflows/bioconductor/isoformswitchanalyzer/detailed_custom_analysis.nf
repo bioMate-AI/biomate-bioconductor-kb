@@ -197,10 +197,10 @@ process BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS":
-        isoformswitchanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("isoformswitchanalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISOFORMSWITCHANALYZER_DETAILED_CUSTOM_ANALYSIS":',
+        paste0('        isoformswitchanalyzer: ', as.character(packageVersion("isoformswitchanalyzer")))
+    ), "versions.yml")
     """
 
     stub:

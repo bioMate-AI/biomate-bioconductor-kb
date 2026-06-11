@@ -188,10 +188,10 @@ process BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS {
     
     message("Workflow completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS":
-        enmix: \$(Rscript -e 'cat(as.character(packageVersion("enmix")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ENMIX_DOWNSTREAM_EPIGENETIC_ANALYSIS":',
+        paste0('        enmix: ', as.character(packageVersion("enmix")))
+    ), "versions.yml")
     """
 
     stub:

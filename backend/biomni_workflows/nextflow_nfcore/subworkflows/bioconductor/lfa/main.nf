@@ -113,10 +113,10 @@ process BIOC_LFA_LOGISTIC_FACTOR_ANALYSIS {
     max_log_lik_index <- which(max(log_lik) == log_lik)
     writeLines(as.character(max_log_lik_index), "max_log_lik_index.txt")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LFA_LOGISTIC_FACTOR_ANALYSIS":
-        lfa: \$(Rscript -e 'cat(as.character(packageVersion("lfa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LFA_LOGISTIC_FACTOR_ANALYSIS":',
+        paste0('        lfa: ', as.character(packageVersion("lfa")))
+    ), "versions.yml")
     """
 
     stub:

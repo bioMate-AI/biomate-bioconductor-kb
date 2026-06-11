@@ -162,10 +162,10 @@ process BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS {
       }
     }, silent = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS":
-        comapr: \$(Rscript -e 'cat(as.character(packageVersion("comapr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COMAPR_SINGLE_SPERM_CO_ANALYSIS":',
+        paste0('        comapr: ', as.character(packageVersion("comapr")))
+    ), "versions.yml")
     """
 
     stub:

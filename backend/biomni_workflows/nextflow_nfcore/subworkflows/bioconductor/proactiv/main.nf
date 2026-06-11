@@ -296,10 +296,10 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS":
-        proactiv: \$(Rscript -e 'cat(as.character(packageVersion("proactiv")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS":',
+        paste0('        proactiv: ', as.character(packageVersion("proactiv")))
+    ), "versions.yml")
     """
 
     stub:

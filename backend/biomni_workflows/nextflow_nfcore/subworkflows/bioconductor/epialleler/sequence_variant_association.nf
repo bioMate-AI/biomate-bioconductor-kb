@@ -103,10 +103,10 @@ process BIOC_EPIALLELER_SEQUENCE_VARIANT_ASSOCIATION {
     
     message("Pipeline completed successfully. Outputs saved: vcf_report.rds, vcf_report_full.csv, vcf_report_sorted_FEp_minus.csv, vcf_report_sorted_FEp_plus.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EPIALLELER_SEQUENCE_VARIANT_ASSOCIATION":
-        epialleler: \$(Rscript -e 'cat(as.character(packageVersion("epialleler")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EPIALLELER_SEQUENCE_VARIANT_ASSOCIATION":',
+        paste0('        epialleler: ', as.character(packageVersion("epialleler")))
+    ), "versions.yml")
     """
 
     stub:

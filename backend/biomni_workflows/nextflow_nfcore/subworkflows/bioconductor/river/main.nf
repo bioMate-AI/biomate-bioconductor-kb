@@ -117,10 +117,10 @@ process BIOC_RIVER_RIVER_EVALUATION {
     dev.off()
     message("Saved ROC curve plot to 'roc_curve.pdf'")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIVER_RIVER_EVALUATION":
-        river: \$(Rscript -e 'cat(as.character(packageVersion("river")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIVER_RIVER_EVALUATION":',
+        paste0('        river: ', as.character(packageVersion("river")))
+    ), "versions.yml")
     """
 
     stub:

@@ -106,10 +106,10 @@ process BIOC_CELLBARCODE_SCRNASEQ_SAM_LINEAGE_BARCODING {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CELLBARCODE_SCRNASEQ_SAM_LINEAGE_BARCODING":
-        cellbarcode: \$(Rscript -e 'cat(as.character(packageVersion("cellbarcode")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CELLBARCODE_SCRNASEQ_SAM_LINEAGE_BARCODING":',
+        paste0('        cellbarcode: ', as.character(packageVersion("cellbarcode")))
+    ), "versions.yml")
     """
 
     stub:

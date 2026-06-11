@@ -167,10 +167,10 @@ process BIOC_MINFI_METHYLATION_PREPROCESSING_AND_MAPPING {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MINFI_METHYLATION_PREPROCESSING_AND_MAPPING":
-        minfi: \$(Rscript -e 'cat(as.character(packageVersion("minfi")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MINFI_METHYLATION_PREPROCESSING_AND_MAPPING":',
+        paste0('        minfi: ', as.character(packageVersion("minfi")))
+    ), "versions.yml")
     """
 
     stub:

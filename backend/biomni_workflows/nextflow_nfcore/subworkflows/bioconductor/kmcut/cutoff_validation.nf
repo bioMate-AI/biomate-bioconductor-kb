@@ -87,10 +87,10 @@ process BIOC_KMCUT_CUTOFF_VALIDATION {
     # This generates "test_KM_val.pdf", "test_KM_val.txt", and "test_KM_val_labels.csv"
     km_val_cut(infile = "training_data_KM_quant_50.txt", obj = se2, bfname = "test", wpdf = TRUE, min_uval = 40)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KMCUT_CUTOFF_VALIDATION":
-        kmcut: \$(Rscript -e 'cat(as.character(packageVersion("kmcut")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KMCUT_CUTOFF_VALIDATION":',
+        paste0('        kmcut: ', as.character(packageVersion("kmcut")))
+    ), "versions.yml")
     """
 
     stub:

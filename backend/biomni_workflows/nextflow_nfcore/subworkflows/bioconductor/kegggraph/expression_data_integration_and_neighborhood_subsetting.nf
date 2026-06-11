@@ -157,10 +157,10 @@ process BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING {
     
     cat("Pipeline completed successfully. Outputs written to 'upSub_graph.rds', 'upregulated_neighborhood_genes.csv', and 'colorectal_cancer_neighborhood_plot.pdf'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING":
-        kegggraph: \$(Rscript -e 'cat(as.character(packageVersion("kegggraph")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KEGGGRAPH_EXPRESSION_DATA_INTEGRATION_AND_NEIGHBORHOOD_SUBSETTING":',
+        paste0('        kegggraph: ', as.character(packageVersion("kegggraph")))
+    ), "versions.yml")
     """
 
     stub:

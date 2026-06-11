@@ -90,10 +90,10 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FROM_TEXT_FILE {
     plotEstProfile(sampleName='rec10k', rec10k\$Chromosome, rec10k\$PhysicalPosition, rec10k\$log2ratio, chrToBePlotted=3, results\$estPC, maxProbeNumber=2000, regrCurve=results\$regrCurve, regr='BRC')
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MBPCR_PROFILE_ESTIMATION_FROM_TEXT_FILE":
-        mbpcr: \$(Rscript -e 'cat(as.character(packageVersion("mbpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MBPCR_PROFILE_ESTIMATION_FROM_TEXT_FILE":',
+        paste0('        mbpcr: ', as.character(packageVersion("mbpcr")))
+    ), "versions.yml")
     """
 
     stub:

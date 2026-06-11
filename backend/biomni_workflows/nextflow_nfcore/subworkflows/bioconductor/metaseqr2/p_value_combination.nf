@@ -107,10 +107,10 @@ process BIOC_METASEQR2_P_VALUE_COMBINATION {
     hist(pPandora, main = "PANDORA p-values", xlab = "p-value", col = "salmon", breaks = 20)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METASEQR2_P_VALUE_COMBINATION":
-        metaseqr2: \$(Rscript -e 'cat(as.character(packageVersion("metaseqr2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METASEQR2_P_VALUE_COMBINATION":',
+        paste0('        metaseqr2: ', as.character(packageVersion("metaseqr2")))
+    ), "versions.yml")
     """
 
     stub:

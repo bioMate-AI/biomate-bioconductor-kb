@@ -89,10 +89,10 @@ process BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT {
     plot_gene_coverage(peaks = peaks_H3K4me3_GM12878, locusdef = 'nearest_tss',  genome = 'hg19')
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT":
-        chipenrich: \$(Rscript -e 'cat(as.character(packageVersion("chipenrich")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT":',
+        paste0('        chipenrich: ', as.character(packageVersion("chipenrich")))
+    ), "versions.yml")
     """
 
     stub:

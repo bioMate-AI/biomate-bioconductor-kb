@@ -133,10 +133,10 @@ process BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS {
     # Clean up cache
     unlink(".Rcache", recursive=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS":
-        msnid: \$(Rscript -e 'cat(as.character(packageVersion("msnid")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSNID_HANDLING_AND_MAPPING_MODIFICATIONS":',
+        paste0('        msnid: ', as.character(packageVersion("msnid")))
+    ), "versions.yml")
     """
 
     stub:

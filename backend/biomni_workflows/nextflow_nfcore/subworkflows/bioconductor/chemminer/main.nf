@@ -82,10 +82,10 @@ process BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING {
     plot(sdfset[1:4], regenCoords=TRUE, print=FALSE)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING":
-        chemminer: \$(Rscript -e 'cat(as.character(packageVersion("chemminer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING":',
+        paste0('        chemminer: ', as.character(packageVersion("chemminer")))
+    ), "versions.yml")
     """
 
     stub:

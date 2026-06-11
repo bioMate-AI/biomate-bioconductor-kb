@@ -258,10 +258,10 @@ process BIOC_GMOVIZ_SINGLE_INSERTION_DIAGRAM {
     
     message("gmoviz single insertion pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GMOVIZ_SINGLE_INSERTION_DIAGRAM":
-        gmoviz: \$(Rscript -e 'cat(as.character(packageVersion("gmoviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GMOVIZ_SINGLE_INSERTION_DIAGRAM":',
+        paste0('        gmoviz: ', as.character(packageVersion("gmoviz")))
+    ), "versions.yml")
     """
 
     stub:

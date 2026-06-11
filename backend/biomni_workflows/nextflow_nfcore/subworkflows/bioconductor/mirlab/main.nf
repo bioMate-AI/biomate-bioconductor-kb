@@ -73,10 +73,10 @@ process BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS {
     write.csv(as.data.frame(miR200aTop10Confirmed), "miR200aTop10Confirmed.csv", row.names = TRUE)
     saveRDS(pearson, "pearson_correlation_matrix.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS":
-        mirlab: \$(Rscript -e 'cat(as.character(packageVersion("mirlab")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS":',
+        paste0('        mirlab: ', as.character(packageVersion("mirlab")))
+    ), "versions.yml")
     """
 
     stub:

@@ -107,10 +107,10 @@ process BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE {
     
     message("Workflow complete. Outputs generated: myGreyList.bed, grey_list_object.rds, grey_list_summary.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE":
-        greylistchip: \$(Rscript -e 'cat(as.character(packageVersion("greylistchip")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE":',
+        paste0('        greylistchip: ', as.character(packageVersion("greylistchip")))
+    ), "versions.yml")
     """
 
     stub:

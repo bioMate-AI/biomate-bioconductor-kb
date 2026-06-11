@@ -94,10 +94,10 @@ process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {
     plotRegion(list(ctrl.count), region = region)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS":
-        ssviz: \$(Rscript -e 'cat(as.character(packageVersion("ssviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS":',
+        paste0('        ssviz: ', as.character(packageVersion("ssviz")))
+    ), "versions.yml")
     """
 
     stub:

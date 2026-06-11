@@ -89,10 +89,10 @@ process BIOC_FRENCHFISH_CORRECT_AUTOMATED_COUNTS {
     saveRDS(corrected_automatic_counts, 
             file = "corrected_automatic_counts.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FRENCHFISH_CORRECT_AUTOMATED_COUNTS":
-        frenchfish: \$(Rscript -e 'cat(as.character(packageVersion("frenchfish")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FRENCHFISH_CORRECT_AUTOMATED_COUNTS":',
+        paste0('        frenchfish: ', as.character(packageVersion("frenchfish")))
+    ), "versions.yml")
     """
 
     stub:

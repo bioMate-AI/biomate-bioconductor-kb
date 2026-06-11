@@ -141,10 +141,10 @@ process BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY {
     # Save the final musica object
     saveRDS(musica, "musica_object.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY":
-        musicatk: \$(Rscript -e 'cat(as.character(packageVersion("musicatk")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY":',
+        paste0('        musicatk: ', as.character(packageVersion("musicatk")))
+    ), "versions.yml")
     """
 
     stub:

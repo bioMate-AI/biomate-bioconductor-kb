@@ -113,10 +113,10 @@ process BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW {
       paste0("./adductQuantif_peakList_", Sys.Date(), ".csv")
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW":
-        adductomicsr: \$(Rscript -e 'cat(as.character(packageVersion("adductomicsr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ADDUCTOMICSR_ADDUCTOMICS_WORKFLOW":',
+        paste0('        adductomicsr: ', as.character(packageVersion("adductomicsr")))
+    ), "versions.yml")
     """
 
     stub:

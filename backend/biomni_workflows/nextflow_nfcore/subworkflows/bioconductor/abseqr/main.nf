@@ -81,10 +81,10 @@ process BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT {
     # Save the resulting S4 object to an RDS file
     saveRDS(samples, file = "abseq_samples.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT":
-        abseqr: \$(Rscript -e 'cat(as.character(packageVersion("abseqr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT":',
+        paste0('        abseqr: ', as.character(packageVersion("abseqr")))
+    ), "versions.yml")
     """
 
     stub:

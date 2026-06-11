@@ -94,10 +94,10 @@ process BIOC_TANGGLE_EXPLICIT_NETWORKS {
     p_custom_nodes <- p + geom_nodepoint(color="#b5e521", alpha=1/4, size=10)
     ggsave("network_slanted_custom_nodes.pdf", plot = p_custom_nodes, width = 8, height = 6)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TANGGLE_EXPLICIT_NETWORKS":
-        tanggle: \$(Rscript -e 'cat(as.character(packageVersion("tanggle")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TANGGLE_EXPLICIT_NETWORKS":',
+        paste0('        tanggle: ', as.character(packageVersion("tanggle")))
+    ), "versions.yml")
     """
 
     stub:

@@ -120,10 +120,10 @@ process BIOC_LEA_GEA_MCMC_LFMM {
     message("- 'lfmm_pvalues.csv' (Table of all P-values)")
     message("- 'lfmm_candidates.csv' (Table of candidate loci)")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LEA_GEA_MCMC_LFMM":
-        lea: \$(Rscript -e 'cat(as.character(packageVersion("lea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LEA_GEA_MCMC_LFMM":',
+        paste0('        lea: ', as.character(packageVersion("lea")))
+    ), "versions.yml")
     """
 
     stub:

@@ -220,10 +220,10 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS {
       dev.off()
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS":
-        regionalst: \$(Rscript -e 'cat(as.character(packageVersion("regionalst")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS":',
+        paste0('        regionalst: ', as.character(packageVersion("regionalst")))
+    ), "versions.yml")
     """
 
     stub:

@@ -95,10 +95,10 @@ process BIOC_PREBS_CREATE_PROBE_MAPPING {
     
     cat("Workflow complete. Output written to 'HGU133Plus2_mapping.txt'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PREBS_CREATE_PROBE_MAPPING":
-        prebs: \$(Rscript -e 'cat(as.character(packageVersion("prebs")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PREBS_CREATE_PROBE_MAPPING":',
+        paste0('        prebs: ', as.character(packageVersion("prebs")))
+    ), "versions.yml")
     """
 
     stub:

@@ -140,10 +140,10 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     cat("\nOptimized parameters script saved to 'optimized_xcms_processing_script.R'\n")
     cat("Plots saved to 'ipo_optimization_plots.pdf'\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION":
-        ipo: \$(Rscript -e 'cat(as.character(packageVersion("ipo")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION":',
+        paste0('        ipo: ', as.character(packageVersion("ipo")))
+    ), "versions.yml")
     """
 
     stub:

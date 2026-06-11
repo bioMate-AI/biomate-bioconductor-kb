@@ -183,10 +183,10 @@ process BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON {
     
     message("Pipeline complete. All outputs successfully generated.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON":
-        cfdnapro: \$(Rscript -e 'cat(as.character(packageVersion("cfdnapro")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CFDNAPRO_MULTI_COHORT_COMPARISON":',
+        paste0('        cfdnapro: ', as.character(packageVersion("cfdnapro")))
+    ), "versions.yml")
     """
 
     stub:

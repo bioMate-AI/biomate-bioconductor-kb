@@ -84,10 +84,10 @@ process BIOC_RBLAST_CREATE_CUSTOM_BLAST_DB {
     write.csv(results, "blast_results.csv", row.names = FALSE)
     saveRDS(results, "blast_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RBLAST_CREATE_CUSTOM_BLAST_DB":
-        rblast: \$(Rscript -e 'cat(as.character(packageVersion("rblast")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RBLAST_CREATE_CUSTOM_BLAST_DB":',
+        paste0('        rblast: ', as.character(packageVersion("rblast")))
+    ), "versions.yml")
     """
 
     stub:

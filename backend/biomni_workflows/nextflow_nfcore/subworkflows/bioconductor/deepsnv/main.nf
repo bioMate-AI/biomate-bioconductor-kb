@@ -123,10 +123,10 @@ process BIOC_DEEPSNV_PAIRWISE_DEEPSNV {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEEPSNV_PAIRWISE_DEEPSNV":
-        deepsnv: \$(Rscript -e 'cat(as.character(packageVersion("deepsnv")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEEPSNV_PAIRWISE_DEEPSNV":',
+        paste0('        deepsnv: ', as.character(packageVersion("deepsnv")))
+    ), "versions.yml")
     """
 
     stub:

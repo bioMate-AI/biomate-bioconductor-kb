@@ -91,10 +91,10 @@ process BIOC_R453PLUS1TOOLBOX_GS_MAPPER_ANALYSIS {
       message("Pipeline completed with warnings. 'mapperSet.rds' and 'detected_variants.csv' were successfully written.")
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_R453PLUS1TOOLBOX_GS_MAPPER_ANALYSIS":
-        r453plus1toolbox: \$(Rscript -e 'cat(as.character(packageVersion("r453plus1toolbox")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_R453PLUS1TOOLBOX_GS_MAPPER_ANALYSIS":',
+        paste0('        r453plus1toolbox: ', as.character(packageVersion("r453plus1toolbox")))
+    ), "versions.yml")
     """
 
     stub:

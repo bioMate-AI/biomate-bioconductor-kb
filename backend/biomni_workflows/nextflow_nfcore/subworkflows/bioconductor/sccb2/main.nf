@@ -78,10 +78,10 @@ process BIOC_SCCB2_QUICK_CB2_PIPELINE {
     saveRDS(RealCell_S, file = "RealCell_Seurat.rds")
     saveRDS(RealCell_Quick, file = "RealCell_Quick.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCCB2_QUICK_CB2_PIPELINE":
-        sccb2: \$(Rscript -e 'cat(as.character(packageVersion("sccb2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCCB2_QUICK_CB2_PIPELINE":',
+        paste0('        sccb2: ', as.character(packageVersion("sccb2")))
+    ), "versions.yml")
     """
 
     stub:

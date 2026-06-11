@@ -139,10 +139,10 @@ process BIOC_EPIDECODER_EPIGENETIC_DEG_INTEGRATION {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EPIDECODER_EPIGENETIC_DEG_INTEGRATION":
-        epidecoder: \$(Rscript -e 'cat(as.character(packageVersion("epidecoder")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EPIDECODER_EPIGENETIC_DEG_INTEGRATION":',
+        paste0('        epidecoder: ', as.character(packageVersion("epidecoder")))
+    ), "versions.yml")
     """
 
     stub:

@@ -175,10 +175,10 @@ process BIOC_GMOVIZ_MULTIPLE_INSERTION_DIAGRAM {
                              style = c("ins1" = 2, "ins5" = 4))
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GMOVIZ_MULTIPLE_INSERTION_DIAGRAM":
-        gmoviz: \$(Rscript -e 'cat(as.character(packageVersion("gmoviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GMOVIZ_MULTIPLE_INSERTION_DIAGRAM":',
+        paste0('        gmoviz: ', as.character(packageVersion("gmoviz")))
+    ), "versions.yml")
     """
 
     stub:

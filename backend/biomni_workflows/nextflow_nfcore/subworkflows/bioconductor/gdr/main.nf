@@ -100,10 +100,10 @@ process BIOC_GDR_STEP_BY_STEP_DRUG_RESPONSE_PROCESSING {
     metrics_dt <- convert_se_assay_to_dt(se, "Metrics")
     write.csv(metrics_dt, "single_agent_metrics.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GDR_STEP_BY_STEP_DRUG_RESPONSE_PROCESSING":
-        gdr: \$(Rscript -e 'cat(as.character(packageVersion("gdr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GDR_STEP_BY_STEP_DRUG_RESPONSE_PROCESSING":',
+        paste0('        gdr: ', as.character(packageVersion("gdr")))
+    ), "versions.yml")
     """
 
     stub:

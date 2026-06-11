@@ -101,10 +101,10 @@ process BIOC_HICOOL_HIC_PROCESSING_PIPELINE {
     
     message("HiCool pipeline completed successfully. Outputs saved to './HiCool/' and the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HICOOL_HIC_PROCESSING_PIPELINE":
-        hicool: \$(Rscript -e 'cat(as.character(packageVersion("hicool")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HICOOL_HIC_PROCESSING_PIPELINE":',
+        paste0('        hicool: ', as.character(packageVersion("hicool")))
+    ), "versions.yml")
     """
 
     stub:

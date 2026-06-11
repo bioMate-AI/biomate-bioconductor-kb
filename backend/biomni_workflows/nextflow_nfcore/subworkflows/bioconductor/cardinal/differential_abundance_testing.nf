@@ -136,10 +136,10 @@ process BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING {
     
     cat("Differential abundance testing pipeline completed successfully.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING":
-        cardinal: \$(Rscript -e 'cat(as.character(packageVersion("cardinal")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CARDINAL_DIFFERENTIAL_ABUNDANCE_TESTING":',
+        paste0('        cardinal: ', as.character(packageVersion("cardinal")))
+    ), "versions.yml")
     """
 
     stub:

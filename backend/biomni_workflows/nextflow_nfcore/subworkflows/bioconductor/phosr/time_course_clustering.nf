@@ -120,10 +120,10 @@ process BIOC_PHOSR_TIME_COURSE_CLUSTERING {
     
     cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHOSR_TIME_COURSE_CLUSTERING":
-        PhosR: \$(Rscript -e 'cat(as.character(packageVersion("PhosR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHOSR_TIME_COURSE_CLUSTERING":',
+        paste0('        PhosR: ', as.character(packageVersion("PhosR")))
+    ), "versions.yml")
     """
 
     stub:

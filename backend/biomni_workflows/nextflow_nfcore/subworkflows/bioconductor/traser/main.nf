@@ -112,10 +112,10 @@ process BIOC_TRASER_GWAS_SNP_ENRICHMENT_ANALYSIS {
     saveRDS(x, "query_snp_results.rds")
     write.csv(as.data.frame(x), "query_snp_results.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRASER_GWAS_SNP_ENRICHMENT_ANALYSIS":
-        traseR: \$(Rscript -e 'cat(as.character(packageVersion("traseR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRASER_GWAS_SNP_ENRICHMENT_ANALYSIS":',
+        paste0('        traseR: ', as.character(packageVersion("traseR")))
+    ), "versions.yml")
     """
 
     stub:

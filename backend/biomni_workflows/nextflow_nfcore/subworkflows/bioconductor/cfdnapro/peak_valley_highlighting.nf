@@ -97,10 +97,10 @@ process BIOC_CFDNAPRO_PEAK_VALLEY_HIGHLIGHTING {
     ggsave("exam_plot_prop.pdf", plot = exam_plot_prop, width = 8, height = 6)
     ggsave("exam_plot_prop_dot.pdf", plot = exam_plot_prop_dot, width = 8, height = 6)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CFDNAPRO_PEAK_VALLEY_HIGHLIGHTING":
-        cfdnapro: \$(Rscript -e 'cat(as.character(packageVersion("cfdnapro")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CFDNAPRO_PEAK_VALLEY_HIGHLIGHTING":',
+        paste0('        cfdnapro: ', as.character(packageVersion("cfdnapro")))
+    ), "versions.yml")
     """
 
     stub:

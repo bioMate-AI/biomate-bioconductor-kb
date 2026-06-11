@@ -111,10 +111,10 @@ process BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC {
     plotPrincomp(tamoxifen, attributes=c("Tissue","Condition"))
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC":
-        chipqc: \$(Rscript -e 'cat(as.character(packageVersion("chipqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC":',
+        paste0('        chipqc: ', as.character(packageVersion("chipqc")))
+    ), "versions.yml")
     """
 
     stub:

@@ -107,10 +107,10 @@ process BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING":
-        diffbind: \$(Rscript -e 'cat(as.character(packageVersion("diffbind")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING":',
+        paste0('        diffbind: ', as.character(packageVersion("diffbind")))
+    ), "versions.yml")
     """
 
     stub:

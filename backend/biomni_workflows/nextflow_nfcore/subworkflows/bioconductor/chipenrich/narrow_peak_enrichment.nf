@@ -200,10 +200,10 @@ process BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT {
     
     message("Pipeline completed successfully. All outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT":
-        chipenrich: \$(Rscript -e 'cat(as.character(packageVersion("chipenrich")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPENRICH_NARROW_PEAK_ENRICHMENT":',
+        paste0('        chipenrich: ', as.character(packageVersion("chipenrich")))
+    ), "versions.yml")
     """
 
     stub:

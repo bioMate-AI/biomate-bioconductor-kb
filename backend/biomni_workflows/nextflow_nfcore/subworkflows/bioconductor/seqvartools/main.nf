@@ -258,10 +258,10 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     seqClose(gds)
     unlink(gdsfile)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING":
-        seqvartools: \$(Rscript -e 'cat(as.character(packageVersion("seqvartools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING":',
+        paste0('        seqvartools: ', as.character(packageVersion("seqvartools")))
+    ), "versions.yml")
     """
 
     stub:

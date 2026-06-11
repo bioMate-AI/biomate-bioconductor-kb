@@ -194,10 +194,10 @@ process BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW":
-        agimicrorna: \$(Rscript -e 'cat(as.character(packageVersion("agimicrorna")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_AGIMICRORNA_AGILENT_RMA_WORKFLOW":',
+        paste0('        agimicrorna: ', as.character(packageVersion("agimicrorna")))
+    ), "versions.yml")
     """
 
     stub:

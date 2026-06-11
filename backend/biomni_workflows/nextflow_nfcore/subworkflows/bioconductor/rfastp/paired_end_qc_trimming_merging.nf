@@ -103,10 +103,10 @@ process BIOC_RFASTP_PAIRED_END_QC_TRIMMING_MERGING {
       message("Plot generation skipped or failed: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RFASTP_PAIRED_END_QC_TRIMMING_MERGING":
-        rfastp: \$(Rscript -e 'cat(as.character(packageVersion("rfastp")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RFASTP_PAIRED_END_QC_TRIMMING_MERGING":',
+        paste0('        rfastp: ', as.character(packageVersion("rfastp")))
+    ), "versions.yml")
     """
 
     stub:

@@ -151,10 +151,10 @@ process BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING {
     # Close PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING":
-        atacseqqc: \$(Rscript -e 'cat(as.character(packageVersion("atacseqqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ATACSEQQC_ATAC_SEQ_QC_AND_PREPROCESSING":',
+        paste0('        atacseqqc: ', as.character(packageVersion("atacseqqc")))
+    ), "versions.yml")
     """
 
     stub:

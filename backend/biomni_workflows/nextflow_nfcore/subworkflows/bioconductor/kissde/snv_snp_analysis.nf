@@ -88,10 +88,10 @@ process BIOC_KISSDE_SNV_SNP_ANALYSIS {
       message("exploreResults() skipped or failed (this is expected in non-interactive/headless environments): ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KISSDE_SNV_SNP_ANALYSIS":
-        kissde: \$(Rscript -e 'cat(as.character(packageVersion("kissde")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KISSDE_SNV_SNP_ANALYSIS":',
+        paste0('        kissde: ', as.character(packageVersion("kissde")))
+    ), "versions.yml")
     """
 
     stub:

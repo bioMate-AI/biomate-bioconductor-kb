@@ -106,10 +106,10 @@ process BIOC_QUASR_BIS_SEQ_WORKFLOW {
     saveRDS(meth_promoters, "meth_promoters.rds")
     write.csv(as.data.frame(meth_promoters), "meth_promoters.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QUASR_BIS_SEQ_WORKFLOW":
-        quasr: \$(Rscript -e 'cat(as.character(packageVersion("quasr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QUASR_BIS_SEQ_WORKFLOW":',
+        paste0('        quasr: ', as.character(packageVersion("quasr")))
+    ), "versions.yml")
     """
 
     stub:

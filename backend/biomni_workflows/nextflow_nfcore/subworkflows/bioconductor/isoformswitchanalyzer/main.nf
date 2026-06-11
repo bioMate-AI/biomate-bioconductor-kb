@@ -148,10 +148,10 @@ process BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS {
         dev.off()
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS":
-        isoformswitchanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("isoformswitchanalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISOFORMSWITCHANALYZER_HIGH_LEVEL_TWO_PART_ANALYSIS":',
+        paste0('        isoformswitchanalyzer: ', as.character(packageVersion("isoformswitchanalyzer")))
+    ), "versions.yml")
     """
 
     stub:

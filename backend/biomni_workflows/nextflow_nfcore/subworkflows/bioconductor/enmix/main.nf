@@ -84,10 +84,10 @@ process BIOC_ENMIX_PIPELINE_PREPROCESSING {
     
     message("Pipeline completed successfully. Outputs saved to 'beta_preprocessed.rds' and 'beta_preprocessed_subset.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ENMIX_PIPELINE_PREPROCESSING":
-        enmix: \$(Rscript -e 'cat(as.character(packageVersion("enmix")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ENMIX_PIPELINE_PREPROCESSING":',
+        paste0('        enmix: ', as.character(packageVersion("enmix")))
+    ), "versions.yml")
     """
 
     stub:

@@ -169,10 +169,10 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
         stop("Output file was not created successfully.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH":
-        bsgenome: \$(Rscript -e 'cat(as.character(packageVersion("bsgenome")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH":',
+        paste0('        bsgenome: ', as.character(packageVersion("bsgenome")))
+    ), "versions.yml")
     """
 
     stub:

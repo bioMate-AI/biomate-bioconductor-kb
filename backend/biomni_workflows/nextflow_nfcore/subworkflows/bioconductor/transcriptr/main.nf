@@ -190,10 +190,10 @@ process BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION":
-        transcriptr: \$(Rscript -e 'cat(as.character(packageVersion("transcriptr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRANSCRIPTR_RNA_SEQ_ONLY_TRANSCRIPT_DETECTION":',
+        paste0('        transcriptr: ', as.character(packageVersion("transcriptr")))
+    ), "versions.yml")
     """
 
     stub:

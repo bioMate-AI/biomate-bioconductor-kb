@@ -106,10 +106,10 @@ process BIOC_FLAGME_XCMS_PEAK_PICKING_ALIGNMENT_WORKFLOW {
     message("- peak_counts_summary.csv")
     message("- chromatogram_plot.pdf")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FLAGME_XCMS_PEAK_PICKING_ALIGNMENT_WORKFLOW":
-        flagme: \$(Rscript -e 'cat(as.character(packageVersion("flagme")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FLAGME_XCMS_PEAK_PICKING_ALIGNMENT_WORKFLOW":',
+        paste0('        flagme: ', as.character(packageVersion("flagme")))
+    ), "versions.yml")
     """
 
     stub:

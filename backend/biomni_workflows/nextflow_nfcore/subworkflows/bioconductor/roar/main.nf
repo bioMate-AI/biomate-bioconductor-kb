@@ -181,10 +181,10 @@ process BIOC_ROAR_STANDARD_APA_ANALYSIS {
     
     cat("\nPipeline completed successfully!\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ROAR_STANDARD_APA_ANALYSIS":
-        roar: \$(Rscript -e 'cat(as.character(packageVersion("roar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ROAR_STANDARD_APA_ANALYSIS":',
+        paste0('        roar: ', as.character(packageVersion("roar")))
+    ), "versions.yml")
     """
 
     stub:

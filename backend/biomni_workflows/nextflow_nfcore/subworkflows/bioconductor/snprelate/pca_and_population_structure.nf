@@ -121,10 +121,10 @@ process BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE {
     # 6. Close the GDS file
     snpgdsClose(genofile)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE":
-        snprelate: \$(Rscript -e 'cat(as.character(packageVersion("snprelate")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPRELATE_PCA_AND_POPULATION_STRUCTURE":',
+        paste0('        snprelate: ', as.character(packageVersion("snprelate")))
+    ), "versions.yml")
     """
 
     stub:

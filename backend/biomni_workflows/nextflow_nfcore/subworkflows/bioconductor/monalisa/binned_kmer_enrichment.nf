@@ -189,10 +189,10 @@ process BIOC_MONALISA_BINNED_KMER_ENRICHMENT {
                  right_annotation = hmSeqlogo))
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MONALISA_BINNED_KMER_ENRICHMENT":
-        monalisa: \$(Rscript -e 'cat(as.character(packageVersion("monalisa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MONALISA_BINNED_KMER_ENRICHMENT":',
+        paste0('        monalisa: ', as.character(packageVersion("monalisa")))
+    ), "versions.yml")
     """
 
     stub:

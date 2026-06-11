@@ -127,10 +127,10 @@ process BIOC_PUMA_UNCERTAINTY_AWARE_CLUSTERING {
     
     message("Workflow completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PUMA_UNCERTAINTY_AWARE_CLUSTERING":
-        puma: \$(Rscript -e 'cat(as.character(packageVersion("puma")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PUMA_UNCERTAINTY_AWARE_CLUSTERING":',
+        paste0('        puma: ', as.character(packageVersion("puma")))
+    ), "versions.yml")
     """
 
     stub:

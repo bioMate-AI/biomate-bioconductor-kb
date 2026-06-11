@@ -138,10 +138,10 @@ process BIOC_SNPRELATE_IBS_AND_CLUSTER_ANALYSIS {
     # Close the GDS file
     snpgdsClose(genofile)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPRELATE_IBS_AND_CLUSTER_ANALYSIS":
-        snprelate: \$(Rscript -e 'cat(as.character(packageVersion("snprelate")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPRELATE_IBS_AND_CLUSTER_ANALYSIS":',
+        paste0('        snprelate: ', as.character(packageVersion("snprelate")))
+    ), "versions.yml")
     """
 
     stub:

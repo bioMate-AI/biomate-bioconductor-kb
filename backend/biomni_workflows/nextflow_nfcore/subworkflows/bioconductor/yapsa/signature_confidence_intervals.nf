@@ -81,10 +81,10 @@ process BIOC_YAPSA_SIGNATURE_CONFIDENCE_INTERVALS {
       in_sigInd_df = lymphoma_COSMIC_listsList\$cohort\$out_sig_ind_df)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_YAPSA_SIGNATURE_CONFIDENCE_INTERVALS":
-        YAPSA: \$(Rscript -e 'cat(as.character(packageVersion("YAPSA")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_YAPSA_SIGNATURE_CONFIDENCE_INTERVALS":',
+        paste0('        YAPSA: ', as.character(packageVersion("YAPSA")))
+    ), "versions.yml")
     """
 
     stub:

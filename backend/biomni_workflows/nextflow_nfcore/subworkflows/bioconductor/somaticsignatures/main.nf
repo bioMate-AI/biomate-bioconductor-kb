@@ -140,10 +140,10 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     # Write out the motif matrix as a CSV
     write.csv(sca_mm, "motif_matrix.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION":
-        somaticsignatures: \$(Rscript -e 'cat(as.character(packageVersion("somaticsignatures")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION":',
+        paste0('        somaticsignatures: ', as.character(packageVersion("somaticsignatures")))
+    ), "versions.yml")
     """
 
     stub:

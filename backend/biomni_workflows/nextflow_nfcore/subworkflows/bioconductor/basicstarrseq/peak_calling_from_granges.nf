@@ -109,10 +109,10 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_GRANGES {
     
     message("Pipeline completed successfully. Outputs written to 'peaks.rds', 'peaks.csv', and 'peaks_enrichment_distribution.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_GRANGES":
-        basicstarrseq: \$(Rscript -e 'cat(as.character(packageVersion("basicstarrseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_GRANGES":',
+        paste0('        basicstarrseq: ', as.character(packageVersion("basicstarrseq")))
+    ), "versions.yml")
     """
 
     stub:

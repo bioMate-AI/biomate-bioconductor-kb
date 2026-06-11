@@ -161,10 +161,10 @@ process BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS":
-        msstatslip: \$(Rscript -e 'cat(as.character(packageVersion("msstatslip")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS":',
+        paste0('        msstatslip: ', as.character(packageVersion("msstatslip")))
+    ), "versions.yml")
     """
 
     stub:

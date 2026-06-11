@@ -108,10 +108,10 @@ process BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW {
     saveRDS(decont_obj, "decont_obj.rds")
     saveRDS(seurat_obj, "seurat_decont_obj.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW":
-        spotclean: \$(Rscript -e 'cat(as.character(packageVersion("spotclean")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW":',
+        paste0('        spotclean: ', as.character(packageVersion("spotclean")))
+    ), "versions.yml")
     """
 
     stub:

@@ -157,10 +157,10 @@ process BIOC_NORCE_PATHWAY_ENRICHMENT {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORCE_PATHWAY_ENRICHMENT":
-        norce: \$(Rscript -e 'cat(as.character(packageVersion("norce")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORCE_PATHWAY_ENRICHMENT":',
+        paste0('        norce: ', as.character(packageVersion("norce")))
+    ), "versions.yml")
     """
 
     stub:

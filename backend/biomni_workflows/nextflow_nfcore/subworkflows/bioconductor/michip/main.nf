@@ -91,10 +91,10 @@ process BIOC_MICHIP_STEP_BY_STEP_PROCESSING {
     saveRDS(summedData, file = "summedData.rds")
     saveRDS(mednormedData, file = "mednormedData.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MICHIP_STEP_BY_STEP_PROCESSING":
-        michip: \$(Rscript -e 'cat(as.character(packageVersion("michip")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MICHIP_STEP_BY_STEP_PROCESSING":',
+        paste0('        michip: ', as.character(packageVersion("michip")))
+    ), "versions.yml")
     """
 
     stub:

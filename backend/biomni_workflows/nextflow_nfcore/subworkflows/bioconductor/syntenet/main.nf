@@ -166,10 +166,10 @@ process BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS":
-        syntenet: \$(Rscript -e 'cat(as.character(packageVersion("syntenet")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SYNTENET_SYNTENY_NETWORK_ANALYSIS":',
+        paste0('        syntenet: ', as.character(packageVersion("syntenet")))
+    ), "versions.yml")
     """
 
     stub:

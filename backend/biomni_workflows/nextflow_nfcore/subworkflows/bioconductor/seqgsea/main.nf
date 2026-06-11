@@ -138,10 +138,10 @@ process BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA {
     # Stop cluster
     stopCluster(cl)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA":
-        seqgsea: \$(Rscript -e 'cat(as.character(packageVersion("seqgsea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA":',
+        paste0('        seqgsea: ', as.character(packageVersion("seqgsea")))
+    ), "versions.yml")
     """
 
     stub:

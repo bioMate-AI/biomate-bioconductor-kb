@@ -87,10 +87,10 @@ process BIOC_DESTINY_DIFFUSION_MAP_PREDICTION {
     # Export predicted coordinates as a CSV table
     write.csv(as.data.frame(pred32), "predicted_coordinates_32.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DESTINY_DIFFUSION_MAP_PREDICTION":
-        destiny: \$(Rscript -e 'cat(as.character(packageVersion("destiny")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DESTINY_DIFFUSION_MAP_PREDICTION":',
+        paste0('        destiny: ', as.character(packageVersion("destiny")))
+    ), "versions.yml")
     """
 
     stub:

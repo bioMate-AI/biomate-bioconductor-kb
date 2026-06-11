@@ -83,10 +83,10 @@ process BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING {
       warning("msaPrettyPrint failed (this function requires a working system installation of LaTeX and texshade.sty): ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING":
-        msa: \$(Rscript -e 'cat(as.character(packageVersion("msa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING":',
+        paste0('        msa: ', as.character(packageVersion("msa")))
+    ), "versions.yml")
     """
 
     stub:

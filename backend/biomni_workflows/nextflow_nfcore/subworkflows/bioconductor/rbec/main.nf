@@ -84,10 +84,10 @@ process BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING {
     message("Rbec execution completed successfully. Generated outputs:")
     print(output_files)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING":
-        rbec: \$(Rscript -e 'cat(as.character(packageVersion("rbec")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING":',
+        paste0('        rbec: ', as.character(packageVersion("rbec")))
+    ), "versions.yml")
     """
 
     stub:

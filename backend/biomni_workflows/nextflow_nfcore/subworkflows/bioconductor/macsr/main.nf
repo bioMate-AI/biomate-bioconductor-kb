@@ -117,10 +117,10 @@ process BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING {
     
     message("Pipeline completed successfully. Outputs saved in: ", out_dir)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING":
-        macsr: \$(Rscript -e 'cat(as.character(packageVersion("macsr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING":',
+        paste0('        macsr: ', as.character(packageVersion("macsr")))
+    ), "versions.yml")
     """
 
     stub:

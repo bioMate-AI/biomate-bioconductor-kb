@@ -156,10 +156,10 @@ process BIOC_EPIALLELER_METHYLATION_BIMODALITY_ECDF {
     message("Saved summary table to 'amplicon_ecdfs_summary.csv'")
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EPIALLELER_METHYLATION_BIMODALITY_ECDF":
-        epialleler: \$(Rscript -e 'cat(as.character(packageVersion("epialleler")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EPIALLELER_METHYLATION_BIMODALITY_ECDF":',
+        paste0('        epialleler: ', as.character(packageVersion("epialleler")))
+    ), "versions.yml")
     """
 
     stub:

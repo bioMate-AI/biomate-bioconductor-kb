@@ -157,10 +157,10 @@ process BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION {
     write.csv(summary_df, "cpg_filtering_summary.csv", row.names = FALSE)
     message("Saved filtering summary to: cpg_filtering_summary.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION":
-        ramwas: \$(Rscript -e 'cat(as.character(packageVersion("ramwas")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAMWAS_CUSTOM_CPG_SET_CONSTRUCTION":',
+        paste0('        ramwas: ', as.character(packageVersion("ramwas")))
+    ), "versions.yml")
     """
 
     stub:

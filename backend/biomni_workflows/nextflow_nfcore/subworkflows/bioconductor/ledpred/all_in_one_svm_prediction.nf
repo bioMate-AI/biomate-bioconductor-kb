@@ -126,10 +126,10 @@ process BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION {
     saveRDS(pred.test2, "scored_predictions.rds")
     write.csv(pred.test2, "scored_predictions.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION":
-        ledpred: \$(Rscript -e 'cat(as.character(packageVersion("ledpred")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LEDPRED_ALL_IN_ONE_SVM_PREDICTION":',
+        paste0('        ledpred: ', as.character(packageVersion("ledpred")))
+    ), "versions.yml")
     """
 
     stub:

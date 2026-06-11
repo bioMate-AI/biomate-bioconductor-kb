@@ -94,10 +94,10 @@ process BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION {
     )
     write.csv(limits_summary, file = "expiration_limits_summary.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION":
-        ptairms: \$(Rscript -e 'cat(as.character(packageVersion("ptairms")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION":',
+        paste0('        ptairms: ', as.character(packageVersion("ptairms")))
+    ), "versions.yml")
     """
 
     stub:

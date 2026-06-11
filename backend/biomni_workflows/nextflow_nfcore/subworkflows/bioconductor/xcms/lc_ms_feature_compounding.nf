@@ -110,10 +110,10 @@ process BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING":
-        xcms: \$(Rscript -e 'cat(as.character(packageVersion("xcms")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_XCMS_LC_MS_FEATURE_COMPOUNDING":',
+        paste0('        xcms: ', as.character(packageVersion("xcms")))
+    ), "versions.yml")
     """
 
     stub:

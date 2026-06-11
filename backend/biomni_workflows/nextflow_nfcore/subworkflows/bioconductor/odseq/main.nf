@@ -111,10 +111,10 @@ process BIOC_ODSEQ_ALIGNED_SEQUENCE_OUTLIER_DETECTION {
     cat("Number of outliers detected:", sum(outliers), "\n")
     cat("Agreement with ground_values:", accuracy, "\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ODSEQ_ALIGNED_SEQUENCE_OUTLIER_DETECTION":
-        odseq: \$(Rscript -e 'cat(as.character(packageVersion("odseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ODSEQ_ALIGNED_SEQUENCE_OUTLIER_DETECTION":',
+        paste0('        odseq: ', as.character(packageVersion("odseq")))
+    ), "versions.yml")
     """
 
     stub:

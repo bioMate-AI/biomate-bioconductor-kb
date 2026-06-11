@@ -159,10 +159,10 @@ process BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY {
     file.remove(expected_names)
     file.remove(paste0(expected_names, ".bai"))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY":
-        ribosomeprofilingqc: \$(Rscript -e 'cat(as.character(packageVersion("ribosomeprofilingqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY":',
+        paste0('        ribosomeprofilingqc: ', as.character(packageVersion("ribosomeprofilingqc")))
+    ), "versions.yml")
     """
 
     stub:

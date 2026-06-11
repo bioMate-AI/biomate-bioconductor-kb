@@ -91,10 +91,10 @@ process BIOC_MONALISA_ANNOTATE_GENOMIC_REGIONS {
     write.table(as.data.frame(res), "motif_hits.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
     write.csv(as.matrix(m), "motif_hit_matrix.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MONALISA_ANNOTATE_GENOMIC_REGIONS":
-        monalisa: \$(Rscript -e 'cat(as.character(packageVersion("monalisa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MONALISA_ANNOTATE_GENOMIC_REGIONS":',
+        paste0('        monalisa: ', as.character(packageVersion("monalisa")))
+    ), "versions.yml")
     """
 
     stub:

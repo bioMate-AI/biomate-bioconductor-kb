@@ -145,10 +145,10 @@ process BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS {
     write.csv(as.data.frame(dist_gr), "genetic_distances_markers.csv", row.names = FALSE)
     write.csv(as.data.frame(dist_bin_gr), "genetic_distances_bins.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS":
-        comapr: \$(Rscript -e 'cat(as.character(packageVersion("comapr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS":',
+        paste0('        comapr: ', as.character(packageVersion("comapr")))
+    ), "versions.yml")
     """
 
     stub:

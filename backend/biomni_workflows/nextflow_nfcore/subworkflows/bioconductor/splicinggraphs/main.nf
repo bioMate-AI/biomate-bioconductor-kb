@@ -206,10 +206,10 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     sg_counts <- countReads(sg)
     write.csv(as.data.frame(sg_counts), "sg_counts.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION":
-        SplicingGraphs: \$(Rscript -e 'cat(as.character(packageVersion("SplicingGraphs")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION":',
+        paste0('        SplicingGraphs: ', as.character(packageVersion("SplicingGraphs")))
+    ), "versions.yml")
     """
 
     stub:

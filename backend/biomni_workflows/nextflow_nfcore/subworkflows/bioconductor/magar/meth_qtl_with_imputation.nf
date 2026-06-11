@@ -126,10 +126,10 @@ process BIOC_MAGAR_METH_QTL_WITH_IMPUTATION {
     
     message("Pipeline completed successfully. Results saved to 'meth_qtl_results.tsv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MAGAR_METH_QTL_WITH_IMPUTATION":
-        magar: \$(Rscript -e 'cat(as.character(packageVersion("magar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MAGAR_METH_QTL_WITH_IMPUTATION":',
+        paste0('        magar: ', as.character(packageVersion("magar")))
+    ), "versions.yml")
     """
 
     stub:

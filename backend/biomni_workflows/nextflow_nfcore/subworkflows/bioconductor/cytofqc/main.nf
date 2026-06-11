@@ -128,10 +128,10 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
     
     print("Pipeline completed successfully. Outputs saved: 'cytof_qc_results.csv', 'cytof_qc_sce.rds', 'cytof_qc_histograms.pdf', 'cytof_qc_density_histograms.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING":
-        cytofqc: \$(Rscript -e 'cat(as.character(packageVersion("cytofqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING":',
+        paste0('        cytofqc: ', as.character(packageVersion("cytofqc")))
+    ), "versions.yml")
     """
 
     stub:

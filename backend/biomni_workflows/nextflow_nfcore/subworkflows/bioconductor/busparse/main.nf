@@ -138,10 +138,10 @@ process BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING {
     
     message("Pipeline completed successfully. All outputs are saved in './output_results'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING":
-        busparse: \$(Rscript -e 'cat(as.character(packageVersion("busparse")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING":',
+        paste0('        busparse: ', as.character(packageVersion("busparse")))
+    ), "versions.yml")
     """
 
     stub:

@@ -103,10 +103,10 @@ process BIOC_R4RNA_ALIGNMENT_AND_STRUCTURAL_COVARIANCE {
     # Close PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_R4RNA_ALIGNMENT_AND_STRUCTURAL_COVARIANCE":
-        r4rna: \$(Rscript -e 'cat(as.character(packageVersion("r4rna")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_R4RNA_ALIGNMENT_AND_STRUCTURAL_COVARIANCE":',
+        paste0('        r4rna: ', as.character(packageVersion("r4rna")))
+    ), "versions.yml")
     """
 
     stub:

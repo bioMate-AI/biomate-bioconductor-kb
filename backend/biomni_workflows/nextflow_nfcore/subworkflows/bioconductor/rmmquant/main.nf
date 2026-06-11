@@ -88,10 +88,10 @@ process BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION {
     # Save the complete SummarizedExperiment output object as an RDS file
     saveRDS(output, "rmmquant_output.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION":
-        rmmquant: \$(Rscript -e 'cat(as.character(packageVersion("rmmquant")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION":',
+        paste0('        rmmquant: ', as.character(packageVersion("rmmquant")))
+    ), "versions.yml")
     """
 
     stub:

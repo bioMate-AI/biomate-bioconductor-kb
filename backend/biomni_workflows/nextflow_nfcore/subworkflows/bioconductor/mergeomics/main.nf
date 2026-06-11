@@ -87,10 +87,10 @@ process BIOC_MERGEOMICS_ONE_STEP_MERGEOMICS {
     # Print execution completion message
     cat("Mergeomics one-step pipeline completed successfully. Results are saved in the 'Results' directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MERGEOMICS_ONE_STEP_MERGEOMICS":
-        mergeomics: \$(Rscript -e 'cat(as.character(packageVersion("mergeomics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MERGEOMICS_ONE_STEP_MERGEOMICS":',
+        paste0('        mergeomics: ', as.character(packageVersion("mergeomics")))
+    ), "versions.yml")
     """
 
     stub:

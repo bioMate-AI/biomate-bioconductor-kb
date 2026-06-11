@@ -203,10 +203,10 @@ process BIOC_SARC_CNV_VALIDATION_AND_FILTERING {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SARC_CNV_VALIDATION_AND_FILTERING":
-        SARC: \$(Rscript -e 'cat(as.character(packageVersion("SARC")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SARC_CNV_VALIDATION_AND_FILTERING":',
+        paste0('        SARC: ', as.character(packageVersion("SARC")))
+    ), "versions.yml")
     """
 
     stub:

@@ -273,10 +273,10 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION":
-        watermelon: \$(Rscript -e 'cat(as.character(packageVersion("watermelon")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION":',
+        paste0('        watermelon: ', as.character(packageVersion("watermelon")))
+    ), "versions.yml")
     """
 
     stub:

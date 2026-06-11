@@ -86,10 +86,10 @@ process BIOC_OTUBASE_TAXONOMY_BASED_ANALYSIS {
     # Save the constructed TAXset object
     saveRDS(soginTAX, "soginTAX.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OTUBASE_TAXONOMY_BASED_ANALYSIS":
-        otubase: \$(Rscript -e 'cat(as.character(packageVersion("otubase")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OTUBASE_TAXONOMY_BASED_ANALYSIS":',
+        paste0('        otubase: ', as.character(packageVersion("otubase")))
+    ), "versions.yml")
     """
 
     stub:

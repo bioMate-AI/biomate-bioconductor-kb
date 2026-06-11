@@ -101,10 +101,10 @@ process BIOC_CAMUTQC_CANCER_OR_REFERENCE_SPECIFIC_FILTERING {
     message(paste("Mutations passing LAML cancer-specific filtering:", sum(MAFCan\$CaTag == "0")))
     message(paste("Mutations passing Zhu et al. 2020 KIRP reference filtering:", sum(MAFRef\$CaTag == "0")))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAMUTQC_CANCER_OR_REFERENCE_SPECIFIC_FILTERING":
-        camutqc: \$(Rscript -e 'cat(as.character(packageVersion("camutqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAMUTQC_CANCER_OR_REFERENCE_SPECIFIC_FILTERING":',
+        paste0('        camutqc: ', as.character(packageVersion("camutqc")))
+    ), "versions.yml")
     """
 
     stub:

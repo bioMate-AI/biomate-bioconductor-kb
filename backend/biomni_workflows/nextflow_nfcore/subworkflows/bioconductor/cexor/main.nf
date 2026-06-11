@@ -85,10 +85,10 @@ process BIOC_CEXOR_CHIP_EXO_PEAK_CALLING {
     plotcexor(bam=c(r1, r2, r3), peaks=peak_pairs, EXT=500)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CEXOR_CHIP_EXO_PEAK_CALLING":
-        cexor: \$(Rscript -e 'cat(as.character(packageVersion("cexor")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CEXOR_CHIP_EXO_PEAK_CALLING":',
+        paste0('        cexor: ', as.character(packageVersion("cexor")))
+    ), "versions.yml")
     """
 
     stub:

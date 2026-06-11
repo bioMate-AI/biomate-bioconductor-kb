@@ -129,10 +129,10 @@ process BIOC_SDAMS_CSV_TO_SDA {
     cat("- 'sda_results.rds' (Raw SDA results list)\n")
     cat("- 'sda_results.csv' (Structured results table)\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SDAMS_CSV_TO_SDA":
-        sdams: \$(Rscript -e 'cat(as.character(packageVersion("sdams")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SDAMS_CSV_TO_SDA":',
+        paste0('        sdams: ', as.character(packageVersion("sdams")))
+    ), "versions.yml")
     """
 
     stub:

@@ -123,10 +123,10 @@ process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
         dev.off()
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW":
-        dexseq: \$(Rscript -e 'cat(as.character(packageVersion("dexseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW":',
+        paste0('        dexseq: ', as.character(packageVersion("dexseq")))
+    ), "versions.yml")
     """
 
     stub:

@@ -116,10 +116,10 @@ process BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS {
     saveRDS(avaSet, file = "avaSet_aligned.rds")
     saveRDS(avaSetFiltered1, file = "avaSetFiltered1.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS":
-        r453plus1toolbox: \$(Rscript -e 'cat(as.character(packageVersion("r453plus1toolbox")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS":',
+        paste0('        r453plus1toolbox: ', as.character(packageVersion("r453plus1toolbox")))
+    ), "versions.yml")
     """
 
     stub:

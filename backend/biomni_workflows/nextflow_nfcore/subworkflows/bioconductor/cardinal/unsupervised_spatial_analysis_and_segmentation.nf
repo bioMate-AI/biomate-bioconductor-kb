@@ -135,10 +135,10 @@ process BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION {
     coloc2 <- colocalized(dgmm, mse\$square)
     write.csv(as.data.frame(coloc2), "colocalized_dgmm.csv", row.names=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION":
-        cardinal: \$(Rscript -e 'cat(as.character(packageVersion("cardinal")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CARDINAL_UNSUPERVISED_SPATIAL_ANALYSIS_AND_SEGMENTATION":',
+        paste0('        cardinal: ', as.character(packageVersion("cardinal")))
+    ), "versions.yml")
     """
 
     stub:

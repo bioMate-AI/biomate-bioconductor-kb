@@ -102,10 +102,10 @@ process BIOC_EXIMIR_EXIQON_MIRNA_NORMALIZATION {
     
     cat("Pipeline completed successfully. Outputs written to 'eset_spike.rds', 'normalized_mirna_expression.csv', and 'normalized_expression_boxplot.pdf'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EXIMIR_EXIQON_MIRNA_NORMALIZATION":
-        eximir: \$(Rscript -e 'cat(as.character(packageVersion("eximir")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EXIMIR_EXIQON_MIRNA_NORMALIZATION":',
+        paste0('        eximir: ', as.character(packageVersion("eximir")))
+    ), "versions.yml")
     """
 
     stub:

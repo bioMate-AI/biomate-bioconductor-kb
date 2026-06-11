@@ -112,10 +112,10 @@ process BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION":
-        spicyR: \$(Rscript -e 'cat(as.character(packageVersion("spicyR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPICYR_INHOMOGENEITY_CORRECTION_AND_VISUALIZATION":',
+        paste0('        spicyR: ', as.character(packageVersion("spicyR")))
+    ), "versions.yml")
     """
 
     stub:

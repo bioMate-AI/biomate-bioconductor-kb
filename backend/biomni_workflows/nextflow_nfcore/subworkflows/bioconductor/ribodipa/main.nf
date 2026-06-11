@@ -119,10 +119,10 @@ process BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE":
-        ribodipa: \$(Rscript -e 'cat(as.character(packageVersion("ribodipa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE":',
+        paste0('        ribodipa: ', as.character(packageVersion("ribodipa")))
+    ), "versions.yml")
     """
 
     stub:

@@ -211,10 +211,10 @@ process BIOC_RAMWAS_STANDARD_MWAS_PIPELINE {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAMWAS_STANDARD_MWAS_PIPELINE":
-        ramwas: \$(Rscript -e 'cat(as.character(packageVersion("ramwas")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAMWAS_STANDARD_MWAS_PIPELINE":',
+        paste0('        ramwas: ', as.character(packageVersion("ramwas")))
+    ), "versions.yml")
     """
 
     stub:

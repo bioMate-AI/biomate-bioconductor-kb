@@ -190,10 +190,10 @@ process BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS":
-        netsam: \$(Rscript -e 'cat(as.character(packageVersion("netsam")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NETSAM_STEPWISE_CORRELATION_NETWORK_ANALYSIS":',
+        paste0('        netsam: ', as.character(packageVersion("netsam")))
+    ), "versions.yml")
     """
 
     stub:

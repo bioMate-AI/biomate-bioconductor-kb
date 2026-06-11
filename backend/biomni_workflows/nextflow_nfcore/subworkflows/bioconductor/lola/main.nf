@@ -91,10 +91,10 @@ process BIOC_LOLA_GENOMIC_REGION_ENRICHMENT_ANALYSIS {
     # Save the extracted overlaps to an RDS file
     saveRDS(overlaps, file = "extracted_overlaps.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LOLA_GENOMIC_REGION_ENRICHMENT_ANALYSIS":
-        lola: \$(Rscript -e 'cat(as.character(packageVersion("lola")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LOLA_GENOMIC_REGION_ENRICHMENT_ANALYSIS":',
+        paste0('        lola: ', as.character(packageVersion("lola")))
+    ), "versions.yml")
     """
 
     stub:

@@ -122,10 +122,10 @@ process BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE {
     # ddCtExec will process the files and write the outputs (CSV, PDF, RData) to the savePath (getwd())
     ddCtExec(params)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE":
-        ddct: \$(Rscript -e 'cat(as.character(packageVersion("ddct")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE":',
+        paste0('        ddct: ', as.character(packageVersion("ddct")))
+    ), "versions.yml")
     """
 
     stub:

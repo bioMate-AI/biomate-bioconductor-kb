@@ -109,10 +109,10 @@ process BIOC_EBIMAGE_CELL_SEGMENTATION {
     
     write.csv(summary_df, "segmentation_quantification.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EBIMAGE_CELL_SEGMENTATION":
-        ebimage: \$(Rscript -e 'cat(as.character(packageVersion("ebimage")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EBIMAGE_CELL_SEGMENTATION":',
+        paste0('        ebimage: ', as.character(packageVersion("ebimage")))
+    ), "versions.yml")
     """
 
     stub:

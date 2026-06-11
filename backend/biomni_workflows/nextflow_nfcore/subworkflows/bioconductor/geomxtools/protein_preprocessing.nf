@@ -203,10 +203,10 @@ process BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING":
-        geomxtools: \$(Rscript -e 'cat(as.character(packageVersion("geomxtools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GEOMXTOOLS_PROTEIN_PREPROCESSING":',
+        paste0('        geomxtools: ', as.character(packageVersion("geomxtools")))
+    ), "versions.yml")
     """
 
     stub:

@@ -106,10 +106,10 @@ process BIOC_ASICS_SPECTRAL_BUCKET_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs saved: oplsda_summary.txt, oplsda_buckets_plot.pdf, analysis_data_bucket.rds, resOPLSDA_buckets.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ASICS_SPECTRAL_BUCKET_ANALYSIS":
-        asics: \$(Rscript -e 'cat(as.character(packageVersion("asics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ASICS_SPECTRAL_BUCKET_ANALYSIS":',
+        paste0('        asics: ', as.character(packageVersion("asics")))
+    ), "versions.yml")
     """
 
     stub:

@@ -138,10 +138,10 @@ process BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION {
     print(head(tr2g_hs86))
     write.csv(tr2g_hs86, "tr2g_hs86.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION":
-        busparse: \$(Rscript -e 'cat(as.character(packageVersion("busparse")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BUSPARSE_TRANSCRIPT_TO_GENE_GENERATION":',
+        paste0('        busparse: ', as.character(packageVersion("busparse")))
+    ), "versions.yml")
     """
 
     stub:

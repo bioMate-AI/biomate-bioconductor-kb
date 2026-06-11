@@ -131,10 +131,10 @@ process BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS {
       write.csv(result[[well]]\$data, file = output_filename, row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS":
-        ddpcrclust: \$(Rscript -e 'cat(as.character(packageVersion("ddpcrclust")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DDPCRCLUST_DDPCR_CLUSTERING_AND_ANALYSIS":',
+        paste0('        ddpcrclust: ', as.character(packageVersion("ddpcrclust")))
+    ), "versions.yml")
     """
 
     stub:

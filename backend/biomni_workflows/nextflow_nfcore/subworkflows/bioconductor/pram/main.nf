@@ -81,10 +81,10 @@ process BIOC_PRAM_CONVENIENT_WRAPPER_RUNPRAM {
       writeLines("# GTF placeholder: PRAM execution failed due to missing external stringtie binary", pred_out_gtf)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PRAM_CONVENIENT_WRAPPER_RUNPRAM":
-        pram: \$(Rscript -e 'cat(as.character(packageVersion("pram")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PRAM_CONVENIENT_WRAPPER_RUNPRAM":',
+        paste0('        pram: ', as.character(packageVersion("pram")))
+    ), "versions.yml")
     """
 
     stub:

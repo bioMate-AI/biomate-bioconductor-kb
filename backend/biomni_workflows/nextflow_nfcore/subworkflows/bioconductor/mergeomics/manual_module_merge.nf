@@ -103,10 +103,10 @@ process BIOC_MERGEOMICS_MANUAL_MODULE_MERGE {
     tool.save(frame = unique(modinfo[, c("MODULE", "SOURCE", "DESCR")]),
               file = modinfofile, directory = job\$folder)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MERGEOMICS_MANUAL_MODULE_MERGE":
-        mergeomics: \$(Rscript -e 'cat(as.character(packageVersion("mergeomics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MERGEOMICS_MANUAL_MODULE_MERGE":',
+        paste0('        mergeomics: ', as.character(packageVersion("mergeomics")))
+    ), "versions.yml")
     """
 
     stub:

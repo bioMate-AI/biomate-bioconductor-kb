@@ -99,10 +99,10 @@ process BIOC_RSUBREAD_SINGLE_CELL_RNA_SEQ_QUANTIFICATION {
       write.csv(as.matrix(counts\$counts\$Example), "umi_counts_matrix.csv", row.names = TRUE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RSUBREAD_SINGLE_CELL_RNA_SEQ_QUANTIFICATION":
-        rsubread: \$(Rscript -e 'cat(as.character(packageVersion("rsubread")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RSUBREAD_SINGLE_CELL_RNA_SEQ_QUANTIFICATION":',
+        paste0('        rsubread: ', as.character(packageVersion("rsubread")))
+    ), "versions.yml")
     """
 
     stub:

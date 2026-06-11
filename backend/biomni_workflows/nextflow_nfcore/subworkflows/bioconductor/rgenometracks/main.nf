@@ -125,10 +125,10 @@ process BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS":
-        rgenometracks: \$(Rscript -e 'cat(as.character(packageVersion("rgenometracks")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RGENOMETRACKS_VISUALIZE_GENOMIC_TRACKS":',
+        paste0('        rgenometracks: ', as.character(packageVersion("rgenometracks")))
+    ), "versions.yml")
     """
 
     stub:

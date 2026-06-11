@@ -125,10 +125,10 @@ process BIOC_GGKEGG_QUICK_WRAPPER_VISUALIZATION {
     # Save the generated network plot
     ggsave("N00002_network_plot.pdf", plot = ggkegg_plot, width = 10, height = 8)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GGKEGG_QUICK_WRAPPER_VISUALIZATION":
-        ggkegg: \$(Rscript -e 'cat(as.character(packageVersion("ggkegg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GGKEGG_QUICK_WRAPPER_VISUALIZATION":',
+        paste0('        ggkegg: ', as.character(packageVersion("ggkegg")))
+    ), "versions.yml")
     """
 
     stub:

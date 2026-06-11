@@ -194,10 +194,10 @@ process BIOC_COSMIQ_COSMIQ_STEP_BY_STEP {
     write.csv(sorted_peaktable, "cosmiq_peaktable.csv", row.names=FALSE)
     saveRDS(xs, "cosmiq_xcmsSet.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COSMIQ_COSMIQ_STEP_BY_STEP":
-        cosmiq: \$(Rscript -e 'cat(as.character(packageVersion("cosmiq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COSMIQ_COSMIQ_STEP_BY_STEP":',
+        paste0('        cosmiq: ', as.character(packageVersion("cosmiq")))
+    ), "versions.yml")
     """
 
     stub:

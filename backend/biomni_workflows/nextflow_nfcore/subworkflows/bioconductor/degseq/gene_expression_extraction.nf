@@ -81,10 +81,10 @@ process BIOC_DEGSEQ_GENE_EXPRESSION_EXTRACTION {
     # Print a subset of the expression matrix as shown in the vignette
     write.table(exp[30:32,], row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEGSEQ_GENE_EXPRESSION_EXTRACTION":
-        degseq: \$(Rscript -e 'cat(as.character(packageVersion("degseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEGSEQ_GENE_EXPRESSION_EXTRACTION":',
+        paste0('        degseq: ', as.character(packageVersion("degseq")))
+    ), "versions.yml")
     """
 
     stub:

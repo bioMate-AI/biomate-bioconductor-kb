@@ -89,10 +89,10 @@ process BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE {
     # Print execution status
     cat("chromDraw execution completed with status code:", status, "\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE":
-        chromdraw: \$(Rscript -e 'cat(as.character(packageVersion("chromdraw")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE":',
+        paste0('        chromdraw: ', as.character(packageVersion("chromdraw")))
+    ), "versions.yml")
     """
 
     stub:

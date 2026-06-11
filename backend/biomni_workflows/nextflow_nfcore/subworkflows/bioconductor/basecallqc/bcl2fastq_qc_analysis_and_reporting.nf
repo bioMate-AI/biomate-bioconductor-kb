@@ -180,10 +180,10 @@ process BIOC_BASECALLQC_BCL2FASTQ_QC_ANALYSIS_AND_REPORTING {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BASECALLQC_BCL2FASTQ_QC_ANALYSIS_AND_REPORTING":
-        basecallqc: \$(Rscript -e 'cat(as.character(packageVersion("basecallqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BASECALLQC_BCL2FASTQ_QC_ANALYSIS_AND_REPORTING":',
+        paste0('        basecallqc: ', as.character(packageVersion("basecallqc")))
+    ), "versions.yml")
     """
 
     stub:

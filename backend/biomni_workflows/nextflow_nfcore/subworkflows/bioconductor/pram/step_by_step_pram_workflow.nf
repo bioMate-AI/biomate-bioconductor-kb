@@ -99,10 +99,10 @@ process BIOC_PRAM_STEP_BY_STEP_PRAM_WORKFLOW {
     # Save evaluation results to a named output file
     data.table::fwrite(eval_res, 'evaluation_results.tsv', sep="\t")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PRAM_STEP_BY_STEP_PRAM_WORKFLOW":
-        pram: \$(Rscript -e 'cat(as.character(packageVersion("pram")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PRAM_STEP_BY_STEP_PRAM_WORKFLOW":',
+        paste0('        pram: ', as.character(packageVersion("pram")))
+    ), "versions.yml")
     """
 
     stub:

@@ -147,10 +147,10 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT":
-        chipseeker: \$(Rscript -e 'cat(as.character(packageVersion("chipseeker")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT":',
+        paste0('        chipseeker: ', as.character(packageVersion("chipseeker")))
+    ), "versions.yml")
     """
 
     stub:

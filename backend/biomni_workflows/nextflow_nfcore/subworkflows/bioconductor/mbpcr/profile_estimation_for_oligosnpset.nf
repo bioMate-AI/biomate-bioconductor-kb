@@ -117,10 +117,10 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FOR_OLIGOSNPSET {
     message("- estimated_copy_number_chr2.csv (Estimated copy numbers for Chromosome 2)")
     message("- copy_number_profile_chr2.pdf (Visualization plot)")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MBPCR_PROFILE_ESTIMATION_FOR_OLIGOSNPSET":
-        mbpcr: \$(Rscript -e 'cat(as.character(packageVersion("mbpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MBPCR_PROFILE_ESTIMATION_FOR_OLIGOSNPSET":',
+        paste0('        mbpcr: ', as.character(packageVersion("mbpcr")))
+    ), "versions.yml")
     """
 
     stub:

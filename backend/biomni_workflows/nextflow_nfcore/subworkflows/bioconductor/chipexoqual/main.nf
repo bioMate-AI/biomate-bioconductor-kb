@@ -103,10 +103,10 @@ process BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE":
-        chipexoqual: \$(Rscript -e 'cat(as.character(packageVersion("chipexoqual")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPEXOQUAL_SUBSAMPLING_QC_PIPELINE":',
+        paste0('        chipexoqual: ', as.character(packageVersion("chipexoqual")))
+    ), "versions.yml")
     """
 
     stub:

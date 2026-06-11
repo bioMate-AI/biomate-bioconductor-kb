@@ -98,10 +98,10 @@ process BIOC_LEA_PREDICTIVE_ECOLOGICAL_GENOMICS_GENETIC_GAP {
     )
     write.csv(offset_data, "ecological_distance_vs_offset.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LEA_PREDICTIVE_ECOLOGICAL_GENOMICS_GENETIC_GAP":
-        lea: \$(Rscript -e 'cat(as.character(packageVersion("lea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LEA_PREDICTIVE_ECOLOGICAL_GENOMICS_GENETIC_GAP":',
+        paste0('        lea: ', as.character(packageVersion("lea")))
+    ), "versions.yml")
     """
 
     stub:

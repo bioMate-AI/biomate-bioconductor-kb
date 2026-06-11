@@ -169,10 +169,10 @@ process BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING {
     # Save the final BarcodeObj as an RDS file
     saveRDS(bc_obj_umi_sub, "final_barcode_obj.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING":
-        cellbarcode: \$(Rscript -e 'cat(as.character(packageVersion("cellbarcode")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CELLBARCODE_FASTQ_LINEAGE_BARCODING":',
+        paste0('        cellbarcode: ', as.character(packageVersion("cellbarcode")))
+    ), "versions.yml")
     """
 
     stub:

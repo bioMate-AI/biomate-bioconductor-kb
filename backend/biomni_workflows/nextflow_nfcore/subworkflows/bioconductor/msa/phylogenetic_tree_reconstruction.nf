@@ -85,10 +85,10 @@ process BIOC_MSA_PHYLOGENETIC_TREE_RECONSTRUCTION {
     plot(hemoTree, main="Phylogenetic Tree of Hemoglobin Alpha Sequences")
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSA_PHYLOGENETIC_TREE_RECONSTRUCTION":
-        msa: \$(Rscript -e 'cat(as.character(packageVersion("msa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSA_PHYLOGENETIC_TREE_RECONSTRUCTION":',
+        paste0('        msa: ', as.character(packageVersion("msa")))
+    ), "versions.yml")
     """
 
     stub:

@@ -143,10 +143,10 @@ process BIOC_FLOWGATE_INTERACTIVE_MANUAL_GATING {
     stats_mfi <- gs_pop_get_stats(gs, type = pop.MFI)
     write.csv(stats_mfi, "stats_mfi.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FLOWGATE_INTERACTIVE_MANUAL_GATING":
-        flowgate: \$(Rscript -e 'cat(as.character(packageVersion("flowgate")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FLOWGATE_INTERACTIVE_MANUAL_GATING":',
+        paste0('        flowgate: ', as.character(packageVersion("flowgate")))
+    ), "versions.yml")
     """
 
     stub:

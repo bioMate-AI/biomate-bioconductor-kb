@@ -106,10 +106,10 @@ process BIOC_RSUBREAD_BULK_RNA_SEQ_ALIGNMENT_AND_QUANTIFICATION {
     
     cat("Pipeline completed successfully. Outputs saved.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RSUBREAD_BULK_RNA_SEQ_ALIGNMENT_AND_QUANTIFICATION":
-        rsubread: \$(Rscript -e 'cat(as.character(packageVersion("rsubread")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RSUBREAD_BULK_RNA_SEQ_ALIGNMENT_AND_QUANTIFICATION":',
+        paste0('        rsubread: ', as.character(packageVersion("rsubread")))
+    ), "versions.yml")
     """
 
     stub:

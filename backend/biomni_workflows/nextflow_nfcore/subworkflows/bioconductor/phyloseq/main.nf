@@ -136,10 +136,10 @@ process BIOC_PHYLOSEQ_DATA_IMPORT_AND_ASSEMBLY {
       warning("Could not generate tree plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOSEQ_DATA_IMPORT_AND_ASSEMBLY":
-        phyloseq: \$(Rscript -e 'cat(as.character(packageVersion("phyloseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOSEQ_DATA_IMPORT_AND_ASSEMBLY":',
+        paste0('        phyloseq: ', as.character(packageVersion("phyloseq")))
+    ), "versions.yml")
     """
 
     stub:

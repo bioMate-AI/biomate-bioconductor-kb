@@ -122,10 +122,10 @@ process BIOC_SEMDIST_EVALUATE_PREDICTIONS_RUMI {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEMDIST_EVALUATE_PREDICTIONS_RUMI":
-        semdist: \$(Rscript -e 'cat(as.character(packageVersion("semdist")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEMDIST_EVALUATE_PREDICTIONS_RUMI":',
+        paste0('        semdist: ', as.character(packageVersion("semdist")))
+    ), "versions.yml")
     """
 
     stub:

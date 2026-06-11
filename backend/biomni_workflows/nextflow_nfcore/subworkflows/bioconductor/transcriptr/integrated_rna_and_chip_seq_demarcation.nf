@@ -224,10 +224,10 @@ process BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION":
-        transcriptr: \$(Rscript -e 'cat(as.character(packageVersion("transcriptr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRANSCRIPTR_INTEGRATED_RNA_AND_CHIP_SEQ_DEMARCATION":',
+        paste0('        transcriptr: ', as.character(packageVersion("transcriptr")))
+    ), "versions.yml")
     """
 
     stub:

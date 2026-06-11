@@ -121,10 +121,10 @@ process BIOC_CIRCSEQALIGNTK_SYNTHETIC_READ_GENERATION_AND_EVALUATION {
     cat(paste("Reverse Strand RMSE:", rev_rmse, "\n"))
     cat(paste("Outputs saved to directory:", ws, "\n"))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CIRCSEQALIGNTK_SYNTHETIC_READ_GENERATION_AND_EVALUATION":
-        circseqaligntk: \$(Rscript -e 'cat(as.character(packageVersion("circseqaligntk")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CIRCSEQALIGNTK_SYNTHETIC_READ_GENERATION_AND_EVALUATION":',
+        paste0('        circseqaligntk: ', as.character(packageVersion("circseqaligntk")))
+    ), "versions.yml")
     """
 
     stub:

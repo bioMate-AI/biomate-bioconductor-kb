@@ -97,10 +97,10 @@ process BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS {
     p4 = plotSummarySignal(signalSummaryList = op2, plotType = "violinPlot", metadata = cellTypeMetadata, colorColumn = "tissueType")
     ggplot2::ggsave("plot_summary_signal_list_violin.pdf", plot = p4, width = 10, height = 7)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS":
-        genomicdistributions: \$(Rscript -e 'cat(as.character(packageVersion("genomicdistributions")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICDISTRIBUTIONS_SIGNAL_IN_REGIONS":',
+        paste0('        genomicdistributions: ', as.character(packageVersion("genomicdistributions")))
+    ), "versions.yml")
     """
 
     stub:

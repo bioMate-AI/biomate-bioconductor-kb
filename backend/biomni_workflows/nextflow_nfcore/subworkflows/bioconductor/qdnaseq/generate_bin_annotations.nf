@@ -127,10 +127,10 @@ process BIOC_QDNASEQ_GENERATE_BIN_ANNOTATIONS {
     saveRDS(bins, file="bin_annotations_hg19_15kbp.rds")
     write.table(pData(bins), file="bin_annotations_hg19_15kbp.tsv", sep="\t", quote=FALSE, row.names=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QDNASEQ_GENERATE_BIN_ANNOTATIONS":
-        qdnaseq: \$(Rscript -e 'cat(as.character(packageVersion("qdnaseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QDNASEQ_GENERATE_BIN_ANNOTATIONS":',
+        paste0('        qdnaseq: ', as.character(packageVersion("qdnaseq")))
+    ), "versions.yml")
     """
 
     stub:

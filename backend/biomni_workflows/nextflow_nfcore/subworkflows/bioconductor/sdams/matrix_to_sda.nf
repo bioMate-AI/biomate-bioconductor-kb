@@ -183,10 +183,10 @@ process BIOC_SDAMS_MATRIX_TO_SDA {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SDAMS_MATRIX_TO_SDA":
-        sdams: \$(Rscript -e 'cat(as.character(packageVersion("sdams")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SDAMS_MATRIX_TO_SDA":',
+        paste0('        sdams: ', as.character(packageVersion("sdams")))
+    ), "versions.yml")
     """
 
     stub:

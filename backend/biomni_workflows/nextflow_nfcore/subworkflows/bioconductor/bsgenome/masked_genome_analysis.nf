@@ -96,10 +96,10 @@ process BIOC_BSGENOME_MASKED_GENOME_ANALYSIS {
     
     message("Analysis complete. Results written to 'masked_genome_analysis_results.csv' and 'masked_chrY.rds'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BSGENOME_MASKED_GENOME_ANALYSIS":
-        bsgenome: \$(Rscript -e 'cat(as.character(packageVersion("bsgenome")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BSGENOME_MASKED_GENOME_ANALYSIS":',
+        paste0('        bsgenome: ', as.character(packageVersion("bsgenome")))
+    ), "versions.yml")
     """
 
     stub:

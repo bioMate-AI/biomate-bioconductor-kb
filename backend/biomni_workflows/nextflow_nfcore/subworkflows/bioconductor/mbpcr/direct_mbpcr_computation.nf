@@ -130,10 +130,10 @@ process BIOC_MBPCR_DIRECT_MBPCR_COMPUTATION {
     )
     write.csv(results_df, file = "mbpcr_results.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MBPCR_DIRECT_MBPCR_COMPUTATION":
-        mbpcr: \$(Rscript -e 'cat(as.character(packageVersion("mbpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MBPCR_DIRECT_MBPCR_COMPUTATION":',
+        paste0('        mbpcr: ', as.character(packageVersion("mbpcr")))
+    ), "versions.yml")
     """
 
     stub:

@@ -156,10 +156,10 @@ process BIOC_ISOBAR_ISOBARIC_QUANTIFICATION {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISOBAR_ISOBARIC_QUANTIFICATION":
-        isobar: \$(Rscript -e 'cat(as.character(packageVersion("isobar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISOBAR_ISOBARIC_QUANTIFICATION":',
+        paste0('        isobar: ', as.character(packageVersion("isobar")))
+    ), "versions.yml")
     """
 
     stub:

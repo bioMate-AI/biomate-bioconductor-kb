@@ -118,10 +118,10 @@ process BIOC_RIVER_RIVER_APPLICATION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIVER_RIVER_APPLICATION":
-        river: \$(Rscript -e 'cat(as.character(packageVersion("river")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIVER_RIVER_APPLICATION":',
+        paste0('        river: ', as.character(packageVersion("river")))
+    ), "versions.yml")
     """
 
     stub:

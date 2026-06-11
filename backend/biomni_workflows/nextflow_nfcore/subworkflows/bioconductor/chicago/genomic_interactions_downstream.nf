@@ -102,10 +102,10 @@ process BIOC_CHICAGO_GENOMIC_INTERACTIONS_DOWNSTREAM {
     
     message("Workflow completed successfully. Outputs saved: 'genomic_interactions.rds', 'other_ends.rds', 'overlaps.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHICAGO_GENOMIC_INTERACTIONS_DOWNSTREAM":
-        chicago: \$(Rscript -e 'cat(as.character(packageVersion("chicago")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHICAGO_GENOMIC_INTERACTIONS_DOWNSTREAM":',
+        paste0('        chicago: ', as.character(packageVersion("chicago")))
+    ), "versions.yml")
     """
 
     stub:

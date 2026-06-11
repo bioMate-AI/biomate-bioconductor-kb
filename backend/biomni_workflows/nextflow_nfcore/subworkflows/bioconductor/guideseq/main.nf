@@ -106,10 +106,10 @@ process BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ {
     
     message("GUIDE-seq step-by-step pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ":
-        guideseq: \$(Rscript -e 'cat(as.character(packageVersion("guideseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ":',
+        paste0('        guideseq: ', as.character(packageVersion("guideseq")))
+    ), "versions.yml")
     """
 
     stub:

@@ -109,10 +109,10 @@ process BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW {
     # Save the final workspace object
     saveRDS(wTotal, "wTotal_multiplicity_filtered.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW":
-        rmassbank: \$(Rscript -e 'cat(as.character(packageVersion("rmassbank")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RMASSBANK_MULTIPLICITY_FILTERING_WORKFLOW":',
+        paste0('        rmassbank: ', as.character(packageVersion("rmassbank")))
+    ), "versions.yml")
     """
 
     stub:

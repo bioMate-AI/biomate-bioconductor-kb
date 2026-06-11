@@ -143,10 +143,10 @@ process BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING {
     # Save the final ballgown object for downstream analysis
     saveRDS(bg, "ballgown_object.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING":
-        ballgown: \$(Rscript -e 'cat(as.character(packageVersion("ballgown")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BALLGOWN_TRANSCRIPT_CLUSTERING_AND_TESTING":',
+        paste0('        ballgown: ', as.character(packageVersion("ballgown")))
+    ), "versions.yml")
     """
 
     stub:

@@ -142,10 +142,10 @@ process BIOC_SEQSETVIS_PEAK_SET_OVERLAP_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQSETVIS_PEAK_SET_OVERLAP_ANALYSIS":
-        seqsetvis: \$(Rscript -e 'cat(as.character(packageVersion("seqsetvis")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQSETVIS_PEAK_SET_OVERLAP_ANALYSIS":',
+        paste0('        seqsetvis: ', as.character(packageVersion("seqsetvis")))
+    ), "versions.yml")
     """
 
     stub:

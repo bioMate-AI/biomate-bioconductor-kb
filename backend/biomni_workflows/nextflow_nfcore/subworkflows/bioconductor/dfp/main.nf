@@ -79,10 +79,10 @@ process BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN {
     plotDiscriminantFuzzyPattern(res\$discriminant.fuzzy.pattern)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN":
-        dfp: \$(Rscript -e 'cat(as.character(packageVersion("dfp")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN":',
+        paste0('        dfp: ', as.character(packageVersion("dfp")))
+    ), "versions.yml")
     """
 
     stub:

@@ -102,10 +102,10 @@ process BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM":
-        basicstarrseq: \$(Rscript -e 'cat(as.character(packageVersion("basicstarrseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BASICSTARRSEQ_PEAK_CALLING_FROM_BAM":',
+        paste0('        basicstarrseq: ', as.character(packageVersion("basicstarrseq")))
+    ), "versions.yml")
     """
 
     stub:

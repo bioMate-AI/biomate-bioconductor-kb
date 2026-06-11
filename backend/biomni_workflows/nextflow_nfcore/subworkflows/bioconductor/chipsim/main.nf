@@ -132,10 +132,10 @@ process BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION":
-        chipsim: \$(Rscript -e 'cat(as.character(packageVersion("chipsim")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION":',
+        paste0('        chipsim: ', as.character(packageVersion("chipsim")))
+    ), "versions.yml")
     """
 
     stub:

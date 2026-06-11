@@ -162,10 +162,10 @@ process BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING":
-        enmix: \$(Rscript -e 'cat(as.character(packageVersion("enmix")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ENMIX_CUSTOM_STEP_BY_STEP_PREPROCESSING":',
+        paste0('        enmix: ', as.character(packageVersion("enmix")))
+    ), "versions.yml")
     """
 
     stub:

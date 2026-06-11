@@ -96,10 +96,10 @@ process BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING {
     # Save the final fusion object as an RDS file
     saveRDS(fusion, "fusion_object.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING":
-        chimeraviz: \$(Rscript -e 'cat(as.character(packageVersion("chimeraviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING":',
+        paste0('        chimeraviz: ', as.character(packageVersion("chimeraviz")))
+    ), "versions.yml")
     """
 
     stub:

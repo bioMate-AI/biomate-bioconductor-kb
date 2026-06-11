@@ -139,10 +139,10 @@ process BIOC_KEGGGRAPH_CHEMICAL_REACTION_NETWORK_PARSING {
     cat("- compound_out_degrees.csv\n")
     cat("- chemical_reaction_graph.pdf\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KEGGGRAPH_CHEMICAL_REACTION_NETWORK_PARSING":
-        kegggraph: \$(Rscript -e 'cat(as.character(packageVersion("kegggraph")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KEGGGRAPH_CHEMICAL_REACTION_NETWORK_PARSING":',
+        paste0('        kegggraph: ', as.character(packageVersion("kegggraph")))
+    ), "versions.yml")
     """
 
     stub:

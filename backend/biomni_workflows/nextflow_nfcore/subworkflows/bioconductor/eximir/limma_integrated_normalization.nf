@@ -87,10 +87,10 @@ process BIOC_EXIMIR_LIMMA_INTEGRATED_NORMALIZATION {
     
     cat("Pipeline completed successfully. Outputs saved to 'normalized_expression.csv' and 'eset_spike.rds'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EXIMIR_LIMMA_INTEGRATED_NORMALIZATION":
-        eximir: \$(Rscript -e 'cat(as.character(packageVersion("eximir")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EXIMIR_LIMMA_INTEGRATED_NORMALIZATION":',
+        paste0('        eximir: ', as.character(packageVersion("eximir")))
+    ), "versions.yml")
     """
 
     stub:

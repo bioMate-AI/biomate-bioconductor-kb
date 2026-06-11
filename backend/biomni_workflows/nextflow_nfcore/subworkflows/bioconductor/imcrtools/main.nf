@@ -101,10 +101,10 @@ process BIOC_IMCRTOOLS_IMC_DATA_IMPORT {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_IMCRTOOLS_IMC_DATA_IMPORT":
-        imcRtools: \$(Rscript -e 'cat(as.character(packageVersion("imcRtools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_IMCRTOOLS_IMC_DATA_IMPORT":',
+        paste0('        imcRtools: ', as.character(packageVersion("imcRtools")))
+    ), "versions.yml")
     """
 
     stub:

@@ -105,10 +105,10 @@ process BIOC_SELECTKSIGS_SELECT_OPTIMAL_SIGNATURES {
     
     message("Pipeline completed successfully. Outputs saved: 'cv_results.csv', 'cv_results.rds', 'cv_results_formatted.csv', and 'optimal_signatures_plot.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SELECTKSIGS_SELECT_OPTIMAL_SIGNATURES":
-        selectksigs: \$(Rscript -e 'cat(as.character(packageVersion("selectksigs")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SELECTKSIGS_SELECT_OPTIMAL_SIGNATURES":',
+        paste0('        selectksigs: ', as.character(packageVersion("selectksigs")))
+    ), "versions.yml")
     """
 
     stub:

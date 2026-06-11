@@ -136,10 +136,10 @@ process BIOC_RAMWAS_CPG_SNP_JOINT_ANALYSIS {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAMWAS_CPG_SNP_JOINT_ANALYSIS":
-        ramwas: \$(Rscript -e 'cat(as.character(packageVersion("ramwas")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAMWAS_CPG_SNP_JOINT_ANALYSIS":',
+        paste0('        ramwas: ', as.character(packageVersion("ramwas")))
+    ), "versions.yml")
     """
 
     stub:

@@ -214,10 +214,10 @@ process BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION":
-        phyloseq: \$(Rscript -e 'cat(as.character(packageVersion("phyloseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION":',
+        paste0('        phyloseq: ', as.character(packageVersion("phyloseq")))
+    ), "versions.yml")
     """
 
     stub:

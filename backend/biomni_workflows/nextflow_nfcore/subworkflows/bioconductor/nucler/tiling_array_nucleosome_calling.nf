@@ -143,10 +143,10 @@ process BIOC_NUCLER_TILING_ARRAY_NUCLEOSOME_CALLING {
     
     message("Pipeline completed successfully. Outputs saved: power_spectrum.pdf, tiling_fft.rds, peaks_plot.pdf, detected_peaks.rds, detected_peaks.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NUCLER_TILING_ARRAY_NUCLEOSOME_CALLING":
-        nucler: \$(Rscript -e 'cat(as.character(packageVersion("nucler")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NUCLER_TILING_ARRAY_NUCLEOSOME_CALLING":',
+        paste0('        nucler: ', as.character(packageVersion("nucler")))
+    ), "versions.yml")
     """
 
     stub:

@@ -92,10 +92,10 @@ process BIOC_RFASTP_SINGLE_END_QC_TRIMMING {
     # Save the JSON report object as RDS
     saveRDS(se_json_report, "se_json_report.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RFASTP_SINGLE_END_QC_TRIMMING":
-        rfastp: \$(Rscript -e 'cat(as.character(packageVersion("rfastp")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RFASTP_SINGLE_END_QC_TRIMMING":',
+        paste0('        rfastp: ', as.character(packageVersion("rfastp")))
+    ), "versions.yml")
     """
 
     stub:

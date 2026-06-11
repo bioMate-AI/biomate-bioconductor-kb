@@ -123,10 +123,10 @@ process BIOC_BRANCHPOINTER_INTRONIC_BRANCHPOINT_ANNOTATION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BRANCHPOINTER_INTRONIC_BRANCHPOINT_ANNOTATION":
-        branchpointer: \$(Rscript -e 'cat(as.character(packageVersion("branchpointer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BRANCHPOINTER_INTRONIC_BRANCHPOINT_ANNOTATION":',
+        paste0('        branchpointer: ', as.character(packageVersion("branchpointer")))
+    ), "versions.yml")
     """
 
     stub:

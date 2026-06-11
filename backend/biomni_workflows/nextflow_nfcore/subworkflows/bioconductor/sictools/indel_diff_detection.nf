@@ -117,10 +117,10 @@ process BIOC_SICTOOLS_INDEL_DIFF_DETECTION {
       saveRDS(empty_df, "indel_diff_results.rds")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SICTOOLS_INDEL_DIFF_DETECTION":
-        sictools: \$(Rscript -e 'cat(as.character(packageVersion("sictools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SICTOOLS_INDEL_DIFF_DETECTION":',
+        paste0('        sictools: ', as.character(packageVersion("sictools")))
+    ), "versions.yml")
     """
 
     stub:

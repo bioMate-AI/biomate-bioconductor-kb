@@ -209,10 +209,10 @@ process BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS {
     saveRDS(pancreasSCE, "pancreasSCE_processed.rds")
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS":
-        imcRtools: \$(Rscript -e 'cat(as.character(packageVersion("imcRtools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_IMCRTOOLS_SPATIAL_NEIGHBORHOOD_ANALYSIS":',
+        paste0('        imcRtools: ', as.character(packageVersion("imcRtools")))
+    ), "versions.yml")
     """
 
     stub:

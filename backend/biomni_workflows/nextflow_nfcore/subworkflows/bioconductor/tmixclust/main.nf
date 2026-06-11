@@ -117,10 +117,10 @@ process BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING {
     cat("- best_cluster_stability_obj.rds (Serialized optimal clustering object)\n")
     cat("- gene_cluster_assignments.csv (Table of gene cluster assignments)\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING":
-        tmixclust: \$(Rscript -e 'cat(as.character(packageVersion("tmixclust")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING":',
+        paste0('        tmixclust: ', as.character(packageVersion("tmixclust")))
+    ), "versions.yml")
     """
 
     stub:

@@ -121,10 +121,10 @@ process BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH":
-        swathxtend: \$(Rscript -e 'cat(as.character(packageVersion("swathxtend")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SWATHXTEND_RELIABILITY_CHECK_SWATH":',
+        paste0('        swathxtend: ', as.character(packageVersion("swathxtend")))
+    ), "versions.yml")
     """
 
     stub:

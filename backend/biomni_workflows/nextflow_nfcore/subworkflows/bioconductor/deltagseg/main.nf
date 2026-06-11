@@ -140,10 +140,10 @@ process BIOC_DELTAGSEG_MACROSTATE_IDENTIFICATION {
     
     message("Pipeline completed successfully. Outputs written to subpopulation_intervals.csv, diagnostic_plots.pdf, and RDS files.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DELTAGSEG_MACROSTATE_IDENTIFICATION":
-        deltagseg: \$(Rscript -e 'cat(as.character(packageVersion("deltagseg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DELTAGSEG_MACROSTATE_IDENTIFICATION":',
+        paste0('        deltagseg: ', as.character(packageVersion("deltagseg")))
+    ), "versions.yml")
     """
 
     stub:

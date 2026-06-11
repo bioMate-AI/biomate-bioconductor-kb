@@ -105,10 +105,10 @@ process BIOC_SNPSTATS_LD_ANALYSIS {
     saveRDS(OR, "OR_stat.rds")
     write.csv(data.frame(SNP = names(clusters), Cluster = clusters), "clusters.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPSTATS_LD_ANALYSIS":
-        snpstats: \$(Rscript -e 'cat(as.character(packageVersion("snpstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPSTATS_LD_ANALYSIS":',
+        paste0('        snpstats: ', as.character(packageVersion("snpstats")))
+    ), "versions.yml")
     """
 
     stub:

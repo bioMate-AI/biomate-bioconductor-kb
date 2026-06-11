@@ -133,10 +133,10 @@ process BIOC_METHIMPUTE_INTERACTING_CONTEXT_CALLING {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METHIMPUTE_INTERACTING_CONTEXT_CALLING":
-        methimpute: \$(Rscript -e 'cat(as.character(packageVersion("methimpute")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METHIMPUTE_INTERACTING_CONTEXT_CALLING":',
+        paste0('        methimpute: ', as.character(packageVersion("methimpute")))
+    ), "versions.yml")
     """
 
     stub:

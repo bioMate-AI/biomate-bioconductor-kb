@@ -126,10 +126,10 @@ process BIOC_GMOVIZ_INCREMENTAL_PLOTTING {
     write.csv(as.data.frame(features), "features.csv", row.names = FALSE)
     saveRDS(chr4_coverage, "coverage.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GMOVIZ_INCREMENTAL_PLOTTING":
-        gmoviz: \$(Rscript -e 'cat(as.character(packageVersion("gmoviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GMOVIZ_INCREMENTAL_PLOTTING":',
+        paste0('        gmoviz: ', as.character(packageVersion("gmoviz")))
+    ), "versions.yml")
     """
 
     stub:

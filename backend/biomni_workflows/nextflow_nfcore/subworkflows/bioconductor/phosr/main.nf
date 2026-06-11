@@ -223,10 +223,10 @@ process BIOC_PHOSR_BATCH_CORRECTION {
     message("  - batch_corrected_ppe.rds")
     message("  - batch_correction_qc.pdf")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHOSR_BATCH_CORRECTION":
-        PhosR: \$(Rscript -e 'cat(as.character(packageVersion("PhosR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHOSR_BATCH_CORRECTION":',
+        paste0('        PhosR: ', as.character(packageVersion("PhosR")))
+    ), "versions.yml")
     """
 
     stub:

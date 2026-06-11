@@ -81,10 +81,10 @@ process BIOC_TFBSTOOLS_GENOME_WIDE_PHYLOGENETIC_FOOTPRINTING {
     gff3_df <- writeGFF3(sitePairSet)
     write.csv(gff3_df, "sitePairSet_gff3.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TFBSTOOLS_GENOME_WIDE_PHYLOGENETIC_FOOTPRINTING":
-        tfbstools: \$(Rscript -e 'cat(as.character(packageVersion("tfbstools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TFBSTOOLS_GENOME_WIDE_PHYLOGENETIC_FOOTPRINTING":',
+        paste0('        tfbstools: ', as.character(packageVersion("tfbstools")))
+    ), "versions.yml")
     """
 
     stub:

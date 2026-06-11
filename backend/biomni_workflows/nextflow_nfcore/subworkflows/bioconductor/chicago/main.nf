@@ -79,10 +79,10 @@ process BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING {
     # Save the processed chicagoData object to disk
     saveRDS(cd, file = file.path(outputDirectory, "chicago_object.rds"))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING":
-        chicago: \$(Rscript -e 'cat(as.character(packageVersion("chicago")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING":',
+        paste0('        chicago: ', as.character(packageVersion("chicago")))
+    ), "versions.yml")
     """
 
     stub:

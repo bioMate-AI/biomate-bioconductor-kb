@@ -92,10 +92,10 @@ process BIOC_CHIPQC_SINGLE_SAMPLE_CHIPSEQ_QC {
     plotCC(CTCF1)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPQC_SINGLE_SAMPLE_CHIPSEQ_QC":
-        chipqc: \$(Rscript -e 'cat(as.character(packageVersion("chipqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPQC_SINGLE_SAMPLE_CHIPSEQ_QC":',
+        paste0('        chipqc: ', as.character(packageVersion("chipqc")))
+    ), "versions.yml")
     """
 
     stub:

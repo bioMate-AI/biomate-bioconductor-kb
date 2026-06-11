@@ -187,10 +187,10 @@ process BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS":
-        qsutils: \$(Rscript -e 'cat(as.character(packageVersion("qsutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QSUTILS_QUASISPECIES_DIVERSITY_ANALYSIS":',
+        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+    ), "versions.yml")
     """
 
     stub:

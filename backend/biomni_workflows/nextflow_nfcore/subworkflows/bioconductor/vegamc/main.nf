@@ -105,10 +105,10 @@ process BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS {
     write.csv(gist.results, "gist_analysis_results.csv", row.names = FALSE)
     saveRDS(gist.results, "gist_analysis_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS":
-        vegamc: \$(Rscript -e 'cat(as.character(packageVersion("vegamc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS":',
+        paste0('        vegamc: ', as.character(packageVersion("vegamc")))
+    ), "versions.yml")
     """
 
     stub:
