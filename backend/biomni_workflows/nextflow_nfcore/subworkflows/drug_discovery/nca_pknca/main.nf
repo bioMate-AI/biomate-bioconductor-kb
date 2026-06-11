@@ -202,6 +202,21 @@ df <- read_csv("${validated_csv}", show_col_types = FALSE)
 
 dose_val  <- as.numeric("${dose}")
 route_val <- "${route}"
+# PKNCA requires 'extravascular' or 'intravascular'; canonicalize common synonyms.
+route_val <- switch(tolower(route_val),
+    oral           = "extravascular",
+    po             = "extravascular",
+    sc             = "extravascular",
+    im             = "extravascular",
+    subcutaneous   = "extravascular",
+    intramuscular  = "extravascular",
+    extravascular  = "extravascular",
+    iv             = "intravascular",
+    intravenous    = "intravascular",
+    intravascular  = "intravascular",
+    route_val
+)
+df\$route <- route_val
 time_u    <- "${time_unit}"
 conc_u    <- "${conc_unit}"
 
