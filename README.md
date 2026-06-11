@@ -28,6 +28,113 @@ skills/
 
 This bundle is intentionally focused on the **highest-traffic packages** — the top 100 accounts for roughly 60% of all Bioconductor downloads. The full BioMate KB covers all 1,818 active Bioconductor packages and is available via [BioMate Cloud](https://biomate.ai).
 
+## Full package list
+
+All 100 packages by domain (alphabetical within each domain).
+
+| # | Package | Domain | Description |
+|---|---------|--------|-------------|
+| 1 | `affy` | transcriptomics | The package contains functions for exploratory oligonucleotide array analysis. The depende… |
+| 2 | `apeglm` | transcriptomics | apeglm provides Bayesian shrinkage estimators for effect sizes for a variety of GLM models… |
+| 3 | `AUCell` | transcriptomics | AUCell allows to identify cells with active gene sets (e.g. signatures, gene modules...) i… |
+| 4 | `batchelor` | transcriptomics | Implements a variety of methods for batch correction of single-cell (RNA sequencing) data.… |
+| 5 | `dada2` | transcriptomics | The dada2 package infers exact amplicon sequence variants (ASVs) from high-throughput ampl… |
+| 6 | `DESeq2` | transcriptomics | Uses DESeq2 version 1.46.0 to estimate variance-mean dependence in count data from high-th… |
+| 7 | `DropletUtils` | transcriptomics | The filtering uses intelligent methods to generate output 10X matrices as would be otherwi… |
+| 8 | `edgeR` | transcriptomics | Estimates differential gene expression for short read sequence count using methods appropr… |
+| 9 | `EnhancedVolcano` | transcriptomics | Volcano plots represent a useful way to visualise the results of differential expression a… |
+| 10 | `fgsea` | transcriptomics | A tabular file with gene symbols in the first column, and a ranked statistic (e.g. t-stati… |
+| 11 | `GEOquery` | transcriptomics | This tool fetches microarray data directly from GEO database, based on the GEOQuery R pack… |
+| 12 | `glmGamPoi` | transcriptomics | Fit linear models to overdispersed count data. The package can estimate the overdispersion… |
+| 13 | `GSEABase` | transcriptomics | This package provides classes and methods to support Gene Set Enrichment Analysis (GSEA). |
+| 14 | `GSVA` | transcriptomics | Gene Set Variation Analysis (GSVA) is a non-parametric, unsupervised method for estimating… |
+| 15 | `illuminaio` | transcriptomics | Tools for parsing Illumina's microarray output files, including IDAT. |
+| 16 | `limma` | transcriptomics | Given a matrix of counts (e.g. from featureCounts) and optional information about the gene… |
+| 17 | `MAST` | transcriptomics | Methods and models for handling zero-inflated single cell assay data. |
+| 18 | `MetaboCoreUtils` | transcriptomics | MetaboCoreUtils defines metabolomics-related core functionality provided as low-level func… |
+| 19 | `metapod` | transcriptomics | Implements a variety of methods for combining p-values in differential analyses of genome-… |
+| 20 | `monocle` | transcriptomics | Monocle performs differential expression and time-series analysis for single-cell expressi… |
+| 21 | `msa` | transcriptomics | The 'msa' package provides a unified R/Bioconductor interface to the multiple sequence ali… |
+| 22 | `pathview` | transcriptomics | Pathview is a stand-alone software package for pathway based data integration and visualiz… |
+| 23 | `scater` | transcriptomics | A collection of tools for doing various analyses of single-cell RNA-seq gene expression da… |
+| 24 | `scDblFinder` | transcriptomics | The scDblFinder package gathers various methods for the detection and handling of doublets… |
+| 25 | `scran` | transcriptomics | Implements miscellaneous functions for interpretation of single-cell RNA-seq data. Methods… |
+| 26 | `scuttle` | transcriptomics | Provides basic utility functions for performing single-cell analyses, focusing on simple n… |
+| 27 | `siggenes` | transcriptomics | Identification of differentially expressed genes and estimation of the False Discovery Rat… |
+| 28 | `SingleR` | transcriptomics | Performs unbiased cell type recognition from single-cell RNA sequencing data, by leveragin… |
+| 29 | `SpatialExperiment` | transcriptomics | Defines an S4 class for storing data from spatial -omics experiments. The class extends Si… |
+| 30 | `sva` | transcriptomics | The sva package contains functions for removing batch effects and other unwanted variation… |
+| 31 | `TrajectoryUtils` | transcriptomics | Implements low-level utilities for single-cell trajectory analysis, primarily intended for… |
+| 32 | `treeio` | transcriptomics | 'treeio' is an R package to make it easier to import and store phylogenetic tree with asso… |
+| 33 | `tximport` | transcriptomics | Current version only works in 'merge' mode: A single table of gene summarizations is gener… |
+| 34 | `annotate` | genomics | This tool uses the label-tree function from HyPhy to annotate a phylogenetic tree. It allo… |
+| 35 | `biocViews` | genomics | Infrastructure to support 'views' used to classify Bioconductor packages. 'biocViews' are … |
+| 36 | `Biostrings` | genomics | Memory efficient string containers, string matching algorithms, and other utilities, for f… |
+| 37 | `BSgenome` | genomics | Infrastructure shared by all the Biostrings-based genome data packages. |
+| 38 | `clusterProfiler` | genomics | This package supports functional characteristics of both coding and non-coding genomics da… |
+| 39 | `ComplexHeatmap` | genomics | Complex heatmaps are efficient to visualize associations between different sources of data… |
+| 40 | `ConsensusClusterPlus` | genomics | algorithm for determining cluster count and membership by stability evidence in unsupervis… |
+| 41 | `DECIPHER` | genomics | A toolset for deciphering and managing biological sequences. |
+| 42 | `DNAcopy` | genomics | Implements the circular binary segmentation (CBS) algorithm to segment DNA copy number dat… |
+| 43 | `GenomicAlignments` | genomics | Provides efficient containers for storing and manipulating short genomic alignments (typic… |
+| 44 | `GenomicFeatures` | genomics | Extract the genomic locations of genes, transcripts, exons, introns, and CDS, for the gene… |
+| 45 | `GenomicRanges` | genomics | The ability to efficiently represent and manipulate genomic annotations and alignments is … |
+| 46 | `ggbio` | genomics | The ggbio package extends and specializes the grammar of graphics for biological data. The… |
+| 47 | `ggtree` | genomics | 'ggtree' extends the 'ggplot2' plotting system which implemented the grammar of graphics. … |
+| 48 | `GOSemSim` | genomics | The semantic comparisons of Gene Ontology (GO) annotations provide quantitative ways to co… |
+| 49 | `Gviz` | genomics | Genomic data analyses requires integrated visualization of known genomic information and n… |
+| 50 | `KEGGREST` | genomics | A package that provides a client interface to the Kyoto Encyclopedia of Genes and Genomes … |
+| 51 | `OrganismDbi` | genomics | The package enables a simple unified interface to several annotation packages each of whic… |
+| 52 | `Rsamtools` | genomics | This package provides an interface to the 'samtools', 'bcftools', and 'tabix' utilities fo… |
+| 53 | `rtracklayer` | genomics | Extensible framework for interacting with multiple genome browsers (currently UCSC built-i… |
+| 54 | `ShortRead` | genomics | This package implements sampling, iteration, and input of FASTQ files. The package include… |
+| 55 | `TFBSTools` | genomics | TFBSTools is a package for the analysis and manipulation of transcription factor binding s… |
+| 56 | `txdbmaker` | genomics | A set of tools for making TxDb objects from genomic annotations from various sources (e.g.… |
+| 57 | `basilisk` | general | Installs a self-contained conda instance that is managed by the R/Bioconductor installatio… |
+| 58 | `Biobase` | general | Functions that are needed by many other packages or which replace R functions. |
+| 59 | `biovizBase` | general | The biovizBase package is designed to provide a set of utilities, color schemes and conven… |
+| 60 | `DOSE` | general | This package implements five methods proposed by Resnik, Schlicker, Jiang, Lin and Wang re… |
+| 61 | `ExperimentHub` | general | This package provides a client for the Bioconductor ExperimentHub web resource. Experiment… |
+| 62 | `gdsfmt` | general | Provides a high-level R interface to CoreArray Genomic Data Structure (GDS) data files. GD… |
+| 63 | `genefilter` | general | Some basic functions for filtering genes. |
+| 64 | `geneplotter` | general | Functions for plotting genomic data |
+| 65 | `graphite` | general | Graph objects from pathway topology derived from KEGG, Panther, PathBank, PharmGKB, Reacto… |
+| 66 | `gypsum` | general | Client for the gypsum REST API (https://gypsum.artifactdb.com), a cloud-based file store i… |
+| 67 | `MultiAssayExperiment` | general | Harmonize data management of multiple experimental assays performed on an overlapping set … |
+| 68 | `pcaMethods` | general | Provides Bayesian PCA, Probabilistic PCA, Nipals PCA, Inverse Non-Linear PCA and the conve… |
+| 69 | `qvalue` | general | This package takes a list of p-values resulting from the simultaneous testing of many hypo… |
+| 70 | `ResidualMatrix` | general | Provides delayed computation of a matrix of residuals after fitting a linear model to each… |
+| 71 | `seqlogo` | general | seqLogo takes the position weight matrix of a DNA sequence motif and plots the correspondi… |
+| 72 | `topGO` | general | topGO package provides tools for testing GO terms while accounting for the topology of the… |
+| 73 | `mixOmics` | proteomics | Multivariate methods are well suited to large omics data sets where the number of variable… |
+| 74 | `MsCoreUtils` | proteomics | MsCoreUtils defines low-level functions for mass spectrometry data and is independent of a… |
+| 75 | `MSnbase` | proteomics | MSnbase provides infrastructure for manipulation, processing and visualisation of mass spe… |
+| 76 | `mzID` | proteomics | A parser for mzIdentML files implemented using the XML package. The parser tries to be gen… |
+| 77 | `mzR` | proteomics | mzR provides a unified API to the common file formats and parsers available for mass spect… |
+| 78 | `PSMatch` | proteomics | The PSMatch package helps proteomics practitioners to load, handle and manage Peptide Spec… |
+| 79 | `QFeatures` | proteomics | The QFeatures infrastructure enables the management and processing of quantitative feature… |
+| 80 | `STRINGdb` | proteomics | tags: [bioconductor, r, proteomics, vignette-grounded] |
+| 81 | `AnnotationHub` | variant-calling | This package provides a client for the Bioconductor AnnotationHub web resource. The Annota… |
+| 82 | `snpStats` | variant-calling | Classes and statistical methods for large SNP association studies. This extends the earlie… |
+| 83 | `VariantAnnotation` | variant-calling | Annotate variants, compute amino acid coding changes, predict coding outcomes. |
+| 84 | `vsn` | variant-calling | The package implements a method for normalising microarray intensities from single- and mu… |
+| 85 | `biomformat` | metagenomics | This is an R package for interfacing with the BIOM format. This package includes basic too… |
+| 86 | `DirichletMultinomial` | metagenomics | Dirichlet-multinomial mixture models can be used to describe variability in microbial meta… |
+| 87 | `microbiome` | metagenomics | Utilities for microbiome analysis. |
+| 88 | `phyloseq` | metagenomics | phyloseq provides a set of classes and tools to facilitate the import, storage, analysis, … |
+| 89 | `SingleCellExperiment` | single-cell | Defines a S4 class for storing data from single-cell experiments. This includes specialize… |
+| 90 | `TreeSummarizedExperiment` | single-cell | TreeSummarizedExperiment has extended SingleCellExperiment to include hierarchical informa… |
+| 91 | `zellkonverter` | single-cell | Provides methods to convert between Python AnnData objects and SingleCellExperiment object… |
+| 92 | `bumphunter` | epigenomics | Tools for finding bumps in genomic data |
+| 93 | `ChIPseeker` | epigenomics | ChIPseeker is a Bioconductor package for annotating ChIP-seq data analysis. Peak Annotatio… |
+| 94 | `minfi` | epigenomics | Tools to analyze & visualize Illumina Infinium methylation arrays. |
+| 95 | `enrichplot` | enrichment | The 'enrichplot' package implements several visualization methods for interpreting functio… |
+| 96 | `ReactomePA` | enrichment | Reactome is a free, open-source, curated and peer-reviewed pathway database. Their goal is… |
+| 97 | `biomaRt` | annotation | In recent years a wealth of biological data has become available in public data repositori… |
+| 98 | `KEGGgraph` | annotation | KEGGGraph is an interface between KEGG pathway and graph object as well as a collection of… |
+| 99 | `EBImage` | imaging | EBImage provides general purpose functionality for image processing and analysis. In the c… |
+| 100 | `flowCore` | imaging | Provides S4 data structures and basic functions to deal with flow cytometry data. |
+
 Each `SKILL.md` has:
 - **YAML frontmatter**: `name`, `description`, `when_to_use`, `user-invocable: false`
 - **Best Practices** — what to do and how to configure
