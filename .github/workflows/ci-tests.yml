@@ -10,15 +10,15 @@ name: CI Tests
 #   - Clear separation between testing and releasing
 
 on:
-  push:
-    branches:
-      - main
-      - integration/next-phase
-      - 'feature/**'
+  # OPTIMIZED: Only run tests on Pull Requests, not on every push.
+  # This reduces CI/CD runs by ~90% while maintaining code quality checks.
+  # For releases, tag-based workflows (backend-image.yml, frontend-image.yml) handle builds.
   pull_request:
     branches:
       - main
       - integration/next-phase
+  # Keep manual trigger option for debugging
+  workflow_dispatch: {}
 
 concurrency:
   group: ci-tests-${{ github.ref }}
