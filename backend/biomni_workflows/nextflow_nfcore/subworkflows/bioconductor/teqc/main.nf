@@ -104,10 +104,10 @@ process BIOC_TEQC_AUTOMATED_HTML_REPORTS {
       destDir = "multiTEQCreport"
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TEQC_AUTOMATED_HTML_REPORTS":
-        teqc: \$(Rscript -e 'cat(as.character(packageVersion("teqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TEQC_AUTOMATED_HTML_REPORTS":',
+        paste0('        teqc: ', as.character(packageVersion("teqc")))
+    ), "versions.yml")
     """
 
     stub:

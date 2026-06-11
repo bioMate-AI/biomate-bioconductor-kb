@@ -180,10 +180,10 @@ process BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL {
     print(er)
     sink()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL":
-        medips: \$(Rscript -e 'cat(as.character(packageVersion("medips")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MEDIPS_ENRICHMENT_QUALITY_CONTROL":',
+        paste0('        medips: ', as.character(packageVersion("medips")))
+    ), "versions.yml")
     """
 
     stub:

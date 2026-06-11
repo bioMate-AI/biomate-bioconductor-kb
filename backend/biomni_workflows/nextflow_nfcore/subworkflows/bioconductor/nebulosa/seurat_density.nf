@@ -119,10 +119,10 @@ process BIOC_NEBULOSA_SEURAT_DENSITY {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NEBULOSA_SEURAT_DENSITY":
-        nebulosa: \$(Rscript -e 'cat(as.character(packageVersion("nebulosa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NEBULOSA_SEURAT_DENSITY":',
+        paste0('        nebulosa: ', as.character(packageVersion("nebulosa")))
+    ), "versions.yml")
     """
 
     stub:

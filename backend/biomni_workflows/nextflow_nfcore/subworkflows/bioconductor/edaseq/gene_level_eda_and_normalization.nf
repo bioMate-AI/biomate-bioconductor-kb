@@ -209,10 +209,10 @@ process BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION {
     
     cat("Pipeline completed successfully.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION":
-        edaseq: \$(Rscript -e 'cat(as.character(packageVersion("edaseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION":',
+        paste0('        edaseq: ', as.character(packageVersion("edaseq")))
+    ), "versions.yml")
     """
 
     stub:

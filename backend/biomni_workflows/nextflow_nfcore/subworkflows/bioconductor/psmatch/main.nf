@@ -162,10 +162,10 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS":
-        psmatch: \$(Rscript -e 'cat(as.character(packageVersion("psmatch")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS":',
+        paste0('        psmatch: ', as.character(packageVersion("psmatch")))
+    ), "versions.yml")
     """
 
     stub:

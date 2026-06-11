@@ -77,10 +77,10 @@ process BIOC_PUMA_HTA_ARRAY_ANALYSIS {
     
     message("Analysis complete. Results written to 'eset_gmhta_gene' and 'eset_gmhta_transcript' CSV files.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PUMA_HTA_ARRAY_ANALYSIS":
-        puma: \$(Rscript -e 'cat(as.character(packageVersion("puma")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PUMA_HTA_ARRAY_ANALYSIS":',
+        paste0('        puma: ', as.character(packageVersion("puma")))
+    ), "versions.yml")
     """
 
     stub:

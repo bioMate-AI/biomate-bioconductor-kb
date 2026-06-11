@@ -121,10 +121,10 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     # 7. Export results using reportVariants()
     reportVariants(uind, type="csv", file="uind.csv")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS":
-        variantfiltering: \$(Rscript -e 'cat(as.character(packageVersion("variantfiltering")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS":',
+        paste0('        variantfiltering: ', as.character(packageVersion("variantfiltering")))
+    ), "versions.yml")
     """
 
     stub:

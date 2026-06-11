@@ -144,10 +144,10 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
         message("Could not perform base substitution enrichment: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MAGAR_METH_QTL_FROM_PLINK":
-        magar: \$(Rscript -e 'cat(as.character(packageVersion("magar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MAGAR_METH_QTL_FROM_PLINK":',
+        paste0('        magar: ', as.character(packageVersion("magar")))
+    ), "versions.yml")
     """
 
     stub:

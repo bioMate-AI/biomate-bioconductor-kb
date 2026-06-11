@@ -148,10 +148,10 @@ process BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS":
-        cfdnakit: \$(Rscript -e 'cat(as.character(packageVersion("cfdnakit")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS":',
+        paste0('        cfdnakit: ', as.character(packageVersion("cfdnakit")))
+    ), "versions.yml")
     """
 
     stub:

@@ -110,10 +110,10 @@ process BIOC_HMMCOPY_MATCHED_TUMOUR_NORMAL_CORRECTION {
       write.csv(somatic_segments\$segs, "somatic_segments.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HMMCOPY_MATCHED_TUMOUR_NORMAL_CORRECTION":
-        hmmcopy: \$(Rscript -e 'cat(as.character(packageVersion("hmmcopy")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HMMCOPY_MATCHED_TUMOUR_NORMAL_CORRECTION":',
+        paste0('        hmmcopy: ', as.character(packageVersion("hmmcopy")))
+    ), "versions.yml")
     """
 
     stub:

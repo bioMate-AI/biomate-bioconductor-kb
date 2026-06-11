@@ -146,10 +146,10 @@ process BIOC_RCGH_ACGH_ANALYSIS_PIPELINE {
     # Save the final analyzed rCGH object
     saveRDS(cgh, "cgh_analyzed.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RCGH_ACGH_ANALYSIS_PIPELINE":
-        rcgh: \$(Rscript -e 'cat(as.character(packageVersion("rcgh")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RCGH_ACGH_ANALYSIS_PIPELINE":',
+        paste0('        rcgh: ', as.character(packageVersion("rcgh")))
+    ), "versions.yml")
     """
 
     stub:

@@ -67,10 +67,10 @@ process BIOC_MICHIP_AUTOMATED_PIPELINE {
     # Export the normalized expression matrix to a CSV file
     write.csv(exprs(myNormedEset), file = "NormedDemo_expression_matrix.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MICHIP_AUTOMATED_PIPELINE":
-        michip: \$(Rscript -e 'cat(as.character(packageVersion("michip")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MICHIP_AUTOMATED_PIPELINE":',
+        paste0('        michip: ', as.character(packageVersion("michip")))
+    ), "versions.yml")
     """
 
     stub:

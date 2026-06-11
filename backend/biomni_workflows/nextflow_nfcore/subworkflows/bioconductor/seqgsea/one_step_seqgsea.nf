@@ -135,10 +135,10 @@ process BIOC_SEQGSEA_ONE_STEP_SEQGSEA {
       }
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQGSEA_ONE_STEP_SEQGSEA":
-        seqgsea: \$(Rscript -e 'cat(as.character(packageVersion("seqgsea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQGSEA_ONE_STEP_SEQGSEA":',
+        paste0('        seqgsea: ', as.character(packageVersion("seqgsea")))
+    ), "versions.yml")
     """
 
     stub:

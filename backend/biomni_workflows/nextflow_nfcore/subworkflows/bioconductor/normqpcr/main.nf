@@ -152,10 +152,10 @@ process BIOC_NORMQPCR_REFERENCE_GENE_SELECTION {
       message("NormFinder selectHKs failed: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMQPCR_REFERENCE_GENE_SELECTION":
-        normqpcr: \$(Rscript -e 'cat(as.character(packageVersion("normqpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMQPCR_REFERENCE_GENE_SELECTION":',
+        paste0('        normqpcr: ', as.character(packageVersion("normqpcr")))
+    ), "versions.yml")
     """
 
     stub:

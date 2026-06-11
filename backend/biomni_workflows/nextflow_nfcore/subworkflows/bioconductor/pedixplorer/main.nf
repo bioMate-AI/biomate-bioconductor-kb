@@ -234,10 +234,10 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING":
-        Pedixplorer: \$(Rscript -e 'cat(as.character(packageVersion("Pedixplorer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING":',
+        paste0('        Pedixplorer: ', as.character(packageVersion("Pedixplorer")))
+    ), "versions.yml")
     """
 
     stub:

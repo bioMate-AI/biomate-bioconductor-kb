@@ -132,10 +132,10 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
         message("CasRxRF scoring skipped or failed: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION":
-        crisprscore: \$(Rscript -e 'cat(as.character(packageVersion("crisprscore")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION":',
+        paste0('        crisprscore: ', as.character(packageVersion("crisprscore")))
+    ), "versions.yml")
     """
 
     stub:

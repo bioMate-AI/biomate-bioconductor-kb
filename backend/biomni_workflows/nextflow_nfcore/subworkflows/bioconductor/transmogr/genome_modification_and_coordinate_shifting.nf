@@ -97,10 +97,10 @@ process BIOC_TRANSMOGR_GENOME_MODIFICATION_AND_COORDINATE_SHIFTING {
     saveRDS(new_exons, "shifted_exons.rds")
     saveRDS(new_exon_by_trans, "shifted_exons_by_transcript.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRANSMOGR_GENOME_MODIFICATION_AND_COORDINATE_SHIFTING":
-        transmogr: \$(Rscript -e 'cat(as.character(packageVersion("transmogr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRANSMOGR_GENOME_MODIFICATION_AND_COORDINATE_SHIFTING":',
+        paste0('        transmogr: ', as.character(packageVersion("transmogr")))
+    ), "versions.yml")
     """
 
     stub:

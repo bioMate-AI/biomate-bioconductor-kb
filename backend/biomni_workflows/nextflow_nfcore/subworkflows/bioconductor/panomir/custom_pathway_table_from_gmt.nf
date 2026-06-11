@@ -74,10 +74,10 @@ process BIOC_PANOMIR_CUSTOM_PATHWAY_TABLE_FROM_GMT {
     write.csv(newPathGeneTable, "newPathGeneTable.csv", row.names = FALSE)
     saveRDS(newPathGeneTable, "newPathGeneTable.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PANOMIR_CUSTOM_PATHWAY_TABLE_FROM_GMT":
-        panomir: \$(Rscript -e 'cat(as.character(packageVersion("panomir")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PANOMIR_CUSTOM_PATHWAY_TABLE_FROM_GMT":',
+        paste0('        panomir: ', as.character(packageVersion("panomir")))
+    ), "versions.yml")
     """
 
     stub:

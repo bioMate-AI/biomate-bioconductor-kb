@@ -140,10 +140,10 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
     
     cat("Pipeline completed successfully. Outputs saved: barcode_ranks_plot.pdf, barcode_ranks_stats.csv, empty_drops_results.csv, empty_drops_plot.pdf, filtered_cells_sce.rds\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA":
-        dropletutils: \$(Rscript -e 'cat(as.character(packageVersion("dropletutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA":',
+        paste0('        dropletutils: ', as.character(packageVersion("dropletutils")))
+    ), "versions.yml")
     """
 
     stub:

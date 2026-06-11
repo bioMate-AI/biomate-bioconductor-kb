@@ -127,10 +127,10 @@ process BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT {
     # Save the final model object as an RDS file for downstream R tasks
     saveRDS(curto, "curto_final_model.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT":
-        sbmlr: \$(Rscript -e 'cat(as.character(packageVersion("sbmlr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT":',
+        paste0('        sbmlr: ', as.character(packageVersion("sbmlr")))
+    ), "versions.yml")
     """
 
     stub:

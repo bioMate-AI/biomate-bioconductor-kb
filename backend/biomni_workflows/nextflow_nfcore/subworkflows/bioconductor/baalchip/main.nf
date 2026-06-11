@@ -182,10 +182,10 @@ process BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF":
-        BaalChIP: \$(Rscript -e 'cat(as.character(packageVersion("BaalChIP")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF":',
+        paste0('        BaalChIP: ', as.character(packageVersion("BaalChIP")))
+    ), "versions.yml")
     """
 
     stub:

@@ -102,10 +102,10 @@ process BIOC_CN_FARMS_CN_FARMS_PIPELINE {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CN_FARMS_CN_FARMS_PIPELINE":
-        cn_farms: \$(Rscript -e 'cat(as.character(packageVersion("cn_farms")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CN_FARMS_CN_FARMS_PIPELINE":',
+        paste0('        cn_farms: ', as.character(packageVersion("cn_farms")))
+    ), "versions.yml")
     """
 
     stub:

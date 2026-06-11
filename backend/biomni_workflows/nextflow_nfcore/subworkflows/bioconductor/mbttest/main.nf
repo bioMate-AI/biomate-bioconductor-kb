@@ -175,10 +175,10 @@ process BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs written to 'jurkat_NS_48h_tag_mbetattest.csv', 'mbetattest_results.rds', and 'differential_expression_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS":
-        MBttest: \$(Rscript -e 'cat(as.character(packageVersion("MBttest")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS":',
+        paste0('        MBttest: ', as.character(packageVersion("MBttest")))
+    ), "versions.yml")
     """
 
     stub:

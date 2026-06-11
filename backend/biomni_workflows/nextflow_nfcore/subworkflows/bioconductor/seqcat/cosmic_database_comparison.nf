@@ -107,10 +107,10 @@ process BIOC_SEQCAT_COSMIC_DATABASE_COMPARISON {
     # Save the full comparison object as an RDS file for downstream analysis
     saveRDS(many_cosmic, "many_vs_cosmic_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQCAT_COSMIC_DATABASE_COMPARISON":
-        seqcat: \$(Rscript -e 'cat(as.character(packageVersion("seqcat")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQCAT_COSMIC_DATABASE_COMPARISON":',
+        paste0('        seqcat: ', as.character(packageVersion("seqcat")))
+    ), "versions.yml")
     """
 
     stub:

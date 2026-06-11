@@ -122,10 +122,10 @@ process BIOC_IMCRTOOLS_SPILLOVER_CORRECTION {
     unlink(txt_dir, recursive = TRUE)
     unlink(tiff_dir, recursive = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_IMCRTOOLS_SPILLOVER_CORRECTION":
-        imcRtools: \$(Rscript -e 'cat(as.character(packageVersion("imcRtools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_IMCRTOOLS_SPILLOVER_CORRECTION":',
+        paste0('        imcRtools: ', as.character(packageVersion("imcRtools")))
+    ), "versions.yml")
     """
 
     stub:

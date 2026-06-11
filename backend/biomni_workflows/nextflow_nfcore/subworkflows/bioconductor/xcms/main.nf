@@ -152,10 +152,10 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
     # Save the final preprocessed xcms object
     saveRDS(ham_prep, "xcms_preprocessed_object.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING":
-        xcms: \$(Rscript -e 'cat(as.character(packageVersion("xcms")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING":',
+        paste0('        xcms: ', as.character(packageVersion("xcms")))
+    ), "versions.yml")
     """
 
     stub:

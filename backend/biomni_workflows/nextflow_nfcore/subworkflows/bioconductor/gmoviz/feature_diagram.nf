@@ -258,10 +258,10 @@ process BIOC_GMOVIZ_FEATURE_DIAGRAM {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GMOVIZ_FEATURE_DIAGRAM":
-        gmoviz: \$(Rscript -e 'cat(as.character(packageVersion("gmoviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GMOVIZ_FEATURE_DIAGRAM":',
+        paste0('        gmoviz: ', as.character(packageVersion("gmoviz")))
+    ), "versions.yml")
     """
 
     stub:

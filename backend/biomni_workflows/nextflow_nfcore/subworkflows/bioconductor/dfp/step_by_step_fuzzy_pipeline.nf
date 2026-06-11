@@ -130,10 +130,10 @@ process BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE {
     
     cat("Pipeline completed. Outputs saved to the working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE":
-        dfp: \$(Rscript -e 'cat(as.character(packageVersion("dfp")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DFP_STEP_BY_STEP_FUZZY_PIPELINE":',
+        paste0('        dfp: ', as.character(packageVersion("dfp")))
+    ), "versions.yml")
     """
 
     stub:

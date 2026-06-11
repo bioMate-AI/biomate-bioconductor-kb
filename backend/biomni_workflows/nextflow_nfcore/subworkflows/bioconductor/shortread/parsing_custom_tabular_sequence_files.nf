@@ -86,10 +86,10 @@ process BIOC_SHORTREAD_PARSING_CUSTOM_TABULAR_SEQUENCE_FILES {
     barplot(colSums(freqs), main="Base Composition of Parsed Reads", col="darkgreen", ylab="Count")
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SHORTREAD_PARSING_CUSTOM_TABULAR_SEQUENCE_FILES":
-        shortread: \$(Rscript -e 'cat(as.character(packageVersion("shortread")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SHORTREAD_PARSING_CUSTOM_TABULAR_SEQUENCE_FILES":',
+        paste0('        shortread: ', as.character(packageVersion("shortread")))
+    ), "versions.yml")
     """
 
     stub:

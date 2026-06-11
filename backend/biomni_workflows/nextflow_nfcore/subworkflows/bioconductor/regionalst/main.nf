@@ -193,10 +193,10 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS":
-        regionalst: \$(Rscript -e 'cat(as.character(packageVersion("regionalst")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS":',
+        paste0('        regionalst: ', as.character(packageVersion("regionalst")))
+    ), "versions.yml")
     """
 
     stub:

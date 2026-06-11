@@ -106,10 +106,10 @@ process BIOC_CRISPRSCORE_INDEL_FRAMESHIFT_PREDICTION {
     write.csv(output_df, file = output_file, row.names = FALSE)
     message(paste("Successfully wrote Lindel scores to", output_file))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRISPRSCORE_INDEL_FRAMESHIFT_PREDICTION":
-        crisprscore: \$(Rscript -e 'cat(as.character(packageVersion("crisprscore")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRISPRSCORE_INDEL_FRAMESHIFT_PREDICTION":',
+        paste0('        crisprscore: ', as.character(packageVersion("crisprscore")))
+    ), "versions.yml")
     """
 
     stub:

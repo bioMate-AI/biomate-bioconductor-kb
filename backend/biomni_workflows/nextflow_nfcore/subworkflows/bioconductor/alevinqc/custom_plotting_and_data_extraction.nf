@@ -109,10 +109,10 @@ process BIOC_ALEVINQC_CUSTOM_PLOTTING_AND_DATA_EXTRACTION {
     dev.off()
     message("Plots successfully saved to '", pdf_filename, "'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ALEVINQC_CUSTOM_PLOTTING_AND_DATA_EXTRACTION":
-        alevinqc: \$(Rscript -e 'cat(as.character(packageVersion("alevinqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ALEVINQC_CUSTOM_PLOTTING_AND_DATA_EXTRACTION":',
+        paste0('        alevinqc: ', as.character(packageVersion("alevinqc")))
+    ), "versions.yml")
     """
 
     stub:

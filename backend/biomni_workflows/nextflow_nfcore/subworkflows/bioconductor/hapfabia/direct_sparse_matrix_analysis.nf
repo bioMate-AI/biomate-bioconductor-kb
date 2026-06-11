@@ -95,10 +95,10 @@ process BIOC_HAPFABIA_DIRECT_SPARSE_MATRIX_ANALYSIS {
     # Save the complete results object
     saveRDS(hapRes, "hapRes_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HAPFABIA_DIRECT_SPARSE_MATRIX_ANALYSIS":
-        hapfabia: \$(Rscript -e 'cat(as.character(packageVersion("hapfabia")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HAPFABIA_DIRECT_SPARSE_MATRIX_ANALYSIS":',
+        paste0('        hapfabia: ', as.character(packageVersion("hapfabia")))
+    ), "versions.yml")
     """
 
     stub:

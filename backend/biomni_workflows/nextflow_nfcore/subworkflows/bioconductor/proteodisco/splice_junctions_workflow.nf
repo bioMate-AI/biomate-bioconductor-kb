@@ -112,10 +112,10 @@ process BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW {
       write.csv(as.data.frame(mt\$splicing), 'mutant_transcripts_splicing.csv', row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW":
-        proteodisco: \$(Rscript -e 'cat(as.character(packageVersion("proteodisco")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW":',
+        paste0('        proteodisco: ', as.character(packageVersion("proteodisco")))
+    ), "versions.yml")
     """
 
     stub:

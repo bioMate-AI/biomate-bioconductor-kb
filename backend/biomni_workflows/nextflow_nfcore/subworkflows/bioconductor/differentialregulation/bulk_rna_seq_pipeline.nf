@@ -114,10 +114,10 @@ process BIOC_DIFFERENTIALREGULATION_BULK_RNA_SEQ_PIPELINE {
                         transcript_id = top_transcript)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DIFFERENTIALREGULATION_BULK_RNA_SEQ_PIPELINE":
-        differentialregulation: \$(Rscript -e 'cat(as.character(packageVersion("differentialregulation")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DIFFERENTIALREGULATION_BULK_RNA_SEQ_PIPELINE":',
+        paste0('        differentialregulation: ', as.character(packageVersion("differentialregulation")))
+    ), "versions.yml")
     """
 
     stub:

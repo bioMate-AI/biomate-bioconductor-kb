@@ -115,10 +115,10 @@ process BIOC_ICETEA_END_TO_END_TSS_ANALYSIS {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ICETEA_END_TO_END_TSS_ANALYSIS":
-        icetea: \$(Rscript -e 'cat(as.character(packageVersion("icetea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ICETEA_END_TO_END_TSS_ANALYSIS":',
+        paste0('        icetea: ', as.character(packageVersion("icetea")))
+    ), "versions.yml")
     """
 
     stub:

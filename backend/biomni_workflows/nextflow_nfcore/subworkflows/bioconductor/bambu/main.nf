@@ -123,10 +123,10 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION":
-        bambu: \$(Rscript -e 'cat(as.character(packageVersion("bambu")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION":',
+        paste0('        bambu: ', as.character(packageVersion("bambu")))
+    ), "versions.yml")
     """
 
     stub:

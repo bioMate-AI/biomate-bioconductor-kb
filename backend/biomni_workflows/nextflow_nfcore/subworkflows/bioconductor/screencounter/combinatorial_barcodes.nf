@@ -90,10 +90,10 @@ process BIOC_SCREENCOUNTER_COMBINATORIAL_BARCODES {
     # Save the barcode metadata (rowData) as a CSV file
     write.csv(as.data.frame(barcode_metadata), file = "combinatorial_barcodes_metadata.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCREENCOUNTER_COMBINATORIAL_BARCODES":
-        screencounter: \$(Rscript -e 'cat(as.character(packageVersion("screencounter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCREENCOUNTER_COMBINATORIAL_BARCODES":',
+        paste0('        screencounter: ', as.character(packageVersion("screencounter")))
+    ), "versions.yml")
     """
 
     stub:

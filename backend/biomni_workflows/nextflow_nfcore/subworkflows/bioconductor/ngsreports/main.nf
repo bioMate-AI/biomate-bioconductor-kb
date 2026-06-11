@@ -337,10 +337,10 @@ process BIOC_NGSREPORTS_FASTQC_QUALITY_CONTROL_ANALYSIS {
       message("Could not export overrepresented sequences to FASTA: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NGSREPORTS_FASTQC_QUALITY_CONTROL_ANALYSIS":
-        ngsreports: \$(Rscript -e 'cat(as.character(packageVersion("ngsreports")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NGSREPORTS_FASTQC_QUALITY_CONTROL_ANALYSIS":',
+        paste0('        ngsreports: ', as.character(packageVersion("ngsreports")))
+    ), "versions.yml")
     """
 
     stub:

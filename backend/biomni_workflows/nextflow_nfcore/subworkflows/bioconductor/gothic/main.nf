@@ -91,10 +91,10 @@ process BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE":
-        gothic: \$(Rscript -e 'cat(as.character(packageVersion("gothic")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE":',
+        paste0('        gothic: ', as.character(packageVersion("gothic")))
+    ), "versions.yml")
     """
 
     stub:

@@ -130,10 +130,10 @@ process BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION {
       })
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION":
-        flowbin: \$(Rscript -e 'cat(as.character(packageVersion("flowbin")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION":',
+        paste0('        flowbin: ', as.character(packageVersion("flowbin")))
+    ), "versions.yml")
     """
 
     stub:

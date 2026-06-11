@@ -88,10 +88,10 @@ process BIOC_CRISPRSEEK_PRIME_EDITING_GRNA_DESIGN {
     # Print the results to the console
     print(res)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRISPRSEEK_PRIME_EDITING_GRNA_DESIGN":
-        crisprseek: \$(Rscript -e 'cat(as.character(packageVersion("crisprseek")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRISPRSEEK_PRIME_EDITING_GRNA_DESIGN":',
+        paste0('        crisprseek: ', as.character(packageVersion("crisprseek")))
+    ), "versions.yml")
     """
 
     stub:

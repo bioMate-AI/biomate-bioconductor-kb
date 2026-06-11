@@ -109,10 +109,10 @@ process BIOC_RBLAST_QUERY_EXISTING_BLAST_DB {
     
     message("Pipeline completed successfully. Outputs saved to 'blast_results_default.csv' and 'blast_results_custom.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RBLAST_QUERY_EXISTING_BLAST_DB":
-        rblast: \$(Rscript -e 'cat(as.character(packageVersion("rblast")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RBLAST_QUERY_EXISTING_BLAST_DB":',
+        paste0('        rblast: ', as.character(packageVersion("rblast")))
+    ), "versions.yml")
     """
 
     stub:

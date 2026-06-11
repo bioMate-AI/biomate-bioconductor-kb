@@ -166,10 +166,10 @@ process BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION {
     # Safely close GDS connection
     closeGDS(gds)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION":
-        gbscleanr: \$(Rscript -e 'cat(as.character(packageVersion("gbscleanr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION":',
+        paste0('        gbscleanr: ', as.character(packageVersion("gbscleanr")))
+    ), "versions.yml")
     """
 
     stub:

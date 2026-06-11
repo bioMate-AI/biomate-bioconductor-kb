@@ -119,10 +119,10 @@ process BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE {
       })
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE":
-        genarise: \$(Rscript -e 'cat(as.character(packageVersion("genarise")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENARISE_FUNCTIONAL_ENRICHMENT_GENMERGE":',
+        paste0('        genarise: ', as.character(packageVersion("genarise")))
+    ), "versions.yml")
     """
 
     stub:

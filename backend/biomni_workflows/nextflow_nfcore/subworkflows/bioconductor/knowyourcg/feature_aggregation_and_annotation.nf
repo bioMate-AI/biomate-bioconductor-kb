@@ -127,10 +127,10 @@ process BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION":
-        knowyourcg: \$(Rscript -e 'cat(as.character(packageVersion("knowyourcg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KNOWYOURCG_FEATURE_AGGREGATION_AND_ANNOTATION":',
+        paste0('        knowyourcg: ', as.character(packageVersion("knowyourcg")))
+    ), "versions.yml")
     """
 
     stub:

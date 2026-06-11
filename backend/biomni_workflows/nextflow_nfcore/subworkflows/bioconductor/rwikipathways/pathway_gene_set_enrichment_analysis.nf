@@ -92,10 +92,10 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_GENE_SET_ENRICHMENT_ANALYSIS {
     write.csv(down_pathways, "gsea_downregulated_pathways.csv", row.names = FALSE)
     saveRDS(gwp.sig.lung.expr, "gsea_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RWIKIPATHWAYS_PATHWAY_GENE_SET_ENRICHMENT_ANALYSIS":
-        rWikiPathways: \$(Rscript -e 'cat(as.character(packageVersion("rWikiPathways")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RWIKIPATHWAYS_PATHWAY_GENE_SET_ENRICHMENT_ANALYSIS":',
+        paste0('        rWikiPathways: ', as.character(packageVersion("rWikiPathways")))
+    ), "versions.yml")
     """
 
     stub:

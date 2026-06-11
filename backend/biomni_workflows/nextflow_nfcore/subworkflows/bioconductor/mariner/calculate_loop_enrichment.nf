@@ -95,10 +95,10 @@ process BIOC_MARINER_CALCULATE_LOOP_ENRICHMENT {
     write.csv(enrich_matrix, "loop_enrichment_results.csv", row.names = FALSE)
     saveRDS(enrich, "loop_enrichment_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MARINER_CALCULATE_LOOP_ENRICHMENT":
-        mariner: \$(Rscript -e 'cat(as.character(packageVersion("mariner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MARINER_CALCULATE_LOOP_ENRICHMENT":',
+        paste0('        mariner: ', as.character(packageVersion("mariner")))
+    ), "versions.yml")
     """
 
     stub:

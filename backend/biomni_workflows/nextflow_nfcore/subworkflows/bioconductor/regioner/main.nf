@@ -91,10 +91,10 @@ process BIOC_REGIONER_OVERLAP_PERMUTATION_TEST {
     )
     write.csv(results_df, file = "permutation_test_summary.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_REGIONER_OVERLAP_PERMUTATION_TEST":
-        regioner: \$(Rscript -e 'cat(as.character(packageVersion("regioner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_REGIONER_OVERLAP_PERMUTATION_TEST":',
+        paste0('        regioner: ', as.character(packageVersion("regioner")))
+    ), "versions.yml")
     """
 
     stub:

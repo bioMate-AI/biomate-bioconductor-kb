@@ -83,10 +83,10 @@ process BIOC_RAREVARIANTVIS_MULTIPLE_SAMPLE_VISUALIZATION {
       stop("Error: 'CorielSamples.html' was not generated.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAREVARIANTVIS_MULTIPLE_SAMPLE_VISUALIZATION":
-        rarevariantvis: \$(Rscript -e 'cat(as.character(packageVersion("rarevariantvis")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAREVARIANTVIS_MULTIPLE_SAMPLE_VISUALIZATION":',
+        paste0('        rarevariantvis: ', as.character(packageVersion("rarevariantvis")))
+    ), "versions.yml")
     """
 
     stub:

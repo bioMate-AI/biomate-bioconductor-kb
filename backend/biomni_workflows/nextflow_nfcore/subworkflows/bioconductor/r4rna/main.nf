@@ -123,10 +123,10 @@ process BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION {
     
     message("Pipeline completed successfully. Outputs saved to 'comparative_plots.pdf', 'predicted_expanded.csv', 'known_expanded.csv', 'predicted_filtered_colored.csv', and 'predicted_filtered_colored.rds'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION":
-        r4rna: \$(Rscript -e 'cat(as.character(packageVersion("r4rna")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION":',
+        paste0('        r4rna: ', as.character(packageVersion("r4rna")))
+    ), "versions.yml")
     """
 
     stub:

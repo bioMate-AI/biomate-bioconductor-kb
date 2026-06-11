@@ -115,10 +115,10 @@ process BIOC_CIRCSEQALIGNTK_CIRCULAR_GENOME_ALIGNMENT_AND_COVERAGE {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CIRCSEQALIGNTK_CIRCULAR_GENOME_ALIGNMENT_AND_COVERAGE":
-        circseqaligntk: \$(Rscript -e 'cat(as.character(packageVersion("circseqaligntk")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CIRCSEQALIGNTK_CIRCULAR_GENOME_ALIGNMENT_AND_COVERAGE":',
+        paste0('        circseqaligntk: ', as.character(packageVersion("circseqaligntk")))
+    ), "versions.yml")
     """
 
     stub:

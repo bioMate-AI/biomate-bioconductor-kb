@@ -98,10 +98,10 @@ process BIOC_CHROMDRAW_GENOMIC_RANGES_KARYOTYPE {
     )
     saveRDS(pipeline_summary, "pipeline_summary.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHROMDRAW_GENOMIC_RANGES_KARYOTYPE":
-        chromdraw: \$(Rscript -e 'cat(as.character(packageVersion("chromdraw")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHROMDRAW_GENOMIC_RANGES_KARYOTYPE":',
+        paste0('        chromdraw: ', as.character(packageVersion("chromdraw")))
+    ), "versions.yml")
     """
 
     stub:

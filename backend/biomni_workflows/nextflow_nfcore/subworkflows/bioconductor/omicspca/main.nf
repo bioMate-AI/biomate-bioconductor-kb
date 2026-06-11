@@ -161,10 +161,10 @@ process BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS {
     plot_density_3D(name = PCAlist, Assay = "H2az", group = "WE", groupinfo = groupinfo, PC1 = 1,PC2 = 2, grid_size = 100, static = TRUE, theta = -50, phi = 40, box = TRUE, shade = 0.1, ticktype = "detailed", d = 10)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS":
-        omicspca: \$(Rscript -e 'cat(as.character(packageVersion("omicspca")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS":',
+        paste0('        omicspca: ', as.character(packageVersion("omicspca")))
+    ), "versions.yml")
     """
 
     stub:

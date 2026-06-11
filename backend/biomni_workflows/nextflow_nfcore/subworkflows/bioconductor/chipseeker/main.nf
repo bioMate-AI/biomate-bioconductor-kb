@@ -121,10 +121,10 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION":
-        chipseeker: \$(Rscript -e 'cat(as.character(packageVersion("chipseeker")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION":',
+        paste0('        chipseeker: ', as.character(packageVersion("chipseeker")))
+    ), "versions.yml")
     """
 
     stub:

@@ -179,10 +179,10 @@ process BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS {
     
     message("Pipeline completed successfully. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS":
-        ribosomeprofilingqc: \$(Rscript -e 'cat(as.character(packageVersion("ribosomeprofilingqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBOSOMEPROFILINGQC_TRANSLATIONAL_EFFICIENCY_AND_RRS":',
+        paste0('        ribosomeprofilingqc: ', as.character(packageVersion("ribosomeprofilingqc")))
+    ), "versions.yml")
     """
 
     stub:

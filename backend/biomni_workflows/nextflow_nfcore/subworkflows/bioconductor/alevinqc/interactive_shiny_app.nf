@@ -94,10 +94,10 @@ process BIOC_ALEVINQC_INTERACTIVE_SHINY_APP {
         write.csv(alevin_data\$summaryTables\$fullDataset, "summaryTable_fullDataset.csv", row.names = TRUE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ALEVINQC_INTERACTIVE_SHINY_APP":
-        alevinqc: \$(Rscript -e 'cat(as.character(packageVersion("alevinqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ALEVINQC_INTERACTIVE_SHINY_APP":',
+        paste0('        alevinqc: ', as.character(packageVersion("alevinqc")))
+    ), "versions.yml")
     """
 
     stub:

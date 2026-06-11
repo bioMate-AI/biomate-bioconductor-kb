@@ -147,10 +147,10 @@ process BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON {
     stats <- stats(msi)
     saveRDS(stats, "sample_stats.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON":
-        rnamodr: \$(Rscript -e 'cat(as.character(packageVersion("rnamodr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNAMODR_MULTI_SAMPLE_MODIFICATION_COMPARISON":',
+        paste0('        rnamodr: ', as.character(packageVersion("rnamodr")))
+    ), "versions.yml")
     """
 
     stub:

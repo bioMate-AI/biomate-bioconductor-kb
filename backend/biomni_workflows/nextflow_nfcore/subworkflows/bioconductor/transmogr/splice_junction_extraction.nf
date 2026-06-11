@@ -92,10 +92,10 @@ process BIOC_TRANSMOGR_SPLICE_JUNCTION_EXTRACTION {
     sj_sub <- subset(sj, transcript_name == "DDX11L17-201")
     saveRDS(sj_sub, "sj_subset.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRANSMOGR_SPLICE_JUNCTION_EXTRACTION":
-        transmogr: \$(Rscript -e 'cat(as.character(packageVersion("transmogr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRANSMOGR_SPLICE_JUNCTION_EXTRACTION":',
+        paste0('        transmogr: ', as.character(packageVersion("transmogr")))
+    ), "versions.yml")
     """
 
     stub:

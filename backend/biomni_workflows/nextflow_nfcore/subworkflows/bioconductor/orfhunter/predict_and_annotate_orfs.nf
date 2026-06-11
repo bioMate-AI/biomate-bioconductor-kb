@@ -126,10 +126,10 @@ process BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS":
-        orfhunter: \$(Rscript -e 'cat(as.character(packageVersion("orfhunter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS":',
+        paste0('        orfhunter: ', as.character(packageVersion("orfhunter")))
+    ), "versions.yml")
     """
 
     stub:

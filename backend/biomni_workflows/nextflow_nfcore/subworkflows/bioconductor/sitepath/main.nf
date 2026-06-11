@@ -188,10 +188,10 @@ process BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS {
       message("Skipping SNP 5 plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS":
-        sitepath: \$(Rscript -e 'cat(as.character(packageVersion("sitepath")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS":',
+        paste0('        sitepath: ', as.character(packageVersion("sitepath")))
+    ), "versions.yml")
     """
 
     stub:

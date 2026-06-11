@@ -167,10 +167,10 @@ process BIOC_ALPSNMR_OLDER_PEAK_INTEGRATION {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ALPSNMR_OLDER_PEAK_INTEGRATION":
-        alpsnmr: \$(Rscript -e 'cat(as.character(packageVersion("alpsnmr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ALPSNMR_OLDER_PEAK_INTEGRATION":',
+        paste0('        alpsnmr: ', as.character(packageVersion("alpsnmr")))
+    ), "versions.yml")
     """
 
     stub:

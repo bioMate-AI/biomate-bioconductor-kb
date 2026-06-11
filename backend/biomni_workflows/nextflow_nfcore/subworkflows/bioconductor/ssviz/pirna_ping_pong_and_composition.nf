@@ -93,10 +93,10 @@ process BIOC_SSVIZ_PIRNA_PING_PONG_AND_COMPOSITION {
       warning("Could not write freq.ctrl to CSV: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SSVIZ_PIRNA_PING_PONG_AND_COMPOSITION":
-        ssviz: \$(Rscript -e 'cat(as.character(packageVersion("ssviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SSVIZ_PIRNA_PING_PONG_AND_COMPOSITION":',
+        paste0('        ssviz: ', as.character(packageVersion("ssviz")))
+    ), "versions.yml")
     """
 
     stub:

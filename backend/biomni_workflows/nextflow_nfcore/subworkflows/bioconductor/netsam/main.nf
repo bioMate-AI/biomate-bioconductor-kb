@@ -99,10 +99,10 @@ process BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION {
     NetAnalyzer(inputNetwork, outputFileName, "unweighted")
     message("NetAnalyzer analysis complete. Outputs saved with prefix 'NetSAM'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION":
-        netsam: \$(Rscript -e 'cat(as.character(packageVersion("netsam")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION":',
+        paste0('        netsam: ', as.character(packageVersion("netsam")))
+    ), "versions.yml")
     """
 
     stub:

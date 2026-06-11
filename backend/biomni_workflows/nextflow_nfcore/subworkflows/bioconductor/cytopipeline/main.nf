@@ -387,10 +387,10 @@ process BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE {
     
     message("Pipeline execution and visualization complete. Outputs saved to: ", outputDir)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE":
-        cytopipeline: \$(Rscript -e 'cat(as.character(packageVersion("cytopipeline")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CYTOPIPELINE_PEACOQC_PREPROCESSING_PIPELINE":',
+        paste0('        cytopipeline: ', as.character(packageVersion("cytopipeline")))
+    ), "versions.yml")
     """
 
     stub:

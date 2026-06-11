@@ -160,10 +160,10 @@ process BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON {
     
     message("Pipeline completed successfully! All outputs have been saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON":
-        chipseeker: \$(Rscript -e 'cat(as.character(packageVersion("chipseeker")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPSEEKER_MULTI_DATASET_COMPARISON":',
+        paste0('        chipseeker: ', as.character(packageVersion("chipseeker")))
+    ), "versions.yml")
     """
 
     stub:

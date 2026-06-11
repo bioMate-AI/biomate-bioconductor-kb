@@ -151,10 +151,10 @@ process BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT {
       warning("Failed to download or plot Manhattan data from Zenodo: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT":
-        knowyourcg: \$(Rscript -e 'cat(as.character(packageVersion("knowyourcg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KNOWYOURCG_ARRAY_DISCRETE_ENRICHMENT":',
+        paste0('        knowyourcg: ', as.character(packageVersion("knowyourcg")))
+    ), "versions.yml")
     """
 
     stub:

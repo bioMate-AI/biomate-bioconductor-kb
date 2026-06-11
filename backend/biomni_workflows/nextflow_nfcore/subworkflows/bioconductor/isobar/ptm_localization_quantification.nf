@@ -187,10 +187,10 @@ process BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION":
-        isobar: \$(Rscript -e 'cat(as.character(packageVersion("isobar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISOBAR_PTM_LOCALIZATION_QUANTIFICATION":',
+        paste0('        isobar: ', as.character(packageVersion("isobar")))
+    ), "versions.yml")
     """
 
     stub:

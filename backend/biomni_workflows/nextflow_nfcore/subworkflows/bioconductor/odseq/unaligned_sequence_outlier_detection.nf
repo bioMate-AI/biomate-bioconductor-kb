@@ -91,10 +91,10 @@ process BIOC_ODSEQ_UNALIGNED_SEQUENCE_OUTLIER_DETECTION {
     saveRDS(outliers_unaligned, "outliers_unaligned.rds")
     saveRDS(mat, "similarity_matrix.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ODSEQ_UNALIGNED_SEQUENCE_OUTLIER_DETECTION":
-        odseq: \$(Rscript -e 'cat(as.character(packageVersion("odseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ODSEQ_UNALIGNED_SEQUENCE_OUTLIER_DETECTION":',
+        paste0('        odseq: ', as.character(packageVersion("odseq")))
+    ), "versions.yml")
     """
 
     stub:

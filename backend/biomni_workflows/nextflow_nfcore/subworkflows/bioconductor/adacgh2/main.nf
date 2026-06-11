@@ -111,10 +111,10 @@ process BIOC_ADACGH2_RAM_OBJECTS_FORKING {
     
     cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ADACGH2_RAM_OBJECTS_FORKING":
-        adacgh2: \$(Rscript -e 'cat(as.character(packageVersion("adacgh2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ADACGH2_RAM_OBJECTS_FORKING":',
+        paste0('        adacgh2: ', as.character(packageVersion("adacgh2")))
+    ), "versions.yml")
     """
 
     stub:

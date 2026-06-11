@@ -103,10 +103,10 @@ process BIOC_DESTINY_SCRNA_SEQ_GENE_RELEVANCE {
       write.csv(top_genes_df, "top_driving_genes.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DESTINY_SCRNA_SEQ_GENE_RELEVANCE":
-        destiny: \$(Rscript -e 'cat(as.character(packageVersion("destiny")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DESTINY_SCRNA_SEQ_GENE_RELEVANCE":',
+        paste0('        destiny: ', as.character(packageVersion("destiny")))
+    ), "versions.yml")
     """
 
     stub:

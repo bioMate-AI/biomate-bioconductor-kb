@@ -95,10 +95,10 @@ process BIOC_ASEB_PROTEIN_SPECIFIC_PREDICTION {
     
     message("Pipeline completed successfully. Outputs saved to 'aseb_protein_results.csv', 'aseb_protein_results.rds', and 'aseb_stat_plot.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ASEB_PROTEIN_SPECIFIC_PREDICTION":
-        aseb: \$(Rscript -e 'cat(as.character(packageVersion("aseb")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ASEB_PROTEIN_SPECIFIC_PREDICTION":',
+        paste0('        aseb: ', as.character(packageVersion("aseb")))
+    ), "versions.yml")
     """
 
     stub:

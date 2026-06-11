@@ -80,10 +80,10 @@ process BIOC_METAPHOR_PATHWAY_NETWORK_MODELING {
     
     message("Pipeline execution completed.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METAPHOR_PATHWAY_NETWORK_MODELING":
-        metaphor: \$(Rscript -e 'cat(as.character(packageVersion("metaphor")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METAPHOR_PATHWAY_NETWORK_MODELING":',
+        paste0('        metaphor: ', as.character(packageVersion("metaphor")))
+    ), "versions.yml")
     """
 
     stub:

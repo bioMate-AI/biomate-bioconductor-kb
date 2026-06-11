@@ -130,10 +130,10 @@ process BIOC_ISOCORRECTOR_STABLE_ISOTOPE_CORRECTION {
       cat("Warning: IsoCorrection did not return a results object.\n")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISOCORRECTOR_STABLE_ISOTOPE_CORRECTION":
-        isocorrector: \$(Rscript -e 'cat(as.character(packageVersion("isocorrector")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISOCORRECTOR_STABLE_ISOTOPE_CORRECTION":',
+        paste0('        isocorrector: ', as.character(packageVersion("isocorrector")))
+    ), "versions.yml")
     """
 
     stub:

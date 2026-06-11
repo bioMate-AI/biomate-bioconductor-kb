@@ -94,10 +94,10 @@ process BIOC_APALYZER_GENE_EXPRESSION_ANALYSIS {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_APALYZER_GENE_EXPRESSION_ANALYSIS":
-        apalyzer: \$(Rscript -e 'cat(as.character(packageVersion("apalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_APALYZER_GENE_EXPRESSION_ANALYSIS":',
+        paste0('        apalyzer: ', as.character(packageVersion("apalyzer")))
+    ), "versions.yml")
     """
 
     stub:

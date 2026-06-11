@@ -137,10 +137,10 @@ process BIOC_RAIDS_RNA_ANCESTRY_INFERENCE {
         stop("Required packages 'Seqinfo' or 'BSgenome.Hsapiens.UCSC.hg38' are not available.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAIDS_RNA_ANCESTRY_INFERENCE":
-        raids: \$(Rscript -e 'cat(as.character(packageVersion("raids")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAIDS_RNA_ANCESTRY_INFERENCE":',
+        paste0('        raids: ', as.character(packageVersion("raids")))
+    ), "versions.yml")
     """
 
     stub:

@@ -103,10 +103,10 @@ process BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION {
     
     message("Pipeline completed successfully. Outputs saved to 'tumour_copy.rds', 'tumour_copy.csv', 'tumour_segments.rds', 'tumour_segments.csv', and 'tumour_segments_plot.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION":
-        hmmcopy: \$(Rscript -e 'cat(as.character(packageVersion("hmmcopy")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HMMCOPY_SINGLE_SAMPLE_CORRECTION_AND_SEGMENTATION":',
+        paste0('        hmmcopy: ', as.character(packageVersion("hmmcopy")))
+    ), "versions.yml")
     """
 
     stub:

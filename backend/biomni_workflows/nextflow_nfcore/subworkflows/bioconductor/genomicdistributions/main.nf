@@ -204,10 +204,10 @@ process BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION {
     p26 = plotQTHist(qt1, bins=7, EndBarColor = 'black', MiddleBarColor='darkblue')
     ggsave("width_single_custom.pdf", plot=p26, width=8, height=6)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION":
-        genomicdistributions: \$(Rscript -e 'cat(as.character(packageVersion("genomicdistributions")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICDISTRIBUTIONS_GENOMIC_RANGE_CHARACTERIZATION":',
+        paste0('        genomicdistributions: ', as.character(packageVersion("genomicdistributions")))
+    ), "versions.yml")
     """
 
     stub:

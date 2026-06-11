@@ -115,10 +115,10 @@ process BIOC_CLSTUTILS_TAXONOMIC_CLASSIFICATION {
     
     cat("Taxonomic classification completed successfully. Results written to 'classification_results.csv' and 'classification_results.rds'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLSTUTILS_TAXONOMIC_CLASSIFICATION":
-        clstutils: \$(Rscript -e 'cat(as.character(packageVersion("clstutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLSTUTILS_TAXONOMIC_CLASSIFICATION":',
+        paste0('        clstutils: ', as.character(packageVersion("clstutils")))
+    ), "versions.yml")
     """
 
     stub:

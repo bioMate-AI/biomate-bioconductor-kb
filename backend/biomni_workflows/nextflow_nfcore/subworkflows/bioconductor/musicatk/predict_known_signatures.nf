@@ -122,10 +122,10 @@ process BIOC_MUSICATK_PREDICT_KNOWN_SIGNATURES {
     # Save the final musica object to RDS
     saveRDS(musica, "musica_object.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUSICATK_PREDICT_KNOWN_SIGNATURES":
-        musicatk: \$(Rscript -e 'cat(as.character(packageVersion("musicatk")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUSICATK_PREDICT_KNOWN_SIGNATURES":',
+        paste0('        musicatk: ', as.character(packageVersion("musicatk")))
+    ), "versions.yml")
     """
 
     stub:

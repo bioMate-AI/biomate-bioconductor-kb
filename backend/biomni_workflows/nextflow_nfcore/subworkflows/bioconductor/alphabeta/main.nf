@@ -178,10 +178,10 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
       plot.width = 11
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS":
-        alphabeta: \$(Rscript -e 'cat(as.character(packageVersion("alphabeta")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS":',
+        paste0('        alphabeta: ', as.character(packageVersion("alphabeta")))
+    ), "versions.yml")
     """
 
     stub:

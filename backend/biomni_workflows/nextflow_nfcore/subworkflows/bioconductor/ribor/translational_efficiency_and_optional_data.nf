@@ -176,10 +176,10 @@ process BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA {
     message("- translational_efficiency_CDS.csv")
     message("- high_te_transcripts.txt")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA":
-        ribor: \$(Rscript -e 'cat(as.character(packageVersion("ribor")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBOR_TRANSLATIONAL_EFFICIENCY_AND_OPTIONAL_DATA":',
+        paste0('        ribor: ', as.character(packageVersion("ribor")))
+    ), "versions.yml")
     """
 
     stub:

@@ -129,10 +129,10 @@ process BIOC_PAST_GWAS_PATHWAY_ENRICHMENT {
     
     message("Pipeline completed successfully. Outputs saved to 'assigned_genes.rds', 'pathway_significance.rds', and the 'pathway_plots' directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PAST_GWAS_PATHWAY_ENRICHMENT":
-        past: \$(Rscript -e 'cat(as.character(packageVersion("past")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PAST_GWAS_PATHWAY_ENRICHMENT":',
+        paste0('        past: ', as.character(packageVersion("past")))
+    ), "versions.yml")
     """
 
     stub:

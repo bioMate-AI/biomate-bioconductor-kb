@@ -97,10 +97,10 @@ process BIOC_EISAR_REFERENCE_GENERATION {
     # Save mapping table to the working directory
     write.csv(df, "tx2gene.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EISAR_REFERENCE_GENERATION":
-        eisar: \$(Rscript -e 'cat(as.character(packageVersion("eisar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EISAR_REFERENCE_GENERATION":',
+        paste0('        eisar: ', as.character(packageVersion("eisar")))
+    ), "versions.yml")
     """
 
     stub:

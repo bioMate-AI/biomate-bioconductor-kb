@@ -138,10 +138,10 @@ process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
     )
     write.csv(clustering_results, "clustering_results.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING":
-        optimalFlow: \$(Rscript -e 'cat(as.character(packageVersion("optimalFlow")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING":',
+        paste0('        optimalFlow: ', as.character(packageVersion("optimalFlow")))
+    ), "versions.yml")
     """
 
     stub:

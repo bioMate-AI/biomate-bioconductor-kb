@@ -168,10 +168,10 @@ process BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION":
-        optimalFlow: \$(Rscript -e 'cat(as.character(packageVersion("optimalFlow")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPTIMALFLOW_SUPERVISED_CYTOMETRY_CLASSIFICATION":',
+        paste0('        optimalFlow: ', as.character(packageVersion("optimalFlow")))
+    ), "versions.yml")
     """
 
     stub:

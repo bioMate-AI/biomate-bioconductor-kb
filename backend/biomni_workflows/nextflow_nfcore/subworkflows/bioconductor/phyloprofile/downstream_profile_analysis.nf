@@ -246,10 +246,10 @@ process BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS {
       write.csv(groupComparison_df, "group_comparison_results.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS":
-        phyloprofile: \$(Rscript -e 'cat(as.character(packageVersion("phyloprofile")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOPROFILE_DOWNSTREAM_PROFILE_ANALYSIS":',
+        paste0('        phyloprofile: ', as.character(packageVersion("phyloprofile")))
+    ), "versions.yml")
     """
 
     stub:

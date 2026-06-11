@@ -138,10 +138,10 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING":
-        synextend: \$(Rscript -e 'cat(as.character(packageVersion("synextend")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING":',
+        paste0('        synextend: ', as.character(packageVersion("synextend")))
+    ), "versions.yml")
     """
 
     stub:

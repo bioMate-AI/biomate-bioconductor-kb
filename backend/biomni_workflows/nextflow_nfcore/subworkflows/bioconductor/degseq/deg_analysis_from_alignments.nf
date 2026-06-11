@@ -95,10 +95,10 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_ALIGNMENTS {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEGSEQ_DEG_ANALYSIS_FROM_ALIGNMENTS":
-        degseq: \$(Rscript -e 'cat(as.character(packageVersion("degseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEGSEQ_DEG_ANALYSIS_FROM_ALIGNMENTS":',
+        paste0('        degseq: ', as.character(packageVersion("degseq")))
+    ), "versions.yml")
     """
 
     stub:

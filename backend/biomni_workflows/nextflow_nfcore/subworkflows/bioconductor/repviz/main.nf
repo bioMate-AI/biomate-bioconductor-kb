@@ -90,10 +90,10 @@ process BIOC_REPVIZ_REPLICATE_SEQUENCING_VISUALIZATION {
     # Save the region object as an RDS file for downstream tracking
     saveRDS(region, file = "visualized_region.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_REPVIZ_REPLICATE_SEQUENCING_VISUALIZATION":
-        repviz: \$(Rscript -e 'cat(as.character(packageVersion("repviz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_REPVIZ_REPLICATE_SEQUENCING_VISUALIZATION":',
+        paste0('        repviz: ', as.character(packageVersion("repviz")))
+    ), "versions.yml")
     """
 
     stub:

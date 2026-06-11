@@ -104,10 +104,10 @@ process BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER":
-        orfhunter: \$(Rscript -e 'cat(as.character(packageVersion("orfhunter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER":',
+        paste0('        orfhunter: ', as.character(packageVersion("orfhunter")))
+    ), "versions.yml")
     """
 
     stub:

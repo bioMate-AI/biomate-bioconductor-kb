@@ -119,10 +119,10 @@ process BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_SCAN {
       )
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_SCAN":
-        causalr: \$(Rscript -e 'cat(as.character(packageVersion("causalr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAUSALR_SEQUENTIAL_CAUSAL_ANALYSIS_SCAN":',
+        paste0('        causalr: ', as.character(packageVersion("causalr")))
+    ), "versions.yml")
     """
 
     stub:

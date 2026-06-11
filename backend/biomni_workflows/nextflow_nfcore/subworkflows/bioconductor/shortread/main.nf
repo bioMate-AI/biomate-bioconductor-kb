@@ -123,10 +123,10 @@ process BIOC_SHORTREAD_FASTQ_FILTERING_AND_TRIMMING {
     write.csv(qa_summary[["readCounts"]], "qa_read_counts.csv", row.names = TRUE)
     write.csv(qa_summary[["baseCalls"]], "qa_base_calls.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SHORTREAD_FASTQ_FILTERING_AND_TRIMMING":
-        shortread: \$(Rscript -e 'cat(as.character(packageVersion("shortread")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SHORTREAD_FASTQ_FILTERING_AND_TRIMMING":',
+        paste0('        shortread: ', as.character(packageVersion("shortread")))
+    ), "versions.yml")
     """
 
     stub:

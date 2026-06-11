@@ -143,10 +143,10 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT":
-        spatialHeatmap: \$(Rscript -e 'cat(as.character(packageVersion("spatialHeatmap")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT":',
+        paste0('        spatialHeatmap: ', as.character(packageVersion("spatialHeatmap")))
+    ), "versions.yml")
     """
 
     stub:

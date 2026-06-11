@@ -157,10 +157,10 @@ process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     saveRDS(copyNumbersCalled, "copyNumbersCalled.rds")
     saveRDS(cgh, "cgh.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QDNASEQ_STANDARD_CNV_PROFILING":
-        qdnaseq: \$(Rscript -e 'cat(as.character(packageVersion("qdnaseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QDNASEQ_STANDARD_CNV_PROFILING":',
+        paste0('        qdnaseq: ', as.character(packageVersion("qdnaseq")))
+    ), "versions.yml")
     """
 
     stub:

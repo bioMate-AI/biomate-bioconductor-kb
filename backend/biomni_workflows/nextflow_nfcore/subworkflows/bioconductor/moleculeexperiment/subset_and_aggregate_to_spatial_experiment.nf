@@ -115,10 +115,10 @@ process BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT {
     
     cat("Pipeline completed successfully. Outputs saved: me_subset.rds, spe_aggregated.rds, cell_counts_matrix.csv, spatial_coordinates.csv, me_subset_plot.pdf\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT":
-        moleculeexperiment: \$(Rscript -e 'cat(as.character(packageVersion("moleculeexperiment")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOLECULEEXPERIMENT_SUBSET_AND_AGGREGATE_TO_SPATIAL_EXPERIMENT":',
+        paste0('        moleculeexperiment: ', as.character(packageVersion("moleculeexperiment")))
+    ), "versions.yml")
     """
 
     stub:

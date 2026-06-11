@@ -100,10 +100,10 @@ process BIOC_CAMERA_SINGLE_SAMPLE_LCMS_ANNOTATION {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAMERA_SINGLE_SAMPLE_LCMS_ANNOTATION":
-        camera: \$(Rscript -e 'cat(as.character(packageVersion("camera")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAMERA_SINGLE_SAMPLE_LCMS_ANNOTATION":',
+        paste0('        camera: ', as.character(packageVersion("camera")))
+    ), "versions.yml")
     """
 
     stub:

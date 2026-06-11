@@ -115,10 +115,10 @@ process BIOC_SPICYR_CUSTOM_METRICS_MODELING {
     )
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPICYR_CUSTOM_METRICS_MODELING":
-        spicyR: \$(Rscript -e 'cat(as.character(packageVersion("spicyR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPICYR_CUSTOM_METRICS_MODELING":',
+        paste0('        spicyR: ', as.character(packageVersion("spicyR")))
+    ), "versions.yml")
     """
 
     stub:

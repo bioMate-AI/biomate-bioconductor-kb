@@ -120,10 +120,10 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
       warning("Could not subset OTU set with the specified sample IDs: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OTUBASE_OTU_BASED_ANALYSIS":
-        otubase: \$(Rscript -e 'cat(as.character(packageVersion("otubase")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OTUBASE_OTU_BASED_ANALYSIS":',
+        paste0('        otubase: ', as.character(packageVersion("otubase")))
+    ), "versions.yml")
     """
 
     stub:

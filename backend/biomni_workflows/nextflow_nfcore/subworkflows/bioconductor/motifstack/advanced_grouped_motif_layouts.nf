@@ -177,10 +177,10 @@ process BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS {
     saveRDS(motifSig, "motif_signature.rds")
     saveRDS(pfmsAligned, "pfms_aligned.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS":
-        motifstack: \$(Rscript -e 'cat(as.character(packageVersion("motifstack")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOTIFSTACK_ADVANCED_GROUPED_MOTIF_LAYOUTS":',
+        paste0('        motifstack: ', as.character(packageVersion("motifstack")))
+    ), "versions.yml")
     """
 
     stub:

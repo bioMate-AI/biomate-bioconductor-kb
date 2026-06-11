@@ -104,10 +104,10 @@ process BIOC_SNPRELATE_GDS_FORMAT_CONVERSION {
     vcf_summary <- snpgdsSummary("test.gds")
     saveRDS(vcf_summary, "vcf_gds_summary.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPRELATE_GDS_FORMAT_CONVERSION":
-        snprelate: \$(Rscript -e 'cat(as.character(packageVersion("snprelate")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPRELATE_GDS_FORMAT_CONVERSION":',
+        paste0('        snprelate: ', as.character(packageVersion("snprelate")))
+    ), "versions.yml")
     """
 
     stub:

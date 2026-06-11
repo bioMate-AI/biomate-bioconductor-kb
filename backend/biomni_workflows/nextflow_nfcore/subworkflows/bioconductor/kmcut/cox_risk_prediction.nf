@@ -88,10 +88,10 @@ process BIOC_KMCUT_COX_RISK_PREDICTION {
       stop(paste("Error during Cox risk prediction:", e\$message))
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KMCUT_COX_RISK_PREDICTION":
-        kmcut: \$(Rscript -e 'cat(as.character(packageVersion("kmcut")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KMCUT_COX_RISK_PREDICTION":',
+        paste0('        kmcut: ', as.character(packageVersion("kmcut")))
+    ), "versions.yml")
     """
 
     stub:

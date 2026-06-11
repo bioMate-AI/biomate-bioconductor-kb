@@ -90,10 +90,10 @@ process BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END {
     write.csv(as.data.frame(barcode_identities), "barcode_identities.csv", row.names = TRUE)
     saveRDS(out, "dual_barcodes_single_end_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END":
-        screencounter: \$(Rscript -e 'cat(as.character(packageVersion("screencounter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCREENCOUNTER_DUAL_BARCODES_SINGLE_END":',
+        paste0('        screencounter: ', as.character(packageVersion("screencounter")))
+    ), "versions.yml")
     """
 
     stub:

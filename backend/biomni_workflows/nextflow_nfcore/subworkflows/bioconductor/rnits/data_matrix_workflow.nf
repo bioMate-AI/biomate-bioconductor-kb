@@ -150,10 +150,10 @@ process BIOC_RNITS_DATA_MATRIX_WORKFLOW {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNITS_DATA_MATRIX_WORKFLOW":
-        Rnits: \$(Rscript -e 'cat(as.character(packageVersion("Rnits")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNITS_DATA_MATRIX_WORKFLOW":',
+        paste0('        Rnits: ', as.character(packageVersion("Rnits")))
+    ), "versions.yml")
     """
 
     stub:

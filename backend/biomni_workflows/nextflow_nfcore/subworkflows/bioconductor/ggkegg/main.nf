@@ -106,10 +106,10 @@ process BIOC_GGKEGG_KEGG_MODULE_VISUALIZATION {
     # Save the network-based plot
     ggplot2::ggsave("module_blocks_plot.pdf", plot = p_blocks, width = 8, height = 8)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GGKEGG_KEGG_MODULE_VISUALIZATION":
-        ggkegg: \$(Rscript -e 'cat(as.character(packageVersion("ggkegg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GGKEGG_KEGG_MODULE_VISUALIZATION":',
+        paste0('        ggkegg: ', as.character(packageVersion("ggkegg")))
+    ), "versions.yml")
     """
 
     stub:

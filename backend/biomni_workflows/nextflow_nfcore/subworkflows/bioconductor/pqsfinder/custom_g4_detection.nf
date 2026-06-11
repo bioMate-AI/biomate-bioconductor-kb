@@ -125,10 +125,10 @@ process BIOC_PQSFINDER_CUSTOM_G4_DETECTION {
     dss2 <- as(pqs_custom2, "DNAStringSet")
     writeXStringSet(dss2, file = "pqs_custom2_detected.fa", format = "fasta")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PQSFINDER_CUSTOM_G4_DETECTION":
-        pqsfinder: \$(Rscript -e 'cat(as.character(packageVersion("pqsfinder")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PQSFINDER_CUSTOM_G4_DETECTION":',
+        paste0('        pqsfinder: ', as.character(packageVersion("pqsfinder")))
+    ), "versions.yml")
     """
 
     stub:

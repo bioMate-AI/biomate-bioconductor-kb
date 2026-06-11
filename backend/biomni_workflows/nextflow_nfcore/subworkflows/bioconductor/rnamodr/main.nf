@@ -104,10 +104,10 @@ process BIOC_RNAMODR_SINGLE_SAMPLE_MODIFICATION_DETECTION {
     mods_df <- as.data.frame(mods)
     write.csv(mods_df, file = "detected_modifications.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNAMODR_SINGLE_SAMPLE_MODIFICATION_DETECTION":
-        rnamodr: \$(Rscript -e 'cat(as.character(packageVersion("rnamodr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNAMODR_SINGLE_SAMPLE_MODIFICATION_DETECTION":',
+        paste0('        rnamodr: ', as.character(packageVersion("rnamodr")))
+    ), "versions.yml")
     """
 
     stub:

@@ -167,10 +167,10 @@ process BIOC_CYTOPIPELINE_FLOWAI_JSON_PREPROCESSING_PIPELINE {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CYTOPIPELINE_FLOWAI_JSON_PREPROCESSING_PIPELINE":
-        cytopipeline: \$(Rscript -e 'cat(as.character(packageVersion("cytopipeline")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CYTOPIPELINE_FLOWAI_JSON_PREPROCESSING_PIPELINE":',
+        paste0('        cytopipeline: ', as.character(packageVersion("cytopipeline")))
+    ), "versions.yml")
     """
 
     stub:

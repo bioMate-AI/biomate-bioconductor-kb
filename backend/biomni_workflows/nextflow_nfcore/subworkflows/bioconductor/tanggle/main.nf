@@ -91,10 +91,10 @@ process BIOC_TANGGLE_SPLIT_NETWORKS {
     # Save the processed network object
     saveRDS(Nnet, "processed_split_network.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TANGGLE_SPLIT_NETWORKS":
-        tanggle: \$(Rscript -e 'cat(as.character(packageVersion("tanggle")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TANGGLE_SPLIT_NETWORKS":',
+        paste0('        tanggle: ', as.character(packageVersion("tanggle")))
+    ), "versions.yml")
     """
 
     stub:

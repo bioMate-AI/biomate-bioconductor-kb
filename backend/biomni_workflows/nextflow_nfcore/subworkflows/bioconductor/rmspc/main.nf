@@ -112,10 +112,10 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
       write.csv(gr_df, file = paste0("mspc_", safe_name, ".csv"), row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES":
-        rmspc: \$(Rscript -e 'cat(as.character(packageVersion("rmspc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES":',
+        paste0('        rmspc: ', as.character(packageVersion("rmspc")))
+    ), "versions.yml")
     """
 
     stub:

@@ -97,10 +97,10 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_ADJUSTMENT_FOR_GENOMIC_SUBSETS {
     
     message("Pipeline completed successfully. Outputs written to 'adjusted_signatures.rds', 'adjusted_signatures.csv', and 'adjusted_signature_1_distribution.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECOMPTUMOR2SIG_SIGNATURE_ADJUSTMENT_FOR_GENOMIC_SUBSETS":
-        decomptumor2sig: \$(Rscript -e 'cat(as.character(packageVersion("decomptumor2sig")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECOMPTUMOR2SIG_SIGNATURE_ADJUSTMENT_FOR_GENOMIC_SUBSETS":',
+        paste0('        decomptumor2sig: ', as.character(packageVersion("decomptumor2sig")))
+    ), "versions.yml")
     """
 
     stub:

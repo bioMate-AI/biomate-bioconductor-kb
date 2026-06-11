@@ -83,10 +83,10 @@ process BIOC_R453PLUS1TOOLBOX_SFF_MANIPULATION {
     dinucleotideOddsRatio(sffContainer)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_R453PLUS1TOOLBOX_SFF_MANIPULATION":
-        r453plus1toolbox: \$(Rscript -e 'cat(as.character(packageVersion("r453plus1toolbox")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_R453PLUS1TOOLBOX_SFF_MANIPULATION":',
+        paste0('        r453plus1toolbox: ', as.character(packageVersion("r453plus1toolbox")))
+    ), "versions.yml")
     """
 
     stub:

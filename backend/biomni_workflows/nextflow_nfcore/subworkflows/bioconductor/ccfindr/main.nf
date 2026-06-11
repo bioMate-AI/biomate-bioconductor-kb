@@ -88,10 +88,10 @@ process BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF {
     
     saveRDS(sc, "sc_factorized.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF":
-        ccfindr: \$(Rscript -e 'cat(as.character(packageVersion("ccfindr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF":',
+        paste0('        ccfindr: ', as.character(packageVersion("ccfindr")))
+    ), "versions.yml")
     """
 
     stub:

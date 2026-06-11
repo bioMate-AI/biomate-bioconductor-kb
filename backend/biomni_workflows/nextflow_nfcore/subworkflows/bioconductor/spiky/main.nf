@@ -117,10 +117,10 @@ process BIOC_SPIKY_CFMEDIP_QUANT_BEDPE {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPIKY_CFMEDIP_QUANT_BEDPE":
-        spiky: \$(Rscript -e 'cat(as.character(packageVersion("spiky")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPIKY_CFMEDIP_QUANT_BEDPE":',
+        paste0('        spiky: ', as.character(packageVersion("spiky")))
+    ), "versions.yml")
     """
 
     stub:

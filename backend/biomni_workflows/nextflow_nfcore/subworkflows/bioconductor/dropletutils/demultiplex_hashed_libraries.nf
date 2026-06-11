@@ -111,10 +111,10 @@ process BIOC_DROPLETUTILS_DEMULTIPLEX_HASHED_LIBRARIES {
     
     cat("\nPipeline completed successfully. Outputs written to 'hto_calls.rds', 'hto_calls.csv', 'demux_results.rds', 'demux_results.csv', 'confident_singlets_summary.txt', and 'demux_plot.pdf'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DROPLETUTILS_DEMULTIPLEX_HASHED_LIBRARIES":
-        dropletutils: \$(Rscript -e 'cat(as.character(packageVersion("dropletutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DROPLETUTILS_DEMULTIPLEX_HASHED_LIBRARIES":',
+        paste0('        dropletutils: ', as.character(packageVersion("dropletutils")))
+    ), "versions.yml")
     """
 
     stub:

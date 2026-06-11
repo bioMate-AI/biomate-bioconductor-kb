@@ -78,10 +78,10 @@ process BIOC_KMCUT_BATCH_COX_REGRESSION {
     cat("Batch Cox regression completed successfully.\n")
     cat("Output written to: test_ucoxbatch.txt\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KMCUT_BATCH_COX_REGRESSION":
-        kmcut: \$(Rscript -e 'cat(as.character(packageVersion("kmcut")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KMCUT_BATCH_COX_REGRESSION":',
+        paste0('        kmcut: ', as.character(packageVersion("kmcut")))
+    ), "versions.yml")
     """
 
     stub:

@@ -83,10 +83,10 @@ process BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION {
     write.csv(maf_union, "maf_union_integrated.csv", row.names = FALSE)
     saveRDS(maf_union, "maf_union_integrated.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION":
-        camutqc: \$(Rscript -e 'cat(as.character(packageVersion("camutqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAMUTQC_MULTI_CALLER_INTEGRATION":',
+        paste0('        camutqc: ', as.character(packageVersion("camutqc")))
+    ), "versions.yml")
     """
 
     stub:

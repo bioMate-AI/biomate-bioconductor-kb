@@ -124,10 +124,10 @@ process BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS {
       writeLines("FAILED", "pipeline_status.txt")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS":
-        rnbeads: \$(Rscript -e 'cat(as.character(packageVersion("rnbeads")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS":',
+        paste0('        rnbeads: ', as.character(packageVersion("rnbeads")))
+    ), "versions.yml")
     """
 
     stub:

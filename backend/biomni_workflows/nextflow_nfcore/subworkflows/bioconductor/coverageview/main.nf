@@ -86,10 +86,10 @@ process BIOC_COVERAGEVIEW_SINGLE_SAMPLE_COVERAGE_PROFILE {
     # 5. Draw coverage heatmap
     draw.heatmap(FoxA1_chr19, outfile="FoxA1_chr19_heatmap.png")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COVERAGEVIEW_SINGLE_SAMPLE_COVERAGE_PROFILE":
-        coverageview: \$(Rscript -e 'cat(as.character(packageVersion("coverageview")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COVERAGEVIEW_SINGLE_SAMPLE_COVERAGE_PROFILE":',
+        paste0('        coverageview: ', as.character(packageVersion("coverageview")))
+    ), "versions.yml")
     """
 
     stub:

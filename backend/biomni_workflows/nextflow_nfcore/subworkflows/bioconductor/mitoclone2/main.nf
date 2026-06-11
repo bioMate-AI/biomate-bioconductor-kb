@@ -174,10 +174,10 @@ process BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM":
-        mitoclone2: \$(Rscript -e 'cat(as.character(packageVersion("mitoclone2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM":',
+        paste0('        mitoclone2: ', as.character(packageVersion("mitoclone2")))
+    ), "versions.yml")
     """
 
     stub:

@@ -114,10 +114,10 @@ process BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING {
     
     message("Pipeline completed successfully. Outputs written to 'methimpute_model.rds', 'bisulfite_conversion_rates.csv', 'imputed_methylome.tsv', and 'diagnostic_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING":
-        methimpute: \$(Rscript -e 'cat(as.character(packageVersion("methimpute")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING":',
+        paste0('        methimpute: ', as.character(packageVersion("methimpute")))
+    ), "versions.yml")
     """
 
     stub:

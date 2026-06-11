@@ -96,10 +96,10 @@ process BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON {
     # Save suggested cluster labels
     write.csv(similarity_labels, "similarity_labels.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON":
-        celaref: \$(Rscript -e 'cat(as.character(packageVersion("celaref")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON":',
+        paste0('        celaref: ', as.character(packageVersion("celaref")))
+    ), "versions.yml")
     """
 
     stub:

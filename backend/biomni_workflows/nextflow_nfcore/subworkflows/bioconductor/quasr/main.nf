@@ -122,10 +122,10 @@ process BIOC_QUASR_CHIP_SEQ_WORKFLOW {
     saveRDS(prS, "profile_same.rds")
     saveRDS(prO, "profile_opposite.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QUASR_CHIP_SEQ_WORKFLOW":
-        quasr: \$(Rscript -e 'cat(as.character(packageVersion("quasr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QUASR_CHIP_SEQ_WORKFLOW":',
+        paste0('        quasr: ', as.character(packageVersion("quasr")))
+    ), "versions.yml")
     """
 
     stub:

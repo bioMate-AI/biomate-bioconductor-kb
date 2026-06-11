@@ -171,10 +171,10 @@ process BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS":
-        nanostringnctools: \$(Rscript -e 'cat(as.character(packageVersion("nanostringnctools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NANOSTRINGNCTOOLS_NANOSTRING_NCOUNTER_ANALYSIS":',
+        paste0('        nanostringnctools: ', as.character(packageVersion("nanostringnctools")))
+    ), "versions.yml")
     """
 
     stub:

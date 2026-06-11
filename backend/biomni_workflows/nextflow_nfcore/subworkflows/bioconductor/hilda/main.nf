@@ -113,10 +113,10 @@ process BIOC_HILDA_MUTATIONAL_SIGNATURE_BURDEN_TESTING {
     saveRDS(hildaGlobal, "hilda_global_test_results.rds")
     saveRDS(hildaLocal, "hilda_local_test_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HILDA_MUTATIONAL_SIGNATURE_BURDEN_TESTING":
-        hilda: \$(Rscript -e 'cat(as.character(packageVersion("hilda")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HILDA_MUTATIONAL_SIGNATURE_BURDEN_TESTING":',
+        paste0('        hilda: ', as.character(packageVersion("hilda")))
+    ), "versions.yml")
     """
 
     stub:

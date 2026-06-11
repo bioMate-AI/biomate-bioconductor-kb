@@ -113,10 +113,10 @@ process BIOC_BAALCHIP_ASB_WITH_GDNA_BAMS {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BAALCHIP_ASB_WITH_GDNA_BAMS":
-        BaalChIP: \$(Rscript -e 'cat(as.character(packageVersion("BaalChIP")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BAALCHIP_ASB_WITH_GDNA_BAMS":',
+        paste0('        BaalChIP: ', as.character(packageVersion("BaalChIP")))
+    ), "versions.yml")
     """
 
     stub:

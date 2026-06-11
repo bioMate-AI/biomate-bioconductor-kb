@@ -233,10 +233,10 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     # Clean up cache
     unlink(".Rcache", recursive=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION":
-        msnid: \$(Rscript -e 'cat(as.character(packageVersion("msnid")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION":',
+        paste0('        msnid: ', as.character(packageVersion("msnid")))
+    ), "versions.yml")
     """
 
     stub:

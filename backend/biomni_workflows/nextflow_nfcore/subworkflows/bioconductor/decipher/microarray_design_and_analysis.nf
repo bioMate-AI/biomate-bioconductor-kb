@@ -118,10 +118,10 @@ process BIOC_DECIPHER_MICROARRAY_DESIGN_AND_ANALYSIS {
     abline(a=0, b=1, col="red", lty=2)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECIPHER_MICROARRAY_DESIGN_AND_ANALYSIS":
-        decipher: \$(Rscript -e 'cat(as.character(packageVersion("decipher")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECIPHER_MICROARRAY_DESIGN_AND_ANALYSIS":',
+        paste0('        decipher: ', as.character(packageVersion("decipher")))
+    ), "versions.yml")
     """
 
     stub:

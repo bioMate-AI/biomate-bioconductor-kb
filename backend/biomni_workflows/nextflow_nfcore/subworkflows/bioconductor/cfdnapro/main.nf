@@ -89,10 +89,10 @@ process BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs saved to 'cohort1_plot.rds' and 'cohort1_fragment_size_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS":
-        cfdnapro: \$(Rscript -e 'cat(as.character(packageVersion("cfdnapro")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS":',
+        paste0('        cfdnapro: ', as.character(packageVersion("cfdnapro")))
+    ), "versions.yml")
     """
 
     stub:

@@ -106,10 +106,10 @@ process BIOC_OPOSSOM_EXPRESSIONSET_INPUT_WORKFLOW {
     # Save the final environment object containing all results
     saveRDS(env, file = "opossom_output_env.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPOSSOM_EXPRESSIONSET_INPUT_WORKFLOW":
-        oposSOM: \$(Rscript -e 'cat(as.character(packageVersion("oposSOM")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPOSSOM_EXPRESSIONSET_INPUT_WORKFLOW":',
+        paste0('        oposSOM: ', as.character(packageVersion("oposSOM")))
+    ), "versions.yml")
     """
 
     stub:

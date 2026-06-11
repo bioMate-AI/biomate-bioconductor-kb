@@ -122,10 +122,10 @@ process BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS":
-        seqcat: \$(Rscript -e 'cat(as.character(packageVersion("seqcat")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS":',
+        paste0('        seqcat: ', as.character(packageVersion("seqcat")))
+    ), "versions.yml")
     """
 
     stub:

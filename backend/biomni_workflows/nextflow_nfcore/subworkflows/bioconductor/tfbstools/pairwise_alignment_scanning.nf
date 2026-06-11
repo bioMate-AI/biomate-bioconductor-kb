@@ -85,10 +85,10 @@ process BIOC_TFBSTOOLS_PAIRWISE_ALIGNMENT_SCANNING {
     write.csv(gff2_df, "sitePairSet_gff2.csv", row.names=FALSE)
     saveRDS(sitePairSet, "sitePairSet.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TFBSTOOLS_PAIRWISE_ALIGNMENT_SCANNING":
-        tfbstools: \$(Rscript -e 'cat(as.character(packageVersion("tfbstools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TFBSTOOLS_PAIRWISE_ALIGNMENT_SCANNING":',
+        paste0('        tfbstools: ', as.character(packageVersion("tfbstools")))
+    ), "versions.yml")
     """
 
     stub:

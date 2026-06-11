@@ -130,10 +130,10 @@ process BIOC_KEGGGRAPH_PATHWAY_MERGING_AND_CROSSTALK {
       })
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KEGGGRAPH_PATHWAY_MERGING_AND_CROSSTALK":
-        kegggraph: \$(Rscript -e 'cat(as.character(packageVersion("kegggraph")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KEGGGRAPH_PATHWAY_MERGING_AND_CROSSTALK":',
+        paste0('        kegggraph: ', as.character(packageVersion("kegggraph")))
+    ), "versions.yml")
     """
 
     stub:

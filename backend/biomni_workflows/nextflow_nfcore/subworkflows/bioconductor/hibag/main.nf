@@ -110,10 +110,10 @@ process BIOC_HIBAG_HLA_IMPUTATION_PREFIT {
     cat("- 'predicted_genotypes.csv' (Best-guess HLA genotypes)\n")
     cat("- 'posterior_probabilities.csv' (Posterior probabilities for all candidates)\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HIBAG_HLA_IMPUTATION_PREFIT":
-        HIBAG: \$(Rscript -e 'cat(as.character(packageVersion("HIBAG")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HIBAG_HLA_IMPUTATION_PREFIT":',
+        paste0('        HIBAG: ', as.character(packageVersion("HIBAG")))
+    ), "versions.yml")
     """
 
     stub:

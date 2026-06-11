@@ -113,10 +113,10 @@ process BIOC_MUNGESUMSTATS_IMPORT_OPEN_GWAS {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUNGESUMSTATS_IMPORT_OPEN_GWAS":
-        mungesumstats: \$(Rscript -e 'cat(as.character(packageVersion("mungesumstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUNGESUMSTATS_IMPORT_OPEN_GWAS":',
+        paste0('        mungesumstats: ', as.character(packageVersion("mungesumstats")))
+    ), "versions.yml")
     """
 
     stub:

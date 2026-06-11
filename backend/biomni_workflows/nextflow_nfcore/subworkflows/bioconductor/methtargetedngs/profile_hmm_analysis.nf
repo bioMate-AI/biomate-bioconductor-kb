@@ -98,10 +98,10 @@ process BIOC_METHTARGETEDNGS_PROFILE_HMM_ANALYSIS {
       warning("HMMER binary '/usr/bin/nhmmer' not found. Skipping likelihood calculation.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METHTARGETEDNGS_PROFILE_HMM_ANALYSIS":
-        methtargetedngs: \$(Rscript -e 'cat(as.character(packageVersion("methtargetedngs")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METHTARGETEDNGS_PROFILE_HMM_ANALYSIS":',
+        paste0('        methtargetedngs: ', as.character(packageVersion("methtargetedngs")))
+    ), "versions.yml")
     """
 
     stub:

@@ -112,10 +112,10 @@ process BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS {
     
     cat("Pipeline completed successfully. Outputs saved to the working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS":
-        puma: \$(Rscript -e 'cat(as.character(packageVersion("puma")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS":',
+        paste0('        puma: ', as.character(packageVersion("puma")))
+    ), "versions.yml")
     """
 
     stub:

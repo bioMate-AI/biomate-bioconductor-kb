@@ -155,10 +155,10 @@ process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     # Close PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS":
-        genarise: \$(Rscript -e 'cat(as.character(packageVersion("genarise")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS":',
+        paste0('        genarise: ', as.character(packageVersion("genarise")))
+    ), "versions.yml")
     """
 
     stub:

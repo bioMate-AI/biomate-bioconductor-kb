@@ -76,10 +76,10 @@ process BIOC_MUNGESUMSTATS_QUICK_FORMAT_FROM_DISK {
     # Print the path to the formatted file
     cat("Formatted summary statistics saved to:", formatted_path, "\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUNGESUMSTATS_QUICK_FORMAT_FROM_DISK":
-        mungesumstats: \$(Rscript -e 'cat(as.character(packageVersion("mungesumstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUNGESUMSTATS_QUICK_FORMAT_FROM_DISK":',
+        paste0('        mungesumstats: ', as.character(packageVersion("mungesumstats")))
+    ), "versions.yml")
     """
 
     stub:

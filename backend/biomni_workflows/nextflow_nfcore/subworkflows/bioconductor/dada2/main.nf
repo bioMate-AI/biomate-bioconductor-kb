@@ -114,10 +114,10 @@ process BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE {
     
     cat("Pipeline completed successfully. Outputs saved to 'quality_profiles.pdf', 'error_rates.pdf', 'seqtab_nochim.rds', and 'seqtab_nochim.csv'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE":
-        dada2: \$(Rscript -e 'cat(as.character(packageVersion("dada2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE":',
+        paste0('        dada2: ', as.character(packageVersion("dada2")))
+    ), "versions.yml")
     """
 
     stub:

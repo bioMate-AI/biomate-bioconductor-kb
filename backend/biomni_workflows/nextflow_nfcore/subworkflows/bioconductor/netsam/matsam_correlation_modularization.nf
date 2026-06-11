@@ -117,10 +117,10 @@ process BIOC_NETSAM_MATSAM_CORRELATION_MODULARIZATION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NETSAM_MATSAM_CORRELATION_MODULARIZATION":
-        netsam: \$(Rscript -e 'cat(as.character(packageVersion("netsam")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NETSAM_MATSAM_CORRELATION_MODULARIZATION":',
+        paste0('        netsam: ', as.character(packageVersion("netsam")))
+    ), "versions.yml")
     """
 
     stub:

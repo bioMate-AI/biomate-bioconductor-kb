@@ -85,10 +85,10 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
     saveRDS(se, file = "target_sample_se.rds")
     saveRDS(newDefaultModel, file = "trained_bambu_model.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY":
-        bambu: \$(Rscript -e 'cat(as.character(packageVersion("bambu")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY":',
+        paste0('        bambu: ', as.character(packageVersion("bambu")))
+    ), "versions.yml")
     """
 
     stub:

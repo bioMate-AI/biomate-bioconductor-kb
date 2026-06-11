@@ -111,10 +111,10 @@ process BIOC_SCRUFF_READ_MAPPING_VISUALIZATION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCRUFF_READ_MAPPING_VISUALIZATION":
-        scruff: \$(Rscript -e 'cat(as.character(packageVersion("scruff")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCRUFF_READ_MAPPING_VISUALIZATION":',
+        paste0('        scruff: ', as.character(packageVersion("scruff")))
+    ), "versions.yml")
     """
 
     stub:

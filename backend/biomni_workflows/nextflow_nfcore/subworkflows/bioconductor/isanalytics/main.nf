@@ -140,10 +140,10 @@ process BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS {
     if (length(sharing_plots2) >= 1) plot(sharing_plots2[[1]])
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS":
-        isanalytics: \$(Rscript -e 'cat(as.character(packageVersion("isanalytics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISANALYTICS_CLONAL_SHARING_ANALYSIS":',
+        paste0('        isanalytics: ', as.character(packageVersion("isanalytics")))
+    ), "versions.yml")
     """
 
     stub:

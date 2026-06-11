@@ -134,10 +134,10 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     
     print("Pipeline completed successfully. Outputs generated: pqs_metadata.csv, pqs_density.csv, pqs_density_plot.pdf, test.gff, test.fa")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT":
-        pqsfinder: \$(Rscript -e 'cat(as.character(packageVersion("pqsfinder")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT":',
+        paste0('        pqsfinder: ', as.character(packageVersion("pqsfinder")))
+    ), "versions.yml")
     """
 
     stub:

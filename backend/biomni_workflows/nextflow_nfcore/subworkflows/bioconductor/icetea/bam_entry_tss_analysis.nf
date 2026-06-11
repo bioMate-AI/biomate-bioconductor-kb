@@ -86,10 +86,10 @@ process BIOC_ICETEA_BAM_ENTRY_TSS_ANALYSIS {
     saveRDS(cs2, file = "tssCalling/capset_tss_analysis.rds")
     write.csv(sampleInfo(cs2), file = "tssCalling/sample_info.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ICETEA_BAM_ENTRY_TSS_ANALYSIS":
-        icetea: \$(Rscript -e 'cat(as.character(packageVersion("icetea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ICETEA_BAM_ENTRY_TSS_ANALYSIS":',
+        paste0('        icetea: ', as.character(packageVersion("icetea")))
+    ), "versions.yml")
     """
 
     stub:

@@ -133,10 +133,10 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
                    cluster_id = results\$Differential_results\$Cluster_id[1])
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE":
-        differentialregulation: \$(Rscript -e 'cat(as.character(packageVersion("differentialregulation")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE":',
+        paste0('        differentialregulation: ', as.character(packageVersion("differentialregulation")))
+    ), "versions.yml")
     """
 
     stub:

@@ -180,10 +180,10 @@ process BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING {
     fwrite(assay, "assay_table.csv")
     saveRDS(res, "gtox_run_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING":
-        GladiaTOX: \$(Rscript -e 'cat(as.character(packageVersion("GladiaTOX")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GLADIATOX_HCS_DATA_PROCESSING_AND_REPORTING":',
+        paste0('        GladiaTOX: ', as.character(packageVersion("GladiaTOX")))
+    ), "versions.yml")
     """
 
     stub:

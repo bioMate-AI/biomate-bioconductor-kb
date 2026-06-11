@@ -116,10 +116,10 @@ process BIOC_DIFFBIND_CONSENSUS_PEAKSET_GENERATION {
       saveRDS(tamoxifen, "tamoxifen_base.rds")
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DIFFBIND_CONSENSUS_PEAKSET_GENERATION":
-        diffbind: \$(Rscript -e 'cat(as.character(packageVersion("diffbind")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DIFFBIND_CONSENSUS_PEAKSET_GENERATION":',
+        paste0('        diffbind: ', as.character(packageVersion("diffbind")))
+    ), "versions.yml")
     """
 
     stub:

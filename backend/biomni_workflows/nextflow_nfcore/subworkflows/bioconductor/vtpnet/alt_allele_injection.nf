@@ -130,10 +130,10 @@ process BIOC_VTPNET_ALT_ALLELE_INJECTION {
     
     message("Workflow completed successfully. Output written to: ", expected_output_file)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VTPNET_ALT_ALLELE_INJECTION":
-        vtpnet: \$(Rscript -e 'cat(as.character(packageVersion("vtpnet")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VTPNET_ALT_ALLELE_INJECTION":',
+        paste0('        vtpnet: ', as.character(packageVersion("vtpnet")))
+    ), "versions.yml")
     """
 
     stub:

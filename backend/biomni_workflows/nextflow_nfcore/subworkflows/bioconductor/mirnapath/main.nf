@@ -171,10 +171,10 @@ process BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT {
     # Save the final enriched mirnapath object
     saveRDS(mirnaobj, "mirnaobj_enriched.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT":
-        mirnapath: \$(Rscript -e 'cat(as.character(packageVersion("mirnapath")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MIRNAPATH_MIRNA_PATHWAY_ENRICHMENT":',
+        paste0('        mirnapath: ', as.character(packageVersion("mirnapath")))
+    ), "versions.yml")
     """
 
     stub:

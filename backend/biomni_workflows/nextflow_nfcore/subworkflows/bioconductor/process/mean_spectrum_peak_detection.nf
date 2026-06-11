@@ -119,10 +119,10 @@ process BIOC_PROCESS_MEAN_SPECTRUM_PEAK_DETECTION {
     
     cat("Workflow completed successfully. Outputs saved to 'grandBmk.csv', 'grandBmk.rds', 'grandpvec.csv', 'grandpvec.rds', and 'mean_spectrum_diagnostic_plots.pdf'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROCESS_MEAN_SPECTRUM_PEAK_DETECTION":
-        process: \$(Rscript -e 'cat(as.character(packageVersion("process")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROCESS_MEAN_SPECTRUM_PEAK_DETECTION":',
+        paste0('        process: ', as.character(packageVersion("process")))
+    ), "versions.yml")
     """
 
     stub:

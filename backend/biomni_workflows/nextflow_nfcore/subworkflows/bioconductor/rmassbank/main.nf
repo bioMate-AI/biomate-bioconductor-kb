@@ -120,10 +120,10 @@ process BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING {
     # Save final results
     saveRDS(w, "final_workspace.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING":
-        rmassbank: \$(Rscript -e 'cat(as.character(packageVersion("rmassbank")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING":',
+        paste0('        rmassbank: ', as.character(packageVersion("rmassbank")))
+    ), "versions.yml")
     """
 
     stub:

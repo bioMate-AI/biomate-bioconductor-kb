@@ -130,10 +130,10 @@ process BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS {
         write.csv(data.frame(), "rois_summarized.csv", row.names=FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS":
-        medips: \$(Rscript -e 'cat(as.character(packageVersion("medips")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MEDIPS_DIFFERENTIAL_COVERAGE_ANALYSIS":',
+        paste0('        medips: ', as.character(packageVersion("medips")))
+    ), "versions.yml")
     """
 
     stub:

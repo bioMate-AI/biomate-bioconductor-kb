@@ -159,10 +159,10 @@ process BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS {
       message("No pathway clusters found. Skipping miRNA prioritization.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS":
-        panomir: \$(Rscript -e 'cat(as.character(packageVersion("panomir")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PANOMIR_PANOMIR_COMPLETE_ANALYSIS":',
+        paste0('        panomir: ', as.character(packageVersion("panomir")))
+    ), "versions.yml")
     """
 
     stub:

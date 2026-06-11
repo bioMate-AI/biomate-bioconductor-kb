@@ -99,10 +99,10 @@ process BIOC_EBIMAGE_IMAGE_THRESHOLDING_AND_OBJECT_MANIPULATION {
     saveRDS(nmask, "nmask.rds")
     saveRDS(z, "z_removed.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EBIMAGE_IMAGE_THRESHOLDING_AND_OBJECT_MANIPULATION":
-        ebimage: \$(Rscript -e 'cat(as.character(packageVersion("ebimage")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EBIMAGE_IMAGE_THRESHOLDING_AND_OBJECT_MANIPULATION":',
+        paste0('        ebimage: ', as.character(packageVersion("ebimage")))
+    ), "versions.yml")
     """
 
     stub:

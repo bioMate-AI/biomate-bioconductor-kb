@@ -138,10 +138,10 @@ process BIOC_HAPFABIA_VCF_PIPELINE {
         message("No results found for interval index: ", posAll, " (File not found: ", rda_file, ")")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HAPFABIA_VCF_PIPELINE":
-        hapfabia: \$(Rscript -e 'cat(as.character(packageVersion("hapfabia")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HAPFABIA_VCF_PIPELINE":',
+        paste0('        hapfabia: ', as.character(packageVersion("hapfabia")))
+    ), "versions.yml")
     """
 
     stub:

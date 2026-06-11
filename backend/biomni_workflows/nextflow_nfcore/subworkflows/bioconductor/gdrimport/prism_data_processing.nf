@@ -100,10 +100,10 @@ process BIOC_GDRIMPORT_PRISM_DATA_PROCESSING {
     saveRDS(level6_gdr_input, "gdr_input_level6.rds")
     message("LEVEL6 PRISM data successfully converted and saved.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GDRIMPORT_PRISM_DATA_PROCESSING":
-        gDRimport: \$(Rscript -e 'cat(as.character(packageVersion("gDRimport")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GDRIMPORT_PRISM_DATA_PROCESSING":',
+        paste0('        gDRimport: ', as.character(packageVersion("gDRimport")))
+    ), "versions.yml")
     """
 
     stub:

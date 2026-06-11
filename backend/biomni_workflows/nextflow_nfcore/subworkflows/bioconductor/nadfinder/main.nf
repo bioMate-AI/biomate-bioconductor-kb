@@ -124,10 +124,10 @@ process BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ {
     # Save RDS of the smoothed ratios for downstream analysis
     saveRDS(datList, "smoothed_ratios.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ":
-        nadfinder: \$(Rscript -e 'cat(as.character(packageVersion("nadfinder")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NADFINDER_SINGLE_PAIR_NAD_SEQ":',
+        paste0('        nadfinder: ', as.character(packageVersion("nadfinder")))
+    ), "versions.yml")
     """
 
     stub:

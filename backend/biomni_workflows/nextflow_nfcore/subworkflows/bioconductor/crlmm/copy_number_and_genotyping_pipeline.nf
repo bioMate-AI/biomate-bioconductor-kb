@@ -133,10 +133,10 @@ process BIOC_CRLMM_COPY_NUMBER_AND_GENOTYPING_PIPELINE {
     
     cat("Pipeline completed successfully. Outputs saved to:", outdir, "\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRLMM_COPY_NUMBER_AND_GENOTYPING_PIPELINE":
-        crlmm: \$(Rscript -e 'cat(as.character(packageVersion("crlmm")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRLMM_COPY_NUMBER_AND_GENOTYPING_PIPELINE":',
+        paste0('        crlmm: ', as.character(packageVersion("crlmm")))
+    ), "versions.yml")
     """
 
     stub:

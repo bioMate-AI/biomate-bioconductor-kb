@@ -129,10 +129,10 @@ process BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW {
     )
     write.csv(scores_df, "hrd_and_td_scores.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW":
-        oncoscanr: \$(Rscript -e 'cat(as.character(packageVersion("oncoscanr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW":',
+        paste0('        oncoscanr: ', as.character(packageVersion("oncoscanr")))
+    ), "versions.yml")
     """
 
     stub:

@@ -103,10 +103,10 @@ process BIOC_NORMQPCR_COMPUTE_NRQS {
       warning("Could not generate PDF plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMQPCR_COMPUTE_NRQS":
-        normqpcr: \$(Rscript -e 'cat(as.character(packageVersion("normqpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMQPCR_COMPUTE_NRQS":',
+        paste0('        normqpcr: ', as.character(packageVersion("normqpcr")))
+    ), "versions.yml")
     """
 
     stub:

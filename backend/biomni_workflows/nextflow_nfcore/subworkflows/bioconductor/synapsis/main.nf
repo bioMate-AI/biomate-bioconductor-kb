@@ -122,10 +122,10 @@ process BIOC_SYNAPSIS_MEIOTIC_FOCI_QUANTIFICATION {
     write.csv(foci_counts, "foci_counts.csv", row.names = FALSE)
     saveRDS(foci_counts, "foci_counts.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SYNAPSIS_MEIOTIC_FOCI_QUANTIFICATION":
-        synapsis: \$(Rscript -e 'cat(as.character(packageVersion("synapsis")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SYNAPSIS_MEIOTIC_FOCI_QUANTIFICATION":',
+        paste0('        synapsis: ', as.character(packageVersion("synapsis")))
+    ), "versions.yml")
     """
 
     stub:

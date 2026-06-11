@@ -150,10 +150,10 @@ process BIOC_RIBODIPA_RIBODIPA_STEP_BY_STEP_PIPELINE {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBODIPA_RIBODIPA_STEP_BY_STEP_PIPELINE":
-        ribodipa: \$(Rscript -e 'cat(as.character(packageVersion("ribodipa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBODIPA_RIBODIPA_STEP_BY_STEP_PIPELINE":',
+        paste0('        ribodipa: ', as.character(packageVersion("ribodipa")))
+    ), "versions.yml")
     """
 
     stub:

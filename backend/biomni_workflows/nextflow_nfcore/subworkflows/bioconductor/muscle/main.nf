@@ -92,10 +92,10 @@ process BIOC_MUSCLE_MULTIPLE_SEQUENCE_ALIGNMENT {
     cat(" - alignment_results.rds (DNAMultipleAlignment object)\n")
     cat(" - aligned_sequences.fasta (Aligned sequences in FASTA format)\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUSCLE_MULTIPLE_SEQUENCE_ALIGNMENT":
-        muscle: \$(Rscript -e 'cat(as.character(packageVersion("muscle")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUSCLE_MULTIPLE_SEQUENCE_ALIGNMENT":',
+        paste0('        muscle: ', as.character(packageVersion("muscle")))
+    ), "versions.yml")
     """
 
     stub:

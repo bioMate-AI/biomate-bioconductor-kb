@@ -119,10 +119,10 @@ process BIOC_ADACGH2_LARGE_TEXT_FILE_CUTTING {
       write.csv(states, "segmented_states.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ADACGH2_LARGE_TEXT_FILE_CUTTING":
-        adacgh2: \$(Rscript -e 'cat(as.character(packageVersion("adacgh2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ADACGH2_LARGE_TEXT_FILE_CUTTING":',
+        paste0('        adacgh2: ', as.character(packageVersion("adacgh2")))
+    ), "versions.yml")
     """
 
     stub:

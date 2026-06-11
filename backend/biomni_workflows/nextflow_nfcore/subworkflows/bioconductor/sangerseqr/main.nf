@@ -147,10 +147,10 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     
     message("Sanger sequencing analysis pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS":
-        sangerseqr: \$(Rscript -e 'cat(as.character(packageVersion("sangerseqr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS":',
+        paste0('        sangerseqr: ', as.character(packageVersion("sangerseqr")))
+    ), "versions.yml")
     """
 
     stub:

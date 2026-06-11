@@ -120,10 +120,10 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP {
     
     write.csv(summary_df, "mask_summary.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP":
-        fishalyser: \$(Rscript -e 'cat(as.character(packageVersion("fishalyser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_CLEANUP":',
+        paste0('        fishalyser: ', as.character(packageVersion("fishalyser")))
+    ), "versions.yml")
     """
 
     stub:

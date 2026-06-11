@@ -107,10 +107,10 @@ process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
     # Save the extracted maximum Cook's distance data
     write.csv(as.data.frame(fl.max), "floss_max_gene_fractions.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS":
-        ribosomeprofilingqc: \$(Rscript -e 'cat(as.character(packageVersion("ribosomeprofilingqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS":',
+        paste0('        ribosomeprofilingqc: ', as.character(packageVersion("ribosomeprofilingqc")))
+    ), "versions.yml")
     """
 
     stub:

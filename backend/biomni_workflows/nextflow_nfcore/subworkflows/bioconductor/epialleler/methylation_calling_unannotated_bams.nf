@@ -85,10 +85,10 @@ process BIOC_EPIALLELER_METHYLATION_CALLING_UNANNOTATED_BAMS {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EPIALLELER_METHYLATION_CALLING_UNANNOTATED_BAMS":
-        epialleler: \$(Rscript -e 'cat(as.character(packageVersion("epialleler")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EPIALLELER_METHYLATION_CALLING_UNANNOTATED_BAMS":',
+        paste0('        epialleler: ', as.character(packageVersion("epialleler")))
+    ), "versions.yml")
     """
 
     stub:

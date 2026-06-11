@@ -163,10 +163,10 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     # Save final window comparison data
     write.csv(as.data.frame(win2), "filtering_comparison_windows.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING":
-        strandcheckr: \$(Rscript -e 'cat(as.character(packageVersion("strandcheckr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING":',
+        paste0('        strandcheckr: ', as.character(packageVersion("strandcheckr")))
+    ), "versions.yml")
     """
 
     stub:

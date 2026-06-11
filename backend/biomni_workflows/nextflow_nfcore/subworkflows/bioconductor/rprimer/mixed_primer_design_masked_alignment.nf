@@ -92,10 +92,10 @@ process BIOC_RPRIMER_MIXED_PRIMER_DESIGN_MASKED_ALIGNMENT {
     plotData(myMaskedMixedPrimers)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RPRIMER_MIXED_PRIMER_DESIGN_MASKED_ALIGNMENT":
-        rprimer: \$(Rscript -e 'cat(as.character(packageVersion("rprimer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RPRIMER_MIXED_PRIMER_DESIGN_MASKED_ALIGNMENT":',
+        paste0('        rprimer: ', as.character(packageVersion("rprimer")))
+    ), "versions.yml")
     """
 
     stub:

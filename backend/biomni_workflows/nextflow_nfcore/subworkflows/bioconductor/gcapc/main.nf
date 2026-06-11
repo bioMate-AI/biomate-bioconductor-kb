@@ -103,10 +103,10 @@ process BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING {
     
     message("Pipeline completed successfully. Outputs saved to current directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING":
-        gcapc: \$(Rscript -e 'cat(as.character(packageVersion("gcapc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING":',
+        paste0('        gcapc: ', as.character(packageVersion("gcapc")))
+    ), "versions.yml")
     """
 
     stub:

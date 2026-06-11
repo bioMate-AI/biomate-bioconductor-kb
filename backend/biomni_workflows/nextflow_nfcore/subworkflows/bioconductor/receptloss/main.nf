@@ -199,10 +199,10 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION":
-        receptLoss: \$(Rscript -e 'cat(as.character(packageVersion("receptLoss")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION":',
+        paste0('        receptLoss: ', as.character(packageVersion("receptLoss")))
+    ), "versions.yml")
     """
 
     stub:

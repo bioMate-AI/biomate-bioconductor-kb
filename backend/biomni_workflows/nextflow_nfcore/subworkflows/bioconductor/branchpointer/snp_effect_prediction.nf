@@ -92,10 +92,10 @@ process BIOC_BRANCHPOINTER_SNP_EFFECT_PREDICTION {
     plotBranchpointWindow(querySNP\$id[2], branchpointPredictionsSNP, probabilityCutoff = 0.52, plotMutated = TRUE, plotStructure = TRUE, exons = exons)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BRANCHPOINTER_SNP_EFFECT_PREDICTION":
-        branchpointer: \$(Rscript -e 'cat(as.character(packageVersion("branchpointer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BRANCHPOINTER_SNP_EFFECT_PREDICTION":',
+        paste0('        branchpointer: ', as.character(packageVersion("branchpointer")))
+    ), "versions.yml")
     """
 
     stub:

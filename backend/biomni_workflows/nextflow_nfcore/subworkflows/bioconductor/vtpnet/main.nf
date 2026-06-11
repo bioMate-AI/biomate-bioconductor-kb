@@ -116,10 +116,10 @@ process BIOC_VTPNET_VTP_NETWORK_CONSTRUCTION {
     }
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VTPNET_VTP_NETWORK_CONSTRUCTION":
-        vtpnet: \$(Rscript -e 'cat(as.character(packageVersion("vtpnet")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VTPNET_VTP_NETWORK_CONSTRUCTION":',
+        paste0('        vtpnet: ', as.character(packageVersion("vtpnet")))
+    ), "versions.yml")
     """
 
     stub:

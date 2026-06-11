@@ -89,10 +89,10 @@ process BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION {
     
     message("Pipeline completed successfully. Outputs saved to 'information_accretion.rds' and 'information_accretion.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION":
-        semdist: \$(Rscript -e 'cat(as.character(packageVersion("semdist")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION":',
+        paste0('        semdist: ', as.character(packageVersion("semdist")))
+    ), "versions.yml")
     """
 
     stub:

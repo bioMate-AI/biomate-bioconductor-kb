@@ -155,10 +155,10 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     # Close the PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN":
-        rprimer: \$(Rscript -e 'cat(as.character(packageVersion("rprimer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN":',
+        paste0('        rprimer: ', as.character(packageVersion("rprimer")))
+    ), "versions.yml")
     """
 
     stub:

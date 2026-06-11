@@ -188,10 +188,10 @@ process BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING {
     message("- pwm.rds (Serialized PWMatrix object)")
     message("- siteset.rds (Serialized SiteSet object)")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING":
-        tfbstools: \$(Rscript -e 'cat(as.character(packageVersion("tfbstools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING":',
+        paste0('        tfbstools: ', as.character(packageVersion("tfbstools")))
+    ), "versions.yml")
     """
 
     stub:

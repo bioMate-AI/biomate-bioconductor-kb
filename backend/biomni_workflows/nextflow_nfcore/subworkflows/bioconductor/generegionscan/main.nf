@@ -109,10 +109,10 @@ process BIOC_GENEREGIONSCAN_BUILD_PROBE_LEVEL_SET {
     
     message("Workflow completed successfully. Outputs saved to 'listOfProbesets.txt', 'myProbeLevelSet.rds', and 'probe_sequences_1_5.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENEREGIONSCAN_BUILD_PROBE_LEVEL_SET":
-        generegionscan: \$(Rscript -e 'cat(as.character(packageVersion("generegionscan")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENEREGIONSCAN_BUILD_PROBE_LEVEL_SET":',
+        paste0('        generegionscan: ', as.character(packageVersion("generegionscan")))
+    ), "versions.yml")
     """
 
     stub:

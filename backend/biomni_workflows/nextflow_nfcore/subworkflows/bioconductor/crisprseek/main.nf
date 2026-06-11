@@ -93,10 +93,10 @@ process BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS {
     
     cat("\nAnalysis complete. Outputs saved to 'summary_results.csv', 'offtarget_results.csv', and 'offtarget_analysis_res.rds'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS":
-        crisprseek: \$(Rscript -e 'cat(as.character(packageVersion("crisprseek")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRISPRSEEK_STANDARD_OFFTARGET_ANALYSIS":',
+        paste0('        crisprseek: ', as.character(packageVersion("crisprseek")))
+    ), "versions.yml")
     """
 
     stub:

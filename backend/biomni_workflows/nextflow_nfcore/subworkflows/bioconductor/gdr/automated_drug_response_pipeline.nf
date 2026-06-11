@@ -85,10 +85,10 @@ process BIOC_GDR_AUTOMATED_DRUG_RESPONSE_PIPELINE {
     saveRDS(mae, "mae_output.rds")
     write.csv(metrics_dt, "metrics_output.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GDR_AUTOMATED_DRUG_RESPONSE_PIPELINE":
-        gdr: \$(Rscript -e 'cat(as.character(packageVersion("gdr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GDR_AUTOMATED_DRUG_RESPONSE_PIPELINE":',
+        paste0('        gdr: ', as.character(packageVersion("gdr")))
+    ), "versions.yml")
     """
 
     stub:

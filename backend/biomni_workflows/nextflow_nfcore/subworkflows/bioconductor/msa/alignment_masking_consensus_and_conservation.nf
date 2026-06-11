@@ -103,10 +103,10 @@ process BIOC_MSA_ALIGNMENT_MASKING_CONSENSUS_AND_CONSERVATION {
     )
     write.csv(scores_df, "conservation_scores.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MSA_ALIGNMENT_MASKING_CONSENSUS_AND_CONSERVATION":
-        msa: \$(Rscript -e 'cat(as.character(packageVersion("msa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MSA_ALIGNMENT_MASKING_CONSENSUS_AND_CONSERVATION":',
+        paste0('        msa: ', as.character(packageVersion("msa")))
+    ), "versions.yml")
     """
 
     stub:

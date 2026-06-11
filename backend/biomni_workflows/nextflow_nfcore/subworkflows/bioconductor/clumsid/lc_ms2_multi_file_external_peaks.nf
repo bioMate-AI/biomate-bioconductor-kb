@@ -131,10 +131,10 @@ process BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS {
     
     message("Pipeline completed successfully. Outputs saved to 'annotated_spectra_list.rds', 'distance_matrix.rds', 'feature_list_annotations.csv', and 'clumsid_plots.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS":
-        clumsid: \$(Rscript -e 'cat(as.character(packageVersion("clumsid")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLUMSID_LC_MS2_MULTI_FILE_EXTERNAL_PEAKS":',
+        paste0('        clumsid: ', as.character(packageVersion("clumsid")))
+    ), "versions.yml")
     """
 
     stub:

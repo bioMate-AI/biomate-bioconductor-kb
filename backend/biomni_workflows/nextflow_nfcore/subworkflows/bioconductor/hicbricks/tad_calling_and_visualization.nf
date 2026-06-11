@@ -130,10 +130,10 @@ process BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION {
     write.csv(as.data.frame(TAD_ranges), file = "TAD_ranges.csv", row.names = FALSE)
     saveRDS(My_BrickContainer, file = "My_BrickContainer_updated.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION":
-        HiCBricks: \$(Rscript -e 'cat(as.character(packageVersion("HiCBricks")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HICBRICKS_TAD_CALLING_AND_VISUALIZATION":',
+        paste0('        HiCBricks: ', as.character(packageVersion("HiCBricks")))
+    ), "versions.yml")
     """
 
     stub:

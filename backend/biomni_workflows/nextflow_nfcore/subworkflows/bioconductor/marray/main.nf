@@ -105,10 +105,10 @@ process BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING {
     write.csv(as.data.frame(swirl.norm@maM), file="normalized_log_ratios_M.csv", row.names=TRUE)
     write.csv(as.data.frame(swirl.norm@maA), file="normalized_average_intensities_A.csv", row.names=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING":
-        marray: \$(Rscript -e 'cat(as.character(packageVersion("marray")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING":',
+        paste0('        marray: ', as.character(packageVersion("marray")))
+    ), "versions.yml")
     """
 
     stub:

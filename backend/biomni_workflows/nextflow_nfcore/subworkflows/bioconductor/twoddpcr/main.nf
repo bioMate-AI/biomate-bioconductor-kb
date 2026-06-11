@@ -87,10 +87,10 @@ process BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS {
     print(p)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS":
-        twoddpcr: \$(Rscript -e 'cat(as.character(packageVersion("twoddpcr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TWODDPCR_STANDARD_KMEANS_MAHALANOBIS":',
+        paste0('        twoddpcr: ', as.character(packageVersion("twoddpcr")))
+    ), "versions.yml")
     """
 
     stub:

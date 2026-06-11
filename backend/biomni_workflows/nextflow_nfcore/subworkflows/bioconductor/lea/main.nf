@@ -147,10 +147,10 @@ process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {
     
     message("Pipeline completed successfully. All outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION":
-        lea: \$(Rscript -e 'cat(as.character(packageVersion("lea")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION":',
+        paste0('        lea: ', as.character(packageVersion("lea")))
+    ), "versions.yml")
     """
 
     stub:

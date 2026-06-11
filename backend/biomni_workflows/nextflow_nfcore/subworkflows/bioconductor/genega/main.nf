@@ -97,10 +97,10 @@ process BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION {
     plotGeneGA(GeneGA.result, type = 3)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION":
-        genega: \$(Rscript -e 'cat(as.character(packageVersion("genega")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION":',
+        paste0('        genega: ', as.character(packageVersion("genega")))
+    ), "versions.yml")
     """
 
     stub:

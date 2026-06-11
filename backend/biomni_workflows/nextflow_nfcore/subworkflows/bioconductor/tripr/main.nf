@@ -141,10 +141,10 @@ process BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE {
       fs::dir_delete(root_dir)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE":
-        tripr: \$(Rscript -e 'cat(as.character(packageVersion("tripr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TRIPR_TRIPR_ANALYSIS_PIPELINE":',
+        paste0('        tripr: ', as.character(packageVersion("tripr")))
+    ), "versions.yml")
     """
 
     stub:

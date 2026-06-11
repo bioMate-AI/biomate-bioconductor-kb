@@ -106,10 +106,10 @@ process BIOC_PHYLOPROFILE_DOMAIN_ARCHITECTURE_PLOT {
     grid::grid.draw(plot)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOPROFILE_DOMAIN_ARCHITECTURE_PLOT":
-        phyloprofile: \$(Rscript -e 'cat(as.character(packageVersion("phyloprofile")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOPROFILE_DOMAIN_ARCHITECTURE_PLOT":',
+        paste0('        phyloprofile: ', as.character(packageVersion("phyloprofile")))
+    ), "versions.yml")
     """
 
     stub:

@@ -232,10 +232,10 @@ process BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION {
     
     message("Pipeline execution completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION":
-        scifer: \$(Rscript -e 'cat(as.character(packageVersion("scifer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCIFER_BCR_TCR_FLOW_SANGER_INTEGRATION":',
+        paste0('        scifer: ', as.character(packageVersion("scifer")))
+    ), "versions.yml")
     """
 
     stub:

@@ -167,10 +167,10 @@ process BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS":
-        asics: \$(Rscript -e 'cat(as.character(packageVersion("asics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ASICS_METABOLITE_QUANTIFICATION_AND_ANALYSIS":',
+        paste0('        asics: ', as.character(packageVersion("asics")))
+    ), "versions.yml")
     """
 
     stub:

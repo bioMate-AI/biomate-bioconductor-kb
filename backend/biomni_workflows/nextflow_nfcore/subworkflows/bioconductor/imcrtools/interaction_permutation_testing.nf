@@ -158,10 +158,10 @@ process BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING {
       message("No significant conditional interactions found to plot.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING":
-        imcRtools: \$(Rscript -e 'cat(as.character(packageVersion("imcRtools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_IMCRTOOLS_INTERACTION_PERMUTATION_TESTING":',
+        paste0('        imcRtools: ', as.character(packageVersion("imcRtools")))
+    ), "versions.yml")
     """
 
     stub:

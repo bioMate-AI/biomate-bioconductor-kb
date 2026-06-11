@@ -94,10 +94,10 @@ process BIOC_COVERAGEVIEW_MULTI_SAMPLE_COMPARISON {
     # 5. Draw comparative heatmap
     draw.heatmap(data=input_list, outfile="H3K4me3cmp_heatmap.png")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_COVERAGEVIEW_MULTI_SAMPLE_COMPARISON":
-        coverageview: \$(Rscript -e 'cat(as.character(packageVersion("coverageview")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_COVERAGEVIEW_MULTI_SAMPLE_COMPARISON":',
+        paste0('        coverageview: ', as.character(packageVersion("coverageview")))
+    ), "versions.yml")
     """
 
     stub:

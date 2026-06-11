@@ -97,10 +97,10 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     write.csv(as.data.frame(colData(sce)), "cell_metadata.csv", row.names = FALSE)
     write.csv(as.data.frame(assay(sce, "counts")), "cell_counts.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION":
-        cytomapper: \$(Rscript -e 'cat(as.character(packageVersion("cytomapper")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION":',
+        paste0('        cytomapper: ', as.character(packageVersion("cytomapper")))
+    ), "versions.yml")
     """
 
     stub:

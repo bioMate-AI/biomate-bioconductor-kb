@@ -140,10 +140,10 @@ process BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION {
     psiPlot(single_record)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION":
-        splinter: \$(Rscript -e 'cat(as.character(packageVersion("splinter")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPLINTER_ALTERNATIVE_SPLICING_VALIDATION":',
+        paste0('        splinter: ', as.character(packageVersion("splinter")))
+    ), "versions.yml")
     """
 
     stub:

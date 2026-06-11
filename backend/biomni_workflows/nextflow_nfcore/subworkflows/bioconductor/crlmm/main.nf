@@ -110,10 +110,10 @@ process BIOC_CRLMM_SIMPLE_GENOTYPING {
     
     message("Pipeline completed successfully. Outputs saved: crlmm_result.rds, genotype_calls.csv, confidence_scores.csv, snr_values.csv, snr_histogram.pdf")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRLMM_SIMPLE_GENOTYPING":
-        crlmm: \$(Rscript -e 'cat(as.character(packageVersion("crlmm")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRLMM_SIMPLE_GENOTYPING":',
+        paste0('        crlmm: ', as.character(packageVersion("crlmm")))
+    ), "versions.yml")
     """
 
     stub:

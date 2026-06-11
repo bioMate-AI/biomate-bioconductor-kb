@@ -83,10 +83,10 @@ process BIOC_PREBS_CUSTOM_CDF_EXPRESSION {
     write.table(expression_matrix, file="prebs_values.txt", quote=FALSE, sep="\t", col.names=NA)
     saveRDS(prebs_values, file="prebs_values.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PREBS_CUSTOM_CDF_EXPRESSION":
-        prebs: \$(Rscript -e 'cat(as.character(packageVersion("prebs")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PREBS_CUSTOM_CDF_EXPRESSION":',
+        paste0('        prebs: ', as.character(packageVersion("prebs")))
+    ), "versions.yml")
     """
 
     stub:

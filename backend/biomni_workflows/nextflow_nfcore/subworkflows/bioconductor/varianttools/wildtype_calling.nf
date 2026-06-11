@@ -75,10 +75,10 @@ process BIOC_VARIANTTOOLS_WILDTYPE_CALLING {
     output_df\$wildtype <- as.vector(wildtype)
     write.csv(output_df, "wildtype_calls.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VARIANTTOOLS_WILDTYPE_CALLING":
-        varianttools: \$(Rscript -e 'cat(as.character(packageVersion("varianttools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VARIANTTOOLS_WILDTYPE_CALLING":',
+        paste0('        varianttools: ', as.character(packageVersion("varianttools")))
+    ), "versions.yml")
     """
 
     stub:

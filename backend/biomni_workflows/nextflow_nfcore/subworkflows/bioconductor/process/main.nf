@@ -130,10 +130,10 @@ process BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT {
     message("- ", biomarkers_rds_file)
     message("- biomarker_mzs.txt")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT":
-        process: \$(Rscript -e 'cat(as.character(packageVersion("process")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT":',
+        paste0('        process: ', as.character(packageVersion("process")))
+    ), "versions.yml")
     """
 
     stub:

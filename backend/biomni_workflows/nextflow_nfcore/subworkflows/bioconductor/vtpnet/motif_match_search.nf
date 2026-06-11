@@ -101,10 +101,10 @@ process BIOC_VTPNET_MOTIF_MATCH_SEARCH {
     saveRDS(pax4_75, file="pax4_75.rds")
     write.csv(as.data.frame(pax4_75), file="pax4_75.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VTPNET_MOTIF_MATCH_SEARCH":
-        vtpnet: \$(Rscript -e 'cat(as.character(packageVersion("vtpnet")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VTPNET_MOTIF_MATCH_SEARCH":',
+        paste0('        vtpnet: ', as.character(packageVersion("vtpnet")))
+    ), "versions.yml")
     """
 
     stub:

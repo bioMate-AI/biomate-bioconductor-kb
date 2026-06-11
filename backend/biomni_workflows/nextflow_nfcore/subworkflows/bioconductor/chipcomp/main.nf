@@ -96,10 +96,10 @@ process BIOC_CHIPCOMP_DIFFERENTIAL_BINDING_ANALYSIS {
       writeLines(capture.output(print(countSet)), "chipcomp_results_print.txt")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CHIPCOMP_DIFFERENTIAL_BINDING_ANALYSIS":
-        chipcomp: \$(Rscript -e 'cat(as.character(packageVersion("chipcomp")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CHIPCOMP_DIFFERENTIAL_BINDING_ANALYSIS":',
+        paste0('        chipcomp: ', as.character(packageVersion("chipcomp")))
+    ), "versions.yml")
     """
 
     stub:

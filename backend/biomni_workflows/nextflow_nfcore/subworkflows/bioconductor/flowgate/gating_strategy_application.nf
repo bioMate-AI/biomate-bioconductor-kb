@@ -124,10 +124,10 @@ process BIOC_FLOWGATE_GATING_STRATEGY_APPLICATION {
     })
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FLOWGATE_GATING_STRATEGY_APPLICATION":
-        flowgate: \$(Rscript -e 'cat(as.character(packageVersion("flowgate")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FLOWGATE_GATING_STRATEGY_APPLICATION":',
+        paste0('        flowgate: ', as.character(packageVersion("flowgate")))
+    ), "versions.yml")
     """
 
     stub:

@@ -151,10 +151,10 @@ process BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION {
     saveUMRLMRSegments(segs=UMRLMRsegments.gr, 
                        GRangesFilename="UMRsLMRs.gr.rds", TableFilename="UMRsLMRs.tab")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION":
-        methylseekr: \$(Rscript -e 'cat(as.character(packageVersion("methylseekr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION":',
+        paste0('        methylseekr: ', as.character(packageVersion("methylseekr")))
+    ), "versions.yml")
     """
 
     stub:

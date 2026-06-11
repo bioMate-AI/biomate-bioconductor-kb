@@ -98,10 +98,10 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_MATRICES {
     # Close the PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEGSEQ_DEG_ANALYSIS_FROM_MATRICES":
-        degseq: \$(Rscript -e 'cat(as.character(packageVersion("degseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEGSEQ_DEG_ANALYSIS_FROM_MATRICES":',
+        paste0('        degseq: ', as.character(packageVersion("degseq")))
+    ), "versions.yml")
     """
 
     stub:

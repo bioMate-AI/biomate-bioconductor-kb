@@ -92,10 +92,10 @@ process BIOC_ONCOSCANR_CHAS_STANDARD_WORKFLOW {
     armlevel_json <- jsonlite::toJSON(dat\$armlevel, auto_unbox = TRUE, pretty = TRUE)
     writeLines(armlevel_json, "oncoscan_armlevel_alterations.json")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ONCOSCANR_CHAS_STANDARD_WORKFLOW":
-        oncoscanr: \$(Rscript -e 'cat(as.character(packageVersion("oncoscanr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ONCOSCANR_CHAS_STANDARD_WORKFLOW":',
+        paste0('        oncoscanr: ', as.character(packageVersion("oncoscanr")))
+    ), "versions.yml")
     """
 
     stub:

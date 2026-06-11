@@ -84,10 +84,10 @@ process BIOC_DROPLETUTILS_REMOVE_CHIMERIC_READS {
       write.csv(summary_stats, file = "cleaned_matrix_summary.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DROPLETUTILS_REMOVE_CHIMERIC_READS":
-        dropletutils: \$(Rscript -e 'cat(as.character(packageVersion("dropletutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DROPLETUTILS_REMOVE_CHIMERIC_READS":',
+        paste0('        dropletutils: ', as.character(packageVersion("dropletutils")))
+    ), "versions.yml")
     """
 
     stub:

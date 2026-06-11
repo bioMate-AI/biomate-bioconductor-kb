@@ -227,10 +227,10 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     
     cat("Pipeline completed successfully.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION":
-        decipher: \$(Rscript -e 'cat(as.character(packageVersion("decipher")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION":',
+        paste0('        decipher: ', as.character(packageVersion("decipher")))
+    ), "versions.yml")
     """
 
     stub:

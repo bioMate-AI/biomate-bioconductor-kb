@@ -293,10 +293,10 @@ process BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION {
     
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION":
-        cner: \$(Rscript -e 'cat(as.character(packageVersion("cner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CNER_CNE_IDENTIFICATION_AND_VISUALIZATION":',
+        paste0('        cner: ', as.character(packageVersion("cner")))
+    ), "versions.yml")
     """
 
     stub:

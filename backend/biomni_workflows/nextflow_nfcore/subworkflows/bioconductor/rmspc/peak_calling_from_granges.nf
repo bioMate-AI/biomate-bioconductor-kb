@@ -143,10 +143,10 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_GRANGES {
     
     message("MSPC pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RMSPC_PEAK_CALLING_FROM_GRANGES":
-        rmspc: \$(Rscript -e 'cat(as.character(packageVersion("rmspc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RMSPC_PEAK_CALLING_FROM_GRANGES":',
+        paste0('        rmspc: ', as.character(packageVersion("rmspc")))
+    ), "versions.yml")
     """
 
     stub:

@@ -253,10 +253,10 @@ process BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING {
     saveRDS(k36me3Fit, "k36me3Fit.rds")
     saveRDS(k4k36Dif, "k4k36Dif.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING":
-        normr: \$(Rscript -e 'cat(as.character(packageVersion("normr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMR_CHIP_SEQ_ENRICHMENT_CALLING":',
+        paste0('        normr: ', as.character(packageVersion("normr")))
+    ), "versions.yml")
     """
 
     stub:

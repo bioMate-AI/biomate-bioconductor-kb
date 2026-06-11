@@ -162,10 +162,10 @@ process BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW {
     dev.off()
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW":
-        degnorm: \$(Rscript -e 'cat(as.character(packageVersion("degnorm")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEGNORM_DEGRADATION_NORMALIZATION_WORKFLOW":',
+        paste0('        degnorm: ', as.character(packageVersion("degnorm")))
+    ), "versions.yml")
     """
 
     stub:

@@ -98,10 +98,10 @@ process BIOC_ADACGH2_FF_OBJECTS_CLUSTER {
     write.csv(smoothed_df, "smoothed_values.csv", row.names = FALSE)
     write.csv(state_df, "state_calls.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ADACGH2_FF_OBJECTS_CLUSTER":
-        adacgh2: \$(Rscript -e 'cat(as.character(packageVersion("adacgh2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ADACGH2_FF_OBJECTS_CLUSTER":',
+        paste0('        adacgh2: ', as.character(packageVersion("adacgh2")))
+    ), "versions.yml")
     """
 
     stub:

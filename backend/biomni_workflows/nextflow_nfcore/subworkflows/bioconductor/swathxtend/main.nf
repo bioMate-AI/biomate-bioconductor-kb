@@ -141,10 +141,10 @@ process BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY":
-        swathxtend: \$(Rscript -e 'cat(as.character(packageVersion("swathxtend")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SWATHXTEND_BUILD_EXTENDED_LIBRARY":',
+        paste0('        swathxtend: ', as.character(packageVersion("swathxtend")))
+    ), "versions.yml")
     """
 
     stub:

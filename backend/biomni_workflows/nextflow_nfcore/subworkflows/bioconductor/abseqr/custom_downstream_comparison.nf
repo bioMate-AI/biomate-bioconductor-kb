@@ -89,10 +89,10 @@ process BIOC_ABSEQR_CUSTOM_DOWNSTREAM_COMPARISON {
     output_file <- "refined_comparison_result.rds"
     saveRDS(refinedComparison, file = output_file)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ABSEQR_CUSTOM_DOWNSTREAM_COMPARISON":
-        abseqr: \$(Rscript -e 'cat(as.character(packageVersion("abseqr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ABSEQR_CUSTOM_DOWNSTREAM_COMPARISON":',
+        paste0('        abseqr: ', as.character(packageVersion("abseqr")))
+    ), "versions.yml")
     """
 
     stub:

@@ -103,10 +103,10 @@ process BIOC_HICBRICKS_IMPORT_FROM_MCOOL {
     
     message("Pipeline completed successfully. Outputs saved to 'My_BrickContainer.rds' and 'bintable_resolution_10000.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HICBRICKS_IMPORT_FROM_MCOOL":
-        HiCBricks: \$(Rscript -e 'cat(as.character(packageVersion("HiCBricks")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HICBRICKS_IMPORT_FROM_MCOOL":',
+        paste0('        HiCBricks: ', as.character(packageVersion("HiCBricks")))
+    ), "versions.yml")
     """
 
     stub:

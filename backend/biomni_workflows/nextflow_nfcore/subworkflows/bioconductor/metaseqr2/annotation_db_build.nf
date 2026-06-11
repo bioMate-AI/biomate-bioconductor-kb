@@ -119,10 +119,10 @@ process BIOC_METASEQR2_ANNOTATION_DB_BUILD {
     
     message("Pipeline completed successfully. Outputs saved to: ", buildDir)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METASEQR2_ANNOTATION_DB_BUILD":
-        metaseqr2: \$(Rscript -e 'cat(as.character(packageVersion("metaseqr2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METASEQR2_ANNOTATION_DB_BUILD":',
+        paste0('        metaseqr2: ', as.character(packageVersion("metaseqr2")))
+    ), "versions.yml")
     """
 
     stub:

@@ -114,10 +114,10 @@ process BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT {
     )
     write.csv(summary_stats, file = "chr2L_matrix_summary.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT":
-        HiCBricks: \$(Rscript -e 'cat(as.character(packageVersion("HiCBricks")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT":',
+        paste0('        HiCBricks: ', as.character(packageVersion("HiCBricks")))
+    ), "versions.yml")
     """
 
     stub:

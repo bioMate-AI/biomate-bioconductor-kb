@@ -128,10 +128,10 @@ process BIOC_GEVA_DETAILED_GEVA_PIPELINE {
     # Save the final results object as an RDS file
     saveRDS(gresults, "geva_results.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GEVA_DETAILED_GEVA_PIPELINE":
-        geva: \$(Rscript -e 'cat(as.character(packageVersion("geva")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GEVA_DETAILED_GEVA_PIPELINE":',
+        paste0('        geva: ', as.character(packageVersion("geva")))
+    ), "versions.yml")
     """
 
     stub:

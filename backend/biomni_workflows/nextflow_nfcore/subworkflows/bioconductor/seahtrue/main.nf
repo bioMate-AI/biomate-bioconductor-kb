@@ -161,10 +161,10 @@ process BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING {
     
     message("Pipeline completed successfully. Outputs saved: 'revive_output_donor_A.rds', 'rate_data.csv', 'raw_data.csv', 'assay_info.csv', 'injection_info.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING":
-        seahtrue: \$(Rscript -e 'cat(as.character(packageVersion("seahtrue")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEAHTRUE_SEAHORSE_XF_PREPROCESSING":',
+        paste0('        seahtrue: ', as.character(packageVersion("seahtrue")))
+    ), "versions.yml")
     """
 
     stub:

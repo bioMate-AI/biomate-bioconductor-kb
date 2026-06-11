@@ -83,10 +83,10 @@ process BIOC_ACGH_READ_SPROC_FILES {
     # 3. Extract and save clone mapping information to a CSV file
     write.csv(clones.info(ex.acgh), file = "clones_info.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ACGH_READ_SPROC_FILES":
-        acgh: \$(Rscript -e 'cat(as.character(packageVersion("acgh")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ACGH_READ_SPROC_FILES":',
+        paste0('        acgh: ', as.character(packageVersion("acgh")))
+    ), "versions.yml")
     """
 
     stub:

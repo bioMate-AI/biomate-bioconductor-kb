@@ -156,10 +156,10 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     plotPairs(pairs,element="exprs2")
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_HELP_HELP_METHYLATION_PIPELINE":
-        help: \$(Rscript -e 'cat(as.character(packageVersion("help")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_HELP_HELP_METHYLATION_PIPELINE":',
+        paste0('        help: ', as.character(packageVersion("help")))
+    ), "versions.yml")
     """
 
     stub:

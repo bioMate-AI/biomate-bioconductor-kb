@@ -171,10 +171,10 @@ process BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW {
     
     message("Pipeline completed successfully. Outputs written to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW":
-        enrichmentbrowser: \$(Rscript -e 'cat(as.character(packageVersion("enrichmentbrowser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ENRICHMENTBROWSER_MICROARRAY_ENRICHMENT_WORKFLOW":',
+        paste0('        enrichmentbrowser: ', as.character(packageVersion("enrichmentbrowser")))
+    ), "versions.yml")
     """
 
     stub:

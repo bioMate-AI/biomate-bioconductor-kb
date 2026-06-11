@@ -83,10 +83,10 @@ process BIOC_FRENCHFISH_CORRECT_MANUAL_COUNTS {
     write.csv(corrected_manual_counts, "corrected_manual_counts.csv", row.names = FALSE)
     saveRDS(corrected_manual_counts, "corrected_manual_counts.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FRENCHFISH_CORRECT_MANUAL_COUNTS":
-        frenchfish: \$(Rscript -e 'cat(as.character(packageVersion("frenchfish")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FRENCHFISH_CORRECT_MANUAL_COUNTS":',
+        paste0('        frenchfish: ', as.character(packageVersion("frenchfish")))
+    ), "versions.yml")
     """
 
     stub:

@@ -169,10 +169,10 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     
     message("Pipeline completed successfully. Outputs saved to 'gating_plots.pdf', 'population_counts.csv', and 'gating_set_output/'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING":
-        opencyto: \$(Rscript -e 'cat(as.character(packageVersion("opencyto")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING":',
+        paste0('        opencyto: ', as.character(packageVersion("opencyto")))
+    ), "versions.yml")
     """
 
     stub:

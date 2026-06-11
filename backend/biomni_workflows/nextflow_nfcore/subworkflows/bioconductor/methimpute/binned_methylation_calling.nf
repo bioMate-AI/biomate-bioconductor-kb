@@ -120,10 +120,10 @@ process BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING":
-        methimpute: \$(Rscript -e 'cat(as.character(packageVersion("methimpute")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METHIMPUTE_BINNED_METHYLATION_CALLING":',
+        paste0('        methimpute: ', as.character(packageVersion("methimpute")))
+    ), "versions.yml")
     """
 
     stub:

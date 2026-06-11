@@ -97,10 +97,10 @@ process BIOC_PROTEODISCO_MANUAL_TRANSCRIPTS_WORKFLOW {
     
     message("Workflow completed successfully. Outputs written to 'example.fasta', 'ProteoDiscography_final.rds', and 'imported_transcripts_summary.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROTEODISCO_MANUAL_TRANSCRIPTS_WORKFLOW":
-        proteodisco: \$(Rscript -e 'cat(as.character(packageVersion("proteodisco")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROTEODISCO_MANUAL_TRANSCRIPTS_WORKFLOW":',
+        paste0('        proteodisco: ', as.character(packageVersion("proteodisco")))
+    ), "versions.yml")
     """
 
     stub:

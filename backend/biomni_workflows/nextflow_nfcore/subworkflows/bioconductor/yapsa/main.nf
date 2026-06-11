@@ -145,10 +145,10 @@ process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {
     write.csv(result_cohort\$norm_exposures, "COSMIC_relative_exposures.csv", row.names = TRUE)
     saveRDS(lymphoma_COSMIC_listsList, "lymphoma_COSMIC_listsList.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS":
-        YAPSA: \$(Rscript -e 'cat(as.character(packageVersion("YAPSA")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS":',
+        paste0('        YAPSA: ', as.character(packageVersion("YAPSA")))
+    ), "versions.yml")
     """
 
     stub:

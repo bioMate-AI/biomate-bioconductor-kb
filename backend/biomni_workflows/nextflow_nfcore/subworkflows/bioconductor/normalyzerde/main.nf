@@ -97,10 +97,10 @@ process BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION {
         file.copy(generated_files, local_out_dir, recursive = TRUE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION":
-        normalyzerde: \$(Rscript -e 'cat(as.character(packageVersion("normalyzerde")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMALYZERDE_NORMALIZATION_EVALUATION":',
+        paste0('        normalyzerde: ', as.character(packageVersion("normalyzerde")))
+    ), "versions.yml")
     """
 
     stub:

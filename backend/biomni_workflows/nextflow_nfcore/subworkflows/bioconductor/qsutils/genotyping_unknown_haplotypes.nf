@@ -128,10 +128,10 @@ process BIOC_QSUTILS_GENOTYPING_UNKNOWN_HAPLOTYPES {
     grid(nx = NA, ny = NULL)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QSUTILS_GENOTYPING_UNKNOWN_HAPLOTYPES":
-        qsutils: \$(Rscript -e 'cat(as.character(packageVersion("qsutils")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QSUTILS_GENOTYPING_UNKNOWN_HAPLOTYPES":',
+        paste0('        qsutils: ', as.character(packageVersion("qsutils")))
+    ), "versions.yml")
     """
 
     stub:

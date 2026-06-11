@@ -96,10 +96,10 @@ process BIOC_DEEPSNV_SHEARWATER_ML {
     saveRDS(pvals, "pvals.rds")
     saveRDS(qvals, "qvals.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEEPSNV_SHEARWATER_ML":
-        deepsnv: \$(Rscript -e 'cat(as.character(packageVersion("deepsnv")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEEPSNV_SHEARWATER_ML":',
+        paste0('        deepsnv: ', as.character(packageVersion("deepsnv")))
+    ), "versions.yml")
     """
 
     stub:

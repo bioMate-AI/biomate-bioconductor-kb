@@ -115,10 +115,10 @@ process BIOC_MAGAR_COMPARE_METH_QTL_RESULTS {
     
     message("Workflow completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MAGAR_COMPARE_METH_QTL_RESULTS":
-        magar: \$(Rscript -e 'cat(as.character(packageVersion("magar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MAGAR_COMPARE_METH_QTL_RESULTS":',
+        paste0('        magar: ', as.character(packageVersion("magar")))
+    ), "versions.yml")
     """
 
     stub:

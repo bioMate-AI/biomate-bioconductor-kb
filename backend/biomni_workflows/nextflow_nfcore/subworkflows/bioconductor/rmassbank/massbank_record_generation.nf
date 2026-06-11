@@ -101,10 +101,10 @@ process BIOC_RMASSBANK_MASSBANK_RECORD_GENERATION {
     # Save the final compiled MassBank workspace object
     saveRDS(mb, "final_mb_workspace.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RMASSBANK_MASSBANK_RECORD_GENERATION":
-        rmassbank: \$(Rscript -e 'cat(as.character(packageVersion("rmassbank")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RMASSBANK_MASSBANK_RECORD_GENERATION":',
+        paste0('        rmassbank: ', as.character(packageVersion("rmassbank")))
+    ), "versions.yml")
     """
 
     stub:

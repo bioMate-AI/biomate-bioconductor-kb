@@ -159,10 +159,10 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS":
-        saser: \$(Rscript -e 'cat(as.character(packageVersion("saser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS":',
+        paste0('        saser: ', as.character(packageVersion("saser")))
+    ), "versions.yml")
     """
 
     stub:

@@ -118,10 +118,10 @@ process BIOC_EDASEQ_READ_LEVEL_QC {
     # Close the PDF device
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EDASEQ_READ_LEVEL_QC":
-        edaseq: \$(Rscript -e 'cat(as.character(packageVersion("edaseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EDASEQ_READ_LEVEL_QC":',
+        paste0('        edaseq: ', as.character(packageVersion("edaseq")))
+    ), "versions.yml")
     """
 
     stub:

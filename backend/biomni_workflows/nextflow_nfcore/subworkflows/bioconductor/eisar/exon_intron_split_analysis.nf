@@ -82,10 +82,10 @@ process BIOC_EISAR_EXON_INTRON_SPLIT_ANALYSIS {
     plotEISA(res)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EISAR_EXON_INTRON_SPLIT_ANALYSIS":
-        eisar: \$(Rscript -e 'cat(as.character(packageVersion("eisar")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EISAR_EXON_INTRON_SPLIT_ANALYSIS":',
+        paste0('        eisar: ', as.character(packageVersion("eisar")))
+    ), "versions.yml")
     """
 
     stub:

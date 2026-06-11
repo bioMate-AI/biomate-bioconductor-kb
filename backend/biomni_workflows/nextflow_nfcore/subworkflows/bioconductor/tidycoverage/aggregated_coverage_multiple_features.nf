@@ -98,10 +98,10 @@ process BIOC_TIDYCOVERAGE_AGGREGATED_COVERAGE_MULTIPLE_FEATURES {
     write.csv(ac_tibble, "aggregated_coverage.csv", row.names = FALSE)
     ggsave("aggregated_coverage_plot.pdf", plot = p, width = 10, height = 8)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_TIDYCOVERAGE_AGGREGATED_COVERAGE_MULTIPLE_FEATURES":
-        tidycoverage: \$(Rscript -e 'cat(as.character(packageVersion("tidycoverage")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_TIDYCOVERAGE_AGGREGATED_COVERAGE_MULTIPLE_FEATURES":',
+        paste0('        tidycoverage: ', as.character(packageVersion("tidycoverage")))
+    ), "versions.yml")
     """
 
     stub:

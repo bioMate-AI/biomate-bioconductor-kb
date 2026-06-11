@@ -137,10 +137,10 @@ process BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE {
     # 6. Close the GDS file
     snpgdsClose(genofile)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE":
-        snprelate: \$(Rscript -e 'cat(as.character(packageVersion("snprelate")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPRELATE_RELATEDNESS_AND_RELATIONSHIP_INFERENCE":',
+        paste0('        snprelate: ', as.character(packageVersion("snprelate")))
+    ), "versions.yml")
     """
 
     stub:

@@ -105,10 +105,10 @@ process BIOC_MOLECULEEXPERIMENT_IMPORT_FROM_VENDOR_DIRECTORIES {
       warning("Could not generate or save spatial plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOLECULEEXPERIMENT_IMPORT_FROM_VENDOR_DIRECTORIES":
-        moleculeexperiment: \$(Rscript -e 'cat(as.character(packageVersion("moleculeexperiment")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOLECULEEXPERIMENT_IMPORT_FROM_VENDOR_DIRECTORIES":',
+        paste0('        moleculeexperiment: ', as.character(packageVersion("moleculeexperiment")))
+    ), "versions.yml")
     """
 
     stub:

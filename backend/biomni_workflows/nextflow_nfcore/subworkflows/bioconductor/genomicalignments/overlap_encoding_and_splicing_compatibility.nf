@@ -122,10 +122,10 @@ process BIOC_GENOMICALIGNMENTS_OVERLAP_ENCODING_AND_SPLICING_COMPATIBILITY {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICALIGNMENTS_OVERLAP_ENCODING_AND_SPLICING_COMPATIBILITY":
-        genomicalignments: \$(Rscript -e 'cat(as.character(packageVersion("genomicalignments")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICALIGNMENTS_OVERLAP_ENCODING_AND_SPLICING_COMPATIBILITY":',
+        paste0('        genomicalignments: ', as.character(packageVersion("genomicalignments")))
+    ), "versions.yml")
     """
 
     stub:

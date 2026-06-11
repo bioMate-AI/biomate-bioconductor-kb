@@ -102,10 +102,10 @@ process BIOC_NORCE_BIOTYPE_ANALYSIS {
     
     message("Workflow completed successfully. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORCE_BIOTYPE_ANALYSIS":
-        norce: \$(Rscript -e 'cat(as.character(packageVersion("norce")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORCE_BIOTYPE_ANALYSIS":',
+        paste0('        norce: ', as.character(packageVersion("norce")))
+    ), "versions.yml")
     """
 
     stub:

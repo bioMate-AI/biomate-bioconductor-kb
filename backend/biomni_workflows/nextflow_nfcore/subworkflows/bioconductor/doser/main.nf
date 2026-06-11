@@ -240,10 +240,10 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     sink()
     saveRDS(za.ratios.test, "za_ratios_test.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS":
-        doseR: \$(Rscript -e 'cat(as.character(packageVersion("doseR")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS":',
+        paste0('        doseR: ', as.character(packageVersion("doseR")))
+    ), "versions.yml")
     """
 
     stub:

@@ -101,10 +101,10 @@ process BIOC_KNOWYOURCG_GENOMIC_PROXIMITY_AND_LINKAGE {
       }
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KNOWYOURCG_GENOMIC_PROXIMITY_AND_LINKAGE":
-        knowyourcg: \$(Rscript -e 'cat(as.character(packageVersion("knowyourcg")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KNOWYOURCG_GENOMIC_PROXIMITY_AND_LINKAGE":',
+        paste0('        knowyourcg: ', as.character(packageVersion("knowyourcg")))
+    ), "versions.yml")
     """
 
     stub:

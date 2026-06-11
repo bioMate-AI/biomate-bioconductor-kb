@@ -182,10 +182,10 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     # Save final predictions
     write.csv(pred.test, file = "final_predictions.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION":
-        ledpred: \$(Rscript -e 'cat(as.character(packageVersion("ledpred")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION":',
+        paste0('        ledpred: ', as.character(packageVersion("ledpred")))
+    ), "versions.yml")
     """
 
     stub:

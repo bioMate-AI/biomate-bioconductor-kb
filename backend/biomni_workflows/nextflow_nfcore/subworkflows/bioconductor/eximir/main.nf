@@ -89,10 +89,10 @@ process BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION {
     saveRDS(eset.spike, file = "eset_spike.rds")
     write.csv(exprs(eset.spike), file = "normalized_intensities.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION":
-        eximir: \$(Rscript -e 'cat(as.character(packageVersion("eximir")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_EXIMIR_AFFYMETRIX_MIRNA_NORMALIZATION":',
+        paste0('        eximir: ', as.character(packageVersion("eximir")))
+    ), "versions.yml")
     """
 
     stub:

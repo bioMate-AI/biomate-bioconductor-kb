@@ -131,10 +131,10 @@ process BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY {
     saveRDS(sb, "scNMFSet_final.rds")
     saveRDS(tree, "hierarchical_tree.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY":
-        ccfindr: \$(Rscript -e 'cat(as.character(packageVersion("ccfindr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CCFINDR_BAYESIAN_NMF_AND_HIERARCHY":',
+        paste0('        ccfindr: ', as.character(packageVersion("ccfindr")))
+    ), "versions.yml")
     """
 
     stub:

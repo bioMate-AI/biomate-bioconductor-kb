@@ -115,10 +115,10 @@ process BIOC_CAMERA_MULTI_SAMPLE_LCMS_DIFFREPORT {
     write.csv(diffreport, file="diffreport.csv")
     saveRDS(diffreport, file="diffreport.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAMERA_MULTI_SAMPLE_LCMS_DIFFREPORT":
-        camera: \$(Rscript -e 'cat(as.character(packageVersion("camera")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAMERA_MULTI_SAMPLE_LCMS_DIFFREPORT":',
+        paste0('        camera: ', as.character(packageVersion("camera")))
+    ), "versions.yml")
     """
 
     stub:

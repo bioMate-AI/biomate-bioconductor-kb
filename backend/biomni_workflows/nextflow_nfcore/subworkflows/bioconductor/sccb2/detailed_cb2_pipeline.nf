@@ -105,10 +105,10 @@ process BIOC_SCCB2_DETAILED_CB2_PIPELINE {
     
     message("Pipeline completed successfully. Outputs saved to the current working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCCB2_DETAILED_CB2_PIPELINE":
-        sccb2: \$(Rscript -e 'cat(as.character(packageVersion("sccb2")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCCB2_DETAILED_CB2_PIPELINE":',
+        paste0('        sccb2: ', as.character(packageVersion("sccb2")))
+    ), "versions.yml")
     """
 
     stub:

@@ -98,10 +98,10 @@ process BIOC_DIFFLOGO_MULTIPLE_PWM_ALIGNMENT {
     cat("- alignment_vector.csv\n")
     cat("- unaligned_vs_aligned_logos.pdf\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DIFFLOGO_MULTIPLE_PWM_ALIGNMENT":
-        difflogo: \$(Rscript -e 'cat(as.character(packageVersion("difflogo")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DIFFLOGO_MULTIPLE_PWM_ALIGNMENT":',
+        paste0('        difflogo: ', as.character(packageVersion("difflogo")))
+    ), "versions.yml")
     """
 
     stub:

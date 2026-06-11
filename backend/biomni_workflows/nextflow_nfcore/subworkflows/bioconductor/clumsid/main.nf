@@ -91,10 +91,10 @@ process BIOC_CLUMSID_DI_MS2_HIGHRES {
     
     message("Pipeline completed successfully. Outputs saved: 'merged_features.rds', 'distance_matrix.rds', 'distance_matrix.csv', and 'HCplot_dendrogram.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLUMSID_DI_MS2_HIGHRES":
-        clumsid: \$(Rscript -e 'cat(as.character(packageVersion("clumsid")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLUMSID_DI_MS2_HIGHRES":',
+        paste0('        clumsid: ', as.character(packageVersion("clumsid")))
+    ), "versions.yml")
     """
 
     stub:

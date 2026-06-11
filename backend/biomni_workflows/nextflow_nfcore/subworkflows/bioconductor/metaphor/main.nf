@@ -94,10 +94,10 @@ process BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING {
     plot(logfc)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING":
-        metaphor: \$(Rscript -e 'cat(as.character(packageVersion("metaphor")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING":',
+        paste0('        metaphor: ', as.character(packageVersion("metaphor")))
+    ), "versions.yml")
     """
 
     stub:

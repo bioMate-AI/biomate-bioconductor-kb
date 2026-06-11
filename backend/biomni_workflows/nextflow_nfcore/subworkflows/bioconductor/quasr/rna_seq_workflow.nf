@@ -109,10 +109,10 @@ process BIOC_QUASR_RNA_SEQ_WORKFLOW {
     write.csv(as.data.frame(exonJunctions), "exon_junctions.csv", row.names = FALSE)
     write.csv(exonBodyLevels, "exon_body_levels.csv", row.names = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_QUASR_RNA_SEQ_WORKFLOW":
-        quasr: \$(Rscript -e 'cat(as.character(packageVersion("quasr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_QUASR_RNA_SEQ_WORKFLOW":',
+        paste0('        quasr: ', as.character(packageVersion("quasr")))
+    ), "versions.yml")
     """
 
     stub:

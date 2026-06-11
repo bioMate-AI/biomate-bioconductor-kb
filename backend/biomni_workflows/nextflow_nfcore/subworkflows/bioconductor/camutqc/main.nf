@@ -103,10 +103,10 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
     message("  - MAFdat_converted.csv / .rds (Unfiltered MAF)")
     message("  - MAFCom_filtered_tmb.csv / .rds (Filtered MAF with TMB calculation)")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB":
-        camutqc: \$(Rscript -e 'cat(as.character(packageVersion("camutqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB":',
+        paste0('        camutqc: ', as.character(packageVersion("camutqc")))
+    ), "versions.yml")
     """
 
     stub:

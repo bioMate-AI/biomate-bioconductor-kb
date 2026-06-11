@@ -109,10 +109,10 @@ process BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM {
       warning("Could not generate the PDF plot: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM":
-        proloc: \$(Rscript -e 'cat(as.character(packageVersion("proloc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM":',
+        paste0('        proloc: ', as.character(packageVersion("proloc")))
+    ), "versions.yml")
     """
 
     stub:

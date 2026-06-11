@@ -94,10 +94,10 @@ process BIOC_MOTIFSTACK_GGPLOT2_MOTIF_PLOTTING {
     
     ggsave("motif_plot_xy.pdf", plot = p2, width = 7, height = 7)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOTIFSTACK_GGPLOT2_MOTIF_PLOTTING":
-        motifstack: \$(Rscript -e 'cat(as.character(packageVersion("motifstack")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOTIFSTACK_GGPLOT2_MOTIF_PLOTTING":',
+        paste0('        motifstack: ', as.character(packageVersion("motifstack")))
+    ), "versions.yml")
     """
 
     stub:

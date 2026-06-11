@@ -113,10 +113,10 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
     write.csv(res_edgeR, "differential_splicing_results.csv", row.names = FALSE)
     saveRDS(se.filtered, "NxtSE_filtered.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS":
-        splicewiz: \$(Rscript -e 'cat(as.character(packageVersion("splicewiz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS":',
+        paste0('        splicewiz: ', as.character(packageVersion("splicewiz")))
+    ), "versions.yml")
     """
 
     stub:

@@ -112,10 +112,10 @@ process BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO {
     saveRDS(motif, "dna_motif_with_markers.rds")
     saveRDS(motif_rna, "rna_motif.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO":
-        motifstack: \$(Rscript -e 'cat(as.character(packageVersion("motifstack")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOTIFSTACK_SINGLE_MOTIF_LOGO":',
+        paste0('        motifstack: ', as.character(packageVersion("motifstack")))
+    ), "versions.yml")
     """
 
     stub:

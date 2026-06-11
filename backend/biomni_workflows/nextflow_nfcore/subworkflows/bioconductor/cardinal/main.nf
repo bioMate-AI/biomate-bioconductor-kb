@@ -117,10 +117,10 @@ process BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION {
     	warning("Could not export pixel data to CSV: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION":
-        cardinal: \$(Rscript -e 'cat(as.character(packageVersion("cardinal")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION":',
+        paste0('        cardinal: ', as.character(packageVersion("cardinal")))
+    ), "versions.yml")
     """
 
     stub:

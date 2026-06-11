@@ -128,10 +128,10 @@ process BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING {
     # Save the final processed dataframe
     write.csv(fullPanelDf, "fullPanel_processed_long.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING":
-        flowSpecs: \$(Rscript -e 'cat(as.character(packageVersion("flowSpecs")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING":',
+        paste0('        flowSpecs: ', as.character(packageVersion("flowSpecs")))
+    ), "versions.yml")
     """
 
     stub:

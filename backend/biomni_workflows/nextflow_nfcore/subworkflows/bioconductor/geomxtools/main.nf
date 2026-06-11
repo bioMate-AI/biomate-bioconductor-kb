@@ -168,10 +168,10 @@ process BIOC_GEOMXTOOLS_RNA_PREPROCESSING_AND_COERCION {
     
     message("Workflow completed successfully. Outputs saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GEOMXTOOLS_RNA_PREPROCESSING_AND_COERCION":
-        geomxtools: \$(Rscript -e 'cat(as.character(packageVersion("geomxtools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GEOMXTOOLS_RNA_PREPROCESSING_AND_COERCION":',
+        paste0('        geomxtools: ', as.character(packageVersion("geomxtools")))
+    ), "versions.yml")
     """
 
     stub:

@@ -139,10 +139,10 @@ process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
     
     message("standR pipeline completed successfully. Outputs saved to 'standR_workflow_plots.pdf', 'spe_normalized_tmm.rds', 'spe_corrected_ruv.rds', and 'spe_corrected_metadata.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION":
-        standr: \$(Rscript -e 'cat(as.character(packageVersion("standr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION":',
+        paste0('        standr: ', as.character(packageVersion("standr")))
+    ), "versions.yml")
     """
 
     stub:

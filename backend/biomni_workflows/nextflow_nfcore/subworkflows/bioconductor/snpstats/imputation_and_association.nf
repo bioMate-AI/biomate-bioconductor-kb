@@ -170,10 +170,10 @@ process BIOC_SNPSTATS_IMPUTATION_AND_ASSOCIATION {
     write.csv(data.frame(SNP=names(logP.imp), logP=logP.imp), "logP_imputed_snps.csv", row.names=FALSE)
     write.csv(data.frame(SNP=names(logP.obs), logP=logP.obs), "logP_observed_snps.csv", row.names=FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPSTATS_IMPUTATION_AND_ASSOCIATION":
-        snpstats: \$(Rscript -e 'cat(as.character(packageVersion("snpstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPSTATS_IMPUTATION_AND_ASSOCIATION":',
+        paste0('        snpstats: ', as.character(packageVersion("snpstats")))
+    ), "versions.yml")
     """
 
     stub:

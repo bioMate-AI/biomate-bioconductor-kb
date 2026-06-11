@@ -147,10 +147,10 @@ process BIOC_IONISER_MINION_QUALITY_CONTROL {
     plotKmerFrequencyCorrelation( s.typhi.rep3, only2D = FALSE )
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_IONISER_MINION_QUALITY_CONTROL":
-        ioniser: \$(Rscript -e 'cat(as.character(packageVersion("ioniser")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_IONISER_MINION_QUALITY_CONTROL":',
+        paste0('        ioniser: ', as.character(packageVersion("ioniser")))
+    ), "versions.yml")
     """
 
     stub:

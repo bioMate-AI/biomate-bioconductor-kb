@@ -118,10 +118,10 @@ process BIOC_OPENPRIMER_ANALYZE_PRIMERS {
       warning("Could not generate PDF report: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OPENPRIMER_ANALYZE_PRIMERS":
-        openprimer: \$(Rscript -e 'cat(as.character(packageVersion("openprimer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OPENPRIMER_ANALYZE_PRIMERS":',
+        paste0('        openprimer: ', as.character(packageVersion("openprimer")))
+    ), "versions.yml")
     """
 
     stub:

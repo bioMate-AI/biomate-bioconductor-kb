@@ -94,10 +94,10 @@ process BIOC_BBCANALYZER_PLOT_ONLY_ANALYSIS {
     
     message("Plotting completed successfully. Output plots have been saved to the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BBCANALYZER_PLOT_ONLY_ANALYSIS":
-        bbcanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("bbcanalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BBCANALYZER_PLOT_ONLY_ANALYSIS":',
+        paste0('        bbcanalyzer: ', as.character(packageVersion("bbcanalyzer")))
+    ), "versions.yml")
     """
 
     stub:

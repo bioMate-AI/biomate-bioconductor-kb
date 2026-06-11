@@ -114,10 +114,10 @@ process BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS {
     
     message("BBCAnalyzer pipeline completed successfully. Output files and plots generated in the working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS":
-        bbcanalyzer: \$(Rscript -e 'cat(as.character(packageVersion("bbcanalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS":',
+        paste0('        bbcanalyzer: ', as.character(packageVersion("bbcanalyzer")))
+    ), "versions.yml")
     """
 
     stub:

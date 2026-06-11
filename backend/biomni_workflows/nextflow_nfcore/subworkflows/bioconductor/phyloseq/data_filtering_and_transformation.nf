@@ -174,10 +174,10 @@ process BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION {
     
     write.csv(summary_df, "filtering_and_transformation_summary.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION":
-        phyloseq: \$(Rscript -e 'cat(as.character(packageVersion("phyloseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PHYLOSEQ_DATA_FILTERING_AND_TRANSFORMATION":',
+        paste0('        phyloseq: ', as.character(packageVersion("phyloseq")))
+    ), "versions.yml")
     """
 
     stub:

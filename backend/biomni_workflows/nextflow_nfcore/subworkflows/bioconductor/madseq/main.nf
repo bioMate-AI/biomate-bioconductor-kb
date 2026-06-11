@@ -107,10 +107,10 @@ process BIOC_MADSEQ_MOSAIC_ANEUPLOIDY_DETECTION {
     
     message("Pipeline completed successfully. Outputs saved: madseq_results.rds, madseq_summary.txt, plot_fraction.pdf, plot_madseq.pdf")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MADSEQ_MOSAIC_ANEUPLOIDY_DETECTION":
-        madseq: \$(Rscript -e 'cat(as.character(packageVersion("madseq")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MADSEQ_MOSAIC_ANEUPLOIDY_DETECTION":',
+        paste0('        madseq: ', as.character(packageVersion("madseq")))
+    ), "versions.yml")
     """
 
     stub:

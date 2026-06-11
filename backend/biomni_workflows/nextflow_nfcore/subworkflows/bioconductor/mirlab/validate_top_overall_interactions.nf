@@ -113,10 +113,10 @@ process BIOC_MIRLAB_VALIDATE_TOP_OVERALL_INTERACTIONS {
     
     message("Pipeline completed successfully. Outputs saved to 'top10_predictions.csv', 'top10_confirmed.csv', and 'top10_confirmed.rds'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MIRLAB_VALIDATE_TOP_OVERALL_INTERACTIONS":
-        mirlab: \$(Rscript -e 'cat(as.character(packageVersion("mirlab")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MIRLAB_VALIDATE_TOP_OVERALL_INTERACTIONS":',
+        paste0('        mirlab: ', as.character(packageVersion("mirlab")))
+    ), "versions.yml")
     """
 
     stub:

@@ -119,10 +119,10 @@ process BIOC_PSMATCH_MS2_FRAGMENT_ION_ANALYSIS {
     saveRDS(sp1158, "sp1158_filtered.rds")
     saveRDS(id, "id_filtered.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PSMATCH_MS2_FRAGMENT_ION_ANALYSIS":
-        psmatch: \$(Rscript -e 'cat(as.character(packageVersion("psmatch")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PSMATCH_MS2_FRAGMENT_ION_ANALYSIS":',
+        paste0('        psmatch: ', as.character(packageVersion("psmatch")))
+    ), "versions.yml")
     """
 
     stub:

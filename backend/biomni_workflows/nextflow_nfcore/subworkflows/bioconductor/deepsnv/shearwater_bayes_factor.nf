@@ -102,10 +102,10 @@ process BIOC_DEEPSNV_SHEARWATER_BAYES_FACTOR {
                 "shearwater_calls_summary.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_DEEPSNV_SHEARWATER_BAYES_FACTOR":
-        deepsnv: \$(Rscript -e 'cat(as.character(packageVersion("deepsnv")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_DEEPSNV_SHEARWATER_BAYES_FACTOR":',
+        paste0('        deepsnv: ', as.character(packageVersion("deepsnv")))
+    ), "versions.yml")
     """
 
     stub:

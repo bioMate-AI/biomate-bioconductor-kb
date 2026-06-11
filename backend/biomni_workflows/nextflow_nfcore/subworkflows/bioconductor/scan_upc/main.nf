@@ -114,10 +114,10 @@ process BIOC_SCAN_UPC_MICROARRAY_SCAN_UPC {
     message("- upc_values.csv")
     message("- scan_upc_diagnostics.pdf")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SCAN_UPC_MICROARRAY_SCAN_UPC":
-        scan_upc: \$(Rscript -e 'cat(as.character(packageVersion("scan_upc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SCAN_UPC_MICROARRAY_SCAN_UPC":',
+        paste0('        scan_upc: ', as.character(packageVersion("scan_upc")))
+    ), "versions.yml")
     """
 
     stub:

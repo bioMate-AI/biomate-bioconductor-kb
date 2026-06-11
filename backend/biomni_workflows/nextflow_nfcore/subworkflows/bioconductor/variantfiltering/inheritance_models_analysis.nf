@@ -141,10 +141,10 @@ process BIOC_VARIANTFILTERING_INHERITANCE_MODELS_ANALYSIS {
     
     message("VariantFiltering inheritance models analysis pipeline completed.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VARIANTFILTERING_INHERITANCE_MODELS_ANALYSIS":
-        variantfiltering: \$(Rscript -e 'cat(as.character(packageVersion("variantfiltering")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VARIANTFILTERING_INHERITANCE_MODELS_ANALYSIS":',
+        paste0('        variantfiltering: ', as.character(packageVersion("variantfiltering")))
+    ), "versions.yml")
     """
 
     stub:

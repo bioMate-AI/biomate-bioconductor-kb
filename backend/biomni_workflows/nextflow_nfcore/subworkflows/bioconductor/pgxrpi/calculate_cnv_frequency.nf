@@ -104,10 +104,10 @@ process BIOC_PGXRPI_CALCULATE_CNV_FREQUENCY {
     
     cat("Pipeline completed successfully. Outputs saved: segfreq1.rds, segfreq2.rds, segfreq1.csv, segfreq2.csv, cnv_frequency_plots.pdf\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_PGXRPI_CALCULATE_CNV_FREQUENCY":
-        pgxRpi: \$(Rscript -e 'cat(as.character(packageVersion("pgxRpi")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_PGXRPI_CALCULATE_CNV_FREQUENCY":',
+        paste0('        pgxRpi: ', as.character(packageVersion("pgxRpi")))
+    ), "versions.yml")
     """
 
     stub:

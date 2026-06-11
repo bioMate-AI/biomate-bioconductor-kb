@@ -139,10 +139,10 @@ process BIOC_RFASTP_UMI_PROCESSING {
     
     message("Pipeline completed successfully. Outputs written to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RFASTP_UMI_PROCESSING":
-        rfastp: \$(Rscript -e 'cat(as.character(packageVersion("rfastp")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RFASTP_UMI_PROCESSING":',
+        paste0('        rfastp: ', as.character(packageVersion("rfastp")))
+    ), "versions.yml")
     """
 
     stub:

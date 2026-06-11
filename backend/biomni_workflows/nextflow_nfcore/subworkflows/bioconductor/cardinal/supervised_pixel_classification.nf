@@ -161,10 +161,10 @@ process BIOC_CARDINAL_SUPERVISED_PIXEL_CLASSIFICATION {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CARDINAL_SUPERVISED_PIXEL_CLASSIFICATION":
-        cardinal: \$(Rscript -e 'cat(as.character(packageVersion("cardinal")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CARDINAL_SUPERVISED_PIXEL_CLASSIFICATION":',
+        paste0('        cardinal: ', as.character(packageVersion("cardinal")))
+    ), "versions.yml")
     """
 
     stub:

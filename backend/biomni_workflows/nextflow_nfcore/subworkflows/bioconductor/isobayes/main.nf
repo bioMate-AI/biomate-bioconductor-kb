@@ -222,10 +222,10 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE":
-        isobayes: \$(Rscript -e 'cat(as.character(packageVersion("isobayes")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE":',
+        paste0('        isobayes: ', as.character(packageVersion("isobayes")))
+    ), "versions.yml")
     """
 
     stub:

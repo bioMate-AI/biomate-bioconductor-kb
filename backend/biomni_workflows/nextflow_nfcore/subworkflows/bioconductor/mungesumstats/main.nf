@@ -94,10 +94,10 @@ process BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS {
       file.copy(reformatted_vcf_2\$sumstats, "reformatted_vcf_2.tsv.gz", overwrite = TRUE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS":
-        mungesumstats: \$(Rscript -e 'cat(as.character(packageVersion("mungesumstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MUNGESUMSTATS_STANDARDISE_AND_QC_GWAS":',
+        paste0('        mungesumstats: ', as.character(packageVersion("mungesumstats")))
+    ), "versions.yml")
     """
 
     stub:

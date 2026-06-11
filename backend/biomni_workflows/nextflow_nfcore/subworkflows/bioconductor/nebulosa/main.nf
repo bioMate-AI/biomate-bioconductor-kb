@@ -132,10 +132,10 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     # Save highly variable genes to CSV
     write.csv(data.frame(Gene = top_hvgs), "highly_variable_genes.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY":
-        nebulosa: \$(Rscript -e 'cat(as.character(packageVersion("nebulosa")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY":',
+        paste0('        nebulosa: ', as.character(packageVersion("nebulosa")))
+    ), "versions.yml")
     """
 
     stub:

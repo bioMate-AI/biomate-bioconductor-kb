@@ -99,10 +99,10 @@ process BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT {
     # 7. Create net.axt files
     netToAxt(netSyntenicFile, allPreChain, assemblyTarget, assemblyQuery, axtFile=file.path(axtDir, paste0(sub("\\\\.2bit\$", "", basename(assemblyTarget), ignore.case = TRUE), ".", sub("\\\\.2bit\$", "", basename(assemblyQuery), ignore.case = TRUE), ".net.axt")), removeFiles=FALSE, binaryNetToAxt="netToAxt", binaryAxtSort="axtSort")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT":
-        cner: \$(Rscript -e 'cat(as.character(packageVersion("cner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CNER_PAIRWISE_GENOME_ALIGNMENT":',
+        paste0('        cner: ', as.character(packageVersion("cner")))
+    ), "versions.yml")
     """
 
     stub:

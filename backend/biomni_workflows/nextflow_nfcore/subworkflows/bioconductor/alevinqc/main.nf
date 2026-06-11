@@ -128,10 +128,10 @@ process BIOC_ALEVINQC_STATIC_QC_REPORT {
     
     message("Pipeline completed successfully. Outputs saved to 'output/' directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ALEVINQC_STATIC_QC_REPORT":
-        alevinqc: \$(Rscript -e 'cat(as.character(packageVersion("alevinqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ALEVINQC_STATIC_QC_REPORT":',
+        paste0('        alevinqc: ', as.character(packageVersion("alevinqc")))
+    ), "versions.yml")
     """
 
     stub:

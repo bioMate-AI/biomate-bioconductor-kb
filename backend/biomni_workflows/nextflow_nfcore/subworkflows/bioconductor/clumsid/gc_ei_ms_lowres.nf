@@ -118,10 +118,10 @@ process BIOC_CLUMSID_GC_EI_MS_LOWRES {
     fragment_ids <- vapply(X = fragmentlist, FUN = accessID, FUN.VALUE = integer(1))
     write.csv(data.frame(Fragment_IDs = fragment_ids), "fragment_ids.csv", row.names = FALSE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLUMSID_GC_EI_MS_LOWRES":
-        clumsid: \$(Rscript -e 'cat(as.character(packageVersion("clumsid")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLUMSID_GC_EI_MS_LOWRES":',
+        paste0('        clumsid: ', as.character(packageVersion("clumsid")))
+    ), "versions.yml")
     """
 
     stub:

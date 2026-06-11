@@ -88,10 +88,10 @@ process BIOC_RSVSIM_COMPARING_SV_SETS {
     saveRDS(comparison_tol0, "comparison_results_tol0.rds")
     saveRDS(comparison_tol3, "comparison_results_tol3.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RSVSIM_COMPARING_SV_SETS":
-        rsvsim: \$(Rscript -e 'cat(as.character(packageVersion("rsvsim")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RSVSIM_COMPARING_SV_SETS":',
+        paste0('        rsvsim: ', as.character(packageVersion("rsvsim")))
+    ), "versions.yml")
     """
 
     stub:

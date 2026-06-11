@@ -109,10 +109,10 @@ process BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP {
         units = "in"
     )
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP":
-        wpm: \$(Rscript -e 'cat(as.character(packageVersion("wpm")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_WPM_EXPRESSIONSET_TO_PLATE_MAP":',
+        paste0('        wpm: ', as.character(packageVersion("wpm")))
+    ), "versions.yml")
     """
 
     stub:

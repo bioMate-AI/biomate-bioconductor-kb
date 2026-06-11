@@ -79,10 +79,10 @@ process BIOC_MERGEOMICS_META_MSEA {
       write.csv(job.metamsea\$results, file = "meta_msea_results.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MERGEOMICS_META_MSEA":
-        mergeomics: \$(Rscript -e 'cat(as.character(packageVersion("mergeomics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MERGEOMICS_META_MSEA":',
+        paste0('        mergeomics: ', as.character(packageVersion("mergeomics")))
+    ), "versions.yml")
     """
 
     stub:

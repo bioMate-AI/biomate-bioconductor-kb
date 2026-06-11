@@ -101,10 +101,10 @@ process BIOC_SPATIALHEATMAP_BULK_SINGLE_CELL_COVISUALIZATION {
     print(cov.plot)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPATIALHEATMAP_BULK_SINGLE_CELL_COVISUALIZATION":
-        spatialHeatmap: \$(Rscript -e 'cat(as.character(packageVersion("spatialHeatmap")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPATIALHEATMAP_BULK_SINGLE_CELL_COVISUALIZATION":',
+        paste0('        spatialHeatmap: ', as.character(packageVersion("spatialHeatmap")))
+    ), "versions.yml")
     """
 
     stub:

@@ -105,10 +105,10 @@ process BIOC_CRISPRSEEK_ALLELE_SPECIFIC_GRNA_DESIGN {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CRISPRSEEK_ALLELE_SPECIFIC_GRNA_DESIGN":
-        crisprseek: \$(Rscript -e 'cat(as.character(packageVersion("crisprseek")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CRISPRSEEK_ALLELE_SPECIFIC_GRNA_DESIGN":',
+        paste0('        crisprseek: ', as.character(packageVersion("crisprseek")))
+    ), "versions.yml")
     """
 
     stub:

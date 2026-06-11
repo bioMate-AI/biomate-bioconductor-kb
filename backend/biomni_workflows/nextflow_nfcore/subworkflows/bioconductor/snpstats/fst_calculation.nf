@@ -101,10 +101,10 @@ process BIOC_SNPSTATS_FST_CALCULATION {
     cat("Pairwise Weighted Mean Fst:", mean_f1, "\n")
     cat("Overall Weighted Mean Fst:", mean_f2, "\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SNPSTATS_FST_CALCULATION":
-        snpstats: \$(Rscript -e 'cat(as.character(packageVersion("snpstats")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SNPSTATS_FST_CALCULATION":',
+        paste0('        snpstats: ', as.character(packageVersion("snpstats")))
+    ), "versions.yml")
     """
 
     stub:

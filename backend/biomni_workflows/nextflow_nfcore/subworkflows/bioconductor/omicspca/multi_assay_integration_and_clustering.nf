@@ -166,10 +166,10 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
     print(bp)
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING":
-        omicspca: \$(Rscript -e 'cat(as.character(packageVersion("omicspca")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING":',
+        paste0('        omicspca: ', as.character(packageVersion("omicspca")))
+    ), "versions.yml")
     """
 
     stub:

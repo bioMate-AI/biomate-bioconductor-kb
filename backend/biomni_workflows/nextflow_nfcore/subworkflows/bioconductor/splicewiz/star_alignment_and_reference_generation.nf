@@ -75,10 +75,10 @@ process BIOC_SPLICEWIZ_STAR_ALIGNMENT_AND_REFERENCE_GENERATION {
     generated_bams <- list.files("./bams", pattern = "\\\\.bam\$", full.names = TRUE)
     writeLines(generated_bams, "generated_bams.txt")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SPLICEWIZ_STAR_ALIGNMENT_AND_REFERENCE_GENERATION":
-        splicewiz: \$(Rscript -e 'cat(as.character(packageVersion("splicewiz")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SPLICEWIZ_STAR_ALIGNMENT_AND_REFERENCE_GENERATION":',
+        paste0('        splicewiz: ', as.character(packageVersion("splicewiz")))
+    ), "versions.yml")
     """
 
     stub:

@@ -138,10 +138,10 @@ process BIOC_SEQSQC_STEP_BY_STEP_QC {
     # 8. Generate HTML report
     RenderReport(seqfile, output="report.html", interactive=TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_SEQSQC_STEP_BY_STEP_QC":
-        seqsqc: \$(Rscript -e 'cat(as.character(packageVersion("seqsqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_SEQSQC_STEP_BY_STEP_QC":',
+        paste0('        seqsqc: ', as.character(packageVersion("seqsqc")))
+    ), "versions.yml")
     """
 
     stub:

@@ -93,10 +93,10 @@ process BIOC_KISSDE_ALTERNATIVE_SPLICING_ANALYSIS {
       warning("Could not run exploreResults: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KISSDE_ALTERNATIVE_SPLICING_ANALYSIS":
-        kissde: \$(Rscript -e 'cat(as.character(packageVersion("kissde")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KISSDE_ALTERNATIVE_SPLICING_ANALYSIS":',
+        paste0('        kissde: ', as.character(packageVersion("kissde")))
+    ), "versions.yml")
     """
 
     stub:

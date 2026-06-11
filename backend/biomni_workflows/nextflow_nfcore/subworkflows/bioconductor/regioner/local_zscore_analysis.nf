@@ -89,10 +89,10 @@ process BIOC_REGIONER_LOCAL_ZSCORE_ANALYSIS {
     print(pt_Rad21_5k_vs_Ctcf)
     sink()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_REGIONER_LOCAL_ZSCORE_ANALYSIS":
-        regioner: \$(Rscript -e 'cat(as.character(packageVersion("regioner")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_REGIONER_LOCAL_ZSCORE_ANALYSIS":',
+        paste0('        regioner: ', as.character(packageVersion("regioner")))
+    ), "versions.yml")
     """
 
     stub:

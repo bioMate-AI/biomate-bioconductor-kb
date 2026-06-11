@@ -94,10 +94,10 @@ process BIOC_RSVSIM_INSERTING_KNOWN_SVS {
       write.csv(metadata(sim)\$insertions, "insertions_metadata.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RSVSIM_INSERTING_KNOWN_SVS":
-        rsvsim: \$(Rscript -e 'cat(as.character(packageVersion("rsvsim")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RSVSIM_INSERTING_KNOWN_SVS":',
+        paste0('        rsvsim: ', as.character(packageVersion("rsvsim")))
+    ), "versions.yml")
     """
 
     stub:

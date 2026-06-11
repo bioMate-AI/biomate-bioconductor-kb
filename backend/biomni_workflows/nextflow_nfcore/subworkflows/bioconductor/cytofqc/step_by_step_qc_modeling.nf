@@ -141,10 +141,10 @@ process BIOC_CYTOFQC_STEP_BY_STEP_QC_MODELING {
     
     cat("Pipeline completed successfully. Outputs saved to 'cytofQC_labeled_sce.rds', 'qc_labels_summary.csv', 'qc_labels_detailed.csv', and 'qc_plots.pdf'.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CYTOFQC_STEP_BY_STEP_QC_MODELING":
-        cytofqc: \$(Rscript -e 'cat(as.character(packageVersion("cytofqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CYTOFQC_STEP_BY_STEP_QC_MODELING":',
+        paste0('        cytofqc: ', as.character(packageVersion("cytofqc")))
+    ), "versions.yml")
     """
 
     stub:

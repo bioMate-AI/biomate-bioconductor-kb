@@ -114,10 +114,10 @@ process BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS {
     # 8. Generate a comparative meta-analysis HTML report
     runReportMetaAnalysis(dbPath = databasePath, sampleTablePath = sampleDataFile, outFile = file.path(getwd(), 'myProject.html'))
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS":
-        rcas: \$(Rscript -e 'cat(as.character(packageVersion("rcas")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RCAS_MULTI_SAMPLE_META_ANALYSIS":',
+        paste0('        rcas: ', as.character(packageVersion("rcas")))
+    ), "versions.yml")
     """
 
     stub:

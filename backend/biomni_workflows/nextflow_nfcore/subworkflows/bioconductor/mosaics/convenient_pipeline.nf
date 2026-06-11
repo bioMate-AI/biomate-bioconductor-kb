@@ -95,10 +95,10 @@ process BIOC_MOSAICS_CONVENIENT_PIPELINE {
     
     message("mosaics convenient_pipeline workflow completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOSAICS_CONVENIENT_PIPELINE":
-        mosaics: \$(Rscript -e 'cat(as.character(packageVersion("mosaics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOSAICS_CONVENIENT_PIPELINE":',
+        paste0('        mosaics: ', as.character(packageVersion("mosaics")))
+    ), "versions.yml")
     """
 
     stub:

@@ -110,10 +110,10 @@ process BIOC_CLUMSID_LC_MS2_LOWRES {
     
     message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CLUMSID_LC_MS2_LOWRES":
-        clumsid: \$(Rscript -e 'cat(as.character(packageVersion("clumsid")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CLUMSID_LC_MS2_LOWRES":',
+        paste0('        clumsid: ', as.character(packageVersion("clumsid")))
+    ), "versions.yml")
     """
 
     stub:

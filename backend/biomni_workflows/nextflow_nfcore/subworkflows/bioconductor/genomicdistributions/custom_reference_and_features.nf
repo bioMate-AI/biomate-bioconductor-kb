@@ -147,10 +147,10 @@ process BIOC_GENOMICDISTRIBUTIONS_CUSTOM_REFERENCE_AND_FEATURES {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICDISTRIBUTIONS_CUSTOM_REFERENCE_AND_FEATURES":
-        genomicdistributions: \$(Rscript -e 'cat(as.character(packageVersion("genomicdistributions")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICDISTRIBUTIONS_CUSTOM_REFERENCE_AND_FEATURES":',
+        paste0('        genomicdistributions: ', as.character(packageVersion("genomicdistributions")))
+    ), "versions.yml")
     """
 
     stub:

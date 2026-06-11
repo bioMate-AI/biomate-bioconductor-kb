@@ -98,10 +98,10 @@ process BIOC_ONCOSCANR_ASCAT_STANDARD_WORKFLOW {
       write.csv(armlevel_df, "ascat_armlevel_alterations.csv", row.names = FALSE)
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_ONCOSCANR_ASCAT_STANDARD_WORKFLOW":
-        oncoscanr: \$(Rscript -e 'cat(as.character(packageVersion("oncoscanr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_ONCOSCANR_ASCAT_STANDARD_WORKFLOW":',
+        paste0('        oncoscanr: ', as.character(packageVersion("oncoscanr")))
+    ), "versions.yml")
     """
 
     stub:

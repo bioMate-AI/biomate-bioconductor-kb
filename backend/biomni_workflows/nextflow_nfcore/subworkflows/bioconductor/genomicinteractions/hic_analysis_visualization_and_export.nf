@@ -226,10 +226,10 @@ process BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT {
     print(min_pval)
     sink()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT":
-        GenomicInteractions: \$(Rscript -e 'cat(as.character(packageVersion("GenomicInteractions")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICINTERACTIONS_HIC_ANALYSIS_VISUALIZATION_AND_EXPORT":',
+        paste0('        GenomicInteractions: ', as.character(packageVersion("GenomicInteractions")))
+    ), "versions.yml")
     """
 
     stub:

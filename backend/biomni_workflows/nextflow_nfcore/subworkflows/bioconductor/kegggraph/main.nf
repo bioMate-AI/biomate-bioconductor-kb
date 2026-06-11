@@ -130,10 +130,10 @@ process BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS {
     
     cat("Pipeline completed successfully. Outputs saved to working directory.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS":
-        kegggraph: \$(Rscript -e 'cat(as.character(packageVersion("kegggraph")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS":',
+        paste0('        kegggraph: ', as.character(packageVersion("kegggraph")))
+    ), "versions.yml")
     """
 
     stub:

@@ -156,10 +156,10 @@ process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
     
     message("Pipeline completed successfully. Outputs saved to 'ribo_qc_plots.pdf', 'length_distribution.csv', 'meta_start.csv', 'tidy_meta_start.csv', 'region_counts_cds.csv', 'region_counts_non_tidy.csv', 'internal_region_coordinates.csv', and 'internal_region_lengths.csv'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION":
-        ribor: \$(Rscript -e 'cat(as.character(packageVersion("ribor")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION":',
+        paste0('        ribor: ', as.character(packageVersion("ribor")))
+    ), "versions.yml")
     """
 
     stub:

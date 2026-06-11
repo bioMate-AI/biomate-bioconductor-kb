@@ -116,10 +116,10 @@ process BIOC_VARIANTTOOLS_SOMATIC_VARIANT_CALLING {
     
     cat("Somatic variant calling pipeline completed successfully.\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_VARIANTTOOLS_SOMATIC_VARIANT_CALLING":
-        varianttools: \$(Rscript -e 'cat(as.character(packageVersion("varianttools")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_VARIANTTOOLS_SOMATIC_VARIANT_CALLING":',
+        paste0('        varianttools: ', as.character(packageVersion("varianttools")))
+    ), "versions.yml")
     """
 
     stub:

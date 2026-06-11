@@ -181,10 +181,10 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     # Print session info
     sessionInfo()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW":
-        lipidr: \$(Rscript -e 'cat(as.character(packageVersion("lipidr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW":',
+        paste0('        lipidr: ', as.character(packageVersion("lipidr")))
+    ), "versions.yml")
     """
 
     stub:

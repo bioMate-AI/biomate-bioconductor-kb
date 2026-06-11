@@ -181,10 +181,10 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
     
     cat("CNV detection pipeline completed successfully. Outputs saved to:", outputDir, "\n")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED":
-        cnvpanelizer: \$(Rscript -e 'cat(as.character(packageVersion("cnvpanelizer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED":',
+        paste0('        cnvpanelizer: ', as.character(packageVersion("cnvpanelizer")))
+    ), "versions.yml")
     """
 
     stub:

@@ -138,10 +138,10 @@ process BIOC_NORMR_ENRICHMENT_REGIME_STRATIFICATION {
     
     message("Pipeline completed successfully.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_NORMR_ENRICHMENT_REGIME_STRATIFICATION":
-        normr: \$(Rscript -e 'cat(as.character(packageVersion("normr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_NORMR_ENRICHMENT_REGIME_STRATIFICATION":',
+        paste0('        normr: ', as.character(packageVersion("normr")))
+    ), "versions.yml")
     """
 
     stub:

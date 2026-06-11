@@ -181,10 +181,10 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
     saveRDS(PASREF, "PASREF.rds")
     saveRDS(UTRdbraw, "UTRdbraw.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_APALYZER_APA_ANALYSIS_WORKFLOW":
-        apalyzer: \$(Rscript -e 'cat(as.character(packageVersion("apalyzer")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_APALYZER_APA_ANALYSIS_WORKFLOW":',
+        paste0('        apalyzer: ', as.character(packageVersion("apalyzer")))
+    ), "versions.yml")
     """
 
     stub:

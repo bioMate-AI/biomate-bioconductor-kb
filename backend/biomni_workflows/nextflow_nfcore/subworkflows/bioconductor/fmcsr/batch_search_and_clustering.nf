@@ -88,10 +88,10 @@ process BIOC_FMCSR_BATCH_SEARCH_AND_CLUSTERING {
     plotMCS(fmcs(sdf[3], sdf[7], au=0, bu=0, matching.mode="aromatic"))
     dev.off()
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FMCSR_BATCH_SEARCH_AND_CLUSTERING":
-        fmcsr: \$(Rscript -e 'cat(as.character(packageVersion("fmcsr")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FMCSR_BATCH_SEARCH_AND_CLUSTERING":',
+        paste0('        fmcsr: ', as.character(packageVersion("fmcsr")))
+    ), "versions.yml")
     """
 
     stub:

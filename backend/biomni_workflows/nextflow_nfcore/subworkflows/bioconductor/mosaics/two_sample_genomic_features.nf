@@ -128,10 +128,10 @@ process BIOC_MOSAICS_TWO_SAMPLE_GENOMIC_FEATURES {
     # Print summary of identified peaks to the console
     print(OneSamplePeak)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOSAICS_TWO_SAMPLE_GENOMIC_FEATURES":
-        mosaics: \$(Rscript -e 'cat(as.character(packageVersion("mosaics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOSAICS_TWO_SAMPLE_GENOMIC_FEATURES":',
+        paste0('        mosaics: ', as.character(packageVersion("mosaics")))
+    ), "versions.yml")
     """
 
     stub:

@@ -108,10 +108,10 @@ process BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS {
     
     print("Analysis complete. Results saved to 'fccac_covariance_results.csv', 'fccac_results.rds', and 'fccac_heatmap.pdf'.")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS":
-        fccac: \$(Rscript -e 'cat(as.character(packageVersion("fccac")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_FCCAC_FCCAC_COVARIANCE_ANALYSIS":',
+        paste0('        fccac: ', as.character(packageVersion("fccac")))
+    ), "versions.yml")
     """
 
     stub:

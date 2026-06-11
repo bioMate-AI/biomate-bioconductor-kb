@@ -183,10 +183,10 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     # Save the final annotated GenomicInteractions object
     saveRDS(k562.rep1, "k562_rep1_annotated.rds")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION":
-        GenomicInteractions: \$(Rscript -e 'cat(as.character(packageVersion("GenomicInteractions")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION":',
+        paste0('        GenomicInteractions: ', as.character(packageVersion("GenomicInteractions")))
+    ), "versions.yml")
     """
 
     stub:

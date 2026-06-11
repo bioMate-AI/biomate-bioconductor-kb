@@ -175,10 +175,10 @@ process BIOC_RQC_SIMPLE_QC_REPORT {
       warning("No files matching pattern '", pattern, "' found in directory '", folder, "'. Detailed outputs skipped.")
     }
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RQC_SIMPLE_QC_REPORT":
-        rqc: \$(Rscript -e 'cat(as.character(packageVersion("rqc")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RQC_SIMPLE_QC_REPORT":',
+        paste0('        rqc: ', as.character(packageVersion("rqc")))
+    ), "versions.yml")
     """
 
     stub:

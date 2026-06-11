@@ -136,10 +136,10 @@ process BIOC_RAIDS_DNA_ANCESTRY_INFERENCE {
     # Clean up temporary working directory
     unlink(pathWorkingDirectory, recursive = TRUE, force = TRUE)
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RAIDS_DNA_ANCESTRY_INFERENCE":
-        raids: \$(Rscript -e 'cat(as.character(packageVersion("raids")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RAIDS_DNA_ANCESTRY_INFERENCE":',
+        paste0('        raids: ', as.character(packageVersion("raids")))
+    ), "versions.yml")
     """
 
     stub:

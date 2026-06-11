@@ -89,10 +89,10 @@ process BIOC_RNAMODR_ML_DETECT_2_O_METHYLATIONS_ML {
       warning("Could not write modifications to CSV: ", e\$message)
     })
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_RNAMODR_ML_DETECT_2_O_METHYLATIONS_ML":
-        rnamodr_ml: \$(Rscript -e 'cat(as.character(packageVersion("rnamodr_ml")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_RNAMODR_ML_DETECT_2_O_METHYLATIONS_ML":',
+        paste0('        rnamodr_ml: ', as.character(packageVersion("rnamodr_ml")))
+    ), "versions.yml")
     """
 
     stub:

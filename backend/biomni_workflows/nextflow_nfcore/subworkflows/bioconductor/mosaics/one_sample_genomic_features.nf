@@ -117,10 +117,10 @@ process BIOC_MOSAICS_ONE_SAMPLE_GENOMIC_FEATURES {
     
     message("Pipeline completed successfully!")
 
-    cat <<-END_VERSIONS > versions.yml
-    "BIOC_MOSAICS_ONE_SAMPLE_GENOMIC_FEATURES":
-        mosaics: \$(Rscript -e 'cat(as.character(packageVersion("mosaics")))')
-    END_VERSIONS
+    writeLines(c(
+        '"BIOC_MOSAICS_ONE_SAMPLE_GENOMIC_FEATURES":',
+        paste0('        mosaics: ', as.character(packageVersion("mosaics")))
+    ), "versions.yml")
     """
 
     stub:
