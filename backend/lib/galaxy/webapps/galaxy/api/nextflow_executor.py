@@ -4359,7 +4359,11 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     # DB has step_metadata for this path it wins; the parser stays the fallback for everything
     # else (nf-core / drug_discovery / non-indexed paths -> _steps_from_db_metadata returns {}).
     db_steps = _steps_from_db_metadata(nextflow_path)
-    if db_steps:
+    # DB metadata wins (it carries curated per-step visualizations + QC) — EXCEPT when it has
+    # collapsed to a single coarse step while the .nf now parses into several (the B-1 section
+    # markers). A degenerate one-step DB row is stale/uncurated, so the finer parser result is
+    # the better UI; richer DB metadata (>=2 steps, or matching the parser) still wins.
+    if db_steps and not (len(db_steps) <= 1 < len(steps)):
         steps = db_steps
     return {"steps": steps, "count": len(steps)}
 
