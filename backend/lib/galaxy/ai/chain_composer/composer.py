@@ -33,6 +33,7 @@ from .retrieval import (
     retrieve_curated_chains,
     retrieve_downstream_via_types,
     retrieve_patterns,
+    retrieve_two_hop_chains,
     retrieve_workflows,
 )
 from .types import ChainEdge, ChainStep, ComposedChain, SurfacingMode
@@ -547,14 +548,21 @@ def _build_prompt(
     # surfaces natural multi-step chain options to the LLM without requiring
     # any hand-curated chain to exist for the query.
     if top_workflows:
-        downstream = retrieve_downstream_via_types(
-            [w.name for w in top_workflows[:3]],
-            top_k=5,
-        )
+        upstream_names = [w.name for w in top_workflows[:3]]
+        downstream = retrieve_downstream_via_types(upstream_names, top_k=5)
         if downstream:
             parts.append("\nTYPED DOWNSTREAM HINTS (these consumers typically chain after the named candidate via canonical data types — use as natural follow-on steps when the query implies more than one stage):")
             for upstream, dsts in downstream.items():
                 parts.append(f"- after `{upstream}`: " + ", ".join(f"`{d}`" for d in dsts))
+        # 2-hop chains: full A → B → C paths reachable via canonical types.
+        # Useful for queries that imply 3+ stages so the LLM has concrete
+        # path scaffolds instead of inferring transitions.
+        two_hop = retrieve_two_hop_chains(upstream_names, top_k_per_upstream=3)
+        if two_hop:
+            parts.append("\nTYPED 3-STEP CHAINS (full A → B → C paths reachable through the catalog's typed-edge graph — use as scaffolds when the query implies a multi-stage pipeline):")
+            for upstream, paths in two_hop.items():
+                for b, c in paths:
+                    parts.append(f"- `{upstream}` → `{b}` → `{c}`")
 
     if verifier_feedback:
         parts.append("\nPRIOR ATTEMPT FAILED VERIFICATION — fix these issues:")
