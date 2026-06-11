@@ -1,128 +1,187 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: quantsmooth
-// Implements quantile smoothing as introduced in: Quantile smoothing of array CGH data; Eilers PH, de 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/quantsmooth/inst/doc/quantsmooth.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("quantsmooth")
+// Bioconductor workflow: quantsmooth — quantile_smoothing_and_aberration_detection
+// Smooth copy number array data, optimize the smoothing parameter, visualize profiles with multiple quantiles, and detect genomic regions with copy number changes
+// Input: copy_number_matrix.csv, probe_positions.csv
+// Container: quay.io/biocontainers/bioconductor-quantsmooth:1.76.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: quantsmooth
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Perform basic quantile smoothing using quantsmooth. 2. Scale the smoothing parameter smooth.lambda based on probe density. 3. Perf
 
 nextflow.enable.dsl = 2
 
-process BIOC_QUANTSMOOTH {
+process BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-quantsmooth"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-quantsmooth:1.72.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-quantsmooth:1.72.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_quantsmooth_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_quantsmooth_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_quantsmooth_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required library
     library(quantsmooth)
-    library(jsonlite)
-
-    # --- Simpleplot [] ---
-    # Key functions: quantsmooth
-    library(quantsmooth)
-    data(chr14)
-    plot(affy.cn[,1],pch=".")
-    lines(quantsmooth(affy.cn[,1]),lwd=2)
-    # --- Firstcomparison [] ---
-    # Key functions: quantsmooth
-    plot(affy.pos,affy.cn[,1],ylab="copy number",xlab="position",pch=".")
-    lines(affy.pos,quantsmooth(affy.cn[,1]),lwd=2)
-    points(bac.pos,bac.cn[,1],col="red",pch=".")
-    lines(bac.pos,quantsmooth(bac.cn[,1]),col="red",lwd=2)
-    points(ill.pos,ill.cn[,1],col="blue",pch=".")
-    # --- Lambdalengthdependent [] ---
-    # Key functions: quantsmooth
+    
+    # ==========================================
+    # 1. READ USER INPUT FILES
+    # ==========================================
+    
+    if (!file.exists("copy_number_matrix.csv")) {
+      stop("Required input file 'copy_number_matrix.csv' not found in the working directory.")
+    }
+    if (!file.exists("probe_positions.csv")) {
+      stop("Required input file 'probe_positions.csv' not found in the working directory.")
+    }
+    
+    cn_df <- read.csv("copy_number_matrix.csv", header = TRUE)
+    pos_df <- read.csv("probe_positions.csv", header = TRUE)
+    
+    # Robustly extract numeric columns
+    numeric_cols_cn <- which(sapply(cn_df, is.numeric))
+    if (length(numeric_cols_cn) == 0) {
+      cn_matrix <- matrix(as.numeric(as.matrix(cn_df)), nrow = nrow(cn_df))
+    } else {
+      cn_matrix <- as.matrix(cn_df[, numeric_cols_cn, drop = FALSE])
+    }
+    
+    numeric_cols_pos <- which(sapply(pos_df, is.numeric))
+    if (length(numeric_cols_pos) == 0) {
+      pos_vector <- as.numeric(pos_df[[1]])
+    } else {
+      pos_vector <- pos_df[[numeric_cols_pos[1]]]
+    }
+    
+    # Align lengths to prevent mismatch errors
+    common_len <- min(nrow(cn_matrix), length(pos_vector))
+    if (common_len == 0) {
+      stop("Input files are empty or could not be parsed as numeric.")
+    }
+    
+    primary_cn <- cn_matrix[1:common_len, 1, drop = FALSE]
+    primary_pos <- pos_vector[1:common_len]
+    
+    # ==========================================
+    # 2. EXECUTE WORKFLOW & GENERATE PLOTS
+    # ==========================================
+    
+    pdf("quantsmooth_plots.pdf", width = 10, height = 8)
+    
+    # Stage 1: Perform basic quantile smoothing using quantsmooth
+    plot(primary_cn[,1],pch=".")
+    lines(quantsmooth(primary_cn[,1]),lwd=2)
+    
+    plot(primary_pos,primary_cn[,1],ylab="copy number",xlab="position",pch=".")
+    lines(primary_pos,quantsmooth(primary_cn[,1]),lwd=2)
+    
+    # Stage 2: Scale the smoothing parameter smooth.lambda based on probe density
     lambda.divisor<-50
-    plot(affy.pos,affy.cn[,1],ylab="copy number",xlab="position",pch=".")
-    lines(affy.pos,quantsmooth(affy.cn[,1],smooth.lambda=length(affy.pos)/lambda.divisor),lwd=2)
-    points(bac.pos,bac.cn[,1],col="red",pch=".")
-    lines(bac.pos,quantsmooth(bac.cn[,1],smooth.lambda=length(bac.pos)/lambda.divisor),col="red",lwd=2)
-    # --- Crossvalidation [] ---
-    # Key functions: cv
+    plot(primary_pos,primary_cn[,1],ylab="copy number",xlab="position",pch=".")
+    lines(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor),lwd=2)
+    
+    # Stage 3: Perform cross-validation using quantsmooth.cv to find the optimal lambda
     lambdas<-2^seq(from=-2,to=5,by=0.25)
     lambda.res <- rep(NA, length(lambdas))
-    for (lambda in 1:length(lambdas)) lambda.res[lambda] <- quantsmooth.cv(bac.cn[,1], lambdas[lambda])
+    for (lambda in 1:length(lambdas)) lambda.res[lambda] <- quantsmooth.cv(primary_cn[,1], lambdas[lambda])
     plot(lambdas,lambda.res,type="l")
     abline(v=lambdas[which.min(lambda.res)])
-    # --- Percentilesmoothing [] ---
-    # Key functions: quantsmooth
-    plot(bac.pos,quantsmooth(bac.cn[,1],smooth.lambda=length(bac.pos)/lambda.divisor),col="red",type="l",lwd=2)
-    lines(bac.pos,quantsmooth(bac.cn[,1],smooth.lambda=length(bac.pos)/lambda.divisor,tau=0.25),col="red",lty=2)
-    lines(bac.pos,quantsmooth(bac.cn[,1],smooth.lambda=length(bac.pos)/lambda.divisor,tau=0.75),col="red",lty=2)
-    # --- Plotsmoothed [] ---
-    # Key functions: plotSmoothed
-    plotSmoothed(bac.cn,bac.pos,ylim=c(1,2.5),normalized.to=2,smooth.lambda=length(bac.pos)/lambda.divisor)
-    # --- Changedregions [] ---
-    # Key functions: plotSmoothed, getChangedRegions, segments
-    plotSmoothed(ill.cn[,1],ill.pos,ylim=c(1,2.5),normalized.to=2,smooth.lambda=length(ill.pos)/lambda.divisor)
-    res<-getChangedRegions(ill.cn[,1],ill.pos,normalized.to=2,interval=0.5)
-    segments(res[,"start"],1.0,res[,"end"],1.0,col=2,lwd=2)
-    # --- Tolatex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_quantsmooth_results.csv", row.names = TRUE)
+    
+    # Stage 4: Smooth and plot multiple percentiles (e.g., 25th and 75th) to show data variability
+    plot(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor),col="red",type="l",lwd=2)
+    lines(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor,tau=0.25),col="red",lty=2)
+    lines(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor,tau=0.75),col="red",lty=2)
+    
+    # Stage 5: Use plotSmoothed for automated multi-quantile plotting
+    cn_min <- min(primary_cn[,1], na.rm = TRUE)
+    cn_max <- max(primary_cn[,1], na.rm = TRUE)
+    norm_val <- median(primary_cn[,1], na.rm = TRUE)
+    
+    plotSmoothed(primary_cn,primary_pos,ylim=c(cn_min,cn_max),normalized.to=norm_val,smooth.lambda=length(primary_pos)/lambda.divisor)
+    
+    # Stage 6: Identify genomic regions with copy number changes using getChangedRegions
+    plotSmoothed(primary_cn[,1],primary_pos,ylim=c(cn_min,cn_max),normalized.to=norm_val,smooth.lambda=length(primary_pos)/lambda.divisor)
+    res<-getChangedRegions(primary_cn[,1],primary_pos,normalized.to=norm_val,interval=0.5)
+    
+    if (!is.null(res) && nrow(res) > 0) {
+      segments(res[,"start"],cn_min,res[,"end"],cn_min,col=2,lwd=2)
+    }
+    
+    dev.off()
+    
+    # ==========================================
+    # 3. WRITE OUTPUT TABLES
+    # ==========================================
+    
+    # Save detected changed regions
+    if (!is.null(res) && nrow(res) > 0) {
+      write.csv(res, "changed_regions.csv", row.names = FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_quantsmooth_results.csv")
+      write.csv(data.frame(Message="No changed regions detected"), "changed_regions.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_quantsmooth_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QUANTSMOOTH:", paste0("    quantsmooth: ", packageVersion("quantsmooth"))),
-        "versions.yml"
+    
+    # Save optimal lambda from cross-validation
+    optimal_lambda <- lambdas[which.min(lambda.res)]
+    write.csv(data.frame(Optimal_Lambda = optimal_lambda), "optimal_lambda.csv", row.names = FALSE)
+    
+    # Save smoothed copy number values
+    smoothed_val <- quantsmooth(primary_cn[,1], smooth.lambda = length(primary_pos)/lambda.divisor)
+    smoothed_df <- data.frame(
+      Position = primary_pos,
+      Original_CN = primary_cn[,1],
+      Smoothed_CN = smoothed_val
     )
+    write.csv(smoothed_df, "smoothed_copy_number.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION":',
+        paste0('    quantsmooth: ', as.character(packageVersion('quantsmooth')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_quantsmooth_results.csv
-    touch ${prefix}_quantsmooth_output.rds
-    echo "BIOC_QUANTSMOOTH:" > versions.yml
-    echo "    quantsmooth: 0.0.0" >> versions.yml
+    touch ${prefix}_quantile_smoothing_and_aberration_detection.csv versions.yml
     """
 }
 
-
-workflow BIOC_QUANTSMOOTH_WORKFLOW {
+workflow BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ copy_number_matrix.csv, probe_positions.csv ] ]
 
     main:
-    BIOC_QUANTSMOOTH(ch_input)
+    BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION(ch_input)
 
     emit:
-    results  = BIOC_QUANTSMOOTH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QUANTSMOOTH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QUANTSMOOTH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QUANTSMOOTH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION.out.tables
+    plots    = BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION.out.plots
+    objects  = BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION.out.objects
+    versions = BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION.out.versions
 }

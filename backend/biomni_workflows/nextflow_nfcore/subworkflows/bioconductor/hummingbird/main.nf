@@ -1,130 +1,160 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: hummingbird
-// A package for detecting differential methylation. It exploits a Bayesian hidden Markov model that in
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/hummingbird/inst/doc/hummingbird.R
-// Upstream  : GenomicRanges, SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("hummingbird")
+// Bioconductor workflow: hummingbird — dmr_detection_and_visualization
+// Detect and visualize differentially methylated regions (DMRs) from WGBS or RRBS data using a Bayesian HMM.
+// Input: normM, normUM, abnormM, abnormUM, pos
+// Container: quay.io/biocontainers/bioconductor-hummingbird:1.20.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, SummarizedExperiment, hummingbird
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Format input matrices and CpG positions into SummarizedExperiment objects for control and case groups
+//  * 2. [Core Analysis] Execute the EM algorithm using hummingbirdEM to infer methylation states
+//  * 3. [Core Analysis] Apply post-adjustment criteria (minimum length, minimum CpGs, maximum gap) using hummingbirdPostAdjustment to refine DMRs
+//  * 4. [Visualization & Output] Visualize the observations and predictions for a specific genomic region using hummingbirdGraph
 
 nextflow.enable.dsl = 2
 
-process BIOC_HUMMINGBIRD {
+process BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-hummingbird"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-hummingbird:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-hummingbird:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_hummingbird_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_hummingbird_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_hummingbird_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    library(GenomicRanges)
     library(hummingbird)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Data Preparation [SummarizedExperiment] ---
-    # Key functions: SummarizedExperiment, GPos
-    pos_vec <- pos[, 1]
+    
+    # Helper function to robustly load input files from the working directory
+    find_and_read <- function(base_name) {
+      extensions <- c("", ".rds", ".csv", ".tsv", ".txt")
+      for (ext in extensions) {
+        file_path <- paste0(base_name, ext)
+        if (file.exists(file_path)) {
+          if (grepl("\\\\.rds\$", file_path, ignore.case = TRUE)) {
+            return(readRDS(file_path))
+          } else if (grepl("\\\\.csv\$", file_path, ignore.case = TRUE)) {
+            return(as.matrix(read.csv(file_path, header = TRUE)))
+          } else if (grepl("\\\\.tsv\$|\\\\.txt\$", file_path, ignore.case = TRUE)) {
+            return(as.matrix(read.table(file_path, header = TRUE)))
+          } else {
+            res <- tryCatch(readRDS(file_path), error = function(e) NULL)
+            if (!is.null(res)) return(res)
+            res <- tryCatch(as.matrix(read.table(file_path, header = TRUE)), error = function(e) NULL)
+            if (!is.null(res)) return(res)
+          }
+        }
+      }
+      stop(paste("Required input file not found:", base_name))
+    }
+    
+    # Load user inputs
+    normM <- find_and_read("normM")
+    normUM <- find_and_read("normUM")
+    abnormM <- find_and_read("abnormM")
+    abnormUM <- find_and_read("abnormUM")
+    pos <- find_and_read("pos")
+    
+    # Format pos as a vector
+    if (is.matrix(pos) || is.data.frame(pos)) {
+      pos <- pos[, 1]
+    }
+    
+    # Format input matrices and CpG positions into SummarizedExperiment objects
     assaysControl <- list(normM = normM, normUM = normUM)
     assaysCase <- list(abnormM = abnormM, abnormUM = abnormUM)
-    exampleSEControl <- SummarizedExperiment(
-        assays = assaysControl, 
-        rowRanges = GPos("chr29", pos_vec)
-    )
-    exampleSECase <- SummarizedExperiment(
-        assays = assaysCase, 
-        rowRanges = GPos("chr29", pos_vec)
-    )
-
-    # --- Expectation-Maximization Estimation [EM Algorithm] ---
-    # Key functions: hummingbirdEM
-    emInfo <- hummingbirdEM(
-        experimentInfoControl = exampleSEControl, 
-        experimentInfoCase = exampleSECase, 
-        binSize = 40
-    )
-
-    # --- DMR Detection and Post-Adjustment [Post-processing] ---
-    # Key functions: hummingbirdPostAdjustment
+    exampleSEControl <- SummarizedExperiment(assaysControl, 
+                                            rowRanges = GPos("chrUn", pos))
+    exampleSECase <- SummarizedExperiment(assaysCase, 
+                                        rowRanges = GPos("chrUn", pos))
+    
+    # Execute the EM algorithm using hummingbirdEM to infer methylation states
+    emInfo <- hummingbirdEM(experimentInfoControl = exampleSEControl, 
+                            experimentInfoCase = exampleSECase, binSize = 40)
+    
+    # Apply post-adjustment criteria using hummingbirdPostAdjustment to refine DMRs
     postAdjInfo <- hummingbirdPostAdjustment(
         experimentInfoControl = exampleSEControl, 
         experimentInfoCase = exampleSECase, 
-        emInfo = emInfo, 
-        minCpGs = 10, 
-        minLength = 100, 
-        maxGap = 300
-    )
-    dmrs <- postAdjInfo$DMRs
-
-    # --- Visualization of Methylation Profiles [Visualisation] ---
-    # Key functions: hummingbirdGraph
-    hummingbirdGraph(
-        experimentInfoControl = exampleSEControl, 
-        experimentInfoCase = exampleSECase, 
-        postAdjInfoDMRs = postAdjInfo$DMRs, 
-        coord1 = 107991, 
-        coord2 = 108350
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_hummingbird_results.csv", row.names = TRUE)
+        emInfo = emInfo, minCpGs = 10, 
+        minLength = 100, maxGap = 300)
+    
+    # Save results to files
+    saveRDS(emInfo, "emInfo.rds")
+    saveRDS(postAdjInfo, "postAdjInfo.rds")
+    
+    if (!is.null(postAdjInfo\$DMRs)) {
+      write.csv(as.data.frame(postAdjInfo\$DMRs), "detected_DMRs.csv", row.names = FALSE)
+    }
+    
+    # Visualize the observations and predictions for a specific genomic region
+    pdf("hummingbird_plots.pdf", width = 10, height = 8)
+    if (!is.null(postAdjInfo\$DMRs) && length(postAdjInfo\$DMRs) > 0) {
+      tryCatch({
+        first_dmr <- postAdjInfo\$DMRs[1]
+        hummingbirdGraph(experimentInfoControl = exampleSEControl, 
+                        experimentInfoCase = exampleSECase, 
+                        postAdjInfoDMRs = postAdjInfo\$DMRs, 
+                        coord1 = start(first_dmr), coord2 = end(first_dmr))
+      }, error = function(e) {
+        warning("Could not plot the first detected DMR.")
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_hummingbird_results.csv")
+      warning("No DMRs detected to plot.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_hummingbird_output.rds")
-    }
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HUMMINGBIRD:", paste0("    hummingbird: ", packageVersion("hummingbird"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION":',
+        paste0('    hummingbird: ', as.character(packageVersion('hummingbird')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_hummingbird_results.csv
-    touch ${prefix}_hummingbird_output.rds
-    echo "BIOC_HUMMINGBIRD:" > versions.yml
-    echo "    hummingbird: 0.0.0" >> versions.yml
+    touch ${prefix}_dmr_detection_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_HUMMINGBIRD_WORKFLOW {
+workflow BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ normM, normUM, abnormM, abnormUM, pos ] ]
 
     main:
-    BIOC_HUMMINGBIRD(ch_input)
+    BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_HUMMINGBIRD.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HUMMINGBIRD.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HUMMINGBIRD.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HUMMINGBIRD.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION.out.tables
+    plots    = BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION.out.plots
+    objects  = BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION.out.objects
+    versions = BIOC_HUMMINGBIRD_DMR_DETECTION_AND_VISUALIZATION.out.versions
 }

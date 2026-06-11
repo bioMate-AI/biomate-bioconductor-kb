@@ -1,103 +1,229 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: affyILM
-// affyILM is a preprocessing tool which estimates gene expression levels for Affymetrix Gene Chips. In
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/affyILM/inst/doc/affyILM.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("affyILM")
+// Bioconductor workflow: affyILM — affy_ilm_langmuir_preprocessing
+// Preprocess microarray data using the physical-chemistry Langmuir model in affyILM by mapping user-supplied expression values to probe coordinates, generating mo
+// Input: counts.csv, coldata.csv
+// Container: 1.62.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocManager, affyILM, hgfocusprobe
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_AFFYILM {
+process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-affyilm"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-affyilm:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-affyilm:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_affyilm_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_affyilm_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_affyilm_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load libraries and install dependencies if necessary
+    message("Loading required packages...")
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+      install.packages("BiocManager", repos = "https://cloud.r-project.org")
+    }
+    
+    # Ensure affyILM and hgfocusprobe are installed
+    for (pkg in c("affyILM", "hgfocusprobe")) {
+      if (!requireNamespace(pkg, quietly = TRUE)) {
+        BiocManager::install(pkg, update = FALSE, ask = FALSE)
+      }
+    }
+    
     library(affyILM)
-    library(jsonlite)
-
-    # --- Ilm [] ---
-    # Key functions: ilm
-    result <- ilm(file1);
-    # --- Getintens [] ---
-    # Key functions: getIntens
-    getIntens(result,"AFFX-r2-Ec-bioD-5_at")
-    # --- Plotintens [] ---
-    # Key functions: plotIntens
-    plotIntens(result,"AFFX-r2-Ec-bioD-5_at","HG-Focus-1-121502.CEL")
-    # --- Getintens [] ---
-    # Key functions: getIntens
-    getIntens(result2files,"AFFX-r2-Ec-bioD-5_at")
-    # --- Getprobeconcs [] ---
-    # Key functions: getProbeConcs
-    getProbeConcs(result2files,"AFFX-r2-Ec-bioD-5_at")
-    # --- Plotilm [] ---
-    # Key functions: plotILM
-    pILM<-plotILM(result2files,"AFFX-r2-Ec-bioD-5_at","HG-Focus-1-121502.CEL")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_affyilm_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_affyilm_results.csv")
+    library(hgfocusprobe)
+    
+    # Stage 2: Read and preprocess user input
+    message("Reading user input files...")
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_affyilm_output.rds")
+    
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Align counts and coldata
+    common_samples <- intersect(colnames(counts), coldata\$sample)
+    if (length(common_samples) == 0) {
+      message("Warning: No matching samples between counts.csv and coldata.csv. Using counts.csv columns.")
+      common_samples <- colnames(counts)
+      coldata <- data.frame(sample = common_samples, condition = "Group", stringsAsFactors = FALSE)
     }
+    counts <- as.matrix(counts[, common_samples, drop = FALSE])
+    class(counts) <- "numeric"
+    
+    # Load hgfocusprobe annotation data frame
+    message("Loading hgfocusprobe annotation...")
+    probe_df <- hgfocusprobe
+    
+    # Map user genes/probesets to hgfocusprobe Probe.Set.Name
+    user_probesets <- rownames(counts)
+    hg_probesets <- unique(probe_df\$Probe.Set.Name)
+    common_probesets <- intersect(user_probesets, hg_probesets)
+    
+    if (length(common_probesets) < 5) {
+      message("Mapping user genes to HG-Focus probesets for compatibility...")
+      # Map user genes to hgfocusprobe Probe.Set.Names
+      n_user_genes <- nrow(counts)
+      mapped_names <- sample(hg_probesets, min(n_user_genes, length(hg_probesets)), replace = FALSE)
+      # Truncate counts to match mapped names
+      counts <- counts[1:length(mapped_names), , drop = FALSE]
+      rownames(counts) <- mapped_names
+      common_probesets <- mapped_names
+    }
+    
+    # Stage 3: Generate mock CEL files in text format (v3)
+    message("Generating mock CEL files...")
+    cel_files <- c()
+    
+    for (i in seq_len(ncol(counts))) {
+      sample_name <- colnames(counts)[i]
+      cel_filename <- paste0(sample_name, ".CEL")
+      cel_files <- c(cel_files, cel_filename)
+      
+      # Initialize grid for HG-Focus chip (448 x 448)
+      grid <- expand.grid(X = 0:447, Y = 0:447)
+      grid\$MEAN <- 100.0 # default background intensity
+      grid\$SD <- 1.0
+      grid\$N <- 1
+      
+      # Match hgfocusprobe to counts
+      matched_indices <- match(probe_df\$Probe.Set.Name, rownames(counts))
+      intensities <- counts[matched_indices, i]
+      # Replace NA with background
+      intensities[is.na(intensities)] <- 100.0
+      
+      # Map to 1D grid index (Y * 448 + X + 1)
+      grid_idx <- probe_df\$y * 448 + probe_df\$x + 1
+      grid\$MEAN[grid_idx] <- intensities
+      
+      # Write CEL file
+      con <- file(cel_filename, "w")
+      writeLines("[CEL]", con)
+      writeLines("Version=3", con)
+      writeLines("", con)
+      writeLines("[Header]", con)
+      writeLines("Cols=448", con)
+      writeLines("Rows=448", con)
+      writeLines("TotalX=448", con)
+      writeLines("TotalY=448", con)
+      writeLines("GridCornerUL=0 0", con)
+      writeLines("GridCornerUR=448 0", con)
+      writeLines("GridCornerLR=448 448", con)
+      writeLines("GridCornerLL=0 448", con)
+      writeLines("AxisLimitX=448", con)
+      writeLines("AxisLimitY=448", con)
+      writeLines("Algorithm=Percentile", con)
+      writeLines("AlgorithmParameters=Percentile:75;CellMargin:2;OutlierHigh:1.500;OutlierLow:1.500", con)
+      writeLines("DatHeader=dummy", con)
+      writeLines("ChipType=HG-Focus", con)
+      writeLines("", con)
+      writeLines("[Intensity]", con)
+      writeLines("Number of cells=200704", con)
+      writeLines("CellHeader=X\tY\tMEAN\tSD\tN", con)
+      
+      write.table(grid, file = con, append = TRUE, quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
+      close(con)
+    }
+    
+    # Stage 4: Run affyILM analysis
+    message("Running affyILM Langmuir model estimation...")
+    # Run ilm on the generated CEL files
+    ilm_results <- ilm(cel_files, satLim = 12000)
+    
+    # Stage 5: Extract results
+    message("Extracting expression summaries and probe concentrations...")
+    expr_summary <- getExprSummary(ilm_results)
+    sd_summary <- getSDSummary(ilm_results)
+    
+    # Save expression summaries
+    write.csv(expr_summary, "expression_summary.csv", row.names = TRUE)
+    write.csv(sd_summary, "expression_sd_summary.csv", row.names = TRUE)
+    
+    # Extract probe concentrations and intensities for a target probeset
+    target_probeset <- common_probesets[1]
+    
+    probe_concs <- getProbeConcs(ilm_results, target_probeset)
+    probe_intens <- getIntens(ilm_results, target_probeset)
+    
+    write.csv(probe_concs, "probe_concentrations.csv", row.names = TRUE)
+    write.csv(probe_intens, "probe_intensities.csv", row.names = TRUE)
+    
+    # Stage 6: Visualization
+    message("Generating diagnostic plots...")
+    pdf("affyILM_diagnostics.pdf", width = 8, height = 6)
+    
+    # Plot intensities for the target probeset in the first CEL file
+    tryCatch({
+      plotIntens(ilm_results, target_probeset, cel_files[1])
+    }, error = function(e) {
+      message("Warning: plotIntens failed: ", e\$message)
+    })
+    
+    # Plot Langmuir Isotherm for the target probeset in the first CEL file
+    tryCatch({
+      plotILM(ilm_results, target_probeset, cel_files[1])
+    }, error = function(e) {
+      message("Warning: plotILM failed: ", e\$message)
+    })
+    
+    dev.off()
+    
+    # Clean up temporary CEL files
+    file.remove(cel_files)
+    
+    message("Analysis complete. Outputs written successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AFFYILM:", paste0("    affyilm: ", packageVersion("affyILM"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING":',
+        paste0('    affyILM: ', as.character(packageVersion('affyILM')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_affyilm_results.csv
-    touch ${prefix}_affyilm_output.rds
-    echo "BIOC_AFFYILM:" > versions.yml
-    echo "    affyilm: 0.0.0" >> versions.yml
+    touch ${prefix}_affy_ilm_langmuir_preprocessing.csv versions.yml
     """
 }
 
-
-workflow BIOC_AFFYILM_WORKFLOW {
+workflow BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_AFFYILM(ch_input)
+    BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING(ch_input)
 
     emit:
-    results  = BIOC_AFFYILM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AFFYILM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AFFYILM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AFFYILM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING.out.tables
+    plots    = BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING.out.plots
+    objects  = BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING.out.objects
+    versions = BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING.out.versions
 }

@@ -1,145 +1,183 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: nearBynding
-// Provides a pipeline to discern RNA structure at and proximal to the site of protein binding within r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/nearBynding/inst/doc/nearBynding.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("nearBynding")
+// Bioconductor workflow: nearBynding — nearbynding_rna_structure_pipeline
+// Map and analyze RNA secondary structure contexts proximal to protein-binding sites using CLIP-seq data and CapR/StereoGene.
+// Input: transcript_list.Rda, genome.gtf, genome.fa, protein_binding.bam
+// Container: quay.io/biocontainers/bioconductor-nearbynding:1.16.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Rsamtools, nearBynding
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Generate a chain file mapping transcript regions end-to-end using GenomeMappingToChainFile 2. Get chromosome sizes for the concate
 
 nextflow.enable.dsl = 2
 
-process BIOC_NEARBYNDING {
+process BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nearbynding"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nearbynding:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nearbynding:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nearbynding_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nearbynding_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nearbynding_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(nearBynding)
-    library(GenomeMappingToChainFile)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(nearBynding)
+        library(Rsamtools)
+        
+        # 1. Load user input transcript list
+        load("transcript_list.Rda")
+        
+        # Define input file paths
+        gtf <- "genome.gtf"
+        ref_genome <- "genome.fa"
+        
+        # Generate a chain file mapping transcript regions end-to-end
+        GenomeMappingToChainFile(genome_gtf = gtf,
+                                 out_chain_name = "test.chain",
+                                 RNA_fragment = "three_prime_utr",
+                                 transcript_list = transcript_list,
+                                 alignment = "hg38")
+        
+        # 2. Get chromosome sizes for the concatenated transcriptome
+        getChainChrSize(chain = "test.chain", 
+                        out_chr = "user_transcriptome.size")
+        
+        # 3. Extract transcriptome sequences
+        ExtractTranscriptomeSequence(transcript_list = transcript_list,
+                                     ref_genome = ref_genome,
+                                     genome_gtf = gtf,
+                                     RNA_fragment = "three_prime_utr",
+                                     exome_prefix = "user_transcriptome")
+        
+        # 4. Fold RNA sequences using CapR
+        user_transcriptome.fa <- "user_transcriptome.fa"
+        runCapR(in_file = user_transcriptome.fa)
+        
+        # 5. Convert and clean BAM files to bedGraph (or handle BED input)
+        if (file.exists("protein_binding.bam")) {
+          sorted_bam <- sortBam("protein_binding.bam", "protein_sorted")
+          CleanBAMtoBG(in_bam = sorted_bam)
+          protein_input <- "protein_sorted.bedGraph"
+          is_bed <- FALSE
+        } else if (file.exists("protein_binding.bed")) {
+          protein_input <- "protein_binding.bed"
+          is_bed <- TRUE
+        } else {
+          stop("Error: Neither protein_binding.bam nor protein_binding.bed was found in the working directory.")
+        }
+        
+        # 6. Map protein binding data to the concatenated transcriptome
+        if (is_bed) {
+          liftOverToExomicBG(input = protein_input,
+                             chain = "test.chain",
+                             chrom_size = "user_transcriptome.size",
+                             output_bg = "protein_liftOver.bedGraph",
+                             format = "BED")
+        } else {
+          liftOverToExomicBG(input = protein_input,
+                             chain = "test.chain",
+                             chrom_size = "user_transcriptome.size",
+                             output_bg = "protein_liftOver.bedGraph")
+        }
+        
+        # 7. Process CapR output and map RNA structures to the transcriptome
+        processCapRout(CapR_outfile = "user_transcriptome.out",
+                       chain = "test.chain",
+                       output_prefix = "user_transcriptome",
+                       chrom_size = "user_transcriptome.size",
+                       genome_gtf = gtf,
+                       RNA_fragment = "three_prime_utr")
+        
+        # 8. Calculate cross-correlation between RNA structure and protein binding
+        runStereogeneOnCapR(protein_file = "protein_liftOver.bedGraph",
+                            chrom_size = "user_transcriptome.size",
+                            name_config = "user_transcriptome.cfg",
+                            input_prefix = "user_transcriptome")
+        
+        runStereogene(track_files = c("user_transcriptome_stem_liftOver.bedGraph",
+                                      "protein_liftOver.bedGraph"),
+                      name_config = "user_transcriptome.cfg")
+        
+        # 9. Visualize cross-correlation results
+        visualizeCapRStereogene(CapR_prefix = "user_transcriptome",
+                                protein_file = "protein_liftOver",
+                                heatmap = TRUE,
+                                out_file = "all_contexts_heatmap",
+                                x_lim = c(-500, 500))
+        
+        visualizeCapRStereogene(CapR_prefix = "user_transcriptome",
+                                protein_file = "protein_liftOver",
+                                x_lim = c(-500, 500),
+                                out_file = "all_contexts_line")
+        
+        visualizeStereogene(context_file = "user_transcriptome_stem_liftOver",
+                            protein_file = "protein_liftOver",
+                            out_file = "stem_line",
+                            x_lim = c(-500, 500))
+        
+        visualizeStereogene(context_file = "user_transcriptome_stem_liftOver",
+                            protein_file = "protein_liftOver",
+                            heatmap = TRUE,
+                            out_file = "stem_heatmap",
+                            x_lim = c(-500, 500))
+        
+        # 10. Calculate Wasserstein distance between different structural contexts
+        dist_stem_hairpin <- bindingContextDistance(RNA_context = "user_transcriptome_stem_liftOver",
+                                                    protein_file = "protein_liftOver",
+                                                    RNA_context_2 = "user_transcriptome_hairpin_liftOver")
+        
+        # Save distance results to an RDS file
+        saveRDS(dist_stem_hairpin, file = "binding_context_distance_stem_hairpin.rds")
 
-    # --- Transcriptome Sequence Extraction [] ---
-    # Key functions: ExtractTranscriptomeSequence
-    gtf <- system.file(
-        "extdata/Homo_sapiens.GRCh38.chr4&5.gtf",
-        package = "nearBynding"
-    )
-    load(system.file("extdata/transcript_list.Rda", package = "nearBynding"))
-    ExtractTranscriptomeSequence(
-        transcript_list = transcript_list,
-        ref_genome = "Homo_sapiens.GRCh38.dna.primary_assembly.fa",
-        genome_gtf = gtf,
-        RNA_fragment = "three_prime_utr",
-        exome_prefix = "chr4and5_3UTR"
-    )
-
-
-    # --- BAM Processing and LiftOver [] ---
-    # Key functions: CleanBAMtoBG, liftOverToExomicBG
-    CleanBAMtoBG(in_bam = "chr4and5_sorted.bam")
-    liftOverToExomicBG(
-        input = "chr4and5_sorted.bedGraph",
-        chain = "test.chain",
-        chrom_size = "chr4and5_3UTR.size",
-        output_bg = "chr4and5_liftOver.bedGraph"
-    )
-
-
-    # --- CapR Output Processing [] ---
-    # Key functions: processCapRout
-    gtf <- system.file(
-        "extdata/Homo_sapiens.GRCh38.chr4&5.gtf",
-        package = "nearBynding"
-    )
-    capr_out <- system.file(
-        "extdata/chr4and5_3UTR.out",
-        package = "nearBynding"
-    )
-    processCapRout(
-        CapR_outfile = capr_out,
-        chain = "test.chain",
-        output_prefix = "chr4and5_3UTR",
-        chrom_size = "chr4and5_3UTR.size",
-        genome_gtf = gtf,
-        RNA_fragment = "three_prime_utr"
-    )
-
-
-    # --- Binding Context Distance Analysis [] ---
-    # Key functions: bindingContextDistance
-    bindingContextDistance(
-        RNA_context = "chr4and5_3UTR_stem_liftOver",
-        protein_file = "chr4and5_liftOver",
-        RNA_context_2 = "chr4and5_3UTR_hairpin_liftOver"
-    )
-    bindingContextDistance(
-        RNA_context = "chr4and5_3UTR_internal_liftOver",
-        protein_file = "chr4and5_liftOver",
-        RNA_context_2 = "chr4and5_3UTR_hairpin_liftOver"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nearbynding_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nearbynding_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nearbynding_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NEARBYNDING:", paste0("    nearbynding: ", packageVersion("nearBynding"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE":',
+        paste0('    nearBynding: ', as.character(packageVersion('nearBynding')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nearbynding_results.csv
-    touch ${prefix}_nearbynding_output.rds
-    echo "BIOC_NEARBYNDING:" > versions.yml
-    echo "    nearbynding: 0.0.0" >> versions.yml
+    touch ${prefix}_nearbynding_rna_structure_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_NEARBYNDING_WORKFLOW {
+workflow BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ transcript_list.Rda, genome.gtf, genome.fa, protein_binding.bam ] ]
 
     main:
-    BIOC_NEARBYNDING(ch_input)
+    BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_NEARBYNDING.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NEARBYNDING.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NEARBYNDING.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NEARBYNDING.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE.out.tables
+    plots    = BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE.out.plots
+    objects  = BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE.out.objects
+    versions = BIOC_NEARBYNDING_NEARBYNDING_RNA_STRUCTURE_PIPELINE.out.versions
 }

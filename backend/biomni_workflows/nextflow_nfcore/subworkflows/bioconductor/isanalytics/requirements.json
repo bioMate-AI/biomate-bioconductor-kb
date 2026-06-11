@@ -1,0 +1,31 @@
+{
+  "package": "isanalytics",
+  "requirements": [
+    "ISAnalytics",
+    "dplyr",
+    "fs",
+    "ggplot2",
+    "readr",
+    "tibble",
+    "withr"
+  ],
+  "by_workflow": {
+    "clonal_sharing_analysis.nf": [
+      "ISAnalytics",
+      "dplyr",
+      "ggplot2"
+    ],
+    "custom_barcode_data_workflow.nf": [
+      "ISAnalytics",
+      "dplyr",
+      "fs",
+      "readr",
+      "tibble"
+    ],
+    "main.nf": [
+      "ISAnalytics",
+      "dplyr",
+      "withr"
+    ]
+  }
+}

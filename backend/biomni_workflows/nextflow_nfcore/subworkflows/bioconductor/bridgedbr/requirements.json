@@ -1,0 +1,11 @@
+{
+  "package": "bridgedbr",
+  "requirements": [
+    "BridgeDbR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BridgeDbR"
+    ]
+  }
+}

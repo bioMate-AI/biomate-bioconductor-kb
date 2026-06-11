@@ -1,0 +1,21 @@
+{
+  "package": "chipexoqual",
+  "requirements": [
+    "ChIPexoQual",
+    "GenomicAlignments",
+    "Rsamtools",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChIPexoQual",
+      "GenomicAlignments",
+      "gridExtra"
+    ],
+    "subsampling_analysis.nf": [
+      "ChIPexoQual",
+      "Rsamtools",
+      "gridExtra"
+    ]
+  }
+}

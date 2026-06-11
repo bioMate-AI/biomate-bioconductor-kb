@@ -1,0 +1,15 @@
+{
+  "package": "mogsa",
+  "requirements": [
+    "gplots",
+    "graphite",
+    "mogsa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gplots",
+      "graphite",
+      "mogsa"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bam_file_list=A vector of file paths to the input BAM alignment files ;; gtf_file=The file path to the reference genome GTF file, which must match the reference used for BAM alignment ;; classlabel=A data frame with condition and comparison columns defining the experimental design (1 for reference, 2 for treatment, 0 for ignored) ;; cores=Integer specifying the number of CPU cores for parallel processing ;; psite.mapping=Rules for mapping RPFs to P-sites; can be \"auto\" (automatic calibration), \"center\" (read center), or a user-defined matrix with qwidth and psite columns ;; bin.width=Width of bins for grouping P-sites; 0 triggers adaptive binning (Freedman-Diaconis rule), 1 uses single-codon resolution, and other integers specify fixed widths ;; zero.omit=Logical; if TRUE, bins with zero counts across all replicates are excluded from testing ;; bin.from.5UTR=Logical; if TRUE, binning starts from the 5' end of the transcript, otherwise from the 3' end ;; method=A character vector specifying multiplicity correction methods, defaulting to c('gtxr', 'qvalue') for bin-level and gene-level corrections respectively\n- alternatives: Adaptive binning (bin.width = 0) is recommended for sparse Ribo-seq data to maintain statistical power, whereas fixed-width binning (bin.width = 1) is preferred for high-resolution codon-level analysis near start/stop codons. Exon-based binning (diffPatternTestExon) is an alternative for higher organisms with complex alternative splicing.\n- when_to_use: Use this package when you want to detect differences in the spatial distribution (patterns) of ribosomes along transcripts between two conditions, rather than just overall changes in translational abundance.\n- pitfalls: Using a GTF file from a different source than the one used for BAM alignment (e.g., mixing Ensembl and UCSC) will cause mapping failures. Single-codon binning on long genes can severely reduce statistical power due to multiple testing corrections.",
+  "workflows": [
+    {
+      "name": "ribodipa_wrapper_pipeline",
+      "intent": "Run the entire RiboDiPA pipeline using the single wrapper function with default parameters.",
+      "input": [
+        "bam_path[1:4] (Ribo-seq alignment BAM files)",
+        "bam_path[5] (Reference genome GTF file)"
+      ],
+      "stages": "1. Define experimental design and comparison groups ;; 2. Run the wrapper function to map P-sites, bin data, and perform differential testing ;; 3. View significant gene results",
+      "code": "classlabel <- data.frame(\n    condition = c(\"mutant\", \"mutant\", \"wildtype\", \"wildtype\"),\n    comparison = c(2, 2, 1, 1)\n)\nrownames(classlabel) <- c(\"mutant1\",\"mutant2\",\"wildtype1\",\"wildtype2\")\nresult.wrp <- RiboDiPA(bam_path[1:4], bam_path[5], classlabel, cores = 2)\nhead(result.wrp$gene[order(result.wrp$gene$qvalue), ])"
+    },
+    {
+      "name": "ribodipa_step_by_step_pipeline",
+      "intent": "Run the RiboDiPA pipeline step-by-step to allow customization of P-site mapping and data binning parameters.",
+      "input": [
+        "bam_path[1:4] (Ribo-seq alignment BAM files)",
+        "bam_path[5] (Reference genome GTF file)"
+      ],
+      "stages": "1. Map RPFs to P-sites and generate total transcript coordinates ;; 2. Group P-site counts into bins using adaptive or fixed-width binning ;; 3. Perform bin-wise and gene-wise differential pattern testing",
+      "code": "data.psite <- psiteMapping(bam_file_list = bam_path[1:4], \n    gtf_file = bam_path[5], psite.mapping = \"auto\", cores = 2)\ndata.psite$psite.mapping\ndata.binned <- dataBinning(data = data.psite$coverage, bin.width = 0,\n    zero.omit = FALSE, bin.from.5UTR = TRUE, cores = 2)\nresult.pst <- diffPatternTest(data = data.binned,\n    classlabel = classlabel, method=c('gtxr', 'qvalue'))"
+    },
+    {
+      "name": "ribodipa_exon_level_pipeline",
+      "intent": "Perform differential pattern analysis using annotated exons as the bins for statistical testing.",
+      "input": [
+        "bam_path[1:4] (Ribo-seq alignment BAM files)",
+        "bam_path[5] (Reference genome GTF file)"
+      ],
+      "stages": "1. Map RPFs to P-sites and generate total transcript coordinates ;; 2. Perform exon-level binning and differential pattern testing",
+      "code": "data.psite <- psiteMapping(bam_file_list = bam_path[1:4], \n    gtf_file = bam_path[5], psite.mapping = \"auto\", cores = 2)\nresult.exon <- diffPatternTestExon(psitemap = data.psite,\n    classlabel = classlabel, method = c('gtxr', 'qvalue'))"
+    }
+  ]
+}

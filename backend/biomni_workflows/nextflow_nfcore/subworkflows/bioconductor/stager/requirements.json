@@ -1,0 +1,14 @@
+{
+  "package": "stager",
+  "requirements": [
+    "stageR"
+  ],
+  "by_workflow": {
+    "differential_transcript_usage.nf": [
+      "stageR"
+    ],
+    "main.nf": [
+      "stageR"
+    ]
+  }
+}

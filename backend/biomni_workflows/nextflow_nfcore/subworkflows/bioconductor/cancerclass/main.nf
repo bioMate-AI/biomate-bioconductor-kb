@@ -1,103 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cancerclass
-// The classification protocol starts with a feature selection step and continues with nearest-centroid
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cancerclass/inst/doc/vignette_cancerclass.R
-// Upstream  : cancerdata
-// Downstream: none
-//
-// Install: BiocManager::install("cancerclass")
+// Bioconductor workflow: cancerclass — multiple_random_validation
+// Evaluate classification accuracy and estimate misclassification rates across different numbers of genes or training set sizes using a multiple random validation
+// Input: ExpressionSet
+// Container: quay.io/biocontainers/bioconductor-cancerclass:1.54.0--r45h01b2380_0
+// R packages: Biobase, cancerclass, cancerdata
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, cancerclass
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run multiple random validation across different gene counts using nvalidate
+//  * 2. [Visualization & Output] Plot misclassification rates using plot
+//  * 3. [Core Analysis] Run validation across different training set sizes using validate
+//  * 4. [Visualization & Output] Plot training size validation results using plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_CANCERCLASS {
+process BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cancerclass"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cancerclass:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cancerclass:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cancerclass_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cancerclass_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cancerclass_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(cancerclass)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    library(cancerclass)
-    data(GOLUB1)
-    GOLUB1
-    # --- Nvalidate [] ---
-    # Key functions: nvalidate
-    nval <- nvalidate(GOLUB1[1:200, ], ngenes=c(5, 10, 20, 50, 100, 200))
-    # --- Validate [] ---
-    # Key functions: validate
-    val <- validate(GOLUB1[1:200, ], ngenes=10, ntrain="balanced")
-    # --- Data [] ---
-    # Key functions: setdiff, sampleNames, fit, predict
-    library(cancerdata)
-    data(VEER)
-    data(VIJVER)
-    VIJVER2 <- VIJVER[, setdiff(sampleNames(VIJVER), sampleNames(VEER))]
-    predictor <- fit(VEER, method="welch.test")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cancerclass_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cancerclass_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "cancerclass", "cancerdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cancerclass_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(cancerclass)
+        library(Biobase)
+        
+        # 1. Read the user input ExpressionSet from the working directory
+        input_file <- "ExpressionSet.rds"
+        if (!file.exists(input_file)) {
+          stop(paste("Error: Input file", input_file, "not found in the working directory."))
+        }
+        
+        # Load the ExpressionSet object
+        eset <- readRDS(input_file)
+        
+        # Ensure the object is indeed an ExpressionSet
+        if (!inherits(eset, "ExpressionSet")) {
+          stop("Error: The input file does not contain an ExpressionSet object.")
+        }
+        
+        # Ensure there are at least 200 features for the evaluated gene counts
+        if (nrow(eset) < 200) {
+          stop("Error: The input ExpressionSet must have at least 200 features (rows) to run the documented workflow.")
+        }
+        
+        # 2. Run multiple random validation across different gene counts using nvalidate
+        message("Running multiple random validation (nvalidate)...")
+        nval <- nvalidate(eset, ngenes=c(5, 10, 20, 50, 100, 200))
+        
+        # Save the nval object
+        saveRDS(nval, "nval_results.rds")
+        
+        # 3. Plot misclassification rates using plot
+        message("Plotting nvalidate results...")
+        pdf("nvalidate_plot.pdf", width = 7, height = 7)
+        plot(nval)
+        dev.off()
+        
+        # 4. Run validation across different training set sizes using validate
+        message("Running validation across training set sizes (validate)...")
+        val <- validate(eset, ngenes=10, ntrain="balanced")
+        
+        # Save the val object
+        saveRDS(val, "val_results.rds")
+        
+        # 5. Plot training size validation results using plot
+        message("Plotting validate results...")
+        pdf("validate_plot.pdf", width = 7, height = 7)
+        plot(val)
+        dev.off()
+        
+        # Save text summaries of the validation runs
+        sink("validation_summary.txt")
+        cat("=== Multiple Random Validation (nvalidate) ===\n")
+        print(summary(nval))
+        cat("\n=== Validation across Training Set Sizes (validate) ===\n")
+        print(summary(val))
+        sink()
+        
+        message("Workflow completed successfully. Outputs saved: nval_results.rds, val_results.rds, nvalidate_plot.pdf, validate_plot.pdf, validation_summary.txt")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CANCERCLASS:", paste0("    cancerclass: ", packageVersion("cancerclass"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION":',
+        paste0('    cancerclass: ', as.character(packageVersion('cancerclass')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cancerclass_results.csv
-    touch ${prefix}_cancerclass_output.rds
-    echo "BIOC_CANCERCLASS:" > versions.yml
-    echo "    cancerclass: 0.0.0" >> versions.yml
+    touch ${prefix}_multiple_random_validation.csv versions.yml
     """
 }
 
-
-workflow BIOC_CANCERCLASS_WORKFLOW {
+workflow BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ExpressionSet ] ]
 
     main:
-    BIOC_CANCERCLASS(ch_input)
+    BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION(ch_input)
 
     emit:
-    results  = BIOC_CANCERCLASS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CANCERCLASS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CANCERCLASS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CANCERCLASS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION.out.tables
+    plots    = BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION.out.plots
+    objects  = BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION.out.objects
+    versions = BIOC_CANCERCLASS_MULTIPLE_RANDOM_VALIDATION.out.versions
 }

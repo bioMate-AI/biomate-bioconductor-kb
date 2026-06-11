@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: normalise_by_factor=used to normalize HTSeq counts by library size ;; extract_features=supports \"human\" or \"mouse\" via the organism parameter, and allows custom common_features, GO_terms, and extra_genes ;; assess_cell_quality_PCA=the file parameter specifies the path to write the diagnostic PCA plot PDF ;; assess_cell_quality_SVM=requires training_features, training_labels, param (hyperparameters), and test_features to perform ensemble classification\n- alternatives: PCA-based outlier detection (assess_cell_quality_PCA) is unsupervised and useful when no training data is available, but is less successful at detecting multiples. SVM-based classification (assess_cell_quality_SVM) is supervised, more accurate, and handles multiples better, but requires matching training data or using \"common\" features which have less power.\n- when_to_use: When performing quality control on single-cell RNA-seq datasets (specifically mouse or human) to identify and filter out low-quality or deceptive cells before downstream analysis.\n- pitfalls: Counts from Cufflinks must be transformed from FPKM to TPM before feature extraction ;; Non-mouse/human organisms require manual database installation (e.g. org.Hs.eg.db) and correct gene ID mapping ;; Missing features in the output matrix indicate they all had the same value (e.g., zero ERCC reads) ;; The classifier detects \"deceptive\" low-quality cells not visible under a microscope, which may lead to higher filtering rates than expected from visual inspection.",
+  "workflows": [
+    {
+      "name": "pca_based_quality_assessment",
+      "intent": "Identify low-quality cells using unsupervised PCA-based outlier detection on extracted biological and technical features.",
+      "input": [
+        "gene_counts.tsv (Gene expression matrix, Genes x Cells)",
+        "read_stats.tsv (Read statistics matrix, Cells x Metrics, e.g. from celloline)"
+      ],
+      "stages": "1. Normalize gene expression counts using normalise_by_factor ;; 2. Extract biological and technical features using extract_features ;; 3. Assess cell quality and detect outliers using assess_cell_quality_PCA",
+      "code": "sample_counts_nm <- normalise_by_factor(sample_counts, colSums(sample_counts))\nsample_features <- extract_features(sample_counts_nm, sample_stats)\nsample_features_all <- sample_features[[1]]\nsample_qual_pca <- assess_cell_quality_PCA(sample_features_all)\ntraining_quality_PCA_allF <- assess_cell_quality_PCA(\n  training_mES_features_all, file = \"./training_quality_PCA_allF.pdf\")"
+    },
+    {
+      "name": "svm_based_quality_classification",
+      "intent": "Classify low-quality cells using a supervised SVM ensemble model trained on reference datasets.",
+      "input": [
+        "gene_counts.tsv (Gene expression matrix, Genes x Cells)",
+        "read_stats.tsv (Read statistics matrix, Cells x Metrics, e.g. from celloline)",
+        "training_features.RData (Reference training features)",
+        "training_labels.RData (Reference training labels)",
+        "hyperparameters.RData (Optimized SVM hyperparameters)"
+      ],
+      "stages": "1. Normalize gene expression counts using normalise_by_factor ;; 2. Extract biological and technical features using extract_features ;; 3. Classify cell quality using assess_cell_quality_SVM with training features, training labels, and optimized hyperparameters",
+      "code": "sample_counts_nm <- normalise_by_factor(sample_counts, colSums(sample_counts))\nsample_features <- extract_features(sample_counts_nm, sample_stats)\nmES1_features_all <- mES1_features[[1]]\nmES1_quality_SVM <- assess_cell_quality_SVM(\n  training_mES_features_all, training_mES_labels[,2], param_mES_all, \n  mES1_features_all)"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: region=A GRanges object specifying the genomic region to visualize ;; genome=The genome assembly matching the input files, currently supporting \"hg19\", \"hg38\", and \"mm10\" ;; BAM=Path to a CSV file containing BAM file paths and group names ;; BED=Path to a CSV file containing BED file paths and legend names ;; avgTrack=Logical indicating whether to plot the group average track ;; geneTrack=Logical indicating whether to plot the gene track ;; verbose=Logical indicating whether to print verbose output ;; cex=Numeric character expansion factor for plot labels\n- alternatives: None mentioned in the documentation\n- when_to_use: Appropriate for visual inspection, quality control, and confirmation of analysis results for sequencing data (ChIP-seq, ATAC-seq, RNA-seq) across multiple replicates and groups within a specific genomic region.\n- pitfalls: Corresponding BAI index files must be present in the same folder as the BAM files and must have the exact same name as the BAM file with an added \".bai\" suffix. The input CSV files must follow the exact column structure (BAM CSV: \"bam file\", \"group\"; BED CSV: \"bed file\", \"Legend\"). Only \"hg19\", \"hg38\", and \"mm10\" genomes are currently supported.",
+  "workflows": [
+    {
+      "name": "replicate_sequencing_visualization",
+      "intent": "Visualize replicate-level and group-level sequencing counts alongside genomic features and gene tracks for a specific genomic region.",
+      "input": [
+        "BAM_input.csv (CSV file containing BAM file paths and group names)",
+        "BED_input.csv (CSV file containing BED file paths and legend names)",
+        "BAM and BAI files (sequencing data and index files)",
+        "BED files (genomic features/peaks)"
+      ],
+      "stages": "1. Define the genomic region of interest using GenomicRanges ;; 2. Run the RepViz function to generate the multi-panel visualization plot",
+      "code": "region <- GRanges(\"chr12:110938000-110940000\")\nRepViz::RepViz(region = region,\n    genome = \"hg19\",\n    BAM = \"BAM_input.csv\",\n    BED = \"BED_input.csv\",\n    avgTrack = TRUE,\n    geneTrack = TRUE,\n    verbose = FALSE)"
+    }
+  ]
+}

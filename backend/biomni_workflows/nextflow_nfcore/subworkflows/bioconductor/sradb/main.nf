@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SRADB {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-sradb"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sradb:1.68.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-sradb:1.68.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -43,34 +42,83 @@ process BIOC_SRADB {
     library(TABLE_INFO)
     library(jsonlite)
 
-    # --- Targeted Metadata Retrieval [] ---
-    # Key functions: dbGetQuery
-    query_str <- paste(
-        "select study_accession, study_title from study where",
-        "study_description like 'Transcriptome%'",
-        sep = " "
+    # --- Database Connection ---
+    # Key functions: getSRAdbFile, dbConnect
+    sra_db <- getSRAdbFile(
+        destdir = tempdir(),
+        method = "curl"
     )
-    transcriptome_studies <- dbGetQuery(sra_con, query_str)
+    con <- dbConnect(
+        RSQLite::SQLite(),
+        sra_db
+    )
 
-
-    # --- Entity Attribute Extraction [] ---
+    # --- Metadata Querying ---
     # Key functions: dbGetQuery
-    sample_query <- "select sample_accession, run_accession from sra limit 5"
-    sample_runs <- dbGetQuery(sra_con, sample_query)
+    study_query <- paste(
+        "SELECT study_accession, study_title",
+        "FROM study WHERE study_description LIKE '%Transcriptome%'",
+        "LIMIT 10"
+    )
+    study_meta <- dbGetQuery(
+        con,
+        study_query
+    )
+
+    # --- Accession Conversion ---
+    # Key functions: sraConvert
+    sra_ids <- c("SRX014819", "SRX014820")
+    converted_ids <- sraConvert(
+        in_acc = sra_ids,
+        out_type = c("run", "study"),
+        sra_con = con
+    )
+
+    # --- Retrieve FASTQ Information ---
+    # Key functions: getFASTQinfo
+    run_ids <- c("SRR034311", "SRR034312")
+    fastq_info <- getFASTQinfo(
+        in_acc = run_ids,
+        sra_con = con,
+        srcType = "ftp"
+    )
+
+    # --- SRA File Search and Download ---
+    # Key functions: listSRAfile, getSRA
+    sra_files <- listSRAfile(
+        in_acc = c("SRR034311"),
+        sra_con = con,
+        fileType = "sra"
+    )
+    getSRA(
+        search_str = "SRR034311",
+        sra_con = con,
+        destDir = tempdir()
+    )
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sradb_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_sradb_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sradb_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_sradb_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sradb_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_sradb_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SRADB:", paste0("    sradb: ", packageVersion("SRAdb"))),
+        c("BIOC_SRADB:", paste0("    sradb: ", as.character(packageVersion("SRAdb")))),
         "versions.yml"
     )
     """

@@ -1,111 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CBEA
-// This package implements CBEA, a method to perform set-based analysis for microbiome relative abundan
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CBEA/inst/doc/basic_usage.R
-// Upstream  : BiocSet, RefManageR, knitr, rmarkdown, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("CBEA")
+// Bioconductor workflow: CBEA — cbea_taxa_set_enrichment
+// Perform competitive balance enrichment analysis on microbiome taxonomic abundance data to obtain sample-specific enrichment scores for predefined taxa sets.
+// Input: abundance_matrix.csv, taxa_sets.gmt
+// Container: quay.io/biocontainers/bioconductor-cbea:1.6.0--r44he5774e6_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CBEA
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the CBEA package and input datasets
+//  * 2. [Core Analysis] Format the taxa sets into a list or BiocSet object
+//  * 3. [Core Analysis] Run the cbea function to calculate enrichment scores (z-scores or CDF values) using the specified null distribution and adjustment
+//  * 4. [Core Analysis] Extract the resulting enrichment score matrix for downstream statistical analysis
 
 nextflow.enable.dsl = 2
 
-process BIOC_CBEA {
+process BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cbea"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cbea:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cbea:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cbea_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cbea_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cbea_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CBEA)
-    library(PrintBibliography)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # 1. Load the CBEA package and input datasets
+        library(CBEA)
+        
+        # Read the abundance matrix (samples as rows, taxa as columns)
+        # We assume the first column contains the sample names/IDs
+        abundance_data <- as.matrix(read.csv("abundance_matrix.csv", row.names = 1, check.names = FALSE))
+        
+        # 2. Format the taxa sets into a list
+        # Helper function to read GMT file into a list of character vectors
+        read_gmt <- function(file_path) {
+          con <- file(file_path, "r")
+          gmt_list <- list()
+          while (TRUE) {
+            line <- readLines(con, n = 1)
+            if (length(line) == 0) {
+              break
+            }
+            parts <- strsplit(line, "\t")[[1]]
+            if (length(parts) >= 3) {
+              set_name <- parts[1]
+              # parts[2] is typically the description/source, which we skip
+              taxa <- parts[3:length(parts)]
+              # Clean up any empty elements
+              taxa <- taxa[taxa != ""]
+              gmt_list[[set_name]] <- taxa
+            }
+          }
+          close(con)
+          return(gmt_list)
+        }
+        
+        taxa_sets <- read_gmt("taxa_sets.gmt")
+        
+        # 3. Run the cbea function to calculate enrichment scores
+        # Using the exact documented function call and arguments
+        results <- cbea(
+          obj = abundance_data, 
+          set = taxa_sets, 
+          output = "zscore", 
+          distr = "norm", 
+          adj = FALSE, 
+          parametric = TRUE
+        )
+        
+        # 4. Extract and save the resulting enrichment score matrix
+        # Convert to data frame for clean CSV export
+        results_df <- as.data.frame(results)
+        
+        # Write outputs to the working directory
+        write.csv(results_df, "cbea_enrichment_scores.csv", row.names = TRUE)
+        saveRDS(results, "cbea_results.rds")
 
-    # --- Load and Prepare Input Data [Data Preparation] ---
-    # Key functions: hmp_gingival
-    data("hmp_gingival", package = "CBEA")
-    abun <- hmp_gingival$data
-    metab_sets <- hmp_gingival$set
-
-    # --- Run Competitive Balance Exploratory Analysis [Analysis] ---
-    # Key functions: cbea
-    results <- cbea(
-        obj = abun,
-        set = metab_sets,
-        abund_values = "16SrRNA",
-        output = "cdf",
-        distr = "mnorm",
-        adj = TRUE,
-        thresh = 0.05,
-        n_perm = 10
-    )
-
-    # --- Extract and Tidy Analysis Results [Post-processing] ---
-    # Key functions: tidy, glance
-    tidy_results <- tidy(results)
-    fit_comparison <- glance(results, "fit_comparison")
-    fit_diagnostic <- glance(results, "fit_diagnostic")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cbea_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cbea_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cbea_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CBEA:", paste0("    cbea: ", packageVersion("CBEA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT":',
+        paste0('    CBEA: ', as.character(packageVersion('CBEA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cbea_results.csv
-    touch ${prefix}_cbea_output.rds
-    echo "BIOC_CBEA:" > versions.yml
-    echo "    cbea: 0.0.0" >> versions.yml
+    touch ${prefix}_cbea_taxa_set_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_CBEA_WORKFLOW {
+workflow BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ abundance_matrix.csv, taxa_sets.gmt ] ]
 
     main:
-    BIOC_CBEA(ch_input)
+    BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_CBEA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CBEA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CBEA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CBEA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT.out.tables
+    plots    = BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT.out.plots
+    objects  = BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT.out.objects
+    versions = BIOC_CBEA_CBEA_TAXA_SET_ENRICHMENT.out.versions
 }

@@ -1,0 +1,19 @@
+{
+  "package": "iseehub",
+  "requirements": [
+    "ExperimentHub",
+    "S4Vectors",
+    "iSEE",
+    "iSEEhub",
+    "shiny"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ExperimentHub",
+      "S4Vectors",
+      "iSEE",
+      "iSEEhub",
+      "shiny"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "scvir",
+  "requirements": [
+    "SingleCellExperiment",
+    "pheatmap",
+    "reticulate",
+    "scater",
+    "scuttle",
+    "scviR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "pheatmap",
+      "reticulate",
+      "scater",
+      "scuttle",
+      "scviR"
+    ]
+  }
+}

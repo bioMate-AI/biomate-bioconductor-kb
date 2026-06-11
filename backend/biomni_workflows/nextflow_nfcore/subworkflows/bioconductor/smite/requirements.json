@@ -1,0 +1,13 @@
+{
+  "package": "smite",
+  "requirements": [
+    "SMITE",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SMITE",
+      "igraph"
+    ]
+  }
+}

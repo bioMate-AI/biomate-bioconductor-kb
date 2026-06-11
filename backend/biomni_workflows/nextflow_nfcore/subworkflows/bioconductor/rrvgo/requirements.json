@@ -1,0 +1,13 @@
+{
+  "package": "rrvgo",
+  "requirements": [
+    "org.Hs.eg.db",
+    "rrvgo"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "org.Hs.eg.db",
+      "rrvgo"
+    ]
+  }
+}

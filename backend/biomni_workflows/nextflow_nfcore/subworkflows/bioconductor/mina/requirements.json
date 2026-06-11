@@ -1,0 +1,17 @@
+{
+  "package": "mina",
+  "requirements": [
+    "mina"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "mina"
+    ],
+    "network_clustering_and_higher_order_analysis.nf": [
+      "mina"
+    ],
+    "statistical_network_comparison.nf": [
+      "mina"
+    ]
+  }
+}

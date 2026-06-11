@@ -1,96 +1,112 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Rbec
-// Rbec is a adapted version of DADA2 for analyzing amplicon sequencing data from synthetic communities
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Rbec/inst/doc/Rbec.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Rbec")
+// Bioconductor workflow: rbec — syncom_community_profiling
+// Estimate SynCom community profiles and correct sequencing errors using reference sequences.
+// Input: test_raw_merged_reads.fastq.gz, test_ref.fasta
+// Container: quay.io/biocontainers/bioconductor-rbec:1.18.0--r45ha27e39d_0
+// R packages: Rbec
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RBEC {
+process BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rbec"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rbec:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rbec:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rbec:1.18.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rbec_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rbec_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rbec_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Contam_detect)
-    library(Rbec)
-    library(jsonlite)
-
-    # --- Rbec [] ---
-    # Key functions: Rbec
-    library(Rbec)
-    fq <- system.file("extdata", "test_raw_merged_reads.fastq.gz", package="Rbec")
-    ref <- system.file("extdata", "test_ref.fasta", package="Rbec")
-    # --- Contam detect [] ---
-    # Key functions: tempfile, Contam_detect
-    log_path <- list.files(paste(path.package("Rbec"), "extdata/contamination_test", sep="/"), recursive=TRUE, full.names=TRUE)
-    log_file <- tempfile()
-    writeLines(log_path, log_file)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rbec_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rbec_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rbec_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rbec")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RBEC:", paste0("    rbec: ", packageVersion("Rbec"))),
-        "versions.yml"
-    )
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
+    library(Rbec)
+    
+    # Define input file paths (must read EXACTLY these files from the working directory)
+    fq <- "test_raw_merged_reads.fastq.gz"
+    ref <- "test_ref.fasta"
+    
+    # Verify that the input files exist
+    if (!file.exists(fq)) {
+      stop(paste("Required input file missing:", fq))
+    }
+    if (!file.exists(ref)) {
+      stop(paste("Required input file missing:", ref))
+    }
+    
+    # Define and create the output directory for Rbec results
+    outdir <- "rbec_output"
+    if (!dir.exists(outdir)) {
+      dir.create(outdir, recursive = TRUE)
+    }
+    
+    # Run Rbec to perform error correction and profile estimation
+    # Using the exact positional arguments from the documented code,
+    # replacing the volatile tempdir() with our dedicated output directory.
+    message("Running Rbec error correction and community profiling...")
+    Rbec(fq, ref, outdir, 1, 500, 33)
+    
+    # List and verify the generated output files
+    output_files <- list.files(outdir, full.names = TRUE)
+    message("Rbec execution completed successfully. Generated outputs:")
+    print(output_files)
+
+    writeLines(c(
+        '"BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING":',
+        paste0('        rbec: ', as.character(packageVersion("rbec")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rbec_results.csv
-    touch ${prefix}_rbec_output.rds
-    echo "BIOC_RBEC:" > versions.yml
-    echo "    rbec: 0.0.0" >> versions.yml
+    touch ${prefix}_syncom_community_profiling.csv versions.yml
     """
 }
 
-
-workflow BIOC_RBEC_WORKFLOW {
+workflow BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ test_raw_merged_reads.fastq.gz, test_ref.fasta ] ]
 
     main:
-    BIOC_RBEC(ch_input)
+    BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING(ch_input)
 
     emit:
-    results  = BIOC_RBEC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RBEC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RBEC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RBEC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING.out.tables
+    plots    = BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING.out.plots
+    objects  = BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING.out.objects
+    versions = BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING.out.versions
 }

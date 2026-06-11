@@ -1,0 +1,14 @@
+{
+  "package": "fishalyser",
+  "requirements": [
+    "FISHalyseR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FISHalyseR"
+    ],
+    "manual_threshold_and_particle_cleaning.nf": [
+      "FISHalyseR"
+    ]
+  }
+}

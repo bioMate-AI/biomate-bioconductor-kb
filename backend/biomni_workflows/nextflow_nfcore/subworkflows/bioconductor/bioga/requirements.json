@@ -1,0 +1,13 @@
+{
+  "package": "bioga",
+  "requirements": [
+    "BioGA",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioGA",
+      "SummarizedExperiment"
+    ]
+  }
+}

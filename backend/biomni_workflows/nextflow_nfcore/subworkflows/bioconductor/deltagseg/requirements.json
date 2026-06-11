@@ -1,0 +1,14 @@
+{
+  "package": "deltagseg",
+  "requirements": [
+    "deltaGseg"
+  ],
+  "by_workflow": {
+    "differentiation_subpopulation_estimation.nf": [
+      "deltaGseg"
+    ],
+    "main.nf": [
+      "deltaGseg"
+    ]
+  }
+}

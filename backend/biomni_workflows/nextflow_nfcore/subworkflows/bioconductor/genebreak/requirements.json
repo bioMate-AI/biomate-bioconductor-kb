@@ -1,0 +1,17 @@
+{
+  "package": "genebreak",
+  "requirements": [
+    "CGHcall",
+    "GeneBreak"
+  ],
+  "by_workflow": {
+    "dataframe_input_pipeline.nf": [
+      "CGHcall",
+      "GeneBreak"
+    ],
+    "main.nf": [
+      "CGHcall",
+      "GeneBreak"
+    ]
+  }
+}

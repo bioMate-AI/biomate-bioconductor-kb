@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: GTFdb=A TxDb object containing the reference transcript model ;; calGene=A character vector specifying a single gene or subset of genes to analyze (defaults to NULL for all genes) ;; Ncor=The number of threads/cores to use for multi-threaded execution via the foreach package ;; out.dir=The output directory for saving results or plots ;; CalIndex=The specific splicing event identifier (e.g., \"ASS7\") to calculate ratios or plot ;; Total.expdata=A matrix of transcript expression FPKM values ;; Total.snpdata=A matrix of genotype data ;; Total.snplocus=A data frame containing genomic locations of SNP markers ;; method=The statistical model used for sQTL mapping, such as \"lm\" (linear regression) or \"glmm\" (generalized linear mixed model)\n- alternatives: makeTxDbFromGFF from the GenomicFeatures package is recommended to create the required TxDb object if starting from a raw GTF file ;; cufflinks is mentioned as an upstream tool to obtain the input transcript FPKM expression values\n- when_to_use: Use when you have paired RNA-seq transcript expression data (FPKM) and genotype data for the same population-scale cohort and want to identify genetic variants (SNPs) associated with alternative splicing ratios (exon skipping, alternative splice sites, intron retention).\n- pitfalls: Column names of the genotype matrix must exactly match the column names of the expression matrix (representing the same individuals) ;; The transcript model must be a TxDb object from the GenomicFeatures package, not a raw GTF file ;; Using too few samples may not guarantee statistically significant results; population-scale cohorts are recommended.",
+  "workflows": [
+    {
+      "name": "sqtl_mapping_workflow",
+      "intent": "Identify genetic variants (sQTLs) affecting alternative splicing patterns from paired genotype and transcript expression data.",
+      "input": [
+        "genotype_matrix.txt (Genotype data matrix with individuals as columns and SNPs as rows)",
+        "expression_matrix.txt (Transcript expression FPKM matrix with individuals as columns and transcripts as rows)",
+        "snp_locus.txt (SNP position data frame with columns SNP, CHR, and locus)",
+        "transcript_model.gtf (Reference transcript model GTF file to be converted to a TxDb object)"
+      ],
+      "stages": "1. Load the required libraries and input datasets (genotype, expression, SNP positions, and TxDb object) ;; 2. Identify alternative splicing events from the transcript model using Splicingfinder ;; 3. Calculate the expression ratio of alternative splicing exons from transcript FPKM values using RatioFromFPKM ;; 4. Identify significant sQTLs associated with alternative splicing ratios using sQTLsFinder ;; 5. Visualize the sQTL results as boxplots using saveBplot",
+      "code": "library(IVAS)\ndata(sampleexp)\ndata(samplesnp)\ndata(samplesnplocus)\nsampleDB <- system.file(\"extdata\",\"sampleDB\", package=\"IVAS\")\nsample.Txdb <- loadDb(sampleDB)\nASdb <- Splicingfinder(GTFdb=sample.Txdb,calGene=NULL,Ncor=1,out.dir=NULL)\nASdb <- RatioFromFPKM(GTFdb=sample.Txdb,ASdb=ASdb,Total.expdata=sampleexp,\n    CalIndex=\"ASS7\",Ncor=1,out.dir=NULL)\nASdb <- sQTLsFinder(ASdb=ASdb,Total.snpdata=samplesnp,\n    Total.snplocus=samplesnplocus,method=\"lm\",Ncor=1)\nsaveBplot(ASdb=ASdb,Total.snpdata=samplesnp,Total.snplocus=samplesnplocus,\n    CalIndex=\"ASS7\",out.dir=\"./result\")"
+    }
+  ]
+}

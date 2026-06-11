@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: threshold=A vector of two numeric values defining the lower and upper thresholds for copy number alterations in SGOL ;; method=The function used to aggregate values over the threshold in SGOL (typically sum) ;; gapAllowed=Numeric value indicating the maximum base pair distance allowed between adjacent altered segments to join them into a single altered span ;; alteredLow=Numeric percentile threshold (0 to 1) defining the lower limit for altered segments ;; alteredHigh=Numeric percentile threshold (0 to 1) defining the upper limit for altered segments ;; recurrence=Integer specifying the minimum recurrence rate (number of samples) required for a region to be declared an MCR\n- alternatives: Probe-level algorithms like GISTIC, GTS, or the original MCR are alternatives; cghMCR is preferred when array density is very high or when combining data from different array densities, as it operates on segmented data rather than probe-level data.\n- when_to_use: Use this package when you have segmented copy number data (e.g., from DNAcopy/CBS) across multiple samples and want to identify common, recurrent regions of genomic gain or loss.\n- pitfalls: Small sample sizes can lead to unreliable MCR or SGOL results, requiring manual adjustment of recurrence and percentile thresholds to obtain meaningful results. Dye assignment defaults in preprocessing (e.g., limma) may need to be reversed (using a design vector of -1) if samples are Cy3-labeled. X and Y chromosomes should be excluded if analyzing a mixture of male and female samples against a pooled reference.",
+  "workflows": [
+    {
+      "name": "segment_gain_or_loss_sgol",
+      "intent": "Identify genomic regions of recurrent copy number gain or loss across samples using the Segment Gain Or Loss (SGOL) method.",
+      "input": [
+        "sampleData (segmented copy number data frame with columns ID, chrom, loc.start, loc.end, num.mark, seg.mean)",
+        "geneInfo (gene mapping annotation data frame)"
+      ],
+      "stages": "1. Load segment data and gene mapping information ;; 2. Convert segment data to a gene-by-sample matrix using CNTools ;; 3. Compute SGOL scores using SGOL ;; 4. Plot SGOL scores ;; 5. Extract genes of interest in gains and losses using thresholding and the gol helper function",
+      "code": "data(geneInfo)\ndata(sampleData, package = \"CNTools\")\nset.seed(1234)\nconvertedData <- getRS(CNSeg(sampleData[which(is.element(sampleData[, \"ID\"], sample(unique(sampleData[, \"ID\"]), 20))), ]), by = \"gene\", imput = FALSE, XY = FALSE, geneMap = geneInfo, what = \"median\")\nrequire(cghMCR, quietly = TRUE)\nSGOLScores <- SGOL(convertedData, threshold = c(-0.2, 0.2), method = sum)\nplot(SGOLScores)\nGOIGains <- SGOLScores[which(as.numeric(unlist(gol(SGOLScores[, \"gains\"]))) > 20), \"gains\"]\nGOILosses <- SGOLScores[which(as.numeric(unlist(gol(SGOLScores[, \"losses\"]))) < -20), \"losses\"]\nhead(gol(GOIGains))"
+    },
+    {
+      "name": "minimum_common_regions_mcr",
+      "intent": "Identify Minimum Common Regions (MCRs) of copy number alteration across samples from segmented data.",
+      "input": [
+        "segData (segmented data object containing segment list output from DNAcopy)"
+      ],
+      "stages": "1. Initialize a cghMCR object with segmentation data and threshold parameters ;; 2. Identify MCRs using the MCR function ;; 3. Append probe IDs to the identified MCRs using mergeMCRProbes",
+      "code": "cghmcr <- cghMCR(segData, gapAllowed = 500, alteredLow = 0.9,\n alteredHigh = 0.9, recurrence = 100)\nmcrs <- MCR(cghmcr)\nhead(cbind(mcrs[, c(\"chromosome\", \"status\", \"mcr.start\", \"mcr.end\", \n                     \"samples\")])) \nmcrs <- mergeMCRProbes(mcrs[mcrs[, \"chromosome\"] == \"7\", ], as.data.frame(segData[[\"data\"]]))\nhead(cbind(mcrs[, c(\"chromosome\", \"status\", \"mcr.start\", \"mcr.end\", \n                     \"probes\")]))"
+    }
+  ]
+}

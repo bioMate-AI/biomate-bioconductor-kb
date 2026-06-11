@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - norm.method=The normalization method to use in DEGES Step 1 and Step 3 (e.g., \"tmm\" for edgeR's TMM, \"deseq2\" for DESeq2's median-of-ratios).\n    - test.method=The DE detection method to use in DEGES Step 2 and final DE analysis (e.g., \"edger\" for edgeR's exact/QLF test, \"deseq2\" for DESeq2's Wald test).\n    - iteration=The number of DEGES iterations (0 for standard normalization without DEG elimination, 1 for single-step DEGES, >=2 for iterative iDEGES; default recommended is 3).\n    - FDR=The False Discovery Rate threshold used to define potential DEGs in Step 2 (default is 0.1).\n    - floorPDEG=The minimum proportion of genes to be treated as potential DEGs in Step 2 (default is 0.05).\n    - paired=Logical indicating whether the design is paired (set to TRUE for paired samples).\n    - design=A design matrix for multi-group or complex GLM designs.\n    - coef=An integer vector specifying the coefficients to test in GLM.\n- alternatives:\n    - edgeR=Standard edgeR pipeline (calcNormFactors, estimateDisp, glmQLFit, glmQLFTest). Prefer TCC when the number of up- and down-regulated DEGs is highly asymmetric (biased DE), as standard edgeR assumes balanced DE.\n    - DESeq2=Standard DESeq2 pipeline (estimateSizeFactors, estimateDispersions, nbinomWaldTest). Prefer TCC under biased DE scenarios to prevent true DEGs from skewing size factor estimation.\n    - baySeq=Used in the original TbT pipeline but computationally intensive; TCC's edgeR/DESeq2 combinations are much faster.\n- when_to_use: Appropriate for RNA-seq differential expression analysis, especially when there is a suspected or known bias in the direction of differential expression (e.g., asymmetric up/down-regulation between conditions).\n- pitfalls:\n    - Do NOT use normalized counts (such as RPM, CPM, RPKM, or FPKM) as input; TCC requires raw integer count data.\n    - Low-count genes should ideally be filtered out before or during analysis using filterLowCountGenes to improve statistical power.",
+  "workflows": [
+    {
+      "name": "two_group_replicates",
+      "intent": "Perform robust differential expression analysis on two-group RNA-seq count data with biological replicates using iterative iDEGES/edgeR normalization.",
+      "input": [
+        "hypoData (matrix of raw integer counts)",
+        "group (numeric vector indicating group membership for each sample)"
+      ],
+      "stages": "1. Construct a TCC class object using the raw count matrix and group vector.\n2. Filter out low-count genes (optional but recommended).\n3. Calculate robust normalization factors using iterative TMM-edgeR-TMM (iDEGES/edgeR) normalization.\n4. Perform differential expression analysis using edgeR.\n5. Retrieve the results table and plot an M-A plot.\n6. Retrieve normalized count data for downstream visualization.",
+      "code": "library(TCC)\ndata(hypoData)\ngroup <- c(1, 1, 1, 2, 2, 2)\ntcc <- new(\"TCC\", hypoData, group)\ntcc <- filterLowCountGenes(tcc)\ntcc <- calcNormFactors(tcc, norm.method = \"tmm\", test.method = \"edger\", \n                       iteration = 3, FDR = 0.1, floorPDEG = 0.05)\ntcc <- estimateDE(tcc, test.method = \"edger\", FDR = 0.1)\nresult <- getResult(tcc, sort = TRUE)\nhead(result)\ntable(tcc$estimatedDEG)\nplot(tcc)\nnormalized.count <- getNormalizedData(tcc)"
+    },
+    {
+      "name": "paired_two_group",
+      "intent": "Perform robust differential expression analysis on paired two-group RNA-seq count data without replicates.",
+      "input": [
+        "hypoData (matrix of raw integer counts)",
+        "cl (data frame containing group and pair/individual identifiers)"
+      ],
+      "stages": "1. Construct a TCC class object using the raw count matrix and the design data frame.\n2. Calculate robust normalization factors using paired DEGES/edgeR normalization.\n3. Perform paired differential expression analysis using edgeR.\n4. Retrieve the results table and plot an M-A plot.",
+      "code": "library(TCC)\ndata(hypoData)\ncolnames(hypoData) <- c(\"T_dogA\", \"T_dogB\", \"T_dogC\",\n                        \"N_dogA\", \"N_dogB\", \"N_dogC\")\ngroup <- c(1, 1, 1, 2, 2, 2)\npair <- c(1, 2, 3, 1, 2, 3)\ncl <- data.frame(group = group, pair = pair)\ntcc <- new(\"TCC\", hypoData, cl)\ntcc <- calcNormFactors(tcc, norm.method = \"tmm\", test.method = \"edger\",\n                       iteration = 3, FDR = 0.1, floorPDEG = 0.05, paired = TRUE)\ntcc <- estimateDE(tcc, test.method = \"edger\", FDR = 0.1, paired = TRUE)\nresult <- getResult(tcc, sort = TRUE)\nhead(result)\ntable(tcc$estimatedDEG)\nplot(tcc)"
+    },
+    {
+      "name": "multi_group_replicates",
+      "intent": "Perform robust differential expression analysis on multi-group RNA-seq count data with replicates.",
+      "input": [
+        "hypoData_mg (matrix of raw integer counts for multiple groups)",
+        "group (numeric vector indicating group membership for each sample)"
+      ],
+      "stages": "1. Construct a TCC class object using the multi-group count matrix and group vector.\n2. Calculate robust normalization factors using multi-group DEGES/edgeR normalization.\n3. Perform multi-group differential expression analysis using edgeR.\n4. Retrieve the results table.",
+      "code": "library(TCC)\ndata(hypoData_mg)\ngroup <- c(1, 1, 1, 2, 2, 2, 3, 3, 3)\ntcc <- new(\"TCC\", hypoData_mg, group)\ntcc <- calcNormFactors(tcc, norm.method = \"tmm\", test.method = \"edger\",\n                       iteration = 1)\ntcc <- estimateDE(tcc, test.method = \"edger\", FDR = 0.1)\nresult <- getResult(tcc, sort = TRUE)\nhead(result)\ntable(tcc$estimatedDEG)"
+    },
+    {
+      "name": "simulation_and_evaluation",
+      "intent": "Generate simulated RNA-seq count data under specific asymmetric DE conditions and evaluate TCC's performance using AUC.",
+      "input": [
+        "None (simulation parameters are specified directly in the function)"
+      ],
+      "stages": "1. Set seed for reproducibility.\n2. Generate simulated read counts with specified gene number, proportion of DEGs, fold changes, and replicates.\n3. Calculate robust normalization factors using DEGES/edgeR.\n4. Perform differential expression analysis.\n5. Calculate the Area Under the ROC Curve (AUC) to evaluate performance against the ground truth.\n6. Plot a pseudo-color fold-change image of the simulated DEGs.",
+      "code": "set.seed(1000)\nlibrary(TCC)\ntcc <- simulateReadCounts(Ngene = 1000, PDEG = 0.2, \n                              DEG.assign = c(0.9, 0.1),\n                              DEG.foldchange = c(4, 4), \n                              replicates = c(3, 3))\nplotFCPseudocolor(tcc)\ntcc <- calcNormFactors(tcc, norm.method = \"tmm\", test.method = \"edger\", \n                       iteration = 1, FDR = 0.1, floorPDEG = 0.05)\ntcc <- estimateDE(tcc, test.method = \"edger\", FDR = 0.1)\nresult <- getResult(tcc, sort = TRUE)\ncalcAUCValue(tcc)"
+    }
+  ]
+}

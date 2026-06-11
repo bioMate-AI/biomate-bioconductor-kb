@@ -1,108 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: dks
-// The dks package consists of a set of diagnostic functions for multiple testing methods. The function
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/dks/inst/doc/dks.R
-// Upstream  : cubature
-// Downstream: none
-//
-// Install: BiocManager::install("dks")
+// Bioconductor workflow: dks — double_ks_diagnostic
+// Perform double Kolmogorov-Smirnov and Bayesian diagnostic tests on simulated null p-values across multiple studies.
+// Input: P
+// Container: quay.io/biocontainers/bioconductor-dks:1.56.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cubature, dks
+// Visualizations: image plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the dks and cubature packages and the simulated dataset. 2. Run the dks function to compute the double KS p-value, posterior 
 
 nextflow.enable.dsl = 2
 
-process BIOC_DKS {
+process BIOC_DKS_DOUBLE_KS_DIAGNOSTIC {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dks"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dks:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dks:1.52.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dks_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dks_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dks_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(dks)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(dks)
     library(cubature)
-    data(dksdata)
-    dim(P)
-    # --- Dks1 [] ---
-    # Key functions: dks
-    dks1 <- dks(P,plot=TRUE)
-    # --- Pprob [] ---
-    # Key functions: dist, image
-    ## Calculate the posterior distribution
-     delta <- 0.1
-      dist1 <- pprob.dist(P[,1])
-      ## Plot the posterior distribution
-      alpha <- seq(0.1,10,by=delta)
-    # --- Credset [] ---
-    # Key functions: set, image
-    ## Calculate a 80% credible set
-      cred1 <- cred.set(dist1,delta=0.1, level=0.80)
-      ## Plot the posterior and the credible set
-      alpha <- seq(0.1,10,by=delta)
-      beta <- seq(0.1,10,by=delta)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dks_results.csv", row.names = TRUE)
+    
+    # 1. Load the simulated dataset from the working directory
+    # We check for common formats: P.csv, P.tsv, P.rds, or a file named P
+    if (file.exists("P.csv")) {
+      P <- as.matrix(read.csv("P.csv", header = TRUE, check.names = FALSE))
+    } else if (file.exists("P.tsv")) {
+      P <- as.matrix(read.delim("P.tsv", header = TRUE, check.names = FALSE))
+    } else if (file.exists("P.rds")) {
+      P <- readRDS("P.rds")
+    } else if (file.exists("P")) {
+      P <- as.matrix(read.table("P", header = TRUE, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dks_results.csv")
+      stop("Error: Input file 'P' (or P.csv/P.tsv/P.rds) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dks_output.rds")
+    
+    # Ensure P is a numeric matrix
+    if (!is.matrix(P)) {
+      P <- as.matrix(P)
     }
+    if (!is.numeric(P)) {
+      # If the first column is non-numeric (e.g., row names), remove it
+      if (any(is.na(suppressWarnings(as.numeric(P[, 1]))))) {
+        P <- P[, -1, drop = FALSE]
+      }
+      storage.mode(P) <- "numeric"
+    }
+    
+    # Print dimensions of the input matrix
+    print(dim(P))
+    
+    # 2. Run the dks function to compute the double KS p-value, posterior probabilities,
+    # and generate diagnostic plots.
+    pdf("dks_diagnostic_plots.pdf", width = 12, height = 4)
+    dks1 <- dks(P, plot = TRUE)
+    dev.off()
+    
+    # Save the dks results
+    saveRDS(dks1, "dks_results.rds")
+    
+    # 3. Calculate the posterior distribution for the first study
+    delta <- 0.1
+    dist1 <- pprob.dist(P[, 1])
+    
+    # Save the posterior distribution matrix
+    saveRDS(dist1, "posterior_dist.rds")
+    
+    # Plot the posterior distribution
+    pdf("posterior_distribution.pdf", width = 6, height = 6)
+    alpha <- seq(0.1, 10, by = delta)
+    beta <- seq(0.1, 10, by = delta)
+    pprobImage = image(log10(alpha), log10(beta), dist1, xaxt = "n", yaxt = "n", xlab = "Alpha", ylab = "Beta")
+    axis(1, at = c(-2, -1, 0, 1, 2), labels = c("10^-2", "10^-1", "10^0", "10^1", "10^2"))
+    axis(2, at = c(-2, -1, 0, 1, 2), labels = c("10^-2", "10^-1", "10^0", "10^1", "10^2"))
+    points(0, 0, col = "blue", cex = 1, pch = 19)
+    dev.off()
+    
+    # 4. Calculate a 80% credible set
+    cred1 <- cred.set(dist1, delta = 0.1, level = 0.80)
+    
+    # Save the credible set results
+    saveRDS(cred1, "credible_set_results.rds")
+    
+    # Plot the posterior and the credible set
+    pdf("credible_set.pdf", width = 6, height = 6)
+    alpha <- seq(0.1, 10, by = delta)
+    beta <- seq(0.1, 10, by = delta)
+    credImage = image(log10(alpha), log10(beta), cred1\$cred, xaxt = "n", yaxt = "n", xlab = "Alpha", ylab = "Beta")
+    axis(1, at = c(-2, -1, 0, 1, 2), labels = c("10^-2", "10^-1", "10^0", "10^1", "10^2"))
+    axis(2, at = c(-2, -1, 0, 1, 2), labels = c("10^-2", "10^-1", "10^0", "10^1", "10^2"))
+    points(0, 0, col = "blue", cex = 1, pch = 19)
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DKS:", paste0("    dks: ", packageVersion("dks"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DKS_DOUBLE_KS_DIAGNOSTIC":',
+        paste0('    dks: ', as.character(packageVersion('dks')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dks_results.csv
-    touch ${prefix}_dks_output.rds
-    echo "BIOC_DKS:" > versions.yml
-    echo "    dks: 0.0.0" >> versions.yml
+    touch ${prefix}_double_ks_diagnostic.csv versions.yml
     """
 }
 
-
-workflow BIOC_DKS_WORKFLOW {
+workflow BIOC_DKS_DOUBLE_KS_DIAGNOSTIC_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ P ] ]
 
     main:
-    BIOC_DKS(ch_input)
+    BIOC_DKS_DOUBLE_KS_DIAGNOSTIC(ch_input)
 
     emit:
-    results  = BIOC_DKS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DKS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DKS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DKS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DKS_DOUBLE_KS_DIAGNOSTIC.out.tables
+    plots    = BIOC_DKS_DOUBLE_KS_DIAGNOSTIC.out.plots
+    objects  = BIOC_DKS_DOUBLE_KS_DIAGNOSTIC.out.objects
+    versions = BIOC_DKS_DOUBLE_KS_DIAGNOSTIC.out.versions
 }

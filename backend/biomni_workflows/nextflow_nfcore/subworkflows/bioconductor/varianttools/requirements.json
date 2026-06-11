@@ -1,0 +1,27 @@
+{
+  "package": "varianttools",
+  "requirements": [
+    "GenomicRanges",
+    "Rsamtools",
+    "VariantAnnotation",
+    "VariantTools",
+    "gmapR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rsamtools",
+      "VariantAnnotation",
+      "VariantTools",
+      "gmapR"
+    ],
+    "sample_specific_variant_calling.nf": [
+      "GenomicRanges",
+      "VariantTools",
+      "gmapR"
+    ],
+    "wildtype_and_nocall_calling.nf": [
+      "GenomicRanges",
+      "VariantTools"
+    ]
+  }
+}

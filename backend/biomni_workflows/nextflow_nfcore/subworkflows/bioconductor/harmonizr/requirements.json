@@ -1,0 +1,11 @@
+{
+  "package": "harmonizr",
+  "requirements": [
+    "HarmonizR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HarmonizR"
+    ]
+  }
+}

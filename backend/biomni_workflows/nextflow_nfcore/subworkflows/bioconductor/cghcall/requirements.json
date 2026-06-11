@@ -1,0 +1,11 @@
+{
+  "package": "cghcall",
+  "requirements": [
+    "CGHcall"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CGHcall"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: alignment_table(query, subject, ...) = Generates an alignment table. query can be a character vector, DNAStringSet, or AAStringSet; subject is a single reference string or a DNAStringSet/AAStringSet of length 1. Additional arguments are passed to pwalign::pairwiseAlignment() ;; plot_sequence_alignment(alignment, hide_mismatches = FALSE) = Plots the alignment table. Set hide_mismatches = TRUE to hide character mismatches and reduce visual noise when there are too many differences ;; gapOpening = Parameter passed from alignment_table() to pwalign::pairwiseAlignment() to adjust gap opening penalties\n- alternatives: ggmsa = Recommended for showing all characters in an alignment, but not viable for sequences over a certain length ;; top-level line plots = Useful for showing degree of variation over length, but cannot show the specific quality of differences (e.g., mismatches vs. indels)\n- when_to_use: Use when you need to visualize sequence alignments over the entire length of arbitrarily long sequences (e.g., >2000 bp) without losing the ability to show small structural differences like mismatches, insertions, and deletions.\n- pitfalls: If there are too many differences, mismatches can overlap and make the plot noisy and unreadable; use hide_mismatches = TRUE to resolve this ;; Modifying specific plot layers (such as changing deletion bar colors or mismatch indicator sizes) requires accessing pl$layers directly (e.g., pl$layers[[2]] for deletions, pl$layers[[8]] for mismatches), which can be finicky and dependent on the exact layer order.",
+  "workflows": [
+    {
+      "name": "pairwise_sequence_alignment_visualization",
+      "intent": "Align query sequences to a reference subject sequence and visualize the mismatches, insertions, and deletions.",
+      "input": [
+        "query_sequences.fa (FASTA file containing query DNA or AA sequences)",
+        "subject_sequence (A reference DNA or AA sequence string or FASTA file)"
+      ],
+      "stages": "1. Load query and subject sequences using Biostrings or character vectors ;; 2. Generate the alignment table using alignment_table() ;; 3. Plot the alignment using plot_sequence_alignment() with optional customization",
+      "code": "library(ggseqalign)\nlibrary(Biostrings)\nlibrary(ggplot2)\n\nquery_sequences <- Biostrings::readDNAStringSet(system.file(\"extdata\",\n    \"fastaEx.fa\",\n    package = \"Biostrings\"\n))\nsubject_sequence <- DNAStringSet(paste0(\"AAACGATCGATCGTAGTCGACTGATGT\",\n                                        \"AGTATATACGTCGTACGTAGCATCGTC\",\n                                        \"AGTTACTGCATGCCGG\"))\n\nalignment <- alignment_table(query_sequences, subject_sequence)\n\nplot_sequence_alignment(alignment) +\n    theme(text = element_text(size = 15))"
+    }
+  ]
+}

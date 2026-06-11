@@ -1,0 +1,11 @@
+{
+  "package": "mantelcorr",
+  "requirements": [
+    "MantelCorr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MantelCorr"
+    ]
+  }
+}

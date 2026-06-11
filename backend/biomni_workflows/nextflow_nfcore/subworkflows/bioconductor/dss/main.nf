@@ -1,165 +1,124 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DSS
-// DSS is an R library performing differntial analysis for count-based sequencing data. It detectes dif
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DSS/inst/doc/DSS.R
-// Upstream  : bsseq, edgeR
-// Downstream: DeMixT
-//
-// Install: BiocManager::install("DSS")
+// Bioconductor workflow: DSS — rnaseq_twogroup_de
+// Perform differential expression analysis on RNA-seq count data for a simple two-group comparison.
+// Input: counts.txt, designs.txt
+// Container: quay.io/biocontainers/bioconductor-dss:2.58.0--r45h01b2380_0
+// R packages: bsseq, DSS, edgeR
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DSS
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create a SeqCountSet object using newSeqCountSet
+//  * 2. [Core Analysis] Estimate normalization factors using estNormFactors
+//  * 3. [Core Analysis] Estimate and shrink gene-wise dispersions using estDispersion
+//  * 4. [Core Analysis] Perform two-group comparison Wald test using waldTest (or perform the entire workflow in one step using the high-level wrapper DSS
 
 nextflow.enable.dsl = 2
 
-process BIOC_DSS {
+process BIOC_DSS_RNASEQ_TWOGROUP_DE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dss"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dss:2.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dss:2.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dss_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dss_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dss_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DE)
-    library(jsonlite)
-
-    # --- Estnormfactors [] ---
-    # Key functions: estNormFactors
-    ---------------------------------------------------------------------
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bsseq", "DSS", "edgeR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
+    library(DSS)
+    
+    # 1. Read User Inputs
+    if (!file.exists("counts.txt")) {
+      stop("Error: counts.txt not found in the working directory.")
+    }
+    if (!file.exists("designs.txt")) {
+      stop("Error: designs.txt not found in the working directory.")
+    }
+    
+    # Read counts matrix (rows = genes, columns = samples)
+    counts_df <- read.table("counts.txt", header=TRUE, row.names=1, check.names=FALSE)
+    X <- as.matrix(counts_df)
+    counts <- X
+    
+    # Read designs vector (0s and 1s representing experimental groups)
+    designs_df <- read.table("designs.txt", header=FALSE)
+    designs <- as.numeric(as.vector(unlist(designs_df)))
+    
+    # 2. Step-by-step approach
+    seqData = newSeqCountSet(X, designs)
     seqData = estNormFactors(seqData)
-    # --- Estdispersion [] ---
-    # Key functions: estDispersion
-    ---------------------------------------------------------------------
     seqData = estDispersion(seqData)
-    # --- Waldtest [] ---
-    # Key functions: waldTest
-    ---------------------------------------------------------------------
-    result=waldTest(seqData, 0, 1)
-    head(result,5)
-    # --- Matrix [] ---
-    # Key functions: rpois, DE
-    ---------------------------------------------------------------------
-    counts = matrix(rpois(600, 10), ncol=6)
-    designs = c(0,0,0,1,1,1)
+    result = waldTest(seqData, 0, 1)
+    
+    # Save step-by-step results
+    write.csv(result, "result_step_by_step.csv", row.names=FALSE)
+    saveRDS(seqData, "seqData.rds")
+    
+    # 3. High-level wrapper approach
     result = DSS.DE(counts, designs)
-    head(result)
-    # --- Newseqcountset [] ---
-    # Key functions: newSeqCountSet, frame, estNormFactors, estDispersion
-    ---------------------------------------------------------------------
-    seqData = newSeqCountSet(counts, as.data.frame(X))
-    seqData = estNormFactors(seqData)
-    seqData = estDispersion(seqData)
-    # --- Glmfit [] ---
-    # Key functions: glmFit, dispersion
-    ---------------------------------------------------------------------
-    fit.edgeR = glmFit(counts, X, dispersion=dispersion(seqData))
-    # --- Glmlrt [] ---
-    # Key functions: glmLRT
-    ---------------------------------------------------------------------
-    lrt.edgeR = glmLRT(glmfit=fit.edgeR, coef=2)
-    head(lrt.edgeR$table)
-    # --- Calldml [] ---
-    # Key functions: callDML
-    ---------------------------------------------------------------------
-      dmls = callDML(dmlTest, p.threshold=0.001)
-      head(dmls)
-    # --- Calldmr [] ---
-    # Key functions: callDMR
-    ---------------------------------------------------------------------
-    dmrs = callDMR(dmlTest, p.threshold=0.01)
-    head(dmrs)
-    # --- Rep [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    Strain = rep(c("A", "B", "C"), 4)
-    Sex = rep(c("M", "F"), each=6)
-    design = data.frame(Strain,Sex)
-    design
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(RRBS)
-    RRBS
-    design
-    # --- Multifactor [] ---
-    # Key functions: multiFactor
-    ---------------------------------------------------------------------
-    DMLfit = DMLfit.multiFactor(RRBS, design=design, formula=~case+cell+case:cell)
-    # --- Calldmr [] ---
-    # Key functions: callDMR
-    ---------------------------------------------------------------------
-    callDMR(DMLtest.cell, p.threshold=0.05)
-    # --- Multifactor [] ---
-    # Key functions: multiFactor
-    ---------------------------------------------------------------------
-    ## fit a model with additive effect only
-    DMLfit = DMLfit.multiFactor(RRBS, design, ~case+cell)
-    ## test case effect
-    test1 = DMLtest.multiFactor(DMLfit, coef=2)
-    # --- Factor [] ---
-    # Key functions: factor, frame
-    ---------------------------------------------------------------------
-    Treatment = factor(rep(c("Control","Treated"), 3))
-    pair = factor( rep(1:3, each=2) )
-    design = data.frame(Treatment, pair)
-    design
+    
+    # Save wrapper results
+    write.csv(result, "result_wrapper.csv", row.names=FALSE)
+    
+    cat("DSS RNA-seq differential expression analysis completed successfully.\n")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dss_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dss_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dss_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DSS:", paste0("    dss: ", packageVersion("DSS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DSS_RNASEQ_TWOGROUP_DE":',
+        paste0('    DSS: ', as.character(packageVersion('DSS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dss_results.csv
-    touch ${prefix}_dss_output.rds
-    echo "BIOC_DSS:" > versions.yml
-    echo "    dss: 0.0.0" >> versions.yml
+    touch ${prefix}_rnaseq_twogroup_de.csv versions.yml
     """
 }
 
-
-workflow BIOC_DSS_WORKFLOW {
+workflow BIOC_DSS_RNASEQ_TWOGROUP_DE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts.txt, designs.txt ] ]
 
     main:
-    BIOC_DSS(ch_input)
+    BIOC_DSS_RNASEQ_TWOGROUP_DE(ch_input)
 
     emit:
-    results  = BIOC_DSS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DSS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DSS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DSS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DSS_RNASEQ_TWOGROUP_DE.out.tables
+    plots    = BIOC_DSS_RNASEQ_TWOGROUP_DE.out.plots
+    objects  = BIOC_DSS_RNASEQ_TWOGROUP_DE.out.objects
+    versions = BIOC_DSS_RNASEQ_TWOGROUP_DE.out.versions
 }

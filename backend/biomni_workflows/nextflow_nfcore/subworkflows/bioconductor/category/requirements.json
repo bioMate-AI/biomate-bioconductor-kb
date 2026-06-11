@@ -1,0 +1,28 @@
+{
+  "package": "category",
+  "requirements": [
+    "Biobase",
+    "Category",
+    "annotate",
+    "genefilter",
+    "hgu95av2.db",
+    "limma"
+  ],
+  "by_workflow": {
+    "chrom_band_hypergeometric_test.nf": [
+      "Biobase",
+      "Category",
+      "annotate",
+      "genefilter",
+      "hgu95av2.db",
+      "limma"
+    ],
+    "main.nf": [
+      "Biobase",
+      "Category",
+      "annotate",
+      "genefilter",
+      "hgu95av2.db"
+    ]
+  }
+}

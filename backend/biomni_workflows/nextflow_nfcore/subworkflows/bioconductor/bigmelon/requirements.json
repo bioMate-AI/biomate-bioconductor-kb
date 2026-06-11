@@ -1,0 +1,13 @@
+{
+  "package": "bigmelon",
+  "requirements": [
+    "Biobase",
+    "bigmelon"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "bigmelon"
+    ]
+  }
+}

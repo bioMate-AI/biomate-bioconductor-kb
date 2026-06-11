@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=An RDPClassifier object created by rdp() ;; newdata=A DNAStringSet object or character string path to a FASTA file containing sequences to classify ;; confidence=A numeric value between 0 and 1 specifying the minimum confidence threshold for taxonomic assignment\n- alternatives: DADA2 (assignTaxonomy) or DECIPHER (IdTaxa) for native R alternatives that do not require Java/rJava and are often faster.\n- when_to_use: When taxonomic classification of 16S rRNA sequences is required using the classic RDP naive Bayesian classifier algorithm directly within R.\n- pitfalls: Requires Java and the rJava package. Large sequence datasets may cause Java OutOfMemory errors; increase Java heap space using options(java.parameters = '-Xmx4g') before loading the rRDP package.",
+  "workflows": [
+    {
+      "name": "taxonomic_classification",
+      "intent": "Classify 16S rRNA sequences taxonomically using the pre-trained RDP classifier.",
+      "input": [
+        "sequences.fasta (FASTA file containing 16S rRNA sequences)"
+      ],
+      "stages": "1. Load the default RDP classifier ;; 2. Read sequences into a DNAStringSet ;; 3. Classify sequences using predict",
+      "code": "library(rRDP)\nseq <- readDNAStringSet(system.file(\"hmp_subset.fa\", package=\"rRDP\"))\ncl <- rdp()\npred <- predict(cl, seq)"
+    }
+  ]
+}

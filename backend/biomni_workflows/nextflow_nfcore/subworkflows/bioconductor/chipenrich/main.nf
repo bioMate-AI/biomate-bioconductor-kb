@@ -1,104 +1,117 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: chipenrich
-// ChIP-Enrich and Poly-Enrich perform gene set enrichment testing using peaks called from a ChIP-seq e
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/chipenrich/inst/doc/chipenrich-vignette.R
-// Upstream  : EGSEAdata
-// Downstream: none
-//
-// Install: BiocManager::install("chipenrich")
+// Bioconductor workflow: chipenrich — broad_peak_enrichment
+// Perform gene set enrichment testing for broad genomic regions (e.g., histone modifications) using Broad-Enrich.
+// Input: peaks_H3K4me3_GM12878.bed, vignette_genesets.txt
+// Container: quay.io/biocontainers/bioconductor-chipenrich:2.34.0--r45hdfd78af_0
+// R packages: chipenrich, egseadata
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHIPENRICH {
+process BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chipenrich"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chipenrich:2.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chipenrich:2.30.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chipenrich:2.34.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chipenrich_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chipenrich_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chipenrich_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("chipenrich", "egseadata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(chipenrich)
-    library(jsonlite)
-
-    # --- Supported Genomes [] ---
-    # Key functions: supported_genomes
-    ---------------------------------------------------------------------
-    supported_genomes()
-    # --- Head [] ---
-    # Key functions: supported_locusdefs
-    ---------------------------------------------------------------------
-    # Take head because it's long
-    head(supported_locusdefs())
-    # --- Head [] ---
-    # Key functions: supported_genesets
-    ---------------------------------------------------------------------
-    # Take head because it's long
-    head(supported_genesets())
-    # --- Head [] ---
-    # Key functions: supported_read_lengths
-    ---------------------------------------------------------------------
-    # Take head because it's long
-    head(supported_read_lengths())
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chipenrich_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chipenrich_results.csv")
+    
+    # Define input file paths from the working directory
+    peaks_H3K4me3_GM12878 <- "peaks_H3K4me3_GM12878.bed"
+    gs_path <- "vignette_genesets.txt"
+    
+    # Verify input files exist
+    if (!file.exists(peaks_H3K4me3_GM12878)) {
+      stop(paste("Error: Input file not found:", peaks_H3K4me3_GM12878))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chipenrich_output.rds")
+    if (!file.exists(gs_path)) {
+      stop(paste("Error: Input file not found:", gs_path))
     }
+    
+    # Run broadenrich() to perform enrichment testing using cumulative peak coverage
+    results = broadenrich(peaks = peaks_H3K4me3_GM12878, genome = 'hg19', genesets = gs_path, locusdef = "nearest_tss", qc_plots = FALSE, out_name = NULL, n_cores=1)
+    
+    # Extract and inspect the enrichment results
+    results.be = results\$results
+    print(results.be[1:5,1:5])
+    
+    # Save meaningful results to disk
+    write.csv(results.be, "broadenrich_results.csv", row.names = FALSE)
+    if (!is.null(results\$peaks)) {
+      write.csv(results\$peaks, "assigned_peaks.csv", row.names = FALSE)
+    }
+    if (!is.null(results\$peaks_per_gene)) {
+      write.csv(results\$peaks_per_gene, "peaks_per_gene.csv", row.names = FALSE)
+    }
+    saveRDS(results, "broadenrich_results_object.rds")
+    
+    # Generate a diagnostic plot of gene coverage versus locus length using plot_gene_coverage()
+    pdf("gene_coverage_plot.pdf", width = 6, height = 6)
+    plot_gene_coverage(peaks = peaks_H3K4me3_GM12878, locusdef = 'nearest_tss',  genome = 'hg19')
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHIPENRICH:", paste0("    chipenrich: ", packageVersion("chipenrich"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT":',
+        paste0('        chipenrich: ', as.character(packageVersion("chipenrich")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chipenrich_results.csv
-    touch ${prefix}_chipenrich_output.rds
-    echo "BIOC_CHIPENRICH:" > versions.yml
-    echo "    chipenrich: 0.0.0" >> versions.yml
+    touch ${prefix}_broad_peak_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHIPENRICH_WORKFLOW {
+workflow BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peaks_H3K4me3_GM12878.bed, vignette_genesets.txt ] ]
 
     main:
-    BIOC_CHIPENRICH(ch_input)
+    BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_CHIPENRICH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHIPENRICH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHIPENRICH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHIPENRICH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT.out.tables
+    plots    = BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT.out.plots
+    objects  = BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT.out.objects
+    versions = BIOC_CHIPENRICH_BROAD_PEAK_ENRICHMENT.out.versions
 }

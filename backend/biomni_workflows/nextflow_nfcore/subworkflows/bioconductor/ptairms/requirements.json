@@ -1,0 +1,16 @@
+{
+  "package": "ptairms",
+  "requirements": [
+    "Biobase",
+    "ptairMS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "ptairMS"
+    ],
+    "single_raw_file_processing.nf": [
+      "ptairMS"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: patMutMatrix=A binary matrix where rows are patients and columns are genes, representing mutation/CNV status ;; patOutMatrix=A binary matrix where rows are patients and columns are genes, representing outlying gene expression status ;; influenceGraph=A gene-gene interaction network (influence graph) deduced from pathway data ;; geneNameList=A list of gene names (e.g., Ensembl protein-coding genes) used for random permutation ;; numberOfRandomTests=The number of random permutations to run for p-value calculation (e.g., 20) ;; purturbGraph=Logical, whether to perturb the graph in randomization (default FALSE) ;; purturbData=Logical, whether to perturb the data in randomization (default TRUE)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this workflow when you have paired genomic mutation/CNV data and transcriptomic gene expression data for a cohort of cancer patients, along with a gene-gene interaction network, and want to identify and rank candidate driver genes.\n- pitfalls: The documentation does not explicitly list pitfalls, but notes that the algorithm relies on binary matrices for mutations and expression outliers, meaning users must pre-process continuous expression data into binary outlier states (e.g., using Gaussian distributions).",
+  "workflows": [
+    {
+      "name": "driver_gene_prediction",
+      "intent": "Identify and rank candidate cancer driver genes by integrating patient mutation data, expression outlier data, and a gene-gene influence graph, followed by significance testing.",
+      "input": [
+        "samplePatientMutationMatrix.ext (binary matrix of patient mutations)",
+        "samplePatientOutlierMatrix.ext (binary matrix of patient expression outliers)",
+        "sampleInfluenceGraph.ext (gene-gene interaction network)",
+        "sampleGeneNames.ext (character vector of gene names for permutation)"
+      ],
+      "stages": "1. Compute driver genes using a greedy algorithm with computeDrivers ;; 2. Assess statistical significance of driver genes using a randomization framework with computeRandomizedResult ;; 3. Summarize the results using resultSummary",
+      "code": "driversList = computeDrivers(samplePatientMutationMatrix, \n              samplePatientOutlierMatrix,sampleInfluenceGraph,\n              outputFolder=NULL, printToConsole=FALSE)\n\ndrivers(driversList)[1:10]\n\nrandomDriversResult = computeRandomizedResult(\n  patMutMatrix=samplePatientMutationMatrix,\n  patOutMatrix=samplePatientOutlierMatrix, \n  influenceGraph=sampleInfluenceGraph,\n  geneNameList= sampleGeneNames, outputFolder=NULL, \n  printToConsole=FALSE,numberOfRandomTests=20, weight=FALSE, \n  purturbGraph=FALSE, purturbData=TRUE)\n\nres = resultSummary(driversList, randomDriversResult, \n      samplePatientMutationMatrix,sampleInfluenceGraph,\n      outputFolder=NULL, printToConsole=FALSE)\nres[1:2,]"
+    }
+  ]
+}

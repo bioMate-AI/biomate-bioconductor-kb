@@ -1,88 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: optimalFlow
-// Optimal-transport techniques applied to supervised flow cytometry gating.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/optimalFlow/inst/doc/optimalFlow_vignette.R
-// Upstream  : optimalFlowData, ellipse
-// Downstream: none
-//
-// Install: BiocManager::install("optimalFlow")
+// Bioconductor workflow: optimalFlow — template_generation_and_clustering
+// Cluster a database of gated cytometries and generate representative prototype (template) cytometries.
+// Input: database
+// Container: quay.io/biocontainers/bioconductor-optimalflow:1.22.0--r45h575d39b_0
+// R packages: ellipse, optimalFlow, optimalflowdata
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_OPTIMALFLOW {
+process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-optimalflow"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-optimalflow:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-optimalflow:1.18.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-optimalflow:1.22.0--r45h575d39b_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_optimalflow_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_optimalflow_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_optimalflow_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ellipse", "optimalFlow", "optimalflowdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(optimalFlow)
-    library(jsonlite)
-
-    # --- Database analysis [] ---
-    # Key functions: buildDatabase, optimalFlowTemplates, cytoPlotDatabase, cytoPlotDatabase3d, cytoPlot, cytoPlot3d, optimalFlowClassification, f1ScoreVoting
-    cytoPlotDatabase3d(templates.optimalFlow$database.elliptical[which(templates.optimalFlow$clustering == 3)], dimensions = c(4, 3, 9), xlim = c(0, 8000), ylim = c(0, 8000), zlim = c(0, 8000), colour = FALSE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_optimalflow_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_optimalflow_results.csv")
+    library(ellipse)
+    
+    # 1. Read the user input database file from the working directory
+    database_file <- "database.rds"
+    if (!file.exists(database_file) && file.exists("database")) {
+      database_file <- "database"
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_optimalflow_output.rds")
+    
+    if (!file.exists(database_file)) {
+      stop("Error: User input 'database' file not found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OPTIMALFLOW:", paste0("    optimalflow: ", packageVersion("optimalFlow"))),
-        "versions.yml"
+    
+    database_input <- readRDS(database_file)
+    
+    # Reconstruct individual cytometry datasets in the global environment
+    # so that buildDatabase can access them by name.
+    dataset_names <- paste0('Cytometry', c(2:5, 7:9, 12:17, 19, 21))
+    for (i in seq_along(dataset_names)) {
+      assign(dataset_names[i], database_input[[i]], envir = .GlobalEnv)
+    }
+    
+    # 2. Build the database of gated cytometries using buildDatabase
+    database <- buildDatabase(
+      dataset_names = paste0('Cytometry', c(2:5, 7:9, 12:17, 19, 21)),
+      population_ids = c('Monocytes', 'CD4+CD8-', 'Mature SIg Kappa', 'TCRgd-')
     )
+    
+    # 3. Generate templates and cluster the database using optimalFlowTemplates
+    templates.optimalFlow <-
+      optimalFlowTemplates(
+        database = database, templates.number = 5, cl.paral = 1
+      )
+    
+    # 4. Visualize the database clusters and templates
+    pdf("optimalFlow_plots.pdf", width = 10, height = 8)
+    
+    # Plot database elliptical representations for cluster 3
+    cytoPlotDatabase(
+      templates.optimalFlow\$database.elliptical[which(templates.optimalFlow\$clustering == 3)], 
+      dimensions = c(4,3), xlim = c(0, 8000), ylim = c(0, 8000), xlab = "", ylab = ""
+    )
+    
+    # Plot the template corresponding to cluster 3
+    cytoPlot(
+      templates.optimalFlow\$templates[[3]], 
+      dimensions = c(4,3), xlim = c(0, 8000), ylim = c(0, 8000), xlab = "", ylab = ""
+    )
+    
+    dev.off()
+    
+    # 5. Generate templates using alternative consensus and clustering methods
+    templates.optimalFlow.barycenter <- 
+      optimalFlowTemplates(
+        database = database, templates.number = 5, consensus.method = "k-barycenter",
+        barycenters.number = 4, bar.repetitions = 10, alpha.bar = 0.05, cl.paral = 1
+      )
+    
+    templates.optimalFlow.hdbscan <- 
+      optimalFlowTemplates(
+        database = database, templates.number = 5, consensus.method = "hierarchical",
+        cl.paral = 1
+      )
+    
+    templates.optimalFlow.unsup <-
+      optimalFlowTemplates(
+        database = database, hclust.method = "hdbscan", cl.paral = 1, consensus.method = "hierarchical"
+      )
+    
+    # 6. Save meaningful results to output files
+    saveRDS(templates.optimalFlow, "templates_optimalFlow.rds")
+    saveRDS(templates.optimalFlow.barycenter, "templates_optimalFlow_barycenter.rds")
+    saveRDS(templates.optimalFlow.hdbscan, "templates_optimalFlow_hdbscan.rds")
+    saveRDS(templates.optimalFlow.unsup, "templates_optimalFlow_unsup.rds")
+    
+    # Save clustering results as a CSV table
+    clustering_results <- data.frame(
+      Dataset = dataset_names,
+      OptimalFlow_Clustering = templates.optimalFlow\$clustering,
+      Barycenter_Clustering = templates.optimalFlow.barycenter\$clustering,
+      HDBSCAN_Clustering = templates.optimalFlow.hdbscan\$clustering,
+      Unsupervised_Clustering = templates.optimalFlow.unsup\$clustering
+    )
+    write.csv(clustering_results, "clustering_results.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING":',
+        paste0('        optimalFlow: ', as.character(packageVersion("optimalFlow")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_optimalflow_results.csv
-    touch ${prefix}_optimalflow_output.rds
-    echo "BIOC_OPTIMALFLOW:" > versions.yml
-    echo "    optimalflow: 0.0.0" >> versions.yml
+    touch ${prefix}_template_generation_and_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_OPTIMALFLOW_WORKFLOW {
+workflow BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ database ] ]
 
     main:
-    BIOC_OPTIMALFLOW(ch_input)
+    BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_OPTIMALFLOW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OPTIMALFLOW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OPTIMALFLOW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OPTIMALFLOW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING.out.tables
+    plots    = BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING.out.plots
+    objects  = BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING.out.objects
+    versions = BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING.out.versions
 }

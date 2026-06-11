@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gene_field=Used in check_input() and process_input() to specify the column name for gene IDs in GRanges objects if it is not the default 'gene_id' ;; clust_function=Used in cluster_network() to pass alternative igraph clustering methods ;; species_annotation=Used in plot_profiles() and find_GS_clusters() to provide taxonomic or group metadata for species ;; cluster_species=Used in plot_profiles() to define the display order of species, ideally matching a species tree ;; as=Used in parse_collinearity() to specify whether to return 'anchors', 'blocks', or 'all' data ;; compare=Used in run_diamond() to specify 'intraspecies' or a data frame of bidirectional comparisons for interspecies searches\n- alternatives: run_last() and read_last() can be used instead of run_diamond() and read_diamond() if LAST is preferred over DIAMOND for similarity searches ;; CliquePercolation package can be used instead of Infomap clustering if overlapping communities (e.g., tandem arrays) need to be detected ;; profiles2phylip() can be used to export binary matrices to PHYLIP format if a phylogeny reconstruction tool other than IQ-TREE is preferred\n- when_to_use: This analysis is appropriate when comparing multiple genomes (especially tens of species) to study global synteny patterns, gene duplication events (such as whole-genome duplications), and evolutionary trajectories of gene families across lineages.\n- pitfalls: Inputting multiple isoforms of the same gene, which violates the sequence-to-gene count ratio check (resolved by using collapse_protein_ids() to keep only the longest sequence per gene) ;; Sequence names in FASTA headers not matching gene IDs in the annotation (common with RefSeq data, requiring header cleaning and ID mapping) ;; Forgetting that MCScanX requires bidirectional similarity search results (e.g., both spA_spB and spB_spA) for interspecies synteny detection ;; External dependencies like DIAMOND and IQ-TREE must be installed and accessible in the R session PATH.",
+  "workflows": [
+    {
+      "name": "synteny_network_analysis",
+      "intent": "Infer a global synteny network from multiple proteomes, cluster it, perform phylogenomic profiling, and reconstruct a microsynteny-based phylogeny.",
+      "input": [
+        "FASTA files (protein sequences for each species)",
+        "GFF/GTF files (gene annotations for each species)"
+      ],
+      "stages": "1. Read FASTA and GFF files using fasta2AAStringSetlist() and gff2GRangesList() ;; 2. Validate and preprocess inputs using check_input() and process_input() ;; 3. Run similarity searches using run_diamond() ;; 4. Infer the synteny network using infer_syntenet() ;; 5. Cluster the network using cluster_network() ;; 6. Perform phylogenomic profiling using phylogenomic_profile() ;; 7. Identify group-specific clusters using find_GS_clusters() and visualize using plot_profiles() and plot_network() ;; 8. Reconstruct phylogeny using binarize_and_transpose() and infer_microsynteny_phylogeny()",
+      "code": "aastringsetlist <- fasta2AAStringSetlist(fasta_dir)\ngrangeslist <- gff2GRangesList(gff_dir)\ncheck_input(proteomes, annotation)\npdata <- process_input(proteomes, annotation)\nblast_list <- run_diamond(seq = pdata$seq)\nnet <- infer_syntenet(blast_list, pdata$annotation)\nid_table <- create_species_id_table(names(proteomes))\nclusters <- cluster_network(network)\nprofiles <- phylogenomic_profile(clusters)\nplot_profiles(profiles, species_annotation, cluster_species = species_order, dist_function = labdsv::dsvdis, dist_params = list(index = \"ruzicka\"))\ngs_clusters <- find_GS_clusters(profiles, species_annotation)\nplot_network(network, clusters, cluster_id = id)\nbt_mat <- binarize_and_transpose(profiles)\nphylo <- infer_microsynteny_phylogeny(bt_mat, outgroup = \"pmu\", threads = 1)"
+    },
+    {
+      "name": "pairwise_synteny_detection",
+      "intent": "Detect and parse intra- and inter-species syntenic blocks and anchor pairs.",
+      "input": [
+        "FASTA files (protein sequences)",
+        "GFF/GTF files (gene annotations)",
+        "DIAMOND/BLAST tabular output files (for interspecies, must be bidirectional)"
+      ],
+      "stages": "1. Preprocess inputs using process_input() ;; 2. Detect intraspecies synteny using intraspecies_synteny() ;; 3. Parse intraspecies collinearity files using parse_collinearity() ;; 4. Set up bidirectional comparisons using make_bidirectional() ;; 5. Detect interspecies synteny using interspecies_synteny() ;; 6. Parse interspecies collinearity files using parse_collinearity()",
+      "code": "intra_syn <- intraspecies_synteny(scerevisiae_diamond, scerevisiae_annot)\nanchors <- parse_collinearity(intra_syn)\nblocks <- parse_collinearity(intra_syn, as = \"blocks\")\nintrasyn_all <- parse_collinearity(intra_syn, as = \"all\")\ncomp_bi <- make_bidirectional(comp)\nintersyn <- interspecies_synteny(algae_inter, pdata$annotation)\nalgae_anchors <- parse_collinearity(intersyn)\nalgae_blocks <- parse_collinearity(intersyn, as = \"blocks\")\nalgae_all <- parse_collinearity(intersyn, as = \"all\")"
+    }
+  ]
+}

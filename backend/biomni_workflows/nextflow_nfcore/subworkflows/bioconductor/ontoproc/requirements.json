@@ -1,0 +1,18 @@
+{
+  "package": "ontoproc",
+  "requirements": [
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "ontoProc"
+  ],
+  "by_workflow": {
+    "import_and_visualize_owl_ontology.nf": [
+      "ontoProc"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "ontoProc"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <from=Genomic coordinate defining the start of the plotting window ;; to=Genomic coordinate defining the end of the plotting window ;; extend.left=Numeric zoom factor (between -1 and 1) or absolute base-pair value to extend the plot range to the left ;; extend.right=Numeric zoom factor (between -1 and 1) or absolute base-pair value to extend the plot range to the right ;; type=Character vector specifying the visualization type (e.g., \"histogram\", \"boxplot\", \"heatmap\", \"horizon\" for DataTrack; \"coverage\", \"sashimi\", \"pileup\" for AlignmentsTrack) ;; groups=Factor or vector used to group samples in DataTrack for color-coding or aggregation ;; collapse=Logical parameter to enable or disable collapsing of overlapping features at low resolutions ;; window=Integer or character controlling binning/running window operations for data summarization in DataTrack ;; importFunction=User-defined function to parse non-standard files into GRanges objects ;; stream=Logical flag indicating whether data should be streamed off an indexed file on the fly ;; reverseStrand=Logical parameter to plot tracks in the 3' -> 5' direction>\n- alternatives: <rtracklayer=Used to connect to online genome browsers (like UCSC) from within R, but lacks Gviz's flexibility to plot large numeric data in a multitude of different ways ;; GenomeGraphs=An older package on which Gviz is loosely based, but Gviz has a restructured class hierarchy and plotting methods for better performance and flexibility>\n- when_to_use: <When integrating and visualizing diverse genomic data types (e.g., RNA-seq alignments, ChIP-seq coverage, microarray probes, gene models, CpG islands) along a shared genomic coordinate system for publication-quality figures.>\n- pitfalls: <UCSC Chromosome Naming=By default, Gviz enforces UCSC chromosome naming (starting with \"chr\"). If using non-UCSC names, options(ucscChromosomeNames=FALSE) must be set ;; Slow Online Queries=Fetching data for IdeogramTrack or BiomartGeneRegionTrack from online servers (UCSC/Ensembl) can be slow or fail due to server load; local caching or local data sources should be used where possible ;; ReferenceDataTrack Length=Calling length() on a ReferenceDataTrack (created from streaming files like BAM) almost always returns 0 because data is only realized during plotting ;; Overplotting at Low Resolution=Features closer than 1 pixel will overlap or disappear unless collapse = TRUE and appropriate min.width / min.distance are set ;; Feature Name Conflicts=Custom feature names for color-coding in AnnotationTrack must not conflict with existing display parameter names in Gviz>",
+  "workflows": [
+    {
+      "name": "numeric_data_visualization",
+      "intent": "Visualize numeric genomic data (e.g., microarray signals, custom scores, or bedGraph files) using various plot types and grouping.",
+      "input": [
+        "twoGroups (GRanges object containing numeric metadata columns)",
+        "bgFile.bedGraph (bedGraph file containing genomic coordinates and a single numeric score column)"
+      ],
+      "stages": "1. Load genomic coordinates and numeric data ;; 2. Construct a DataTrack object ;; 3. Plot the track using plotTracks with specific visualization types (e.g., histogram, boxplot, heatmap) ;; 4. Group data and add a legend",
+      "code": "data(twoGroups)\ndTrack <- DataTrack(twoGroups, name = \"uniform\")\nplotTracks(dTrack)\nplotTracks(dTrack, type = c(\"boxplot\", \"a\", \"g\"))\nplotTracks(dTrack, type = c(\"heatmap\"), showSampleNames = TRUE, cex.sampleNames = 0.6)\nplotTracks(dTrack, groups = rep(c(\"control\", \"treated\"), each = 3), type = c(\"a\", \"p\", \"confint\"))\nplotTracks(dTrack, groups = rep(c(\"control\", \"treated\"), each = 3), type = c(\"a\", \"p\"), legend = TRUE)\n\nbgFile <- system.file(\"extdata/test.bedGraph\", package = \"Gviz\")\ndTrack2 <- DataTrack(range = bgFile, genome = \"hg19\", type = \"l\", chromosome = \"chr19\", name = \"bedGraph\")\nplotTracks(dTrack2)"
+    },
+    {
+      "name": "gene_region_visualization",
+      "intent": "Visualize gene models and transcripts from local data frames or TxDb objects.",
+      "input": [
+        "geneModels (data.frame containing gene model coordinates and identifiers)",
+        "hg19_knownGene_sample.sqlite (TxDb database file containing transcript and exon coordinates)"
+      ],
+      "stages": "1. Load gene model data or connect to a TxDb database ;; 2. Construct a GeneRegionTrack ;; 3. Customize transcript annotations and collapsing options ;; 4. Plot the track along with reference tracks (axis, ideogram)",
+      "code": "data(geneModels)\ngrtrack <- GeneRegionTrack(geneModels, genome = gen, chromosome = chr, name = \"Gene Model\")\nplotTracks(list(itrack, gtrack, atrack, grtrack))\nplotTracks(grtrack, transcriptAnnotation = \"symbol\")\nplotTracks(grtrack, collapseTranscripts = TRUE, shape = \"arrow\", transcriptAnnotation = \"symbol\")\n\nlibrary(GenomicFeatures)\nsamplefile <- system.file(\"extdata\", \"hg19_knownGene_sample.sqlite\", package = \"GenomicFeatures\")\ntxdb <- loadDb(samplefile)\nGeneRegionTrack(txdb)\ntxTr <- GeneRegionTrack(txdb, chromosome = \"chr6\", start = 35000000,  end = 40000000)\nplotTracks(txTr)"
+    },
+    {
+      "name": "sequence_alignment_visualization",
+      "intent": "Visualize next-generation sequencing alignments from BAM files, including coverage, pileups, and sashimi junction plots.",
+      "input": [
+        "gapped.bam (BAM file containing sequence alignments)"
+      ],
+      "stages": "1. Specify the path to the BAM file ;; 2. Construct an AlignmentsTrack object ;; 3. Plot the alignments using different visualization types (coverage, pileup, sashimi)",
+      "code": "afrom <- 2960000\nato <- 3160000\nalTrack <- AlignmentsTrack(\n  system.file(package = \"Gviz\", \"extdata\", \"gapped.bam\"), \n  isPaired = TRUE)\nplotTracks(c(bmt, alTrack), from = afrom, to = ato, chromosome = \"chr12\")\nplotTracks(c(bmt, alTrack), from = afrom, to = ato, chromosome = \"chr12\", min.height = 0, coverageHeight = 0.08, minCoverageHeight = 0)\nplotTracks(c(alTrack, bmt), from = afrom, to = ato, chromosome = \"chr12\", type = \"coverage\")\nplotTracks(c(bmt, alTrack), from = afrom + 12700, to = afrom + 15200, chromosome = \"chr12\", type = c(\"coverage\", \"sashimi\"))"
+    }
+  ]
+}

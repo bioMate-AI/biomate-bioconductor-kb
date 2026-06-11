@@ -1,0 +1,19 @@
+{
+  "package": "genomicinteractionnodes",
+  "requirements": [
+    "GO.db",
+    "GenomicInteractionNodes",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "org.Hs.eg.db",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GO.db",
+      "GenomicInteractionNodes",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "org.Hs.eg.db",
+      "rtracklayer"
+    ]
+  }
+}

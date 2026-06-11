@@ -1,0 +1,16 @@
+{
+  "package": "metaseq",
+  "requirements": [
+    "metaSeq",
+    "snow"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metaSeq",
+      "snow"
+    ],
+    "non_noiseq_meta_analysis.nf": [
+      "metaSeq"
+    ]
+  }
+}

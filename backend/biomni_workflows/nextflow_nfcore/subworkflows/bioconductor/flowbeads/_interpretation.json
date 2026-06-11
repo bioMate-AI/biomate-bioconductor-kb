@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fcs.filename=The path to the FCS file containing the bead flow cytometry data ;; bead.filename=The path to the CSV file containing the manufacturer-provided MEF values for the bead populations ;; output.file=The path where the generated HTML quality control report will be saved\n- alternatives: The documentation mentions using log10 transformation for FCS2 data, whereas for FCS3 data, the default choice is the logicleTransform (defaultLogicleTransform) from the flowCore package.\n- when_to_use: Use this package when you run calibration beads (e.g., Dakocytomation FluoroSpheres or ThermoFisher Scientific Cytocal) alongside your samples to correct for instrument drift, calculate detector linearity, or convert relative Mean Fluorescence Intensity (MFI) to standard Molecules of Equivalent Fluorochrome (MEF) units.\n- pitfalls: The physical MEF properties of the beads must not be compromised by age or poor storage conditions. If any laser or detector properties (such as detector voltage) change, the beads must be run again to recompute the correct transform. MEF transforms can only be computed for channels whose names in the FCS file match those in the MEF configuration file. The blank bead population is not used in estimating absolute MEF normalization parameters, so its alignment may not be perfect compared to relative normalization.",
+  "workflows": [
+    {
+      "name": "absolute_mef_normalization",
+      "intent": "Load bead data, gate bead populations, compute absolute MEF transformation parameters, and apply the transform to sample flow cytometry data.",
+      "input": [
+        "beads1.fcs (FCS file containing bead run data)",
+        "dakomef.csv (CSV file containing manufacturer MEF values)",
+        "flow.data (flowFrame containing the actual sample flow cytometry data to be normalized)"
+      ],
+      "stages": "1. Load bead data and MEF configuration using BeadFlowFrame ;; 2. Gate bead populations using gateBeads ;; 3. Extract MEF transform parameters using getMEFtransform ;; 4. Apply MEF transform to sample data using toMEF ;; 5. Generate QC report using generateReport",
+      "code": "beads1 <- BeadFlowFrame(fcs.filename=system.file('extdata', 'beads1.fcs', package='flowBeads'),\n                        bead.filename=system.file('extdata', 'dakomef.csv', package='flowBeads'))\ngbeads1 <- gateBeads(beads1)\nmef.transform <- getMEFtransform(gbeads1)\ntoMEF(gbeads1, flow.data)\ngenerateReport(gbeads1, output.file='report.html')"
+    },
+    {
+      "name": "relative_normalization",
+      "intent": "Align Mean Fluorescence Intensities (MFI) of bead populations across different days/runs to perform relative normalization without absolute MEF values.",
+      "input": [
+        "beads1.fcs (FCS file for Day 1 bead run)",
+        "beads2.fcs (FCS file for Day 2 bead run)",
+        "dakomef.csv (CSV file containing bead configuration)"
+      ],
+      "stages": "1. Load bead data for both days using BeadFlowFrame ;; 2. Gate bead populations for both days using gateBeads ;; 3. Compute relative normalization transforms using relativeNormalise ;; 4. Apply the relative transform function to align MFIs",
+      "code": "beads1 <- BeadFlowFrame(fcs.filename=system.file('extdata', 'beads1.fcs', package='flowBeads'),\n                        bead.filename=system.file('extdata', 'dakomef.csv', package='flowBeads'))\nbeads2 <- BeadFlowFrame(fcs.filename=system.file('extdata', 'beads2.fcs', package='flowBeads'),\n                        bead.filename=system.file('extdata', 'dakomef.csv', package='flowBeads'))\ngbeads1 <- gateBeads(beads1)\ngbeads2 <- gateBeads(beads2)\nrelative.transforms <- relativeNormalise(gbeads1, gbeads2)\nfun <- relative.transforms$APC$fun\nmfi1 <- getTransformFunction(gbeads1)(getClusteringStats(gbeads1)['mean.fi','APC',])\nmfi2 <- getTransformFunction(gbeads2)(getClusteringStats(gbeads2)['mean.fi','APC',])\nfun.mfi1 <- fun(mfi1)"
+    }
+  ]
+}

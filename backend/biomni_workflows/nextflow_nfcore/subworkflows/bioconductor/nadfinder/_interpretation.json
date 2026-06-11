@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: windowSize=Size of the sliding window for genomic tiling (typically 50000 bp because NADs are broad genomic regions) ;; step=Step size for the sliding window (typically 5000 bp) ;; backgroundPercentage=Proportion of lower ratios used for background training (e.g., 0.25 for 25%) ;; cutoffAdjPvalue=Adjusted p-value threshold for peak calling (typically 0.05) ;; countFilter=Minimum read count threshold to filter out low-coverage windows during peak calling\n- alternatives: None mentioned\n- when_to_use: Use when analyzing NAD-seq data (nucleolus-associated DNA vs. genomic DNA background) to map nucleolar-associated domains across the genome.\n- pitfalls: Ratios of nucleolar to genomic DNA are often higher at the 5' end than the 3' end of chromosomes, which requires chromosome-specific background correction and smoothing via smoothRatiosByChromosome. Unlike ChIP-seq, cumulative percentage curves for NAD-seq do not show sharp transitions because NADs are broad regions (up to 100 kb), but clear differences between genomic and nucleolar curves should still be visible.",
+  "workflows": [
+    {
+      "name": "single_pair_nad_seq",
+      "intent": "Identify nucleolar-associated domains (NADs) from a single pair of nucleolus-associated DNA and genomic DNA sequencing samples.",
+      "input": [
+        "nucleolus.bam (BAM file of nucleolus-associated DNA)",
+        "genomic.bam (BAM file of genomic DNA background)"
+      ],
+      "stages": "1. Calculate read coverage in sliding windows using tileCount ;; 2. Compute log2 ratios of nucleolus vs genomic DNA using log2se ;; 3. Smooth ratios per chromosome using smoothRatiosByChromosome ;; 4. Assess quality using cumulativePercentage ;; 5. Call and trim peaks using trimPeaks ;; 6. Export peaks to CSV or BED format",
+      "code": "se <- tileCount(reads=file.path(path, bamFiles), genome=Mmusculus, windowSize=ws, step=step, mode = IntersectionNotStrict, dataOverSamples = FALSE)\ndat <- log2se(se, nucleolusCols = \"N18.subsampled.srt.bam\", genomeCols =\"G18.subsampled.srt.bam\", transformation = \"log2CPMRatio\")\ndatList <- smoothRatiosByChromosome(dat, chr = c(\"chr18\", \"chr19\"), N = 100)\ncumulativePercentage(datList[[\"chr18\"]])\npeaks <- lapply(datList, trimPeaks, backgroundPercentage=backgroundPercentage, cutoffAdjPvalue=0.05, countFilter=1000)\npeaks.gr <- unlist(GRangesList(peaks))\nwrite.csv(as.data.frame(unname(peaks.gr)), \"peaklist.csv\", row.names=FALSE)"
+    },
+    {
+      "name": "replicated_nad_seq",
+      "intent": "Identify nucleolar-associated domains (NADs) from nucleolus-associated DNA and genomic DNA sequencing samples with multiple biological replicates.",
+      "input": [
+        "nucleolus_rep1.bam, nucleolus_rep2.bam, nucleolus_rep3.bam (BAM files of replicated nucleolus-associated DNA)",
+        "genomic_rep1.bam, genomic_rep2.bam, genomic_rep3.bam (BAM files of replicated genomic DNA background)"
+      ],
+      "stages": "1. Calculate read coverage in sliding windows using tileCount ;; 2. Compute log2 ratios of nucleolus vs genomic DNA across replicates using log2se ;; 3. Smooth ratios per chromosome using smoothRatiosByChromosome ;; 4. Assess quality using cumulativePercentage ;; 5. Call peaks using callPeaks (which utilizes limma for statistical significance across replicates) ;; 6. Visualize peaks along the ideogram using plotSig",
+      "code": "se <- tileCount(reads=file.path(path, f), genome=Mmusculus, windowSize=ws, step=step)\nse <- log2se(se, nucleolusCols = c(\"N18.subsampled.srt-2.bam\", \"N18.subsampled.srt-3.bam\", \"N18.subsampled.srt.bam\" ), genomeCols = c(\"G18.subsampled.srt-2.bam\", \"G18.subsampled.srt-3.bam\", \"G18.subsampled.srt.bam\"), transformation = \"log2CPMRatio\")\nseList<- smoothRatiosByChromosome(se, chr=\"chr18\")\ncumulativePercentage(seList[[\"chr18\"]])\npeaks <- lapply(seList, callPeaks, cutoffAdjPvalue=0.05, countFilter=1)\npeaks <- unlist(GRangesList(peaks))\nplotSig(ideo=ideo, grList=GRangesList(peaks), mcolName=\"AveSig\", layout=list(\"chr18\"), parameterList=list(types=\"heatmap\"))"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "package": "aldex2",
+  "requirements": [
+    "ALDEx2"
+  ],
+  "by_workflow": {
+    "complex_design_glm.nf": [
+      "ALDEx2"
+    ],
+    "main.nf": [
+      "ALDEx2"
+    ],
+    "scale_simulation.nf": [
+      "ALDEx2"
+    ],
+    "sensitivity_analysis.nf": [
+      "ALDEx2"
+    ]
+  }
+}

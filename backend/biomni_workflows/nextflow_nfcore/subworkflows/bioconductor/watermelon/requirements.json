@@ -1,0 +1,13 @@
+{
+  "package": "watermelon",
+  "requirements": [
+    "methylumi",
+    "wateRmelon"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "methylumi",
+      "wateRmelon"
+    ]
+  }
+}

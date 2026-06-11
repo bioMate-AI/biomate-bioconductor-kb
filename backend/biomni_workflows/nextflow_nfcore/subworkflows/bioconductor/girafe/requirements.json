@@ -1,0 +1,21 @@
+{
+  "package": "girafe",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "genomeIntervals",
+    "girafe",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "genomeIntervals",
+      "girafe",
+      "rtracklayer"
+    ]
+  }
+}

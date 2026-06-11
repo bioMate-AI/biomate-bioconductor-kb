@@ -1,138 +1,121 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CNVMetrics
-// The CNVMetrics package calculates similarity metrics to facilitate copy number variant comparison am
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CNVMetrics/inst/doc/CNVMetrics.R
-// Upstream  : GenomicRanges, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("CNVMetrics")
+// Bioconductor workflow: CNVMetrics — cnv_status_calls_similarity
+// Calculate and visualize similarity metrics (Sørensen, Szymkiewicz-Simpson, or Jaccard) using discrete CNV status calls.
+// Input: copy_number_calls.txt
+// Container: quay.io/biocontainers/bioconductor-cnvmetrics:1.14.2--r45hdfd78af_0
+// R packages: CNVMetrics, GenomicRanges, knitr
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CNVMetrics, GenomicRanges
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the copy number calls file into a data.frame
+//  * 2. [Core Analysis] Convert the data.frame to a GRangesList using GenomicRanges::makeGRangesListFromDataFrame()
+//  * 3. [Core Analysis] Calculate overlap metrics using calculateOverlapMetric()
+//  * 4. [Visualization & Output] Visualize the similarity metrics as a heatmap using plotMetric()
 
 nextflow.enable.dsl = 2
 
-process BIOC_CNVMETRICS {
+process BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cnvmetrics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cnvmetrics:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cnvmetrics:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cnvmetrics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cnvmetrics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cnvmetrics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CNVMetrics", "GenomicRanges", "knitr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(GenomicRanges)
     library(CNVMetrics)
-    library(GRanges)
-    library(GRangesList)
-    library(jsonlite)
-
-    # --- CNV Data Preparation [Data Preparation] ---
-    # Key functions: makeGRangesListFromDataFrame
-    data.dir <- system.file("extdata", package="CNVMetrics")
-    cnv.file <- file.path(data.dir, "mousePairedOrganoids.txt")
-    calls <- read.table(cnv.file, header=TRUE, sep="\t")
-    grl <- GenomicRanges::makeGRangesListFromDataFrame(
-        calls,
-        split.field="ID",
-        keep.extra.columns=TRUE
-    )
-
-    # --- Overlap Metric Calculation [Metric Calculation] ---
-    # Key functions: calculateOverlapMetric
-    metric <- calculateOverlapMetric(
-        segmentData=grl,
-        method="sorensen",
-        nJobs=1
-    )
-
-    # --- Log2 Ratio Metric Calculation [Metric Calculation] ---
-    # Key functions: calculateLog2ratioMetric
-    metricLog <- calculateLog2ratioMetric(
-        segmentData=grl,
-        method="weightedEuclideanDistance",
-        nJobs=1
-    )
-
-    # --- CNV Similarity Visualization [Visualisation] ---
-    # Key functions: plotMetric
-    plotMetric(
-        metric,
-        type="AMPLIFICATION",
-        colorRange=c("white", "steelblue")
-    )
-    plotMetric(
-        metric,
-        type="DELETION",
-        colorRange=c("white", "darkorange"),
-        show_colnames=TRUE,
-        display_numbers=TRUE,
-        number_format="%.2f"
-    )
-    plotMetric(
-        metricLog,
-        colorRange=c("white", "darkorange"),
-        show_colnames=TRUE,
-        display_numbers=TRUE,
-        number_format="%.2f",
-        main="Log2 Ratio Distance"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cnvmetrics_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cnvmetrics_results.csv")
+    
+    # 1. Load the copy number calls file into a data.frame
+    input_file <- "copy_number_calls.txt"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cnvmetrics_output.rds")
+    calls <- read.table(input_file, header=TRUE, sep="\t")
+    
+    # 2. Convert the data.frame to a GRangesList using GenomicRanges::makeGRangesListFromDataFrame()
+    grl <- GenomicRanges::makeGRangesListFromDataFrame(calls, 
+        split.field="ID", keep.extra.columns=TRUE)
+    
+    # 3. Calculate overlap metrics using calculateOverlapMetric()
+    metric <- calculateOverlapMetric(segmentData=grl, method="sorensen", nJobs=1)
+    
+    # Save the metric object as an RDS file
+    saveRDS(metric, file="overlap_metric.rds")
+    
+    # Export the metric matrices as CSV files for downstream analysis
+    if (!is.null(metric\$AMPLIFICATION)) {
+      write.csv(as.data.frame(metric\$AMPLIFICATION), "sorensen_amplification_metric.csv", row.names=TRUE)
     }
+    if (!is.null(metric\$DELETION)) {
+      write.csv(as.data.frame(metric\$DELETION), "sorensen_deletion_metric.csv", row.names=TRUE)
+    }
+    
+    # 4. Visualize the similarity metrics as a heatmap using plotMetric()
+    pdf("sorensen_amplification_heatmap.pdf", width=7, height=7)
+    plotMetric(metric, type="AMPLIFICATION")
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CNVMETRICS:", paste0("    cnvmetrics: ", packageVersion("CNVMetrics"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY":',
+        paste0('    CNVMetrics: ', as.character(packageVersion('CNVMetrics')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cnvmetrics_results.csv
-    touch ${prefix}_cnvmetrics_output.rds
-    echo "BIOC_CNVMETRICS:" > versions.yml
-    echo "    cnvmetrics: 0.0.0" >> versions.yml
+    touch ${prefix}_cnv_status_calls_similarity.csv versions.yml
     """
 }
 
-
-workflow BIOC_CNVMETRICS_WORKFLOW {
+workflow BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ copy_number_calls.txt ] ]
 
     main:
-    BIOC_CNVMETRICS(ch_input)
+    BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY(ch_input)
 
     emit:
-    results  = BIOC_CNVMETRICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CNVMETRICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CNVMETRICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CNVMETRICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY.out.tables
+    plots    = BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY.out.plots
+    objects  = BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY.out.objects
+    versions = BIOC_CNVMETRICS_CNV_STATUS_CALLS_SIMILARITY.out.versions
 }

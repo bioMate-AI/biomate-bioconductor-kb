@@ -1,0 +1,19 @@
+{
+  "package": "splicingfactory",
+  "requirements": [
+    "SplicingFactory",
+    "SummarizedExperiment",
+    "ggplot2",
+    "tibble",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SplicingFactory",
+      "SummarizedExperiment",
+      "ggplot2",
+      "tibble",
+      "tidyr"
+    ]
+  }
+}

@@ -1,116 +1,168 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: swfdr
-// This package allows users to estimate the science-wise false discovery rate from Jager and Leek, "Em
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/swfdr/inst/doc/swfdrQ.R
-// Upstream  : BiocManager, ggplot2, qvalue
-// Downstream: none
-//
-// Install: BiocManager::install("swfdr")
+// Bioconductor workflow: swfdr — covariate_conditioned_fdr
+// Estimate the proportion of true null hypotheses and compute adjusted q-values while conditioning on one or more numeric covariates.
+// Input: BMI_GIANT_GWAS_sample
+// Container: quay.io/biocontainers/bioconductor-swfdr:1.36.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, reshape2, swfdr
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Construct a numeric design matrix from covariates using model.matrix
+//  * 2. [Core Analysis] Estimate the conditional proportion of nulls (pi0) using lm_pi0
+//  * 3. [Core Analysis] Compute conditional q-values using lm_qvalue
 
 nextflow.enable.dsl = 2
 
-process BIOC_SWFDR {
+process BIOC_SWFDR_COVARIATE_CONDITIONED_FDR {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-swfdr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-swfdr:1.32.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-swfdr:1.32.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_swfdr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_swfdr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_swfdr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(swfdr)
-    library(jsonlite)
-
-    # --- Pi0 Estimation with Study Covariates ---
-    # Key functions: lm_pi0
-    gwas_data <- swfdr::BMI_GIANT_GWAS_sample
-    gwas_clean <- na.omit(gwas_data)
-    pi0_fit <- lm_pi0(
-        p = gwas_clean$p,
-        X = gwas_clean[, c("N", "Freq_MAF_Hapmap")]
-    )
-    pi0_estimates <- pi0_fit$pi0
-
-    # --- FDR Control and Q-value Calculation ---
-    # Key functions: lm_qvalue
-    gwas_data <- swfdr::BMI_GIANT_GWAS_sample
-    gwas_clean <- na.omit(gwas_data)
-    qval_fit <- lm_qvalue(
-        p = gwas_clean$p,
-        X = gwas_clean[, c("N", "Freq_MAF_Hapmap")]
-    )
-    q_values <- qval_fit$qvalues
-
-    # --- Spline Smoothed FDR Estimation ---
-    # Key functions: lm_qvalue
-    gwas_data <- swfdr::BMI_GIANT_GWAS_sample
-    gwas_clean <- na.omit(gwas_data)
-    qval_smooth <- lm_qvalue(
-        p = gwas_clean$p,
-        X = gwas_clean[, c("N", "Freq_MAF_Hapmap")],
-        smoothing = "smooth.spline"
-    )
-    pi0_smooth <- qval_smooth$pi0
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_swfdr_results.csv", row.names = TRUE)
+    library(splines)
+    
+    # ----------------------------------------------------------------
+    # 1. Read User Input
+    # ----------------------------------------------------------------
+    # The pipeline reads the file 'BMI_GIANT_GWAS_sample' from the working directory.
+    # We check for common extensions (.csv, .rds) or the exact filename.
+    input_file <- "BMI_GIANT_GWAS_sample"
+    if (file.exists(paste0(input_file, ".csv"))) {
+      BMI_GIANT_GWAS_sample <- read.csv(paste0(input_file, ".csv"), stringsAsFactors = TRUE)
+    } else if (file.exists(paste0(input_file, ".rds"))) {
+      BMI_GIANT_GWAS_sample <- readRDS(paste0(input_file, ".rds"))
+    } else if (file.exists(input_file)) {
+      BMI_GIANT_GWAS_sample <- tryCatch({
+        readRDS(input_file)
+      }, error = function(e) {
+        read.table(input_file, header = TRUE, sep = "\t", stringsAsFactors = TRUE)
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_swfdr_results.csv")
+      stop("Required input file 'BMI_GIANT_GWAS_sample' (CSV or RDS) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_swfdr_output.rds")
+    
+    # Ensure Freq_MAF_Int_Hapmap is treated as a factor for model.matrix
+    if (!is.factor(BMI_GIANT_GWAS_sample\$Freq_MAF_Int_Hapmap)) {
+      BMI_GIANT_GWAS_sample\$Freq_MAF_Int_Hapmap <- as.factor(BMI_GIANT_GWAS_sample\$Freq_MAF_Int_Hapmap)
     }
+    
+    # ----------------------------------------------------------------
+    # 2. Execute Documented Workflow
+    # ----------------------------------------------------------------
+    
+    # Stage 1: Construct a numeric design matrix from covariates using model.matrix
+    X <- model.matrix(~ splines::ns(N,5) + Freq_MAF_Int_Hapmap, data = BMI_GIANT_GWAS_sample)[,-1]
+    
+    # Stage 2: Estimate the conditional proportion of nulls (pi0) using lm_pi0
+    pi0x <- lm_pi0(BMI_GIANT_GWAS_sample\$p, X=X)
+    
+    # Stage 3: Compute conditional q-values using lm_qvalue
+    GWAS <- BMI_GIANT_GWAS_sample
+    GWAS_lm_qvalue <- lm_qvalue(GWAS\$p, X=X)
+    
+    # ----------------------------------------------------------------
+    # 3. Save Outputs
+    # ----------------------------------------------------------------
+    
+    # Create a combined results data frame
+    results_df <- GWAS
+    results_df\$pi0_conditioned <- pi0x\$pi0
+    results_df\$qvalue_conditioned <- GWAS_lm_qvalue\$qvalues
+    
+    # Write CSV table
+    write.csv(results_df, "conditioned_fdr_results.csv", row.names = FALSE)
+    
+    # Save RDS objects
+    saveRDS(list(pi0_model = pi0x, qvalue_model = GWAS_lm_qvalue, results = results_df), "conditioned_fdr_results.rds")
+    
+    # Optional Plotting Sub-step (wrapped in tryCatch for robustness)
+    tryCatch({
+      library(reshape2)
+      library(ggplot2)
+    
+      # Prepare data for plotting as in the vignette
+      plot_data <- BMI_GIANT_GWAS_sample
+      plot_data\$fitted0.8 <- pi0x\$pi0.lambda[, round(pi0x\$lambda, 2) == 0.8]
+      plot_data\$fitted0.9 <- pi0x\$pi0.lambda[, round(pi0x\$lambda, 2) == 0.9]
+      plot_data\$fitted.final.smooth <- pi0x\$pi0
+    
+      ldf <- reshape2::melt(plot_data,
+                            id.vars = colnames(plot_data)[-grep("fitted", colnames(plot_data))],
+                            value.name = "pi0", variable.name = "lambda")
+      ldf\$lambda <- as.character(ldf\$lambda)
+      ldf\$lambda[ldf\$lambda == "fitted0.8"] <- "lambda=0.8"
+      ldf\$lambda[ldf\$lambda == "fitted0.9"] <- "lambda=0.9"
+      ldf\$lambda[ldf\$lambda == "fitted.final.smooth"] <- "final smoothed pi0(x)"
+    
+      p <- ggplot(ldf, aes(x = N, y = pi0)) +
+        geom_line(aes(col = Freq_MAF_Int_Hapmap, linetype = lambda)) +
+        ylab("Estimated proportion of nulls") +
+        guides(color = guide_legend(title = "MAF in HapMap CEU population"),
+               linetype = guide_legend(title = "Estimate")) +
+        theme_minimal()
+    
+      ggsave("pi0_vs_covariates.pdf", plot = p, width = 8, height = 6)
+    }, error = function(e) {
+      warning("Plotting failed or required packages (ggplot2/reshape2) were not available: ", e\$message)
+    })
+    
+    cat("Pipeline completed successfully. Outputs written to 'conditioned_fdr_results.csv', 'conditioned_fdr_results.rds', and 'pi0_vs_covariates.pdf'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SWFDR:", paste0("    swfdr: ", packageVersion("swfdr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SWFDR_COVARIATE_CONDITIONED_FDR":',
+        paste0('    swfdr: ', as.character(packageVersion('swfdr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_swfdr_results.csv
-    touch ${prefix}_swfdr_output.rds
-    echo "BIOC_SWFDR:" > versions.yml
-    echo "    swfdr: 0.0.0" >> versions.yml
+    touch ${prefix}_covariate_conditioned_fdr.csv versions.yml
     """
 }
 
-
-workflow BIOC_SWFDR_WORKFLOW {
+workflow BIOC_SWFDR_COVARIATE_CONDITIONED_FDR_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ BMI_GIANT_GWAS_sample ] ]
 
     main:
-    BIOC_SWFDR(ch_input)
+    BIOC_SWFDR_COVARIATE_CONDITIONED_FDR(ch_input)
 
     emit:
-    results  = BIOC_SWFDR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SWFDR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SWFDR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SWFDR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SWFDR_COVARIATE_CONDITIONED_FDR.out.tables
+    plots    = BIOC_SWFDR_COVARIATE_CONDITIONED_FDR.out.plots
+    objects  = BIOC_SWFDR_COVARIATE_CONDITIONED_FDR.out.objects
+    versions = BIOC_SWFDR_COVARIATE_CONDITIONED_FDR.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "seqlogo",
+  "requirements": [
+    "seqLogo"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "seqLogo"
+    ]
+  }
+}

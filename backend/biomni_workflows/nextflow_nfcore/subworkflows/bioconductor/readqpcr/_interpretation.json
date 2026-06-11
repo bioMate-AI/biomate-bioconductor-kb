@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: file=Path to the input text file (used in read.LC480, read.LC480SampleInfo, and read.qPCR) ;; ...=One or more file paths to SDS output files to be combined (used in read.taqman) ;; read.qPCR columns=Input file must be tab-delimited with mandatory columns 'Sample', 'Detector', and 'Cq', and optional columns 'Well' and 'Plate' (which must be provided together or not at all)\n- alternatives: NormqPCR=The complementary package to be used after ReadqPCR for the normalization of qPCR data ;; read.affybatch=Mentioned as a conceptual analog from the affy package for how read.qPCR and read.taqman automatically populate S4 objects\n- when_to_use: Use when you have raw RT-qPCR data (either raw fluorescence cycles from Roche LC480 or Cq values from Taqman SDS / generic plates) and need to parse them into R for downstream normalization and differential expression analysis.\n- pitfalls: In read.qPCR, Well and Plate columns are optional but must be provided together; providing one without the other is not allowed ;; Duplicate plate IDs with the same Well number are not allowed in read.qPCR ;; If files combined in read.taqman do not have matching detector names, or if duplicate sample or plate names are given, the function will error and stop ;; Cq values are not raw expression values; a lower Cq indicates higher expression. qPCR measures relative, not absolute, quantification ;; read.qPCR can only read one file at a time, unlike read.taqman which can read multiple files.",
+  "workflows": [
+    {
+      "name": "roche_lc480_loading",
+      "intent": "Read raw fluorescence data from Roche LightCycler 480 and merge with sample information.",
+      "input": [
+        "LC480_Example.txt (raw LC480 exported text file)",
+        "LC480_Example_SampleInfo.txt (sample information text file)"
+      ],
+      "stages": "1. Read raw LC480 text file using read.LC480 to create a CyclesSet object ;; 2. Read additional sample information using read.LC480SampleInfo to create an AnnotatedDataFrame ;; 3. Merge the fluorescence data and sample information using merge",
+      "code": "path <- system.file(\"exData\", package = \"ReadqPCR\")\nLC480.example <- file.path(path, \"LC480_Example.txt\")\ncycData <- read.LC480(file = LC480.example)\nLC480.SamInfo <- file.path(path, \"LC480_Example_SampleInfo.txt\")\nsamInfo <- read.LC480SampleInfo(file = LC480.SamInfo)\ncycData1 <- merge(cycData, samInfo)"
+    },
+    {
+      "name": "generic_qpcr_loading",
+      "intent": "Read user-formatted tab-delimited qPCR data (with optional Well and Plate columns) into a qPCRBatch object.",
+      "input": [
+        "qPCR.example.txt (tab-delimited text file containing Sample, Detector, Cq, and optional Well and Plate columns)"
+      ],
+      "stages": "1. Read the user-formatted qPCR file using read.qPCR to create a qPCRBatch object",
+      "code": "path <- system.file(\"exData\", package = \"ReadqPCR\")\nqPCR.example <- file.path(path, \"qPCR.example.txt\")\nqPCRBatch.qPCR <- read.qPCR(qPCR.example)"
+    },
+    {
+      "name": "taqman_sds_loading",
+      "intent": "Read Sequence Detection Systems (SDS) software output files (Taqman Low Density Arrays) into a single qPCRBatch object.",
+      "input": [
+        "example.txt (SDS output file)",
+        "example2.txt (optional second SDS output file)"
+      ],
+      "stages": "1. Read one or more SDS files using read.taqman to create a qPCRBatch object",
+      "code": "path <- system.file(\"exData\", package = \"ReadqPCR\")\ntaqman.example <- file.path(path, \"example.txt\")\nqPCRBatch.taq <- read.taqman(taqman.example)\ntaqman.example.second.file <- file.path(path, \"example2.txt\")\nqPCRBatch.taq.two.files <- read.taqman(taqman.example, \n                             taqman.example.second.file)"
+    }
+  ]
+}

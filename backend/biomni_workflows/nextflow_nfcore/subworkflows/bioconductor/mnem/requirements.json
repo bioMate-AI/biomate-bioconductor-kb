@@ -1,0 +1,14 @@
+{
+  "package": "mnem",
+  "requirements": [
+    "mnem"
+  ],
+  "by_workflow": {
+    "discrete_data_pipeline.nf": [
+      "mnem"
+    ],
+    "main.nf": [
+      "mnem"
+    ]
+  }
+}

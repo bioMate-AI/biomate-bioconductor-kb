@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ps=The input phyloseq object containing taxonomic abundances and sample metadata ;; group=The primary experimental grouping variable in the sample metadata ;; subgroup=The secondary grouping variable (subclass) used for nested comparisons in LEfSe ;; taxa_level=The taxonomic rank at which to perform the marker discovery (e.g., \"Genus\") ;; p_cutoff=The significance threshold for identifying markers ;; norm=The normalization method to apply before analysis (e.g., \"CPM\", \"TSS\")\n- alternatives: Directly using individual packages like ALDEx2, ANCOMBC, DESeq2, edgeR, or the original Python LEfSe command-line tool. Use microbiomeMarker to run multiple methods side-by-side with a unified API and consistent visualization outputs.\n- when_to_use: Appropriate when analyzing marker gene (16S/18S/ITS) or metagenomic taxonomic profiling data to identify specific taxa that are differentially abundant or serve as biomarkers between two or more experimental groups.\n- pitfalls: Different marker discovery methods have distinct assumptions regarding compositionality and sparsity, often leading to conflicting results; users should not blindly trust a single method without understanding its underlying model. Double-normalization (e.g., normalizing the phyloseq object before passing it to a function that performs its own normalization) can distort the statistical properties of the data.",
+  "workflows": [
+    {
+      "name": "microbiome_marker_discovery",
+      "intent": "Identify and visualize taxonomic biomarkers from microbiome profiling data using LEfSe or other differential abundance methods.",
+      "input": [
+        "otu_table.csv (taxonomic abundance matrix)",
+        "sample_metadata.csv (sample groups and covariates)",
+        "taxonomy_table.csv (taxonomic classifications)"
+      ],
+      "stages": "1. Import data into a phyloseq object ;; 2. Run marker discovery using run_lefse or other run_* functions ;; 3. Visualize identified markers using plot_ef_bar or plot_cladogram",
+      "code": "library(microbiomeMarker)\nlibrary(phyloseq)\nmm_lefse <- run_lefse(\n    ps,\n    group = \"group\",\n    subgroup = \"subgroup\",\n    taxa_level = \"Genus\",\n    kw_cutoff = 0.05,\n    wilcoxon_cutoff = 0.05,\n    lda_cutoff = 2.0\n)\nplot_ef_bar(mm_lefse)\nplot_cladogram(mm_lefse, color = c(\"darkgreen\", \"red\"))"
+    }
+  ]
+}

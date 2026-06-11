@@ -1,0 +1,20 @@
+{
+  "package": "clevrvis",
+  "requirements": [
+    "clevRvis",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "allele_aware_visualization.nf": [
+      "clevRvis",
+      "htmlwidgets"
+    ],
+    "explore_alternative_trees.nf": [
+      "clevRvis"
+    ],
+    "main.nf": [
+      "clevRvis",
+      "htmlwidgets"
+    ]
+  }
+}

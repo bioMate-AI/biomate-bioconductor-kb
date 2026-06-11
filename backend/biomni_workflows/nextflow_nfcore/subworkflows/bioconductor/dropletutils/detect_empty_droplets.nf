@@ -4,6 +4,8 @@
 // Distinguish cell-containing droplets from empty droplets containing ambient RNA.
 // Input: my.counts
 // Container: quay.io/biocontainers/bioconductor-dropletutils:1.30.0--r45ha27e39d_0
+// R packages: DropletUtils, Matrix
+// Bioconductor: 3.20 | R: 4.4
 // Requires: DropletUtils, Matrix
 // Visualizations: plot (ggplot/base)
 // QC: cell QC metrics
@@ -37,10 +39,22 @@ process BIOC_DROPLETUTILS_DETECT_EMPTY_DROPLETS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DropletUtils", "Matrix")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: formula=A formula specifying the response variable and predictors (e.g., spsex ~ .) ;; data=An ExpressionSet or data.frame containing the features and response variable ;; .method=A learnerSchema object specifying the classification algorithm (e.g., rpartI, randomForestI, ldaI, nnetI, svmI, dldaI, knnI(k, l), or glmI.logistic(thresh)) ;; trainInd=A numeric vector of indices representing the training set, or an xvalSpec object for cross-validation ;; xvalSpec=A specification object for cross-validation, taking the validation type (e.g., \"LOG\"), number of folds, a partition function (e.g., balKfold.xvspec(5)), and optionally a feature selection function (e.g., fs.absT(30))\n- alternatives: ggobi and Rggobi are suggested for dynamic visualization of high-dimensional data structures ;; keggorthology and GSEABase are mentioned for gene set appraisal and filtering prior to classification\n- when_to_use: Use this package when you want to compare multiple machine learning classifiers (such as SVM, Random Forests, LDA, or Neural Networks) on the same dataset using a single, uniform syntax, or when you need to perform cross-validation with feature selection embedded inside the validation loop to prevent selection bias.\n- pitfalls: Non-random selection of training sets can lead to highly biased and misleading performance estimates ;; Some algorithms like randomForest require the response variable to be explicitly cast as a factor, otherwise they may fail or default to regression ;; Feature selection must be performed within each cross-validation fold (using fs.absT or similar inside xvalSpec) rather than on the entire dataset beforehand to avoid optimistic bias ;; Native gbm requires a numeric response and lacks a formula interface, so the package-provided gbm2 or BgbmI wrapper must be used for two-level factor responses.",
+  "workflows": [
+    {
+      "name": "supervised_classification_cv_fs",
+      "intent": "Perform supervised classification on gene expression data with cross-validation and embedded feature selection to avoid selection bias.",
+      "input": [
+        "fus (ExpressionSet containing gene expression data and phenotype labels)"
+      ],
+      "stages": "1. Filter features non-specifically using Median Absolute Deviation (MAD) ;; 2. Run MLearn with diagonal linear discriminant analysis (dldaI) and cross-validation (xvalSpec) containing embedded feature selection (fs.absT) ;; 3. Assess classification performance using a confusion matrix (confuMat).",
+      "code": "mads = apply(exprs(fus),1,mad)\nfusk = fus[ mads > sort(mads,decr=TRUE)[300], ]\ndldFS = MLearn( mol.biol~., fusk, dldaI, xvalSpec(\"LOG\", 5, balKfold.xvspec(5), fs.absT(30) ))\nconfuMat(dldFS)"
+    },
+    {
+      "name": "multi_classifier_evaluation",
+      "intent": "Train, cross-validate, and compare multiple machine learning classifiers (Random Forest, LDA, SVM) on a dataset.",
+      "input": [
+        "crES (ExpressionSet or data.frame containing features and class labels)"
+      ],
+      "stages": "1. Train and test a Random Forest classifier using a split-sample approach ;; 2. Train and test a Linear Discriminant Analysis (LDA) classifier using split-sample and balanced 5-fold cross-validation ;; 3. Train and test a Support Vector Machine (SVM) classifier.",
+      "code": "rf1 = MLearn(spsex~., crES, randomForestI, 1:140 )\nconfuMat(rf1)\nld1 = MLearn(spsex~., crES, ldaI, 1:140 )\nconfuMat(ld1)\nxvld = MLearn( spsex~., crES, ldaI, xvalSpec(\"LOG\", 5,balKfold.xvspec(5)))\nconfuMat(xvld)\nsv1 = MLearn(spsex~., crES, svmI, 1:140)\nconfuMat(sv1)"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "package": "stabmap",
+  "requirements": [
+    "StabMap",
+    "magrittr"
+  ],
+  "by_workflow": {
+    "indirect_mosaic_integration.nf": [
+      "StabMap"
+    ],
+    "main.nf": [
+      "StabMap",
+      "magrittr"
+    ]
+  }
+}

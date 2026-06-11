@@ -1,0 +1,11 @@
+{
+  "package": "r3cpet",
+  "requirements": [
+    "R3CPET"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "R3CPET"
+    ]
+  }
+}

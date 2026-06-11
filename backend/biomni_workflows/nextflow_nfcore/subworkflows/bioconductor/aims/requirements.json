@@ -1,0 +1,13 @@
+{
+  "package": "aims",
+  "requirements": [
+    "AIMS",
+    "Biobase"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AIMS",
+      "Biobase"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: trylist=A list of lists, where each sublist contains 'exprs' (a matrix of genomic data with genes as rows and samples as columns) and 'classlab' (a 0/1 vector indicating control/normal as 0 and tumor/case as 1) ;; side=A character vector specifying the direction of outlier detection (\"up\" for over-expression/amplification, \"down\" for under-expression/hypo-methylation) for each study in the input list ;; type=A character string, either \"subtype\" (to find genes outlier-expressed in a subset of samples in at least one study) or \"uniform\" (to find genes consistently outlier-expressed across all studies) ;; topcut=An integer specifying how many top-ranked genes to plot in PlotTopPCOPA ;; TopGeneNum=An integer specifying the number of top PCOPA-scored genes to consider when generating patient-specific outlier gene lists\n- alternatives: limma and SAM (preferred when genes differ statistically across the majority of tumor samples rather than a subset); COPA, Outlier Sums, and Wu's statistic (alternative outlier detection statistics for single datasets, whereas coGPS is preferred for multi-study/multi-platform integration and gene set analysis)\n- when_to_use: When analyzing multi-platform genomic data (e.g., matched expression, methylation, and copy number variation) or multiple independent studies of the same biological process to identify cancer outlier genes (disregulated in only a subset of tumor samples) and perform downstream gene set enrichment analysis (GSEA)\n- pitfalls: Sample ordering is critical for patient-specific outlier gene list generation; if using PatientSpecificGeneList, the samples in each data type must be in the exact same order (i.e., column j in all matrices must represent the same patient). If only calculating PCOPA scores or running GSEA, sample matching across data types is not strictly required. Additionally, 'exprs' must be a matrix (not a data frame) with row names (gene names) and column names (sample names), and 'classlab' must be a vector (not a list or data frame).",
+  "workflows": [
+    {
+      "name": "outlier_detection_and_gsea",
+      "intent": "Identify outlier genes across multiple genomic datasets using PCOPA, calculate permutation-based p-values, visualize top results, and perform gene set enrichment analysis.",
+      "input": [
+        "gene_expression.csv (matrix of gene expression values)",
+        "methylation.csv (matrix of methylation values)",
+        "cnv.csv (matrix of copy number variation values)",
+        "class_labels.csv (binary vectors indicating normal/tumor status for each dataset)"
+      ],
+      "stages": "1. Prepare input list of matrices and class labels ;; 2. Run PCOPA to calculate outlier statistics (subtype or uniform) ;; 3. Plot top-ranked outlier genes using PlotTopPCOPA ;; 4. Run permutation tests using permCOPA to calculate p-values ;; 5. Perform downstream gene set enrichment analysis using Wilcoxon rank sum test (wilcoxGST from limma)",
+      "code": "Exon_exprs<-as.matrix(Exon_exprs_matched)\nMethy_exprs<-as.matrix(Methy_exprs_matched)\nCNV_exprs<-as.matrix(CNV_exprs_matched)\nExon_classlab<-unlist(Exon_classlab_matched)\nMethy_classlab<-unlist(Methy_classlab_matched)\nCNV_classlab<-unlist(CNV_classlab_matched)\ntrylist<-list()\ntrylist[[1]]<-list(exprs=Exon_exprs,classlab=Exon_classlab)\ntrylist[[2]]<-list(exprs=Methy_exprs,classlab=Methy_classlab)\ntrylist[[3]]<-list(exprs=CNV_exprs,classlab=CNV_classlab)\na7<-PCOPA(trylist,0.05,side=c(\"up\",\"down\",\"up\"),type=\"subtype\")\na8<-PCOPA(trylist,0.05,side=c(\"up\",\"down\",\"up\"),type=\"uniform\")\nPlotTopPCOPA(trylist,a8,topcut=1,typelist=c(\"Exon\",\"Methy\",\"CNV\"))\nperma7<-permCOPA(trylist,0.05,side=c(\"up\",\"down\",\"up\"),type=\"subtype\",perms=2)\npvaluea7<-sapply(1:length(a7),function(i) \n\tlength(which(perma7[i,]>a7[i]))/ncol(perma7))\ndista7<-as.vector(perma7)\npvaluea7<-sapply(1:length(a7),function(i) \n\tlength(which(dista7>a7[i]))/length(dista7))\nlibrary(limma)\ndata(human_c1)\ngenename<-rownames(Exon_exprs)\ntest_set1_a7<-rep(1,length(Hs.gmtl.c1))\nfor(i in 1:length(Hs.gmtl.c1))\n{\n\tset<-Hs.gmtl.c1[[i]]\n \tmatched<-match(genename,set)\n\tindex<-is.na(matched)==FALSE\n\tif(sum(as.numeric(index))>0)\n\t{\n\t\ttest_set1_a7[i]<-wilcoxGST(index,a7)\n\t}\n\telse\n\t{\n\t\ttest_set1_a7[i]<-NA\n\t}\n}"
+    },
+    {
+      "name": "patient_specific_outlier_lists",
+      "intent": "Generate patient-specific outlier gene lists for clinical settings where samples across different data types are matched and ordered identically.",
+      "input": [
+        "matched_gene_expression.csv (matrix of gene expression values with matched sample ordering)",
+        "matched_methylation.csv (matrix of methylation values with matched sample ordering)",
+        "matched_cnv.csv (matrix of copy number variation values with matched sample ordering)",
+        "class_labels.csv (binary vectors indicating normal/tumor status for each dataset)"
+      ],
+      "stages": "1. Prepare matched and identically ordered input list of matrices and class labels ;; 2. Run PatientSpecificGeneList to extract outlier genes for each individual patient ;; 3. Retrieve the outlier gene list for specific patients",
+      "code": "Exon_exprs<-as.matrix(Exon_exprs_matched)\nMethy_exprs<-as.matrix(Methy_exprs_matched)\nCNV_exprs<-as.matrix(CNV_exprs_matched)\nExon_classlab<-unlist(Exon_classlab_matched)\nMethy_classlab<-unlist(Methy_classlab_matched)\nCNV_classlab<-unlist(CNV_classlab_matched)\ntrylist<-list()\ntrylist[[1]]<-list(exprs=Exon_exprs,classlab=Exon_classlab)\ntrylist[[2]]<-list(exprs=Methy_exprs,classlab=Methy_classlab)\ntrylist[[3]]<-list(exprs=CNV_exprs,classlab=CNV_classlab)\nIndividualList7<-PatientSpecificGeneList(trylist,0.05,side=c(\"down\",\"up\",\"down\"),\ntype=\"subtype\",TopGeneNum=100)\nIndividualList7[[1]]\nIndividualList7[[33]]"
+    }
+  ]
+}

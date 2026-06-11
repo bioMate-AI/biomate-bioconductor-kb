@@ -1,0 +1,13 @@
+{
+  "package": "nearbynding",
+  "requirements": [
+    "Rsamtools",
+    "nearBynding"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rsamtools",
+      "nearBynding"
+    ]
+  }
+}

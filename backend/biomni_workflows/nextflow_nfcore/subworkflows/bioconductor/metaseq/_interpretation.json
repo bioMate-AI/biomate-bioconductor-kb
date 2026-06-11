@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=The input RNA-seq count matrix where rows are genes and columns are samples ;; factor=A vector indicating the experimental condition (e.g., 1 for treatment, 0 for control) ;; studies=A vector indicating the study source of each sample ;; k=NOISeq parameter for zero-count replacement ;; norm=Normalization method (e.g., \"tmm\") ;; replicates=Type of replicates (e.g., \"biological\") ;; conditions=The two conditions to compare ;; cl=A cluster object from the snow package for parallel processing ;; upper=Matrix of one-sided p-values for upper-regulated genes ;; lower=Matrix of one-sided p-values for lower-regulated genes ;; weight=A vector of weights (typically sample sizes) for each study, required for Stouffer's method\n- alternatives: DESeq, edgeR, baySeq, and Cuffdiff are mentioned as alternative differential expression methods. NOISeq is preferred within this package's workflow because it is robust against the Read-Size Effect (RSE) when integrating studies with highly varying sequencing depths.\n- when_to_use: Use this package when you want to perform a meta-analysis combining multiple independent RNA-seq datasets/studies to identify robust differentially expressed genes, especially when the studies have different sequencing depths.\n- pitfalls: The meta.oneside.noiseq function is highly computationally intensive and time-consuming; using parallel processing via the snow package is strongly recommended. Stouffer's method requires study weights (sample sizes), whereas Fisher's method does not. Note that NOISeq outputs probabilities of differential expression, not standard p-values.",
+  "workflows": [
+    {
+      "name": "noiseq_meta_analysis",
+      "intent": "Perform meta-analysis on RNA-seq count data from multiple studies using one-sided NOISeq probabilities combined via Fisher's or Stouffer's method.",
+      "input": [
+        "BreastCancer (matrix of RNA-seq counts with genes as rows and samples as columns)",
+        "flag1 (vector of experimental conditions)",
+        "flag2 (vector of study identifiers)"
+      ],
+      "stages": "1. Format the count data and metadata using meta.readData ;; 2. Run one-sided NOISeq on each study using meta.oneside.noiseq ;; 3. Combine the probabilities using Fisher.test and Stouffer.test",
+      "code": "library(\"metaSeq\")\nlibrary(\"snow\")\ndata(BreastCancer)\nflag1 <- c(1,1,1,0,0, 1,0, 1,1,1,1,1,1,1,0, 1,1,0)\nflag2 <- c(\"A\",\"A\",\"A\",\"A\",\"A\", \"B\",\"B\", \"C\",\"C\",\"C\",\"C\",\"C\",\"C\",\"C\",\"C\", \"D\",\"D\",\"D\")\ncds <- meta.readData(data = BreastCancer, factor = flag1, studies = flag2)\ncl <- makeCluster(4, \"SOCK\")\nresult <- meta.oneside.noiseq(cds, k = 0.5, norm = \"tmm\", replicates = \"biological\", factor = flag1, conditions = c(1, 0), studies = flag2, cl = cl)\nstopCluster(cl)\nF <- Fisher.test(result)\nS <- Stouffer.test(result)\nhead(F$Upper)\nhead(F$Lower)\nF$Weight\nhead(S$Upper)\nhead(S$Lower)\nS$Weight"
+    },
+    {
+      "name": "non_noiseq_meta_analysis",
+      "intent": "Perform meta-analysis using one-sided p-values generated from non-NOISeq methods (e.g., DESeq, edgeR, Cuffdiff).",
+      "input": [
+        "upper (matrix of one-sided p-values for upper-regulated genes)",
+        "lower (matrix of one-sided p-values for lower-regulated genes)",
+        "weight (vector of study weights/sample sizes)"
+      ],
+      "stages": "1. Format the custom p-value matrices and weights using other.oneside.pvalues ;; 2. Combine the p-values using Fisher.test and Stouffer.test",
+      "code": "upper <- matrix(runif(300), ncol=3, nrow=100)\nlower <- 1 - upper\nrownames(upper) <- paste0(\"Gene\", 1:100)\nrownames(lower) <- paste0(\"Gene\", 1:100)\nweight <- c(3,6,8)\nresult <- other.oneside.pvalues(upper, lower, weight)\nF <- Fisher.test(result)\nstr(F)\nhead(F$Upper)\nhead(F$Lower)\nF$Weight\nS <- Stouffer.test(result)\nstr(S)\nhead(S$Upper)\nhead(S$Lower)\nS$Weight"
+    }
+  ]
+}

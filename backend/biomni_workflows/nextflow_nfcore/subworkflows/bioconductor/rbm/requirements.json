@@ -1,0 +1,11 @@
+{
+  "package": "rbm",
+  "requirements": [
+    "RBM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RBM"
+    ]
+  }
+}

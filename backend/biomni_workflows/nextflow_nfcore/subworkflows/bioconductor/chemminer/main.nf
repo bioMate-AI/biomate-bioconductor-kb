@@ -1,123 +1,110 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChemmineR
-// ChemmineR is a cheminformatics package for analyzing drug-like small molecule data in R. Its latest 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChemmineR/inst/doc/ChemmineR.R
-// Upstream  : RCurl, fmcsR, gplots, rgl, scatterplot3d
-// Downstream: eiR, fmcsR, ChemmineDrugs
-//
-// Install: BiocManager::install("ChemmineR")
+// Bioconductor workflow: chemminer — chemical_structure_analysis_and_clustering
+// Import small molecules, calculate physicochemical properties, generate descriptors, perform similarity searches, cluster the compounds, and visualize the result
+// Input: sdfsample.sdf
+// Container: quay.io/biocontainers/bioconductor-chemminer:3.62.0--r45ha27e39d_0
+// R packages: ChemmineR, fmcsR, gplots, rcurl, rgl, scatterplot3d
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHEMMINER {
+process BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chemminer"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chemminer:3.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chemminer:3.58.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chemminer:3.62.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chemminer_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chemminer_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chemminer_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ChemmineR", "fmcsR", "gplots", "rcurl", "rgl", "scatterplot3d")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(ChemmineR)
-    library(SDFDataTable)
-    library(jsonlite)
+    
+    # Stage 1: Import and validate SDF structures
+    # Reading the user-provided local file "sdfsample.sdf"
+    sdfset <- read.SDFset("sdfsample.sdf")
+    valid <- validSDF(sdfset)
+    sdfset <- sdfset[valid]
+    
+    # Stage 2: Calculate molecular weight, formula, and atom counts
+    propma <- data.frame(MF=MF(sdfset), MW=MW(sdfset), atomcountMA(sdfset))
+    write.csv(propma, "molecular_properties.csv", row.names = TRUE)
+    
+    # Stage 3: Generate atom pair descriptors
+    apset <- sdf2ap(sdfset)
+    saveRDS(apset, "atom_pair_descriptors.rds")
+    
+    # Stage 4: Perform structural similarity search
+    search_results <- cmp.search(apset, apset[1], type=3, cutoff = 0.3, quiet=TRUE)
+    write.csv(search_results, "similarity_search_results.csv", row.names = FALSE)
+    
+    # Stage 5: Cluster compounds using binning clustering
+    clusters <- cmp.cluster(db=apset, cutoff = c(0.7, 0.8, 0.9), quiet = TRUE)
+    write.csv(clusters, "compound_clusters.csv", row.names = FALSE)
+    
+    # Stage 6: Plot chemical structures
+    pdf("chemical_structures.pdf", width = 8, height = 8)
+    plot(sdfset[1:4], regenCoords=TRUE, print=FALSE)
+    dev.off()
 
-    # --- Property Extraction and Matrix Conversion [] ---
-    # Key functions: datablock, datablock2ma, splitNumChar, MW, MF
-    blockmatrix <- datablock2ma(datablocklist=datablock(sdfset))
-    numchar <- splitNumChar(blockmatrix=blockmatrix)
-    propma <- data.frame(
-        MF=MF(sdfset), 
-        MW=MW(sdfset), 
-        atomcountMA(sdfset)
-    )
-    datablock(sdfset) <- propma
-
-
-    # --- Compound Clustering and Similarity Search [] ---
-    # Key functions: cmp.search, cmp.cluster
-    data(apset)
-    search_res <- cmp.search(
-        apset, 
-        apset[1], 
-        type=3, 
-        cutoff=0.3, 
-        quiet=TRUE
-    )
-    clust_res <- cmp.cluster(
-        db=apset, 
-        cutoff=c(0.65, 0.5), 
-        quiet=TRUE
-    )
-
-
-    # --- Database Storage and Querying [] ---
-    # Key functions: initDb, loadSdf, rings, findCompounds, getCompounds
-    conn <- initDb("test.db")
-    ids <- loadSdf(conn, sdfset, function(s) {
-        data.frame(rings(s, type="count", upper=6, arom=TRUE))
-    })
-    results <- findCompounds(conn, "rings", c("rings <= 1"))
-    compounds <- getCompounds(conn, results, keepOrder=TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chemminer_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chemminer_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chemminer_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHEMMINER:", paste0("    chemminer: ", packageVersion("ChemmineR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING":',
+        paste0('        chemminer: ', as.character(packageVersion("chemminer")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chemminer_results.csv
-    touch ${prefix}_chemminer_output.rds
-    echo "BIOC_CHEMMINER:" > versions.yml
-    echo "    chemminer: 0.0.0" >> versions.yml
+    touch ${prefix}_chemical_structure_analysis_and_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHEMMINER_WORKFLOW {
+workflow BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sdfsample.sdf ] ]
 
     main:
-    BIOC_CHEMMINER(ch_input)
+    BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_CHEMMINER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHEMMINER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHEMMINER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHEMMINER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING.out.tables
+    plots    = BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING.out.plots
+    objects  = BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING.out.objects
+    versions = BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING.out.versions
 }

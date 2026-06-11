@@ -1,0 +1,14 @@
+{
+  "package": "bg2",
+  "requirements": [
+    "BG2"
+  ],
+  "by_workflow": {
+    "binary_gwas.nf": [
+      "BG2"
+    ],
+    "main.nf": [
+      "BG2"
+    ]
+  }
+}

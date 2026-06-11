@@ -1,0 +1,25 @@
+{
+  "package": "ropls",
+  "requirements": [
+    "MultiAssayExperiment",
+    "SummarizedExperiment",
+    "ropls"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ropls"
+    ],
+    "multi_assay_experiment_workflow.nf": [
+      "MultiAssayExperiment",
+      "SummarizedExperiment",
+      "ropls"
+    ],
+    "summarized_experiment_workflow.nf": [
+      "SummarizedExperiment",
+      "ropls"
+    ],
+    "supervised_pls_opls.nf": [
+      "ropls"
+    ]
+  }
+}

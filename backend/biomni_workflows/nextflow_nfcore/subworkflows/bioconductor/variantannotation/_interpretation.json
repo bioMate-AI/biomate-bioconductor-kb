@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: param=A ScanVcfParam object used in readVcf to subset the VCF by genomic coordinates (which), samples, or specific fields (info, geno, fixed) ;; yieldSize=An argument for TabixFile that specifies the number of records to read at a time, enabling memory-efficient chunk-wise processing of large VCF files ;; region=A constructor function (e.g., CodingVariants(), IntronVariants(), AllVariants()) passed to locateVariants to define the genomic regions of interest ;; seqSource=A BSgenome or fasta file containing reference sequences used by predictCoding to retrieve reference codons ;; uncertain=A logical parameter in genotypeToSnpMatrix; when TRUE, converts genotype likelihoods (GL or GP) instead of called genotypes (GT) to a SnpMatrix ;; prefilters=A FilterRules object containing simple string-based filtering functions (e.g., using grepl) passed to filterVcf ;; filters=A FilterRules object containing parsed-line filtering functions (evaluating parsed VCF structures) passed to filterVcf\n- alternatives: readGT, readInfo, readGeno=Lightweight read functions that return a single field as a matrix instead of a full VCF object, offering significantly faster performance when only one field is needed ;; ensemblVEP=A package/REST API interface (via vep_by_region) used to query Ensembl's Variant Effect Predictor directly from R ;; SIFT vs PolyPhen=SIFT predictions are based on Ensembl gene models, whereas PolyPhen predictions are based on UCSC Known Gene models\n- when_to_use: Use this package when you need to parse, subset, or filter large VCF files, identify the genomic locations of variants relative to gene structures, predict the functional consequences of coding variants (e.g., synonymous, nonsynonymous, frameshift), or prepare genotype data for association testing using the snpStats package.\n- pitfalls: Chromosome naming mismatch=Overlap methods like locateVariants require compatible chromosome names (seqlevels) between the VCF and the gene model (TxDb) (e.g., \"22\" vs \"chr22\"). Use seqlevels(vcf) <- ... to align them ;; Multiple alternate alleles=Variants with more than one ALT allele are set to NA when converting to a SnpMatrix via genotypeToSnpMatrix ;; Non-diploid/non-SNV variants=Only single nucleotide variants and diploid calls are included in genotypeToSnpMatrix; others are set to NA ;; Frameshift consequences=When the resulting variant codon length is not a multiple of 3, translation is not possible, and the amino acid change (varAA) will be missing ;; Filter function robustness=Custom filters passed to filterVcf must be written to handle 0-row VCF instances safely",
+  "workflows": [
+    {
+      "name": "variant_annotation_and_prediction",
+      "intent": "Read a VCF file, locate variants relative to gene models, predict amino acid coding changes, and query PolyPhen for functional impact.",
+      "input": [
+        "chr22.vcf.gz (Gzipped VCF file containing variant calls)",
+        "TxDb.Hsapiens.UCSC.hg19.knownGene (Transcript database package)",
+        "BSgenome.Hsapiens.UCSC.hg19 (Reference genome package)",
+        "PolyPhen.Hsapiens.dbSNP131 (PolyPhen database package)"
+      ],
+      "stages": "1. Read the VCF file into a VCF object.\n2. Align chromosome naming styles (seqlevels) between the VCF and the transcript database.\n3. Locate variants in coding regions using locateVariants.\n4. Predict amino acid coding changes for the variants using predictCoding.\n5. Query the PolyPhen database to retrieve functional impact predictions for nonsynonymous variants.",
+      "code": "library(VariantAnnotation)\nfl <- system.file(\"extdata\", \"chr22.vcf.gz\", package=\"VariantAnnotation\")\nvcf <- readVcf(fl, \"hg19\")\nlibrary(TxDb.Hsapiens.UCSC.hg19.knownGene)\ntxdb <- TxDb.Hsapiens.UCSC.hg19.knownGene\nseqlevels(vcf) <- \"chr22\"\nrd <- rowRanges(vcf)\nloc <- locateVariants(rd, txdb, CodingVariants())\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\ncoding <- predictCoding(vcf, txdb, seqSource=Hsapiens)\nnms <- names(coding) \nidx <- mcols(coding)$CONSEQUENCE == \"nonsynonymous\"\nnonsyn <- coding[idx]\nnames(nonsyn) <- nms[idx]\nrsids <- unique(names(nonsyn)[grep(\"rs\", names(nonsyn), fixed=TRUE)])\nlibrary(PolyPhen.Hsapiens.dbSNP131)\npp <- select(PolyPhen.Hsapiens.dbSNP131, keys=rsids,\n          cols=c(\"TRAININGSET\", \"PREDICTION\", \"PPH2PROB\"))"
+    },
+    {
+      "name": "vcf_filtering",
+      "intent": "Filter a large VCF file using prefilters (fast string matching) and filters (parsed VCF evaluation) to write a smaller VCF file.",
+      "input": [
+        "chr7-sub.vcf.gz (Gzipped VCF file)",
+        "chr7-sub.vcf.gz.tbi (Tabix index file)"
+      ],
+      "stages": "1. Define prefilter functions using fast string matching (grepl).\n2. Define filter functions evaluating parsed VCF objects (e.g., checking allelic depth).\n3. Combine prefilters and filters using FilterRules.\n4. Set up a TabixFile with a specified yieldSize for chunk-wise processing.\n5. Execute filtering and write the output to a destination file using filterVcf.",
+      "code": "isGermlinePrefilter <- function(x) {\n grepl(\"Germline\", x, fixed=TRUE)\n}\nnotInDbsnpPrefilter <- function(x) {\n !(grepl(\"dbsnp\", x, fixed=TRUE))\n}\nallelicDepth <- function(x) {\n ad <- geno(x)$AD\n tumorPct <- ad[,1,2,drop=FALSE] / rowSums(ad[,1,,drop=FALSE])\n normPct <- ad[,2,1, drop=FALSE] / rowSums(ad[,2,,drop=FALSE])\n test <- (tumorPct > 0.1) | (normPct > 0.1)\n as.vector(!is.na(test) & test)\n}\nlibrary(VariantAnnotation)\nprefilters <- FilterRules(list(germline=isGermlinePrefilter, dbsnp=notInDbsnpPrefilter))\nfilters <- FilterRules(list(isSNV=isSNV, AD=allelicDepth))\nfile.gz <- system.file(\"extdata\", \"chr7-sub.vcf.gz\", package=\"VariantAnnotation\")\nfile.gz.tbi <- system.file(\"extdata\", \"chr7-sub.vcf.gz.tbi\", package=\"VariantAnnotation\")\ndestination.file <- tempfile()\ntabix.file <- TabixFile(file.gz, yieldSize=10000)\nfilterVcf(tabix.file, \"hg19\", destination.file, prefilters=prefilters, filters=filters, verbose=TRUE)"
+    },
+    {
+      "name": "genotype_to_snpmatrix",
+      "intent": "Convert VCF genotype calls or genotype likelihoods into a SnpMatrix object for downstream genetic association analysis.",
+      "input": [
+        "chr22.vcf.gz (VCF file with GT calls)",
+        "gl_chr1.vcf (VCF file with GL likelihoods)"
+      ],
+      "stages": "1. Read the VCF file.\n2. Convert called genotypes (GT) to a SnpMatrix using genotypeToSnpMatrix.\n3. Convert genotype likelihoods (GL) to a SnpMatrix using genotypeToSnpMatrix with uncertain=TRUE.",
+      "code": "library(VariantAnnotation)\nfl <- system.file(\"extdata\", \"chr22.vcf.gz\", package=\"VariantAnnotation\")\nvcf <- readVcf(fl, \"hg19\")\nres <- genotypeToSnpMatrix(vcf)\nfl.gl <- system.file(\"extdata\", \"gl_chr1.vcf\", package=\"VariantAnnotation\")\nvcf.gl <- readVcf(fl.gl, \"hg19\")\nres <- genotypeToSnpMatrix(vcf.gl, uncertain=TRUE)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package": "geoquery",
+  "requirements": [
+    "GEOquery",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GEOquery",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

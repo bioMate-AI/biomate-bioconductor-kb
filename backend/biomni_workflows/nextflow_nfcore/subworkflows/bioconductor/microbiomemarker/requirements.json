@@ -1,0 +1,13 @@
+{
+  "package": "microbiomemarker",
+  "requirements": [
+    "microbiomeMarker",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "microbiomeMarker",
+      "phyloseq"
+    ]
+  }
+}

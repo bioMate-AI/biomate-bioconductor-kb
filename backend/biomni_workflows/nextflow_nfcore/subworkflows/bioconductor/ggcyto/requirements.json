@@ -1,0 +1,17 @@
+{
+  "package": "ggcyto",
+  "requirements": [
+    "EBImage",
+    "flowCore",
+    "ggcyto",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "flowCore",
+      "ggcyto",
+      "ggplot2"
+    ]
+  }
+}

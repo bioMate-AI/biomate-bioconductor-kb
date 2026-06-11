@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: E=Exposure vector or n x 1 matrix ;; M=Mediator matrix of size n x K, where K is the number of mediators ;; Y=Outcome vector or n x 1 matrix ;; Z=Optional numerical matrix of covariates (size n x number of covariates) to regress out before mediation analysis ;; nperm=Number of permutations used to estimate the null distribution (default is 100) ;; w=Optional vector of weights of length n (e.g., for case-control studies to adjust for prevalence), standardized to sum to 1 ;; useWeightsZ=Logical; if TRUE, weights in w are used in the initial regression on Z, otherwise equal weights are used\n- alternatives: Standard Bonferroni correction, over which MultiMed significantly improves statistical power\n- when_to_use: When testing multiple potential biological mediators (e.g., genomics, metabolomics) simultaneously between an exposure and an outcome, especially in case-control designs or when adjusting for covariates\n- pitfalls: Forgetting to set a seed (set.seed) before running medTest since it relies on permutations, which can lead to non-reproducible p-values ;; Incorrectly specifying weights w or useWeightsZ in case-control studies, which can bias the exposure-mediator association ;; Inputting Z as a non-numerical matrix or data frame (it must be a numerical matrix)",
+  "workflows": [
+    {
+      "name": "multiple_mediation_analysis",
+      "intent": "Test multiple potential mediators simultaneously between an exposure and an outcome, adjusting for covariates and applying observational weights.",
+      "input": [
+        "NavyAdenoma (a data frame containing exposure, mediators, outcome, and covariates)"
+      ],
+      "stages": "1. Load the MultiMed package and the dataset ;; 2. Calculate observational weights based on disease prevalence and case-control proportions ;; 3. Run the mediation test using medTest with specified permutations, covariates, and weights ;; 4. Identify the top mediators by sorting or filtering the resulting p-values",
+      "code": "library(MultiMed)\ndata(NavyAdenoma)\nprev <- 0.228\np <- sum(NavyAdenoma$Adenoma==1)/nrow(NavyAdenoma)\nw <- rep(NA, nrow(NavyAdenoma))\nw[NavyAdenoma$Adenoma == 1] <- prev/p\nw[NavyAdenoma$Adenoma == 0] <- (1-prev)/(1-p)\nset.seed(840218)\nmedsFish <- medTest(E=NavyAdenoma$Fish,\n                    M=NavyAdenoma[, 6:154],\n                    Y=NavyAdenoma$Adenoma,\n                    Z=NavyAdenoma[, 2:5],\n                    nperm=1000, w=w,\n                    useWeightsZ=FALSE)\nrownames(medsFish) <- colnames(NavyAdenoma[,-c(1:5, 154)])\nmedsFish[which.min(medsFish[,\"p\"]),,drop=FALSE]"
+    }
+  ]
+}

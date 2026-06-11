@@ -1,0 +1,22 @@
+{
+  "package": "snpstats",
+  "requirements": [
+    "Matrix",
+    "snpStats"
+  ],
+  "by_workflow": {
+    "fst_calculation.nf": [
+      "snpStats"
+    ],
+    "linkage_disequilibrium.nf": [
+      "Matrix",
+      "snpStats"
+    ],
+    "main.nf": [
+      "snpStats"
+    ],
+    "snp_imputation_and_association.nf": [
+      "snpStats"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package": "singscore",
+  "requirements": [
+    "GSEABase",
+    "SummarizedExperiment",
+    "ggplot2",
+    "singscore"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "SummarizedExperiment",
+      "singscore"
+    ],
+    "score_landscape_projection.nf": [
+      "ggplot2",
+      "singscore"
+    ],
+    "stingscore_reduced_measurements.nf": [
+      "GSEABase",
+      "SummarizedExperiment",
+      "singscore"
+    ]
+  }
+}

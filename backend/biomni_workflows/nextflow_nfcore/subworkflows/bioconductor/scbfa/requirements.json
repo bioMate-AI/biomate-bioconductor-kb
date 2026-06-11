@@ -1,0 +1,19 @@
+{
+  "package": "scbfa",
+  "requirements": [
+    "SingleCellExperiment",
+    "ggplot2",
+    "scBFA"
+  ],
+  "by_workflow": {
+    "binary_pca.nf": [
+      "SingleCellExperiment",
+      "ggplot2",
+      "scBFA"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "scBFA"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "package": "methylpipe",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg18",
+    "GenomicRanges",
+    "Rsamtools",
+    "TxDb.Hsapiens.UCSC.hg18.knownGene",
+    "methylPipe"
+  ],
+  "by_workflow": {
+    "differential_methylation_analysis.nf": [
+      "GenomicRanges",
+      "methylPipe"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg18",
+      "GenomicRanges",
+      "Rsamtools",
+      "methylPipe"
+    ],
+    "methylation_profiling_and_visualization.nf": [
+      "BSgenome.Hsapiens.UCSC.hg18",
+      "TxDb.Hsapiens.UCSC.hg18.knownGene",
+      "methylPipe"
+    ]
+  }
+}

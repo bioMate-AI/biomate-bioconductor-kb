@@ -1,0 +1,17 @@
+{
+  "package": "metaseqr2",
+  "requirements": [
+    "metaseqR2"
+  ],
+  "by_workflow": {
+    "build_custom_annotation.nf": [
+      "metaseqR2"
+    ],
+    "combine_p_values.nf": [
+      "metaseqR2"
+    ],
+    "main.nf": [
+      "metaseqR2"
+    ]
+  }
+}

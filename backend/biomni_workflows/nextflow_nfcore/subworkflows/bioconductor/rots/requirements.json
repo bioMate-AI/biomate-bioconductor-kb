@@ -1,0 +1,11 @@
+{
+  "package": "rots",
+  "requirements": [
+    "ROTS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ROTS"
+    ]
+  }
+}

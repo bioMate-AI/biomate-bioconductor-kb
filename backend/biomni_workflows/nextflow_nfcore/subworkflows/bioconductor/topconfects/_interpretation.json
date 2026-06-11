@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fdr=The target False Discovery Rate to maintain (e.g., 0.05) ;; coef=The coefficient or contrast to test in limma or edgeR ;; name=The name of the individual coefficient to test in DESeq2 ;; step=The step size for testing fold changes (e.g., 0.05 for speed, 0.01 for precision in practice) ;; trend=Set to TRUE in limma_confects if not using voom or precision weights to account for a mean-variance trend ;; cooksCutoff=Set to Inf in deseq2_confects to disable outlier filtering if a complete ranking of all genes is desired ;; independentFiltering=Set to FALSE in deseq2_confects to disable independent filtering if a complete ranking of all genes is desired\n- alternatives: limma::treat=Requires a pre-specified fold change cutoff, whereas topconfects automatically ranks genes by the largest confident fold change at a given FDR ;; topTable/topTags=Rank genes by p-value/FDR, which can act as a proxy for evidence quality rather than biological effect size ;; DESeq2::lfcShrink=Provides shrunken LFC estimates but does not indicate significance (can produce non-zero values for non-significant genes), whereas topconfects returns NA for genes that are not significantly non-zero\n- when_to_use: Use as the final step of a differential expression analysis (RNA-seq or microarray) using limma, edgeR, or DESeq2 to rank genes by confident effect size rather than statistical significance alone.\n- pitfalls: Do not use confects_plot_me as it overlays estimated and confident effect sizes in a way that is confusing and easily misleading; use confects_plot_me2 instead ;; Only quasi-likelihood testing from edgeR (glmQLFit) is supported ;; DESeq2 filters some genes by default, placing them at the bottom of the table with NA confect values; disable this with cooksCutoff=Inf and independentFiltering=FALSE if a complete ranking is needed ;; Using a large step size (e.g., 0.05) is fast but less precise; use a smaller step (e.g., 0.01) in practice",
+  "workflows": [
+    {
+      "name": "limma_confects",
+      "intent": "Rank genes by confident fold change from a limma linear model fit.",
+      "input": [
+        "y (DGEList of normalized counts)",
+        "design (model matrix)"
+      ],
+      "stages": "1. Fit linear model using voom and lmFit ;; 2. Calculate confident effect sizes using limma_confects ;; 3. Visualize results using confects_plot and confects_plot_me2",
+      "code": "fit <-\n    voom(y, design) %>%\n    lmFit(design)\nconfects <- limma_confects(fit, coef=\"Treathrcc\", fdr=0.05)\nconfects_plot(confects)\nconfects_plot_me2(confects, breaks=c(0,1,2))"
+    },
+    {
+      "name": "edger_confects",
+      "intent": "Rank genes by confident fold change from an edgeR quasi-likelihood fit.",
+      "input": [
+        "y (DGEList with normalization factors)",
+        "design (model matrix)"
+      ],
+      "stages": "1. Estimate dispersions and fit QL model ;; 2. Calculate confident effect sizes using edger_confects ;; 3. Visualize results using confects_plot and confects_plot_me2",
+      "code": "y <- estimateDisp(y, design, robust=TRUE)\nefit <- glmQLFit(y, design, robust=TRUE)\neconfects <- edger_confects(efit, coef=\"Treathrcc\", fdr=0.05, step=0.05)\nconfects_plot(econfects)\nconfects_plot_me2(econfects, breaks=c(0,1,2))"
+    },
+    {
+      "name": "deseq2_confects",
+      "intent": "Rank genes by confident fold change from a DESeq2 analysis.",
+      "input": [
+        "arab (matrix of raw counts)",
+        "Time (experimental design factor)",
+        "Treat (experimental design factor)",
+        "arab_info (gene annotation data frame)"
+      ],
+      "stages": "1. Create DESeqDataSet and run DESeq ;; 2. Calculate confident effect sizes using deseq2_confects ;; 3. Visualize results using confects_plot",
+      "code": "dds <- DESeqDataSetFromMatrix(\n    countData = arab,\n    colData = data.frame(Time, Treat),\n    rowData = arab_info,\n    design = ~Time+Treat)\n\ndds <- DESeq(dds)\ndconfects <- deseq2_confects(dds, name=\"Treat_hrcc_vs_mock\", step=0.05)\nconfects_plot(dconfects)"
+    }
+  ]
+}

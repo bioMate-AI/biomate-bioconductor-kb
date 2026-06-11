@@ -1,0 +1,11 @@
+{
+  "package": "generecommender",
+  "requirements": [
+    "geneRecommender"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "geneRecommender"
+    ]
+  }
+}

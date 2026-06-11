@@ -1,0 +1,18 @@
+{
+  "package": "clstutils",
+  "requirements": [
+    "ape",
+    "clst",
+    "clstutils"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "clstutils"
+    ],
+    "reference_set_creation.nf": [
+      "ape",
+      "clst",
+      "clstutils"
+    ]
+  }
+}

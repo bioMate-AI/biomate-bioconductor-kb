@@ -1,0 +1,15 @@
+{
+  "package": "genomes",
+  "requirements": [
+    "GenomicRanges",
+    "genomes",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "genomes",
+      "rtracklayer"
+    ]
+  }
+}

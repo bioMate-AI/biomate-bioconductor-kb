@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: contexts=Vector of sequence contexts to extract or bin (e.g., c('CG','CHG','CHH')) ;; separate.contexts=Logical indicating whether to calculate distance correlation separately for each context ;; transDist=Transition distance parameters passed to the HMM calling functions ;; binsize=Size of genomic bins in base-pairs for binned analysis ;; category.column=Metadata column used to distinguish categories (e.g., missing vs covered) in enrichment plots\n- alternatives: Classical binomial test: methimpute is preferred because it improves accuracy and allows imputation of non-covered cytosines by borrowing information from neighbors. Separate-context model (callMethylationSeparate) vs Interacting-context model (callMethylation): Interacting-context is preferred when sufficient data is available, but separate-context is preferred in low-coverage settings to prevent information from well-covered contexts diffusing into low-covered contexts.\n- when_to_use: Use this package when analyzing whole-genome bisulfite sequencing (WGBS) data to call methylation status, impute missing cytosine positions, or perform binned methylation analysis.\n- pitfalls: Most methylation extractors only report covered cytosines, so users must inflate the dataset using inflateMethylome and a FASTA reference to include non-covered sites before running the HMM. In low-coverage settings, the interacting-context model can cause low-coverage contexts (like CHH/CHG) to incorrectly look like high-coverage contexts (like CG); use the separate-context model instead.",
+  "workflows": [
+    {
+      "name": "separate_context_calling",
+      "intent": "Call and impute methylation status for individual cytosines using a separate HMM for each sequence context to prevent between-context information diffusion in low-coverage settings.",
+      "input": [
+        "arabidopsis_bsseeker.txt.gz (BSSeeker methylation extractor output file)",
+        "arabidopsis_sequence.fa.gz (FASTA reference genome file)"
+      ],
+      "stages": "1. Import the BSSeeker data using importBSSeeker.\n2. Extract all genomic cytosine positions from the FASTA reference using extractCytosinesFromFASTA.\n3. Inflate the methylome to include non-covered cytosines using inflateMethylome.\n4. Calculate distance correlation separately for each context using distanceCorrelation.\n5. Estimate transition distance parameters using estimateTransDist.\n6. Call and impute methylation status using callMethylationSeparate.\n7. Plot diagnostics using plotConvergence, plotTransitionProbs, and plotHistogram.\n8. Export results using exportMethylome.",
+      "code": "library(methimpute)\nfile <- system.file(\"extdata\",\"arabidopsis_bsseeker.txt.gz\", package=\"methimpute\")\nbsseeker.data <- importBSSeeker(file)\nprint(bsseeker.data)\nfasta.file <- system.file(\"extdata\",\"arabidopsis_sequence.fa.gz\", package=\"methimpute\")\ncytosine.positions <- extractCytosinesFromFASTA(fasta.file,\n                                                contexts = c('CG','CHG','CHH'))\nmethylome <- inflateMethylome(bsseeker.data, cytosine.positions)\nprint(methylome)\ndistcor <- distanceCorrelation(methylome, separate.contexts = TRUE)\nfit <- estimateTransDist(distcor)\nprint(fit)\nmodel <- callMethylationSeparate(data = methylome, transDist = fit$transDist,\n                                 verbosity = 0)\nprint(model)\n1 - model$params$emissionParams$Unmethylated\nplotConvergence(model)\nplotTransitionProbs(model)\nplotHistogram(model, total.counts = 10)\nexportMethylome(model, filename = tempfile())"
+    },
+    {
+      "name": "interacting_context_calling",
+      "intent": "Call and impute methylation status for individual cytosines using a single HMM that considers both within-context and between-context correlations.",
+      "input": [
+        "arabidopsis_bsseeker.txt.gz (BSSeeker methylation extractor output file)",
+        "arabidopsis_sequence.fa.gz (FASTA reference genome file)"
+      ],
+      "stages": "1. Import the BSSeeker data using importBSSeeker.\n2. Extract all genomic cytosine positions from the FASTA reference using extractCytosinesFromFASTA.\n3. Inflate the methylome to include non-covered cytosines using inflateMethylome.\n4. Calculate distance correlation across contexts using distanceCorrelation.\n5. Estimate transition distance parameters using estimateTransDist.\n6. Call and impute methylation status using callMethylation.\n7. Export results using exportMethylome.",
+      "code": "library(methimpute)\nfile <- system.file(\"extdata\",\"arabidopsis_bsseeker.txt.gz\", package=\"methimpute\")\nbsseeker.data <- importBSSeeker(file)\nprint(bsseeker.data)\nfasta.file <- system.file(\"extdata\",\"arabidopsis_sequence.fa.gz\", package=\"methimpute\")\ncytosine.positions <- extractCytosinesFromFASTA(fasta.file,\n                                               contexts = c('CG','CHG','CHH'))\nmethylome <- inflateMethylome(bsseeker.data, cytosine.positions)\nprint(methylome)\ndistcor <- distanceCorrelation(methylome)\nfit <- estimateTransDist(distcor)\nprint(fit)\nmodel <- callMethylation(data = methylome, transDist = fit$transDist)\nprint(model)\n1 - model$params$emissionParams$Unmethylated\nexportMethylome(model, filename = tempfile())"
+    },
+    {
+      "name": "binned_methylation_calling",
+      "intent": "Call and impute methylation status on binned genomic data (e.g., 100bp bins).",
+      "input": [
+        "arabidopsis_bsseeker.txt.gz (BSSeeker methylation extractor output file)",
+        "arabidopsis_sequence.fa.gz (FASTA reference genome file)"
+      ],
+      "stages": "1. Import the BSSeeker data using importBSSeeker.\n2. Extract all genomic cytosine positions from the FASTA reference using extractCytosinesFromFASTA.\n3. Inflate the methylome to include non-covered cytosines using inflateMethylome.\n4. Bin the inflated methylome into fixed-size windows using binMethylome.\n5. Call and impute methylation status on the binned data using callMethylation.\n6. Plot diagnostics using plotConvergence, plotTransitionProbs, and plotHistogram.",
+      "code": "library(methimpute)\nfile <- system.file(\"extdata\",\"arabidopsis_bsseeker.txt.gz\", package=\"methimpute\")\nbsseeker.data <- importBSSeeker(file)\nprint(bsseeker.data)\nfasta.file <- system.file(\"extdata\",\"arabidopsis_sequence.fa.gz\", package=\"methimpute\")\ncytosine.positions <- extractCytosinesFromFASTA(fasta.file,\n                                                   contexts = c('CG','CHG','CHH'))\nmethylome <- inflateMethylome(bsseeker.data, cytosine.positions)\nprint(methylome)\nbinnedMethylome <- binMethylome(methylome, binsize = 100, contexts = c('total','CG'))\nprint(binnedMethylome$CG)\nbinnedModel <- callMethylation(data = binnedMethylome$CG)\nprint(binnedModel)\nplotConvergence(binnedModel)\nplotTransitionProbs(binnedModel)\nplotHistogram(binnedModel, total.counts = 150)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package": "imas",
+  "requirements": [
+    "IMAS",
+    "ggplot2",
+    "survival"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IMAS",
+      "ggplot2",
+      "survival"
+    ]
+  }
+}

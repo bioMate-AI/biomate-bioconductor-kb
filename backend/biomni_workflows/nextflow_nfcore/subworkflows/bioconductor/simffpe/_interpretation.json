@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: enzymeCut=Logical indicating whether to simulate enzymatic fragmentation (which can cause chimeric read pairs to map to the exact same location) ;; chimericProp=Proportion of artificial chimeric fragments to simulate ;; sameChrProp=Proportion of artifact chimeric fragments derived from the same chromosome ;; adjChimProp=Proportion of adjacent ss-DNA combinations among same chromosomal ss-DNA combinations ;; sameStrandProb=Proportion of same-strand ss-DNA combinations among adjacent ss-DNA combinations ;; spikeWidth=The width of the chimeric read spike used in simulating distant ss-DNA combinations ;; highNoiseRate=The noise rate for each base in noisy reads ;; highNoiseProb=The proportion of highly noisy reads ;; coverage=The desired sequencing coverage depth ;; readLen=The length of the simulated reads\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you need to generate realistic synthetic NGS datasets representing FFPE samples to benchmark structural variant callers, alignment algorithms, or artifact filtering pipelines.\n- pitfalls: Ensure that the target regions DataFrame has exactly three columns representing chromosome, start position, and end position using 1-based coordinates. Ensure the Phred score profile matrix matches the desired read length (e.g., using a 150bp profile for 150bp reads) to avoid simulation errors or unrealistic quality scores.",
+  "workflows": [
+    {
+      "name": "genome_wide_simulation",
+      "intent": "Simulate FFPE NGS reads across whole genomes, chromosomes, or large genomic regions.",
+      "input": [
+        "example.bam (User's BAM file to estimate Phred profile)",
+        "regionsBam.txt (Target regions for BAM profile estimation)",
+        "example.fasta (Reference genome FASTA file)"
+      ],
+      "stages": "1. Estimate Phred score profile from a BAM file ;; 2. Load reference genome sequences ;; 3. Simulate reads using readSimFFPE",
+      "code": "bamFilePath <- system.file(\"extdata\", \"example.bam\", package = \"SimFFPE\")\nregionPath <- system.file(\"extdata\", \"regionsBam.txt\", package = \"SimFFPE\")\nregions <- read.table(regionPath)\nPhredScoreProfile <- calcPhredScoreProfile(bamFilePath, targetRegions = regions)\n\nreferencePath <- system.file(\"extdata\", \"example.fasta\", package = \"SimFFPE\")\nreference <- readDNAStringSet(referencePath)\n\nsourceSeq <- reference[1:3]\noutFile1 <- paste0(tempdir(), \"/sim1\")\nreadSimFFPE(sourceSeq, referencePath, PhredScoreProfile2, outFile1,\n            overWrite = TRUE, coverage = 80, readLen = 150,\n            enzymeCut = TRUE, threads = 2)"
+    },
+    {
+      "name": "targeted_region_simulation",
+      "intent": "Simulate FFPE NGS reads for specific targeted regions or whole exome panels.",
+      "input": [
+        "example.fasta (Reference genome FASTA file)",
+        "regionsSim.txt (Target regions file)",
+        "PhredScoreProfile1.txt (Pre-calculated Phred score profile)"
+      ],
+      "stages": "1. Load target regions ;; 2. Load Phred score profile ;; 3. Simulate targeted reads using targetReadSimFFPE",
+      "code": "PhredScoreProfilePath <- system.file(\"extdata\", \"PhredScoreProfile1.txt\",\n                                      package = \"SimFFPE\")\nPhredScoreProfile <- as.matrix(read.table(PhredScoreProfilePath, skip = 1))\ncolnames(PhredScoreProfile)  <- \n    strsplit(readLines(PhredScoreProfilePath)[1], \"\\t\")[[1]]\n\nreferencePath <- system.file(\"extdata\", \"example.fasta\", package = \"SimFFPE\")\nregionPath <- system.file(\"extdata\", \"regionsSim.txt\", package = \"SimFFPE\")\ntargetRegions <- read.table(regionPath)\n\noutFile3 <- paste0(tempdir(), \"/sim3\")\ntargetReadSimFFPE(referencePath, PhredScoreProfile, targetRegions, outFile3,\n                  coverage = 120, readLen = 100, meanInsertLen = 180, \n                  sdInsertLen = 50, enzymeCut = FALSE)"
+    }
+  ]
+}

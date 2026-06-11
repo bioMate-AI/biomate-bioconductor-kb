@@ -1,0 +1,11 @@
+{
+  "package": "metid",
+  "requirements": [
+    "MetID"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MetID"
+    ]
+  }
+}

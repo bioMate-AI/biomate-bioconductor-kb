@@ -1,0 +1,29 @@
+{
+  "package": "decomptumor2sig",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "GenomicRanges",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "decompTumor2Sig",
+    "ggplot2",
+    "gridExtra"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "decompTumor2Sig"
+    ],
+    "signature_adjustment_for_genomic_subsets.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "GenomicRanges",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "decompTumor2Sig",
+      "ggplot2",
+      "gridExtra"
+    ],
+    "signature_comparison_and_mapping.nf": [
+      "decompTumor2Sig"
+    ]
+  }
+}

@@ -1,128 +1,169 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: qusage
-// This package is an implementation the Quantitative Set Analysis for Gene Expression (QuSAGE) method 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/qusage/inst/doc/qusage.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("qusage")
+// Bioconductor workflow: qusage — standard_qusage_analysis
+// Perform standard gene set enrichment analysis on a single dataset, calculate p-values, adjust for multiple testing, and visualize pathway activity.
+// Input: eset, gene_sets.gmt
+// Container: quay.io/biocontainers/bioconductor-qusage:2.44.0--r45hdfd78af_1
+// R packages: Biobase, nlme, qusage
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, nlme, qusage
+// Visualizations: density plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read gene sets from a GMT file using read.gmt
+//  * 2. [Core Analysis] Run the qusage wrapper function to calculate gene-level comparisons, aggregate gene data, and calculate variance inflation factors
+//  * 3. [Core Analysis] Extract p-values using pdf.pVal
+//  * 4. [Core Analysis] Adjust p-values for multiple testing using p.adjust
+//  * 5. [Visualization & Output] Generate a summary table of results using qsTable
+//  * 6. [Visualization & Output] Plot confidence intervals or density curves using plot or plotDensityCurves
 
 nextflow.enable.dsl = 2
 
-process BIOC_QUSAGE {
+process BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-qusage"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-qusage:2.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-qusage:2.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_qusage_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_qusage_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_qusage_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(qusage)
-    library(jsonlite)
-
-    # --- Gene Set Enrichment Analysis ---
-    # Key functions: qusage, pdf.pVal, qsTable
-    labels <- c(rep("t0", 17), rep("t1", 17))
-    contrast <- "t1-t0"
-    qs.results <- qusage(eset, labels, contrast, ISG.geneSet)
-    p.vals <- pdf.pVal(qs.results)
-    q.vals <- p.adjust(p.vals, method = "fdr")
-    res.table <- qsTable(qs.results, number = 10)
-
-    # --- Linear Mixed Modeling ---
-    # Key functions: qgen, qsTable
-    fixedeffects <- ~Hours + Condition + Condition * Hours + Age + Gender
-    qusage.result.random <- qgen(
-        eset.full,
-        flu.meta,
-        fixed = fixedeffects,
-        contrast.factor = "Condition",
-        contrast = "sx77 - sx0",
-        geneSets = ISG.geneSet,
-        random = ~1 | Subject,
-        design.sampleid = "SampleID"
-    )
-    res.table.random <- qsTable(qusage.result.random)
-
-    # --- Meta-Analysis and PDF Combination ---
-    # Key functions: qusage, combinePDFs, pdf.pVal
-    qs.results.list <- lapply(c("GSE59635", "GSE59654"), function(n) {
-        eset <- fluVaccine$esets[[n]]
-        phenoData <- fluVaccine$phenoData[[n]]
-        labels <- paste(phenoData$responder, phenoData$bloodDrawDay, sep = ".")
-        qusage(eset, labels, "(high.d7-high.d0)-(low.d7-low.d0)",
-               BTM.geneSets, pairVector = phenoData$subjectId, n.points = 2^14)
-    })
-    combined <- combinePDFs(qs.results.list)
-    combined.pvals <- pdf.pVal(combined)
-
-    # --- Visualisation of Pathway Activation ---
-    # Key functions: plotDensityCurves, plotGeneSetDistributions, calcBayesCI, plotCIsGenes
-    plotDensityCurves(qs.results, path.index = 1:5, col = 1:5, lwd = 2)
-    plotGeneSetDistributions(qs.results)
-    ci.vals <- calcBayesCI(qs.results, low = 0.001)
-    plotCIsGenes(qs.results, path.index = 1)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_qusage_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_qusage_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "nlme", "qusage")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_qusage_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required libraries
+            library(qusage)
+            library(nlme)
+            library(Biobase)
+            
+            # ----------------------------------------------------------------------
+            # Stage 1: Read User Input Files
+            # ----------------------------------------------------------------------
+            
+            # Read eset (matrix or ExpressionSet of log2-normalized gene expression data)
+            if (file.exists("eset")) {
+              eset <- tryCatch({
+                readRDS("eset")
+              }, error = function(e) {
+                as.matrix(read.csv("eset", row.names = 1, check.names = FALSE))
+              })
+            } else {
+              stop("Required input file 'eset' not found in the working directory.")
+            }
+            
+            # Read gene_sets.gmt (GMT file containing gene sets of interest)
+            if (file.exists("gene_sets.gmt")) {
+              gene_sets <- read.gmt("gene_sets.gmt")
+            } else {
+              stop("Required input file 'gene_sets.gmt' not found in the working directory.")
+            }
+            
+            # ----------------------------------------------------------------------
+            # Stage 2: Define Labels and Run qusage
+            # ----------------------------------------------------------------------
+            
+            # Extract expression matrix if eset is an ExpressionSet
+            if (inherits(eset, "ExpressionSet")) {
+              expr_mat <- exprs(eset)
+            } else {
+              expr_mat <- eset
+            }
+            
+            # Create generic labels for the two groups (first half vs second half)
+            n_samples <- ncol(expr_mat)
+            half <- floor(n_samples / 2)
+            labels <- c(rep("Control", half), rep("Treatment", n_samples - half))
+            contrast <- "Treatment-Control"
+            
+            # Run the standard qusage wrapper function
+            qusage.result <- qusage(expr_mat, labels, contrast, gene_sets)
+            
+            # Extract and save the qusage table
+            tbl_qusage <- qsTable(qusage.result, number = length(gene_sets))
+            write.csv(tbl_qusage, "qs_table.csv", row.names = FALSE)
+            saveRDS(qusage.result, "qusage_result.rds")
+            
+            # ----------------------------------------------------------------------
+            # Stage 3: Extract and Adjust p-values
+            # ----------------------------------------------------------------------
+            
+            # Extract p-values
+            p.vals <- pdf.pVal(qusage.result)
+            
+            # Adjust p-values for multiple testing
+            q.vals <- p.adjust(p.vals, method="fdr")
+            
+            # Save p-values and adjusted p-values
+            pvals_df <- data.frame(Pathway = names(p.vals), p.value = p.vals, FDR = q.vals)
+            write.csv(pvals_df, "qusage_pvalues.csv", row.names = FALSE)
+            
+            # ----------------------------------------------------------------------
+            # Stage 4: Plot Results
+            # ----------------------------------------------------------------------
+            
+            pdf("density_curves_comparison.pdf", width = 8, height = 6)
+            # Select the top 5 gene sets based on p-values for plotting
+            topSets <- order(p.vals)[1:min(5, length(p.vals))]
+            
+            plotDensityCurves(qusage.result, path.index=topSets, col=1:length(topSets), 
+                              lwd=2, xlab=expression(log[2](Activity)))
+            legend("topright", legend=names(p.vals)[topSets], 
+                   col=1:length(topSets), lty=1, lwd=2, cex=0.8)
+            dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QUSAGE:", paste0("    qusage: ", packageVersion("qusage"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS":',
+        paste0('    qusage: ', as.character(packageVersion('qusage')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_qusage_results.csv
-    touch ${prefix}_qusage_output.rds
-    echo "BIOC_QUSAGE:" > versions.yml
-    echo "    qusage: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_qusage_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_QUSAGE_WORKFLOW {
+workflow BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ eset, gene_sets.gmt ] ]
 
     main:
-    BIOC_QUSAGE(ch_input)
+    BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_QUSAGE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QUSAGE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QUSAGE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QUSAGE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS.out.tables
+    plots    = BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS.out.plots
+    objects  = BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS.out.objects
+    versions = BIOC_QUSAGE_STANDARD_QUSAGE_ANALYSIS.out.versions
 }

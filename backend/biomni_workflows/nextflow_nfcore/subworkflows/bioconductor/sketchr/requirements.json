@@ -1,0 +1,27 @@
+{
+  "package": "sketchr",
+  "requirements": [
+    "SingleCellExperiment",
+    "bluster",
+    "class",
+    "ggplot2",
+    "scater",
+    "scran",
+    "sketchR",
+    "snifter",
+    "uwot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "bluster",
+      "class",
+      "ggplot2",
+      "scater",
+      "scran",
+      "sketchR",
+      "snifter",
+      "uwot"
+    ]
+  }
+}

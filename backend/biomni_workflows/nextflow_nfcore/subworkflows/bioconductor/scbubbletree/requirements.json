@@ -1,0 +1,31 @@
+{
+  "package": "scbubbletree",
+  "requirements": [
+    "cluster",
+    "ggplot2",
+    "ggtree",
+    "patchwork",
+    "scBubbletree"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "ggtree",
+      "patchwork",
+      "scBubbletree"
+    ],
+    "sc_bubbletree_comparison.nf": [
+      "ggplot2",
+      "ggtree",
+      "patchwork",
+      "scBubbletree"
+    ],
+    "sc_bubbletree_external_clustering.nf": [
+      "cluster",
+      "ggplot2",
+      "ggtree",
+      "patchwork",
+      "scBubbletree"
+    ]
+  }
+}

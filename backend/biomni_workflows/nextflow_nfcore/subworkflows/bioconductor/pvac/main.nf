@@ -1,114 +1,132 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pvac
-// The package contains the function for filtering genes by the proportion of variation accounted for b
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pvac/inst/doc/pvac.R
-// Upstream  : ALLMLL, affy, genefilter
-// Downstream: none
-//
-// Install: BiocManager::install("pvac")
+// Bioconductor workflow: pvac — pvac_microarray_filtering
+// Perform PCA-based gene filtering on Affymetrix microarray data to remove non-informative probesets before differential expression testing.
+// Input: celfiles
+// Container: quay.io/biocontainers/bioconductor-pvac:1.58.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: affy, pvac
+// Visualizations: density plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read raw CEL files into an AffyBatch object
+//  * 2. [Visualization & Output] Summarize probe-level data to probeset-level expression using RMA
+//  * 3. [Core Analysis] Calculate PVAC scores and identify passing probesets
+//  * 4. [Visualization & Output] Subset the summarized ExpressionSet to keep only the filtered probesets
 
 nextflow.enable.dsl = 2
 
-process BIOC_PVAC {
+process BIOC_PVAC_PVAC_MICROARRAY_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pvac"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pvac:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pvac:1.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pvac_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pvac_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pvac_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ReadAffy)
-    library(jsonlite)
-
-    # --- Steps [] ---
-    # Key functions: ReadAffy
-    ##   library(affy)
-    ##   abatch <- ReadAffy(celfile.path="/my/directory/celfiles")
-    # --- Steps [] ---
-    # Key functions: rma
-    ##   myeset <- rma(abatch)
-    # --- Steps [] ---
-    # Key functions: pvacFilter
-    ##   library(pvac)
-    ##   ft <- pvacFilter(abatch)
-    ##   myeset <- eset[ft$aset,]
-    # --- <Steps [] ---
-    # Key functions: rowttests, exprs, factor
-    ##   library(genefilter)
-    ##   myres  = rowttests(exprs(myeset), as.factor(group))
-    # --- Example [] ---
-    # Key functions: rma, pvacFilter
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Check if input directory exists
+    if (!dir.exists("celfiles")) {
+      stop("Error: 'celfiles' directory not found in the working directory.")
+    }
+    
+    # Check if there are CEL files in the directory
+    cel_files <- list.files("celfiles", pattern = "\\\\.[cC][eE][lL](\\\\.gz)?\$", full.names = TRUE)
+    if (length(cel_files) == 0) {
+      stop("Error: No CEL files found in 'celfiles' directory.")
+    }
+    
+    if (length(cel_files) < 6) {
+      warning("PVAC filtering is most effective with at least 6 samples. Found: ", length(cel_files))
+    }
+    
     library(affy)
     library(pvac)
-    library(ALLMLL)
-    data(MLL.A)
+    
+    # 1. Read raw CEL files into an AffyBatch object
+    # We name the object MLL.A to match the documented code exactly
+    MLL.A <- ReadAffy(celfile.path = "celfiles")
+    
+    # 2. Summarize probe-level data to probeset-level expression using RMA
     myeset <- rma(MLL.A)
-    # --- Plot [] ---
-    # Key functions: density
-    ## plot(density(ft$pvac[ft$nullset]),xlab="PVAC score",main="",
-    ##           col="gray",cex.lab=0.5,xlim=c(0,1))
-    ## lines(density(ft$pvac),col=1)
-    ## abline(v=ft$cutoff,lty=2,col="gray")
+    
+    # 3. Calculate PVAC scores and identify passing probesets
+    ft <- pvacFilter(MLL.A)
+    
+    # 4. Subset the summarized ExpressionSet to keep only the filtered probesets
+    myeset.filtered <- myeset[ft\$aset,]
+    
+    # Generate and save the density plot
+    pdf("pvac_density_plot.pdf", width = 7, height = 7)
+    plot(density(ft\$pvac[ft\$nullset]), xlab = "PVAC score", main = "",
+         col = "gray", cex.lab = 0.5, xlim = c(0, 1))
+    lines(density(ft\$pvac), col = 1)
+    abline(v = ft\$cutoff, lty = 2, col = "gray")
+    dev.off()
+    
+    # Save outputs
+    saveRDS(myeset.filtered, "myeset_filtered.rds")
+    saveRDS(ft, "pvac_filter_results.rds")
+    write.csv(exprs(myeset.filtered), "filtered_expression_matrix.csv", row.names = TRUE)
+    
+    # Write a summary text file
+    summary_conn <- file("pvac_filter_summary.txt")
+    writeLines(c(
+      paste("Total probesets before filtering:", nrow(myeset)),
+      paste("Probesets passing filter:", length(ft\$aset)),
+      paste("Probesets filtered out:", nrow(myeset) - length(ft\$aset)),
+      paste("PVAC cutoff score:", ft\$cutoff)
+    ), summary_conn)
+    close(summary_conn)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pvac_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pvac_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pvac_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PVAC:", paste0("    pvac: ", packageVersion("pvac"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PVAC_PVAC_MICROARRAY_FILTERING":',
+        paste0('    pvac: ', as.character(packageVersion('pvac')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pvac_results.csv
-    touch ${prefix}_pvac_output.rds
-    echo "BIOC_PVAC:" > versions.yml
-    echo "    pvac: 0.0.0" >> versions.yml
+    touch ${prefix}_pvac_microarray_filtering.csv versions.yml
     """
 }
 
-
-workflow BIOC_PVAC_WORKFLOW {
+workflow BIOC_PVAC_PVAC_MICROARRAY_FILTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ celfiles ] ]
 
     main:
-    BIOC_PVAC(ch_input)
+    BIOC_PVAC_PVAC_MICROARRAY_FILTERING(ch_input)
 
     emit:
-    results  = BIOC_PVAC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PVAC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PVAC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PVAC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PVAC_PVAC_MICROARRAY_FILTERING.out.tables
+    plots    = BIOC_PVAC_PVAC_MICROARRAY_FILTERING.out.plots
+    objects  = BIOC_PVAC_PVAC_MICROARRAY_FILTERING.out.objects
+    versions = BIOC_PVAC_PVAC_MICROARRAY_FILTERING.out.versions
 }

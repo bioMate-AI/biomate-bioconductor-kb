@@ -1,0 +1,11 @@
+{
+  "package": "rebet",
+  "requirements": [
+    "REBET"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "REBET"
+    ]
+  }
+}

@@ -1,104 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: consensus
-// An implementation of the American Society for Testing and Materials (ASTM) Standard E691 for interla
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/consensus/inst/doc/consensus.R
-// Upstream  : BiocManager
-// Downstream: none
-//
-// Install: BiocManager::install("consensus")
+// Bioconductor workflow: consensus — cross_platform_consensus_analysis
+// Fit row-linear models to cross-platform genomic measurements to compare platform sensitivity, precision, and dynamic range, and identify highly discordant featu
+// Input: matrix1.csv, matrix2.csv, matrix3.csv
+// Container: quay.io/biocontainers/bioconductor-consensus:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RColorBrewer, consensus
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and data
+//  * 2. [Input & Preparation] Construct a MultiMeasure object using MultiMeasure()
+//  * 3. [Visualization & Output] Visualize a single gene fit using plotOneFit()
+//  * 4. [Core Analysis] Fit the consensus model using fitConsensus()
+//  * 5. [Visualization & Output] Plot marginal distributions of average, sensitivity, and precision using plotMarginals()
+//  * 6. [Visualization & Output] Identify and plot the most discordant genes using plotMostDiscordant()
 
 nextflow.enable.dsl = 2
 
-process BIOC_CONSENSUS {
+process BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-consensus"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-consensus:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-consensus:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_consensus_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_consensus_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_consensus_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MultiMeasure)
-    library(jsonlite)
-
-    # --- Multi Measure [] ---
-    # Key functions: MultiMeasure
-    tcga_mm <- MultiMeasure(names=c("U133A", "Huex", "Agilent", "RNA-Seq"),
-    data=list(U133A, Huex, Agilent, RNASeq))
-    # --- plot One Fit [] ---
-    # Key functions: plotOneFit
-    plotOneFit(tcga_mm, "TP53", brewer.pal(n = 4, name = "Dark2"))
-    # --- fit Consensus [] ---
-    # Key functions: fitConsensus
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(consensus)
+    library(RColorBrewer)
+    
+    # 1. Load the data from user-specified files
+    matrix1_file <- "matrix1.csv"
+    matrix2_file <- "matrix2.csv"
+    matrix3_file <- "matrix3.csv"
+    
+    if (!file.exists(matrix1_file) || !file.exists(matrix2_file) || !file.exists(matrix3_file)) {
+      stop("Error: One or more of the required input files (matrix1.csv, matrix2.csv, matrix3.csv) are missing.")
+    }
+    
+    m1 <- as.matrix(read.csv(matrix1_file, row.names = 1, check.names = FALSE))
+    m2 <- as.matrix(read.csv(matrix2_file, row.names = 1, check.names = FALSE))
+    m3 <- as.matrix(read.csv(matrix3_file, row.names = 1, check.names = FALSE))
+    
+    # Ensure identical dimensions, row names, and column names
+    common_rows <- intersect(rownames(m1), intersect(rownames(m2), rownames(m3)))
+    common_cols <- intersect(colnames(m1), intersect(colnames(m2), colnames(m3)))
+    
+    if (length(common_rows) == 0 || length(common_cols) == 0) {
+      stop("Error: No common features (rows) or samples (columns) found across the input matrices.")
+    }
+    
+    m1 <- m1[common_rows, common_cols, drop = FALSE]
+    m2 <- m2[common_rows, common_cols, drop = FALSE]
+    m3 <- m3[common_rows, common_cols, drop = FALSE]
+    
+    # 2. Construct a MultiMeasure object using MultiMeasure()
+    tcga_mm <- MultiMeasure(names=c("Platform1", "Platform2", "Platform3"), 
+                            data=list(m1, m2, m3))
+    
+    # Determine genes to plot (use TP53/MYO7B if present, otherwise fallback to available genes)
+    gene1 <- if ("TP53" %in% common_rows) "TP53" else common_rows[1]
+    gene2 <- if ("MYO7B" %in% common_rows) "MYO7B" else common_rows[min(2, length(common_rows))]
+    
+    # Open PDF device to save all visualizations
+    pdf("consensus_analysis_plots.pdf", width = 8, height = 6)
+    
+    # 3. Visualize a single gene fit using plotOneFit()
+    plotOneFit(tcga_mm, gene1, brewer.pal(n = 3, name = "Dark2"))
+    
+    # 4. Fit the consensus model using fitConsensus()
     fit <- fitConsensus(tcga_mm)
-    # --- plot Marginals [] ---
-    # Key functions: plotMarginals
-    plotMarginals(fit, "average", brewer.pal(n = 4, name = "Dark2"))
-    # --- plot Most Discordant [] ---
-    # Key functions: plotMostDiscordant
-    plotMostDiscordant(fit, "sensitivity", 15)
-    # --- plot One Fit [] ---
-    # Key functions: plotOneFit
-    plotOneFit(tcga_mm, "MYO7B", brewer.pal(n = 4, name = "Dark2"))
+    
+    # Save the fit object
+    saveRDS(fit, "consensus_fit.rds")
+    
+    # 5. Plot marginal distributions of average, sensitivity, and precision using plotMarginals()
+    plotMarginals(fit, "average", brewer.pal(n = 3, name = "Dark2"))
+    plotMarginals(fit, "sensitivity", brewer.pal(n = 3, name = "Dark2"))
+    plotMarginals(fit, "precision", brewer.pal(n = 3, name = "Dark2"))
+    
+    # 6. Identify and plot the most discordant genes using plotMostDiscordant()
+    n_discordant <- min(15, length(common_rows))
+    plotMostDiscordant(fit, "sensitivity", n_discordant)
+    
+    # Plot second gene fit
+    plotOneFit(tcga_mm, gene2, brewer.pal(n = 3, name = "Dark2"))
+    
+    # Close PDF device
+    dev.off()
+    
+    # Export fit parameters to CSV files for downstream analysis
+    tryCatch({
+      slots <- slotNames(fit)
+      for (s in slots) {
+        val <- slot(fit, s)
+        if (is.matrix(val) || is.vector(val) || is.data.frame(val)) {
+          write.csv(as.data.frame(val), paste0("consensus_fit_", s, ".csv"), row.names = TRUE)
+        }
+      }
+    }, error = function(e) {
+      warning("Could not export individual slots to CSV: ", e\$message)
+    })
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_consensus_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_consensus_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_consensus_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CONSENSUS:", paste0("    consensus: ", packageVersion("consensus"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS":',
+        paste0('    consensus: ', as.character(packageVersion('consensus')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_consensus_results.csv
-    touch ${prefix}_consensus_output.rds
-    echo "BIOC_CONSENSUS:" > versions.yml
-    echo "    consensus: 0.0.0" >> versions.yml
+    touch ${prefix}_cross_platform_consensus_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CONSENSUS_WORKFLOW {
+workflow BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ matrix1.csv, matrix2.csv, matrix3.csv ] ]
 
     main:
-    BIOC_CONSENSUS(ch_input)
+    BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CONSENSUS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CONSENSUS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CONSENSUS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CONSENSUS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS.out.tables
+    plots    = BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS.out.plots
+    objects  = BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS.out.objects
+    versions = BIOC_CONSENSUS_CROSS_PLATFORM_CONSENSUS_ANALYSIS.out.versions
 }

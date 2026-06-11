@@ -1,127 +1,171 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: regionReport
-// Generate HTML or PDF reports to explore a set of regions such as the results from annotation-agnosti
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/regionReport/inst/doc/bumphunterExample.R
-// Upstream  : GenomicRanges, RefManageR, bumphunter, derfinder, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("regionReport")
+// Bioconductor workflow: regionReport — general_region_report
+// Generate an HTML or PDF report to explore a general set of genomic regions stored as a GRanges object.
+// Input: regions
+// Container: quay.io/biocontainers/bioconductor-regionreport:1.44.0--r45hdfd78af_0
+// R packages: GenomeInfoDb, bumphunter, derfinder, GenomicRanges, refmanager, regionReport, sessioninfo
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomeInfoDb, GenomicRanges, regionReport
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load regionReport and GenomicRanges
+//  * 2. [Core Analysis] Assign chromosome lengths to the GRanges object
+//  * 3. [Visualization & Output] Run renderReport() to compile the HTML report
 
 nextflow.enable.dsl = 2
 
-process BIOC_REGIONREPORT {
+process BIOC_REGIONREPORT_GENERAL_REGION_REPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-regionreport"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-regionreport:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-regionreport:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(plot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_regionreport_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_regionreport_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_regionreport_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(regionReport)
-    library(GRanges)
-    library(IRanges)
-    library(jsonlite)
-
-    # --- Differential Expression Report with DESeq2 [] ---
-    # Key functions: deseq2Report
-    counts <- matrix(rnbinom(100, mu = 10, size = 10), ncol = 4)
-    coldata <- data.frame(group = factor(c("A", "A", "B", "B")))
-    dds <- DESeq2::DESeqDataSetFromMatrix(
-        countData = counts,
-        colData = coldata,
-        design = ~ group
-    )
-    dds <- DESeq2::DESeq(dds)
-    regionreport::deseq2Report(
-        dds = dds,
-        project = "DESeq2 Analysis Report",
-        outdir = "deseq2_report",
-        output = "index"
-    )
-
-
-    # --- Differential Expression Report with edgeR [] ---
-    # Key functions: edgeReport
-    counts <- matrix(rnbinom(100, mu = 10, size = 10), ncol = 4)
-    group <- factor(c("A", "A", "B", "B"))
-    dge <- edgeR::DGEList(counts = counts, group = group)
-    dge <- edgeR::calcNormFactors(dge)
-    regionreport::edgeReport(
-        dge = dge,
-        project = "edgeR Analysis Report",
-        outdir = "edger_report",
-        output = "index"
-    )
-
-
-    # --- Derfinder Coverage Report [] ---
-    # Key functions: derfinderReport
-    regionreport::derfinderReport(
-        prefix = "derfinder_results",
-        outdir = "derfinder_report",
-        project = "Derfinder Analysis Report",
-        browse = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_regionreport_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_regionreport_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomeInfoDb", "bumphunter", "derfinder", "GenomicRanges", "refmanager", "regionReport", "sessioninfo")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_regionreport_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # 1. Load required libraries
+        library("regionReport")
+        library("GenomicRanges")
+        library("GenomeInfoDb")
+        
+        # 2. Read the user input file from the working directory
+        # The pipeline expects a GRanges object stored as 'regions.rds'
+        input_file <- "regions.rds"
+        if (!file.exists(input_file)) {
+            stop(paste("Required input file", input_file, "not found in the working directory."))
+        }
+        
+        regions <- readRDS(input_file)
+        
+        # Ensure the input is indeed a GRanges object
+        if (!inherits(regions, "GRanges")) {
+            stop("The input file does not contain a valid GRanges object.")
+        }
+        
+        # 3. Assign chromosome lengths to the GRanges object
+        # We attempt to retrieve chromosome lengths from UCSC based on the genome specified in the GRanges object.
+        # A tryCatch block is used to handle offline environments or custom genomes gracefully.
+        genome_assembly <- unique(unname(genome(regions)))
+        genome_assembly <- genome_assembly[!is.na(genome_assembly) & genome_assembly != "unspecified"]
+        
+        if (length(genome_assembly) == 1) {
+            tryCatch({
+                seqlengths(regions) <- seqlengths(
+                    getChromInfoFromUCSC(genome_assembly, as.Seqinfo = TRUE)
+                )[names(seqlengths(regions))]
+            }, error = function(e) {
+                warning("Could not assign ", genome_assembly, " chromosome lengths from UCSC. Proceeding with existing seqlengths: ", e\$message)
+            })
+        } else {
+            warning("No single valid genome assembly specified in the GRanges object. Skipping UCSC chromosome length retrieval.")
+        }
+        
+        # Create the output directory if it doesn't exist
+        dir.create("renderReport-example", showWarnings = FALSE, recursive = TRUE)
+        
+        # 4. Run renderReport() to compile the HTML report
+        # Dynamically determine metadata columns for the report to handle different naming conventions
+        mcols_df <- as.data.frame(mcols(regions))
+        if (ncol(mcols_df) > 0) {
+            num_cols <- names(mcols_df)[vapply(mcols_df, is.numeric, FUN.VALUE = logical(1))]
+        } else {
+            num_cols <- character(0)
+        }
+        
+        pvalueVars <- num_cols[grepl("p.*val|q.*val|fdr|padj", num_cols, ignore.case = TRUE)]
+        if (length(pvalueVars) > 0) {
+            names(pvalueVars) <- pvalueVars
+        } else {
+            pvalueVars <- NULL
+        }
+        
+        densityVars <- num_cols[!num_cols %in% pvalueVars]
+        if (length(densityVars) > 0) {
+            names(densityVars) <- densityVars
+        } else {
+            densityVars <- NULL
+        }
+        
+        if (length(pvalueVars) > 0) {
+            significantVar <- mcols(regions)[[pvalueVars[1]]] <= 0.05
+        } else {
+            significantVar <- NULL
+        }
+    
+        report <- renderReport(regions, "Example run",
+            pvalueVars = pvalueVars, 
+            densityVars = densityVars,
+            significantVar = significantVar, 
+            nBestRegions = 20,
+            outdir = "renderReport-example"
+        )
+        
+        # 5. Write named output files for the meaningful results
+        # Save the path/metadata of the generated report
+        saveRDS(report, file = "report_metadata.rds")
+        
+        # Export the analyzed regions with their metadata as a CSV table for downstream use
+        write.csv(as.data.frame(regions), file = "analyzed_regions.csv", row.names = FALSE)
+        
+        cat("Pipeline completed successfully. Report generated in 'renderReport-example/'.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_REGIONREPORT:", paste0("    regionreport: ", packageVersion("regionReport"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_REGIONREPORT_GENERAL_REGION_REPORT":',
+        paste0('    regionReport: ', as.character(packageVersion('regionReport')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_regionreport_results.csv
-    touch ${prefix}_regionreport_output.rds
-    echo "BIOC_REGIONREPORT:" > versions.yml
-    echo "    regionreport: 0.0.0" >> versions.yml
+    touch ${prefix}_general_region_report.csv versions.yml
     """
 }
 
-
-workflow BIOC_REGIONREPORT_WORKFLOW {
+workflow BIOC_REGIONREPORT_GENERAL_REGION_REPORT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(plot_object) ]
+    ch_input  // channel: [ val(meta), [ regions ] ]
 
     main:
-    BIOC_REGIONREPORT(ch_input)
+    BIOC_REGIONREPORT_GENERAL_REGION_REPORT(ch_input)
 
     emit:
-    results  = BIOC_REGIONREPORT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_REGIONREPORT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_REGIONREPORT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_REGIONREPORT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_REGIONREPORT_GENERAL_REGION_REPORT.out.tables
+    plots    = BIOC_REGIONREPORT_GENERAL_REGION_REPORT.out.plots
+    objects  = BIOC_REGIONREPORT_GENERAL_REGION_REPORT.out.objects
+    versions = BIOC_REGIONREPORT_GENERAL_REGION_REPORT.out.versions
 }

@@ -1,0 +1,19 @@
+{
+  "package": "plyranges",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "dplyr",
+    "ggplot2",
+    "plyranges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "dplyr",
+      "ggplot2",
+      "plyranges"
+    ]
+  }
+}

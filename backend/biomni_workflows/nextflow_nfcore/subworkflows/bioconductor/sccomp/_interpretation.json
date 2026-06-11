@@ -1,0 +1,42 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: formula_composition=Formula specifying the model for cell type composition (e.g., ~ type or with random effects like ~ type + (1 | group__)) ;; formula_variability=Formula specifying the model for cell type variability (e.g., ~ type) ;; sample=Column name for sample identifier ;; cell_group=Column name for cell group/type identifier ;; abundance=Column name for abundance (e.g., \"count\" or \"proportion\") ;; bimodal_mean_variability_association=Logical, recommended TRUE for single-cell RNA-seq and FALSE (default) for CyTOF and microbiome data ;; inference_method=Method for inference, e.g., \"hmc\" ;; enable_loo=Logical, enables leave-one-out cross-validation for model comparison ;; contrasts=Vector of contrast strings for hypothesis testing\n- alternatives: scCODA (Dirichlet-multinomial), quasi-binom. (Quasi-binomial), rlm (Robust-log-linear), propeller (Logit-linear + limma), ANCOM-BC (Log-linear), corncob (Beta-binomial), scDC (Log-linear), dmbvs (Dirichlet-multinomial), MixMC (Zero-inflated Log-linear), ALDEx2 (Dirichlet-multinomial). sccomp is preferred because it jointly models count distribution, compositionality, group-specific variability, mean-variability association, and is robust to outliers.\n- when_to_use: When analyzing differential tissue composition (cell type proportions) and/or differential variability across groups in single-cell RNA-seq, CyTOF, or microbiome data, especially when outliers or complex experimental designs (e.g., random effects) are present.\n- pitfalls: Using proportions directly (e.g., from deconvolution) is strongly discouraged if counts are available, as it ignores a major source of uncertainty (especially for rare cell types). sccomp_remove_outliers() must not be executed before model comparison with loo (Bayesian ANOVA), because leave-one-out cross-validation requires the models to be fit on the exact same data points. Proportional fold changes cannot be used to infer significance (use sccomp_test() instead) and must be interpreted with care due to non-linearity.",
+  "workflows": [
+    {
+      "name": "differential_composition_analysis",
+      "intent": "Estimate and test differences in cell type composition across groups from single-cell count data, with optional outlier removal and visualization.",
+      "input": [
+        "user_counts_df.rds (Data frame containing cell group counts, sample IDs, and metadata covariates)"
+      ],
+      "stages": "1. Estimate composition coefficients using sccomp_estimate() ;; 2. Probabilistically identify and remove outliers using sccomp_remove_outliers() ;; 3. Test for significant differences using sccomp_test() ;; 4. Visualize results using sccomp_boxplot() and other plotting functions.",
+      "code": "sccomp_result =\n  counts_obj |>\n  sccomp_estimate(\n    formula_composition = ~ type,\n    sample = \"sample\",\n    cell_group = \"cell_group\",\n    abundance = \"count\",\n    cores = 1, verbose = FALSE\n  ) |>\n\n  # max_sampling_iterations is used her to not exceed the maximum file size for GitHub action of 100Mb\n  sccomp_remove_outliers(cores = 1, verbose = FALSE, max_sampling_iterations = 2000) |> # Optional\n  sccomp_test()\n\nsccomp_result |>\n  sccomp_boxplot(factor = \"type\")\n\nsccomp_result |>\n  sccomp_boxplot(factor = \"type\", remove_unwanted_effects = TRUE)\n\nsccomp_result |>\n  plot_1D_intervals()\n\nsccomp_result |>\n  plot_2D_intervals()\n\nsccomp_result |> plot()"
+    },
+    {
+      "name": "differential_variability_analysis",
+      "intent": "Model and test differences in cell-group variability across groups.",
+      "input": [
+        "user_seurat_obj.rds (Seurat object containing single-cell RNA-seq data with cell type annotations and sample metadata)"
+      ],
+      "stages": "1. Estimate composition and variability coefficients using sccomp_estimate() with formula_variability ;; 2. Test for significant differences in composition and variability using sccomp_test() ;; 3. Visualize 1D and 2D credible intervals using plot().",
+      "code": "res =\n  seurat_obj |>\n  sccomp_estimate(\n    formula_composition = ~ type,\n    formula_variability = ~ type,\n    sample = \"sample\",\n    cell_group = \"cell_group\",\n    cores = 1, verbose = FALSE\n  )\n\nplots = res |> sccomp_test() |> plot()\n\nplots$credible_intervals_1D\n\nplots$credible_intervals_2D"
+    },
+    {
+      "name": "random_effects_modeling",
+      "intent": "Model cell-type proportions with both fixed effects and random effects (e.g., random intercepts or random slopes).",
+      "input": [
+        "user_seurat_obj.rds (Seurat object containing single-cell RNA-seq data with hierarchical metadata)"
+      ],
+      "stages": "1. Estimate composition using sccomp_estimate() with random effects syntax in formula_composition.",
+      "code": "res =\n  seurat_obj |>\n  sccomp_estimate(\n      formula_composition = ~ type + (type | group__) + (1 | group2__),\n      sample = \"sample\",\n      cell_group = \"cell_group\",\n      bimodal_mean_variability_association = TRUE,\n      cores = 1, verbose = FALSE\n    )\n\nres"
+    },
+    {
+      "name": "model_comparison_loo",
+      "intent": "Compare different composition models (e.g., with vs. without a covariate) using leave-one-out (loo) cross-validation.",
+      "input": [
+        "user_seurat_obj.rds (Seurat object containing single-cell RNA-seq data)"
+      ],
+      "stages": "1. Fit the first model with sccomp_estimate() setting inference_method = \"hmc\" and enable_loo = TRUE ;; 2. Fit the second model with sccomp_estimate() setting inference_method = \"hmc\" and enable_loo = TRUE ;; 3. Compare models using loo_compare().",
+      "code": "library(loo)\n\n# Fit first model\nmodel_with_factor_association =\n  seurat_obj |>\n  sccomp_estimate(\n    formula_composition = ~ type,\n    sample = \"sample\",\n    cell_group = \"cell_group\",\n    inference_method = \"hmc\",\n    enable_loo = TRUE,\n    verbose = FALSE\n  )\n\n# Fit second model\nmodel_without_association =\n  seurat_obj |>\n  sccomp_estimate(\n    formula_composition = ~ 1,\n    sample = \"sample\",\n    cell_group = \"cell_group\",\n    inference_method = \"hmc\",\n    enable_loo = TRUE,\n    verbose = FALSE\n  )\n\n# Compare models\nloo_compare(\n   attr(model_with_factor_association, \"fit\")$loo(),\n   attr(model_without_association, \"fit\")$loo()\n)"
+    }
+  ]
+}

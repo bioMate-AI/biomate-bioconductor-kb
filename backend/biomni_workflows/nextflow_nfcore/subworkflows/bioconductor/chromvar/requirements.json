@@ -1,0 +1,19 @@
+{
+  "package": "chromvar",
+  "requirements": [
+    "BiocParallel",
+    "Matrix",
+    "SummarizedExperiment",
+    "chromVAR",
+    "motifmatchr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "Matrix",
+      "SummarizedExperiment",
+      "chromVAR",
+      "motifmatchr"
+    ]
+  }
+}

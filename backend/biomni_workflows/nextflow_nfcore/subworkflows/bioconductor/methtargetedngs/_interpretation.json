@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: plot=TRUE/FALSE ;; controls whether to output plots for heatmaps, averages, Fisher's tests, and odd ratios ;; file_seq ;; path to input multiple sequence alignment FASTA file for hmmbuild ;; file_out ;; output filename for the built HMM ;; pathHMMER ;; system path to the HMMER binaries directory, e.g., \"/usr/bin/\"\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you have targeted bisulfite sequencing or NGS reads from two conditions (e.g., healthy vs. tumor) and a reference sequence, and you want to perform single-CpG comparative methylation analysis, pattern entropy analysis, or profile HMM sequence similarity scoring.\n- pitfalls: Calculating methylation average assumes perfect alignment with no mismatches or indels, which is an idealized assumption ;; Profile HMM functions (hmmbuild and nhmmer) require external HMMER software installed on the host system at the specified pathHMMER path, otherwise they will fail.",
+  "workflows": [
+    {
+      "name": "comparative_methylation_analysis",
+      "intent": "Align NGS reads from two conditions to a reference sequence and perform comparative methylation analysis.",
+      "input": [
+        "Healthy.fasta (FASTA file of reads from condition 1)",
+        "Tumor.fasta (FASTA file of reads from condition 2)",
+        "Reference.fasta (FASTA file of the reference sequence)"
+      ],
+      "stages": "1. Load FASTA files ;; 2. Align reads to reference using methAlign ;; 3. Generate methylation heatmap using methHeatmap ;; 4. Calculate methylation average using methAvg ;; 5. Calculate methylation entropy using methEntropy ;; 6. Identify significant CpG sites using fishertest_cpg ;; 7. Calculate log odd ratios using odd_ratio ;; 8. Run complete comparative pipeline using compare_samples",
+      "code": "library(MethTargetedNGS)\nhealthy = system.file(\"extdata\", \"Healthy.fasta\", package = \"MethTargetedNGS\")\ntumor = system.file(\"extdata\", \"Tumor.fasta\", package = \"MethTargetedNGS\")\nreference = system.file(\"extdata\", \"Reference.fasta\", package = \"MethTargetedNGS\")\nhAlign = methAlign(healthy,reference)\ntAlign = methAlign(tumor,reference)\nhHeatmap = methHeatmap(hAlign,plot=TRUE)\nhAvg = methAvg(hAlign,plot=FALSE)\nhEnt <- methEntropy(hAlign)\nSigCpGsites = fishertest_cpg(hAlign,tAlign,plot=FALSE)\nodSamps = odd_ratio(hAlign,tAlign,plot=FALSE)\ncompare_samples(hAlign,tAlign)"
+    },
+    {
+      "name": "profile_hmm_analysis",
+      "intent": "Build a Profile HMM from a multiple sequence alignment and calculate sequence likelihoods.",
+      "input": [
+        "msa.fasta (FASTA file of multiple sequence alignment)",
+        "Tumor.fasta (FASTA file of query sequences)"
+      ],
+      "stages": "1. Load MSA and query FASTA files ;; 2. Build Profile HMM using hmmbuild ;; 3. Calculate sequence likelihoods against the HMM using nhmmer",
+      "code": "msa = system.file(\"extdata\", \"msa.fasta\", package = \"MethTargetedNGS\")\nif (file.exists(\"/usr/bin/hmmbuild\"))\nhmmbuild(file_seq=msa,file_out=\"hmm\",pathHMMER = \"/usr/bin/\")\nif (file.exists(\"/usr/bin/nhmmer\")){\nres <- nhmmer(\"hmm\",tumor,pathHMMER = \"/usr/bin/\")\nres$Total.Likelihood.Score\n}"
+    }
+  ]
+}

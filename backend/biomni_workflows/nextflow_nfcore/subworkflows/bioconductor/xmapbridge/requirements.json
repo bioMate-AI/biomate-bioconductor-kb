@@ -1,0 +1,15 @@
+{
+  "package": "xmapbridge",
+  "requirements": [
+    "GenomicRanges",
+    "rtracklayer",
+    "xmapbridge"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "rtracklayer",
+      "xmapbridge"
+    ]
+  }
+}

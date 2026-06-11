@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: geno.file=Path to the input genotype file, which can be either a PLINK bed file or a VCF file ;; print=Integer controlling the verbosity of the output during execution (e.g., print=0 to suppress output)\n- alternatives: None mentioned in the documentation\n- when_to_use: When you need to classify Helicobacter pylori genomes into reference subpopulations and estimate ancestry proportions using VCF or PLINK genotype data.\n- pitfalls: Interactive plotting functions (interactiveReferencePlot, interactivePlot) and the Shiny application require an interactive R session to run.",
+  "workflows": [
+    {
+      "name": "h_pylori_genome_classification",
+      "intent": "Classify Helicobacter pylori genomes from a VCF or PLINK file into reference populations and visualize the classification results.",
+      "input": [
+        "geno.file (VCF file or PLINK bed file containing H. pylori genotypes)"
+      ],
+      "stages": "1. Load the GrafGen package ;; 2. Run the classification algorithm on the genotype file using grafGen ;; 3. Inspect the classification table and population counts ;; 4. Generate static plots of genetic distance scores ;; 5. Create interactive plots of the reference and user data ;; 6. Launch the interactive Shiny application for filtering and viewing results",
+      "code": "library(GrafGen)\ndir <- system.file(\"extdata\", package=\"GrafGen\", mustWork=TRUE)\ngeno.file <- paste0(dir, .Platform$file.sep, \"data.vcf.gz\")\nret <- grafGen(geno.file, print=0)\nret$table[seq_len(5), ]\nprint(ret)\nplot(ret)\nif (interactive()) interactiveReferencePlot()\ntmp <- createApp(ret)\nif (interactive()) {\n    reference_results <- tmp$reference_results\n    user_results      <- tmp$user_results\n    user_metadata     <- tmp$user_metadata\n    shiny::runApp(tmp$app)\n}"
+    }
+  ]
+}

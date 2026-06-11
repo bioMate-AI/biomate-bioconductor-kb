@@ -1,0 +1,21 @@
+{
+  "package": "oncoscanr",
+  "requirements": [
+    "GenomicRanges",
+    "jsonlite",
+    "magrittr",
+    "oncoscanR"
+  ],
+  "by_workflow": {
+    "ascat_workflow.nf": [
+      "GenomicRanges",
+      "jsonlite",
+      "oncoscanR"
+    ],
+    "main.nf": [
+      "jsonlite",
+      "magrittr",
+      "oncoscanR"
+    ]
+  }
+}

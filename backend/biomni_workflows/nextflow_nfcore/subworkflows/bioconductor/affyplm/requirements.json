@@ -1,0 +1,16 @@
+{
+  "package": "affyplm",
+  "requirements": [
+    "affyPLM",
+    "affydata"
+  ],
+  "by_workflow": {
+    "flexible_threestep_preprocessing.nf": [
+      "affyPLM"
+    ],
+    "main.nf": [
+      "affyPLM",
+      "affydata"
+    ]
+  }
+}

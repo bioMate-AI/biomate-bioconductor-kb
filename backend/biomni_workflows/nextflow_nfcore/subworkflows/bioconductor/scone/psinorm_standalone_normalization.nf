@@ -4,6 +4,8 @@
 // Perform fast, scalable Pareto-based between-sample normalization on a SingleCellExperiment object (including HDF5-backed out-of-memory data) and optionally prep
 // Input: raw_counts.h5
 // Container: quay.io/biocontainers/bioconductor-scone:1.34.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: DelayedArray, HDF5Array, Seurat, SingleCellExperiment, rhdf5, scater, scone
 // QC: cell QC metrics, count normalization
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -37,13 +39,15 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         
     # Load required libraries
-    library(SingleCellExperiment)
     library(scone)
     library(scater)
     library(HDF5Array)

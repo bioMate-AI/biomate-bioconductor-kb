@@ -1,126 +1,116 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CGEN
-// This is a package for analysis of case-control data in genetic epidemiology. It provides a set of st
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CGEN/inst/doc/vignette.R
-// Upstream  : cluster
-// Downstream: none
-//
-// Install: BiocManager::install("CGEN")
+// Bioconductor workflow: CGEN — gxe_scan_tped
+// Run a genome-wide association scan for gene-environment interactions using TPED genotype files and a phenotype file.
+// Input: geno_data.tped.gz, geno_data.tfam, pheno.txt
+// Container: quay.io/biocontainers/bioconductor-cgen:3.46.0--r45h63f16b7_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CGEN
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define the subject list from the TFAM file
+//  * 2. [Input & Preparation] Define the snp.list with the genotype file and format
+//  * 3. [Input & Preparation] Define the pheno.list with phenotype file details and model variables
+//  * 4. [Visualization & Output] Set output options
+//  * 5. [Core Analysis] Run the GxE scan using GxE.scan
+//  * 6. [Visualization & Output] Read and inspect the output file
 
 nextflow.enable.dsl = 2
 
-process BIOC_CGEN {
+process BIOC_CGEN_GXE_SCAN_TPED {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cgen"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cgen:3.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cgen:3.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cgen_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cgen_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cgen_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required library
     library(CGEN)
-    library(jsonlite)
+    
+    # Define the input files from the working directory
+    geno.file <- "geno_data.tped.gz"
+    subject.file <- "geno_data.tfam"
+    pheno.file <- "pheno.txt"
+    
+    # 1. Define the subject list from the TFAM file
+    subject.list <- list(file=subject.file, id.var=1:2, header=0, delimiter=" ")
+    subject.list <- subject.file
+    
+    # 2. Define the snp.list with the genotype file and format
+    snp.list <- list(file=geno.file, format="tped", subject.list=subject.list)
+    
+    # 3. Define the pheno.list with phenotype file details and model variables
+    pheno.list <- list(file=pheno.file, id.var=c("Family", "Subject"),
+                  file.type=3, delimiter="\t",
+                  response.var="CaseControl", strata.var="Study",
+                  main.vars=c("Gender", "Exposure", "Smoke_CURRENT", "Smoke_FORMER"),
+                  int.vars="Exposure")
+    
+    # 4. Set output options
+    out.file <- paste(getwd(), "/GxE.out", sep="")
+    op <- list(out.file=out.file)
+    
+    # 5. Run the GxE scan using GxE.scan
+    GxE.scan(snp.list, pheno.list, op=op)
+    
+    # 6. Read and inspect the output file
+    x <- read.table(out.file, header=1, as.is=TRUE, sep="\t")
+    print(x[1:5, ])
+    
+    # Write named output files for the meaningful results
+    write.csv(x, "gxe_scan_results.csv", row.names=FALSE)
+    saveRDS(x, "gxe_scan_results.rds")
 
-    # --- Hardy-Weinberg Equilibrium Testing [snphwe] ---
-    # Key functions: snphwe
-    n_AA <- c(120, 150, 90)
-    n_AB <- c(50, 40, 60)
-    n_BB <- c(10, 5, 15)
-    hwe_pvals <- snphwe(n_AA, n_AB, n_BB)
-    valid_snps <- hwe_pvals >= 0.001
-
-    # --- Case-Control Matching [getMatchedSets] ---
-    # Key functions: getMatchedSets
-    Xdata <- data.frame(
-        case.control = rbinom(100, 1, 0.5),
-        ethnic.group = sample(1:3, 100, replace = TRUE),
-        age.group_1 = sample(1:4, 100, replace = TRUE),
-        gynSurgery.history = rbinom(100, 1, 0.2),
-        BRCA.history = rbinom(100, 1, 0.1)
-    )
-    size <- ifelse(Xdata$ethnic.group == 3, 3, 4)
-    d <- cluster::daisy(Xdata[, c("age.group_1", "gynSurgery.history", "BRCA.history")])
-    mx <- getMatchedSets(d, CC = TRUE, NN = TRUE, ccs.var = Xdata$case.control,
-                         strata.var = Xdata$ethnic.group, size = size, fixed = TRUE)
-    Xdata$CCStrat <- mx$CC
-    Xdata$NNStrat <- mx$NN
-
-    # --- Gene-Environment Interaction Analysis [logistic.nci] ---
-    # Key functions: logistic.nci
-    study_data <- data.frame(
-        case_control = rbinom(500, 1, 0.5),
-        exposure = rbinom(500, 1, 0.4),
-        snp_allele = rbinom(500, 2, 0.3),
-        age = rnorm(500, mean = 45, sd = 12)
-    )
-    fit_res <- logistic.nci(study_data, response.var = "case_control",
-                            exposure.var = "exposure", genetic.var = "snp_allele",
-                            extra.var = "age")
-
-    # --- Additive Interaction Testing [additive.test] ---
-    # Key functions: additive.test
-    add_test <- additive.test(study_data, response.var = "case_control",
-                              exposure.var = "exposure", genetic.var = "snp_allele")
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cgen_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cgen_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cgen_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CGEN:", paste0("    cgen: ", packageVersion("CGEN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CGEN_GXE_SCAN_TPED":',
+        paste0('    CGEN: ', as.character(packageVersion('CGEN')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cgen_results.csv
-    touch ${prefix}_cgen_output.rds
-    echo "BIOC_CGEN:" > versions.yml
-    echo "    cgen: 0.0.0" >> versions.yml
+    touch ${prefix}_gxe_scan_tped.csv versions.yml
     """
 }
 
-
-workflow BIOC_CGEN_WORKFLOW {
+workflow BIOC_CGEN_GXE_SCAN_TPED_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ geno_data.tped.gz, geno_data.tfam, pheno.txt ] ]
 
     main:
-    BIOC_CGEN(ch_input)
+    BIOC_CGEN_GXE_SCAN_TPED(ch_input)
 
     emit:
-    results  = BIOC_CGEN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CGEN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CGEN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CGEN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CGEN_GXE_SCAN_TPED.out.tables
+    plots    = BIOC_CGEN_GXE_SCAN_TPED.out.plots
+    objects  = BIOC_CGEN_GXE_SCAN_TPED.out.objects
+    versions = BIOC_CGEN_GXE_SCAN_TPED.out.versions
 }

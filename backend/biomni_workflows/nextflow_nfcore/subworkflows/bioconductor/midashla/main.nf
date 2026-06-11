@@ -1,159 +1,118 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: midasHLA
-// MiDAS is a R package for immunogenetics data transformation and statistical analysis. MiDAS accepts 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/midasHLA/inst/doc/MiDAS_tutorial.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("midasHLA")
+// Bioconductor workflow: midasHLA — hla_allele_association
+// Perform association analysis on classical HLA alleles, filter by Hardy-Weinberg Equilibrium, and run conditional testing to identify independent signals.
+// Input: MiDAS_tut_pheno.txt, MiDAS_tut_HLA.txt
+// Container: quay.io/biocontainers/bioconductor-midashla:1.18.0--r45hdfd78af_0
+// R packages: midasHLA
+// Bioconductor: 3.20 | R: 4.4
+// Requires: midasHLA
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read phenotype data using read.table
+//  * 2. [Input & Preparation] Read HLA calls using readHlaCalls with a specified resolution
+//  * 3. [Core Analysis] Combine genetic and phenotypic data using prepareMiDAS
+//  * 4. [Core Analysis] Test for Hardy-Weinberg Equilibrium and filter alleles using HWETest
+//  * 5. [Input & Preparation] Define a statistical model using the placeholder term
+//  * 6. [Core Analysis] Run association analysis using runMiDAS
+//  * 7. [Core Analysis] Run stepwise conditional association analysis by setting conditional = TRUE in runMiDAS
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIDASHLA {
+process BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-midashla"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-midashla:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-midashla:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_midashla_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_midashla_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_midashla_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("midasHLA")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(midasHLA)
-    library(jsonlite)
-
-    # --- Phenotype Preparation and Hardy-Weinberg Equilibrium Testing [] ---
-    # Key functions: prepareMiDAS, HWETest
-    dat_pheno <- read.table(
-        file = system.file("extdata", "MiDAS_tut_pheno.txt", package = "midasHLA"),
-        header = TRUE
-    )
-    HLA <- prepareMiDAS(
-        hla_calls = dat_HLA,
-        colData = dat_pheno,
-        experiment = "hla_alleles"
-    )
-    HLA <- HWETest(
-        object = HLA,
-        experiment = "hla_alleles",
-        HWE_cutoff = 0.05 / 447,
-        as.MiDAS = TRUE
-    )
-
-
-    # --- HLA Association Analysis [] ---
-    # Key functions: runMiDAS
+    
+    # 1. Read phenotype data
+    dat_pheno <- read.table(file = "MiDAS_tut_pheno.txt", header = TRUE, stringsAsFactors = FALSE)
+    
+    # 2. Read HLA calls
+    dat_HLA <- readHlaCalls(file = "MiDAS_tut_HLA.txt", resolution = 4)
+    
+    # 3. Combine genetic and phenotypic data
+    HLA <- prepareMiDAS(hla_calls = dat_HLA, colData = dat_pheno, experiment = "hla_alleles")
+    
+    # 4. Test for Hardy-Weinberg Equilibrium and filter alleles
+    HLA <- HWETest(object = HLA, experiment = "hla_alleles", HWE_cutoff = 0.05 / nrow(HLA[["hla_alleles"]]), as.MiDAS = TRUE)
+    
+    # 5. Define a statistical model using the placeholder term
     HLA_model <- glm(disease ~ term, data = HLA, family = binomial())
-    HLA_results <- runMiDAS(
-        object = HLA_model,
-        experiment = "hla_alleles",
-        inheritance_model = "dominant",
-        lower_frequency_cutoff = 0.02,
-        upper_frequency_cutoff = 0.98,
-        correction = "bonferroni",
-        exponentiate = TRUE
-    )
+    
+    # 6. Run association analysis
+    HLA_results <- runMiDAS(object = HLA_model, experiment = "hla_alleles", inheritance_model = "dominant", lower_frequency_cutoff = 0.02, upper_frequency_cutoff = 0.98, correction = "bonferroni", exponentiate = TRUE)
+    
+    # 7. Run stepwise conditional association analysis
+    HLA_results_cond <- runMiDAS(object = HLA_model, experiment = "hla_alleles", inheritance_model = "dominant", conditional = TRUE, lower_frequency_cutoff = 0.02, upper_frequency_cutoff = 0.98, correction = "bonferroni", exponentiate = TRUE)
+    
+    # Save outputs to the working directory
+    write.csv(HLA_results, file = "HLA_results.csv", row.names = FALSE)
+    write.csv(HLA_results_cond, file = "HLA_results_cond.csv", row.names = FALSE)
+    saveRDS(HLA, file = "HLA_prepared_object.rds")
 
-
-    # --- Amino Acid Association Mapping [] ---
-    # Key functions: prepareMiDAS, runMiDAS, getAllelesForAA
-    HLA_AA <- prepareMiDAS(
-        hla_calls = dat_HLA,
-        colData = dat_pheno,
-        experiment = "hla_aa"
-    )
-    HLA_AA_model <- glm(disease ~ term, data = HLA_AA, family = binomial())
-    HLA_AA_results <- runMiDAS(
-        HLA_AA_model,
-        experiment = "hla_aa",
-        inheritance_model = "dominant",
-        omnibus_groups_filter = "DQB1_9",
-        lower_frequency_cutoff = 0.02,
-        upper_frequency_cutoff = 0.98,
-        correction = "bonferroni",
-        exponentiate = TRUE
-    )
-    HLA_AA_DQB1_9_alleles <- getAllelesForAA(HLA_AA, "DQB1_9")
-
-
-    # --- KIR Ligand and Interaction Analysis [] ---
-    # Key functions: readKirCalls, getKIRFrequencies, prepareMiDAS, runMiDAS
-    dat_KIR <- readKirCalls(
-        file = system.file("extdata", "MiDAS_tut_KIR.txt", package = "midasHLA")
-    )
-    kir_freq <- getKIRFrequencies(dat_KIR)
-    HLAKIR <- prepareMiDAS(
-        hla_calls = dat_HLA,
-        kir_calls = dat_KIR,
-        colData = dat_pheno,
-        experiment = c("hla_NK_ligands", "kir_genes", "hla_kir_interactions")
-    )
-    KIR_model <- glm(disease ~ term, data = HLAKIR, family = binomial())
-    KIR_results <- runMiDAS(
-        KIR_model,
-        experiment = "kir_genes",
-        lower_frequency_cutoff = 0.02,
-        upper_frequency_cutoff = 0.98,
-        exponentiate = TRUE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_midashla_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_midashla_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_midashla_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIDASHLA:", paste0("    midashla: ", packageVersion("midasHLA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION":',
+        paste0('    midasHLA: ', as.character(packageVersion('midasHLA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_midashla_results.csv
-    touch ${prefix}_midashla_output.rds
-    echo "BIOC_MIDASHLA:" > versions.yml
-    echo "    midashla: 0.0.0" >> versions.yml
+    touch ${prefix}_hla_allele_association.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIDASHLA_WORKFLOW {
+workflow BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ MiDAS_tut_pheno.txt, MiDAS_tut_HLA.txt ] ]
 
     main:
-    BIOC_MIDASHLA(ch_input)
+    BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION(ch_input)
 
     emit:
-    results  = BIOC_MIDASHLA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIDASHLA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIDASHLA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIDASHLA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION.out.tables
+    plots    = BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION.out.plots
+    objects  = BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION.out.objects
+    versions = BIOC_MIDASHLA_HLA_ALLELE_ASSOCIATION.out.versions
 }

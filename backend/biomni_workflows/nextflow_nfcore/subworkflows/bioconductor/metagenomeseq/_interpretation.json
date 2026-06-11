@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: obj=the metagenomeSeq MRexperiment-class object ;; p=the quantile percentile used for cumulative sum scaling normalization (calculated via cumNormStat or cumNormStatFast) ;; condition=a factor separating samples into phenotypic groups of interest for wrenchNorm ;; mod=the model/design matrix created via model.matrix ;; useCSSoffset=logical in fitZig indicating whether to automatically include the CSS scaling normalization factor as an offset (default TRUE) ;; eff=the minimum effective sample fraction threshold in MRcoefs/MRtable (recommended eff=0.5) to filter out unreliable fold-change estimates ;; feature=name or row index of the feature of interest in fitTimeSeries ;; class=name of the column in phenoData representing group membership in fitTimeSeries ;; time=name of the column in phenoData representing relative time in fitTimeSeries ;; id=name of the column in phenoData representing sample ID in fitTimeSeries ;; B=number of permutations to perform (e.g., in fitTimeSeries or fitLogNormal)\n- alternatives: fitFeatureModel (zero-inflated log-normal model) is the latest development and is recommended over fitZig (zero-inflated Gaussian model) for single-feature differential abundance testing ;; wrenchNorm is preferred over cumulative sum scaling (cumNorm) when comparing samples based on phenotypic groups/conditions ;; Metastats (non-parametric permutation test on t-statistics) and LEfSe (non-parametric Kruskal-Wallis test) are mentioned as alternative tools, but they do not address normalization or sparsity\n- when_to_use: Use when analyzing marker-gene survey or metagenomic count data to identify features (OTUs, species, genera) that are differentially abundant between two or more groups, or when performing longitudinal time-series analysis of microbial abundance.\n- pitfalls: Do not claim features are significant unless the effective number of samples is above a particular percentage (set eff=0.5 in MRcoefs or MRtable to avoid unreliable fold-change estimates) ;; Ensure features have the same names as the rows of the count matrix, and phenotypes have the same names as the columns of the count matrix when creating the MRexperiment object ;; In fitTimeSeries, only two groups can be compared, and the time parameter must be a numeric value (no POSIX support).",
+  "workflows": [
+    {
+      "name": "standard_differential_abundance",
+      "intent": "Import count data, taxonomy, and metadata, normalize using CSS or Wrench, and perform differential abundance testing using zero-inflated models.",
+      "input": [
+        "CHK_NAME.otus.count.csv (tab-delimited count matrix)",
+        "CHK_otus.taxonomy.csv (OTU taxonomy annotations)",
+        "CHK_clinical.csv (sample metadata)"
+      ],
+      "stages": "1. Load count data, taxonomy, and metadata ;; 2. Create a MRexperiment object using newMRexperiment ;; 3. Filter low-abundance features using filterData ;; 4. Calculate normalization factors using cumNormStatFast and cumNorm (or wrenchNorm) ;; 5. Define the design matrix using model.matrix ;; 6. Perform differential abundance testing using fitFeatureModel (recommended) or fitZig ;; 7. Extract and summarize results using MRcoefs.",
+      "code": "library(metagenomeSeq)\ndataDirectory <- system.file(\"extdata\", package=\"metagenomeSeq\")\nlung = loadMeta(file.path(dataDirectory,\"CHK_NAME.otus.count.csv\")) \ntaxa = read.delim(file.path(dataDirectory,\"CHK_otus.taxonomy.csv\"),stringsAsFactors=FALSE)\nclin = loadPhenoData(file.path(dataDirectory,\"CHK_clinical.csv\"),tran=TRUE)\nord = match(colnames(lung$counts),rownames(clin)) \nclin = clin[ord,]\nphenotypeData = AnnotatedDataFrame(clin)\nOTUdata = AnnotatedDataFrame(taxa)\nobj = newMRexperiment(lung$counts,phenoData=phenotypeData,featureData=OTUdata)\n\ndata(lungData)\nlungData = lungData[,-which(is.na(pData(lungData)$SmokingStatus))]\nlungData=filterData(lungData,present=30,depth=1)\np=cumNormStatFast(lungData)\nlungData = cumNorm(lungData,p=p)\n\npd <- pData(lungData)\nmod <- model.matrix(~1+SmokingStatus, data=pd)\nlungres1 = fitFeatureModel(lungData,mod)\nhead(MRcoefs(lungres1))"
+    },
+    {
+      "name": "longitudinal_time_series",
+      "intent": "Identify significant time intervals of differential abundance for specific features across two groups in longitudinal studies.",
+      "input": [
+        "mouseData (MRexperiment object containing longitudinal counts, time points, group status, and mouse IDs)"
+      ],
+      "stages": "1. Load longitudinal MRexperiment data ;; 2. Run fitTimeSeries using Smoothing Splines ANOVA (SS-ANOVA) with permutations ;; 3. Extract significant time intervals ;; 4. Plot the time-series fits using plotClassTimeSeries and plotTimeSeries.",
+      "code": "library(metagenomeSeq)\nlibrary(gss)\ndata(mouseData)\nres = fitTimeSeries(obj = mouseData, lvl = \"class\", feature = \"Actinobacteria\",\n    class = \"status\", id = \"mouseID\", time = \"relativeTime\", B = 10)\nres$timeIntervals\nstr(res)\n\npar(mfrow = c(2, 1))\nplotClassTimeSeries(res, pch = 21, bg = res$data$class, ylim = c(0, 8))\nplotTimeSeries(res)"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "package": "purecn",
+  "requirements": [
+    "PureCN",
+    "VariantAnnotation",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "biomarker_extraction.nf": [
+      "PureCN",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "PureCN",
+      "VariantAnnotation",
+      "rtracklayer"
+    ],
+    "third_party_segmentation.nf": [
+      "PureCN"
+    ]
+  }
+}

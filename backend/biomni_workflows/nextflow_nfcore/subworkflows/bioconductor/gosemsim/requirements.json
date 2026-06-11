@@ -1,0 +1,17 @@
+{
+  "package": "gosemsim",
+  "requirements": [
+    "GOSemSim",
+    "GenomicRanges",
+    "org.Hs.eg.db",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GOSemSim",
+      "GenomicRanges",
+      "org.Hs.eg.db",
+      "rtracklayer"
+    ]
+  }
+}

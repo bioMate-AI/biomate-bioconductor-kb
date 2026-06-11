@@ -1,0 +1,26 @@
+{
+  "package": "raids",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "RAIDS",
+    "SNPRelate",
+    "Seqinfo",
+    "gdsfmt",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "RAIDS",
+      "Seqinfo",
+      "ggplot2"
+    ],
+    "rna_ancestry_inference.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "RAIDS",
+      "SNPRelate",
+      "Seqinfo",
+      "gdsfmt"
+    ]
+  }
+}

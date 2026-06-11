@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: prior=Prior probability of regulation. Can be a constant for all targets or unique to each target. Defaults to 0.5 (uninformative prior). Use a smaller value (e.g., 0.0005) if expecting very few relationships relative to the total ;; g=Zellner's g-prior specifying expected signal strength relative to noise. Larger values correspond to larger expected signal. It is recommended that the square root of g be set to a value between 1 and the number of observations n (default is n)\n- alternatives: None mentioned in the documentation\n- when_to_use: Appropriate when analyzing gene expression data from knockdown, knockout, or over-expression experiments to infer gene regulatory relationships, or when testing for differential expression in a set of variables between two experimental conditions\n- pitfalls: Setting the g-prior parameter such that the square root of g falls outside the recommended range of 1 to n (the number of observations) may lead to poor estimation of the signal-to-noise ratio",
+  "workflows": [
+    {
+      "name": "bayes_knockdown_matrix",
+      "intent": "Calculate posterior probabilities of relationships between a single predictor variable and multiple target variables using numeric matrices.",
+      "input": [
+        "predictor_vector.csv (numeric vector of expression levels for the predictor gene across samples)",
+        "targets_matrix.csv (numeric matrix of expression levels for potential target genes across the same samples, where rows are genes and columns are samples)"
+      ],
+      "stages": "1. Load the package and data ;; 2. Run BayesKnockdown with the predictor vector, target matrix, and optional prior ;; 3. Visualize the posterior probabilities using a barplot.",
+      "code": "library(BayesKnockdown);\ndata(lincs.kd);\nkdResult <- BayesKnockdown(lincs.kd[1,], lincs.kd[-1,], prior=0.0005);\nkdResult;\nbarplot(kdResult, names.arg=\"\", xlab=\"Target Gene\",\n        ylab=\"Posterior Probability\", ylim=c(0,1));"
+    },
+    {
+      "name": "bayes_knockdown_expressionset",
+      "intent": "Calculate posterior probabilities of relationships between a single predictor feature and other features using an ExpressionSet object.",
+      "input": [
+        "expression_set.RData (An ExpressionSet object containing gene expression data)"
+      ],
+      "stages": "1. Load Biobase and the ExpressionSet ;; 2. Subset the ExpressionSet if necessary ;; 3. Run BayesKnockdown.es specifying the ExpressionSet and the predictor feature name.",
+      "code": "library(Biobase);\ndata(sample.ExpressionSet);\nsubset <- sample.ExpressionSet[1:10,];\nBayesKnockdown.es(subset, \"AFFX-MurIL10_at\");"
+    },
+    {
+      "name": "bayes_knockdown_diff_exp",
+      "intent": "Test for differential expression in a set of variables between two experimental conditions.",
+      "input": [
+        "condition1_matrix.csv (matrix of gene expression levels for condition 1, genes as rows, samples as columns)",
+        "condition2_matrix.csv (matrix of gene expression levels for condition 2, genes as rows, samples as columns)"
+      ],
+      "stages": "1. Prepare expression matrices for both conditions ;; 2. Run BayesKnockdown.diffExp to calculate posterior probabilities of differential expression ;; 3. Visualize the posterior probabilities using a barplot.",
+      "code": "n1 <- 25;\nn2 <- 30;\np <- 10;\ny1 <- matrix(nrow=p, data=rnorm(n1*p));\ny2 <- matrix(nrow=p, data=rnorm(n2*p));\ny2[3,] <- y2[3,] + 1;\ndiffExpResult <- BayesKnockdown.diffExp(y1, y2);\nbarplot(diffExpResult, names.arg=\"\", xlab=\"Target Gene\",\n        ylab=\"Posterior Probability\", ylim=c(0,1));"
+    }
+  ]
+}

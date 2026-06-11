@@ -1,95 +1,254 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DeMixT
-// DeMixT is a software package that performs deconvolution on transcriptome data from a mixture of two
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DeMixT/inst/doc/demixt.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("DeMixT")
+// Bioconductor workflow: DeMixT — demixt_bulk_deconvolution
+// Perform two- or three-component deconvolution on bulk transcriptomic data (RNA-seq or microarray) using the log-normal model to estimate proportions and deconvo
+// Input: PRAD, Normal.id, Tumor.id
+// Container: quay.io/biocontainers/bioconductor-demixt:1.26.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DeMixT, SummarizedExperiment, psych
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Preprocess and filter the raw count matrix using standard deviation cutoffs with DeMixT_preprocessing. 2. Create SummarizedExperim
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEMIXT {
+process BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-demixt"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-demixt:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-demixt:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_demixt_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_demixt_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_demixt_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DeMixT)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(DeMixT)
+        
+        # Helper function to load user input files robustly
+        load_input <- function(name) {
+          if (file.exists(paste0(name, ".rds"))) {
+            message("Loading ", name, " from RDS file...")
+            return(readRDS(paste0(name, ".rds")))
+          } else if (file.exists(paste0(name, ".csv"))) {
+            message("Loading ", name, " from CSV file...")
+            df <- read.csv(paste0(name, ".csv"), row.names = 1, check.names = FALSE)
+            if (ncol(df) == 1 && name != "PRAD") {
+              return(as.vector(df[[1]]))
+            }
+            return(as.matrix(df))
+          } else if (file.exists(paste0(name, ".tsv"))) {
+            message("Loading ", name, " from TSV file...")
+            df <- read.delim(paste0(name, ".tsv"), row.names = 1, check.names = FALSE)
+            if (ncol(df) == 1 && name != "PRAD") {
+              return(as.vector(df[[1]]))
+            }
+            return(as.matrix(df))
+          } else if (file.exists(name)) {
+            message("Loading ", name, " directly...")
+            try_rds <- tryCatch({ readRDS(name) }, error = function(e) NULL)
+            if (!is.null(try_rds)) return(try_rds)
+            try_csv <- tryCatch({
+              df <- read.csv(name, row.names = 1, check.names = FALSE)
+              if (ncol(df) == 1 && name != "PRAD") return(as.vector(df[[1]]))
+              as.matrix(df)
+            }, error = function(e) NULL)
+            if (!is.null(try_csv)) return(try_csv)
+          }
+          stop(paste("Error: Could not find or read input file for:", name))
+        }
+        
+        # ----------------------------------------------------------------------
+        # Step 1: Load Input Data
+        # ----------------------------------------------------------------------
+        if (file.exists("PRAD.RData")) {
+          message("Loading data from PRAD.RData...")
+          load("PRAD.RData")
+        } else {
+          PRAD <- load_input("PRAD")
+          Normal.id <- load_input("Normal.id")
+          Tumor.id <- load_input("Tumor.id")
+        }
+        
+        # Ensure sample IDs are character vectors
+        Normal.id <- as.character(Normal.id)
+        Tumor.id <- as.character(Tumor.id)
+        
+        # Ensure PRAD is a matrix
+        PRAD <- as.matrix(PRAD)
+        
+        # Subset PRAD to only include the specified normal and tumor samples
+        PRAD <- PRAD[, c(Normal.id, Tumor.id)]
+        
+        # ----------------------------------------------------------------------
+        # Step 2: Preprocess and Filter Data
+        # ----------------------------------------------------------------------
+        selected.genes = 9000
+        cutoff_normal_range = c(0.1, 1.0)
+        cutoff_tumor_range = c(0, 2.5)
+        cutoff_step = 0.1
+        
+        preprocessed_data = DeMixT_preprocessing(PRAD, Normal.id, Tumor.id, selected.genes, cutoff_normal_range, cutoff_tumor_range, cutoff_step)
+        PRAD_filter = preprocessed_data\$count.matrix
+        sd_cutoff_normal = preprocessed_data\$sd_cutoff_normal
+        sd_cutoff_tumor = preprocessed_data\$sd_cutoff_tumor
+        
+        # ----------------------------------------------------------------------
+        # Step 3: Create SummarizedExperiment Objects
+        # ----------------------------------------------------------------------
+        set.seed(1234)
+        data.Y = SummarizedExperiment(assays = list(counts = PRAD_filter[, Tumor.id]))
+        data.N1 <- SummarizedExperiment(assays = list(counts = PRAD_filter[, Normal.id]))
+        
+        # ----------------------------------------------------------------------
+        # Step 4: Run DeMixT Deconvolution across Parameter Grid
+        # ----------------------------------------------------------------------
+        nspikesin_list = c(0, 5, 10)
+        ngene.selected_list = c(500, 1000, 1500, 2500)
+        
+        PiT_GS_PRAD <- c()
+        row_names <- c()
+        
+        for(nspikesin in nspikesin_list){
+          for(ngene.selected in ngene.selected_list){
+            name = paste("PRAD_demixt_GS_res_nspikesin", nspikesin, "ngene.selected", ngene.selected, sep = "_")
+            name = paste(name, ".RData", sep = "")
+            
+            message("Running DeMixT for nspikein = ", nspikesin, ", ngene.selected = ", ngene.selected, "...")
+            
+            res_run <- tryCatch({
+              DeMixT(data.Y = data.Y, 
+                     data.N1 = data.N1, 
+                     ngene.selected.for.pi = ngene.selected, 
+                     ngene.Profile.selected = ngene.selected, 
+                     filter.sd = 0.7, 
+                     gene.selection.method = "GS", 
+                     nspikein = nspikesin)
+            }, error = function(e) {
+              message("Warning: DeMixT run failed for nspikein = ", nspikesin, ", ngene.selected = ", ngene.selected, ". Error: ", e\$message)
+              NULL
+            })
+            
+            if (!is.null(res_run)) {
+              save(res_run, file = name)
+              PiT_GS_PRAD <- cbind(PiT_GS_PRAD, res_run\$pi[2, ])
+              row_names <- c(row_names, paste(nspikesin, ngene.selected, sep = "_"))
+            }
+          }
+        }
+        
+        if (length(row_names) > 0) {
+          colnames(PiT_GS_PRAD) <- row_names
+        } else {
+          stop("Error: All DeMixT parameter grid runs failed.")
+        }
+        
+        # ----------------------------------------------------------------------
+        # Step 5: Identify Optimal Parameters and Extract Results
+        # ----------------------------------------------------------------------
+        PiT_GS_PRAD <- as.data.frame(PiT_GS_PRAD)
+        Spearman_correlations <- list()
+        
+        for(entry_1 in colnames(PiT_GS_PRAD)) {
+          cor.values <- c()
+          for (entry_2 in colnames(PiT_GS_PRAD)) {
+            if (entry_1 == entry_2) next
+            cor.values <- c(cor.values, cor(PiT_GS_PRAD[, entry_1], PiT_GS_PRAD[, entry_2], method = "spearman"))
+          }
+          Spearman_correlations[[entry_1]] <- mean(cor.values, na.rm = TRUE)
+        }
+        
+        Spearman_correlations <- unlist(Spearman_correlations)
+        
+        # Select the optimal parameter combination with the highest average correlation
+        best_combination <- names(Spearman_correlations)[which.max(Spearman_correlations)]
+        message("Optimal parameter combination identified: ", best_combination)
+        
+        # Load the optimal results
+        best_file <- paste("PRAD_demixt_GS_res_nspikesin", gsub("_", "_ngene.selected_", best_combination), sep = "_")
+        best_file <- paste(best_file, ".RData", sep = "")
+        load(best_file)
+        
+        # ----------------------------------------------------------------------
+        # Step 6: Save Outputs and Generate Plots
+        # ----------------------------------------------------------------------
+        # Save estimated proportions
+        write.csv(res_run\$pi, file = "estimated_proportions.csv", row.names = TRUE)
+        
+        # Save deconvolved expression profiles
+        if (!is.null(res_run\$ExprT)) {
+          write.csv(res_run\$ExprT, file = "deconvolved_expression_tumor.csv", row.names = TRUE)
+        }
+        if (!is.null(res_run\$ExprN1)) {
+          write.csv(res_run\$ExprN1, file = "deconvolved_expression_normal.csv", row.names = TRUE)
+        }
+        
+        # Save the optimal deconvolution object
+        saveRDS(res_run, file = "optimal_deconvolution_results.rds")
+        
+        # Generate pairwise correlation plot
+        pdf("pairwise_correlations.pdf", width = 10, height = 10)
+        if (requireNamespace("psych", quietly = TRUE)) {
+          psych::pairs.panels(PiT_GS_PRAD, method = "spearman", 
+                              hist.col = "#00AFBB", density = TRUE, 
+                              ellipses = TRUE, 
+                              main = 'Correlations of Tumor Proportions with GS', 
+                              xlim = c(0,1), ylim = c(0,1))
+        } else {
+          pairs(PiT_GS_PRAD, main = "Correlations of Tumor Proportions with GS", xlim = c(0,1), ylim = c(0,1))
+        }
+        dev.off()
+        
+        message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- sim 2comp [] ---
-    # Key functions: ggplot, geom_point, geom_abline
-    res.2comp = as.data.frame(cbind(round(rep(t(test.data.2comp$pi[2,]),3),2),
-    round(c(t(res.S1$pi[2,]),t(res.S1.SP$pi[2,]), t(res.GS.SP$pi[2,])),2),
-    rep(c('DE','DE-SP','GS-SP'), each = 100)), num = 1:2)
-    # --- sim 3comp [] ---
-    # Key functions: ggplot, geom_point, geom_abline
-    res.3comp= as.data.frame(cbind(round(t(matrix(t(test.data.3comp$pi), nrow = 1)),2),
-    round(t(matrix(t(res.S1$pi), nrow = 1)),2),
-    rep(c('N1','N2','T'), each = 20)))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_demixt_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_demixt_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_demixt_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEMIXT:", paste0("    demixt: ", packageVersion("DeMixT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION":',
+        paste0('    DeMixT: ', as.character(packageVersion('DeMixT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_demixt_results.csv
-    touch ${prefix}_demixt_output.rds
-    echo "BIOC_DEMIXT:" > versions.yml
-    echo "    demixt: 0.0.0" >> versions.yml
+    touch ${prefix}_demixt_bulk_deconvolution.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEMIXT_WORKFLOW {
+workflow BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ PRAD, Normal.id, Tumor.id ] ]
 
     main:
-    BIOC_DEMIXT(ch_input)
+    BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION(ch_input)
 
     emit:
-    results  = BIOC_DEMIXT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEMIXT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEMIXT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEMIXT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION.out.tables
+    plots    = BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION.out.plots
+    objects  = BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION.out.objects
+    versions = BIOC_DEMIXT_DEMIXT_BULK_DECONVOLUTION.out.versions
 }

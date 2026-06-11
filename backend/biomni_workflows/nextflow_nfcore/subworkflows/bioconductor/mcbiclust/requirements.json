@@ -1,0 +1,26 @@
+{
+  "package": "mcbiclust",
+  "requirements": [
+    "MCbiclust",
+    "dplyr",
+    "ggplot2",
+    "gplots"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MCbiclust",
+      "dplyr",
+      "ggplot2",
+      "gplots"
+    ],
+    "multi_run_bicluster_analysis.nf": [
+      "MCbiclust",
+      "dplyr",
+      "ggplot2",
+      "gplots"
+    ],
+    "scoring_independent_samples.nf": [
+      "MCbiclust"
+    ]
+  }
+}

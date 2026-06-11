@@ -1,0 +1,29 @@
+{
+  "package": "mast",
+  "requirements": [
+    "GSEABase",
+    "MAST",
+    "data.table",
+    "ggplot2",
+    "limma"
+  ],
+  "by_workflow": {
+    "gene_set_enrichment_analysis.nf": [
+      "GSEABase",
+      "MAST",
+      "data.table",
+      "ggplot2",
+      "limma"
+    ],
+    "main.nf": [
+      "MAST",
+      "data.table",
+      "ggplot2"
+    ],
+    "scrnaseq_hurdle_analysis.nf": [
+      "MAST",
+      "data.table",
+      "ggplot2"
+    ]
+  }
+}

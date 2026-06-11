@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gtfFile=Path to the GENCODE GTF file ;; CDSfasta=Path to the coding sequence FASTA file ;; pepfasta=Path to the protein sequence FASTA file ;; annotation_path=Directory where prepared annotation RData files will be saved ;; XScolumn=The column name in the PSM table containing the search engine score (e.g., 'mvh') ;; exon=Exon annotation object loaded from prepared annotation ;; proteinseq=Protein sequence object loaded from prepared annotation ;; procodingseq=Protein coding sequence object loaded from prepared annotation\n- alternatives: PrepareAnnotationRefseq and PrepareAnnotationEnsembl from the customProDB package should be used if the source annotations are from RefSeq or ENSEMBL instead of GENCODE. pepXMLTab package can be used to extract PSMs from pepXML files to prepare the input PSM table.\n- when_to_use: Use when integrating shotgun proteomics data with genomic/transcriptomic data, mapping identified peptides to genomic coordinates, and visualizing peptide-spectrum matches (PSMs) in genome browsers like IGV.\n- pitfalls: Users must ensure they use the exact same version of genome annotations (GTF, CDS, and protein sequences) throughout the entire analysis. The generated SAM file lacks a header initially, which must be added before converting to BAM using external tools like samtools.",
+  "workflows": [
+    {
+      "name": "probam_generation",
+      "intent": "Map peptide-spectrum matches (PSMs) to genomic coordinates and generate a SAM file using GENCODE annotations.",
+      "input": [
+        "test.gtf (GENCODE gene annotation file)",
+        "coding_seq.fasta (GENCODE coding sequence FASTA file)",
+        "pro_seq.fasta (GENCODE protein sequence FASTA file)",
+        "passedPSM.tab (Tabular file containing confident PSMs and search engine scores)"
+      ],
+      "stages": "1. Prepare annotation files from GENCODE GTF and FASTA files using PrepareAnnotationGENCODE ;; 2. Load the prepared annotation RData files (exon_anno.RData, proseq.RData, procodingseq.RData) ;; 3. Read the PSM table ;; 4. Convert the PSM table to SAM format using PSMtab2SAM ;; 5. Write the SAM file to disk",
+      "code": "library(proBAMr)\ngtfFile <- system.file(\"extdata\", \"test.gtf\", package=\"proBAMr\")\nCDSfasta <- system.file(\"extdata\", \"coding_seq.fasta\", package=\"proBAMr\") \npepfasta <- system.file(\"extdata\", \"pro_seq.fasta\", package=\"proBAMr\") \nannotation_path <- tempdir()\nPrepareAnnotationGENCODE(gtfFile, CDSfasta, pepfasta, \n                annotation_path, dbsnp=NULL, \n                splice_matrix=FALSE, COSMIC=FALSE)  \nload(system.file(\"extdata/GENCODE\", \"exon_anno.RData\", package=\"proBAMr\"))\nload(system.file(\"extdata/GENCODE\", \"proseq.RData\", package=\"proBAMr\"))\nload(system.file(\"extdata/GENCODE\", \"procodingseq.RData\", package=\"proBAMr\"))\noptions(stringsAsFactors=FALSE)\npassedPSM <- read.table(system.file(\"extdata\", \"passedPSM.tab\", \n    package=\"proBAMr\"), sep='\\t', header=TRUE)\nSAM <- PSMtab2SAM(passedPSM, XScolumn='mvh', exon, proteinseq, \n    procodingseq)\nwrite.table(SAM, file=paste(tempdir(), '/test.sam', sep=''), \n        sep='\\t', quote=FALSE, row.names=FALSE, col.names=FALSE)"
+    }
+  ]
+}

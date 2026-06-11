@@ -1,0 +1,13 @@
+{
+  "package": "scpipe",
+  "requirements": [
+    "SingleCellExperiment",
+    "scPipe"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "scPipe"
+    ]
+  }
+}

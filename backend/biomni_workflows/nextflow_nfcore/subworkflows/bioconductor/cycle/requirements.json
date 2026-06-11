@@ -1,0 +1,13 @@
+{
+  "package": "cycle",
+  "requirements": [
+    "Biobase",
+    "cycle"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "cycle"
+    ]
+  }
+}

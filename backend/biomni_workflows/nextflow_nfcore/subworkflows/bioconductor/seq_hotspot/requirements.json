@@ -1,0 +1,15 @@
+{
+  "package": "seq_hotspot",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "seq_hotspot"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "seq_hotspot"
+    ]
+  }
+}

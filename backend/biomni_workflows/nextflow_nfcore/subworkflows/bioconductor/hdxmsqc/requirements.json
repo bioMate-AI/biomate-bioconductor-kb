@@ -1,0 +1,29 @@
+{
+  "package": "hdxmsqc",
+  "requirements": [
+    "QFeatures",
+    "RColorBrewer",
+    "S4Vectors",
+    "Spectra",
+    "dplyr",
+    "ggplot2",
+    "hdxmsqc",
+    "patchwork",
+    "pheatmap",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "QFeatures",
+      "RColorBrewer",
+      "S4Vectors",
+      "Spectra",
+      "dplyr",
+      "ggplot2",
+      "hdxmsqc",
+      "patchwork",
+      "pheatmap",
+      "tidyr"
+    ]
+  }
+}

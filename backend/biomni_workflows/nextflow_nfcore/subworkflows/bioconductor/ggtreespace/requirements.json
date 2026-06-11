@@ -1,0 +1,28 @@
+{
+  "package": "ggtreespace",
+  "requirements": [
+    "ape",
+    "dplyr",
+    "ggplot2",
+    "ggtree",
+    "ggtreeSpace",
+    "phytools"
+  ],
+  "by_workflow": {
+    "annotated_phylomorphospace_heatmap.nf": [
+      "ape",
+      "dplyr",
+      "ggplot2",
+      "ggtree",
+      "ggtreeSpace",
+      "phytools"
+    ],
+    "main.nf": [
+      "ape",
+      "dplyr",
+      "ggplot2",
+      "ggtree",
+      "ggtreeSpace"
+    ]
+  }
+}

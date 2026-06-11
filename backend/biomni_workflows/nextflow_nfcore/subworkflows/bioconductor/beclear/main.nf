@@ -1,148 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BEclear
-// Provides functions to detect and correct for batch effects in DNA methylation data. The core functio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BEclear/inst/doc/BEclear.R
-// Upstream  : ids, pander
-// Downstream: none
-//
-// Install: BiocManager::install("BEclear")
+// Bioconductor workflow: BEclear — step_by_step_batch_correction
+// Detect, score, and correct batch effects in DNA methylation data using a step-by-step manual workflow.
+// Input: beta_values.csv, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-beclear:2.26.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BEclear, ids
+// Visualizations: plot (ggplot/base)
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate batch effects (median differences and p-values) using calcBatchEffects
+//  * 2. [Visualization & Output] Summarize batch-affected gene-sample combinations using calcSummary
+//  * 3. [Core Analysis] Calculate batch severity scores using calcScore
+//  * 4. [Core Analysis] Set batch-affected values to NA using clearBEgenes
+//  * 5. [Core Analysis] Impute the missing values using block-based stochastic gradient descent with imputeMissingData
+//  * 6. [Core Analysis] Correct out-of-bounds predicted values using replaceOutsideValues
+//  * 7. [Visualization & Output] Visualize the distributions before and after correction using makeBoxplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_BECLEAR {
+process BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-beclear"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-beclear:2.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-beclear:2.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_beclear_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_beclear_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_beclear_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(BEclear)
-    library(jsonlite)
-
-    # --- Batch Effect Detection [calcBatchEffects, calcSummary] ---
-    # Key functions: calcBatchEffects, calcSummary
-    data("BEclearData", package = "BEclear")
+    library(ids)
+    
+    # ---------------------------------------------------------
+    # 1. Read User Input Files
+    # ---------------------------------------------------------
+    # Read the beta values matrix (genes/probes as rows, samples as columns)
+    ex.data <- as.matrix(read.csv("beta_values.csv", row.names = 1, check.names = FALSE))
+    
+    # Read the sample metadata (must contain sample_id and batch_id)
+    ex.samples <- read.csv("sample_metadata.csv", stringsAsFactors = FALSE)
+    
+    # Ensure the columns of ex.samples are correctly formatted and ordered
+    # The first column must be "sample_id" and the second "batch_id"
+    ex.samples <- ex.samples[, c("sample_id", "batch_id")]
+    
+    # ---------------------------------------------------------
+    # 2. Step-by-Step Batch Correction Workflow
+    # ---------------------------------------------------------
+    
+    # Step 2.1: Calculate batch effects (median differences and p-values)
     batchEffect <- calcBatchEffects(
-        data = ex.data,
-        samples = ex.samples,
-        adjusted = TRUE,
-        method = "fdr"
+      data = ex.data, samples = ex.samples,
+      adjusted = TRUE, method = "fdr"
     )
-    mdifs <- batchEffect$med
-    pvals <- batchEffect$pval
+    mdifs <- batchEffect\$med
+    pvals <- batchEffect\$pval
+    
+    # Step 2.2: Summarize batch-affected gene-sample combinations
     summary <- calcSummary(medians = mdifs, pvalues = pvals)
-
-    # --- Batch Score Calculation [calcScore] ---
-    # Key functions: calcScore
-    score <- calcScore(
-        data = ex.data,
-        samples = ex.samples,
-        summary = summary,
-        dir = tempdir()
+    
+    # Step 2.3: Calculate batch severity scores
+    score <- calcScore(ex.data, ex.samples, summary, dir = getwd())
+    
+    # Step 2.4: Set batch-affected values to NA
+    cleared.data <- clearBEgenes(ex.data, ex.samples, summary)
+    
+    # Step 2.5: Impute the missing values using block-based stochastic gradient descent
+    corrected.data <- imputeMissingData(cleared.data,
+      rowBlockSize = 60,
+      colBlockSize = 60, epochs = 50,
+      outputFormat = "", dir = getwd()
     )
+    
+    # Step 2.6: Correct out-of-bounds predicted values (outside [0, 1])
+    corrected.data.valid <- replaceOutsideValues(corrected.data)
+    
+    # ---------------------------------------------------------
+    # 3. Save Outputs
+    # ---------------------------------------------------------
+    
+    # Save tabular results
+    write.csv(summary, "batch_effects_summary.csv", row.names = FALSE)
+    write.csv(score, "batch_scores.csv", row.names = FALSE)
+    write.csv(corrected.data.valid, "corrected_beta_values.csv", row.names = TRUE)
+    saveRDS(corrected.data.valid, "corrected_beta_values.rds")
+    
+    # Step 2.7: Visualize the distributions before and after correction
+    pdf("batch_correction_plots.pdf", width = 10, height = 7)
+    
+    # Plot before correction
+    makeBoxplot(ex.data, ex.samples, score,
+      bySamples = TRUE,
+      col = "standard", main = "Example data", xlab = "Batch",
+      ylab = "Beta value", scoreCol = TRUE)
+    
+    # Plot after correction
+    makeBoxplot(corrected.data, ex.samples, score,
+      bySamples = TRUE,
+      col = "standard", main = "Corrected example data",
+      xlab = "Batch", ylab = "Beta value", scoreCol = FALSE)
+    
+    dev.off()
 
-    # --- Batch Effect Clearing [clearBEgenes] ---
-    # Key functions: clearBEgenes
-    cleared.data <- clearBEgenes(
-        data = ex.data,
-        samples = ex.samples,
-        summary = summary
-    )
-
-    # --- Missing Data Imputation [imputeMissingData, replaceOutsideValues] ---
-    # Key functions: imputeMissingData, replaceOutsideValues
-    corrected.data <- imputeMissingData(
-        data = cleared.data,
-        rowBlockSize = 60,
-        colBlockSize = 60,
-        epochs = 50,
-        outputFormat = "",
-        dir = tempdir()
-    )
-    corrected.data.valid <- replaceOutsideValues(data = corrected.data)
-
-    # --- One-step Batch Correction [correctBatchEffect] ---
-    # Key functions: correctBatchEffect
-    result <- correctBatchEffect(
-        data = ex.data,
-        samples = ex.samples
-    )
-
-    # --- Visualisation [makeBoxplot] ---
-    # Key functions: makeBoxplot
-    makeBoxplot(
-        data = ex.data,
-        samples = ex.samples,
-        score = score,
-        bySamples = TRUE,
-        col = "standard",
-        main = "Example data",
-        xlab = "Batch",
-        ylab = "Beta value",
-        scoreCol = TRUE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_beclear_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_beclear_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_beclear_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BECLEAR:", paste0("    beclear: ", packageVersion("BEclear"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION":',
+        paste0('    BEclear: ', as.character(packageVersion('BEclear')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_beclear_results.csv
-    touch ${prefix}_beclear_output.rds
-    echo "BIOC_BECLEAR:" > versions.yml
-    echo "    beclear: 0.0.0" >> versions.yml
+    touch ${prefix}_step_by_step_batch_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_BECLEAR_WORKFLOW {
+workflow BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ beta_values.csv, sample_metadata.csv ] ]
 
     main:
-    BIOC_BECLEAR(ch_input)
+    BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_BECLEAR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BECLEAR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BECLEAR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BECLEAR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION.out.tables
+    plots    = BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION.out.plots
+    objects  = BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION.out.objects
+    versions = BIOC_BECLEAR_STEP_BY_STEP_BATCH_CORRECTION.out.versions
 }

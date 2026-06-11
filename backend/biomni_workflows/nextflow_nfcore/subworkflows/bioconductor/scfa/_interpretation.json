@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dataList=A list of matrices from different data types where rows represent samples and columns represent features ;; seed=Integer seed for reproducibility ;; ncores=Number of cores for parallel processing ;; trainList=List of matrices for training dataset in risk prediction ;; testList=List of matrices for testing dataset in risk prediction ;; trainSurvival=A Surv object containing survival time and event status for the training set\n- alternatives: None mentioned\n- when_to_use: When performing cancer subtyping or patient risk score prediction using high-dimensional multi-omics datasets (e.g., mRNA, miRNA, methylation) where noise reduction and robust consensus clustering are required.\n- pitfalls: Requires C++ libtorch via the torch package; if not automatically installed, users must run torch::install_torch() manually. Survival times must be positive when predicting risk scores (e.g., adjusting survival time via survival$Survival - min(survival$Survival) + 1).",
+  "workflows": [
+    {
+      "name": "multi_omics_subtyping",
+      "intent": "Identify robust disease subtypes from multi-omics data using consensus factor analysis.",
+      "input": [
+        "dataList (a list of matrices, each representing a molecular data type with samples as rows and features as columns)",
+        "survival (a data frame containing survival time and event status for the samples)"
+      ],
+      "stages": "1. Load the SCFA and survival packages ;; 2. Prepare the multi-omics data list ;; 3. Run the SCFA function to generate subtype assignments ;; 4. Perform survival analysis using coxph to evaluate the clinical significance of the subtypes.",
+      "code": "library(SCFA)\nlibrary(survival)\ndata(\"GBM\")\ndataList <- GBM$data\nsurvival <- GBM$survival\nset.seed(1)\nsubtype <- SCFA(dataList, seed = 1, ncores = 4L)\ncoxFit <- coxph(Surv(time = Survival, event = Death) ~ as.factor(subtype), data = survival, ties=\"exact\")\ncoxP <- round(summary(coxFit)$sctest[3],digits = 20)\nprint(coxP)"
+    },
+    {
+      "name": "risk_score_prediction",
+      "intent": "Predict patient risk scores using survival information from training data and multi-omics profiles.",
+      "input": [
+        "trainList (list of training multi-omics matrices)",
+        "trainSurvival (Surv object for training data)",
+        "testList (list of testing multi-omics matrices)"
+      ],
+      "stages": "1. Load the SCFA and survival packages ;; 2. Prepare training and testing multi-omics data lists and survival objects (ensuring survival times are positive) ;; 3. Run the SCFA.class function to predict risk scores for the test set ;; 4. Validate the predicted risk scores using the concordance index.",
+      "code": "library(SCFA)\nlibrary(survival)\ndata(\"GBM\")\ndataList <- GBM$data\nsurvival <- GBM$survival\nset.seed(1)\nidx <- sample.int(nrow(dataList[[1]]), round(nrow(dataList[[1]])/2) )\nsurvival$Survival <- survival$Survival - min(survival$Survival) + 1\ntrainList <- lapply(dataList, function(x) x[idx, ] )\ntrainSurvival <- Surv(time = survival[idx,]$Survival, event =  survival[idx,]$Death)\ntestList <- lapply(dataList, function(x) x[-idx, ] )\ntestSurvival <- Surv(time = survival[-idx,]$Survival, event =  survival[-idx,]$Death)\nresult <- SCFA.class(trainList, trainSurvival, testList, seed = 1, ncores = 4L)\nc.index <- survival::concordance(coxph(testSurvival ~ result))$concordance\nprint(c.index)"
+    }
+  ]
+}

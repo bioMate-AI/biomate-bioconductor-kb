@@ -1,0 +1,19 @@
+{
+  "package": "broadseq",
+  "requirements": [
+    "SummarizedExperiment",
+    "broadSeq",
+    "dplyr",
+    "ggplot2",
+    "ggpubr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "broadSeq",
+      "dplyr",
+      "ggplot2",
+      "ggpubr"
+    ]
+  }
+}

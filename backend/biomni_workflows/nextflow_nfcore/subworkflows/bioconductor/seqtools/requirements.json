@@ -1,0 +1,11 @@
+{
+  "package": "seqtools",
+  "requirements": [
+    "seqTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "seqTools"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "synapter",
+  "requirements": [
+    "MSnbase",
+    "synapter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MSnbase",
+      "synapter"
+    ]
+  }
+}

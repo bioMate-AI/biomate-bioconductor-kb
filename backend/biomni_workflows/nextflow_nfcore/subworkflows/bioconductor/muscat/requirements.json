@@ -1,0 +1,34 @@
+{
+  "package": "muscat",
+  "requirements": [
+    "SingleCellExperiment",
+    "dplyr",
+    "ggplot2",
+    "limma",
+    "muscat",
+    "patchwork",
+    "scater",
+    "scuttle",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "bulk_hypothesis_weighing.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "limma",
+      "muscat",
+      "scater",
+      "scuttle"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "dplyr",
+      "ggplot2",
+      "muscat",
+      "patchwork",
+      "scater",
+      "scuttle",
+      "tidyr"
+    ]
+  }
+}

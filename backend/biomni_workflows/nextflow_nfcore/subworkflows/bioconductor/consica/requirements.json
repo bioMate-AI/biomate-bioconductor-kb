@@ -1,0 +1,13 @@
+{
+  "package": "consica",
+  "requirements": [
+    "SummarizedExperiment",
+    "consICA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "consICA"
+    ]
+  }
+}

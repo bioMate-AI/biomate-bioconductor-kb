@@ -1,117 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GreyListChIP
-// Identify regions of ChIP experiments with high signal in the input, that lead to spurious peaks duri
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GreyListChIP/inst/doc/GreyList-demo.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GreyListChIP")
+// Bioconductor workflow: greylistchip — step_by_step_karyotype
+// Generate a grey list from a BAM file using a custom karyotype file via step-by-step execution.
+// Input: karyotype_chr21.txt, myBamFile.bam
+// Container: quay.io/biocontainers/bioconductor-greylistchip:1.42.0--r45hdfd78af_0
+// R packages: GreyListChIP
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GREYLISTCHIP {
+process BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-greylistchip"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-greylistchip:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-greylistchip:1.38.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-greylistchip:1.42.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_greylistchip_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_greylistchip_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_greylistchip_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GreyListChIP)
-    library(jsonlite)
-
-    # --- Create [] ---
-    # Key functions: path, new
-    library(GreyListChIP)
-    path <- system.file("extra", package="GreyListChIP")
-    fn <- file.path(path,"karyotype_chr21.txt")
-    gl <- new("GreyList",karyoFile=fn)
-    # --- Count [] ---
-    # Key functions: countReads
-    ## gl <- countReads(gl,"myBamFile.bam")
-    # --- Fake [] ---
-    # Key functions: rnbinom
-    gl@counts <- rnbinom(length(gl@tiles),size=1.08,mu=11.54)
-    # --- Threshold [] ---
-    # Key functions: calcThreshold
-    gl <- calcThreshold(gl,reps=10,sampleSize=1000,p=0.99,cores=1)
-    # --- Makegrey [] ---
-    # Key functions: makeGreyList
-    gl <- makeGreyList(gl,maxGap=16384)
-    gl
-    # --- Export [] ---
-    # Key functions: export
-    ## export(gl,con="myGreyList.bed")
-    # --- Onestep [] ---
-    # Key functions: greyListBS, export
-    ## library(BSgenome.Hsapiens.UCSC.hg19)
-    ## gl <- greyListBS(BSgenome.Hsapiens.UCSC.hg19,"myBamFile.bam")
-    ## export(gl,con="myGreyList.bed")
-    # --- Sampledata [] ---
-    # Key functions: data
-    # Load a pre-built GreyList object named "gl"
-    data(greyList)
-    print(gl)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_greylistchip_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_greylistchip_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_greylistchip_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GreyListChIP")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GREYLISTCHIP:", paste0("    greylistchip: ", packageVersion("GreyListChIP"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(GreyListChIP)
+    
+    # Define input file paths (expected in the working directory)
+    karyotype_file <- "karyotype_chr21.txt"
+    bam_file <- "myBamFile.bam"
+    
+    # Validate that input files exist
+    if (!file.exists(karyotype_file)) {
+      stop(paste("Required input file missing:", karyotype_file))
+    }
+    if (!file.exists(bam_file)) {
+      stop(paste("Required input file missing:", bam_file))
+    }
+    
+    # 1. Initialize GreyList object with the custom karyotype file
+    message("Initializing GreyList object...")
+    gl <- new("GreyList", karyoFile=karyotype_file)
+    
+    # 2. Count reads in genome tiles from the BAM file
+    message("Counting reads from BAM file...")
+    gl <- countReads(gl, bam_file)
+    
+    # 3. Calculate read-count threshold using negative binomial fitting
+    message("Calculating threshold...")
+    gl <- calcThreshold(gl, reps=10, sampleSize=1000, p=0.99, cores=1)
+    
+    # 4. Generate grey list regions
+    message("Generating grey list...")
+    gl <- makeGreyList(gl, maxGap=16384)
+    
+    # 5. Export grey list to BED file
+    message("Exporting grey list to BED file...")
+    export(gl, con="myGreyList.bed")
+    
+    # Save the final GreyList object as an RDS file for downstream R analysis
+    message("Saving GreyList object to RDS...")
+    saveRDS(gl, file="grey_list_object.rds")
+    
+    # Generate and save a summary of the results
+    message("Writing summary statistics...")
+    summary_df <- data.frame(
+      Metric = c("Total_Tiles", "Threshold", "Regions_Count", "Coverage_Percentage"),
+      Value = c(
+        length(gl@tiles),
+        gl@threshold,
+        length(gl@regions),
+        gl@coverage
+      ),
+      stringsAsFactors = FALSE
     )
+    write.csv(summary_df, file="grey_list_summary.csv", row.names=FALSE)
+    
+    message("Workflow complete. Outputs generated: myGreyList.bed, grey_list_object.rds, grey_list_summary.csv")
+
+    writeLines(c(
+        '"BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE":',
+        paste0('        greylistchip: ', as.character(packageVersion("greylistchip")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_greylistchip_results.csv
-    touch ${prefix}_greylistchip_output.rds
-    echo "BIOC_GREYLISTCHIP:" > versions.yml
-    echo "    greylistchip: 0.0.0" >> versions.yml
+    touch ${prefix}_step_by_step_karyotype.csv versions.yml
     """
 }
 
-
-workflow BIOC_GREYLISTCHIP_WORKFLOW {
+workflow BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ karyotype_chr21.txt, myBamFile.bam ] ]
 
     main:
-    BIOC_GREYLISTCHIP(ch_input)
+    BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE(ch_input)
 
     emit:
-    results  = BIOC_GREYLISTCHIP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GREYLISTCHIP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GREYLISTCHIP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GREYLISTCHIP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE.out.tables
+    plots    = BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE.out.plots
+    objects  = BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE.out.objects
+    versions = BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE.out.versions
 }

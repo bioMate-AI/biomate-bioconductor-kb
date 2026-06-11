@@ -1,0 +1,17 @@
+{
+  "package": "rmassbank",
+  "requirements": [
+    "RMassBank"
+  ],
+  "by_workflow": {
+    "combining_multiplicities.nf": [
+      "RMassBank"
+    ],
+    "main.nf": [
+      "RMassBank"
+    ],
+    "massbank_record_generation.nf": [
+      "RMassBank"
+    ]
+  }
+}

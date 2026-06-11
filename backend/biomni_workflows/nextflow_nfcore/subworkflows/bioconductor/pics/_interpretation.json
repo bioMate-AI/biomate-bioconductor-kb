@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: IP=GRanges object containing the IP reads ;; Control=GRanges object containing the control reads ;; minReads=minimum number of reads required in a region to segment it ;; nco=number of cores to use for parallel processing ;; map=a GRanges object containing mappability profiles to filter out unmappable regions\n- alternatives: MACS (for faster, heuristic peak calling), BayesPeak (for alternative Bayesian peak calling), PING (specifically optimized for nucleosome positioning rather than transcription factors)\n- when_to_use: Use when high-resolution peak calling is required for transcription factor ChIP-Seq data, especially when resolving overlapping or adjacent binding events is critical.\n- pitfalls: Running the mixture model on the entire genome without prior segmentation is computationally prohibitive; always run `segmentReads` first to partition the genome into candidate regions.",
+  "workflows": [
+    {
+      "name": "pics_peak_calling",
+      "intent": "Identify transcription factor binding sites from aligned ChIP-Seq reads using a probabilistic mixture model.",
+      "input": [
+        "ip_reads.bam (aligned IP reads)",
+        "control_reads.bam (aligned Control reads)"
+      ],
+      "stages": "1. Segment the genome into candidate regions using segmentReads ;; 2. Run the probabilistic peak detection using pics ;; 3. Convert the results to a GRanges object for downstream analysis",
+      "code": "seg <- segmentReads(IP, Control, minReads = 2, map = NULL)\nans <- pics(seg, nco = 1)\nrd <- as(ans, \"GRanges\")"
+    }
+  ]
+}

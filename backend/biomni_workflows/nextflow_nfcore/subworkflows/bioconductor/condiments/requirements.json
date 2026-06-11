@@ -1,0 +1,19 @@
+{
+  "package": "condiments",
+  "requirements": [
+    "condiments",
+    "dplyr",
+    "ggplot2",
+    "slingshot",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "condiments",
+      "dplyr",
+      "ggplot2",
+      "slingshot",
+      "tidyr"
+    ]
+  }
+}

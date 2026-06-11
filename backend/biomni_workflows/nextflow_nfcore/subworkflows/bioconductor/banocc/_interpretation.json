@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: C=The compositional dataset of size N x P, where row sums are required to be less than one ;; compiled_banocc_model=The pre-compiled Stan model object to avoid recompilation overhead ;; conf_alpha=The significance level for credible intervals, where a 100 * (1 - conf_alpha)% interval is returned ;; eval_convergence=A boolean indicating whether to evaluate convergence; if TRUE (default) and the model has not converged, estimates are returned as NA ;; get_min_width=A boolean to calculate the smallest credible interval width that includes zero ;; calc_snc=A boolean to calculate the scaled neighborhood criterion (SNC)\n- alternatives: None mentioned in the documentation (naive correlation measures are noted as inappropriate for compositional data)\n- when_to_use: Use this package when you have compositional data (e.g., taxonomic relative abundances from metagenomic sequencing) and want to infer the underlying correlation or covariance structure of the features while accounting for the sum constraint.\n- pitfalls: Running too few iterations can lead to non-convergence, which results in missing (NA) estimates if eval_convergence is TRUE. Bypassing this by setting eval_convergence = FALSE can lead to using unreliable, unconverged posterior estimates. Failing to pre-compile the model using rstan::stan_model will waste computation time by compiling the model on every run.",
+  "workflows": [
+    {
+      "name": "compositional_covariance_analysis",
+      "intent": "Infer the correlation and covariance of the unconstrained log-basis from compositional data using a Bayesian GLASSO model.",
+      "input": [
+        "compositions_null (a data frame or matrix of compositional data where row sums are less than one)"
+      ],
+      "stages": "1. Compile the BAnOCC Stan model.\n2. Run the MCMC sampler on the compositional data.\n3. Extract posterior estimates, credible intervals, and optional statistics.\n4. Assess model convergence using traceplots and Rhat statistics.",
+      "code": "compiled_banocc_model <- rstan::stan_model(model_code = banocc::banocc_model) \nb_fit     <- banocc::run_banocc(C = compositions_null, compiled_banocc_model=compiled_banocc_model)\nb_output <- banocc::get_banocc_output(banoccfit=b_fit)\nb_out_nec <- banocc::get_banocc_output(banoccfit=b_fit, eval_convergence = FALSE)\nb_out_min_width <- banocc::get_banocc_output(banoccfit=b_fit, get_min_width = TRUE)\nb_out_snc <- banocc::get_banocc_output(banoccfit=b_fit, calc_snc = TRUE)\nrstan::traceplot(b_fit$Fit, pars=paste0(\"O[1,\", 2:9, \"]\"))\nrhat_all <- rstan::summary(b_fit$Fit)$summary[, \"Rhat\"]"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: countsTable=A matrix or data frame of raw transcript counts where columns represent samples and rows represent genes ;; conds=A character vector defining the experimental conditions corresponding to the columns of the counts table ;; SHonly=Logical; if TRUE, only calculates the dispersion estimates without running the exact tests ;; plotASD=Logical; if TRUE, generates a plot of Average Squared Difference (ASD) values when varying the shrinkage targets ;; shrinkTarget=Numeric; allows the user to manually define a specific shrinkage target instead of letting the package automatically find an estimate ;; shrinkQuantile=Numeric; defines the shrinkage target as a specific quantile of the method of moment estimates across genes ;; coLevels=A data frame specifying covariates (e.g., subjects/patients) for complex designs like paired experiments ;; pairedDesign=Logical; set to TRUE to perform exact tests for paired experimental designs ;; pairedDesign.dispMethod=Character; dispersion estimation method for paired designs (e.g., \"pooled\")\n- alternatives: Method of moment estimates (dispMM) are mentioned as the baseline unregularized dispersion estimation method, which sSeq improves upon using shrinkage (dispSH).\n- when_to_use: Use this package when analyzing RNA-seq count data to find differentially expressed genes between two conditions, especially when sample sizes are small and dispersion estimates require regularization to improve statistical power and control false positives. It is suitable for both independent and paired experimental designs.\n- pitfalls: If both shrinkTarget and shrinkQuantile are specified in nbTestSH, the package will use the pre-defined shrinkTarget value and ignore the shrinkQuantile. Input counts must be raw, non-normalized, and non-log-transformed integer counts.",
+  "workflows": [
+    {
+      "name": "simple_two_condition_comparison",
+      "intent": "Discover differentially expressed genes between two independent conditions using shrinkage dispersion estimation and visualize the results.",
+      "input": [
+        "countsTable (matrix or data frame of raw RNA-seq counts)",
+        "conds.Hammer (character vector of conditions)"
+      ],
+      "stages": "1. Load the package and data ;; 2. Run the exact test using nbTestSH to obtain p-values and shrinkage dispersion estimates ;; 3. (Optional) Estimate dispersion only and plot the Average Squared Difference (ASD) curve ;; 4. Plot dispersion estimates against mean estimates ;; 5. Generate a mean-variance dependence plot ;; 6. Perform a within-condition comparison to generate an ECDF plot for specificity and sensitivity analysis ;; 7. Draw MA and volcano plots for visual inspection of the test results.",
+      "code": "library(sSeq);\ndata(Hammer2months);\nhead(countsTable); \nconds.Hammer=c(\"A\",\"A\",\"B\",\"B\"); \nres1 = nbTestSH( countsTable, conds.Hammer, \"A\", \"B\");\nhead(res1);\ndisp1 <- nbTestSH( countsTable, conds.Hammer, \"A\", \"B\", SHonly=TRUE, plotASD=TRUE);\nhead(disp1);\nplotDispersion(disp1, legPos=\"bottomright\")\nrV = rowVars(countsTable);\nmu = rowMeans(countsTable); \nSH.var =  (disp1$SH * mu^2 + mu)\nsmoothScatter(log(rV)~log(mu), main=\"Variance Plot\", ylab='log(variance)', \n  xlab='log(mean)', col=blues9[5], cex.axis=1.8)\npoints( log(SH.var)~log(mu), col=\"black\", pch=16)\nleg1 =  expression(paste(\"log(\", hat(\"V\")[g]^\"sSeq\", \")\", sep=''));\nleg2 =  expression(paste(\"log(\", hat(\"V\")[g]^\"MM\", \")\", sep=''));\nlegend(\"bottomright\", legend=c(leg1,leg2), col=c(\"black\",blues9[5]), \n  pch=c(16, 1), cex=2)\nconds2.Hammer = c(\"A\",\"B\");\nres1.2 =  nbTestSH( countsTable[,1:2], conds2.Hammer, \"A\", \"B\");\ndd = data.frame(AvsA=res1.2$pval, AvsB=res1$pval);\necdfAUC(dd, col.line=c(\"green\", \"red\"), main = \"ECDF, Hammer\", drawRef = TRUE, rm1=TRUE)\ndrawMA_vol(countsTable, conds.Hammer, res1$pval, cutoff=0.05);"
+    },
+    {
+      "name": "paired_experimental_design",
+      "intent": "Perform differential expression analysis for paired experimental designs (e.g., tumor vs. normal tissue from the same patients).",
+      "input": [
+        "countsTable (matrix or data frame of raw RNA-seq counts)",
+        "conds2 (character vector of conditions)",
+        "coLevels (data frame mapping samples to subjects/pairs)"
+      ],
+      "stages": "1. Load the package and paired dataset ;; 2. Define the conditions and the pairing structure using a data frame ;; 3. Run the exact test with pairedDesign=TRUE and pairedDesign.dispMethod=\"pooled\" ;; 4. Inspect the top differentially expressed genes.",
+      "code": "data(Tuch); \nhead(countsTable); \nconds2 = c(\"normal\", \"normal\", \"normal\", \"tumor\", \"tumor\", \"tumor\");\ncoLevels=data.frame(subjects=c(1,2,3,1,2,3));\nres2 = nbTestSH(countsTable, conds2, \"normal\", \"tumor\", \n   coLevels= coLevels, pairedDesign=TRUE, pairedDesign.dispMethod=\"pooled\");\nhead(res2)\ncountsTable[order(res2$pval),][1:25,]"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package": "slalom",
+  "requirements": [
+    "GSEABase",
+    "SingleCellExperiment",
+    "slalom"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "SingleCellExperiment",
+      "slalom"
+    ]
+  }
+}

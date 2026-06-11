@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: win=The window size in base pairs (e.g., win=200) which should match the expected size of the regulated region ;; weighting=The weighting function used to weight neighboring probes by distance (e.g., triangWeight, rectangWeight, epWeight, gaussWeight, or a custom function) ;; grenander=Logical value (e.g., grenander=TRUE) in threshold() to estimate the threshold from the data ;; limit=A custom threshold value passed to regions() if not using the estimated threshold ;; subset=A logical or index vector to restrict the computationally intensive confidence interval calculation to a subset of probes ;; nBoot=Number of bootstrap samples for confidence intervals (e.g., nBoot=50) ;; alpha=Significance level for confidence intervals (e.g., alpha=0.1) ;; format=The output format for exporting results (e.g., format=\"gff\" or format=\"wig\")\n- alternatives: The documentation mentions other approaches for combining neighboring probe information but notes they often lack statistical interpretation or are platform-specific. For generating probe-level p-values, it uses limma (lmFit and eBayes) as an alternative to classical Student's t-tests to increase statistical power for small sample sizes.\n- when_to_use: Use this package when analyzing tiling microarray data (ChIP-chip, expression, or DNA modification) to identify continuous genomic regions of interest by combining probe-level p-values from neighboring probes.\n- pitfalls: Bootstrapping for confidence intervals using the ci() function is computationally demanding, so it should be restricted to a subset of probes of interest. The choice of window size (win) and weighting function significantly affects the results; detection power is highest when the window size matches the physical properties of the regulated region.",
+  "workflows": [
+    {
+      "name": "les_detection_and_region_identification",
+      "intent": "Identify regulated genomic regions (Loci of Enhanced Significance) from probe positions and p-values, estimate confidence intervals, and export the results.",
+      "input": [
+        "pos (integer vector of probe genomic positions)",
+        "pval (numeric vector of probe-level p-values)"
+      ],
+      "stages": "1. Create Les object ;; 2. Estimate local significance (Lambda) using a sliding window ;; 3. Estimate the significance threshold ;; 4. Detect regulated regions ;; 5. Calculate confidence intervals for a subset of probes ;; 6. Export regions and statistics to BED, GFF, and WIG files",
+      "code": "res <- Les(pos, pval)\nres2 <- estimate(res, win=200, weighting=rectangWeight)\nres2 <- threshold(res2, grenander=TRUE, verbose=TRUE)\nres2 <- regions(res2, verbose=TRUE)\nres2[\"regions\"]\nsubset <- pos >= 5232400 & pos <= 5233100\nres2 <- ci(res2, subset, nBoot=50, alpha=0.1)\nbedFile <- paste(tempfile(), \"bed\", sep=\".\")\ngffFile <- paste(tempfile(), \"gff\", sep=\".\")\nwigFile <- paste(tempfile(), \"wig\", sep=\".\")\nexport(res2, bedFile)\nexport(res2, gffFile, format=\"gff\")\nexport(res2, wigFile, format=\"wig\")"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package": "tmsig",
+  "requirements": [
+    "TMSig",
+    "data.table",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TMSig",
+      "data.table",
+      "limma"
+    ]
+  }
+}

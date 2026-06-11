@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datapath=The path to the root directory where the sample folders are located ;; output_path=The directory where the output tables and plots will be stored ;; filelist=The character vector of IMGT/HighV-Quest output files to be used in the analysis ;; cell=The cell type, either \"Bcell\" or \"Tcell\" ;; throughput=The throughput level, either \"High Throughput\" or \"Low Throughput\" ;; preselection=Preselection options (1:4) for cleaning the dataset ;; selection=Selection options (5:10) for filtering the preselected data ;; identity_range=The range of V-region identity percent to germline (e.g., \"88:100\") ;; pipeline=Pipeline options (1:19) to select multiple workflows ;; select_clonotype=The definition used for clonotype computation\n- alternatives: None mentioned in the documentation.\n- when_to_use: Appropriate for performing immunogenetic sequence analysis, quality filtering, and clonotype/repertoire profiling on B-cell or T-cell receptor datasets starting from IMGT/HighV-Quest output files.\n- pitfalls: Every sample of the dataset must have its own individual folder, and all sample folders must reside within a single root folder. Every file in the root folder will be used in the analysis, so ensure no unrelated files are present. Step dependencies exist in the pipeline (e.g., Highly Similar Clonotypes and Repertoires Extraction require Clonotypes computation to run first; Mutations requires Alignment; Shared Clonotype and Repertoire comparison require loading more than one dataset). High-Throughput data applies filters sequentially (reporting only the first unsatisfied criterion), whereas Low-Throughput data applies all criteria simultaneously.",
+  "workflows": [
+    {
+      "name": "tripr_analysis_pipeline",
+      "intent": "Run the complete TRIP analysis pipeline on IMGT/HighV-Quest output files to perform preselection, selection, and clonotype/repertoire computation.",
+      "input": [
+        "1_Summary.txt (IMGT summary file)",
+        "2_IMGT-gapped-nt-sequences.txt (IMGT nucleotide sequences)",
+        "4_IMGT-gapped-AA-sequences.txt (IMGT amino acid sequences)",
+        "6_Junction.txt (IMGT junction file)"
+      ],
+      "stages": "1. Define input and output paths using fs and tools packages ;; 2. Set pipeline parameters including cell type, throughput, preselection/selection filters, and clonotype definition ;; 3. Execute the complete analysis pipeline using run_TRIP()",
+      "code": "datapath <- fs::path_package(\"extdata\", \"dataset\", package=\"tripr\")\noutput_path <- tools::R_user_dir(\"tripr\", which=\"cache\")\ncell <- \"Bcell\"\npreselection <- \"1,2,3,4C:W\"\nselection <- \"5\"\nfilelist <- c(\"1_Summary.txt\",\n              \"2_IMGT-gapped-nt-sequences.txt\",\n              \"4_IMGT-gapped-AA-sequences.txt\",\n              \"6_Junction.txt\")\nthroughput <- \"High Throughput\"\npreselection <- \"1,2,3,4C:W\"\nselection <- \"5\"\nidentity_range <- \"88:100\"\npipeline <- \"1\"\nselect_clonotype <- \"V Gene + CDR3 Amino Acids\"\n\nrun_TRIP(\n    datapath=datapath,\n    output_path=output_path,\n    filelist=filelist,\n    cell=cell,\n    throughput=throughput,\n    preselection=preselection,\n    selection=selection,\n    identity_range=identity_range,\n    pipeline=pipeline,\n    select_clonotype=select_clonotype)"
+    }
+  ]
+}

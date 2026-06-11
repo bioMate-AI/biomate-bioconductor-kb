@@ -1,0 +1,11 @@
+{
+  "package": "pandar",
+  "requirements": [
+    "pandaR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "pandaR"
+    ]
+  }
+}

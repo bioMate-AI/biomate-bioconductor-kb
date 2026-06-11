@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: value_transformation=Specifies how to transform the value column (always the 7th column) to establish a ranking where high values indicate high significance. Use \"log_additive_inverse\" (i.e., -log(x)) for p-values, Q-values, or FDRs where lower values are more significant. Use \"log\" for scores where higher values are already more significant.\n- alternatives: The original 1D IDR method (Li et al. 2011) which is restricted to 1D genomic data like ChIP-seq peaks. The IDR2D web interface (https://idr2d.mit.edu) which offers similar functionality online.\n- when_to_use: Use when measuring reproducibility between replicate genomic experiments. Use estimate_idr2d for 2D genomic interaction data (ChIA-PET, HiChIP, Hi-C) and estimate_idr1d for 1D genomic peak data (ChIP-seq).\n- pitfalls: Choosing the wrong value_transformation. The ranking is established by sorting the value column in descending order. If the input values are FDRs or p-values (where lower is more significant), failing to use \"log_additive_inverse\" will result in incorrect ranking and invalid IDR estimation.",
+  "workflows": [
+    {
+      "name": "two_dimensional_idr",
+      "intent": "Identify reproducible genomic interactions between two replicates of 2D genomic data (e.g., ChIA-PET, HiChIP, Hi-C).",
+      "input": [
+        "rep1_df (data frame of replicate 1 genomic interactions with anchors and significance values)",
+        "rep2_df (data frame of replicate 2 genomic interactions with anchors and significance values)"
+      ],
+      "stages": "1. Load replicate data frames ;; 2. Estimate 2D IDR using estimate_idr2d ;; 3. Summarize results using summary ;; 4. Visualize IDR distribution and dependencies using draw_idr_distribution_histogram, draw_rank_idr_scatterplot, and draw_value_idr_scatterplot",
+      "code": "rep1_df <- idr2d:::chiapet$rep1_df\nrep2_df <- idr2d:::chiapet$rep2_df\nlibrary(idr2d)\nidr_results <- estimate_idr2d(rep1_df, rep2_df,\n                              value_transformation = \"log_additive_inverse\")\nrep1_idr_df <- idr_results$rep1_df\nsummary(idr_results)\ndraw_idr_distribution_histogram(rep1_idr_df)\ndraw_rank_idr_scatterplot(rep1_idr_df)\ndraw_value_idr_scatterplot(rep1_idr_df)"
+    },
+    {
+      "name": "one_dimensional_idr",
+      "intent": "Identify reproducible genomic peaks between two replicates of 1D genomic data (e.g., ChIP-seq).",
+      "input": [
+        "rep1_df (data frame of replicate 1 genomic peaks with coordinates and significance values)",
+        "rep2_df (data frame of replicate 2 genomic peaks with coordinates and significance values)"
+      ],
+      "stages": "1. Load replicate data frames ;; 2. Estimate 1D IDR using estimate_idr1d ;; 3. Summarize results using summary ;; 4. Visualize IDR distribution and dependencies using draw_idr_distribution_histogram, draw_rank_idr_scatterplot, and draw_value_idr_scatterplot",
+      "code": "rep1_df <- idr2d:::chipseq$rep1_df\nrep2_df <- idr2d:::chipseq$rep2_df\nlibrary(idr2d)\nidr_results <- estimate_idr1d(rep1_df, rep2_df, \n                              value_transformation = \"log\")\nrep1_idr_df <- idr_results$rep1_df\nsummary(idr_results)\ndraw_idr_distribution_histogram(rep1_idr_df)\ndraw_rank_idr_scatterplot(rep1_idr_df)\ndraw_value_idr_scatterplot(rep1_idr_df)"
+    }
+  ]
+}

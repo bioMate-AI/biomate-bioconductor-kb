@@ -1,125 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ggtree
-// 'ggtree' extends the 'ggplot2' plotting system which implemented the grammar of graphics. 'ggtree' i
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ggtree/inst/doc/ggtree.R
-// Upstream  : none
-// Downstream: ggtreeDendro, tanggle
-//
-// Install: BiocManager::install("ggtree")
+// Bioconductor workflow: ggtree — ggtree_genomic_clustering
+// Cluster genomic regions based on spatial distance and visualize the resulting hierarchical tree annotated with genomic metadata using ggtree.
+// Input: regions.bed, coldata.csv
+// Container: 4.0.4--r45hdfd78af_1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, ggplot2, ggtree
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GGTREE {
+process BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ggtree"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ggtree:3.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ggtree:3.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ggtree_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ggtree_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ggtree_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(GenomicRanges)
     library(ggtree)
-    library(jsonlite)
-
-
-    # --- Treeman [] ---
-    # Key functions: collapse, expand, flip, groupClade, groupOTU, identify, rotate, rotate_tree
-    treeman <- matrix(c(
-      "collapse", "collapse a selecting clade",
-      "expand", "expand collapsed clade",
-      "flip", "exchange position of 2 clades that share a parent node",
-      "groupClade", "grouping clades",
-      "groupOTU", "grouping OTUs by tracing back to most recent common ancestor",
-      "identify", "interactive tree manipulation",
-      "rotate", "rotating a selected clade by 180 degree",
-      "rotate_tree", "rotating circular layout tree by specific angle",
-      "scaleClade", "zoom in or zoom out selecting clade",
-      "open_tree", "convert a tree to fan layout by specific open angle"
-    ), ncol=2, byrow=TRUE)
-    treeman <- as.data.frame(treeman)
-    colnames(treeman) <- c("Function", "Descriptiotn")
-    knitr::kable(treeman, caption = "Tree manipulation functions.", booktabs = T)
-
-    # --- Geoms [] ---
-    # Key functions: and, geom_balance, geom_cladelabel, geom_cladelabel2, geom_hilight, geom_hilight_encircle, geom_label2, geom_nodelab
-    geoms <- matrix(c(
-      "geom_balance", "highlights the two direct descendant clades of an internal node",
-      "geom_cladelabel", "annotate a clade with bar and text label",
-      "geom_cladelabel2", "annotate a clade with bar and text label for unrooted layout",
-      "geom_hilight", "highlight a clade with rectangle",
-      "geom_hilight_encircle", "highlight a clade with xspline for unrooted layout",
-      "geom_label2", "modified version of geom_label, with subsetting supported",
-      "geom_nodelab", "layer for node labels, which can be text or image",
-      "geom_nodepoint", "annotate internal nodes with symbolic points",
-      "geom_point2", "modified version of geom_point, with subsetting supported",
-      "geom_range", "bar layer to present uncertainty of evolutionary inference",
-      "geom_rootpoint", "annotate root node with symbolic point",
-      "geom_segment2", "modified version of geom_segment, with subsetting supported",
-      "geom_strip", "annotate associated taxa with bar and (optional) text label",
-      "geom_taxalink", "associate two related taxa by linking them with a curve"
-    ), ncol=2, byrow=TRUE)
-    geoms <- as.data.frame(geoms)
-    colnames(geoms) <- c("Geom", "Description")
-    knitr::kable(geoms, caption = "ggtree geom layers.", booktabs = T)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ggtree_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ggtree_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ggtree_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GGTREE:", paste0("    ggtree: ", packageVersion("ggtree"))),
-        "versions.yml"
+    library(ggplot2)
+    
+    # Stage 1: Import genomic intervals and metadata
+    message("Reading input files...")
+    bed_data <- read.table("regions.bed", header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+    colnames(bed_data) <- c("chrom", "start", "end", "name", "score", "strand")[1:min(6, ncol(bed_data))]
+    
+    # Create GRanges object
+    gr <- GRanges(
+      seqnames = bed_data\$chrom,
+      ranges = IRanges(start = bed_data\$start, end = bed_data\$end),
+      strand = if ("strand" %in% colnames(bed_data)) bed_data\$strand else "*",
+      name = if ("name" %in% colnames(bed_data)) bed_data\$name else paste0("region_", seq_len(nrow(bed_data))),
+      score = if ("score" %in% colnames(bed_data)) bed_data\$score else 0
     )
+    
+    # Stage 2: Compute distance matrix and perform hierarchical clustering
+    message("Clustering genomic regions...")
+    midpoints <- (start(gr) + end(gr)) / 2
+    dist_matrix <- dist(matrix(midpoints, ncol = 1))
+    labels(dist_matrix) <- gr\$name
+    
+    # Generate hierarchical clustering tree
+    hc <- hclust(dist_matrix, method = "average")
+    
+    # Stage 3: Prepare and merge metadata
+    message("Preparing metadata...")
+    df_meta <- data.frame(
+      label = gr\$name,
+      chrom = as.character(seqnames(gr)),
+      width = width(gr),
+      score = gr\$score,
+      stringsAsFactors = FALSE
+    )
+    
+    if (file.exists("coldata.csv")) {
+      coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+      if ("name" %in% colnames(coldata)) {
+        colnames(coldata)[colnames(coldata) == "name"] <- "label"
+      }
+      df_meta <- merge(df_meta, coldata, by = "label", all.x = TRUE)
+    }
+    
+    # Export combined metadata
+    write.csv(df_meta, "tree_metadata.csv", row.names = FALSE)
+    
+    # Stage 4: Visualize and annotate tree using ggtree
+    message("Generating ggtree visualization...")
+    p <- ggtree(hc)
+    
+    # Attach metadata to the tree structure
+    p <- p %<+% df_meta
+    
+    # Add tree annotations and layers
+    p <- p + 
+      geom_tiplab(aes(label = label), size = 3, hjust = -0.2) +
+      geom_tippoint(aes(color = chrom, size = width), alpha = 0.8) +
+      geom_treescale()
+    
+    # Programmatically highlight a clade if the tree has sufficient nodes
+    num_tips <- length(hc\$order)
+    if (num_tips > 3) {
+      # Highlight the second internal node as a representative clade
+      target_node <- num_tips + 2
+      p <- p + 
+        geom_hilight(node = target_node, fill = "steelblue", alpha = 0.3) +
+        geom_cladelabel(node = target_node, label = "Clade A", color = "darkblue", offset = 0.5)
+    }
+    
+    # Save the final annotated tree plot
+    ggsave("tree_plot.pdf", plot = p, width = 10, height = 8)
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING":',
+        paste0('    ggtree: ', as.character(packageVersion('ggtree')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ggtree_results.csv
-    touch ${prefix}_ggtree_output.rds
-    echo "BIOC_GGTREE:" > versions.yml
-    echo "    ggtree: 0.0.0" >> versions.yml
+    touch ${prefix}_ggtree_genomic_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_GGTREE_WORKFLOW {
+workflow BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GGTREE(ch_input)
+    BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_GGTREE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GGTREE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GGTREE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GGTREE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING.out.tables
+    plots    = BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING.out.plots
+    objects  = BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING.out.objects
+    versions = BIOC_GGTREE_GGTREE_GENOMIC_CLUSTERING.out.versions
 }

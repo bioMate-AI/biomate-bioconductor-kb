@@ -1,0 +1,14 @@
+{
+  "package": "depecher",
+  "requirements": [
+    "DepecheR"
+  ],
+  "by_workflow": {
+    "group_probability_plotting.nf": [
+      "DepecheR"
+    ],
+    "main.nf": [
+      "DepecheR"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "package": "cotan",
+  "requirements": [
+    "COTAN",
+    "ComplexHeatmap",
+    "conflicted",
+    "zeallot"
+  ],
+  "by_workflow": {
+    "cell_clustering_and_dea.nf": [
+      "COTAN",
+      "ComplexHeatmap",
+      "conflicted",
+      "zeallot"
+    ],
+    "gene_coexpression_and_clustering.nf": [
+      "COTAN",
+      "conflicted",
+      "zeallot"
+    ],
+    "main.nf": [
+      "COTAN",
+      "conflicted",
+      "zeallot"
+    ]
+  }
+}

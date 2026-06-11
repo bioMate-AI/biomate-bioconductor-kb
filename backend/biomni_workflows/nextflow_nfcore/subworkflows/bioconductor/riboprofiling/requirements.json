@@ -1,0 +1,23 @@
+{
+  "package": "riboprofiling",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "IRanges",
+    "RiboProfiling",
+    "S4Vectors",
+    "ggplot2",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "IRanges",
+      "RiboProfiling",
+      "S4Vectors",
+      "ggplot2",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=matrix of transformed expression data ;; targetpop=logical vector indicating target cell population membership ;; outlier.percentile=numeric value controlling the robustness of convex hulls to outliers (higher values make gates less strict, increasing precision and decreasing recall) ;; beta=numeric value controlling the relative weight of precision and recall in F-measure calculations (e.g., beta < 1 increases the impact of precision) ;; update.gates=logical or configuration parameter determining whether to update gates at each iteration\n- alternatives: Other high-dimensional analysis and clustering tools (e.g., SPADE, viSNE, RchyOptimyx) are mentioned for identifying complex populations, but GateFinder is preferred when you need to translate these complex populations back into simple, sequential 2D polygon gating strategies.\n- when_to_use: Use GateFinder when you have identified a target cell population of interest (e.g., via clustering or manual gating on a specific marker) in high-dimensional cytometry data and want to find an optimal, simplified sequence of 2D gates to isolate that population.\n- pitfalls: Input data must be transformed (e.g., using arcsinhTransform) before running GateFinder. Running the algorithm on too many cells can lead to high computational overhead; a representative subset (e.g., 1000 cells) is recommended. The strictness of the gates must be carefully tuned using outlier.percentile and beta to avoid poor recall or low purity.",
+  "workflows": [
+    {
+      "name": "gate_finder_optimization",
+      "intent": "Identify and visualize an optimal sequence of 2D polygon gates to isolate a target cell population from high-dimensional cytometry data.",
+      "input": [
+        "rawdata (flowFrame containing single-cell expression data)",
+        "targetpop (logical vector indicating target cell population membership)"
+      ],
+      "stages": "1. Define the target cell population based on marker expression thresholding ;; 2. Subset the expression matrix to markers of interest ;; 3. Run GateFinder to optimize the gating strategy ;; 4. Plot the sequential 2D gating steps ;; 5. Plot the F-measure, purity, and yield metrics across gating steps ;; 6. Refine the gating strategy by adjusting outlier.percentile or beta parameters.",
+      "code": "library(GateFinder)\nlibrary(flowCore)\n\ndata(LPSData)\ntargetpop <- (exprs(rawdata)[,34] > 3.5)\nplot(exprs(rawdata)[ , c(2,34)], pch='.', col=targetpop+1, \n     xlab='Cell Length', ylab='p-p38')\nabline(h=3.5, col=3, lwd=2, lty=2)\n\nx=exprs(rawdata)[ , prop.markers]\ncolnames(x)=marker.names[prop.markers]\nresults=GateFinder(x, targetpop)\n\nplot (x, results, c(2,3), targetpop)\n\nplot(results)\n\nresults=GateFinder(x, targetpop, outlier.percentile=0.5)     \nplot (x, results, c(2,3), targetpop)\nplot(results)\n\nresults=GateFinder(x, targetpop, beta=0.5)     \nplot (x, results, c(2,3), targetpop)\nplot(results)"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "package": "cepo",
+  "requirements": [
+    "BiocParallel",
+    "Cepo",
+    "DelayedArray",
+    "HDF5Array",
+    "SingleCellExperiment",
+    "UpSetR",
+    "scater"
+  ],
+  "by_workflow": {
+    "batch_aware_differential_stability.nf": [
+      "Cepo",
+      "SingleCellExperiment",
+      "scater"
+    ],
+    "main.nf": [
+      "Cepo",
+      "SingleCellExperiment",
+      "UpSetR"
+    ],
+    "out_of_memory_parallel_differential_stability.nf": [
+      "BiocParallel",
+      "Cepo",
+      "DelayedArray",
+      "HDF5Array",
+      "SingleCellExperiment"
+    ]
+  }
+}

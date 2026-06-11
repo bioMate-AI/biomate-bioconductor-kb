@@ -1,0 +1,17 @@
+{
+  "package": "microstasis",
+  "requirements": [
+    "SummarizedExperiment",
+    "TreeSummarizedExperiment",
+    "ggplot2",
+    "microSTASIS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "TreeSummarizedExperiment",
+      "ggplot2",
+      "microSTASIS"
+    ]
+  }
+}

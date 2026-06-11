@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=a CNSeg object containing the segment list ;; by=character string (\"region\", \"gene\", or \"pair\") indicating which algorithm to use to convert the data ;; imput=boolean (TRUE/FALSE) indicating whether missing values will be imputed ;; XY=boolean (TRUE/FALSE) indicating whether data on the X and Y chromosomes will be included ;; geneMap=a matrix containing five columns (chrom, start, end, geneid, genename) required when by is \"gene\" ;; what=character (\"mean\", \"median\", \"max\", or \"min\") setting the rule when a region has multiple segment values\n- alternatives: DNAcopy (specifically the segment function) is used to generate the input segment list; limma or marray can be used for raw data normalization of two-color arrays, and oligoClasses or SNPchip for SNP arrays; the genefilter package can be used as an alternative or complement to the package's own madFilter for filtering features\n- when_to_use: Use when you have segmented DNA copy number data across multiple samples and need to align the non-overlapping genomic segments into a standard matrix format (samples as columns, genomic features as rows) for downstream statistical analysis or clustering.\n- pitfalls: Using by=\"region\" produces a matrix where the number of rows (chromosomal fragments) varies depending on the specific samples included in the dataset. Using by=\"pair\" produces a list of pairwise matrices suitable only for unsupervised classifications, not supervised classifications. Running getRS on large datasets can be computationally intensive and time-consuming.",
+  "workflows": [
+    {
+      "name": "segmented_copy_number_analysis",
+      "intent": "Convert segmented DNA copy number data into a matrix format by region or gene, filter out low-variance features, and perform hierarchical clustering.",
+      "input": [
+        "sampleData (a data frame or matrix containing DNAcopy segment output with columns like ID, chrom, loc.start, loc.end, num.mark, seg.mean)",
+        "geneInfo (a matrix containing gene annotations with columns chrom, start, end, geneid, and genename, required if converting by gene)"
+      ],
+      "stages": "1. Instantiate a CNSeg object from the segment data using CNSeg.\n2. Convert segments to a reduced segment matrix by region or gene using getRS.\n3. Extract the reduced segment matrix using rs.\n4. Filter features using genefilter or madFilter.\n5. Calculate sample distances and perform hierarchical clustering using getDist and hclust.",
+      "code": "cnseg <- CNSeg(sampleData[which(is.element(sampleData[, \"ID\"], sample(unique(sampleData[, \"ID\"]), 20))), ])\nrdseg <- getRS(cnseg, by = \"region\", imput = FALSE, XY = FALSE, what = \"mean\")\ndata(\"geneInfo\")\ngeneInfo <- geneInfo[sample(1:nrow(geneInfo), 2000), ]\nrdByGene <- getRS(cnseg, by = \"gene\", imput = FALSE, XY = FALSE, geneMap = geneInfo, what = \"median\")\nreducedseg <- rs(rdseg)\nf1 <- kOverA(5, 1)\nffun <- filterfun(f1)\nfilteredrs <- genefilter(rdseg, ffun)\nfilteredrs <- madFilter(rdseg, 0.8)\nhc <- hclust(getDist(filteredrs, method = \"euclidian\"), method = \"complete\") \nplot(hc, hang = -1, cex = 0.8, main = \"\", xlab = \"\")"
+    }
+  ]
+}

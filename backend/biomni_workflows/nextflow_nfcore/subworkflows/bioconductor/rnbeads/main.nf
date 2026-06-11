@@ -1,152 +1,152 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RnBeads
-// RnBeads facilitates comprehensive analysis of various types of DNA methylation data at the genome sc
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RnBeads/inst/doc/RnBeads.R
-// Upstream  : ggplot2, rtracklayer
-// Downstream: MAGAR
-//
-// Install: BiocManager::install("RnBeads")
+// Bioconductor workflow: rnbeads — infinium_microarray_analysis
+// Perform an automated end-to-end analysis of Infinium microarray data from raw IDAT files and sample annotations to generate comprehensive HTML reports.
+// Input: idat, sample_annotation.csv
+// Container: quay.io/biocontainers/bioconductor-rnbeads:2.28.0--r45hdfd78af_0
+// R packages: ggplot2, RnBeads, rtracklayer
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RNBEADS {
+process BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rnbeads"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rnbeads:2.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rnbeads:2.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rnbeads:2.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rnbeads_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rnbeads_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rnbeads_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(M)
-    library(jsonlite)
-
-    # --- Analysis [] ---
-    # Key functions: analysis
-    ## rnb.run.analysis(dir.reports=report.dir, sample.sheet=sample.annotation,
-    ##     data.dir=idat.dir, data.type="infinium.idat.dir")
-    # --- Data [] ---
-    # Key functions: data
-    library(RnBeads.hg19)
-    data(small.example.object)
-    rnb.set.example
-    # --- Nsites [] ---
-    # Key functions: nsites, samples
-    nsites(rnb.set.example)
-    samples(rnb.set.example)
-    # --- Pheno [] ---
-    # Key functions: pheno
-    pheno(rnb.set.example)[, 1:4]
-    # --- Meth [] ---
-    # Key functions: meth
-    mm <- meth(rnb.set.example)
-    # --- Regions [] ---
-    # Key functions: regions
-    summarized.regions(rnb.set.example)
-    # --- Meth [] ---
-    # Key functions: meth
-    rnb.options(identifiers.column="Sample_ID")
-    meth(rnb.set.example, type="promoters", row.names=TRUE, i=1:5, j=1:3)
-    # --- Mval [] ---
-    # Key functions: mval
-    mval(rnb.set.example, type="promoters", row.names=TRUE)[1:5, 1:3]
-    # --- Annotation [] ---
-    # Key functions: annotation
-    annot.sites <- annotation(rnb.set.example)
-    head(annot.sites)
-    annot.promoters <- annotation(rnb.set.example, type="promoters")
-    head(annot.promoters)
-    # --- Samples [] ---
-    # Key functions: samples, setdiff, sites, nsites, pheno, addPheno
-    # Remove samples
-    rnb.set2 <- remove.samples(rnb.set.example, samples(rnb.set.example)[c(2, 6, 10)])
-    setdiff(samples(rnb.set.example), samples(rnb.set2))
-    # Remove probes which are not in CpG context
-    notCpG <- annot.sites[,"Context"]!="CG"
-    # --- Boxplot [] ---
-    # Key functions: annotation
-    # boxplot of control probes
-    rnb.plot.control.boxplot(rnb.set.example)
-    # barplot of a selected control probe
-    control.meta.data <- rnb.get.annotation("controls450")
-    ctrl.probe<-paste0(unique(control.meta.data[["Target"]])[4], ".1")
-    # --- Qc [] ---
-    # Key functions: qc
-    qc_data<-qc(rnb.set.example)
-    # --- Start [] ---
-    # Key functions: start
-    ## logger.start(fname=NA)
-    # --- Import [] ---
-    # Key functions: import
-    ## result <- rnb.run.import(data.source=data.source,
-    ##     data.type="infinium.idat.dir", dir.reports=report.dir)
-    ## rnb.set <- result$rnb.set
-    # --- Summary [] ---
-    # Key functions: pheno, M, meth, dpval, qc
-    ## rnb.set
-    ## summary(pheno(rnb.set))
-    ## dim(M(rnb.set))
-    ## summary(M(rnb.set))
-    ## dim(meth(rnb.set))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rnbeads_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rnbeads_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rnbeads_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ggplot2", "RnBeads", "rtracklayer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RNBEADS:", paste0("    rnbeads: ", packageVersion("RnBeads"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(RnBeads)
+    
+    # Define input paths as specified by the user
+    idat.dir <- "idat"
+    sample.annotation <- "sample_annotation.csv"
+    report.dir <- "rnbeads_reports"
+    
+    # Verify that the required user inputs exist
+    if (!dir.exists(idat.dir)) {
+      stop(paste("Error: IDAT directory '", idat.dir, "' not found in the working directory.", sep = ""))
+    }
+    
+    if (!file.exists(sample.annotation)) {
+      stop(paste("Error: Sample annotation file '", sample.annotation, "' not found in the working directory.", sep = ""))
+    }
+    
+    # Pitfall prevention: The output report directory must not already exist prior to running the analysis.
+    # If it exists, we remove it to prevent execution failure.
+    if (dir.exists(report.dir)) {
+      message("Removing existing report directory to prevent RnBeads execution failure...")
+      unlink(report.dir, recursive = TRUE, force = TRUE)
+    }
+    
+    # Write a preliminary summary of the sample annotation as a named output file
+    message("Reading and summarizing sample annotation...")
+    sa_data <- read.csv(sample.annotation, stringsAsFactors = FALSE)
+    write.csv(sa_data, "input_sample_annotation_copy.csv", row.names = FALSE)
+    
+    # 1. Set global analysis options (e.g., sex chromosome removal, sample identifier column)
+    message("Setting RnBeads global options...")
+    rnb.options(filtering.sex.chromosomes.removal=TRUE,
+        identifiers.column="Sample_ID")
+    
+    # Save the configured options to a CSV file for traceability
+    opts <- rnb.options()
+    opts_df <- data.frame(
+      Option = names(opts),
+      Value = sapply(opts, function(x) paste(as.character(x), collapse = ", ")),
+      stringsAsFactors = FALSE
     )
+    write.csv(opts_df, "rnbeads_options_flat.csv", row.names = FALSE)
+    
+    # 2. Run the complete analysis pipeline using the automated runner function
+    message("Starting RnBeads automated analysis pipeline...")
+    pipeline_success <- tryCatch({
+      rnb.run.analysis(dir.reports=report.dir, sample.sheet=sample.annotation,
+          data.dir=idat.dir, data.type="infinium.idat.dir")
+      TRUE
+    }, error = function(e) {
+      message("An error occurred during the RnBeads analysis pipeline:")
+      message(e\$message)
+      FALSE
+    })
+    
+    # Write final pipeline status and output files
+    if (pipeline_success && dir.exists(report.dir)) {
+      message("RnBeads pipeline completed successfully. Reports generated in: ", report.dir)
+      writeLines("SUCCESS", "pipeline_status.txt")
+      
+      # Attempt to locate and copy any generated RDS/RData objects from the report directory
+      rnb_set_files <- list.files(path = report.dir, pattern = "\\\\.(RData|rds)\$", recursive = TRUE, full.names = TRUE)
+      if (length(rnb_set_files) > 0) {
+        for (i in seq_along(rnb_set_files)) {
+          file.copy(rnb_set_files[i], paste0("extracted_analysis_object_", i, ".", tools::file_ext(rnb_set_files[i])))
+        }
+      }
+    } else {
+      message("RnBeads pipeline failed or did not produce the expected report directory.")
+      writeLines("FAILED", "pipeline_status.txt")
+    }
+
+    writeLines(c(
+        '"BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS":',
+        paste0('        rnbeads: ', as.character(packageVersion("rnbeads")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rnbeads_results.csv
-    touch ${prefix}_rnbeads_output.rds
-    echo "BIOC_RNBEADS:" > versions.yml
-    echo "    rnbeads: 0.0.0" >> versions.yml
+    touch ${prefix}_infinium_microarray_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_RNBEADS_WORKFLOW {
+workflow BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ idat, sample_annotation.csv ] ]
 
     main:
-    BIOC_RNBEADS(ch_input)
+    BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_RNBEADS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RNBEADS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RNBEADS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RNBEADS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS.out.tables
+    plots    = BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS.out.plots
+    objects  = BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS.out.objects
+    versions = BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS.out.versions
 }

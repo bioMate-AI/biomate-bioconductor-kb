@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=\"fastq\" in qa() to specify the file format for QA statistics ;; colClasses in readXStringColumns() to specify the class of each column to be read (e.g., \"DNAString\", \"BString\") or NULL to ignore ;; destination in writeFastq() to specify the output file path ;; mode=\"a\" in writeFastq() to append reads to the destination file during chunk-wise iteration.\n- alternatives: For BAM files or aligned reads, use Rsamtools, GenomicRanges, GenomicAlignments, and related packages instead of ShortRead's legacy alignment functions ;; For whole-genome alignments or more flexible pairwise alignment, use Biostrings and pwalign (specifically PDict, matchPDict, and pairwiseAlignment) instead of srdistance.\n- when_to_use: Use when you have raw FASTQ files from high-throughput sequencing and need to perform initial quality control, generate visual QA reports, or filter/trim reads (e.g., removing low-quality tails, adapter sequences, or reads with too many ambiguous bases) before downstream alignment.\n- pitfalls: Reading entire large FASTQ files into memory with readFastq can exhaust system memory; use FastqStreamer to iterate in chunks or FastqSampler to sample ;; When filtering or trimming paired-end reads, care must be taken to coordinate pairs of FASTQ files to preserve read order ;; srdistance is optimized for reference sequences of similar length to the reads; for whole-genome or highly flexible alignments, it is inefficient compared to Biostrings tools.",
+  "workflows": [
+    {
+      "name": "fastq_quality_assessment",
+      "intent": "Generate an HTML quality assessment report from a set of FASTQ files.",
+      "input": [
+        "/path/to/*.fastq (a directory containing FASTQ files)"
+      ],
+      "stages": "1. List FASTQ files using dir() ;; 2. Collect QA statistics over the files using qa() ;; 3. Generate and view the HTML report using report() and browseURL()",
+      "code": "fls <- dir(\"/path/to\", \"*fastq$\", full=TRUE)\nqaSummary <- qa(fls, type=\"fastq\")\nbrowseURL(report(qaSummary))"
+    },
+    {
+      "name": "fastq_filtering_and_trimming",
+      "intent": "Iterate through a FASTQ file in chunks to filter out low-quality reads and trim low-quality ends.",
+      "input": [
+        "a.fastq.gz (input FASTQ file)"
+      ],
+      "stages": "1. Open a stream to the FASTQ file using FastqStreamer() ;; 2. Yield chunks of reads using yield() ;; 3. Filter reads using nFilter() or custom filters ;; 4. Trim low-quality nucleotides using trimTailw() ;; 5. Filter by read length using width() ;; 6. Append processed reads to a destination file using writeFastq()",
+      "code": "myFilterAndTrim <-\n    function(fl, destination=sprintf(\"%s_subset\", fl))\n{\n    ## open input stream\n    stream <- open(FastqStreamer(fl))\n    on.exit(close(stream))\n    repeat {\n        ## input chunk\n        fq <- yield(stream)\n        if (length(fq) == 0)\n            break\n        ## trim and filter, e.g., reads cannot contain 'N'...\n        fq <- fq[nFilter()(fq)]  # see ?srFilter for pre-defined filters\n        ## trim as soon as 2 of 5 nucleotides has quality encoding less\n        ## than \"4\" (phred score 20)\n        fq <- trimTailw(fq, 2, \"4\", 2)\n        ## drop reads that are less than 36nt\n        fq <- fq[width(fq) >= 36]\n        ## append to destination\n        writeFastq(fq, destination, \"a\")\n    }\n}"
+    },
+    {
+      "name": "parsing_custom_tabular_sequence_files",
+      "intent": "Read specific columns of sequence and quality data from tabular text files (e.g., Solexa export format) into Biostrings objects.",
+      "input": [
+        "s_2_export.txt (tabular text file containing sequence and quality columns)"
+      ],
+      "stages": "1. Define column classes using a list where target columns are specified as \"DNAString\" or \"BString\" and others are NULL ;; 2. Read the specified columns from the file using readXStringColumns()",
+      "code": "colClasses <- rep(list(NULL), 21)\ncolClasses[9:10] <- c(\"DNAString\", \"BString\")\nnames(colClasses)[9:10] <- c(\"read\", \"quality\")\ncols <- readXStringColumns(analysisPath(sp), pattern, colClasses)"
+    }
+  ]
+}

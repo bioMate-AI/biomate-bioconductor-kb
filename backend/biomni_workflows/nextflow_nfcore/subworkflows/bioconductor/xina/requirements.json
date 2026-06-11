@@ -1,0 +1,15 @@
+{
+  "package": "xina",
+  "requirements": [
+    "STRINGdb",
+    "XINA",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "STRINGdb",
+      "XINA",
+      "ggplot2"
+    ]
+  }
+}

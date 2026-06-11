@@ -1,0 +1,15 @@
+{
+  "package": "matrixrider",
+  "requirements": [
+    "Biostrings",
+    "MatrixRider",
+    "TFBSTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "MatrixRider",
+      "TFBSTools"
+    ]
+  }
+}

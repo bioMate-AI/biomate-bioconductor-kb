@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datasets=specifies which OmniPath datasets to retrieve (e.g., 'omnipath', 'kinaseextra') in wppi_data or wppi_omnipath_data ;; sub_level=argument for subgraph_op determining the range/step-size of the neighborhood around the genes of interest\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you have a set of seed genes (genes of interest) and want to identify and prioritize candidate genes in their functional and physical interaction neighborhood using a weighted random walk on a PPI network.\n- pitfalls: Deprecated functions warning: the documentation notes that post_translational should be used instead of deprecated functions, and as(., \"TsparseMatrix\") instead of as(<dgCMatrix>, \"dgTMatrix\"). Also, ensure OmnipathR is updated (recommended from git if Bioconductor version is outdated).",
+  "workflows": [
+    {
+      "name": "gene_prioritization_ppi",
+      "intent": "Prioritize candidate genes in the network neighborhood of a user-specified set of genes of interest using PPI networks and functional annotations.",
+      "input": [
+        "genes_interest (character vector of gene symbols of interest)"
+      ],
+      "stages": "1. Retrieve database knowledge (PPI, GO, HPO, UniProt) ;; 2. Convert PPI interactions to an igraph object ;; 3. Extract a subgraph of the neighborhood around the genes of interest ;; 4. Calculate a weighted adjacency matrix based on common neighbors and functional annotations ;; 5. Perform a random walk with restarts on the weighted matrix ;; 6. Prioritize and score candidate genes (or execute the entire workflow in one step using score_candidate_genes_from_PPI)",
+      "code": "library(wppi)\ngenes_interest <- c(\n    'ERCC8', 'AKT3', 'NOL3', 'TTK',\n    'GFI1B', 'CDC25A', 'TPX2', 'SHE'\n)\nscores <- score_candidate_genes_from_PPI(genes_interest)\nomnipath_data <- wppi_omnipath_data(datasets = 'omnipath')\ndb <- wppi_data(datasets = c('omnipath', 'kinaseextra'))\nHPO_data <- wppi_hpo_data()\nHPO_interest <- unique(dplyr::filter(HPO_data, grepl('Diabetes', Name))$Name)\ngraph_op <- graph_from_op(db$omnipath)\ngraph_op_1 <- subgraph_op(graph_op, genes_interest)\nw_adj <- weighted_adj(graph_op_1, db$go, db$hpo)\nw_rw <- random_walk(w_adj)\nscores <- prioritization_genes(graph_op_1, w_rw, genes_interest)"
+    }
+  ]
+}

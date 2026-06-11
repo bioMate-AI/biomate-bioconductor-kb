@@ -1,0 +1,53 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: query=A CpG set of interest, which can be a character vector of probe IDs (e.g., cg-numbers for arrays), a named numeric vector (for continuous queries), or a YAME-formatted binary file/vector (for sequencing data) ;; databases=The target features (knowledgebase sets) to test against, which can be pre-packaged databases retrieved via getDBs(), loaded from Zenodo RDS files, or custom-built ;; platform=The microarray platform (e.g., \"MM285\", \"HM450\", \"EPIC\", \"EPICv2\", \"MSA\") used to infer the universe set and coordinates ;; universeSet=Optional background/universe set of all probes for the platform; if omitted, inferred from the query or platform ;; alternative=Alternative hypothesis for Fisher's exact test (e.g., \"two.sided\" for both enrichment and depletion, default is one-tailed) ;; include_genes=Logical indicating whether to dynamically include gene enrichment testing with default or specified databases (default is FALSE) ;; max_distance=Maximum distance to link probes to genes in buildGeneDBs()\n- alternatives: gprofiler2::gost()=Used for performing Gene Ontology enrichment analysis on genes linked to probes via linkProbesToProximalGenes() ;; sesame::testEnrichmentFisherN=Mentioned as an alternative/underlying implementation for significance testing and enrichment testing on sequencing data\n- when_to_use: Use when analyzing DNA methylation data (from arrays like EPIC, HM450, MM285, or low-pass sequencing) to identify biological and technical features (chromatin states, transcription factor binding, histone modifications, tissue signatures) associated with a set of differentially methylated or trait-correlated CpGs.\n- pitfalls: Selecting an inappropriate background/universe set can significantly bias and impact the interpretation of enrichment results ;; Large query/database sizes can cause integer overflow warnings during Fisher's exact test calculations (e.g., nDQ * nUmDQ producing NAs) ;; Sequencing-based workflows require the external yame tool installed in the shell PATH; otherwise, R-based wrappers or system calls will fail ;; Forgetting to run sesameDataCache() once per installation can lead to slow database loading times or download failures during getDBs() calls.",
+  "workflows": [
+    {
+      "name": "array_discrete_enrichment",
+      "intent": "Test a discrete set of CpG probe IDs (e.g., from Illumina arrays) for enrichment against categorical database sets using Fisher's exact test and visualize the results.",
+      "input": [
+        "query (character vector of cg-numbers)"
+      ],
+      "stages": "1. Cache required database sets using sesameDataCache() ;; 2. Retrieve query CpG list (or define custom list) ;; 3. Run enrichment testing using testEnrichment() ;; 4. Visualize results using KYCG_plotDot(), KYCG_plotVolcano(), or KYCG_plotManhattan().",
+      "code": "library (knowYourCG)\nlibrary (sesameData)\nsesameDataCache ( data_titles= c ( \"genomeInfo.hg38\" , \"genomeInfo.mm10\" , \"KYCG.MM285.tissueSignature.20211211\" , \"MM285.tissueSignature\" , \"MM285.address\" , \"probeIDSignature\" , \"KYCG.MM285.designGroup.20210210\" , \"KYCG.MM285.chromHMM.20210210\" , \"KYCG.MM285.TFBSconsensus.20220116\" , \"KYCG.MM285.HMconsensus.20220116\" , \"KYCG.MM285.chromosome.mm10.20210630\" ))\nquery <- getDBs ( \"MM285.designGroup\" )[[ \"PGCMeth\" ]]\ndbs <- c ( \"KYCG.MM285.chromHMM.20210210\" , \"KYCG.HM450.TFBSconsensus.20211013\" , \"KYCG.MM285.HMconsensus.20220116\" , \"KYCG.MM285.tissueSignature.20211211\" , \"KYCG.MM285.chromosome.mm10.20210630\" , \"KYCG.MM285.designGroup.20210210\" )\nresults_pgc <- testEnrichment (query, databases = dbs, platform= \"MM285\" )\nlibrary (SummarizedExperiment)\nlibrary (sesame)\nsesameDataCache ( \"MM285.tissueSignature\" )\nkycgDataCache ()\ndf <- rowData ( sesameDataGet ( 'MM285.tissueSignature' ))\nquery <- df $ Probe_ID[df $ branch == \"fetal_liver\" & df $ type == \"Hypo\" ]\nresults <- testEnrichment (query, \"TFBS\" )\nKYCG_plotDot (results)\nquery <- df $ Probe_ID[df $ branch == \"fetal_brain\" & df $ type == \"Hypo\" ]\nresults_2tailed <- testEnrichment (query, \"TFBS\" , alternative = \"two.sided\" )\nKYCG_plotVolcano (results_2tailed)\nlibrary (ggrepel)\nsmry_pvals = readRDS ( url ( paste0 ( \"https://zenodo.org/records/\" , \"18176501/files/20220413_testManhattan.rds\" )))\nKYCG_plotManhattan ( - log10 (smry_pvals), platform= \"HM450\" , title= \"Differentially Methylated CpGs - EWAS Aging\" , col= c ( \"navy\" , \"skyblue\" ), ylabel = bquote ( - log[ 10 ](P ~ value)), label_min= 30 ) + theme ( axis.text.x = element_text ( angle = 90 , vjust = 0.5 , hjust= 1 ))"
+    },
+    {
+      "name": "sequencing_discrete_enrichment",
+      "intent": "Convert genomic coordinates (BED format) to coordinate-free YAME format and test for enrichment against a knowledgebase.",
+      "input": [
+        "input_cpgs.bed (BED file of CpG coordinates)",
+        "cpg_nocontig.cr (YAME reference coordinate file)"
+      ],
+      "stages": "1. Convert BED file to YAME-compressed binary vector using bedToCg() ;; 2. Run enrichment testing using testEnrichment() with the YAME query and knowledgebase ;; 3. Plot results using KYCG_plotDot().",
+      "code": "library (knowYourCG)\ntemp_dir <- tempdir ()\nknowledgebase <- file.path (temp_dir, \"ChromHMM.20220414.cm\" )\nquery <- file.path (temp_dir, \"mm10_f3_10cells.cg\" )\nknowledgebase_url <- \"https://zenodo.org/records/18175656/files/ChromHMM.20220414.cm\"\nquery_url <- \"https://zenodo.org/records/18176004/files/mm10_f3_10cells.cg\"\ndownload.file (knowledgebase_url, destfile = knowledgebase)\ndownload.file (query_url, destfile = query)\nres = testEnrichment (query, knowledgebase)\nKYCG_plotDot (res, short_label= TRUE )\nbed_file <- \"input_cpgs.bed\"\nref_cr <- \"cpg_nocontig.cr\"\nout_file <- \"input_cpgs.cg\"\nbedToCg (bed_file, ref_cr, out_file)"
+    },
+    {
+      "name": "continuous_enrichment_sea",
+      "intent": "Perform Set Enrichment Analysis (SEA) using a continuous query (e.g., beta values or continuous genomic metrics) against discrete or continuous databases.",
+      "input": [
+        "beta_values (named numeric vector of methylation levels)"
+      ],
+      "stages": "1. Retrieve continuous query (e.g., beta values from a sample) ;; 2. Run Set Enrichment Analysis against a database group using testEnrichmentSEA().",
+      "code": "library (knowYourCG)\nquery <- getDBs ( \"KYCG.MM285.designGroup\" )[[ \"TSS\" ]]\nsesameDataCache ( data_titles = c ( \"KYCG.MM285.seqContextN.20210630\" ))\nres <- testEnrichmentSEA (query, \"MM285.seqContextN\" )\nlibrary (sesame)\nsesameDataCache ( data_titles = c ( \"MM285.1.SigDF\" ))\nbeta_values <- getBetas ( sesameDataGet ( \"MM285.1.SigDF\" ))\nres <- testEnrichmentSEA (beta_values, \"MM285.chromHMM\" )"
+    },
+    {
+      "name": "genomic_proximity_and_linkage",
+      "intent": "Link a set of CpG probes to proximal genes and perform Gene Ontology enrichment analysis, or test whether a query set of CpG probes shares close genomic proximity.",
+      "input": [
+        "query_probes (character vector of CpG probe IDs)"
+      ],
+      "stages": "1. Link query probes to proximal genes using linkProbesToProximalGenes() ;; 2. Perform Gene Ontology enrichment on the linked genes using gprofiler2::gost() ;; 3. Test for genomic proximity and co-localization using testProbeProximity().",
+      "code": "library (knowYourCG)\nlibrary (sesameData)\nlibrary (SummarizedExperiment)\ndf <- rowData (sesameData :: sesameDataGet ( 'MM285.tissueSignature' ))\nquery_probes <- df $ Probe_ID[df $ branch == \"fetal_liver\" & df $ type == \"Hypo\" ]\ngenes <- linkProbesToProximalGenes (query_probes, platform = \"MM285\" ) $ gene_name\nlibrary (gprofiler2)\ngostres <- gprofiler2 :: gost (genes, organism = \"mmusculus\" )\nprobes <- df $ Probe_ID[df $ branch == \"fetal_liver\" & df $ type == \"Hypo\" ]\nres <- testProbeProximity ( probeIDs= probes)"
+    },
+    {
+      "name": "feature_aggregation_and_annotation",
+      "intent": "Aggregate CpG-level beta values into database-level summary statistics (e.g., mean) for downstream modeling, or annotate an arbitrary probe set.",
+      "input": [
+        "betas (numeric matrix of beta values with probes as rows and samples as columns)",
+        "query (character vector of probe IDs to annotate)"
+      ],
+      "stages": "1. Calculate summary statistics (e.g., mean) across database sets using dbStats() ;; 2. Annotate an arbitrary probe set using annoProbes().",
+      "code": "library (knowYourCG)\nlibrary (sesameData)\nlibrary (SummarizedExperiment)\nbetas = assay ( sesameDataGet ( 'MM285.467.SE.tissue20Kprobes' ))\nstats <- dbStats (betas, 'MM285.chromHMM' )\nquery <- names ( sesameData_getManifestGRanges ( \"MM285\" ))\nanno <- annoProbes (query, \"designGroup\" , silent = TRUE )"
+    }
+  ]
+}

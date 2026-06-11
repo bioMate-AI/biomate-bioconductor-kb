@@ -4,6 +4,8 @@
 // Plot custom numeric data points, lines, segments, and bars across multiple data panels with custom axes and backgrounds.
 // Input: rand.data, sel.data
 // Container: quay.io/biocontainers/bioconductor-karyoploter:1.36.0--r45hdfd78af_0
+// R packages: karyoploteR, regioneR
+// Bioconductor: 3.20 | R: 4.4
 // Requires: karyoploteR, regioneR
 // Visualizations: plot (ggplot/base)
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -36,6 +38,15 @@ process BIOC_KARYOPLOTER_CUSTOM_LOW_LEVEL_PLOTTING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("karyoploteR", "regioneR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
         
         # Load required libraries
         library(karyoploteR)
@@ -64,9 +75,12 @@ process BIOC_KARYOPLOTER_CUSTOM_LOW_LEVEL_PLOTTING {
         
         # Read the exact user input files from the working directory
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         rand.data <- read_input_file("rand.data")
         sel.data <- read_input_file("sel.data")

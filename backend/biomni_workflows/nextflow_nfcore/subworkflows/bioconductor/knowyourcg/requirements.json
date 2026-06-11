@@ -1,0 +1,37 @@
+{
+  "package": "knowyourcg",
+  "requirements": [
+    "SummarizedExperiment",
+    "gprofiler2",
+    "knowYourCG",
+    "sesame",
+    "sesameData"
+  ],
+  "by_workflow": {
+    "continuous_data_sea.nf": [
+      "knowYourCG",
+      "sesame"
+    ],
+    "feature_aggregation_and_annotation.nf": [
+      "SummarizedExperiment",
+      "knowYourCG",
+      "sesameData"
+    ],
+    "gene_linkage_and_go.nf": [
+      "SummarizedExperiment",
+      "gprofiler2",
+      "knowYourCG",
+      "sesameData"
+    ],
+    "genomic_proximity.nf": [
+      "knowYourCG"
+    ],
+    "main.nf": [
+      "knowYourCG",
+      "sesameData"
+    ],
+    "sequencing_yame_enrichment.nf": [
+      "knowYourCG"
+    ]
+  }
+}

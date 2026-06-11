@@ -1,0 +1,134 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: enrichmentbrowser — all_in_one_pipeline
+// Run the complete standardized enrichment analysis pipeline using the all-in-one wrapper function.
+// Input: exprs.tab, colData.tab, rowData.tab, hsa_kegg_gs.gmt, hsa.grn
+// Container: quay.io/biocontainers/bioconductor-enrichmentbrowser:2.40.0--r45hdfd78af_0
+// R packages: EnrichmentBrowser
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "quay.io/biocontainers/bioconductor-enrichmentbrowser:2.40.0--r45hdfd78af_0"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EnrichmentBrowser")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(EnrichmentBrowser)
+    
+    # Define input file paths
+    exprs.file <- "exprs.tab"
+    cdat.file <- "colData.tab"
+    rdat.file <- "rowData.tab"
+    gmt.file <- "hsa_kegg_gs.gmt"
+    grn.file <- "hsa.grn"
+    
+    # Set default output directory to current working directory
+    configEBrowser(key = "OUTDIR.DEFAULT", value = getwd())
+    
+    # Load gene sets from GMT file
+    hsa.gs <- getGenesets(gmt.file)
+    
+    # Load gene regulatory network
+    hsa.grn <- as.matrix(read.delim(grn.file, header = TRUE, stringsAsFactors = FALSE))
+    
+    # Execute the complete standardized enrichment analysis pipeline
+    res <- ebrowser(
+      meth = c("ora", "ggea"),
+      exprs = exprs.file,
+      cdat = cdat.file,
+      rdat = rdat.file,
+      org = "hsa",
+      gs = hsa.gs,
+      grn = hsa.grn,
+      comb = TRUE,
+      nr.show = 5
+    )
+    
+    # Save the complete results object
+    saveRDS(res, "ebrowser_results.rds")
+    
+    # Export rankings to CSV files
+    if (is.list(res)) {
+      for (method in names(res)) {
+        tryCatch({
+          ranking <- gsRanking(res[[method]], signif.only = FALSE)
+          write.csv(as.data.frame(ranking), file = paste0(method, "_ranking.csv"), row.names = FALSE)
+        }, error = function(e) {
+          message("Could not write ranking for ", method, ": ", e\$message)
+        })
+      }
+    } else {
+      tryCatch({
+        ranking <- gsRanking(res, signif.only = FALSE)
+        write.csv(as.data.frame(ranking), file = "ebrowser_ranking.csv", row.names = FALSE)
+      }, error = function(e) {
+        message("Could not write ranking: ", e\$message)
+      })
+    }
+
+    writeLines(c(
+        '"BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE":',
+        paste0('        enrichmentbrowser: ', as.character(packageVersion("enrichmentbrowser")))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_all_in_one_pipeline.csv versions.yml
+    """
+}
+
+workflow BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ exprs.tab, colData.tab, rowData.tab, hsa_kegg_gs.gmt, hsa.grn ] ]
+
+    main:
+    BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE(ch_input)
+
+    emit:
+    tables   = BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE.out.tables
+    plots    = BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE.out.plots
+    objects  = BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE.out.objects
+    versions = BIOC_ENRICHMENTBROWSER_ALL_IN_ONE_PIPELINE.out.versions
+}

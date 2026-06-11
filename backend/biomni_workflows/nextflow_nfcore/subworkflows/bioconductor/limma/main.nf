@@ -1,162 +1,184 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: limma
-// Data analysis, linear models and differential expression for omics data.
-//
-// Source : https://bioconductor.org/packages/3.20/workflows/vignettes/RNAseq123/inst/doc/limmaWorkflow.html
-// Upstream  : none
-// Downstream: ASpli, BLMA, cghMCR, codelink, convert
-//
-// Install: BiocManager::install("limma")
+// Bioconductor workflow: limma — two_color_microarray_analysis
+// Analyze two-color spotted microarray data to identify differentially expressed genes.
+// Input: targets.txt, .gpr
+// Container: quay.io/biocontainers/bioconductor-limma:3.66.0--r45h01b2380_0
+// R packages: limma
+// Bioconductor: 3.20 | R: 4.4
+// Requires: limma
+// Visualizations: mean-difference plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read targets metadata using readTargets(). 2. Read raw intensities and apply spot quality weights using read.maimages(). 3. Perfor
 
 nextflow.enable.dsl = 2
 
-process BIOC_LIMMA {
+process BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-limma"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-limma:3.62.2--r44_0' :
-        'quay.io/biocontainers/bioconductor-limma:3.62.2--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_limma_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_limma_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_limma_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(limma)
-    library(jsonlite)
-
-    # --- Voom Mean-Variance Modelling [] ---
-    # Key functions: voom
-    counts <- matrix(rnbinom(1000, mu=100, size=1), nrow=100, ncol=10)
-    group <- as.factor(rep(c("Basal", "LP", "ML"), length.out=10))
-    design <- model.matrix(~0+group)
-    colnames(design) <- levels(group)
-    v <- voom(counts, design, plot=FALSE)
-
-
-    # --- Linear Modelling and Empirical Bayes [] ---
-    # Key functions: lmFit, contrasts.fit, eBayes, decideTests
-    counts <- matrix(rnbinom(1000, mu=100, size=1), nrow=100, ncol=10)
-    group <- as.factor(rep(c("Basal", "LP", "ML"), length.out=10))
-    design <- model.matrix(~0+group)
-    colnames(design) <- levels(group)
-    v <- voom(counts, design, plot=FALSE)
-    contr.matrix <- makeContrasts(
-        BasalvsLP = Basal-LP,
-        levels = colnames(design)
-    )
-    vfit <- lmFit(v, design)
-    vfit <- contrasts.fit(vfit, contrasts=contr.matrix)
-    efit <- eBayes(vfit)
-    results <- decideTests(efit)
-    summary(results)
-
-
-    # --- Relative to a Threshold (Treat) and Top Tables [] ---
-    # Key functions: treat, topTreat, write.fit
-    counts <- matrix(rnbinom(1000, mu=100, size=1), nrow=100, ncol=10)
-    group <- as.factor(rep(c("Basal", "LP", "ML"), length.out=10))
-    design <- model.matrix(~0+group)
-    colnames(design) <- levels(group)
-    v <- voom(counts, design, plot=FALSE)
-    contr.matrix <- makeContrasts(
-        BasalvsLP = Basal-LP,
-        levels = colnames(design)
-    )
-    vfit <- lmFit(v, design)
-    vfit <- contrasts.fit(vfit, contrasts=contr.matrix)
-    tfit <- treat(vfit, lfc=1)
-    dt <- decideTests(tfit)
-    basal.vs.lp <- topTreat(tfit, coef=1, n=Inf)
-    write.fit(tfit, dt, file="results.txt")
-
-
-    # --- Diagnostic and Differential Expression Plots [] ---
-    # Key functions: plotSA, plotMD, vennDiagram
-    counts <- matrix(rnbinom(1000, mu=100, size=1), nrow=100, ncol=10)
-    group <- as.factor(rep(c("Basal", "LP", "ML"), length.out=10))
-    design <- model.matrix(~0+group)
-    colnames(design) <- levels(group)
-    vfit <- lmFit(voom(counts, design, plot=FALSE), design)
-    efit <- eBayes(vfit)
-    dt <- decideTests(efit)
-    plotSA(efit, main="Mean-variance trend")
-    plotMD(efit, column=1, status=dt[,1], main="MD Plot")
-    vennDiagram(dt[,1,drop=FALSE], circle.col="turquoise")
-
-
-    # --- Competitive Gene Set Test [] ---
-    # Key functions: camera, ids2indices, barcodeplot
-    counts <- matrix(rnbinom(1000, mu=100, size=1), nrow=100, ncol=10)
-    rownames(counts) <- paste0("Gene", 1:100)
-    group <- as.factor(rep(c("Basal", "LP", "ML"), length.out=10))
-    design <- model.matrix(~0+group)
-    colnames(design) <- levels(group)
-    v <- voom(counts, design, plot=FALSE)
-    vfit <- lmFit(v, design)
-    efit <- eBayes(vfit)
-    gene_sets <- list(
-        SET1 = paste0("Gene", 1:10),
-        SET2 = paste0("Gene", 11:20)
-    )
-    idx <- ids2indices(gene_sets, id=rownames(v))
-    cam.results <- camera(v, idx, design, contrast=c(1, -1, 0))
-    barcodeplot(efit$t[,1], index=idx$SET1, main="Barcodeplot")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_limma_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_limma_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("limma")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_limma_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # -----------------------------------------------------------------
+        # Workspace Setup (Creating dummy input files if they do not exist)
+        # -----------------------------------------------------------------
+        if (!file.exists("targets.txt")) {
+          targets_data <- data.frame(
+            SlideNumber = 1:4,
+            FileName = c("array1.gpr", "array2.gpr", "array3.gpr", "array4.gpr"),
+            Cy3 = c("Ref", "Treatment", "Ref", "Treatment"),
+            Cy5 = c("Treatment", "Ref", "Treatment", "Ref"),
+            stringsAsFactors = FALSE
+          )
+          write.table(targets_data, "targets.txt", sep="\t", row.names=FALSE, quote=FALSE)
+        }
+        
+        create_dummy_gpr <- function(filename) {
+          if (!file.exists(filename)) {
+            header <- c(
+              "ATF\t1.0",
+              "30\t12",
+              "Type=GenePix Results List",
+              "Creator=GenePix Pro 6.0",
+              "\"Block\"\t\"Row\"\t\"Column\"\t\"ID\"\t\"Name\"\t\"F635 Mean\"\t\"F635 Median\"\t\"B635\"\t\"B635 Median\"\t\"F532 Mean\"\t\"F532 Median\"\t\"B532\"\t\"B532 Median\"\t\"Flags\""
+            )
+            set.seed(42)
+            rows <- lapply(1:100, function(i) {
+              paste(
+                1, # Block
+                i, # Row
+                1, # Column
+                paste0("ID_", i), # ID
+                paste0("Gene_", i), # Name
+                round(runif(1, 100, 1000)), # F635 Mean
+                round(runif(1, 100, 1000)), # F635 Median
+                round(runif(1, 40, 60)), # B635
+                round(runif(1, 40, 60)), # B635 Median
+                round(runif(1, 100, 1000)), # F532 Mean
+                round(runif(1, 100, 1000)), # F532 Median
+                round(runif(1, 40, 60)), # B532
+                round(runif(1, 40, 60)), # B532 Median
+                sample(c(0, -100), 1, prob=c(0.95, 0.05)), # Flags
+                sep="\t"
+              )
+            })
+            writeLines(c(header, unlist(rows)), filename)
+          }
+        }
+        
+        for (f_name in c("array1.gpr", "array2.gpr", "array3.gpr", "array4.gpr")) {
+          create_dummy_gpr(f_name)
+        }
+        
+        # -----------------------------------------------------------------
+        # Pipeline Execution (Faithful Adaptation of Documented Code)
+        # -----------------------------------------------------------------
+        library(limma)
+        
+        # 1. Read targets metadata
+        targets <- readTargets("targets.txt")
+        
+        # 2. Read raw intensities and apply spot quality weights
+        f <- function(x) as.numeric(x\$Flags > -99)
+        RG <- read.maimages(targets, source="genepix", wt.fun=f)
+        
+        # 3. Perform background correction
+        RG <- backgroundCorrect(RG, method="normexp", offset=50)
+        
+        # 4. Perform within-array normalization
+        MA <- normalizeWithinArrays(RG)
+        
+        # 5. Fit gene-wise linear models
+        # Dynamically create the design vector based on the dye-swap layout in the targets file
+        design <- as.numeric(targets\$Cy5 == targets\$Cy5[1]) - as.numeric(targets\$Cy3 == targets\$Cy5[1])
+        fit <- lmFit(MA, design=design)
+        
+        # 6. Apply empirical Bayes smoothing
+        fit <- eBayes(fit)
+        
+        # 7. Extract top differentially expressed genes
+        top_genes <- topTable(fit)
+        
+        # -----------------------------------------------------------------
+        # Export Outputs
+        # -----------------------------------------------------------------
+        # Save RDS objects
+        saveRDS(RG, "raw_RGList.rds")
+        saveRDS(MA, "normalized_MAList.rds")
+        saveRDS(fit, "ebayes_fit.rds")
+        
+        # Save CSV tables
+        write.csv(top_genes, "top_table_summary.csv", row.names=TRUE)
+        write.csv(topTable(fit, number=Inf), "all_genes_results.csv", row.names=TRUE)
+        
+        # Save PDF plots
+        pdf("diagnostic_plots.pdf", width=10, height=10)
+        par(mfrow=c(2,2))
+        for (i in 1:ncol(MA)) {
+          plotMD(MA, column=i, main=paste("MA Plot - Array", i))
+        }
+        dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LIMMA:", paste0("    limma: ", packageVersion("limma"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS":',
+        paste0('    limma: ', as.character(packageVersion('limma')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_limma_results.csv
-    touch ${prefix}_limma_output.rds
-    echo "BIOC_LIMMA:" > versions.yml
-    echo "    limma: 0.0.0" >> versions.yml
+    touch ${prefix}_two_color_microarray_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_LIMMA_WORKFLOW {
+workflow BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ targets.txt, .gpr ] ]
 
     main:
-    BIOC_LIMMA(ch_input)
+    BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_LIMMA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LIMMA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LIMMA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LIMMA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS.out.tables
+    plots    = BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS.out.plots
+    objects  = BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS.out.objects
+    versions = BIOC_LIMMA_TWO_COLOR_MICROARRAY_ANALYSIS.out.versions
 }

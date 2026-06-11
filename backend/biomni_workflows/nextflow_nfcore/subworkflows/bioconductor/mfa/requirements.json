@@ -1,0 +1,13 @@
+{
+  "package": "mfa",
+  "requirements": [
+    "ggplot2",
+    "mfa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "mfa"
+    ]
+  }
+}

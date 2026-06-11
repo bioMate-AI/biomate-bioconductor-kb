@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_GENOMICFILES {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-genomicfiles"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genomicfiles:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genomicfiles:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -39,49 +38,79 @@ process BIOC_GENOMICFILES {
     """
     #!/usr/bin/env Rscript
     library(BamFile)
-    library(GRanges)
+    library(GenomicRanges)
     library(GenomicFiles)
     library(ScanBamParam)
     library(jsonlite)
 
+    # --- Genomic Files Initialization [] ---
+    # Key functions: GenomicFiles
+    gr <- GenomicRanges::GRanges("chr14",
+        IRanges::IRanges(c(19411500, 19659063), width=100))
+    fls <- c("sample1.bam", "sample2.bam")
+    gf <- GenomicFiles(rowRanges=gr, files=fls)
+
     # --- File-by-File Reduction [] ---
     # Key functions: reduceByFile
+    gr <- GenomicRanges::GRanges("chr14",
+        IRanges::IRanges(c(19411500, 19659063), width=100))
+    fls <- c("sample1.bam", "sample2.bam")
     MAP <- function(range, file, ...) {
-        requireNamespace("Rsamtools")
-        Rsamtools::pileup(file,
-            scanBamParam = Rsamtools::ScanBamParam(which = range)
-        )
+        length(range)
     }
-    se <- reduceByFile(gr, fls, MAP, summarize = TRUE)
-
+    se <- reduceByFile(gr, fls, MAP, summarize=TRUE)
 
     # --- Range-by-Range Reduction [] ---
     # Key functions: reduceByRange
+    gr <- GenomicRanges::GRanges("chr14",
+        IRanges::IRanges(c(19411500, 19659063), width=100))
+    fls <- c("sample1.bam", "sample2.bam")
     MAP <- function(range, file, ...) {
-        requireNamespace("Rsamtools")
-        Rsamtools::pileup(file,
-            scanBamParam = Rsamtools::ScanBamParam(which = range)
-        )
+        length(range)
     }
     REDUCE <- function(mapped, ...) {
-        cmb <- do.call(rbind, mapped)
-        xtabs(count ~ pos + nucleotide, cmb)
+        Reduce("+", mapped)
     }
-    lst <- reduceByRange(gr, fls, MAP, REDUCE, iterate = FALSE)
+    lst <- reduceByRange(gr, fls, MAP, REDUCE, iterate=FALSE)
+
+    # --- Group-wise Statistical Testing [] ---
+    # Key functions: reduceByRange
+    gr <- GenomicRanges::GRanges("chr14",
+        IRanges::IRanges(c(19411500, 19659063), width=100))
+    fls <- c("sample1.bam", "sample2.bam", "sample3.bam", "sample4.bam")
+    grp <- factor(rep(c("A", "B"), each=2))
+    MAP <- function(range, file, ...) {
+        rep(1, length(range))
+    }
+    REDUCE <- function(mapped, ..., grp) {
+        mat <- simplify2array(mapped)
+        rowMeans(mat)
+    }
+    ttest <- reduceByRange(gr, fls, MAP, REDUCE, iterate=FALSE, grp=grp)
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genomicfiles_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_genomicfiles_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genomicfiles_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_genomicfiles_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genomicfiles_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_genomicfiles_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_GENOMICFILES:", paste0("    genomicfiles: ", packageVersion("GenomicFiles"))),
+        c("BIOC_GENOMICFILES:", paste0("    genomicfiles: ", as.character(packageVersion("GenomicFiles")))),
         "versions.yml"
     )
     """

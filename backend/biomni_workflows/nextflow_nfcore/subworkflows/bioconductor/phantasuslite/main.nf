@@ -1,125 +1,116 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: phantasusLite
-// PhantasusLite – a lightweight package with helper functions of general interest extracted from phant
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/phantasusLite/inst/doc/phantasusLite-tutorial.R
-// Upstream  : GEOquery
-// Downstream: none
-//
-// Install: BiocManager::install("phantasusLite")
+// Bioconductor workflow: phantasusLite — phantasus_gct_and_condition_inference
+// Import gene expression counts and metadata, infer sample conditions/replicates from structured titles, and export/import the annotated dataset using the GCT for
+// Input: counts.csv, coldata.csv
+// Container: 1.8.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, phantasusLite
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PHANTASUSLITE {
+process BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-phantasuslite"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-phantasuslite:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-phantasuslite:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_phantasuslite_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_phantasuslite_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_phantasuslite_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(Biobase)
     library(phantasusLite)
-    library(jsonlite)
-
-    # --- Head [] ---
-    # Key functions: exprs
-    ---------------------------------------------------------------------
-    head(exprs(es))
-    # --- Gethsdsfilelist [] ---
-    # Key functions: getHSDSFileList
-    ---------------------------------------------------------------------
-    url <- 'https://alserglab.wustl.edu/hsds/?domain=/counts'
-    getHSDSFileList(url)
-    # --- load Counts From H5 File H S D S [] ---
-    # Key functions: loadCountsFromH5FileHSDS, exprs
-    ---------------------------------------------------------------------
-    file <- "dee2/mmusculus_star_matrix_20240409.h5"
-    es <- loadCountsFromH5FileHSDS(es, url, file)
-    head(exprs(es))
-    # --- Loadcountsfromhsds [] ---
-    # Key functions: loadCountsFromHSDS, exprs
-    ---------------------------------------------------------------------
-    es <- ess[[1]]
-    es <- loadCountsFromHSDS(es, url)
-    head(exprs(es))
-    # --- Preproc [] ---
-    # Key functions: preproc, experimentData
-    ---------------------------------------------------------------------
-    preproc(experimentData(es))$gene_counts_source
-    # --- Head [] ---
-    # Key functions: fData
-    ---------------------------------------------------------------------
-    head(fData(es))
-    # --- Infercondition [] ---
-    # Key functions: inferCondition
-    ---------------------------------------------------------------------
+    
+    # Stage 1: Load input data
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    rownames(counts_df) <- counts_df\$gene_id
+    counts_df\$gene_id <- NULL
+    counts_matrix <- as.matrix(counts_df)
+    
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    rownames(coldata) <- coldata\$sample
+    
+    # Align counts and metadata
+    common_samples <- intersect(colnames(counts_matrix), coldata\$sample)
+    counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Stage 2: Prepare ExpressionSet with structured titles for condition inference
+    # To demonstrate inferCondition, we construct structured titles (e.g., "Condition_Replicate")
+    cond_groups <- split(coldata\$sample, coldata\$condition)
+    replicate_indices <- unsplit(lapply(cond_groups, seq_along), coldata\$condition)
+    coldata\$title <- paste0(coldata\$condition, "_", replicate_indices)
+    
+    pheno_data <- AnnotatedDataFrame(coldata)
+    es <- ExpressionSet(assayData = counts_matrix, phenoData = pheno_data)
+    
+    # Stage 3: Infer conditions and replicates
+    # This automatically parses es\$title to populate es\$condition and es\$replicate
     es <- inferCondition(es)
-    print(es$condition)
-    print(es$replicate)
-    # --- Readgct [] ---
-    # Key functions: readGct
-    ---------------------------------------------------------------------
-    es2 <- readGct(f)
-    print(es2)
+    
+    # Stage 4: Export to GCT format
+    gct_file <- "expression_matrix.gct"
+    writeGct(es, gct_file)
+    
+    # Stage 5: Import back from GCT format to verify integrity
+    es_imported <- readGct(gct_file)
+    
+    # Stage 6: Save outputs
+    inferred_metadata <- pData(es_imported)
+    write.csv(inferred_metadata, "inferred_metadata.csv", row.names = TRUE)
+    
+    imported_counts <- exprs(es_imported)
+    write.csv(imported_counts, "imported_counts.csv", row.names = TRUE)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_phantasuslite_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_phantasuslite_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_phantasuslite_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PHANTASUSLITE:", paste0("    phantasuslite: ", packageVersion("phantasusLite"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE":',
+        paste0('    phantasusLite: ', as.character(packageVersion('phantasusLite')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_phantasuslite_results.csv
-    touch ${prefix}_phantasuslite_output.rds
-    echo "BIOC_PHANTASUSLITE:" > versions.yml
-    echo "    phantasuslite: 0.0.0" >> versions.yml
+    touch ${prefix}_phantasus_gct_and_condition_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_PHANTASUSLITE_WORKFLOW {
+workflow BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_PHANTASUSLITE(ch_input)
+    BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_PHANTASUSLITE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PHANTASUSLITE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PHANTASUSLITE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PHANTASUSLITE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE.out.tables
+    plots    = BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE.out.plots
+    objects  = BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE.out.objects
+    versions = BIOC_PHANTASUSLITE_PHANTASUS_GCT_AND_CONDITION_INFERENCE.out.versions
 }

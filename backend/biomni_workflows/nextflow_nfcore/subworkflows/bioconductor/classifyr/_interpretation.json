@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: measurements=The input data, which can be a matrix, data.frame, DataFrame, MultiAssayExperiment, or list of data.frames ;; classes/outcome=The target variable, which can be a factor of class labels, a column name character, a Surv object, or a character vector of time/censoring column names ;; classifier=Specifies the classification algorithm (e.g., \"SVM\", \"naiveBayes\", \"randomForest\") ;; nFolds and nRepeats=Control the cross-validation structure (number of folds and repeats) ;; multiViewMethod=Used for integrating multiple data sources (e.g., \"merge\") ;; tuneParams=A named list passed to TrainParams or SelectParams to specify parameter tuning grids and the optimization metric (via \"performanceType\") ;; parallelParams=Controls parallel processing backend (e.g., SnowParam or MulticoreParam with RNGseed)\n- alternatives: caret=Compared in the documentation; caret lacks direct support for MultiAssayExperiment, ranking/selection plots, class distribution plots, and sample-wise error heatmaps ;; MLInterfaces, MCRestimate, CMA=Other classification frameworks compared in the documentation, which lack various features like parallel execution on any OS, parameter tuning, or specialized plots that ClassifyR provides\n- when_to_use: Use ClassifyR when performing cross-validated classification, survival analysis, multi-omics (multi-view) data integration, and comparing different feature selection/classification algorithms on high-dimensional biological data (e.g., transcriptomics, genomics).\n- pitfalls: Failing to set the random number seed (set.seed or RNGseed in parallel backends) before cross-validation, which compromises reproducibility ;; Using the standard seed argument for parallel processes (it does not work; RNGseed must be set in the parallel backend like SnowParam or MulticoreParam) ;; Feature names must match across datasets when cross-validating selected features on a different dataset",
+  "workflows": [
+    {
+      "name": "quick_start_cross_validation",
+      "intent": "Perform a quick cross-validated classification on a single dataset using a specified classifier and plot the performance.",
+      "input": [
+        "measurements (matrix or data.frame of numeric features)",
+        "classes (factor of class labels)"
+      ],
+      "stages": "1. Set random seed for reproducibility ;; 2. Run cross-validation using crossValidate ;; 3. Plot performance using performancePlot",
+      "code": "library(ClassifyR)\ndata(asthma) # Contains measurements and classes variables.\nmeasurements[1:5, 1:5]\nhead(classes)\nset.seed(9500)\nresult <- crossValidate(measurements, classes, classifier = \"SVM\",\n                        nFolds = 5, nRepeats = 2, nCores = 1)\nperformancePlot(result)"
+    },
+    {
+      "name": "multi_view_integration",
+      "intent": "Integrate data from multiple sources/assays into a single classification model using crossValidate.",
+      "input": [
+        "measurementsDF (DataFrame with column metadata mcols) or measurementsList (list of data.frames)",
+        "classes (factor of class labels)"
+      ],
+      "stages": "1. Prepare multi-view data (either as a DataFrame with assay metadata or as a named list of data.frames) ;; 2. Run cross-validation with multiViewMethod = \"merge\" ;; 3. Plot performance grouped by assay",
+      "code": "measurementsDF <- DataFrame(measurements)\nmcols(measurementsDF) <- data.frame(\n  assay = rep(c(\"assay_1\", \"assay_2\"), times = c(10, 1990)),\n  feature = colnames(measurementsDF)\n)\n\nresult <- crossValidate(measurementsDF, classes, classifier = \"SVM\", nFolds = 5,\n                        nRepeats = 3, multiViewMethod = \"merge\")\n\nperformancePlot(result, characteristicsList = list(x = \"Assay Name\"))\n\n# Assigns first 10 variables to dataset_1, and the rest to dataset_2\nmeasurementsList <- list(\n  (measurements |> as.data.frame())[1:10],\n  (measurements |> as.data.frame())[11:2000]\n)\nnames(measurementsList) <- c(\"assay_1\", \"assay_2\")\n\nresult <- crossValidate(measurementsList, classes, classifier = \"SVM\", nFolds = 5,\n                        nRepeats = 3, multiViewMethod = \"merge\")\n\nperformancePlot(result, characteristicsList = list(x = \"Assay Name\"))"
+    },
+    {
+      "name": "advanced_modelling_and_evaluation",
+      "intent": "Perform fine-grained cross-validation using runTests with custom parameters, calculate performance metrics, and generate diagnostic plots.",
+      "input": [
+        "measurements (matrix or data.frame of numeric features)",
+        "classes (factor of class labels)"
+      ],
+      "stages": "1. Define cross-validation parameters using CrossValParams ;; 2. Run default differential means (DM) model using runTests ;; 3. Plot top selected features using plotFeatureClasses ;; 4. Calculate performance metrics using calcCVperformance ;; 5. Define and run a custom differential distribution (DD) model using ModellingParams ;; 6. Compare models using samplesMetricMap, performancePlot, rankingPlot, and ROCplot",
+      "code": "crossValParams <- CrossValParams(permutations = 5)\nDMresults <- runTests(measurements, classes, crossValParams, verbose = 1)\nlibrary(grid)\nselectionPercentages <- distribution(DMresults, plot = FALSE)\nhead(selectionPercentages)\nsortedPercentages <- head(selectionPercentages[order(selectionPercentages, decreasing = TRUE)])\nhead(sortedPercentages)\nmostChosen <- sortedPercentages[1]\nbestGenePlot <- plotFeatureClasses(measurements, classes, names(mostChosen), dotBinWidth = 0.1,\n                                   xAxisLabel = \"Normalised Expression\")\ngrid.draw(bestGenePlot[[1]])\nDMresults <- calcCVperformance(DMresults)\nDMresults\nperformance(DMresults)\nmodellingParamsDD <- ModellingParams(selectParams = SelectParams(\"KL\"),\n                                     trainParams = TrainParams(\"naiveBayes\"),\n                                     predictParams = NULL)\nDDresults <- runTests(measurements, classes, crossValParams, modellingParamsDD, verbose = 1)\nDDresults\nresultsList <- list(Abundance = DMresults, Distribution = DDresults)\nsamplesMetricMap(resultsList, showXtickLabels = FALSE)\nperformancePlot(resultsList)\nrankingPlot(DDresults, topRanked = 1:100, xLabelPositions = c(1, seq(10, 100, 10)))\nROCplot(resultsList, fontSizes = c(24, 12, 12, 12, 12))"
+    },
+    {
+      "name": "parameter_tuning",
+      "intent": "Optimize model hyperparameters (e.g., SVM cost) during cross-validation and extract the tuned parameters.",
+      "input": [
+        "measurements (matrix or data.frame of numeric features)",
+        "classes (factor of class labels)"
+      ],
+      "stages": "1. Define a tuning grid list ;; 2. Set up CrossValParams with a tuning mode ;; 3. Define ModellingParams with TrainParams containing the tuning list ;; 4. Run cross-validation using runTests ;; 5. Extract and inspect tuned parameters using tunedParameters",
+      "code": "tuneList <- list(cost = c(0.01, 0.1, 1, 10))\ncrossValParams <- CrossValParams(permutations = 5, tuneMode = \"Resubstitution\")\nSVMparams <- ModellingParams(trainParams = TrainParams(\"SVM\", kernel = \"linear\", tuneParams = tuneList),\n                             predictParams = PredictParams(\"SVM\"))\nSVMresults <- runTests(measurements, classes, crossValParams, SVMparams)\nlength(tunedParameters(SVMresults))\ntunedParameters(SVMresults)[1:5]"
+    }
+  ]
+}

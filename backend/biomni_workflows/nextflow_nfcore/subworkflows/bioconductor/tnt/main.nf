@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_TNT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-tnt"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tnt:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tnt:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -40,8 +39,7 @@ process BIOC_TNT {
     #!/usr/bin/env Rscript
     library(TnT)
     library(BlockTrack)
-    library(GRanges)
-    library(IRanges)
+    library(GenomicRanges)
     library(TnTBoard)
     library(TnTGenome)
     library(jsonlite)
@@ -64,7 +62,7 @@ process BIOC_TNT {
     TnT::trackSpec(btrack2, "background") <- "blanchedalmond"
     TnT::trackSpec(btrack2, "label")      <- "My Ranges"
     TnT::trackSpec(btrack2, "height")     <- 50
-    btrack2$color <- "darkseagreen4"
+    btrack2\$color <- "darkseagreen4"
     TnT::trackData(btrack2) <- GenomicRanges::shift(
         TnT::trackData(btrack2),
         10000
@@ -99,18 +97,27 @@ process BIOC_TNT {
 
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tnt_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_tnt_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tnt_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_tnt_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tnt_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_tnt_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_TNT:", paste0("    tnt: ", packageVersion("TnT"))),
+        c("BIOC_TNT:", paste0("    tnt: ", as.character(packageVersion("TnT")))),
         "versions.yml"
     )
     """

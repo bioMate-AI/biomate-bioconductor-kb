@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: test=The test dataset, which can be a SummarizedExperiment or any (log-)normalized expression matrix ;; ref=The reference dataset containing log-expression values with sample-level labels ;; labels=A vector of labels corresponding to the columns of the reference dataset ;; assay.type.test=The assay to use from the test object (e.g., 1 or \"logcounts\") ;; de.method=The marker detection method; set to \"wilcox\" (Wilcoxon rank sum test) for single-cell references to handle low-coverage data where the median is frequently zero\n- alternatives: Manual interpretation of clusters and manual marker gene definition, which SingleR automates to save time and ensure reproducibility\n- when_to_use: When you have unlabelled single-cell RNA-seq data and want to automatically assign cell type labels using a high-quality, labelled reference dataset (either bulk or single-cell)\n- pitfalls: Reference datasets must be normalized and log-transformed before running SingleR() ;; Default marker detection may fail for low-coverage single-cell reference data where the median is frequently zero, requiring the use of de.method=\"wilcox\" ;; Low delta values indicate uncertain assignments (e.g., if the cell's true label does not exist in the reference), which should be filtered out using the pruned.labels field or pruneScores()",
+  "workflows": [
+    {
+      "name": "annotation_with_builtin_reference",
+      "intent": "Annotate single-cell RNA-seq test data using a built-in reference dataset from the celldex package.",
+      "input": [
+        "test_dataset.rds (unlabelled single-cell RNA-seq expression matrix or SummarizedExperiment)",
+        "reference_dataset.rds (built-in reference from celldex, e.g., HumanPrimaryCellAtlasData)"
+      ],
+      "stages": "1. Load the built-in reference dataset ;; 2. Load the test dataset ;; 3. Run SingleR annotation using the reference labels ;; 4. Summarize the predicted labels.",
+      "code": "hpca.se <- HumanPrimaryCellAtlasData()\nhESCs <- LaMannoBrainData('human-es')\nhESCs <- hESCs[,1:100]\npred.hesc <- SingleR(test = hESCs, ref = hpca.se, assay.type.test=1, labels = hpca.se$label.main)\ntable(pred.hesc$labels)"
+    },
+    {
+      "name": "annotation_with_single_cell_reference_and_diagnostics",
+      "intent": "Annotate single-cell RNA-seq test data using a custom single-cell reference dataset, employing Wilcoxon-based marker detection and diagnostic visualizations.",
+      "input": [
+        "test_dataset.rds (unlabelled single-cell RNA-seq dataset, e.g., GrunPancreasData)",
+        "reference_dataset.rds (labelled single-cell RNA-seq dataset, e.g., MuraroPancreasData)"
+      ],
+      "stages": "1. Load and preprocess the single-cell reference dataset (remove unlabelled cells, normalize, and log-transform) ;; 2. Load and preprocess the test dataset (remove zero-count libraries, normalize, and log-transform) ;; 3. Run SingleR with Wilcoxon marker detection ;; 4. Plot score heatmap to inspect assignment confidence ;; 5. Plot delta distribution to evaluate label ambiguity ;; 6. Check pruned scores to identify low-quality assignments ;; 7. Plot marker expression heatmap for specific assigned labels.",
+      "code": "sceM <- MuraroPancreasData()\nsceM <- sceM[,!is.na(sceM$label)]\nsceM <- scrapper::normalizeRnaCounts.se(sceM)\nsceG <- GrunPancreasData()\nsceG <- sceG[,colSums(counts(sceG)) > 0]\nsceG <- scrapper::normalizeRnaCounts.se(sceG)\npred.grun <- SingleR(test=sceG, ref=sceM, labels=sceM$label, de.method=\"wilcox\")\ntable(pred.grun$labels)\nplotScoreHeatmap(pred.grun)\nplotDeltaDistribution(pred.grun, ncol = 3)\nsummary(is.na(pred.grun$pruned.labels))\nplotMarkerHeatmap(pred.grun, sceG, label=\"beta\")"
+    }
+  ]
+}

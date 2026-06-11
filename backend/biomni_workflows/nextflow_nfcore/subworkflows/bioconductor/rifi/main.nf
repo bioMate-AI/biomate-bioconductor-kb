@@ -1,122 +1,151 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rifi
-// 'rifi' analyses data from rifampicin time series created by microarray or RNAseq. 'rifi' is a transc
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rifi/inst/doc/vignette.R
-// Upstream  : SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("rifi")
+// Bioconductor workflow: rifi — rifi_wrapper_workflow
+// Run the entire rifi analysis pipeline automatically using a single wrapper function.
+// Input: example_input_e_coli, gff_e_coli.gff3.gz
+// Container: quay.io/biocontainers/bioconductor-rifi:1.14.0--r45hdfd78af_0
+// R packages: rifi, SummarizedExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, rifi
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load input data and GFF3 annotation file
+//  * 2. [Visualization & Output] Run the wrapper function rifi_wrapper to execute preprocessing, fitting, penalty estimation, fragmentation, statistics, summary, a
 
 nextflow.enable.dsl = 2
 
-process BIOC_RIFI {
+process BIOC_RIFI_RIFI_WRAPPER_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rifi"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rifi:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rifi:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rifi_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rifi_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rifi_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("rifi", "SummarizedExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(rifi)
-    library(TI_fit)
-    library(TUgether)
-    library(jsonlite)
-
-    # --- Transcription Profiling and Fitting [] ---
-    # Key functions: rifi_preprocess, rifi_fit
-    data(preprocess_minimal)
-    fit_minimal <- rifi_fit(
-        inp = preprocess_minimal,
-        cores = 2,
-        viz = FALSE,
-        restr = 0.2,
-        decay = seq(.08, 0.11, by = .02),
-        delay = seq(0, 10, by = .1),
-        k = seq(0.1, 1, 0.2),
-        bg = 0.2,
-        TI_k = seq(0, 1, by = 0.5),
-        TI_decay = c(0.05, 0.1, 0.2, 0.5, 0.6),
-        TI = seq(0, 1, by = 0.5),
-        TI_delay = seq(0, 2, by = 0.5),
-        TI_rest_delay = seq(0, 2, by = 0.5),
-        TI_bg = 0
-    )
-
-
-    # --- Fragmentation and Statistical Analysis [] ---
-    # Key functions: rifi_fragmentation, rifi_stats
-    data(penalties_minimal)
-    fragmentation_minimal <- rifi_fragmentation(
-        inp = penalties_minimal,
-        cores = 2
-    )
-    Path <- gzfile(system.file("extdata", "gff_e_coli.gff3.gz",
-                               package = "rifi"))
-    stats_minimal <- rifi_stats(
-        inp = fragmentation_minimal,
-        dista = 300,
-        path = Path
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rifi_results.csv", row.names = TRUE)
+    
+    # 1. Load input data and GFF3 annotation file from the working directory
+    if (file.exists("example_input_e_coli")) {
+      example_input_e_coli <- tryCatch({
+        readRDS("example_input_e_coli")
+      }, error = function(e) {
+        env <- new.env()
+        load("example_input_e_coli", envir = env)
+        if (length(ls(env)) > 0) {
+          env[[ls(env)[1]]]
+        } else {
+          stop("Failed to load example_input_e_coli")
+        }
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rifi_results.csv")
+      stop("Required input file 'example_input_e_coli' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rifi_output.rds")
+    
+    if (!file.exists("gff_e_coli.gff3.gz")) {
+      stop("Required input file 'gff_e_coli.gff3.gz' not found in the working directory.")
+    }
+    
+    Path = gzfile("gff_e_coli.gff3.gz")
+    
+    # 2. Run the wrapper function rifi_wrapper to execute the entire pipeline
+    wrapper_minimal <-
+      rifi_wrapper(
+        inp = example_input_e_coli,
+        cores = 2,
+        path = Path,
+        bg = 0,
+        restr = 0.01
+      )
+    
+    # 3. Write named output files for the meaningful results
+    saveRDS(wrapper_minimal, "rifi_wrapper_output.rds")
+    
+    if (length(wrapper_minimal) > 0) {
+      final_se <- wrapper_minimal[[length(wrapper_minimal)]]
+      saveRDS(final_se, "rifi_final_summary_se.rds")
+      
+      meta_data <- metadata(final_se)
+      
+      if ("dataframe_summary_1" %in% names(meta_data)) {
+        write.csv(meta_data\$dataframe_summary_1, file = "dataframe_summary_1.csv", row.names = FALSE)
+      }
+      if ("dataframe_summary_2" %in% names(meta_data)) {
+        write.csv(meta_data\$dataframe_summary_2, file = "dataframe_summary_2.csv", row.names = FALSE)
+      }
+      if ("dataframe_summary_events" %in% names(meta_data)) {
+        write.csv(meta_data\$dataframe_summary_events, file = "dataframe_summary_events.csv", row.names = FALSE)
+      }
+      if ("dataframe_summary_TI" %in% names(meta_data)) {
+        write.csv(meta_data\$dataframe_summary_TI, file = "dataframe_summary_TI.csv", row.names = FALSE)
+      }
+      
+      tryCatch({
+        rr <- rowRanges(final_se)
+        if (!is.null(rr)) {
+          write.csv(as.data.frame(rr), file = "rowRanges_summary.csv", row.names = FALSE)
+        }
+      }, error = function(e) {
+        message("Could not export rowRanges: ", e\$message)
+      })
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RIFI:", paste0("    rifi: ", packageVersion("rifi"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RIFI_RIFI_WRAPPER_WORKFLOW":',
+        paste0('    rifi: ', as.character(packageVersion('rifi')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rifi_results.csv
-    touch ${prefix}_rifi_output.rds
-    echo "BIOC_RIFI:" > versions.yml
-    echo "    rifi: 0.0.0" >> versions.yml
+    touch ${prefix}_rifi_wrapper_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_RIFI_WORKFLOW {
+workflow BIOC_RIFI_RIFI_WRAPPER_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ example_input_e_coli, gff_e_coli.gff3.gz ] ]
 
     main:
-    BIOC_RIFI(ch_input)
+    BIOC_RIFI_RIFI_WRAPPER_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_RIFI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RIFI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RIFI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RIFI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RIFI_RIFI_WRAPPER_WORKFLOW.out.tables
+    plots    = BIOC_RIFI_RIFI_WRAPPER_WORKFLOW.out.plots
+    objects  = BIOC_RIFI_RIFI_WRAPPER_WORKFLOW.out.objects
+    versions = BIOC_RIFI_RIFI_WRAPPER_WORKFLOW.out.versions
 }

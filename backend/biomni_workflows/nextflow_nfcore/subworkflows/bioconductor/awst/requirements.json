@@ -1,0 +1,17 @@
+{
+  "package": "awst",
+  "requirements": [
+    "EDASeq",
+    "SummarizedExperiment",
+    "awst",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EDASeq",
+      "SummarizedExperiment",
+      "awst",
+      "ggplot2"
+    ]
+  }
+}

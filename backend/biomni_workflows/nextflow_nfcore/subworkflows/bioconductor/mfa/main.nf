@@ -1,94 +1,120 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mfa
-// MFA models genomic bifurcations using a Bayesian hierarchical mixture of factor analysers.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mfa/inst/doc/introduction_to_mfa.R
-// Upstream  : dplyr, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("mfa")
+// Bioconductor workflow: mfa — mfa_bifurcation_analysis
+// Perform Bayesian trajectory inference to estimate pseudotime and branch assignments for single-cell expression data.
+// Input: expression_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-mfa:1.28.0--r44he5774e6_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, mfa
+// Visualizations: trajectory plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Estimate hyperparameters using empirical Bayes with empirical_bayes
+//  * 2. [Core Analysis] Fit the Bayesian mixture of factor analysers model using mfa
+//  * 3. [Visualization & Output] Extract posterior summary statistics using summary
+//  * 4. [Core Analysis] Convert the fit to a tidy format or diagnostic object using to_ggmcmc
+//  * 5. [Visualization & Output] Plot the inferred bifurcation trajectory using plot_mfa
 
 nextflow.enable.dsl = 2
 
-process BIOC_MFA {
+process BIOC_MFA_MFA_BIFURCATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mfa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mfa:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mfa:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mfa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mfa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mfa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(mfa)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+        # Load required libraries
+        library(mfa)
+        library(ggplot2)
+        
+        # 1. Read user input
+        if (!file.exists("expression_matrix.csv")) {
+          stop("Error: 'expression_matrix.csv' not found in the working directory.")
+        }
+        
+        y_df <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+        y <- as.matrix(y_df)
+        storage.mode(y) <- "numeric"
+        
+        # Filter out zero-variance genes to ensure numerical stability
+        gene_vars <- apply(y, 2, var)
+        y <- y[, gene_vars > 0, drop = FALSE]
+        
+        if (ncol(y) < 2) {
+          stop("Error: Fewer than 2 genes with non-zero variance. Cannot run mfa.")
+        }
+        
+        # Stage 1: Estimate hyperparameters using empirical Bayes
+        eb <- empirical_bayes(y)
+        saveRDS(eb, "empirical_bayes_estimates.rds")
+        
+        # Stage 2: Fit the Bayesian mixture of factor analysers model
+        m <- mfa(y, iter = 2000, thin = 1, alpha_prior = eb[1], beta_prior = eb[2])
+        saveRDS(m, "mfa_fit.rds")
+        
+        # Stage 3: Extract posterior summary statistics
+        ms <- summary(m)
+        write.csv(ms, "mfa_summary.csv", row.names = TRUE)
+        
+        # Stage 4: Convert the fit to a tidy format or diagnostic object
+        g <- to_ggmcmc(m)
+        saveRDS(g, "mfa_ggmcmc.rds")
+        
+        # Stage 5: Plot the inferred bifurcation trajectory
+        p <- plot_mfa(m)
+        ggsave("mfa_trajectory.pdf", plot = p, width = 8, height = 6)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, scale_color_discrete
-    ggplot(df_synth, aes(x = PC1, y = PC2, color = pseudotime)) + geom_point()
-    ggplot(df_synth, aes(x = PC1, y = PC2, color = branch)) + geom_point()
-    # --- Synthetic analysis [] ---
-    # Key functions: install_github, create_synthetic, as_data_frame, mfa, plot_mfa_trace, plot_mfa_autocorr, qplot, xlab
-    qplot(synth$pst, ms$pseudotime, color = factor(synth$branch)) +
-    xlab('True pseudotime') + ylab('Inferred pseudotime') +
-    scale_color_discrete(name = 'True\nbranch')
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mfa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mfa_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mfa_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MFA:", paste0("    mfa: ", packageVersion("mfa"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MFA_MFA_BIFURCATION_ANALYSIS":',
+        paste0('    mfa: ', as.character(packageVersion('mfa')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mfa_results.csv
-    touch ${prefix}_mfa_output.rds
-    echo "BIOC_MFA:" > versions.yml
-    echo "    mfa: 0.0.0" >> versions.yml
+    touch ${prefix}_mfa_bifurcation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_MFA_WORKFLOW {
+workflow BIOC_MFA_MFA_BIFURCATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv ] ]
 
     main:
-    BIOC_MFA(ch_input)
+    BIOC_MFA_MFA_BIFURCATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_MFA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MFA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MFA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MFA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MFA_MFA_BIFURCATION_ANALYSIS.out.tables
+    plots    = BIOC_MFA_MFA_BIFURCATION_ANALYSIS.out.plots
+    objects  = BIOC_MFA_MFA_BIFURCATION_ANALYSIS.out.objects
+    versions = BIOC_MFA_MFA_BIFURCATION_ANALYSIS.out.versions
 }

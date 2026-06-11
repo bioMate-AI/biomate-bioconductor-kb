@@ -1,0 +1,37 @@
+{
+  "package": "ancombc",
+  "requirements": [
+    "ANCOMBC",
+    "dplyr",
+    "lme4",
+    "phyloseq",
+    "readr",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "ancombc2_advanced_da.nf": [
+      "ANCOMBC",
+      "dplyr",
+      "lme4",
+      "phyloseq",
+      "readr"
+    ],
+    "ancombc_bias_corrected_da.nf": [
+      "ANCOMBC",
+      "phyloseq",
+      "tidyverse"
+    ],
+    "main.nf": [
+      "ANCOMBC",
+      "lme4",
+      "phyloseq",
+      "tidyverse"
+    ],
+    "secom_correlation_analysis.nf": [
+      "ANCOMBC",
+      "dplyr",
+      "phyloseq",
+      "readr"
+    ]
+  }
+}

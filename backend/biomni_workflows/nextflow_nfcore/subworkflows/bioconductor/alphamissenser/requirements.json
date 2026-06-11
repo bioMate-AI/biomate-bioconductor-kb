@@ -1,0 +1,39 @@
+{
+  "package": "alphamissenser",
+  "requirements": [
+    "AlphaMissenseR",
+    "BiocFileCache",
+    "bio3d",
+    "dplyr",
+    "ggplot2",
+    "htmlwidgets",
+    "r3dmol",
+    "readr",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "clinvar_benchmarking.nf": [
+      "AlphaMissenseR",
+      "dplyr",
+      "ggplot2"
+    ],
+    "genomic_track_plot.nf": [
+      "AlphaMissenseR",
+      "dplyr"
+    ],
+    "main.nf": [
+      "AlphaMissenseR",
+      "dplyr",
+      "tidyr"
+    ],
+    "protein_structure_visualization.nf": [
+      "AlphaMissenseR",
+      "BiocFileCache",
+      "bio3d",
+      "dplyr",
+      "htmlwidgets",
+      "r3dmol",
+      "readr"
+    ]
+  }
+}

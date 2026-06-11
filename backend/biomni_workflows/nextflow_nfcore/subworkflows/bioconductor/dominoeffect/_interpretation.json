@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mutation_dataset=A data frame, GRangesList, or GRanges object containing mutation data with required columns (Ensembl_gene_id, Protein_residue, Original_aa, Mutated_aa, Patient_id, Genomic_coordinate, Original_base, Mutated_base) ;; gene_data=Gene information data frame (with Ensembl_gene_id, Representative_tr, cDNA_length, Gene_name, Uniprot_id) or a TxDb object ;; snp_data=Population SNP data frame (with Chr_name, Position_on_chr, Minor_allele_freq), vcf object, or GPo object to filter out common polymorphisms (can be set to NULL) ;; min_n_muts=Minimum number of mutations on a single residue to be considered a potential hotspot (default is 5; recommend relaxing to 3 for smaller cohorts) ;; MAF_thresh=Minor allele frequency threshold above which a variant is considered a common population polymorphism and excluded (default is 0.01) ;; flanking_region=Size of the sequence region in amino acids to which the mutation frequency is compared (default is c(200, 300)) ;; poisson.thr=Adjusted p-value threshold after Benjamini-Hochberg correction for the Poisson test (default is 0.01) ;; percentage.thr=Minimum fraction of mutations within the window that must fall on a single residue (default is 0.15) ;; ratio.thr=Required fold-enrichment of mutations on a single residue compared to the background rate in the window (default is 40 or 45) ;; approach=Method to define hotspot fraction: \"percentage\", \"ratio\", or \"both\" ;; write_to_file=Whether to save the results to 'Protein_hotspot_residues.txt' (\"YES\" or \"NO\") ;; ens_release=Ensembl release version (default is \"73\"; use \"www.ensembl.org\" for the current release)\n- alternatives: TxDb objects from GenomicFeatures can be used for gene_data, but functional annotation will not be possible as it relies on UniProt identifiers. SNP data can alternatively be provided as a vcf object (VariantAnnotation) or GPo object (GenomicRanges).\n- when_to_use: Use this package when analyzing genomic mutation datasets (e.g., cancer cohorts) to identify specific amino acid positions that accumulate significantly more mutations than their surrounding protein regions, and to annotate these hotspots with functional/structural domains.\n- pitfalls: Discrepancies between Ensembl and UniProt sequences can occur; the package aligns a 15 aa segment to UniProt to mitigate this, but users must ensure the correct Ensembl release is specified via ens_release. If using TxDb objects instead of the default DominoData format, functional annotation of hotspots is not possible because it lacks UniProt identifiers. Default parameters (like min_n_muts = 5) may be too stringent for small cohorts and should be relaxed.",
+  "workflows": [
+    {
+      "name": "hotspot_pipeline_wrapper",
+      "intent": "Run the complete hotspot identification and functional annotation pipeline in a single step using the wrapper function.",
+      "input": [
+        "user_file_with_mutations.txt (mutation dataset)",
+        "user_ensembl_gene_list.txt (gene data)",
+        "user_population_SNPs_with_frequency.txt (SNP data)"
+      ],
+      "stages": "1. Load the package and input datasets ;; 2. Run the DominoEffect wrapper function to identify and annotate hotspots.",
+      "code": "library(DominoEffect)\ndata(\"TestData\", package = \"DominoEffect\")\ndata(\"SnpData\", package = \"DominoEffect\")\ndata(\"DominoData\", package = \"DominoEffect\")\nhotspot_mutations <- DominoEffect(mutation_dataset = TestData, gene_data = DominoData, snp_data = SnpData)"
+    },
+    {
+      "name": "hotspot_step_by_step",
+      "intent": "Run hotspot identification, functional annotation, and genomic position conversion as separate steps with custom parameters.",
+      "input": [
+        "user_file_with_mutations.txt (mutation dataset)",
+        "user_ensembl_gene_list.txt (gene data)",
+        "user_population_SNPs_with_frequency.txt (SNP data)"
+      ],
+      "stages": "1. Load the package and input datasets ;; 2. Identify hotspot mutations with custom statistical thresholds ;; 3. Map identified hotspots to functional elements using UniProt/Swiss-Prot ;; 4. Convert the hotspot genomic coordinates into a GPo object for downstream genomic analyses.",
+      "code": "library(DominoEffect)\ndata(\"TestData\", package = \"DominoEffect\")\ndata(\"SnpData\", package = \"DominoEffect\")\ndata(\"DominoData\", package = \"DominoEffect\")\nhotspot_mutations <- identify_hotspots(mutation_dataset = TestData, gene_data = DominoData, snp_data = SnpData, min_n_muts = 5, MAF_thresh = 0.01, flanking_region = c(200, 300), poisson.thr = 0.01, percentage.thr = 0.15, ratio.thr = 45, approach = \"percentage\")\nresults_w_annotations <- map_to_func_elem(hotspot_mutations, write_to_file = \"NO\", ens_release = \"73\")\nhotspot_mutations.GPo <- GPo_of_hotspots(hotspot_mutations)"
+    }
+  ]
+}

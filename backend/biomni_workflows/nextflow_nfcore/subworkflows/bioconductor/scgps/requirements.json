@@ -1,0 +1,26 @@
+{
+  "package": "scgps",
+  "requirements": [
+    "ReactomePA",
+    "SingleCellExperiment",
+    "clusterProfiler",
+    "dplyr",
+    "locfit",
+    "networkD3",
+    "scGPS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ReactomePA",
+      "SingleCellExperiment",
+      "clusterProfiler",
+      "locfit",
+      "scGPS"
+    ],
+    "subpopulation_relationship_prediction.nf": [
+      "dplyr",
+      "networkD3",
+      "scGPS"
+    ]
+  }
+}

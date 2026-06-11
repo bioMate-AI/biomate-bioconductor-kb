@@ -1,0 +1,21 @@
+{
+  "package": "pqsfinder",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "pqsfinder",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "custom_g4_scoring.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "pqsfinder"
+    ],
+    "main.nf": [
+      "Biostrings",
+      "pqsfinder",
+      "rtracklayer"
+    ]
+  }
+}

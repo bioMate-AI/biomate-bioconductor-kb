@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bam_files=Character vector of paths to mapped RNA-seq reads in BAM format ;; probe_mapping_file=Path to the probe sequence mapping file (*_mapping.txt) ;; cdf_name=Optional name of the CDF package; if omitted, it is inferred from the mapping filename ;; cluster=Optional cluster object created by parallel::makeCluster for parallel processing ;; output_eset=Logical; if TRUE (default), returns an ExpressionSet, otherwise returns a data frame ;; paired_ended_reads=Logical; set to TRUE for paired-end RNA-seq data to avoid treating mate reads as independent (default FALSE) ;; ignore_strand=Logical; set to FALSE for strand-specific RNA-seq protocols (default TRUE) ;; sum.method=Summarization method, either \"rpa\" (default, recommended) or \"rma\"\n- alternatives: sum.method=\"rpa\" vs sum.method=\"rma\"=RPA is the default and preferred method because it yields slightly higher RNA-seq\u2013microarray comparability when both datasets are processed with RPA. RMA is supported for legacy compatibility (it was the default before version 1.7.1).\n- when_to_use: Use this package when you want to perform joint analysis, integration, or direct comparison between RNA-seq datasets and microarray datasets by processing the RNA-seq data through microarray-like probe summarization.\n- pitfalls: Ensure BAM files contain reads mapped to no more than 1 location (e.g., using TopHat's --max-multihits 1 option) ;; Ensure the installed Custom CDF package version matches the version of the downloaded _mapping.txt file to avoid missing probe sequence errors ;; For paired-end data, you must explicitly set paired_ended_reads=TRUE ;; For strand-specific RNA-seq, you must set ignore_strand=FALSE ;; When manually creating mapping files, remember that Bowtie reports 0-based start coordinates, but prebs mapping files require 1-based coordinates (add 1 to the start positions).",
+  "workflows": [
+    {
+      "name": "custom_cdf_expression",
+      "intent": "Calculate gene-level expression values from RNA-seq BAM files using a Custom CDF mapping.",
+      "input": [
+        "input1.bam (mapped RNA-seq reads for sample 1)",
+        "input2.bam (mapped RNA-seq reads for sample 2)",
+        "HGU133Plus2_Hs_ENSG_mapping.txt (Custom CDF probe sequence mapping file)"
+      ],
+      "stages": "1. Load the prebs and prebsdata libraries ;; 2. Define paths to BAM files and the Custom CDF mapping file ;; 3. Run calc_prebs to compute gene-level expression values ;; 4. Extract and view the expression matrix using exprs()",
+      "code": "library(prebs)\nlibrary(prebsdata)\nbam_file1 <- system.file(file.path(\"sample_bam_files\", \"input1.bam\"), \n                         package=\"prebsdata\")\nbam_file2 <- system.file(file.path(\"sample_bam_files\", \"input2.bam\"), \n                         package=\"prebsdata\")\nbam_files <- c(bam_file1, bam_file2)\ncustom_cdf_mapping1 <- system.file(file.path(\"custom-cdf\", \n    \"HGU133Plus2_Hs_ENSG_mapping.txt\"), package=\"prebsdata\")\nprebs_values <- calc_prebs(bam_files, custom_cdf_mapping1)\nhead(exprs(prebs_values))"
+    },
+    {
+      "name": "manufacturer_cdf_expression",
+      "intent": "Calculate probe set-level expression values from RNA-seq BAM files using a manufacturer's CDF mapping.",
+      "input": [
+        "input1.bam (mapped RNA-seq reads for sample 1)",
+        "input2.bam (mapped RNA-seq reads for sample 2)",
+        "HGU133Plus2_mapping.txt (manufacturer's CDF probe sequence mapping file)"
+      ],
+      "stages": "1. Load the prebs and prebsdata libraries ;; 2. Define paths to BAM files and the manufacturer's CDF mapping file ;; 3. Run calc_prebs specifying the manufacturer's mapping file and optionally the CDF package name ;; 4. Extract and view the probe set expression matrix using exprs()",
+      "code": "library(prebs)\nlibrary(prebsdata)\nbam_file1 <- system.file(file.path(\"sample_bam_files\", \"input1.bam\"), \n                         package=\"prebsdata\")\nbam_file2 <- system.file(file.path(\"sample_bam_files\", \"input2.bam\"), \n                         package=\"prebsdata\")\nbam_files <- c(bam_file1, bam_file2)\nmanufacturer_cdf_mapping <- system.file(file.path(\"manufacturer-cdf\", \n    \"HGU133Plus2_mapping.txt\"), package=\"prebsdata\")\nprebs_values <- calc_prebs(bam_files, manufacturer_cdf_mapping, \n                           cdf_name=\"hgu133plus2cdf\")\nhead(exprs(prebs_values))"
+    },
+    {
+      "name": "create_probe_mapping",
+      "intent": "Generate a custom probe sequence mapping file for a microarray platform using its Bioconductor probe package and genomic alignment coordinates.",
+      "input": [
+        "hgu133plus2probe (Bioconductor probe package for the platform)",
+        "output_probe_mappings.map (Bowtie alignment output file of probe sequences mapped to the genome)"
+      ],
+      "stages": "1. Load the platform's probe package and convert it to a data frame ;; 2. Filter out control probes (AFFX) and compute probe IDs using xy2indices ;; 3. Export probe sequences to a text file for alignment ;; 4. Read the genomic alignment map file and adjust 0-based coordinates to 1-based ;; 5. Merge the alignment coordinates with the probe information and write the final mapping file",
+      "code": "library(\"hgu133plus2probe\")\nprobes <- as.data.frame(hgu133plus2probe)\nhead(probes)\nlibrary(\"affy\")\nprobes <- probes[substr(probes$Probe.Set.Name,1,4) != \"AFFX\",]\nprobes$Probe.ID <- xy2indices(probes$x, probes$y, cdf=\"hgu133plus2cdf\")\nwrite.table(probes, file=\"probes.txt\", quote=FALSE, row.names=FALSE, col.names=TRUE)\nprobe_mappings <- read.table(\"output_probe_mappings.map\")\ncolnames(probe_mappings) <- c(\"Probe.ID\", \"strand\", \n                              \"chr\", \"start\", \"seq\", \"match\", \"multiple\")\nprobe_mappings$start <- probe_mappings$start + 1 \nprobes <- read.table(\"probes.txt\", head=TRUE)\nprobes <- merge(probes, probe_mappings)\noutput_table <- data.frame(Probe.Set.Name=probes$Probe.Set.Name, \n    Chr=probes$chr, Chr.Strand=probes$strand, Chr.From=probes$start, \n    Probe.X=probes$x, Probe.Y=probes$y, Affy.Probe.Set.Name=probes$Probe.Set.Name)\nwrite.table(output_table, file=\"HGU133Plus2_mapping.txt\", \n            quote=FALSE, sep=\"\\t\", row.names=FALSE)"
+    }
+  ]
+}

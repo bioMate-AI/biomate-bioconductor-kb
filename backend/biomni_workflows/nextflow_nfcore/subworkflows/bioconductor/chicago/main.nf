@@ -1,102 +1,107 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Chicago
-// A pipeline for analysing Capture Hi-C data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Chicago/inst/doc/Chicago.R
-// Upstream  : AnnotationHub, GenomicInteractions, GenomicRanges, PCHiCdata
-// Downstream: PCHiCdata
-//
-// Install: BiocManager::install("Chicago")
+// Bioconductor workflow: chicago — chicago_interaction_calling
+// Run the core CHiCAGO pipeline on Capture Hi-C data to call significant interactions and export results to disk.
+// Input: GM_rep1.chinput, h19_chr20and21.rmap, h19_chr20and21.baitmap, h19_chr20and21.npb, h19_chr20and21.nbpb, h19_chr20and21.poe
+// Container: quay.io/biocontainers/bioconductor-chicago:1.38.0--r45hdfd78af_0
+// R packages: AnnotationHub, Chicago, GenomicInteractions, GenomicRanges, pchicdata
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHICAGO {
+process BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chicago"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chicago:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chicago:1.34.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-chicago:1.38.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chicago_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chicago_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chicago_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationHub", "Chicago", "GenomicInteractions", "GenomicRanges", "pchicdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required Bioconductor package
     library(Chicago)
-    library(jsonlite)
+    
+    # Define input files and directories from the working directory
+    testDesignDir <- "."
+    settingsFile <- NULL
+    files <- "GM_rep1.chinput"
+    
+    # 1. Initialize the chicagoData object with design files and settings
+    cd <- setExperiment(designDir = testDesignDir, settingsFile = settingsFile)
+    
+    # 2. Read and merge replicate input files
+    cd <- readAndMerge(files=files, cd=cd)
+    
+    # 3. Run the core statistical pipeline
+    cd <- chicagoPipeline(cd)
+    
+    # Create output directory for results
+    outputDirectory <- "chicago_output"
+    dir.create(outputDirectory, showWarnings = FALSE, recursive = TRUE)
+    
+    # 4. Export interaction calls to disk in ibed, seqmonk, and washU formats
+    exportResults(cd, file.path(outputDirectory, "vignetteOutput"))
+    
+    # Save the processed chicagoData object to disk
+    saveRDS(cd, file = file.path(outputDirectory, "chicago_object.rds"))
 
-    # --- Anchortwo [] ---
-    # Key functions: anchorTwo, renameSeqlevels
-    ---------------------------------------------------------------------
-    otherEnds <- anchorTwo(gi)
-    otherEnds <- renameSeqlevels(otherEnds, c("chr20","chr21"))
-    # --- Findoverlaps [] ---
-    # Key functions: findOverlaps
-    ---------------------------------------------------------------------
-    findOverlaps(otherEnds, enhancerTrack)
-    # --- Head [] ---
-    # Key functions: intData
-    ---------------------------------------------------------------------
-    head(intData(cd), 2)
-    # --- Copycd [] ---
-    # Key functions: copyCD
-    ---------------------------------------------------------------------
-    newCd = copyCD(cd)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chicago_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chicago_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chicago_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHICAGO:", paste0("    chicago: ", packageVersion("Chicago"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING":',
+        paste0('        chicago: ', as.character(packageVersion("chicago")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chicago_results.csv
-    touch ${prefix}_chicago_output.rds
-    echo "BIOC_CHICAGO:" > versions.yml
-    echo "    chicago: 0.0.0" >> versions.yml
+    touch ${prefix}_chicago_interaction_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHICAGO_WORKFLOW {
+workflow BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ GM_rep1.chinput, h19_chr20and21.rmap, h19_chr20and21.baitmap, h19_chr20and21.npb, h19_chr20and21.nbpb, h19_chr20and21.poe ] ]
 
     main:
-    BIOC_CHICAGO(ch_input)
+    BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING(ch_input)
 
     emit:
-    results  = BIOC_CHICAGO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHICAGO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHICAGO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHICAGO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING.out.tables
+    plots    = BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING.out.plots
+    objects  = BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING.out.objects
+    versions = BIOC_CHICAGO_CHICAGO_INTERACTION_CALLING.out.versions
 }

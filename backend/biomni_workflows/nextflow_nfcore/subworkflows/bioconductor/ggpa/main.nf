@@ -1,127 +1,141 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GGPA
-// Genome-wide association studies (GWAS) is a widely used tool for identification of genetic variants 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GGPA/inst/doc/GGPA-example.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GGPA")
+// Bioconductor workflow: GGPA — standard_graph_gpa
+// Fit a graph-GPA model to multiple GWAS p-value datasets to perform association mapping and estimate the phenotype graph without prior knowledge.
+// Input: pmat
+// Container: quay.io/biocontainers/bioconductor-ggpa:1.22.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GGPA
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit the graph-GPA model using GGPA
+//  * 2. [Core Analysis] Extract parameter estimates using estimates
+//  * 3. [Core Analysis] Perform marginal and joint association mapping using assoc
+//  * 4. [Core Analysis] Calculate local FDR using fdr
+//  * 5. [Visualization & Output] Visualize the estimated phenotype graph using plot
 
 nextflow.enable.dsl = 2
 
-process BIOC_GGPA {
+process BIOC_GGPA_STANDARD_GRAPH_GPA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ggpa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ggpa:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ggpa:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ggpa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ggpa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ggpa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GGPA)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required library
+        library(GGPA)
+        
+        # Read user input 'pmat'
+        # The script checks for pmat.rds, pmat.csv, pmat.tsv, or a plain file named 'pmat'
+        if (file.exists("pmat.rds")) {
+          pmat <- readRDS("pmat.rds")
+        } else if (file.exists("pmat.csv")) {
+          pmat <- as.matrix(read.csv("pmat.csv", row.names = 1, check.names = FALSE))
+        } else if (file.exists("pmat.tsv")) {
+          pmat <- as.matrix(read.delim("pmat.tsv", row.names = 1, check.names = FALSE))
+        } else if (file.exists("pmat")) {
+          pmat <- as.matrix(read.table("pmat", header = TRUE, row.names = 1, check.names = FALSE))
+        } else {
+          stop("Error: Required input file 'pmat' (matrix of GWAS p-values) not found in the working directory.")
+        }
+        
+        # Ensure pmat is a numeric matrix
+        pmat <- as.matrix(pmat)
+        storage.mode(pmat) <- "numeric"
+        
+        # 1. Fit the graph-GPA model using GGPA
+        set.seed(12345)
+        fit <- GGPA( pmat, nBurnin=10000, nMain=40000 )
+        
+        # Display fit summary
+        fit
+        
+        # Save the fitted model object
+        saveRDS(fit, "ggpa_fit.rds")
+        
+        # 2. Extract parameter estimates using estimates
+        fit_estimates <- estimates(fit)
+        str(fit_estimates)
+        saveRDS(fit_estimates, "estimates.rds")
+        
+        # 3. Perform marginal association mapping using assoc
+        assoc.marg <- assoc( fit, FDR=0.10, fdrControl="global" )
+        dim(assoc.marg)
+        apply( assoc.marg, 2, table )
+        write.csv(assoc.marg, "assoc_marginal.csv", row.names = TRUE)
+        
+        # 4. Calculate local FDR using fdr
+        fdr.marg <- fdr(fit)
+        dim(fdr.marg)
+        head(fdr.marg)
+        write.csv(fdr.marg, "fdr_marginal.csv", row.names = TRUE)
+        
+        # 5. Perform joint association mapping using assoc
+        assoc.joint <- assoc( fit, FDR=0.10, fdrControl="global", i=1, j=2 )
+        length(assoc.joint)
+        head(assoc.joint)
+        table(assoc.joint)
+        
+        # Save joint association results
+        write.csv(data.frame(assoc_joint = assoc.joint), "assoc_joint.csv", row.names = TRUE)
+        
+        # 6. Visualize the estimated phenotype graph using plot
+        pdf("phenotype_graph.pdf")
+        plot(fit)
+        dev.off()
 
-    # --- Ggpaexample Prelim [] ---
-    # Key functions: data
-    data(simulation)
-    dim(simulation$pmat)
-    head(simulation$pmat)
-    # --- Pgraph Show [] ---
-    # Key functions: diag, ggnet2
-    ## adjmat <- simulation$true_G
-    ## diag(adjmat) <- 0
-    ## ggnet2( adjmat, label=TRUE, size=15 )
-    # --- Fig Pgraph [] ---
-    # Key functions: diag
-    adjmat <- simulation$true_G
-    diag(adjmat) <- 0
-    plot( adjmat, size=15 )
-    # --- Ggpa Show [] ---
-    # Key functions: GGPA
-    ## set.seed(12345)
-    ## fit <- GGPA( simulation$pmat )
-    # --- Ggpa Run [] ---
-    # Key functions: GGPA
-    set.seed(12345)
-    fit <- GGPA( simulation$pmat, nBurnin=200, nMain=200 )
-    # --- Gpa Assoc Ann [] ---
-    # Key functions: assoc
-    assoc.marg <- assoc( fit, FDR=0.10, fdrControl="global" )
-    dim(assoc.marg)
-    apply( assoc.marg, 2, table )
-    # --- Gpa Fdr Ann [] ---
-    # Key functions: fdr
-    fdr.marg <- fdr(fit)
-    dim(fdr.marg)
-    head(fdr.marg)
-    # --- Gpa Assoc Pattern Ann [] ---
-    # Key functions: assoc
-    assoc.joint <- assoc( fit, FDR=0.10, fdrControl="global", i=1, j=2 )
-    length(assoc.joint)
-    head(assoc.joint)
-    table(assoc.joint)
-    # --- Ggpa Pgraph Show [] ---
-    # Key functions: GGPA
-    ## fit <- GGPA( pmat, pgraph )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ggpa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ggpa_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ggpa_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GGPA:", paste0("    ggpa: ", packageVersion("GGPA"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GGPA_STANDARD_GRAPH_GPA":',
+        paste0('    GGPA: ', as.character(packageVersion('GGPA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ggpa_results.csv
-    touch ${prefix}_ggpa_output.rds
-    echo "BIOC_GGPA:" > versions.yml
-    echo "    ggpa: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_graph_gpa.csv versions.yml
     """
 }
 
-
-workflow BIOC_GGPA_WORKFLOW {
+workflow BIOC_GGPA_STANDARD_GRAPH_GPA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pmat ] ]
 
     main:
-    BIOC_GGPA(ch_input)
+    BIOC_GGPA_STANDARD_GRAPH_GPA(ch_input)
 
     emit:
-    results  = BIOC_GGPA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GGPA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GGPA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GGPA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GGPA_STANDARD_GRAPH_GPA.out.tables
+    plots    = BIOC_GGPA_STANDARD_GRAPH_GPA.out.plots
+    objects  = BIOC_GGPA_STANDARD_GRAPH_GPA.out.objects
+    versions = BIOC_GGPA_STANDARD_GRAPH_GPA.out.versions
 }

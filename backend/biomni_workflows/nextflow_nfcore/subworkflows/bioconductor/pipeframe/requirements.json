@@ -1,0 +1,13 @@
+{
+  "package": "pipeframe",
+  "requirements": [
+    "magrittr",
+    "pipeFrame"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "magrittr",
+      "pipeFrame"
+    ]
+  }
+}

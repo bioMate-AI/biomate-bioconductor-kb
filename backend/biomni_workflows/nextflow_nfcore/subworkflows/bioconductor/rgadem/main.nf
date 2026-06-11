@@ -1,114 +1,118 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rGADEM
-// rGADEM is an efficient de novo motif discovery tool for large-scale genomic sequence data. It is an 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rGADEM/inst/doc/rGADEM.R
-// Upstream  : rtracklayer
-// Downstream: none
-//
-// Install: BiocManager::install("rGADEM")
+// Bioconductor workflow: rGADEM — de_novo_motif_discovery
+// Identify novel sequence motifs from genomic peak regions using rGADEM and a reference genome.
+// Input: peaks.bed
+// Container: quay.io/biocontainers/bioconductor-rgadem:2.54.0--r44h3df3fcb_1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BSgenome.Hsapiens.UCSC.hg19, rGADEM, rtracklayer
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import peak coordinates as a GRanges object
+//  * 2. [Input & Preparation] Load the matching BSgenome reference genome
+//  * 3. [Core Analysis] Run the GADEM analysis to discover motifs
+//  * 4. [Core Analysis] Query the resulting gadem object for identified motifs and consensus sequences
 
 nextflow.enable.dsl = 2
 
-process BIOC_RGADEM {
+process BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rgadem"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rgadem:2.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rgadem:2.54.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rgadem_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rgadem_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rgadem_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAStringSet)
-    library(GADEM)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(rGADEM)
+        library(BSgenome.Hsapiens.UCSC.hg19)
+        library(rtracklayer)
+        
+        # 1. Import peak coordinates as a GRanges object
+        if (!file.exists("peaks.bed")) {
+          stop("Error: Input file 'peaks.bed' not found in the working directory.")
+        }
+        
+        peaks <- rtracklayer::import("peaks.bed", format = "bed")
+        
+        # 2. Run the GADEM analysis to discover motifs
+        # (Using the exact documented function call and arguments)
+        gadem <- GADEM(peaks, genome = Hsapiens, verbose = 1)
+        
+        # 3. Query the resulting gadem object for identified motifs and consensus sequences
+        n_motifs <- nMotifs(gadem)
+        consensus_seqs <- consensus(gadem)
+        
+        # 4. Write named output files for the results
+        # Save the complete GADEM object
+        saveRDS(gadem, file = "gadem_analysis_results.rds")
+        
+        # Save the discovered motifs and their consensus sequences to a CSV file
+        motifs_df <- data.frame(
+          Motif_Index = seq_len(n_motifs),
+          Consensus_Sequence = consensus_seqs,
+          stringsAsFactors = FALSE
+        )
+        write.csv(motifs_df, file = "discovered_motifs.csv", row.names = FALSE)
+        
+        # Save a text summary of the run
+        summary_text <- c(
+          "rGADEM De Novo Motif Discovery Summary",
+          "======================================",
+          paste("Input Peaks Analyzed :", length(peaks)),
+          paste("Motifs Discovered    :", n_motifs)
+        )
+        writeLines(summary_text, con = "gadem_summary.txt")
 
-    # --- Bed File [] ---
-    # Key functions: import
-    pwd<-"" #INPUT FILES- BedFiles, FASTA, etc.
-    path<- system.file("extdata/Test_100.bed",package="rGADEM")
-    BedFile<-paste(pwd,path,sep="")
-    Sequences<-import(BedFile)
-    # --- Create The Rd Files [] ---
-    # Key functions: DNAStringSet
-    ##
-    ## pwd<-"" #INPUT FILES- BedFiles, FASTA, etc.
-    ## path<- system.file("extdata/Test_100.fasta",package="rGADEM")
-    ## FastaFile<-paste(pwd,path,sep="")
-    ## Sequences <- read.DNAStringSet(FastaFile, "fasta")
-    # --- Rgadem Analysis [] ---
-    # Key functions: GADEM
-    gadem<-GADEM(Sequences,verbose=1,genome=Hsapiens)
-    # --- Prepare Pwm [] ---
-    # Key functions: readPWMfile
-    ## path<- system.file("extdata/jaspar2009.txt",package="rGADEM")
-    ## seededPwm<-readPWMfile(path)
-    ## grep("STAT1",names(seededPwm))
-    ## STAT1.PWM=seededPwm[103]
-    # --- Rgadem Seeded Analysis [] ---
-    # Key functions: GADEM
-    ## gadem<-GADEM(Sequences,verbose=1,genome=Hsapiens,Spwm=STAT1.PWM, fixSeeded=TRUE)
-    # --- Pwm [] ---
-    # Key functions: nOccurrences
-    nOccurrences(gadem)[1]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rgadem_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rgadem_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rgadem_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RGADEM:", paste0("    rgadem: ", packageVersion("rGADEM"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY":',
+        paste0('    rGADEM: ', as.character(packageVersion('rGADEM')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rgadem_results.csv
-    touch ${prefix}_rgadem_output.rds
-    echo "BIOC_RGADEM:" > versions.yml
-    echo "    rgadem: 0.0.0" >> versions.yml
+    touch ${prefix}_de_novo_motif_discovery.csv versions.yml
     """
 }
 
-
-workflow BIOC_RGADEM_WORKFLOW {
+workflow BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ peaks.bed ] ]
 
     main:
-    BIOC_RGADEM(ch_input)
+    BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY(ch_input)
 
     emit:
-    results  = BIOC_RGADEM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RGADEM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RGADEM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RGADEM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY.out.tables
+    plots    = BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY.out.plots
+    objects  = BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY.out.objects
+    versions = BIOC_RGADEM_DE_NOVO_MOTIF_DISCOVERY.out.versions
 }

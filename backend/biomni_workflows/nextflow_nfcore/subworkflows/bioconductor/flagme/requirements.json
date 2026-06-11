@@ -1,0 +1,19 @@
+{
+  "package": "flagme",
+  "requirements": [
+    "flagme",
+    "xcms"
+  ],
+  "by_workflow": {
+    "correlation_based_alignment.nf": [
+      "flagme",
+      "xcms"
+    ],
+    "main.nf": [
+      "flagme"
+    ],
+    "multiple_group_alignment.nf": [
+      "flagme"
+    ]
+  }
+}

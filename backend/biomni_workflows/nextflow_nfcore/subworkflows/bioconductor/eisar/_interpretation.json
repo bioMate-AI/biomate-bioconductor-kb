@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gtf=Path to the reference GTF file ;; featureType=Vector specifying features to extract, e.g., c(\"spliced\", \"intron\") ;; intronType=Method for defining introns, such as \"separate\" ;; flankLength=Integer specifying the length of flanking sequence to add to introns (e.g., 50L) ;; strandedData=Logical indicating if the RNA-seq data is stranded (TRUE) or unstranded (FALSE) ;; modelSamples=Logical indicating whether to adjust for baseline differences among samples in the statistical model (TRUE is recommended for split-plot designs) ;; geneSelection=Method to select quantifiable genes, either \"filterByExpr\", \"none\", or \"Gaidatzis2015\" ;; statFramework=Statistical framework in edgeR, either \"QLF\" (quasi-likelihood F-test) or \"LRT\" (likelihood ratio test) ;; effects=Method for calculating log2 fold-changes, either \"predFC\" or \"Gaidatzis2015\" ;; sizeFactor=Method for calculating size factors, either \"exon\", \"intron\", or \"individual\" ;; method=Set to \"Gaidatzis2015\" to run EISA exactly as described in the original 2015 publication, overriding other parameters\n- alternatives: QuasR (specifically qAlign and qCount) is demonstrated for alignment and counting, but users can use any external aligner (e.g., STAR, HISAT2) and counter (e.g., featureCounts) to generate the input count tables. GenomicFeatures::extractTranscriptSeqs is used for sequence extraction, which can alternatively use external FASTA files instead of BSgenome packages.\n- when_to_use: Use this package when preparing reference files (spliced/unspliced) for RNA velocity estimation, or when analyzing RNA-seq data to separate transcriptional changes (measured via intronic/pre-mRNA reads) from post-transcriptional changes (measured via exonic/mature RNA reads).\n- pitfalls: Unstranded data (strandedData = FALSE) leads to more genes being filtered out because overlapping genes on opposite strands cannot be resolved. In EISA, exonic and intronic counts from the same sample are dependent (split-plot design); setting modelSamples = FALSE ignores this dependency and significantly reduces the sensitivity of detecting genes with significant post-transcriptional regulation.",
+  "workflows": [
+    {
+      "name": "reference_generation",
+      "intent": "Generate reference sequences, an expanded GTF, and transcript-to-gene mappings for alignment-free abundance estimation methods.",
+      "input": [
+        "gencode.v28.annotation.sub.gtf (Reference GTF file)",
+        "BSgenome.Hsapiens.UCSC.hg38 (Genome sequence package)"
+      ],
+      "stages": "1. Extract genomic ranges for spliced transcripts and introns using getFeatureRanges() ;; 2. Extract nucleotide sequences using GenomicFeatures::extractTranscriptSeqs() ;; 3. Export the expanded features to a GTF file using exportToGtf() ;; 4. Generate a transcript-to-gene mapping table using getTx2Gene()",
+      "code": "gtf <- system.file(\"extdata\", \"gencode.v28.annotation.sub.gtf\",\n                   package = \"eisaR\")\ngrl <- getFeatureRanges(\n    gtf = gtf,\n    featureType = c(\"spliced\", \"intron\"),\n    intronType = \"separate\",\n    flankLength = 50L,\n    joinOverlappingIntrons = FALSE,\n    verbose = TRUE\n)\nsuppressPackageStartupMessages({\n    library(BSgenome.Hsapiens.UCSC.hg38)\n})\nseqs <- GenomicFeatures::extractTranscriptSeqs(\n    x = BSgenome.Hsapiens.UCSC.hg38,\n    transcripts = grl\n)\nexportToGtf(\n    grl,\n    filepath = file.path(tempdir(), \"exported.gtf\")\n)\ndf <- getTx2Gene(grl)\nhead(df)\ntail(df)"
+    },
+    {
+      "name": "exon_intron_split_analysis",
+      "intent": "Perform Exon-Intron Split Analysis (EISA) to identify transcriptional and post-transcriptional regulation from exonic and intronic count tables.",
+      "input": [
+        "Fig3abc_GSE33252_rawcounts_exonic.rds (Exonic raw count table)",
+        "Fig3abc_GSE33252_rawcounts_intronic.rds (Intronic raw count table)"
+      ],
+      "stages": "1. Load exonic and intronic count tables ;; 2. Define the experimental condition factor ;; 3. Run EISA using runEISA() to perform filtering, normalization, model fitting, and contrast calculation ;; 4. Visualize the results using plotEISA()",
+      "code": "cntEx <- readRDS(system.file(\"extdata\",\n                             \"Fig3abc_GSE33252_rawcounts_exonic.rds\",\n                             package = \"eisaR\"))\ncntIn <- readRDS(system.file(\"extdata\",\n                             \"Fig3abc_GSE33252_rawcounts_intronic.rds\",\n                             package = \"eisaR\"))\nrEx <- cntEx[, colnames(cntEx) != \"width\"]\nrIn <- cntIn[, colnames(cntIn) != \"width\"]\ncond <- factor(c(\"ES\", \"ES\", \"TN\", \"TN\"))\nres <- runEISA(rEx, rIn, cond)\nplotEISA(res)"
+    }
+  ]
+}

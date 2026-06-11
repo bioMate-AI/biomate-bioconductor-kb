@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: segmentData=A GRangesList object containing the copy number segment data for all samples ;; method=The similarity metric to calculate (e.g., \"sorensen\", \"weightedEuclideanDistance\") ;; nJobs=The number of threads to use for parallelized computation via BiocParallel ;; states=A character vector defining which CNV status calls to analyze (defaults to \"AMPLIFICATION\" and \"DELETION\") ;; curSample=A GRanges object representing the reference sample profile for simulation ;; nbSim=The number of simulated profiles to generate\n- alternatives: CNprep is mentioned for detecting copy number events and calculating profiles; gtrellis is mentioned for plotting genomic-level graphics; pheatmap is used internally for generating metric heatmaps\n- when_to_use: Use when comparing CNV profiles of genetically unrelated samples or samples with a common genetic background (e.g., primary vs. metastatic tumors, patient-derived xenografts/organoids vs. origin tissue) to quantify similarity, or when assessing the significance of observed metrics against simulated null distributions\n- pitfalls: States with different spelling or upper/lower case nomenclature are treated as distinct states and analyzed separately (e.g., \"LOH\" vs \"loh\") ;; The keep.extra.columns=TRUE parameter must be specified in makeGRangesListFromDataFrame to retain the 'state' or 'log2ratio' columns ;; To ensure reproducible results, set.seed() must be called before running metrics or simulations, and the nJobs parameter must remain constant across runs ;; NA values in the metric matrix are replaced by zero during plotting",
+  "workflows": [
+    {
+      "name": "cnv_status_calls_similarity",
+      "intent": "Calculate and visualize similarity metrics (S\u00f8rensen, Szymkiewicz-Simpson, or Jaccard) using discrete CNV status calls.",
+      "input": [
+        "copy_number_calls.txt (A tab-delimited text file containing genomic positions, sample IDs, and a 'state' column specifying CNV status calls)"
+      ],
+      "stages": "1. Load the copy number calls file into a data.frame ;; 2. Convert the data.frame to a GRangesList using GenomicRanges::makeGRangesListFromDataFrame() ;; 3. Calculate overlap metrics using calculateOverlapMetric() ;; 4. Visualize the similarity metrics as a heatmap using plotMetric()",
+      "code": "library(GenomicRanges)\nlibrary(CNVMetrics)\n\n## Load file containing CNV calls for 10 mouse organoids\ndata.dir <- system.file(\"extdata\", package=\"CNVMetrics\")\ncnv.file <- file.path(data.dir, \"mousePairedOrganoids.txt\")\ncalls <- read.table(cnv.file, header=TRUE, sep=\"\\t\")\n\ngrl <- GenomicRanges::makeGRangesListFromDataFrame(calls, \n    split.field=\"ID\", keep.extra.columns=TRUE)\n\nmetric <- calculateOverlapMetric(segmentData=grl, method=\"sorensen\", nJobs=1)\n\nplotMetric(metric, type=\"AMPLIFICATION\")"
+    },
+    {
+      "name": "log2_ratio_similarity",
+      "intent": "Calculate and visualize similarity metrics (Weighted Euclidean Distance) using continuous log2 ratio values.",
+      "input": [
+        "copy_number_log2.txt (A tab-delimited text file containing genomic positions, sample IDs, and a 'log2ratio' column specifying the level of amplification/deletion)"
+      ],
+      "stages": "1. Load the copy number log2 ratio file into a data.frame ;; 2. Convert the data.frame to a GRangesList using GenomicRanges::makeGRangesListFromDataFrame() ;; 3. Calculate log2 ratio metrics using calculateLog2ratioMetric() ;; 4. Visualize the similarity metrics as a heatmap using plotMetric()",
+      "code": "library(GenomicRanges)\nlibrary(CNVMetrics)\n\n## Load file containing CNV calls for 10 mouse organoids\ndata.dir <- system.file(\"extdata\", package=\"CNVMetrics\")\ncnv.file <- file.path(data.dir, \"mousePairedOrganoids.txt\")\ncalls <- read.table(cnv.file, header=TRUE, sep=\"\\t\")\n\ngrlog <- GenomicRanges::makeGRangesListFromDataFrame(df=calls, \n    split.field=\"ID\", keep.extra.columns=TRUE)\n\nmetricLog <- calculateLog2ratioMetric(segmentData=grlog, \n                              method=\"weightedEuclideanDistance\", nJobs=1)\n\nplotMetric(metricLog)"
+    },
+    {
+      "name": "cnv_profile_simulation",
+      "intent": "Generate simulated copy number profiles from a reference sample to assess metric significance.",
+      "input": [
+        "reference_sample.txt (A tab-delimited text file containing genomic positions, states, and log2 ratios for a single reference sample)"
+      ],
+      "stages": "1. Define the reference sample as a GRanges object ;; 2. Set the random seed to ensure reproducibility ;; 3. Generate simulated profiles using processSim()",
+      "code": "require(GenomicRanges)\n\nsampleRef <- GRanges(seqnames=c(rep(\"chr1\", 4), rep(\"chr2\", 3), rep(\"chr3\", 6)),\n     ranges=IRanges(start=c(1905048, 4554832, 31686841, 32686222,\n         1, 120331, 725531, 12, 10331, 75531, 120001, 188331, 225531),\n     end=c(2004603, 4577608, 31695808, 32689222, 117121,\n         325555, 1225582, 9131, 55531, 100103, 158535, 211436, 275331)),\n     strand=\"*\",\n     state=c(\"AMPLIFICATION\", \"NEUTRAL\", \"DELETION\", \"LOH\",\n         \"DELETION\", \"NEUTRAL\", \"NEUTRAL\", \"NEUTRAL\", \"DELETION\", \"DELETION\", \n         \"NEUTRAL\", \"AMPLIFICATION\", \"NEUTRAL\"),\n     log2ratio=c(0.5849625, 0, -1, -1, -0.87777, 0, 0, 0.1, -0.9211, -0.9822, \n                  0.01, 0.9777, 0))\n\nset.seed(121)\n\nsimRes <- processSim(curSample=sampleRef, nbSim=3)"
+    }
+  ]
+}

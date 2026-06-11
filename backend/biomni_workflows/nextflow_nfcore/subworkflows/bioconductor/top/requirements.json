@@ -1,0 +1,29 @@
+{
+  "package": "top",
+  "requirements": [
+    "Biobase",
+    "TOP",
+    "dplyr",
+    "ggbeeswarm",
+    "ggsci",
+    "purrr",
+    "survival",
+    "survminer",
+    "tibble",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "TOP",
+      "dplyr",
+      "ggbeeswarm",
+      "ggsci",
+      "purrr",
+      "survival",
+      "survminer",
+      "tibble",
+      "tidyverse"
+    ]
+  }
+}

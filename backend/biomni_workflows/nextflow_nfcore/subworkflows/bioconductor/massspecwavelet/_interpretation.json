@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: wavelet=The wavelet function to use, typically \"mexh\" (Mexican Hat) ;; scales=A vector of scales (e.g., seq(1, 64, 2)) where smaller scales target narrow peaks/noise estimation and larger scales target wider peaks ;; winSize=The window size used for local maximum detection ;; MassSpecWavelet.localMaximum.algorithm=Global option (\"classic\", \"faster\", or \"new\") controlling the local maximum search behavior ;; SNR.Th=Signal-to-Noise Ratio threshold for peak identification ;; nearbyPeak=Logical flag indicating whether to include nearby peaks in the identification process\n- alternatives: Traditional peak detection algorithms that rely on aggressive baseline correction and smoothing preprocessing steps, which are highly sensitive to parameter tuning and can be inconsistent across runs.\n- when_to_use: When processing low-resolution mass spectra (such as SELDI and MALDI data) or other spectral profiles where high noise levels and baseline shifts make traditional amplitude-based peak detection unreliable.\n- pitfalls: The \"classic\" local maximum algorithm uses non-sliding overlapping windows and can miss peaks (especially on plateaus or small window sizes); the \"new\" algorithm is experimental and may detect more maxima, potentially altering downstream pipeline results. Additionally, using excessively large scales can merge adjacent narrow peaks.",
+  "workflows": [
+    {
+      "name": "cwt_peak_detection",
+      "intent": "Detect, identify, and refine peak parameters in mass spectrometry intensity profiles using Continuous Wavelet Transform (CWT) and ridge-line tracking.",
+      "input": [
+        "exampleMS (numeric vector representing raw mass spectrometry intensity values across m/z indices)"
+      ],
+      "stages": "1. Perform Continuous Wavelet Transform (CWT) using the Mexican Hat wavelet ;; 2. Identify local maxima of CWT coefficients across scales ;; 3. Connect local maxima into ridge lines ;; 4. Identify major peaks based on SNR thresholds ;; 5. Refine peak parameter estimations (center, width, strength)",
+      "code": "data(exampleMS)\nscales <- seq(1, 64, 2)\nwCoefs <- cwt(exampleMS, scales = scales, wavelet = \"mexh\")\nwCoefs <- cbind(as.vector(exampleMS), wCoefs)\ncolnames(wCoefs) <- c(0, scales)\nlocalMax <- getLocalMaximumCWT(wCoefs)\nridgeList <- getRidge(localMax)\nSNR.Th <- 3\nnearbyPeak <- TRUE\nmajorPeakInfo <- identifyMajorPeaks(\n  exampleMS,\n  ridgeList,\n  wCoefs,\n  SNR.Th = SNR.Th,\n  nearbyPeak=nearbyPeak\n)\nbetterPeakInfo <- tuneInPeakInfo(exampleMS, majorPeakInfo)"
+    },
+    {
+      "name": "one_step_peak_detection",
+      "intent": "Run the entire CWT-based peak detection and parameter refinement pipeline in a single encapsulated step.",
+      "input": [
+        "exampleMS (numeric vector representing raw mass spectrometry intensity values across m/z indices)"
+      ],
+      "stages": "1. Run the encapsulated peak detection pipeline ;; 2. Extract major peak information ;; 3. Refine peak parameter estimations (center, width, strength)",
+      "code": "data(exampleMS)\nSNR.Th <- 3\nnearbyPeak <- TRUE\npeakInfo <- peakDetectionCWT(exampleMS, SNR.Th=SNR.Th, nearbyPeak=nearbyPeak)\nmajorPeakInfo = peakInfo$majorPeakInfo\nbetterPeakInfo <- tuneInPeakInfo(exampleMS, majorPeakInfo)"
+    }
+  ]
+}

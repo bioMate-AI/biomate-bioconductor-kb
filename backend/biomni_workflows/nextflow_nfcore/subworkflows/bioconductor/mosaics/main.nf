@@ -1,141 +1,196 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mosaics
-// This package provides functions for fitting MOSAiCS and MOSAiCS-HMM, a statistical framework to anal
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mosaics/inst/doc/mosaics-example.R
-// Upstream  : mosaicsExample
-// Downstream: none
-//
-// Install: BiocManager::install("mosaics")
+// Bioconductor workflow: mosaics — punctuated_peak_calling
+// Identify narrow/punctuated peaks (e.g., transcription factor binding) using ChIP and matched control samples without genomic features.
+// Input: wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam, wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam
+// Container: quay.io/biocontainers/bioconductor-mosaics:2.48.0--pl5321r45ha27e39d_0
+// R packages: mosaics, mosaicsexample
+// Bioconductor: 3.20 | R: 4.4
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MOSAICS {
+process BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mosaics"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mosaics:2.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mosaics:2.44.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-mosaics:2.48.0--pl5321r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mosaics_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mosaics_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mosaics_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("mosaics", "mosaicsexample")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(mosaics)
-    library(jsonlite)
-
-    # --- Data Loading [] ---
-    # Key functions: readBins
-    binData <- readBins(
-        type = c("chip", "input"),
-        fileName = c(
-            "wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt",
-            "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt"
-        )
-    )
-
-
-    # --- Model Fitting [] ---
-    # Key functions: mosaicsFit
-    fitHM <- mosaicsFit(
-        binData,
-        analysisType = "IO",
-        bgEst = "automatic"
-    )
-
-
-    # --- HMM Model Fitting [] ---
-    # Key functions: mosaicsFitHMM
-    hmmHM <- mosaicsFitHMM(
-        fitHM,
-        signalModel = "2S",
-        init = "mosaics",
-        init.FDR = 0.05,
-        parallel = FALSE,
-        nCore = 1
-    )
-
-
-    # --- Peak Calling [] ---
-    # Key functions: mosaicsPeakHMM
-    peakHM <- mosaicsPeakHMM(
-        hmmHM,
-        FDR = 0.05,
-        decoding = "posterior",
-        thres = 10,
-        parallel = FALSE,
-        nCore = 1
-    )
-
-
-    # --- Exporting Results [] ---
-    # Key functions: export
-    export(
-        peakHM,
-        type = "txt",
-        filename = "peaks_mosaics.txt"
-    )
-    export(
-        peakHM,
-        type = "gff",
-        filename = "peaks_mosaics.gff"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mosaics_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mosaics_results.csv")
+    
+    # Define input files from the working directory
+    chip_file <- "wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam"
+    control_file <- "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam"
+    
+    # Verify that input files exist before proceeding
+    if (!file.exists(chip_file)) {
+        stop(paste("ChIP input file not found in working directory:", chip_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mosaics_output.rds")
+    if (!file.exists(control_file)) {
+        stop(paste("Control input file not found in working directory:", control_file))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MOSAICS:", paste0("    mosaics: ", packageVersion("mosaics"))),
-        "versions.yml"
+    
+    # Stage 1: Construct bin-level files from aligned reads
+    message("Constructing bin-level files...")
+    constructBins( 
+        infile=chip_file, 
+        fileFormat="bam", 
+        outfileLoc="./", 
+        byChr=FALSE, 
+        useChrfile=FALSE, 
+        chrfile=NULL, 
+        excludeChr=NULL, 
+        PET=FALSE, 
+        fragLen=200, 
+        binSize=200, 
+        capping=0 
     )
+    
+    constructBins( 
+        infile=control_file, 
+        fileFormat="bam", 
+        outfileLoc="./", 
+        byChr=FALSE, 
+        useChrfile=FALSE, 
+        chrfile=NULL, 
+        excludeChr=NULL, 
+        PET=FALSE, 
+        fragLen=200, 
+        binSize=200, 
+        capping=0 
+    )
+    
+    # Define the expected output filenames generated by constructBins
+    fileName <- c(
+        "wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt",
+        "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt"
+    )
+    
+    # Stage 2: Read bin-level data into R
+    message("Reading bin-level data...")
+    binTFBS <- readBins( type=c("chip","input"), fileName=fileName )
+    
+    # Save the imported bin data object
+    saveRDS(binTFBS, file="binTFBS.rds")
+    
+    # Generate exploratory plots for the bin-level data
+    pdf("mosaics_exploratory_plots.pdf", width=8, height=6)
+    plot(binTFBS)
+    plot(binTFBS, plotType="input")
+    
+    # Stage 3: Fit the MOSAiCS model
+    message("Fitting MOSAiCS model...")
+    fitTFBS <- mosaicsFit( binTFBS, analysisType="IO", bgEst="rMOM" )
+    
+    # Save the fitted model object
+    saveRDS(fitTFBS, file="fitTFBS.rds")
+    
+    # Add Goodness of Fit (GOF) plot to the PDF
+    plot(fitTFBS)
+    dev.off()
+    
+    # Stage 4: Call peaks
+    message("Calling peaks...")
+    peakTFBS <- mosaicsPeak( 
+        fitTFBS, 
+        signalModel="2S", 
+        FDR=0.05, 
+        maxgap=200, 
+        minsize=50, 
+        thres=10 
+    )
+    
+    # Save the peak calling object
+    saveRDS(peakTFBS, file="peakTFBS.rds")
+    
+    # Save peak calling results as a CSV table for easy downstream access
+    write.csv(print(peakTFBS), file="peakTFBS_summary.csv", row.names=FALSE)
+    
+    # Stage 5: Export peak calling results in standard formats
+    message("Exporting peak calling results...")
+    export( peakTFBS, type="txt", filename="peakTFBS.txt" )
+    export( peakTFBS, type="bed", filename="peakTFBS.bed" )
+    export( peakTFBS, type="gff", filename="peakTFBS.gff" )
+    
+    # Stage 6: Generate wiggle files for visualization
+    message("Generating wiggle files...")
+    generateWig( 
+        infile=chip_file, 
+        fileFormat="bam", 
+        outfileLoc="./", 
+        byChr=FALSE, 
+        useChrfile=FALSE, 
+        chrfile=NULL, 
+        excludeChr=NULL, 
+        PET=FALSE, 
+        fragLen=200, 
+        span=200, 
+        capping=0, 
+        normConst=1 
+    )
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING":',
+        paste0('        mosaics: ', as.character(packageVersion("mosaics")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mosaics_results.csv
-    touch ${prefix}_mosaics_output.rds
-    echo "BIOC_MOSAICS:" > versions.yml
-    echo "    mosaics: 0.0.0" >> versions.yml
+    touch ${prefix}_punctuated_peak_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_MOSAICS_WORKFLOW {
+workflow BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam, wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam ] ]
 
     main:
-    BIOC_MOSAICS(ch_input)
+    BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING(ch_input)
 
     emit:
-    results  = BIOC_MOSAICS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MOSAICS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MOSAICS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MOSAICS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING.out.tables
+    plots    = BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING.out.plots
+    objects  = BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING.out.objects
+    versions = BIOC_MOSAICS_PUNCTUATED_PEAK_CALLING.out.versions
 }

@@ -1,0 +1,32 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: manifest_path=Path to the Excel file containing experimental design metadata ;; template_path=Path(s) to the Excel file(s) specifying drug and cell line layouts ;; result_path=Path(s) to the raw plate reader or scanner output Excel files ;; data_type=The type of drug treatment data being processed, such as 'single-agent', 'combination', 'cotreatment', 'codilution', or 'matrix' ;; nested_confounders=Metadata columns to be nested within the assays (e.g., 'Barcode' or 'Plate') ;; untreated_tag=Identifier used to map control/untreated conditions for normalization, set via set_env_identifier\n- alternatives: Commercial software (for large-scale screens) or GraphPad PRISM (for small-scale ad hoc analysis). gDR is preferred to ensure standardized, reproducible, and F.A.I.R.-compliant workflows across screens of any size.\n- when_to_use: When analyzing raw cell viability or drug response screening data across multiple cell lines and drug concentrations, and there is a need to calculate standardized metrics (like GR values, relative viability, IC50/EC50, and AOC) and fit dose-response curves.\n- pitfalls: Missing nested confounders (e.g., if 'Plate' is missing, the pipeline will automatically switch to 'Barcode' and throw a warning) ;; Incorrect column mapping (users must ensure column names match expected identifiers using set_env_identifier or set_SE_identifiers) ;; Insufficient data points for curve fitting (results in a 'DRCTooFewPointsToFit' fit type and NA values for metrics).",
+  "workflows": [
+    {
+      "name": "step_by_step_drug_response_processing",
+      "intent": "Manually aggregate, normalize, average, and fit drug response data step-by-step to maintain granular control over intermediate SummarizedExperiment objects.",
+      "input": [
+        "manifest.xlsx (experimental design metadata)",
+        "Template_7daytreated.xlsx (treated plate layout template)",
+        "Template_Untreated.xlsx (untreated plate layout template)",
+        "RawData_day0.xlsx (day 0 raw plate reader data)",
+        "RawData_day7.xlsx (day 7 raw plate reader data)"
+      ],
+      "stages": "1. Identify paths to raw data, templates, and manifest files ;; 2. Import and merge raw data and metadata into a single long table ;; 3. Prepare input data and identify detected drug treatment data types ;; 4. Create and normalize a SummarizedExperiment object ;; 5. Average the normalized replicates ;; 6. Fit dose-response curves and calculate metrics",
+      "code": "library(gDR)\n# get test data from gDRimport package\n# i.e. paths to manifest, templates and results files\ntd <- get_test_data()\nmanifest_path(td)\ntemplate_path(td)\nresult_path(td)\n\n# Import data\nimported_data <- \n  import_data(manifest_path(td), template_path(td), result_path(td))\nhead(imported_data)\n\ninl <- prepare_input(imported_data)\ndetected_data_types <- names(inl$exps)\ndetected_data_types\nse <- create_and_normalize_SE(\n  inl$df_list[[\"single-agent\"]],\n  data_type = \"single-agent\",\n  nested_confounders = inl$nested_confounders)\nse\n\nse <- average_SE(se, data_type = \"single-agent\")\nse <- fit_SE(se, data_type = \"single-agent\")\nse"
+    },
+    {
+      "name": "automated_drug_response_pipeline",
+      "intent": "Run the end-to-end drug response processing pipeline automatically to generate a MultiAssayExperiment and extract fitted metrics.",
+      "input": [
+        "manifest.xlsx (experimental design metadata)",
+        "Template_7daytreated.xlsx (treated plate layout template)",
+        "Template_Untreated.xlsx (untreated plate layout template)",
+        "RawData_day0.xlsx (day 0 raw plate reader data)",
+        "RawData_day7.xlsx (day 7 raw plate reader data)"
+      ],
+      "stages": "1. Identify paths to raw data, templates, and manifest files ;; 2. Import and merge raw data and metadata into a single long table ;; 3. Run the automated processing pipeline to generate a MultiAssayExperiment ;; 4. Extract a specific assay and convert it to a data.table for downstream analysis",
+      "code": "library(gDR)\n# get test data from gDRimport package\n# i.e. paths to manifest, templates and results files\ntd <- get_test_data()\n\n# Import data\nimported_data <- \n  import_data(manifest_path(td), template_path(td), result_path(td))\n\n# Run gDR pipeline\nmae <- runDrugResponseProcessingPipeline(imported_data)\nmae\n\nnames(mae)\nSummarizedExperiment::assayNames(mae[[1]])\n\nlibrary(kableExtra)\nse <- mae[[\"single-agent\"]]\nhead(convert_se_assay_to_dt(se, \"Metrics\"))"
+    }
+  ]
+}

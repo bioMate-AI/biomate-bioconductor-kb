@@ -1,0 +1,20 @@
+{
+  "package": "decontam",
+  "requirements": [
+    "decontam",
+    "ggplot2",
+    "phyloseq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "decontam",
+      "ggplot2",
+      "phyloseq"
+    ],
+    "prevalence_based_decontamination.nf": [
+      "decontam",
+      "ggplot2",
+      "phyloseq"
+    ]
+  }
+}

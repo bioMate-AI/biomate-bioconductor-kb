@@ -1,0 +1,17 @@
+{
+  "package": "panelcn_mops",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "panelcn.mops",
+    "panelcn_mops"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "panelcn.mops",
+      "panelcn_mops"
+    ]
+  }
+}

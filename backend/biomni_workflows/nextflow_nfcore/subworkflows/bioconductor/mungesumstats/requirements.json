@@ -1,0 +1,19 @@
+{
+  "package": "mungesumstats",
+  "requirements": [
+    "MungeSumstats",
+    "data.table"
+  ],
+  "by_workflow": {
+    "liftover_genome_build.nf": [
+      "MungeSumstats",
+      "data.table"
+    ],
+    "main.nf": [
+      "MungeSumstats"
+    ],
+    "quick_format_disk.nf": [
+      "MungeSumstats"
+    ]
+  }
+}

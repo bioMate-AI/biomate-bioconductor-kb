@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_EXPERIMENTSUBSET {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-experimentsubset"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-experimentsubset:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-experimentsubset:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -39,62 +38,80 @@ process BIOC_EXPERIMENTSUBSET {
     """
     #!/usr/bin/env Rscript
     library(ExperimentSubset)
-    library(SingleCellExperiment)
     library(jsonlite)
 
+    # --- Object Initialization [] ---
+    # Key functions: ExperimentSubset
+    counts_matrix <- matrix(rpois(100, lambda = 10), ncol = 10, nrow = 10)
+    sce_obj <- SingleCellExperiment::SingleCellExperiment(
+        assays = list(counts = counts_matrix)
+    )
+    es <- ExperimentSubset(sce_obj)
+
     # --- Subset Creation [] ---
-    # Key functions: createSubset, subsetSummary
+    # Key functions: createSubset
     es <- createSubset(
         es,
         subsetName = "subset1",
-        rows = 1:5,
-        cols = 1:5,
+        rows = c(1:5),
+        cols = c(1:5),
         parentAssay = "counts"
     )
-    es <- createSubset(
-        es,
-        subsetName = "subset2",
-        rows = 1:2,
-        cols = 1:5,
-        parentAssay = "subset1"
-    )
-    summary_info <- subsetSummary(es)
 
-
-    # --- Subset Assay Manipulation [] ---
-    # Key functions: setSubsetAssay, getSubsetAssay
-    subset1Assay <- SummarizedExperiment::assay(es, "subset1")
-    subset1Assay[,] <- subset1Assay[,] + 1
+    # --- Subset Assay Management [] ---
+    # Key functions: setSubsetAssay, getSubsetAssay, assay
+    subset1_assay <- assay(es, "subset1")
+    subset1_assay[,] <- subset1_assay[,] + 1
     es <- setSubsetAssay(
         es,
         subsetName = "subset1",
-        inputMatrix = subset1Assay,
+        inputMatrix = subset1_assay,
         subsetAssayName = "subset1Assay"
     )
-    res_assay <- getSubsetAssay(es, "subset1Assay")
-
+    internal_assay <- getSubsetAssay(es, "subset1Assay")
 
     # --- Metadata Management [] ---
-    # Key functions: subsetColData, subsetDim
+    # Key functions: subsetColData, subsetColData<-, subsetDim
     subsetColData(es, "subset1") <- cbind(
         subsetColData(es, "subset1"),
         subsetSampleID = seq_len(subsetDim(es, "subset1")[2])
     )
     sub_col_data <- subsetColData(es, "subset1", parentColData = TRUE)
 
+    # --- Alternative Experiments and Summarization [] ---
+    # Key functions: altExp<-, subsetSummary
+    SingleCellExperiment::altExp(
+        x = es,
+        e = "subset1_alt",
+        subsetName = "subset1"
+    ) <- SingleCellExperiment::SingleCellExperiment(
+        assay = list(counts = assay(es, "subset1"))
+    )
+    summary_table <- subsetSummary(es)
+
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_experimentsubset_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_experimentsubset_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_experimentsubset_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_experimentsubset_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_experimentsubset_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_experimentsubset_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_EXPERIMENTSUBSET:", paste0("    experimentsubset: ", packageVersion("ExperimentSubset"))),
+        c("BIOC_EXPERIMENTSUBSET:", paste0("    experimentsubset: ", as.character(packageVersion("ExperimentSubset")))),
         "versions.yml"
     )
     """

@@ -1,0 +1,21 @@
+{
+  "package": "msbackendrawfilereader",
+  "requirements": [
+    "BiocParallel",
+    "MsBackendMgf",
+    "MsBackendRawFileReader",
+    "Spectra",
+    "protViz",
+    "rawrr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "MsBackendMgf",
+      "MsBackendRawFileReader",
+      "Spectra",
+      "protViz",
+      "rawrr"
+    ]
+  }
+}

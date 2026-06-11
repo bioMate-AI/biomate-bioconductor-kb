@@ -1,92 +1,129 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DELocal
-// The goal of DELocal is to identify DE genes compared to their neighboring genes from the same chromo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DELocal/inst/doc/DELocal.R
-// Upstream  : SummarizedExperiment, biomaRt, dplyr
-// Downstream: none
-//
-// Install: BiocManager::install("DELocal")
+// Bioconductor workflow: DELocal — delocal_fixed_neighborhood
+// Identify differentially expressed genes relative to a fixed number of nearest chromosomal neighbors and visualize their neighborhood expression.
+// Input: tooth_RNASeq_counts.txt, gene_location.txt
+// Container: quay.io/biocontainers/bioconductor-delocal:1.6.0--r44hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DELocal, SummarizedExperiment, dplyr, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read raw count values and define sample conditions
+//  * 2. [Input & Preparation] Load gene chromosomal location information
+//  * 3. [Visualization & Output] Integrate counts, gene locations, and sample metadata into a SummarizedExperiment object
+//  * 4. [Core Analysis] Filter genes by chromosome to reduce runtime
+//  * 5. [Core Analysis] Run DELocal to identify DE genes
+//  * 6. [Visualization & Output] Plot the expression pattern of a gene and its neighborhood
 
 nextflow.enable.dsl = 2
 
-process BIOC_DELOCAL {
+process BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-delocal"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-delocal:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-delocal:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_delocal_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_delocal_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_delocal_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(DELocal)
-    library(jsonlite)
-
-    # --- Example [] ---
-    # Key functions: frame
-    ----------------------------------
-    library(DELocal)
-    count_matrix <- as.matrix(read.table(file = system.file("extdata",
-                                                  "tooth_RNASeq_counts.txt",
-                                                  package = "DELocal")))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_delocal_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_delocal_results.csv")
+    library(dplyr)
+    library(ggplot2)
+    
+    # 1. Read raw count values and define sample conditions
+    count_matrix <- as.matrix(read.table(file = "tooth_RNASeq_counts.txt", header = TRUE, sep = "\t", row.names = 1, check.names = FALSE))
+    colData <- data.frame(condition = gsub("\\\\..*", x = colnames(count_matrix), replacement = ""))
+    rownames(colData) <- colnames(count_matrix)
+    
+    # 2. Load gene chromosomal location information
+    gene_location <- read.table(file = "gene_location.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    if ("ensembl_gene_id" %in% colnames(gene_location)) {
+      rownames(gene_location) <- gene_location\$ensembl_gene_id
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_delocal_output.rds")
+    
+    # 3. Integrate counts, gene locations, and sample metadata into a SummarizedExperiment object
+    smrExpt <- SummarizedExperiment(assays = list(counts = count_matrix), rowData = gene_location, colData = colData)
+    
+    # 4. Filter genes by chromosome to reduce runtime
+    x_genes <- SummarizedExperiment::rowData(smrExpt) %>% 
+      as.data.frame() %>% 
+      filter(chromosome_name == "X") %>% 
+      rownames()
+    
+    # 5. Run DELocal to identify DE genes
+    DELocal_result <- DELocal(pSmrExpt = smrExpt[x_genes,], nearest_neighbours = 5, pDesign = ~ condition, pValue_cut = 0.05)
+    
+    # Save the tabular results
+    write.csv(DELocal_result, "DELocal_results.csv", row.names = TRUE)
+    saveRDS(DELocal_result, "DELocal_results.rds")
+    
+    # 6. Plot the expression pattern of a gene and its neighborhood
+    # Use the documented gene ID, or fallback to the top DE gene if the specific ID is not present
+    pGene_id_to_plot <- "ENSMUSG00000059401"
+    if (!pGene_id_to_plot %in% rownames(smrExpt)) {
+      if (nrow(DELocal_result) > 0) {
+        pGene_id_to_plot <- rownames(DELocal_result)[1]
+      } else {
+        pGene_id_to_plot <- rownames(smrExpt)[1]
+      }
     }
+    
+    plot_list <- DELocal::plotNeighbourhood(pSmrExpt = smrExpt, pGene_id = pGene_id_to_plot, pNearest_neighbours = 5, pDesign = ~ condition)
+    neighborhood_plot <- plot_list\$plot
+    
+    # Save the generated plot
+    ggsave("neighborhood_plot.pdf", plot = neighborhood_plot, width = 8, height = 6)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DELOCAL:", paste0("    delocal: ", packageVersion("DELocal"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD":',
+        paste0('    DELocal: ', as.character(packageVersion('DELocal')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_delocal_results.csv
-    touch ${prefix}_delocal_output.rds
-    echo "BIOC_DELOCAL:" > versions.yml
-    echo "    delocal: 0.0.0" >> versions.yml
+    touch ${prefix}_delocal_fixed_neighborhood.csv versions.yml
     """
 }
 
-
-workflow BIOC_DELOCAL_WORKFLOW {
+workflow BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tooth_RNASeq_counts.txt, gene_location.txt ] ]
 
     main:
-    BIOC_DELOCAL(ch_input)
+    BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD(ch_input)
 
     emit:
-    results  = BIOC_DELOCAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DELOCAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DELOCAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DELOCAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD.out.tables
+    plots    = BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD.out.plots
+    objects  = BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD.out.objects
+    versions = BIOC_DELOCAL_DELOCAL_FIXED_NEIGHBORHOOD.out.versions
 }

@@ -1,0 +1,16 @@
+{
+  "package": "geva",
+  "requirements": [
+    "BiocManager",
+    "geva"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocManager",
+      "geva"
+    ],
+    "quick_analysis.nf": [
+      "geva"
+    ]
+  }
+}

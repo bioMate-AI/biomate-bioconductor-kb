@@ -1,0 +1,19 @@
+{
+  "package": "mbpcr",
+  "requirements": [
+    "mBPCR",
+    "oligoClasses"
+  ],
+  "by_workflow": {
+    "direct_vector_profile_estimation.nf": [
+      "mBPCR"
+    ],
+    "main.nf": [
+      "mBPCR"
+    ],
+    "oligosnpset_profile_estimation.nf": [
+      "mBPCR",
+      "oligoClasses"
+    ]
+  }
+}

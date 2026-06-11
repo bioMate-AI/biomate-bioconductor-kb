@@ -1,0 +1,11 @@
+{
+  "package": "gwas_bayes",
+  "requirements": [
+    "gwas_bayes"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gwas_bayes"
+    ]
+  }
+}

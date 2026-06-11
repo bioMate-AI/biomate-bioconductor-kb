@@ -1,0 +1,27 @@
+{
+  "package": "normr",
+  "requirements": [
+    "GenomicRanges",
+    "Rsamtools",
+    "normr"
+  ],
+  "by_workflow": {
+    "differential_enrichment.nf": [
+      "GenomicRanges",
+      "Rsamtools",
+      "normr"
+    ],
+    "enrichment_regimes.nf": [
+      "Rsamtools",
+      "normr"
+    ],
+    "main.nf": [
+      "Rsamtools",
+      "normr"
+    ],
+    "predefined_regions.nf": [
+      "GenomicRanges",
+      "normr"
+    ]
+  }
+}

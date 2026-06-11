@@ -1,0 +1,17 @@
+{
+  "package": "preda",
+  "requirements": [
+    "PREDA",
+    "affy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PREDA",
+      "affy"
+    ],
+    "sodegir_combined_analysis.nf": [
+      "PREDA",
+      "affy"
+    ]
+  }
+}

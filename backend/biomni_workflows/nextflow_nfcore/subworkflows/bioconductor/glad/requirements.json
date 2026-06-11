@@ -1,0 +1,17 @@
+{
+  "package": "glad",
+  "requirements": [
+    "GLAD"
+  ],
+  "by_workflow": {
+    "array_spatial_visualization.nf": [
+      "GLAD"
+    ],
+    "daglad_analysis.nf": [
+      "GLAD"
+    ],
+    "main.nf": [
+      "GLAD"
+    ]
+  }
+}

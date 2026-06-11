@@ -1,0 +1,15 @@
+{
+  "package": "faers",
+  "requirements": [
+    "BiocParallel",
+    "data.table",
+    "faers"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "data.table",
+      "faers"
+    ]
+  }
+}

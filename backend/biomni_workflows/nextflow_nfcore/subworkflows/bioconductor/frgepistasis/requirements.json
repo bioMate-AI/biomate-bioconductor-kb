@@ -1,0 +1,14 @@
+{
+  "package": "frgepistasis",
+  "requirements": [
+    "FRGEpistasis"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FRGEpistasis"
+    ],
+    "pca_pointwise_epistasis.nf": [
+      "FRGEpistasis"
+    ]
+  }
+}

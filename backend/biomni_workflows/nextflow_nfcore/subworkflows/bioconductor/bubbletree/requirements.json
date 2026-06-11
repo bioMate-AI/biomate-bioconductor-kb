@@ -1,0 +1,13 @@
+{
+  "package": "bubbletree",
+  "requirements": [
+    "BubbleTree",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BubbleTree",
+      "GenomicRanges"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "package": "compass",
+  "requirements": [
+    "COMPASS",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "COMPASS"
+    ],
+    "simple_compass.nf": [
+      "COMPASS",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

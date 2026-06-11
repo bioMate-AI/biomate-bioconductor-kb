@@ -1,0 +1,22 @@
+{
+  "package": "mbased",
+  "requirements": [
+    "BiocParallel",
+    "GenomicRanges",
+    "MBASED",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "GenomicRanges",
+      "MBASED",
+      "SummarizedExperiment"
+    ],
+    "two_sample_ase.nf": [
+      "BiocParallel",
+      "MBASED",
+      "SummarizedExperiment"
+    ]
+  }
+}

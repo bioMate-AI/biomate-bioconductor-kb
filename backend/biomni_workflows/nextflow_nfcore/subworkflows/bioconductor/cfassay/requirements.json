@@ -1,0 +1,14 @@
+{
+  "package": "cfassay",
+  "requirements": [
+    "CFAssay"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CFAssay"
+    ],
+    "two_way_anova_cfa.nf": [
+      "CFAssay"
+    ]
+  }
+}

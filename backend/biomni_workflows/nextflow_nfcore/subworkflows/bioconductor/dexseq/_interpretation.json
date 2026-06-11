@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: design=~ sample + exon + condition:exon=Formula used in DEXSeqDataSetFromSE and DEXSeqDataSetFromHTSeq to model sample-specific effects, exon-specific effects, and the interaction between condition and exon ;; fitExpToVar=\"condition\"=Parameter in estimateExonFoldChanges() specifying which variable to use for calculating relative exon usage fold changes ;; reducedModel and fullModel=Formulas passed to testForDEU() to perform likelihood ratio tests for complex experimental designs ;; BPPARAM=Parameter in estimateDispersions(), testForDEU(), and estimateExonFoldChanges() to enable parallel processing via BiocParallel ;; norCounts=TRUE / splicing=TRUE=Parameters in plotDEXSeq() to plot normalized counts or splicing-specific changes (with overall gene expression subtracted)\n- alternatives: HTSeq python scripts (dexseq_prepare_annotation.py and dexseq_count.py) or Rsubread package for read counting instead of summarizeOverlaps() ;; featureCounts() (via Vivek Bhardwaj's scripts) as an alternative to HTSeq for counting ;; diffSplice from limma, satuRn, or non-parametric approaches for datasets with a large number of samples (e.g., >20)\n- when_to_use: When analyzing RNA-Seq data to detect differential exon usage (alternative splicing or isoform regulation) across different conditions, especially with small sample sizes.\n- pitfalls: Aligning to the transcriptome instead of the genome (must use a splice-aware genome aligner like TopHat2, GSNAP, or STAR) ;; Using GTF files from sources other than Ensembl without converting them (non-Ensembl files may not adhere to the GTF standard and cause python preprocessing to fail) ;; Failing to specify correct strandedness (-s option in python script) or paired-end options (-p option) during read counting ;; Failing to sort SAM files by name or position for paired-end data ;; Overlapping genes on the same strand being aggregated by default (can be disabled with -r no)",
+  "workflows": [
+    {
+      "name": "r_based_bam_workflow",
+      "intent": "Perform differential exon usage analysis starting from BAM files and a GTF annotation entirely within R.",
+      "input": [
+        "annotation.gtf (GTF transcript annotation)",
+        "sample1.bam (aligned RNA-Seq reads for sample 1)",
+        "sample2.bam (aligned RNA-Seq reads for sample 2)"
+      ],
+      "stages": "1. Prepare annotation using makeTxDbFromGFF() and exonicParts() ;; 2. Count reads overlapping exonic parts using BamFileList() and summarizeOverlaps() ;; 3. Build a DEXSeqDataSet using DEXSeqDataSetFromSE() ;; 4. Estimate size factors using estimateSizeFactors() ;; 5. Estimate dispersions using estimateDispersions() ;; 6. Test for differential exon usage using testForDEU() ;; 7. Estimate exon fold changes using estimateExonFoldChanges() ;; 8. Extract results using DEXSeqResults()",
+      "code": "txdb = makeTxDbFromGFF(\"Drosophila_melanogaster.BDGP5.25.62.gtf.gz\")\nflattenedAnnotation = exonicParts( txdb, linked.to.single.gene.only=TRUE )\nnames(flattenedAnnotation) =\n    sprintf(\"%s:E%0.3d\", flattenedAnnotation$gene_id, flattenedAnnotation$exonic_part)\nbamFiles = c( untreated1_chr4(), untreated3_chr4() )\nbamFiles = BamFileList( bamFiles )\nseqlevelsStyle(flattenedAnnotation) = \"UCSC\"\nse = summarizeOverlaps(\n    flattenedAnnotation, BamFileList(bamFiles), singleEnd=FALSE,\n    fragments=TRUE, ignore.strand=TRUE )\ncolData(se)$condition = factor(c(\"untreated1\", \"untreated3\"))\ncolData(se)$libType = factor(c(\"single-end\", \"paired-end\"))\ndxd = DEXSeqDataSetFromSE( se, design= ~ sample + exon + condition:exon )\ndxd = estimateSizeFactors( dxd )\ndxd = estimateDispersions( dxd )\ndxd = testForDEU( dxd )\ndxd = estimateExonFoldChanges( dxd, fitExpToVar=\"condition\")\ndxr1 = DEXSeqResults( dxd )"
+    },
+    {
+      "name": "python_htseq_workflow",
+      "intent": "Perform differential exon usage analysis starting from pre-calculated HTSeq count files and a flattened GFF file.",
+      "input": [
+        "count_files (text files containing exon counts per sample)",
+        "flattened.gff (collapsed exon counting bins GFF file)",
+        "sample_table.csv (metadata table)"
+      ],
+      "stages": "1. Define paths to count files and the flattened GFF file ;; 2. Create a sample metadata data frame ;; 3. Build a DEXSeqDataSet using DEXSeqDataSetFromHTSeq() ;; 4. Run the complete analysis using the wrapper function DEXSeq()",
+      "code": "inDir = system.file(\"extdata\", package=\"pasilla\")\ncountFiles = list.files(inDir, pattern=\"fb.txt$\", full.names=TRUE)\nflattenedFile = list.files(inDir, pattern=\"gff$\", full.names=TRUE)\nsampleTable = data.frame(\n   row.names = c( \"treated1\", \"treated2\", \"treated3\", \n      \"untreated1\", \"untreated2\", \"untreated3\", \"untreated4\" ),\n   condition = c(\"knockdown\", \"knockdown\", \"knockdown\",  \n      \"control\", \"control\", \"control\", \"control\" ),\n   libType = c( \"single-end\", \"paired-end\", \"paired-end\", \n      \"single-end\", \"single-end\", \"paired-end\", \"paired-end\" ) )\ndxd = DEXSeqDataSetFromHTSeq(\n   countFiles,\n   sampleData=sampleTable,\n   design= ~ sample + exon + condition:exon,\n   flattenedfile=flattenedFile )\ndxr = DEXSeq(dxd)"
+    },
+    {
+      "name": "complex_design_workflow",
+      "intent": "Perform differential exon usage analysis controlling for additional technical or experimental covariates (blocking factors).",
+      "input": [
+        "dxd (an existing DEXSeqDataSet containing covariate columns in colData)"
+      ],
+      "stages": "1. Define full and reduced model formulas incorporating the blocking factor ;; 2. Estimate dispersions using the full model formula ;; 3. Test for differential exon usage by comparing the full and reduced models ;; 4. Extract results using DEXSeqResults()",
+      "code": "formulaFullModel    =  ~ sample + exon + type:exon + condition:exon\nformulaReducedModel =  ~ sample + exon + type:exon \ndxd = estimateDispersions( dxd, formula = formulaFullModel )\ndxd = testForDEU( dxd, \n\treducedModel = formulaReducedModel, \n        fullModel = formulaFullModel )\ndxr2 = DEXSeqResults( dxd )"
+    }
+  ]
+}

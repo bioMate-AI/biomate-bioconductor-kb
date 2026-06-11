@@ -1,133 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: plotgardener
-// Coordinate-based genomic visualization package for R. It grants users the ability to programmaticall
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/plotgardener/inst/doc/introduction_to_plotgardener.R
-// Upstream  : plotgardenerData
-// Downstream: none
-//
-// Install: BiocManager::install("plotgardener")
+// Bioconductor workflow: plotgardener — quick_genomic_data_inspection
+// Quickly visualize genomic data (Hi-C, signal tracks, genes, or GWAS) without page layout or placement arguments for rapid inspection.
+// Input: IMR90_HiC_10kb, IMR90_ChIP_H3K27ac_signal, hg19_insulin_GWAS
+// Container: quay.io/biocontainers/bioconductor-plotgardener:1.16.0--r45ha27e39d_0
+// R packages: TxDb.Hsapiens.UCSC.hg19.knownGene, org.Hs.eg.db, plotgardener, plotgardenerdata
+// Bioconductor: 3.20 | R: 4.4
+// Requires: TxDb.Hsapiens.UCSC.hg19.knownGene, org.Hs.eg.db, plotgardener
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the required libraries and data
+//  * 2. [Visualization & Output] Quick plot Hi-C data using plotHicSquare()
+//  * 3. [Visualization & Output] Quick plot signal data using plotSignal()
+//  * 4. [Visualization & Output] Quick plot gene annotations using plotGenes()
+//  * 5. [Visualization & Output] Quick plot GWAS Manhattan data using plotManhattan()
 
 nextflow.enable.dsl = 2
 
-process BIOC_PLOTGARDENER {
+process BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-plotgardener"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-plotgardener:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-plotgardener:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_plotgardener_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_plotgardener_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_plotgardener_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("TxDb.Hsapiens.UCSC.hg19.knownGene", "org.Hs.eg.db", "plotgardener", "plotgardenerdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the required libraries and data
     library(plotgardener)
-    library(jsonlite)
-
-    # --- Genomic Signal Visualization [] ---
-    # Key functions: plotSignal, plotGenes
-    library(plotgardenerData)
-    data("IMR90_ChIP_H3K27ac_signal")
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(org.Hs.eg.db)
+    
+    # Helper function to load user input files from the working directory
+    load_input <- function(filename) {
+        if (file.exists(filename)) {
+            return(readRDS(filename))
+        } else if (file.exists(paste0(filename, ".rds"))) {
+            return(readRDS(paste0(filename, ".rds")))
+        } else {
+            stop(paste("Required input file not found:", filename))
+        }
+    }
+    
+    # Read the declared user input files
+    IMR90_HiC_10kb <- load_input("IMR90_HiC_10kb")
+    IMR90_ChIP_H3K27ac_signal <- load_input("IMR90_ChIP_H3K27ac_signal")
+    hg19_insulin_GWAS <- load_input("hg19_insulin_GWAS")
+    
+    # 2. Quick plot Hi-C data using plotHicSquare()
+    pdf("hic_quickplot.pdf", width = 6, height = 6)
+    plotHicSquare(
+        data = IMR90_HiC_10kb,
+        chrom = "chr21", chromstart = 28000000, chromend = 30300000,
+        assembly = "hg19"
+    )
+    dev.off()
+    
+    # 3. Quick plot signal data using plotSignal()
+    pdf("signal_quickplot.pdf", width = 6, height = 3)
     plotSignal(
         data = IMR90_ChIP_H3K27ac_signal,
         chrom = "chr21", chromstart = 28000000, chromend = 30300000,
         assembly = "hg19"
     )
+    dev.off()
+    
+    # 4. Quick plot gene annotations using plotGenes()
+    pdf("genes_quickplot.pdf", width = 6, height = 3)
     plotGenes(
         assembly = "hg19",
         chrom = "chr21", chromstart = 28000000, chromend = 30300000
     )
-
-
-    # --- Hi-C Interaction Plotting [] ---
-    # Key functions: plotHicSquare, annoHeatmapLegend, annoGenomeLabel
-    library(plotgardenerData)
-    data("IMR90_HiC_10kb")
-    hicPlot <- plotHicSquare(
-        data = IMR90_HiC_10kb,
-        chrom = "chr21", chromstart = 28000000, chromend = 30300000,
-        assembly = "hg19",
-        x = 0.25, y = 0.25, width = 2.5, height = 2.5,
-        default.units = "inches"
-    )
-    annoHeatmapLegend(
-        plot = hicPlot,
-        x = 2.85, y = 0.25, width = 0.1, height = 1.25,
-        default.units = "inches"
-    )
-    annoGenomeLabel(
-        plot = hicPlot,
-        x = 0.25, y = 2.75, width = 2.5, height = 0.25,
-        default.units = "inches"
-    )
-
-
-    # --- Association Mapping Visualization [] ---
-    # Key functions: plotManhattan
-    library(plotgardenerData)
-    data("hg19_insulin_GWAS")
+    dev.off()
+    
+    # 5. Quick plot GWAS Manhattan data using plotManhattan()
+    pdf("gwas_quickplot.pdf", width = 6, height = 4)
     plotManhattan(
-        data = hg19_insulin_GWAS,
+        data = hg19_insulin_GWAS, 
         assembly = "hg19",
         fill = c("steel blue", "grey"),
         ymax = 1.1, cex = 0.20
     )
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_plotgardener_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_plotgardener_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_plotgardener_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PLOTGARDENER:", paste0("    plotgardener: ", packageVersion("plotgardener"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION":',
+        paste0('    plotgardener: ', as.character(packageVersion('plotgardener')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_plotgardener_results.csv
-    touch ${prefix}_plotgardener_output.rds
-    echo "BIOC_PLOTGARDENER:" > versions.yml
-    echo "    plotgardener: 0.0.0" >> versions.yml
+    touch ${prefix}_quick_genomic_data_inspection.csv versions.yml
     """
 }
 
-
-workflow BIOC_PLOTGARDENER_WORKFLOW {
+workflow BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ IMR90_HiC_10kb, IMR90_ChIP_H3K27ac_signal, hg19_insulin_GWAS ] ]
 
     main:
-    BIOC_PLOTGARDENER(ch_input)
+    BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION(ch_input)
 
     emit:
-    results  = BIOC_PLOTGARDENER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PLOTGARDENER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PLOTGARDENER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PLOTGARDENER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION.out.tables
+    plots    = BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION.out.plots
+    objects  = BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION.out.objects
+    versions = BIOC_PLOTGARDENER_QUICK_GENOMIC_DATA_INSPECTION.out.versions
 }

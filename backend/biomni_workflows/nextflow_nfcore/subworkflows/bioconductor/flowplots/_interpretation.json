@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: includeAllNegativeRow=logical indicating whether the stacked data includes the all-negative marker combination row (e.g., TNFa-IL6-IL12-IFNa-) ;; byVarNames=character vector specifying the grouping/subsetting variables in the stacked data (e.g., stim, concGroup, cell) ;; pointColor=can be a single color, a vector of colors for each group, a matrix mapping groups to x-axis categories, or a list of matrices assigning a specific color to every individual point on the plot ;; boxOutliers=logical indicating whether to plot outliers as boxplot outliers (typically set to FALSE when overlaying individual points)\n- alternatives: The documentation mentions using the vcd package's ternaryplot function for ternary plots of PFD data, and standard R barplot for profile data.\n- when_to_use: Use when analyzing gated ICS flow cytometry data to compare cytokine profiles, marginal cytokine expression, or polyfunctional degrees across multiple groups with embedded statistical testing (Wilcoxon Rank Sum or Kruskal-Wallis).\n- pitfalls: The stacked data frame must be sorted within each subset of interest (e.g., subject ID, cell type, stimulation, and concentration) so that the marker combinations match the exact order of the rows in the markers matrix before using StackedData class methods to compute summary data.",
+  "workflows": [
+    {
+      "name": "compute_summary_data",
+      "intent": "Compute profile, marginal, PFD, and PFD parts summary datasets from stacked ICS flow cytometry data using the StackedData class.",
+      "input": [
+        "stacked_data.csv (Gated ICS flow cytometry data in stacked format with columns for ID, group, subsetting variables, percent/count, and cytokine combinations)"
+      ],
+      "stages": "1. Initialize StackedData object ;; 2. Define and assign marker combinations ;; 3. Compute and assign profile data ;; 4. Compute and assign marginal data ;; 5. Compute and assign PFD data ;; 6. Compute and assign PFD parts data",
+      "code": "stackedDataObject = new(\"StackedData\", stackedData = adultsNeonates)\nmarkerNames = c(\"TNFa\",\"IL6\",\"IL12\",\"IFNa\")\nmarkers = computeMarkers(markerNames, includeAllNegativeRow=TRUE)\nmarkers(stackedDataObject) = markers\nbyVarNames = c(\"stim\", \"concGroup\", \"cell\")\nprofileData = computeProfileData(stackedDataObject, byVarNames, \"id\", \"percentAll\", \"group\")\nprofileData(stackedDataObject) = profileData\nmarginalData = computeMarginalData(stackedDataObject, byVarNames, \"id\", \"percentAll\", \"group\")\nmarginalData(stackedDataObject) = marginalData\npfdData = computePFDData(stackedDataObject, byVarNames, \"id\", \"percentAll\", \"group\")\npfdData(stackedDataObject) = pfdData\npfdPartsData = computePFDPartsData(stackedDataObject, byVarNames, \"id\", \"percentAll\", \"group\")\npfdPartsData(stackedDataObject) = pfdPartsData"
+    },
+    {
+      "name": "group_comparison_boxplot",
+      "intent": "Generate boxplots with embedded statistical tests to compare cytokine profiles or summary measures between groups.",
+      "input": [
+        "summary_data.csv (A data frame of profile, marginal, or PFD data subsetted for a specific condition)"
+      ],
+      "stages": "1. Subset the summary data for the condition of interest ;; 2. Prepare the data list using makeDataList ;; 3. Define x-axis labels using markerMatrix ;; 4. Plot the group comparisons using GroupListBoxplot",
+      "code": "profileDataSubset = subset(profileDF, stim==\"LPS\" & concGroup==3 & cell==\"mDC\")\ngroupDataList = makeDataList(profileDataSubset ,\"group\", 1:16)\ndata(markerMatrix)\ntheMarkers = colnames(markerMatrix)\nxTickLabels = cbind(theMarkers, t(markerMatrix))\nGroupListBoxplot(groupDataList, xlabel=\"\", \n   ylabel=\"Percent of All Cells\", boxOutliers=FALSE,\n   xAxisLabels=xTickLabels, xMtext=\"Marker Category\", \n   mainTitle=\"Stimulation = LPS, Concentration Group = 3, Cell = mDC\", \n   legendGroupNames=c(\"Adults\",\"Neonates\"), pointColor=c(2,4),    \n   testTitleCEX=.8, nCEX=.6, pCEX=.6, legendColor=c(2,4), legendCEX=.6,\n   xAxisCEX=.7, xAtMtext=-1)\nmtext(\"PROFILE DATA\", side=3, line=2)"
+    },
+    {
+      "name": "ternary_plot_pfd",
+      "intent": "Create a ternary plot to compare the distribution of polyfunctional degrees (PFD) between groups.",
+      "input": [
+        "pfd_data.csv (PFD summary data frame)"
+      ],
+      "stages": "1. Prepare ternary data using makeTernaryData ;; 2. Compute group statistics for the legend using computePFDGroupStatsList ;; 3. Generate legend names using legendPFDStatsGroupNames ;; 4. Plot using vcd::ternaryplot and add the legend using grid_legend",
+      "code": "pfdDataSubset = subset(pfdDF, stim==\"LPS\" & concGroup==3 & cell==\"mDC\")\nternaryData = makeTernaryData(pfdDataSubset, 1, 2, 3:4)\ncolnames(ternaryData) = c(\"PFD1\", \"PFD2\", \"PFD3-4\")\nadultPFDData = subset(pfdDataSubset, group==\"adult\", select=c(PFD1:PFD4))\nneoPFDData = subset(pfdDataSubset, group==\"neonate\", select=c(PFD1:PFD4))\ngroupPFDDataList = list(adultPFDData, neoPFDData)\npfdGroupStatsList = computePFDGroupStatsList(groupPFDDataList, pfdValues=1:4,\n   numDigitsMean=3, numDigitsSD=2)\ngroupNames = c(\"Adults\",\"Neonates\")\nlegendNames = legendPFDStatsGroupNames(pfdGroupStatsList,groupNames)\nlibrary(vcd)\nternaryplot(ternaryData, cex=.5, col=as.numeric(pfdDataSubset$group)*2,  \n   main=\"TERNARY PLOT OF PFD DATA,\nStimulation = LPS, Concentration Group = 3, Cell = mDC\")\ngrid_legend(0.8, 0.7, pch=c(20,20), col=c(2,4), legendNames, \n   title = \"Group (n), mean/sd:\", gp=gpar(cex=.8))"
+    }
+  ]
+}

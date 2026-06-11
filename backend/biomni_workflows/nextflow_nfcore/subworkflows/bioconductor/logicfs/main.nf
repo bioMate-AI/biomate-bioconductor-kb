@@ -1,103 +1,153 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: logicFS
-// Identification of interactions between binary variables using Logic Regression. Can, e.g., be used t
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/logicFS/inst/doc/logicFS.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("logicFS")
+// Bioconductor workflow: logicFS — interaction_importance_logicfs
+// Identify and measure the importance of SNP interactions using logic regression feature selection.
+// Input: data.logicfs, cl.logicfs
+// Container: quay.io/biocontainers/bioconductor-logicfs:2.30.0--r45hdfd78af_0
+// R packages: logicFS
+// Bioconductor: 3.20 | R: 4.4
+// Requires: logicFS
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and data
+//  * 2. [Core Analysis] Convert categorical SNP variables into binary dummy variables
+//  * 3. [Input & Preparation] Set up simulated annealing control parameters
+//  * 4. [Core Analysis] Run logic regression feature selection
+//  * 5. [Visualization & Output] Visualize interaction importance
 
 nextflow.enable.dsl = 2
 
-process BIOC_LOGICFS {
+process BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-logicfs"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-logicfs:2.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-logicfs:2.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_logicfs_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_logicfs_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_logicfs_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("logicFS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the package and data
     library(logicFS)
-    library(jsonlite)
-
-    # --- Dummy [] ---
-    # Key functions: dummy
+    
+    # Robust loader for the user input files
+    load_input <- function(filepath) {
+      if (!file.exists(filepath)) {
+        stop(paste("Error: Required input file '", filepath, "' not found in the working directory.", sep = ""))
+      }
+      
+      # Try reading as RDS
+      obj <- tryCatch(readRDS(filepath), error = function(e) NULL)
+      if (!is.null(obj)) return(obj)
+      
+      # Try reading as table (for matrix/dataframe)
+      obj <- tryCatch({
+        df <- read.table(filepath, header = TRUE, check.names = FALSE)
+        as.matrix(df)
+      }, error = function(e) NULL)
+      if (!is.null(obj)) return(obj)
+      
+      # Try reading as simple vector (scan)
+      obj <- tryCatch(scan(filepath, quiet = TRUE), error = function(e) NULL)
+      if (!is.null(obj)) return(obj)
+      
+      stop(paste("Error: Failed to parse file '", filepath, "'. Please ensure it is a valid RDS, CSV, or text file.", sep = ""))
+    }
+    
+    data.logicfs <- load_input("data.logicfs")
+    cl.logicfs <- load_input("cl.logicfs")
+    
+    # Ensure cl.logicfs is a vector
+    if (is.matrix(cl.logicfs) || is.data.frame(cl.logicfs)) {
+      cl.logicfs <- as.vector(as.matrix(cl.logicfs))
+    }
+    
+    # Ensure data.logicfs is a matrix
+    if (!is.matrix(data.logicfs)) {
+      data.logicfs <- as.matrix(data.logicfs)
+    }
+    
+    # 2. Convert categorical SNP variables into binary dummy variables
     bin.snps <- make.snp.dummy(data.logicfs)
-    # --- Control [] ---
-    # Key functions: control
+    
+    # Save binary SNPs to CSV
+    write.csv(as.data.frame(bin.snps), "binary_snps.csv", row.names = TRUE)
+    
+    # 3. Set up simulated annealing control parameters
     my.anneal <- logreg.anneal.control(start = 2, end = -2, iter = 10000)
-    # --- Logicfs [] ---
-    # Key functions: logicFS
-    log.out <- logicFS(bin.snps, cl.logicfs, B = 20, nleaves = 10,
-       rand = 1234, anneal.control = my.anneal)
-    # --- Bagging [] ---
-    # Key functions: bagging
-    bag.out <- logic.bagging(bin.snps, cl.logicfs, B = 20, nleaves = 10,
-       rand = 1234, anneal.control = my.anneal)
-    bag.out
-    # --- Predict [] ---
-    # Key functions: predict
-    cl.preds <- predict(bag.out, bin.snps)
+    
+    # 4. Run logic regression feature selection
+    log.out <- logicFS(bin.snps, cl.logicfs, B = 20, nleaves = 10, rand = 1234, anneal.control = my.anneal)
+    
+    # Save the text summary of the model
+    sink("logicFS_summary.txt")
+    print(log.out)
+    sink()
+    
+    # Save the RDS object
+    saveRDS(log.out, "logicFS_result.rds")
+    
+    # 5. Visualize interaction importance
+    pdf("logicFS_importance_plot.pdf", width = 8, height = 6)
+    plot(log.out)
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_logicfs_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_logicfs_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_logicfs_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LOGICFS:", paste0("    logicfs: ", packageVersion("logicFS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS":',
+        paste0('    logicFS: ', as.character(packageVersion('logicFS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_logicfs_results.csv
-    touch ${prefix}_logicfs_output.rds
-    echo "BIOC_LOGICFS:" > versions.yml
-    echo "    logicfs: 0.0.0" >> versions.yml
+    touch ${prefix}_interaction_importance_logicfs.csv versions.yml
     """
 }
 
-
-workflow BIOC_LOGICFS_WORKFLOW {
+workflow BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ data.logicfs, cl.logicfs ] ]
 
     main:
-    BIOC_LOGICFS(ch_input)
+    BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS(ch_input)
 
     emit:
-    results  = BIOC_LOGICFS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LOGICFS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LOGICFS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LOGICFS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS.out.tables
+    plots    = BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS.out.plots
+    objects  = BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS.out.objects
+    versions = BIOC_LOGICFS_INTERACTION_IMPORTANCE_LOGICFS.out.versions
 }

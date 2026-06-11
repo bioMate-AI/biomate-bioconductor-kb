@@ -1,105 +1,125 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GENIE3
-// This package implements the GENIE3 algorithm for inferring gene regulatory networks from expression 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GENIE3/inst/doc/GENIE3.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GENIE3")
+// Bioconductor workflow: GENIE3 — standard_network_inference
+// Infer a gene regulatory network from a gene expression matrix using default or customized tree-based parameters and extract ranked regulatory links.
+// Input: exprMatr
+// Container: quay.io/biocontainers/bioconductor-genie3:1.32.0--r45h01b2380_0
+// R packages: GENIE3
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GENIE3
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Prepare the gene expression matrix
+//  * 2. [Core Analysis] Run GENIE3 to compute regulatory link weights (optionally customizing tree method, parameters, or parallelization)
+//  * 3. [Core Analysis] Extract and filter the ranked list of regulatory links
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENIE3 {
+process BIOC_GENIE3_STANDARD_NETWORK_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genie3"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genie3:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genie3:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genie3_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genie3_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genie3_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GENIE3)
-    library(jsonlite)
-
-    # --- Format Expression Data [] ---
-    # Key functions: sample
-    ---------------------------------------------------------------------
-    exprMatr <- matrix(sample(1:10, 100, replace=TRUE), nrow=20)
-    rownames(exprMatr) <- paste("Gene", 1:20, sep="")
-    colnames(exprMatr) <- paste("Sample", 1:5, sep="")
-    head(exprMatr)
-    # --- Run GENIE3 Algorithm [] ---
-    # Key functions: GENIE3
-    ---------------------------------------------------------------------
-    regulatorsList <- list("Gene1"=rownames(exprMatr)[1:10],
-                           "Gene2"=rownames(exprMatr)[10:20],
-                           "Gene20"=rownames(exprMatr)[15:20])
-    set.seed(123)
-    # --- Extract Regulatory Links [] ---
-    # Key functions: getLinkList
-    ---------------------------------------------------------------------
-    linkList <- getLinkList(weightMat)
-    dim(linkList)
-    head(linkList)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genie3_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genie3_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GENIE3")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genie3_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(GENIE3)
+        
+        # 1. Prepare the gene expression matrix
+        # Read the user input file 'exprMatr' from the working directory.
+        # We support CSV, TSV, or RDS formats.
+        if (file.exists("exprMatr.csv")) {
+          exprMatr <- as.matrix(read.csv("exprMatr.csv", row.names = 1, check.names = FALSE))
+        } else if (file.exists("exprMatr.tsv")) {
+          exprMatr <- as.matrix(read.delim("exprMatr.tsv", row.names = 1, check.names = FALSE))
+        } else if (file.exists("exprMatr.rds")) {
+          exprMatr <- readRDS("exprMatr.rds")
+          if (!is.matrix(exprMatr)) {
+            exprMatr <- as.matrix(exprMatr)
+          }
+        } else {
+          stop("Error: Input file 'exprMatr' (as .csv, .tsv, or .rds) not found in the working directory.")
+        }
+        
+        # 2. Run GENIE3 to compute regulatory link weights
+        set.seed(123) # For reproducibility of results
+        
+        # We use tryCatch in case the system environment restricts multi-core execution.
+        # K="sqrt" is used as a sensible default appropriate for the dataset size.
+        weightMat <- tryCatch({
+          GENIE3(exprMatr, K="sqrt", nCores=4, verbose=TRUE)
+        }, error = function(e) {
+          warning("Parallel GENIE3 run failed, falling back to single core: ", e\$message)
+          GENIE3(exprMatr, K="sqrt", nCores=1, verbose=TRUE)
+        })
+        saveRDS(weightMat, "weightMat_final.rds")
+        write.csv(weightMat, "weightMat_final.csv")
+        
+        # 3. Extract and filter the ranked list of regulatory links
+        # Extract all regulatory links (single sensible extraction)
+        linkList_all <- getLinkList(weightMat)
+        write.csv(linkList_all, "linkList_all.csv", row.names = FALSE)
+        
+        message("GENIE3 workflow completed successfully. Outputs saved to the working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENIE3:", paste0("    genie3: ", packageVersion("GENIE3"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENIE3_STANDARD_NETWORK_INFERENCE":',
+        paste0('    GENIE3: ', as.character(packageVersion('GENIE3')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genie3_results.csv
-    touch ${prefix}_genie3_output.rds
-    echo "BIOC_GENIE3:" > versions.yml
-    echo "    genie3: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_network_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENIE3_WORKFLOW {
+workflow BIOC_GENIE3_STANDARD_NETWORK_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exprMatr ] ]
 
     main:
-    BIOC_GENIE3(ch_input)
+    BIOC_GENIE3_STANDARD_NETWORK_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_GENIE3.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENIE3.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENIE3.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENIE3.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENIE3_STANDARD_NETWORK_INFERENCE.out.tables
+    plots    = BIOC_GENIE3_STANDARD_NETWORK_INFERENCE.out.plots
+    objects  = BIOC_GENIE3_STANDARD_NETWORK_INFERENCE.out.objects
+    versions = BIOC_GENIE3_STANDARD_NETWORK_INFERENCE.out.versions
 }

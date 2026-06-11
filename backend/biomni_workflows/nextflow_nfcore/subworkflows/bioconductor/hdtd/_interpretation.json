@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datamat=The input matrix containing stacked subject-specific matrices ;; N=The sample size (number of subjects/patients) ;; group.sizes=A vector indicating the sizes of successive column groups for mean matrix testing ;; order.cols=A vector specifying the new order of columns when rearranging data ;; voi=The variable of interest for covariance testing, either \"rows\" or \"columns\"\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when analyzing high-dimensional transposable datasets (where data for each subject is a matrix of row and column variables) with small sample sizes and expected dependencies within and between the row and column variables.\n- pitfalls: Input data must be formatted strictly by writing the data for each subject in a matrix form (preserving row and column order) and then stacking these subject-specific matrices column-wise. When testing specific column groups, columns must be rearranged into successive order using orderdata before running meanmat.ts.",
+  "workflows": [
+    {
+      "name": "mean_matrix_analysis",
+      "intent": "Test and estimate the mean relationship of row variables across column variables in transposable data.",
+      "input": [
+        "user_data.csv (A matrix of dimensions row_vars x (col_vars * N), where subject-specific matrices are stacked column-wise)"
+      ],
+      "stages": "1. Load the transposable dataset ;; 2. Test for constant mean vector across all columns using meanmat.ts ;; 3. Reorder columns using orderdata to group specific columns of interest ;; 4. Test for constant mean vector within specific column groups using meanmat.ts with group.sizes ;; 5. Estimate the unstructured mean matrix using meanmat.hat",
+      "code": "library(\"HDTD\")\ndata(\"VEGFmouse\")\nmeanmat.ts(VEGFmouse, N = 40, group.sizes = 9)\ncolumnorder <- c(1, 4, 5, 8, 2, 3, 6, 7, 9)\nVEGForder <- orderdata(VEGFmouse, N = 40, order.cols = columnorder)\nmeanmat.ts(VEGForder, N = 40, group.sizes = c(4, 1, 1, 1, 1, 1))\nsample_mean <- meanmat.hat(VEGFmouse, N = 40)"
+    },
+    {
+      "name": "covariance_structure_analysis",
+      "intent": "Estimate and test the covariance and correlation structure of row and column variables in transposable data.",
+      "input": [
+        "user_data.csv (A matrix of dimensions row_vars x (col_vars * N), where subject-specific matrices are stacked column-wise)"
+      ],
+      "stages": "1. Load the transposable dataset ;; 2. Estimate row and column covariance matrices with shrinkage using covmat.hat ;; 3. Extract the estimated column (or row) covariance matrix ;; 4. Perform hypothesis tests (diagonality, sphericity, identity) on the covariance matrix using covmat.ts",
+      "code": "library(\"HDTD\")\ndata(\"VEGFmouse\")\nest_cov_mat <- covmat.hat(datamat = VEGFmouse, N = 40)\nround(est_cov_mat$cols.covmat, 3)\ncovmat.ts(datamat = VEGFmouse, N = 40, voi = \"columns\")"
+    }
+  ]
+}

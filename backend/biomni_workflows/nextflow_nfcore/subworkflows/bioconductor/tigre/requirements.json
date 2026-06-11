@@ -1,0 +1,20 @@
+{
+  "package": "tigre",
+  "requirements": [
+    "affy",
+    "annotate",
+    "puma",
+    "tigre"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "affy",
+      "annotate",
+      "puma",
+      "tigre"
+    ],
+    "non_affymetrix_time_series_analysis.nf": [
+      "tigre"
+    ]
+  }
+}

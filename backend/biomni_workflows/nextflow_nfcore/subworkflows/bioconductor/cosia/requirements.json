@@ -1,0 +1,16 @@
+{
+  "package": "cosia",
+  "requirements": [
+    "CoSIA",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "cross_species_diversity_and_specificity.nf": [
+      "CoSIA",
+      "htmlwidgets"
+    ],
+    "main.nf": [
+      "CoSIA"
+    ]
+  }
+}

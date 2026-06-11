@@ -1,0 +1,39 @@
+{
+  "package": "gostats",
+  "requirements": [
+    "AnnotationDbi",
+    "AnnotationForge",
+    "Biobase",
+    "Category",
+    "GO.db",
+    "GOstats",
+    "GSEABase",
+    "Rgraphviz",
+    "annotate",
+    "genefilter",
+    "graph"
+  ],
+  "by_workflow": {
+    "association_unsupported_organism.nf": [
+      "AnnotationDbi",
+      "AnnotationForge",
+      "Category",
+      "GOstats",
+      "GSEABase"
+    ],
+    "go_visualization_and_similarity.nf": [
+      "Biobase",
+      "GO.db",
+      "GOstats",
+      "Rgraphviz",
+      "annotate",
+      "graph"
+    ],
+    "main.nf": [
+      "Biobase",
+      "GOstats",
+      "annotate",
+      "genefilter"
+    ]
+  }
+}

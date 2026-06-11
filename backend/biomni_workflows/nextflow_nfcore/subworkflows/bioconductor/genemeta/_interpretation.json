@@ -1,0 +1,32 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: useREM=logical indicating whether to use a Random Effects Model (TRUE) or Fixed Effects Model (FALSE) in zScores and zScoreFDR ;; CombineExp=integer vector specifying which experiments in the list of ExpressionSets should be combined ;; nperm=number of permutations for FDR estimation in zScoreFDR ;; Score=metric to plot in CountPlot (e.g., \"FDR\") ;; kindof=direction of effect to plot in CountPlot (\"neg\", \"pos\", or \"two.sided\")\n- alternatives: meta.summaries from the rmeta package is mentioned as an alternative for meta-analysis of arbitrary effects and variances, whereas zScores is tailored specifically to the Choi et al. (2003) method\n- when_to_use: When combining multiple independent high-throughput (e.g., microarray) datasets that address the same biological question (e.g., comparing the same two phenotypes/conditions) to increase statistical power and obtain a consensus effect size\n- pitfalls: Combining datasets just because they are on the same platform is not justified; they must address the same biological question ;; Failing to check for inter-study heterogeneity (using Cochran's Q statistic via f.Q) before choosing between a Fixed Effects Model (FEM) and a Random Effects Model (REM). If Q is significant (high heterogeneity), REM should be used instead of FEM",
+  "workflows": [
+    {
+      "name": "manual_meta_analysis",
+      "intent": "Perform step-by-step meta-analysis of two-sample microarray data to calculate effect sizes, evaluate heterogeneity, and fit fixed or random effects models.",
+      "input": [
+        "Split1 (ExpressionSet for study 1)",
+        "Split2 (ExpressionSet for study 2)",
+        "Split1.ER (binary phenotype vector for study 1)",
+        "Split2.ER (binary phenotype vector for study 2)"
+      ],
+      "stages": "1. Calculate effect size d for each study using getdF. 2. Adjust d values using dstar. 3. Calculate variance of adjusted d using sigmad. 4. Compute Cochran's Q statistic using f.Q to test for heterogeneity. 5. Fit Fixed Effects Model (FEM) using mu.tau2 and var.tau2. 6. Estimate between-study variance tau^2 using tau2.DL and fit Random Effects Model (REM).",
+      "code": "d.Split1     <- getdF(Split1, Split1.ER)\nd.adj.Split1    <- dstar(d.Split1, length(Split1.ER))\nvar.d.adj.Spli1 <- sigmad(d.adj.Split1, sum(Split1.ER==0), sum(Split1.ER==1))\nd.Split2 <- getdF(Split2, Split2.ER)\nd.adj.Split2     <- dstar(d.Split2, length(Split2.ER))\nvar.d.adj.Split2 <- sigmad(d.adj.Split2, sum(Split2.ER==0), sum(Split2.ER==1))\nmymns  <- cbind(d.adj.Split1, d.adj.Split2)\nmyvars <- cbind(var.d.adj.Spli1,var.d.adj.Split2)\nmy.Q   <- f.Q(mymns, myvars)\nmuFEM = mu.tau2(mymns, myvars)\nsdFEM = var.tau2(myvars)\nZFEM = muFEM/sqrt(sdFEM)\nmy.tau2.DL<-tau2.DL(my.Q, num.studies, my.weights=1/myvars)\nmyvarsDL <- myvars + my.tau2.DL\nmuREM <- mu.tau2(mymns, myvarsDL)\nvarREM <- var.tau2(myvarsDL)\nZREM <- muREM/sqrt(varREM)"
+    },
+    {
+      "name": "automated_meta_analysis_fdr",
+      "intent": "Perform an all-in-one meta-analysis across multiple studies to compute combined z-scores, estimate false discovery rates (FDR) via permutations, and visualize results.",
+      "input": [
+        "Split1 (ExpressionSet for study 1)",
+        "Split2 (ExpressionSet for study 2)",
+        "Nevins (ExpressionSet for study 3)",
+        "Split1.ER (binary phenotype vector for study 1)",
+        "Split2.ER (binary phenotype vector for study 2)",
+        "data.ER (binary phenotype vector for study 3)"
+      ],
+      "stages": "1. Compute combined z-scores and meta-analysis statistics using zScores. 2. Plot combined vs original scores and IDR plot using IDRplot. 3. Estimate FDR using zScoreFDR. 4. Visualize FDR thresholds and gene counts using CountPlot.",
+      "code": "esets     <- list(Split1,Split2,Nevins)\ndata.ER   <-pData(Nevins)[,\"ER.status\"]\nlevels(data.ER) <- c(0,1)\ndata.ER<- as.numeric(as.character(data.ER))\nclasses   <- list(Split1.ER,Split2.ER,data.ER)\ntheScores <- zScores(esets,classes,useREM=FALSE,CombineExp=1:2)\nIDRplot(theScores,Combine=1:2,colPos=\"blue\", colNeg=\"red\")\nScoresFDR <- zScoreFDR(esets, classes, useREM=FALSE, nperm=50,CombineExp=1:2)\nCountPlot(ScoresFDR,Score=\"FDR\",kindof=\"two.sided\",cols=c(\"red\",theNewC),main=\"two sided FDR\", xlab=\"FDR threshold\",ylab=\"Number of genes\",CombineExp=3)"
+    }
+  ]
+}

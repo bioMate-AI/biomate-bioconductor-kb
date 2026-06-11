@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cutoff=Threshold on the variation coefficient to filter out low-varying features in remove.low.cv ;; ncomp=Number of components to define clusters, optimized via getNcomp ;; keepX/keepY=Number of features to keep per component to define a cluster signature, optimized via tuneCluster functions ;; scale/center=Logicals in pca, pls, and plotLong to scale or center time profiles ;; mode=Character string indicating the multi-block PLS mode (e.g., \"canonical\")\n- alternatives: lmms::lmmSpline=Used for modeling time-course data by taking into account inter-individual variability ;; lmms::lmmsDE=Used for statistical testing of profiles that are not differentially expressed over time ;; mixOmics=The underlying package providing multivariate ordination methods (PCA, PLS, block PLS)\n- when_to_use: Use this framework when you have longitudinal multi-omics datasets (e.g., transcriptomics, metabolomics, microbiome) measured on the same biological samples across multiple time points, and you want to identify co-expressed temporal feature signatures.\n- pitfalls: Straight line modeling can occur when inter-individual variation is too high, requiring filtering with lmms.filter.lines ;; Interpretation based on raw correlations between profiles can be spurious, so proportionality distance (proportionality function) should be used for post-hoc validation ;; The lmms package is archived on CRAN and must be installed from GitHub (cran/lmms)",
+  "workflows": [
+    {
+      "name": "single_omic_longitudinal_clustering",
+      "intent": "Model and cluster longitudinal features from a single omics dataset to find groups of features with similar temporal profiles.",
+      "input": [
+        "sim.data (matrix or data.frame of expression/abundance values with samples in rows and features in columns)",
+        "time (numeric vector containing sample time point information)"
+      ],
+      "stages": "1. Filter low-variation features using a coefficient of variation threshold ;; 2. Model features as a function of time using linear mixed model splines ;; 3. Filter out noisy or straight-line profiles ;; 4. Perform PCA and optimize the number of components ;; 5. Extract clusters and plot longitudinal profiles ;; 6. Optimize feature selection using sparse PCA to identify a cluster signature",
+      "code": "data(\"timeOmics.simdata\")\nsim.data <- timeOmics.simdata$sim\n\nremove.low.cv <- function(X, cutoff = 0.5){\n  # var.coef\n  cv <- unlist(lapply(as.data.frame(X), \n                      function(x) abs(sd(x)/mean(x))))\n  return(X[,cv > cutoff])\n}\n\ndata.filtered <- remove.low.cv(sim.data, 0.5)\ntime <- timeOmics.simdata$time\nlmms.output <- timeOmics.simdata$lmms.output\nmodelled.data <- timeOmics.simdata$modelled\nfilter.res <- lmms.filter.lines(data = data.filtered, \n                                lmms.obj = lmms.output, time = time)\nprofile.filtered <- filter.res$filtered\npca.res <- pca(X = profile.filtered, ncomp = 5, scale=FALSE, center=FALSE)\npca.ncomp <- getNcomp(pca.res, max.ncomp = 5, X = profile.filtered, \n                      scale = FALSE, center=FALSE)\npca.res <- pca(X = profile.filtered, ncomp = 2, scale = FALSE, center=FALSE)\npca.cluster <- getCluster(pca.res)\nplotIndiv(pca.res)\nplotVar(pca.res)\nplotLoadings(pca.res)\nplotLong(pca.res, scale = FALSE, center = FALSE, \n         title = \"PCA longitudinal clustering\")\ntune.spca.res <- tuneCluster.spca(X = profile.filtered, ncomp = 2, \n                                  test.keepX = c(2:10))\nspca.res <- spca(X = profile.filtered, ncomp = 2, \n                 keepX = tune.spca.res$choice.keepX, scale = FALSE)\nplotLong(spca.res)"
+    },
+    {
+      "name": "multi_omic_two_blocks_clustering",
+      "intent": "Integrate and cluster longitudinal features from two different omics datasets to find common temporal profiles and signatures.",
+      "input": [
+        "profile.filtered (modeled and filtered matrix of the first omic block)",
+        "timeOmics.simdata$Y (matrix of the second omic block with matching samples/rows)"
+      ],
+      "stages": "1. Perform PLS and optimize the number of components ;; 2. Extract clusters and plot longitudinal profiles ;; 3. Optimize feature selection for both blocks using sparse PLS to identify a joint signature",
+      "code": "X <- profile.filtered\nY <- timeOmics.simdata$Y\n\npls.res <- pls(X,Y, ncomp = 5, scale = FALSE)\npls.ncomp <- getNcomp(pls.res, max.ncomp = 5, X=X, Y=Y, scale = FALSE)\npls.res <- pls(X,Y, ncomp = 2, scale = FALSE)\nhead(getCluster(pls.res))\nplotLong(pls.res, title = \"PLS longitudinal clustering\", legend = TRUE)\ntune.spls <- tuneCluster.spls(X, Y, ncomp = 2, test.keepX = c(4:10), test.keepY <- c(2,4,6))\nspls.res <- spls(X,Y, ncomp = 2, scale = FALSE, \n                 keepX = tune.spls$choice.keepX, keepY = tune.spls$choice.keepY)\nspls.cluster <- getCluster(spls.res)\nplotLong(spls.res, title = \"sPLS clustering\")"
+    },
+    {
+      "name": "multi_block_omics_clustering",
+      "intent": "Integrate and cluster longitudinal features from three or more omics datasets, identify signatures, and perform post-hoc validation.",
+      "input": [
+        "profile.filtered (modeled and filtered matrix of the first omic block)",
+        "timeOmics.simdata$Z (matrix of the third omic block)",
+        "timeOmics.simdata$Y (matrix of the second omic block)"
+      ],
+      "stages": "1. Perform multi-block PLS and optimize the number of components ;; 2. Extract clusters and plot longitudinal profiles ;; 3. Optimize feature selection across all blocks using multi-block sparse PLS ;; 4. Perform post-hoc validation using proportionality distance and Wilcoxon U-tests",
+      "code": "X <- list(\"X\" = profile.filtered, \"Z\" = timeOmics.simdata$Z)\nY <- as.matrix(timeOmics.simdata$Y)\n\nblock.pls.res <- block.pls(X=X, Y=Y, ncomp = 5, \n                           scale = FALSE, mode = \"canonical\")\nblock.ncomp <- getNcomp(block.pls.res,X=X, Y=Y, \n                        scale = FALSE, mode = \"canonical\")\nblock.pls.res <- block.pls(X=X, Y=Y, ncomp = 1, scale = FALSE, mode = \"canonical\")\nblock.pls.cluster <- getCluster(block.pls.res)\nplotLong(block.pls.res)\ntest.list.keepX <- list(\"X\" = 4:10, \"Z\" = c(2,4,6,8))\ntest.keepY <- c(2,4,6)\n\ntune.block.res <- tuneCluster.block.spls(X= X, Y= Y, \n                                         test.list.keepX=test.list.keepX, \n                                         test.keepY= test.keepY, \n                                         scale=FALSE, \n                                         mode = \"canonical\", ncomp = 1)\nblock.pls.res <- block.spls(X=X, Y=Y, \n                            ncomp = 1, \n                            scale = FALSE, \n                            mode = \"canonical\", \n                            keepX = tune.block.res$choice.keepX, \n                            keepY = tune.block.res$choice.keepY)\n\nhead(getCluster(block.pls.res))\nplotLong(block.pls.res)\nres <- proportionality(block.pls.res)\nhead(res$propr.distance)[1:6]\npval.propr <- res$pvalue\nknitr::kable(pval.propr)\nplot(res)"
+    }
+  ]
+}

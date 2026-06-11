@@ -1,90 +1,127 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CellBench
-// This package contains infrastructure for benchmarking analysis methods and access to single cell mix
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CellBench/inst/doc/DataManipulation.R
-// Upstream  : dplyr, ggplot2, limma, purrr, tibble
-// Downstream: none
-//
-// Install: BiocManager::install("CellBench")
+// Bioconductor workflow: CellBench — combinatorial_method_benchmarking
+// Apply a sequence of analysis methods combinatorially to a list of datasets and collapse the pipeline names for downstream analysis or plotting.
+// Input: datasets.rds
+// Container: quay.io/biocontainers/bioconductor-cellbench:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CellBench, SingleCellExperiment, dplyr, purrr
+// QC: count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load datasets into a list
+//  * 2. [Input & Preparation] Define pipeline steps as lists of functions
+//  * 3. [Core Analysis] Apply the first set of methods using apply_methods()
+//  * 4. [Core Analysis] Apply subsequent methods using apply_methods()
+//  * 5. [Core Analysis] Collapse pipeline steps using pipeline_collapse()
 
 nextflow.enable.dsl = 2
 
-process BIOC_CELLBENCH {
+process BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cellbench"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cellbench:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cellbench:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cellbench_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cellbench_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cellbench_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(CellBench)
-    library(jsonlite)
-
-    # --- result = 'hide' [] ---
-    # Key functions: plus_two, partial, fn_arg_seq
-    f <- function(x) { print(x) }
-    g <- f # g = function(x) { print(x) }
-    plus <- function(x, y) { x + y }
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cellbench_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cellbench_results.csv")
+    library(dplyr)
+    library(purrr)
+    
+    # 1. Load datasets into a list
+    # The pipeline reads EXACTLY datasets.rds from the working directory
+    datasets <- readRDS("datasets.rds")
+    
+    # Ensure datasets is indeed a list
+    if (!is.list(datasets)) {
+      datasets <- list(sample_data = datasets)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cellbench_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CELLBENCH:", paste0("    cellbench: ", packageVersion("CellBench"))),
-        "versions.yml"
+    
+    # 2. Define pipeline steps as lists of functions
+    norm_method <- list(
+      none = counts,
+      cpm = function(x) t(t(1e6 * counts(x)) / colSums(counts(x)))
     )
+    
+    transform <- list(
+      none = identity,
+      log2 = function(x) log2(x+1)
+    )
+    
+    # 3. Apply the first set of methods using apply_methods()
+    res1 <- datasets %>% apply_methods(norm_method)
+    
+    # 4. Apply subsequent methods using apply_methods()
+    res2 <- res1 %>% apply_methods(transform)
+    
+    # 5. Collapse pipeline steps using pipeline_collapse()
+    collapsed_res <- res2 %>% pipeline_collapse()
+    
+    # Write named output files for the meaningful results
+    # Save the complete collapsed results object
+    saveRDS(collapsed_res, "collapsed_results.rds")
+    
+    # Generate and save a summary table of the pipeline runs
+    pipeline_summary <- collapsed_res %>%
+      mutate(
+        features = map_int(result, nrow),
+        samples = map_int(result, ncol)
+      ) %>%
+      select(pipeline, features, samples)
+    
+    write.csv(pipeline_summary, "pipeline_summary.csv", row.names = FALSE)
+
+    writeLines(c(
+        '"BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING":',
+        paste0('    CellBench: ', as.character(packageVersion('CellBench')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cellbench_results.csv
-    touch ${prefix}_cellbench_output.rds
-    echo "BIOC_CELLBENCH:" > versions.yml
-    echo "    cellbench: 0.0.0" >> versions.yml
+    touch ${prefix}_combinatorial_method_benchmarking.csv versions.yml
     """
 }
 
-
-workflow BIOC_CELLBENCH_WORKFLOW {
+workflow BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ datasets.rds ] ]
 
     main:
-    BIOC_CELLBENCH(ch_input)
+    BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING(ch_input)
 
     emit:
-    results  = BIOC_CELLBENCH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CELLBENCH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CELLBENCH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CELLBENCH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING.out.tables
+    plots    = BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING.out.plots
+    objects  = BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING.out.objects
+    versions = BIOC_CELLBENCH_COMBINATORIAL_METHOD_BENCHMARKING.out.versions
 }

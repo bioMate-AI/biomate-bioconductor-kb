@@ -1,0 +1,11 @@
+{
+  "package": "matchbox",
+  "requirements": [
+    "matchBox"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "matchBox"
+    ]
+  }
+}

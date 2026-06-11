@@ -1,0 +1,26 @@
+{
+  "package": "censcyt",
+  "requirements": [
+    "BiocParallel",
+    "SummarizedExperiment",
+    "censcyt",
+    "ggplot2",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "censored_da_wrapper.nf": [
+      "BiocParallel",
+      "SummarizedExperiment",
+      "censcyt",
+      "ggplot2",
+      "tidyr"
+    ],
+    "main.nf": [
+      "BiocParallel",
+      "SummarizedExperiment",
+      "censcyt",
+      "ggplot2",
+      "tidyr"
+    ]
+  }
+}

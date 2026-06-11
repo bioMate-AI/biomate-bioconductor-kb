@@ -1,0 +1,11 @@
+{
+  "package": "antiprofiles",
+  "requirements": [
+    "antiProfiles"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "antiProfiles"
+    ]
+  }
+}

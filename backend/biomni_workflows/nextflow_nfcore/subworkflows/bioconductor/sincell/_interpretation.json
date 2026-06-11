@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <method=In sc_distanceObj(), specifies the distance metric (\"euclidean\", \"cosine\", \"pearson\", \"spearman\", \"L1\", \"MI\") ;; method=In sc_DimensionalityReductionObj(), specifies the dimensionality reduction technique (\"PCA\", \"ICA\", \"tSNE\", \"classical-MDS\", \"nonmetric-MDS\") ;; dim=In sc_DimensionalityReductionObj(), specifies the number of dimensions to retain ;; clust.method=In sc_clusterObj(), specifies the clustering algorithm (\"max.distance\", \"percent\", \"knn\", \"k-medoids\", \"complete\") ;; graph.algorithm=In sc_GraphBuilderObj(), specifies the graph-building algorithm (\"MST\", \"SST\", \"IMC\") ;; graph.using.cells.clustering=In sc_GraphBuilderObj(), logical indicating whether to use previous clustering results ;; num_it=In statistical support functions, specifies the number of iterations (e.g., 100 for speed, 1000 recommended) ;; method=In sc_InSilicoCellsReplicatesObj(), specifies the noise model for generating replicates (\"variance.deciles\", \"cv2.deciles\", \"lognormal-3parameters\", \"negative.binomial\")>\n- alternatives: <monocle=Mentioned for differential gene testing and filtering of the expression matrix prior to Sincell analysis ;; DESeq2=Mentioned for variance stabilizing transformations (e.g., rlog) to address mean-variance relationships ;; biomaRt=Used to map Ensembl gene identifiers to HGCN symbols ;; rgl=Used for 3D visualization of cells in low-dimensional space ;; GRM=Mentioned for technical noise removal using spike-in molecules prior to Sincell analysis>\n- when_to_use: <Appropriate when analyzing single-cell RNA-seq data to reconstruct differentiation, activation, or developmental trajectories (cell-state hierarchies) and evaluate their statistical robustness against technical and biological noise.>\n- pitfalls: <High dimensionality can lead to long computing times; restrict the analysis to the most variable protein-coding genes (e.g., top 2000) ;; Raw RNA-seq counts have mean-dependent variance, which biases PCA/clustering; perform a variance stabilizing transformation (e.g., log-transformation or rlog) before initializing the Sincell object ;; ICA and t-SNE are stochastic optimization algorithms, meaning different runs can lead to slightly different solutions ;; Avoid creating large clusters in hierarchical or k-medoids clustering as they risk masking meaningful gradients in downstream graphs ;; The negative binomial noise model (method=\"negative.binomial\" in sc_InSilicoCellsReplicatesObj) should only be used with normalized count data, not length-normalized RPKM/FPKM values>",
+  "workflows": [
+    {
+      "name": "hierarchy_reconstruction_and_visualization",
+      "intent": "Build and visualize cell-state hierarchies from a single-cell expression matrix using dimensionality reduction, optional clustering, and graph-building algorithms.",
+      "input": [
+        "ExpressionMatrix (normalized single-cell expression matrix with genes as rows and cells as columns)"
+      ],
+      "stages": "1. Log-transform and filter the expression matrix ;; 2. Initialize the Sincell object ;; 3. Perform dimensionality reduction (e.g., ICA, PCA, t-SNE) ;; 4. (Optional) Cluster cells to group highly similar cells ;; 5. Build the cell-state hierarchy graph (MST, SST, or IMC) ;; 6. Extract the hierarchy graph for visualization",
+      "code": "data(ExpressionMatrix)\nEMlog <- unique(\n       log(ExpressionMatrix[which(apply(ExpressionMatrix,1,var)>0),]+1)\n       )\nEMlog <- as.matrix( EMlog[as.logical(apply(!is.nan(EMlog),1,sum)),])\nSO<-sc_InitializingSincellObject(EMlog)\nSO <- sc_DimensionalityReductionObj(SO, method=\"ICA\", dim=2)\nSO <- sc_clusterObj (SO, clust.method=\"knn\", mutual=TRUE, k=5)\nSO<- sc_GraphBuilderObj(SO, graph.algorithm=\"SST\", \n\tgraph.using.cells.clustering=TRUE)\ncellstateHierarchy_SST_clustKNN<-SO[[\"cellstateHierarchy\"]]"
+    },
+    {
+      "name": "statistical_support_assessment",
+      "intent": "Evaluate the robustness of reconstructed cell-state hierarchies against noise using gene resampling and in silico cell replicates.",
+      "input": [
+        "EMlog_t0 (log-transformed single-cell expression matrix for a specific condition/timepoint)"
+      ],
+      "stages": "1. Initialize the Sincell object, perform dimensionality reduction, and build the base hierarchy ;; 2. Assess statistical support via gene resampling ;; 3. Generate in silico cell replicates based on a noise model ;; 4. Assess statistical support via random cell substitution with the generated replicates",
+      "code": "SO_t0 <- sc_InitializingSincellObject(EMlog_t0)\nSO_t0 <- sc_DimensionalityReductionObj(SO_t0, method=\"ICA\",dim=2)\nSO_t0 <- sc_GraphBuilderObj(SO_t0, graph.algorithm=\"MST\", \n\tgraph.using.cells.clustering=FALSE)\nSO_t0<-sc_StatisticalSupportByGeneSubsampling(SO_t0, num_it=100)\nSO_t0 <- sc_InSilicoCellsReplicatesObj(SO_t0, \n\tmethod=\"variance.deciles\", multiplier=100)\nSO_t0<-sc_StatisticalSupportByReplacementWithInSilicoCellsReplicates(SO_t0,\n\tnum_it=100,fraction.cells.to.replace=1)"
+    },
+    {
+      "name": "functional_association_testing",
+      "intent": "Test the association of a reconstructed cell-state hierarchy with predefined gene sets (e.g., pathways).",
+      "input": [
+        "SO_t72 (Sincell object containing a reconstructed hierarchy)",
+        "geneset.list (list of gene sets, e.g., loaded from a GMT file)"
+      ],
+      "stages": "1. Load the gene sets ;; 2. Run the association test for gene sets that meet the minimum size overlap with the expression matrix",
+      "code": "data(geneset.list)\nminimum.geneset.size=30\nmyAssociationOfCellsHierarchyWithAGeneSet<-list()\nfor (i in 1:length(geneset.list)){\n  if(sum(rownames(SO_t72[[\"expressionmatrix\"]]) \n  \t%in% geneset.list[[i]])>=minimum.geneset.size){\n\t\n    SO_t72<-sc_AssociationOfCellsHierarchyWithAGeneSet(SO_t72,geneset.list[[i]],\n    \tminimum.geneset.size=minimum.geneset.size,p.value.assessment=TRUE,\n\tspearman.rank.threshold=0.5,num_it=1000)\n    myAssociationOfCellsHierarchyWithAGeneSet[[\n    \tas.character(i)]]<-list()\n    myAssociationOfCellsHierarchyWithAGeneSet[[\n    \tas.character(i)]][[\"AssociationOfCellsHierarchyWithAGeneSet\"]]<-\n\t\tSO[[\"AssociationOfCellsHierarchyWithAGeneSet\"]]\n    myAssociationOfCellsHierarchyWithAGeneSet[[\n    \tas.character(i)]][[\"AssociationOfCellsHierarchyWithAGeneSet.pvalue\"]]<-\n\tSO[[\"AssociationOfCellsHierarchyWithAGeneSet.pvalue\"]]\n  }\n}"
+    }
+  ]
+}

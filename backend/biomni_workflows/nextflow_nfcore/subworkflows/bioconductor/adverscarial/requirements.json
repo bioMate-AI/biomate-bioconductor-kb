@@ -1,0 +1,45 @@
+{
+  "package": "adverscarial",
+  "requirements": [
+    "BiocGenerics",
+    "DelayedArray",
+    "LoomExperiment",
+    "Matrix",
+    "S4Vectors",
+    "SingleCellExperiment",
+    "adverSCarial",
+    "scater",
+    "scran",
+    "scuttle",
+    "stringr"
+  ],
+  "by_workflow": {
+    "cluster_gradient_descent_attack.nf": [
+      "adverSCarial"
+    ],
+    "main.nf": [
+      "DelayedArray",
+      "adverSCarial"
+    ],
+    "max_change_attack.nf": [
+      "DelayedArray",
+      "Matrix",
+      "adverSCarial"
+    ],
+    "random_walk_minimum_change_attack.nf": [
+      "SingleCellExperiment",
+      "adverSCarial",
+      "scater",
+      "scran",
+      "scuttle",
+      "stringr"
+    ],
+    "vulnerability_overview.nf": [
+      "BiocGenerics",
+      "DelayedArray",
+      "LoomExperiment",
+      "S4Vectors",
+      "adverSCarial"
+    ]
+  }
+}

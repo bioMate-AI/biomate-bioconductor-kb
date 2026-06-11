@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: overdispersion=Used in acosh_transform and shifted_log_transform to specify the overdispersion parameter alpha (can be fit to the data or fixed to a user-defined value) ;; pseudo_count=Used in shifted_log_transform to set the offset, typically chosen as 1/(4 * overdispersion) to match the acosh transformation ;; clipping=A boolean in residual_transform (e.g., TRUE) to cap extreme Pearson residuals ;; on_disk=A boolean in residual_transform (e.g., FALSE) to control whether calculations are performed on disk to manage memory usage\n- alternatives: log(x + 1)=The standard log transformation with a pseudo-count of 1 is closely related to the acosh transformation but does not stabilize variance as effectively as acosh or a tuned shifted log transformation\n- when_to_use: Use when analyzing heteroskedastic count data (such as single-cell RNA-seq) where variance increases quadratically with the mean, and you need to stabilize the variance across all expression levels for downstream statistical analysis\n- pitfalls: Delta method-based transformations (acosh and shifted log) fail to stabilize variance for lowly expressed genes (specifically where mean expression is less than 0.5) ;; Pearson residuals are a linear transformation and cannot achieve variance stabilization for genes with strong expression differences across subgroups",
+  "workflows": [
+    {
+      "name": "delta_method_transformation",
+      "intent": "Apply delta method-based transformations (acosh or shifted logarithm) to stabilize the variance of count data.",
+      "input": [
+        "counts_matrix.csv (matrix-like object, DelayedMatrix, or SingleCellExperiment containing raw count data)"
+      ],
+      "stages": "1. Load the package and data ;; 2. Apply the acosh transformation to the count matrix or SingleCellExperiment object ;; 3. Alternatively, apply the shifted log transformation with a specified pseudo-count",
+      "code": "assay(sce, \"acosh\") <- acosh_transform(assay(sce, \"counts\"))\n# Equivalent to 'assay(sce, \"acosh\") <- acosh_transform(sce)'\ny_acosh <- acosh_transform(x, overdispersion = 0.1)\ny_shiftLog <- shifted_log_transform(x, pseudo_count = 1/(4 * 0.1))"
+    },
+    {
+      "name": "model_residuals_transformation",
+      "intent": "Apply model residuals-based transformations (Pearson or randomized quantile residuals) to stabilize variance across all genes, including lowly expressed ones.",
+      "input": [
+        "counts_matrix.csv (matrix-like object or SingleCellExperiment containing raw count data)"
+      ],
+      "stages": "1. Load the package and data ;; 2. Apply the Pearson residuals transformation with clipping ;; 3. Alternatively, apply the randomized quantile residuals transformation to handle non-linear variance stabilization and discrete counts",
+      "code": "assay(sce, \"pearson\") <- residual_transform(sce, \"pearson\", clipping = TRUE, on_disk = FALSE)\nassay(sce, \"rand_quantile\") <- residual_transform(sce, \"randomized_quantile\", on_disk = FALSE)"
+    }
+  ]
+}

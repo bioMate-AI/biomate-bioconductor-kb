@@ -1,119 +1,155 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cardelino
-// Methods to infer clonal tree configuration for a population of cells using single-cell RNA-seq data 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cardelino/inst/doc/vignette-cloneid.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("cardelino")
+// Bioconductor workflow: cardelino — clone_id_with_tree
+// Assign cells to clones using scRNA-seq variant counts and a pre-defined clonal tree configuration.
+// Input: cellSNP.cells.vcf.gz, canopy_results.coveraged.rds
+// Container: quay.io/biocontainers/bioconductor-cardelino:1.12.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cardelino, ggplot2, pheatmap
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load scRNA-seq variant data using load_cellSNP_vcf
+//  * 2. [Input & Preparation] Load clonal tree configuration and align variant IDs
+//  * 3. [Core Analysis] Run Bayesian clustering using clone_id with the configuration matrix
+//  * 4. [Core Analysis] Assign cells to clones using assign_cells_to_clones
+//  * 5. [Visualization & Output] Visualize results using prob_heatmap, heat_matrix, and vc_heatmap
 
 nextflow.enable.dsl = 2
 
-process BIOC_CARDELINO {
+process BIOC_CARDELINO_CLONE_ID_WITH_TREE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cardelino"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cardelino:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cardelino:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cardelino_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cardelino_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cardelino_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(cardelino)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ggplot2)
+        library(cardelino)
+        
+        # 1. Load scRNA-seq variant data using load_cellSNP_vcf
+        vcf_file <- "cellSNP.cells.vcf.gz"
+        if (!file.exists(vcf_file)) {
+          stop(paste("Required input file missing:", vcf_file))
+        }
+        input_data <- load_cellSNP_vcf(vcf_file)
+        
+        # Calculate allele frequency
+        AF <- as.matrix(input_data\$A / input_data\$D)
+        
+        # Save allele frequency heatmap
+        pdf("allele_frequency_heatmap.pdf", width = 8, height = 6)
+        p <- pheatmap::pheatmap(AF, cluster_rows=FALSE, cluster_cols=FALSE, 
+                                show_rownames = TRUE, show_colnames = TRUE, 
+                                labels_row=paste(nrow(AF), 'SNVs'), labels_col=paste(ncol(AF), 'cells'), 
+                                angle_col=0, angle_row=0)
+        dev.off()
+        
+        # 2. Load clonal tree configuration and align variant IDs
+        rds_file <- "canopy_results.coveraged.rds"
+        if (!file.exists(rds_file)) {
+          stop(paste("Required input file missing:", rds_file))
+        }
+        canopy_res <- readRDS(rds_file)
+        Config <- canopy_res\$tree\$Z
+        rownames(Config) <- gsub(":", "_", rownames(Config))
+        
+        # Save clonal tree plot
+        pdf("clonal_tree_plot.pdf", width = 6, height = 6)
+        plot_tree(canopy_res\$tree, orient = "v")
+        dev.off()
+        
+        # 3. Run Bayesian clustering using clone_id with the configuration matrix
+        set.seed(7)
+        assignments <- clone_id(input_data\$A, input_data\$D, Config = Config)
+        
+        # Save assignments object
+        saveRDS(assignments, "cardelino_assignments.rds")
+        
+        # Save assignment probability heatmap
+        pdf("assignment_probability_heatmap.pdf", width = 6, height = 5)
+        prob_heatmap(assignments\$prob)
+        dev.off()
+        
+        # 4. Assign cells to clones using assign_cells_to_clones
+        df <- assign_cells_to_clones(assignments\$prob)
+        write.csv(df, "cell_clone_assignments.csv", row.names = FALSE)
+        
+        # Print summary to console
+        cat("First few cell assignments:\n")
+        print(head(df))
+        cat("\nClone assignment table:\n")
+        print(table(df\$clone))
+        
+        # 5. Visualize results using prob_heatmap, heat_matrix, and vc_heatmap
+        pdf("clonal_config_changes.pdf", width = 7, height = 5)
+        p_config <- heat_matrix(t(assignments\$Config_prob - Config)) + 
+          scale_fill_gradient2() + 
+          ggtitle('Changes of clonal Config') + 
+          labs(x='Clones', y=paste(nrow(Config), 'SNVs')) + 
+          theme(axis.text.y = element_blank(), legend.position = "right")
+        print(p_config)
+        dev.off()
+        
+        # Save final variant-cell heatmap
+        pdf("variant_cell_heatmap.pdf", width = 8, height = 6)
+        AF <- as.matrix(input_data\$A / input_data\$D)
+        cardelino::vc_heatmap(AF, assignments\$prob, Config, show_legend=TRUE)
+        dev.off()
+        
+        cat("\nPipeline completed successfully. Outputs saved to working directory.\n")
 
-    # --- De Novo Clone Inference [] ---
-    # Key functions: clone_id
-    assign_mtClones <- cardelino::clone_id(
-        A = AD,
-        D = DP,
-        Config = NULL,
-        n_clone = 3,
-        keep_base_clone = FALSE
-    )
-    cell_prob <- assign_mtClones$prob
-    config_prob <- assign_mtClones$Config_prob
-
-
-    # --- Clonal Visualization [] ---
-    # Key functions: vc_heatmap
-    AF_mt <- as.matrix(AD / DP)
-    Config_mt <- assign_mtClones$Config_prob
-    Config_mt[Config_mt >= 0.5] <- 1
-    Config_mt[Config_mt < 0.5] <- 0
-    vc_plot <- cardelino::vc_heatmap(
-        AF_mt,
-        assign_mtClones$prob,
-        Config_mt,
-        show_legend = TRUE
-    )
-
-
-    # --- Clonal Configuration Analysis [] ---
-    # Key functions: heat_matrix
-    config_diff <- assign_mtClones$Config_prob - Config_mt
-    diff_plot <- cardelino::heat_matrix(t(config_diff)) +
-        ggplot2::scale_fill_gradient2() +
-        ggplot2::ggtitle("Changes of clonal Config") +
-        ggplot2::labs(x = "Clones", y = "Variants")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cardelino_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cardelino_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cardelino_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CARDELINO:", paste0("    cardelino: ", packageVersion("cardelino"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CARDELINO_CLONE_ID_WITH_TREE":',
+        paste0('    cardelino: ', as.character(packageVersion('cardelino')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cardelino_results.csv
-    touch ${prefix}_cardelino_output.rds
-    echo "BIOC_CARDELINO:" > versions.yml
-    echo "    cardelino: 0.0.0" >> versions.yml
+    touch ${prefix}_clone_id_with_tree.csv versions.yml
     """
 }
 
-
-workflow BIOC_CARDELINO_WORKFLOW {
+workflow BIOC_CARDELINO_CLONE_ID_WITH_TREE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cellSNP.cells.vcf.gz, canopy_results.coveraged.rds ] ]
 
     main:
-    BIOC_CARDELINO(ch_input)
+    BIOC_CARDELINO_CLONE_ID_WITH_TREE(ch_input)
 
     emit:
-    results  = BIOC_CARDELINO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CARDELINO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CARDELINO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CARDELINO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CARDELINO_CLONE_ID_WITH_TREE.out.tables
+    plots    = BIOC_CARDELINO_CLONE_ID_WITH_TREE.out.plots
+    objects  = BIOC_CARDELINO_CLONE_ID_WITH_TREE.out.objects
+    versions = BIOC_CARDELINO_CLONE_ID_WITH_TREE.out.versions
 }

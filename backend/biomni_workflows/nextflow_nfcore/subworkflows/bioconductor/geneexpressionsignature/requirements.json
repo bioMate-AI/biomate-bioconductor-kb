@@ -1,0 +1,13 @@
+{
+  "package": "geneexpressionsignature",
+  "requirements": [
+    "Biobase",
+    "GeneExpressionSignature"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GeneExpressionSignature"
+    ]
+  }
+}

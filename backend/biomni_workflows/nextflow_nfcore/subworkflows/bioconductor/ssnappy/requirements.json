@@ -1,0 +1,29 @@
+{
+  "package": "ssnappy",
+  "requirements": [
+    "colorspace",
+    "cowplot",
+    "dplyr",
+    "ggplot2",
+    "htmltools",
+    "magrittr",
+    "org.Hs.eg.db",
+    "patchwork",
+    "sSNAPPY",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "colorspace",
+      "cowplot",
+      "dplyr",
+      "ggplot2",
+      "htmltools",
+      "magrittr",
+      "org.Hs.eg.db",
+      "patchwork",
+      "sSNAPPY",
+      "tidyverse"
+    ]
+  }
+}

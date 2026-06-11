@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_GDSFMT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-gdsfmt"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gdsfmt:1.42.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-gdsfmt:1.42.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,51 +40,76 @@ process BIOC_GDSFMT {
     library(gdsfmt)
     library(jsonlite)
 
-    # --- Data Writing and Modification [] ---
-    # Key functions: write.gdsn, append.gdsn, closefn.gds
-    gfile <- gdsfmt::createfn.gds("test.gds")
-    n <- gdsfmt::add.gdsn(gfile, "I1", val = matrix(1:15, nrow = 3))
-    gdsfmt::write.gdsn(n, rep(0, 5), start = c(2, 1), count = c(1, -1))
-    gdsfmt::append.gdsn(n, 16:24)
-    gdsfmt::closefn.gds(gfile)
+    # --- Initialize Genomic Data Structure [] ---
+    # Key functions: createfn.gds, add.gdsn, addfolder.gdsn, closefn.gds
+    gfile <- createfn.gds("genomic_data.gds")
+    add.gdsn(gfile, "sample.id", val=paste0("Sample_", 1:100))
+    add.gdsn(gfile, "chromosome", val=rep(1:22, each=5))
+    folder <- addfolder.gdsn(gfile, "genotypes")
+    add.gdsn(folder, "data", val=matrix(1:1100, nrow=11))
+    closefn.gds(gfile)
 
+    # --- Write and Append Genomic Features [] ---
+    # Key functions: openfn.gds, index.gdsn, write.gdsn, append.gdsn, closefn.gds
+    gfile <- openfn.gds("genomic_data.gds", readonly=FALSE)
+    node <- index.gdsn(gfile, "genotypes/data")
+    write.gdsn(node, rep(0, 10), start=c(1, 1), count=c(1, 10))
+    append.gdsn(node, 1101:1110)
+    closefn.gds(gfile)
 
-    # --- Data Retrieval [] ---
-    # Key functions: openfn.gds, index.gdsn, read.gdsn
-    gfile <- gdsfmt::openfn.gds("test.gds")
-    n <- gdsfmt::index.gdsn(gfile, "I1")
-    val_all <- gdsfmt::read.gdsn(n)
-    val_sub <- gdsfmt::read.gdsn(n, start = c(2, 2), count = c(2, 3))
-    gdsfmt::closefn.gds(gfile)
+    # --- Compressed Genomic Data Storage [] ---
+    # Key functions: createfn.gds, add.gdsn, append.gdsn, readmode.gdsn, closefn.gds
+    gfile <- createfn.gds("compressed_data.gds")
+    node <- add.gdsn(gfile, "intensity", storage="float",
+        valdim=c(100, 0), compress="ZIP")
+    for (i in 1:10) {
+        append.gdsn(node, seq(0.1, 10, length.out=100))
+    }
+    readmode.gdsn(node)
+    closefn.gds(gfile)
 
+    # --- Retrieve and Subset Genomic Data [] ---
+    # Key functions: openfn.gds, index.gdsn, read.gdsn, readex.gdsn, closefn.gds
+    gfile <- openfn.gds("genomic_data.gds")
+    node <- index.gdsn(gfile, "genotypes/data")
+    sub_data <- read.gdsn(node, start=c(1, 1), count=c(5, 5))
+    sel_list <- list(c(TRUE, FALSE, TRUE, FALSE, TRUE), c(TRUE, TRUE, FALSE))
+    sub_ex <- readex.gdsn(node, sel_list)
+    closefn.gds(gfile)
 
-    # --- Data Transformation and Application [] ---
-    # Key functions: apply.gdsn, openfn.gds, closefn.gds
-    gfile <- gdsfmt::openfn.gds("test.gds")
-    n2 <- gdsfmt::index.gdsn(gfile, "I1")
-    n_t <- gdsfmt::add.gdsn(
-        gfile, "transpose", storage = "int", valdim = c(5, 0),
-        replace = TRUE
-    )
-    gdsfmt::apply.gdsn(
-        n2, margin = 1, FUN = c, as.is = "gdsnode",
-        target.node = n_t
-    )
-    gdsfmt::closefn.gds(gfile)
+    # --- Apply Transformations and Transpose Data [] ---
+    # Key functions: openfn.gds, index.gdsn, add.gdsn, apply.gdsn, closefn.gds
+    gfile <- openfn.gds("genomic_data.gds", readonly=FALSE)
+    node <- index.gdsn(gfile, "genotypes/data")
+    trans_node <- add.gdsn(gfile, "genotypes/transposed",
+        storage="int", valdim=c(100, 0))
+    apply.gdsn(node, margin=1, FUN=c, as.is="gdsnode",
+        target.node=trans_node)
+    closefn.gds(gfile)
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gdsfmt_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_gdsfmt_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gdsfmt_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_gdsfmt_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gdsfmt_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_gdsfmt_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_GDSFMT:", paste0("    gdsfmt: ", packageVersion("gdsfmt"))),
+        c("BIOC_GDSFMT:", paste0("    gdsfmt: ", as.character(packageVersion("gdsfmt")))),
         "versions.yml"
     )
     """

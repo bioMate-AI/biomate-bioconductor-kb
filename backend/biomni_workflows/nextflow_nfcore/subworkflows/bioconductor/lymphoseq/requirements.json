@@ -1,0 +1,21 @@
+{
+  "package": "lymphoseq",
+  "requirements": [
+    "LymphoSeq",
+    "RColorBrewer",
+    "ggplot2",
+    "pheatmap",
+    "reshape",
+    "wordcloud"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "LymphoSeq",
+      "RColorBrewer",
+      "ggplot2",
+      "pheatmap",
+      "reshape",
+      "wordcloud"
+    ]
+  }
+}

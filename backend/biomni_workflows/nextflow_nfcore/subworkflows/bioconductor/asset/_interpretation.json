@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: SNPs=Vector of SNP names ;; studies=Vector of study names ;; beta=Matrix of estimated log-odds ratios ;; sigma=Matrix of standard errors ;; case=Matrix of case counts ;; control=Matrix of control counts ;; meta=Logical flag to compute standard meta-analysis ;; zmax.args=List of arguments for subset search (e.g., custom subset function) ;; pval.args=List of arguments for p-value computation ;; data=Data frame containing individual-level data ;; response.var=Name of response variable (e.g., \"TYPE\") ;; snp.vars=Vector of SNP variable names ;; adj.vars=Vector of adjustment covariate names ;; types.lab=Vector of disease subtype labels ;; control.lab=Label for control group ;; logit=Logical flag to run overall logistic regression\n- alternatives: None mentioned in the provided documentation\n- when_to_use: When pooling association signals across multiple studies or traits where true effects may exist only in a subset of studies/traits or in opposite directions, or when analyzing individual-level case-control data with distinct disease subtypes.\n- pitfalls: Missing values (NA) can occur in 2-sided subset results (e.g., OR, CI) if estimated betas are all positive or all negative for a SNP. Deprecation warnings may occur when passing character vectors of length > 1 to formula-based functions internally in h.types.",
+  "workflows": [
+    {
+      "name": "meta_analysis_heterogeneous_traits",
+      "intent": "Perform subset-based meta-analysis of summary-level association statistics across multiple studies or traits.",
+      "input": [
+        "vdata.rda (R data file containing study data frames with SNP genotypes, age, and case-control status)"
+      ],
+      "stages": "1. Load summary data and calculate betas, standard errors (sigmas), case counts, and control counts from individual studies ;; 2. Run subset-based meta-analysis using h.traits ;; 3. Define a custom subset search function and run h.traits with restricted subset search ;; 4. Summarize results using h.summary",
+      "code": "datafile <- system.file(\"sampleData\", \"vdata.rda\", package=\"ASSET\")\nload(datafile)\nSNPs    <- paste(\"SNP\", 1:3, sep=\"\")\nnSNP    <- length(SNPs)\nstudies <- paste(\"STUDY\", 1:4, sep=\"\") \nnStudy  <- length(studies)\ncase    <- matrix(data=NA, nrow=nSNP, ncol=nStudy) \ncontrol <- matrix(data=NA, nrow=nSNP, ncol=nStudy) \nfor (i in 1:nStudy) {\n  data <- eval(parse(text=paste(\"data\", i, sep=\"\")))\n  caseVec <- data[, \"CC\"] == 1\n  controlVec <- !caseVec\n  for (j in 1:nSNP) {\n    temp <- !is.na(data[, SNPs[j]])\n    case[j, i] <- sum(caseVec & temp, na.rm=TRUE)\n    control[j, i] <- sum(controlVec & temp, na.rm=TRUE)\n  }\n}\nbeta  <- matrix(data=NA, nrow=nSNP, ncol=nStudy) \nsigma <- matrix(data=NA, nrow=nSNP, ncol=nStudy) \nfor (i in 1:nStudy) {\n  data <- eval(parse(text=paste(\"data\", i, sep=\"\")))\n  for (j in 1:nSNP) {\n    data[, \"SNP\"] <- data[, SNPs[j]]\n    fit <- glm(CC ~ AGE + SNP, data=data, family=binomial())\n    coef <- summary(fit)$coefficients\n    beta[j, i] <- coef[\"SNP\", 1]\n    sigma[j, i] <- coef[\"SNP\", 2]\n  }\n}\nres <- h.traits(SNPs, studies, beta, sigma, case, control, meta=TRUE)\nh.summary(res)\nsub.def <- function(logicalVec) {\n  sum <- sum(logicalVec)  \n  ret <- all(logicalVec[1:sum])\n  ret\n}\nres <- h.traits(SNPs, studies, beta, sigma, case, control, meta=TRUE, \n         zmax.args=list(sub.def=sub.def), pval.args=list(sub.def=sub.def))\nh.summary(res)"
+    },
+    {
+      "name": "disease_subtype_analysis",
+      "intent": "Analyze association of SNPs with distinct disease subtypes using individual-level case-control data.",
+      "input": [
+        "vdata.rda (R data file containing individual-level data frames for multiple studies)"
+      ],
+      "stages": "1. Combine individual study data frames into a single data frame ;; 2. Create study indicator dummy variables for covariate adjustment ;; 3. Define SNP variables, adjustment variables, and disease subtype labels ;; 4. Run subtype analysis using h.types with logit=TRUE ;; 5. Summarize results using h.summary",
+      "code": "data <- NULL\nfor (i in 1:nStudy) {\n  temp <- eval(parse(text=paste(\"data\", i, sep=\"\")))\n  temp[, \"STUDY\"]  <- i\n  data <- rbind(data, temp)\n}\nfor (i in 1:nStudy) {\n  dvar <- paste(\"STUDY_\", i, sep=\"\")\n  data[, dvar] <- as.numeric(data[, \"STUDY\"] %in% i)\n}\nsnp.vars <- paste(\"SNP\", 1:3, sep=\"\")\nadj.vars <- c(\"AGE\", \"STUDY_1\", \"STUDY_2\", \"STUDY_3\")\ntypes.lab <- paste(\"TYPE_\", 1:3, sep=\"\")\nret <- h.types(data, \"TYPE\", snp.vars, adj.vars, types.lab, \"CONTROL\",\n               logit=TRUE)\nh.summary(ret)"
+    }
+  ]
+}

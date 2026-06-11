@@ -1,0 +1,11 @@
+{
+  "package": "macsr",
+  "requirements": [
+    "MACSr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MACSr"
+    ]
+  }
+}

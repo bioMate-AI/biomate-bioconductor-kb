@@ -1,110 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DiffBind
-// Compute differentially bound sites from multiple ChIP-seq experiments using affinity (quantitative) 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DiffBind/inst/doc/DiffBind.R
-// Upstream  : xtable
-// Downstream: ChIPQC, vulcan
-//
-// Install: BiocManager::install("DiffBind")
+// Bioconductor workflow: diffbind — standard_differential_binding
+// Perform a standard differential binding analysis comparing two groups using a single-factor design.
+// Input: tamoxifen.csv, reads/Chr18_BT474_ER_1.bam, peaks/BT474_ER_1.bed.gz
+// Container: quay.io/biocontainers/bioconductor-diffbind:3.20.0--r45ha27e39d_0
+// R packages: DiffBind, magrittr, xtable
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DIFFBIND {
+process BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-diffbind"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-diffbind:3.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-diffbind:3.16.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-diffbind:3.20.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_diffbind_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_diffbind_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_diffbind_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("DiffBind", "magrittr", "xtable")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(DiffBind)
-    library(jsonlite)
-
-    # --- Normalization and Blacklist Filtering [] ---
-    # Key functions: dba.blacklist, dba.normalize
-    tamoxifen <- DiffBind::dba.blacklist(
-        tamoxifen,
-        blacklist = DiffBind::DBA_BLACKLIST_HG19,
-        greylist = FALSE
-    )
-    tamoxifen <- DiffBind::dba.normalize(tamoxifen)
-
-
-    # --- Differential Binding Analysis [] ---
-    # Key functions: dba.contrast, dba.analyze, dba.report
-    tamoxifen <- DiffBind::dba.contrast(
-        tamoxifen,
-        design = "~Tissue + Condition"
-    )
-    tamoxifen <- DiffBind::dba.analyze(tamoxifen)
-    report <- DiffBind::dba.report(tamoxifen)
-
-
-    # --- Visualization of Binding Affinity [] ---
-    # Key functions: dba.plotPCA, dba.plotMA, dba.plotVolcano
-    DiffBind::dba.plotPCA(tamoxifen, label = DiffBind::DBA_TISSUE)
-    DiffBind::dba.plotMA(tamoxifen)
-    DiffBind::dba.plotVolcano(tamoxifen)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_diffbind_results.csv", row.names = TRUE)
+    library(magrittr)
+    
+    # Execute the standard differential binding workflow exactly as documented
+    tamoxifen <- dba(sampleSheet="tamoxifen.csv") %>%
+      dba.blacklist() %>%
+      dba.count()     %>%
+      dba.normalize() %>%
+      dba.contrast()  %>%
+      dba.analyze()
+    
+    # Retrieve the report of differentially bound sites
+    tamoxifen.DB <- dba.report(tamoxifen)
+    
+    # Save the results to output files
+    # 1. Save the complete DBA object
+    saveRDS(tamoxifen, file="tamoxifen_dba_object.rds")
+    
+    # 2. Save the differential binding report as a CSV
+    if (!is.null(tamoxifen.DB) && length(tamoxifen.DB) > 0) {
+      write.csv(as.data.frame(tamoxifen.DB), file="tamoxifen_differential_binding_report.csv", row.names=FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_diffbind_results.csv")
+      write.csv(data.frame(Message="No significantly differentially bound sites found."), file="tamoxifen_differential_binding_report.csv", row.names=FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_diffbind_output.rds")
-    }
+    
+    # 3. Generate diagnostic and results plots
+    pdf("tamoxifen_differential_binding_plots.pdf", width=8, height=8)
+    
+    tryCatch({
+      plot(tamoxifen)
+    }, error=function(e) {
+      message("Could not generate correlation heatmap: ", e\$message)
+    })
+    
+    tryCatch({
+      dba.plotPCA(tamoxifen, label=DBA_CONDITION)
+    }, error=function(e) {
+      message("Could not generate PCA plot: ", e\$message)
+    })
+    
+    tryCatch({
+      dba.plotMA(tamoxifen)
+    }, error=function(e) {
+      message("Could not generate MA plot: ", e\$message)
+    })
+    
+    tryCatch({
+      dba.plotVolcano(tamoxifen)
+    }, error=function(e) {
+      message("Could not generate Volcano plot: ", e\$message)
+    })
+    
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DIFFBIND:", paste0("    diffbind: ", packageVersion("DiffBind"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING":',
+        paste0('        diffbind: ', as.character(packageVersion("diffbind")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_diffbind_results.csv
-    touch ${prefix}_diffbind_output.rds
-    echo "BIOC_DIFFBIND:" > versions.yml
-    echo "    diffbind: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_differential_binding.csv versions.yml
     """
 }
 
-
-workflow BIOC_DIFFBIND_WORKFLOW {
+workflow BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tamoxifen.csv, reads/Chr18_BT474_ER_1.bam, peaks/BT474_ER_1.bed.gz ] ]
 
     main:
-    BIOC_DIFFBIND(ch_input)
+    BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING(ch_input)
 
     emit:
-    results  = BIOC_DIFFBIND.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DIFFBIND.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DIFFBIND.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DIFFBIND.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING.out.tables
+    plots    = BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING.out.plots
+    objects  = BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING.out.objects
+    versions = BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING.out.versions
 }

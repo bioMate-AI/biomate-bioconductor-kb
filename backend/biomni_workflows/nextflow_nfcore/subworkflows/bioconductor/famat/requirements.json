@@ -1,0 +1,13 @@
+{
+  "package": "famat",
+  "requirements": [
+    "famat",
+    "mgcv"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "famat",
+      "mgcv"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "bus",
+  "requirements": [
+    "BUS",
+    "minet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BUS",
+      "minet"
+    ],
+    "supervised_gene_trait_association.nf": [
+      "BUS",
+      "minet"
+    ]
+  }
+}

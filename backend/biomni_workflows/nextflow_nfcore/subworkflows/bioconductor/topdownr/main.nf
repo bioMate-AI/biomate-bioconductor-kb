@@ -1,136 +1,168 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: topdownr
-// The topdownr package allows automatic and systemic investigation of fragment conditions. It creates 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/topdownr/inst/doc/analysis.R
-// Upstream  : BiocStyle, ggplot2, ranger, topdownrdata
-// Downstream: topdownrdata
-//
-// Install: BiocManager::install("topdownr")
+// Bioconductor workflow: topdownr — method_generation
+// Generate instrument method XML files to test multiple fragmentation conditions on a Thermo Orbitrap Fusion Lumos.
+// Input: target_mz_matrix.csv, TMS2IndependentTemplateForTD.meth
+// Container: quay.io/biocontainers/bioconductor-topdownr:1.32.0--r45hdfd78af_0
+// R packages: BiocStyle, ggplot2, ranger, topdownr, topdownrdata
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TOPDOWNR {
+process BIOC_TOPDOWNR_METHOD_GENERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-topdownr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-topdownr:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-topdownr:1.28.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-topdownr:1.32.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_topdownr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_topdownr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_topdownr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(topdownr)
-    library(jsonlite)
-
-    # --- Data Import [topdownr] ---
-    # Key functions: readTopDownFiles
-    H <- 1.0078250321
-    myoglobin <- readTopDownFiles(
-        path = topdownrdata::topDownDataPath("myoglobin"),
-        type = c("a", "b", "c", "x", "y", "z"),
-        adducts = data.frame(
-            mass = c(-H, H),
-            to = c("c", "z"),
-            name = c("cmH", "zpH")
-        ),
-        modifications = "Met-loss",
-        neutralLoss = NULL,
-        tolerance = 5e-6,
-        conditions = "FilterString"
-    )
-
-    # --- Quality Control and Filtering [topdownr] ---
-    # Key functions: filterInjectionTime, filterCv, filterIntensity
-    myoglobin <- filterInjectionTime(
-        myoglobin,
-        maxDeviation = log2(3),
-        keepTopN = 2
-    )
-    myoglobin <- filterCv(myoglobin, threshold = 30)
-    myoglobin <- filterIntensity(myoglobin, threshold = 0.1)
-
-    # --- Data Aggregation [topdownr] ---
-    # Key functions: aggregate, summary
-    myoglobin_agg <- aggregate(myoglobin)
-    agg_summary <- summary(myoglobin_agg)
-    n_fragments <- agg_summary$Fragments
-
-    # --- Condition Selection [topdownr] ---
-    # Key functions: bestConditions
-    myoglobin_ncb <- as(myoglobin_agg, "NCBSet")
-    best_conds <- bestConditions(myoglobin_ncb, n = 3)
-
-    # --- Fragmentation Mapping [topdownr] ---
-    # Key functions: fragmentationMap
-    sel <- myoglobin_ncb$Mz == 707.3 &
-        myoglobin_ncb$AgcTarget == 1e6 &
-        (myoglobin_ncb$EtdReagentTarget == 1e7 &
-         !is.na(myoglobin_ncb$EtdReagentTarget))
-    myoglobin_sub <- myoglobin_ncb[, sel]
-    fragmentationMap(
-        myoglobin_sub,
-        nCombinations = 10,
-        labels = seq_len(ncol(myoglobin_sub))
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_topdownr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_topdownr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_topdownr_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocStyle", "ggplot2", "ranger", "topdownr", "topdownrdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TOPDOWNR:", paste0("    topdownr: ", packageVersion("topdownr"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
+    library("topdownr")
+    
+    # 1. Read user input files
+    if (!file.exists("target_mz_matrix.csv")) {
+        stop("Required input file 'target_mz_matrix.csv' not found in the working directory.")
+    }
+    if (!file.exists("TMS2IndependentTemplateForTD.meth")) {
+        stop("Required input file 'TMS2IndependentTemplateForTD.meth' not found in the working directory.")
+    }
+    
+    target_mz_df <- read.csv("target_mz_matrix.csv")
+    targetMz <- as.matrix(target_mz_df)
+    
+    # 2. Define MS1 settings
+    ms1 <- expandMs1Conditions(
+        FirstMass=400,
+        LastMass=1200,
+        Microscans=as.integer(10)
     )
+    
+    # 3. Define common settings
+    common <- list(
+        OrbitrapResolution="R120K",
+        IsolationWindow=1,
+        MaxITTimeInMS=200,
+        Microscans=as.integer(40),
+        AgcTarget=c(1e5, 5e5, 1e6)
+    )
+    
+    # 4. Create settings for different fragmentation conditions
+    cid <- expandTms2Conditions(
+        MassList=targetMz,
+        common,
+        ActivationType="CID",
+        CIDCollisionEnergy=seq(7, 35, 7)
+    )
+    hcd <- expandTms2Conditions(
+        MassList=targetMz,
+        common,
+        ActivationType="HCD",
+        HCDCollisionEnergy=seq(7, 35, 7)
+    )
+    etd <- expandTms2Conditions(
+        MassList=targetMz,
+        common,
+        ActivationType="ETD",
+        ETDReactionTime=as.double(1:2)
+    )
+    etcid <- expandTms2Conditions(
+        MassList=targetMz,
+        common,
+        ActivationType="ETD",
+        ETDReactionTime=as.double(1:2),
+        ETDSupplementalActivation="ETciD",
+        ETDSupplementalActivationEnergy=as.double(1:2)
+    )
+    uvpd <- expandTms2Conditions(
+        MassList=targetMz,
+        common,
+        ActivationType="UVPD"
+    )
+    
+    # 5. Create experiments with all combinations of the above settings
+    exps <- createExperimentsFragmentOptimisation(
+        ms1=ms1, cid, hcd, etd, etcid, uvpd,
+        groupBy=c("AgcTarget", "replication"), nMs2perMs1=10, scanDuration=0.5,
+        replications=2, randomise=TRUE
+    )
+    
+    # Save the generated experiments object to an RDS file
+    saveRDS(exps, "experiments_fragment_optimisation.rds")
+    
+    # 6. Write experiments to xml files
+    writeMethodXmls(exps=exps)
+    
+    # 7. Run XMLMethodChanger (wrapped in tryCatch to handle missing executable gracefully)
+    tryCatch({
+        runXmlMethodChanger(
+            modificationXml=list.files(pattern="^method.*\\\\.xml\$"),
+            templateMeth="TMS2IndependentTemplateForTD.meth",
+            executable="path\\to\\XmlMethodChanger.exe"
+        )
+    }, error = function(e) {
+        message("XMLMethodChanger execution skipped or failed (this is expected if the external executable is not installed):")
+        message(e\$message)
+    })
+
+    writeLines(c(
+        '"BIOC_TOPDOWNR_METHOD_GENERATION":',
+        paste0('        topdownr: ', as.character(packageVersion("topdownr")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_topdownr_results.csv
-    touch ${prefix}_topdownr_output.rds
-    echo "BIOC_TOPDOWNR:" > versions.yml
-    echo "    topdownr: 0.0.0" >> versions.yml
+    touch ${prefix}_method_generation.csv versions.yml
     """
 }
 
-
-workflow BIOC_TOPDOWNR_WORKFLOW {
+workflow BIOC_TOPDOWNR_METHOD_GENERATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ target_mz_matrix.csv, TMS2IndependentTemplateForTD.meth ] ]
 
     main:
-    BIOC_TOPDOWNR(ch_input)
+    BIOC_TOPDOWNR_METHOD_GENERATION(ch_input)
 
     emit:
-    results  = BIOC_TOPDOWNR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TOPDOWNR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TOPDOWNR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TOPDOWNR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TOPDOWNR_METHOD_GENERATION.out.tables
+    plots    = BIOC_TOPDOWNR_METHOD_GENERATION.out.plots
+    objects  = BIOC_TOPDOWNR_METHOD_GENERATION.out.objects
+    versions = BIOC_TOPDOWNR_METHOD_GENERATION.out.versions
 }

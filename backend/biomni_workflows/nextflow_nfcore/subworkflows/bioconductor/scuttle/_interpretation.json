@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: subsets=Used in perFeatureQCMetrics to specify control sets of cells (e.g., empty wells) as a list of indices or names ;; features=Used in makePerCellDF to specify which feature's expression to extract into the data.frame ;; assay.type=Used in makePerCellDF and makePerFeatureDF to specify the input assay (e.g., \"counts\") ;; cells=Used in makePerFeatureDF to specify which cells' expression profiles to extract ;; clusters=Used in computePooledFactors to provide cell clustering information, which is critical for scaling normalization in heterogeneous populations\n- alternatives: scrapper=Mentioned as a more efficient package containing implementations that supersede most of scuttle's deprecated or defunct functions ;; scran::quickCluster=Used to generate clusters for pooling normalization prior to running computePooledFactors\n- when_to_use: Use when performing legacy single-cell RNA-seq preprocessing, specifically for calculating basic feature-level statistics, resolving non-unique gene symbols, converting SingleCellExperiment objects to standard data frames for plotting (e.g., with ggplot2), or applying pooling/spike-in scaling normalization.\n- pitfalls: Filtering out very lowly or non-expressed genes before publishing is discouraged because it makes dataset integration and re-use difficult ;; Low-quality cells with few expressed genes can produce negative size factor estimates during pooling normalization; quality control should be performed prior to running computePooledFactors ;; medianSizeFactors can return NA/NaN values if sequencing coverage is insufficient to obtain well-defined ratios",
+  "workflows": [
+    {
+      "name": "feature_qc_and_data_transformation",
+      "intent": "Calculate feature-level QC metrics, compute size-factor adjusted average expression, resolve duplicate gene symbols, and format data into data.frames for downstream analysis or plotting.",
+      "input": [
+        "sce (SingleCellExperiment object containing raw counts)",
+        "sce.ens (SingleCellExperiment object containing raw counts with Ensembl IDs as row names)"
+      ],
+      "stages": "1. Compute feature-level QC metrics using perFeatureQCMetrics ;; 2. Calculate size-factor adjusted average expression using calculateAverage ;; 3. Resolve duplicate or missing gene symbols using uniquifyFeatureNames ;; 4. Convert cell or feature data to data.frames using makePerCellDF and makePerFeatureDF",
+      "code": "per.feat <- perFeatureQCMetrics(sce, subsets=list(Empty=1:10))\nsummary(per.feat$mean)\nsummary(per.feat$detected)\nsummary(per.feat$subsets_Empty_ratio)\n\nave <- calculateAverage(sce)\nsummary(ave)\n\nrownames(sce.ens) <- uniquifyFeatureNames(\n    rownames(sce.ens), rowData(sce.ens)$originalName\n)\n\nout <- makePerCellDF(sce, features=\"Tspan12\", assay.type=\"counts\")\n\nout2 <- makePerFeatureDF(\n    sce,\n    cells=c(\"1772063062_D05\", \"1772063061_D01\", \"1772060240_F02\", \"1772062114_F05\"),\n    assay.type=\"counts\"\n)"
+    },
+    {
+      "name": "scaling_normalization",
+      "intent": "Perform scaling normalization on single-cell RNA-seq data using median-based, pooling-based (deconvolution), or spike-in-based methods to remove cell-specific technical biases.",
+      "input": [
+        "sce (SingleCellExperiment object containing raw counts)"
+      ],
+      "stages": "1. Compute median-based size factors using medianSizeFactors ;; 2. Perform pooling normalization by first clustering cells (using scran::quickCluster or metadata) and then computing pooled size factors using computePooledFactors ;; 3. Alternatively, compute spike-in-based size factors using computeSpikeFactors if spike-in controls are available",
+      "code": "summary(medianSizeFactors(sce))\n\nlibrary(scran)\nclusters <- quickCluster(sce)\nsce <- computePooledFactors(sce, clusters=clusters)\nsummary(sizeFactors(sce))\n\nsce <- computePooledFactors(sce, clusters=sce$level1class)\nsummary(sizeFactors(sce))\n\nsce2 <- computeSpikeFactors(sce, \"ERCC\")\nsummary(sizeFactors(sce2))"
+    }
+  ]
+}

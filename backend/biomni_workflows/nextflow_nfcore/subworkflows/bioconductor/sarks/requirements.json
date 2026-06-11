@@ -1,0 +1,23 @@
+{
+  "package": "sarks",
+  "requirements": [
+    "ggplot2",
+    "rJava",
+    "sarks"
+  ],
+  "by_workflow": {
+    "kmer_clustering_and_mapping.nf": [
+      "rJava",
+      "sarks"
+    ],
+    "main.nf": [
+      "rJava",
+      "sarks"
+    ],
+    "spatial_smoothing_and_multi_parameter_analysis.nf": [
+      "ggplot2",
+      "rJava",
+      "sarks"
+    ]
+  }
+}

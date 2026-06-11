@@ -1,0 +1,21 @@
+{
+  "package": "glmsparsenet",
+  "requirements": [
+    "Matrix",
+    "ggplot2",
+    "glmSparseNet",
+    "survival"
+  ],
+  "by_workflow": {
+    "binary_classification_binomial.nf": [
+      "ggplot2",
+      "glmSparseNet"
+    ],
+    "main.nf": [
+      "Matrix",
+      "ggplot2",
+      "glmSparseNet",
+      "survival"
+    ]
+  }
+}

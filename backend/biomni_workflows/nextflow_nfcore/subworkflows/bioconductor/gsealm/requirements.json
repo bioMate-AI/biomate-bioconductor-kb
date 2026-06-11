@@ -1,0 +1,13 @@
+{
+  "package": "gsealm",
+  "requirements": [
+    "Biobase",
+    "GSEAlm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEAlm"
+    ]
+  }
+}

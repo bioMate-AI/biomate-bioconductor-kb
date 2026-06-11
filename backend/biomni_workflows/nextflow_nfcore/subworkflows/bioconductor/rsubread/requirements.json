@@ -1,0 +1,20 @@
+{
+  "package": "rsubread",
+  "requirements": [
+    "Rsubread"
+  ],
+  "by_workflow": {
+    "bulk_rnaseq_junction_detection.nf": [
+      "Rsubread"
+    ],
+    "main.nf": [
+      "Rsubread"
+    ],
+    "read_quality_assessment.nf": [
+      "Rsubread"
+    ],
+    "single_cell_10x_quantification.nf": [
+      "Rsubread"
+    ]
+  }
+}

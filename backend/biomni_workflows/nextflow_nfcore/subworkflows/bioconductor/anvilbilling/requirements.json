@@ -1,0 +1,21 @@
+{
+  "package": "anvilbilling",
+  "requirements": [
+    "AnVILBilling",
+    "BiocStyle",
+    "dplyr",
+    "jsonlite",
+    "magrittr",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnVILBilling",
+      "BiocStyle",
+      "dplyr",
+      "jsonlite",
+      "magrittr",
+      "tibble"
+    ]
+  }
+}

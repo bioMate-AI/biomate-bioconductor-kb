@@ -1,90 +1,205 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: EnrichDO
-// To implement disease ontology (DO) enrichment analysis, this package is designed and presents a doub
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/EnrichDO/inst/doc/EnrichDO.R
-// Upstream  : devtools
-// Downstream: none
-//
-// Install: BiocManager::install("EnrichDO")
+// Bioconductor workflow: EnrichDO — enrichdo_disease_ontology_analysis
+// Perform Disease Ontology (DO) enrichment analysis on genomic regions by mapping them to Entrez IDs and applying the global double-weighted iterative model.
+// Input: regions.bed, coldata.csv
+// Container: 1.4.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: EnrichDO, GenomicRanges, rtracklayer
+// Visualizations: enrichment plot, heatmap
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ENRICHDO {
+process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-enrichdo"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-enrichdo:1.0.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-enrichdo:1.0.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_enrichdo_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_enrichdo_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_enrichdo_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
+    library(rtracklayer)
+    library(GenomicRanges)
     library(EnrichDO)
-    library(jsonlite)
-
-    # --- label=init [] ---
-    # Key functions: doEnrich, show
-    demo.data=c(1636,351,102,2932,3077,348,4137,54209,5663,5328,23621,3416,3553)
-    demo_result<-doEnrich(interestGenes=demo.data)
-    show(demo_result)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_enrichdo_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_enrichdo_results.csv")
+    
+    # Stage 2: Import and preprocess genomic intervals
+    message("Importing genomic regions from BED file...")
+    gr <- rtracklayer::import("regions.bed")
+    
+    # Extract gene identifiers from the 'name' column of the BED file
+    # EnrichDO requires NCBI Entrez IDs (integers)
+    interest_genes <- as.character(mcols(gr)\$name)
+    interest_genes <- as.integer(interest_genes)
+    interest_genes <- unique(interest_genes[!is.na(interest_genes)])
+    
+    if (length(interest_genes) == 0) {
+      stop("Error: No valid integer Entrez IDs found in the 'name' column of regions.bed.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_enrichdo_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ENRICHDO:", paste0("    enrichdo: ", packageVersion("EnrichDO"))),
-        "versions.yml"
+    
+    message(paste("Successfully loaded", length(interest_genes), "unique Entrez IDs for enrichment analysis."))
+    
+    # Stage 3: Disease Ontology Enrichment Analysis
+    message("Running double-weighted Disease Ontology enrichment analysis...")
+    weighted_res <- doEnrich(
+      interestGenes = interest_genes,
+      test = "fisherTest",
+      method = "holm",
+      m = 1,
+      minGsize = 10,
+      maxGsize = 2000,
+      delta = 0.05,
+      penalize = TRUE,
+      traditional = FALSE
     )
+    
+    # Stage 4: Extract and Export Results
+    message("Extracting and writing results...")
+    # Extract detailed results
+    detail_res <- viewDetailResult(weighted_res)
+    write.csv(detail_res, "enrichdo_detail_results.csv", row.names = FALSE)
+    
+    # Extract summary results
+    summary_res <- viewSummaryResult(weighted_res)
+    write.csv(summary_res, "enrichdo_summary_results.csv", row.names = FALSE)
+    
+    # Write standard text output
+    writeResult(
+      EnrichResult = weighted_res,
+      file = "enrichdo_results.txt",
+      Q = 1,
+      P = 1
+    )
+    
+    # Stage 5: Visualization of Enrichment Results
+    message("Generating diagnostic and enrichment plots...")
+    
+    # 1. Bar Graph
+    pdf("enrichdo_bar_graph.pdf", width = 8, height = 6)
+    tryCatch({
+      drawBarGraph(EnrichResult = weighted_res, n = 10, delta = 0.05)
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("Bar Graph failed:\n", e\$message), cex = 0.8)
+    })
+    dev.off()
+    
+    # 2. Point Graph (Bubble Plot)
+    pdf("enrichdo_point_graph.pdf", width = 8, height = 6)
+    tryCatch({
+      drawPointGraph(EnrichResult = weighted_res, n = 10, delta = 0.05)
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("Point Graph failed:\n", e\$message), cex = 0.8)
+    })
+    dev.off()
+    
+    # 3. GraphViz DAG Tree Plot
+    pdf("enrichdo_dag_graph.pdf", width = 8, height = 6)
+    tryCatch({
+      drawGraphViz(
+        EnrichResult = weighted_res,
+        n = 5,
+        numview = FALSE,
+        pview = FALSE,
+        labelfontsize = 12
+      )
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("DAG Graph failed:\n", e\$message), cex = 0.8)
+    })
+    dev.off()
+    
+    # 4. Heatmap of top DO terms and genes
+    pdf("enrichdo_heatmap.pdf", width = 8, height = 6)
+    tryCatch({
+      drawHeatmap(
+        interestGenes = interest_genes,
+        EnrichResult = weighted_res,
+        gene_n = 10,
+        fontsize_row = 8
+      )
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("Heatmap failed:\n", e\$message), cex = 0.8)
+    })
+    dev.off()
+    
+    # Stage 6: Convenient Drawing from Saved Text File (Demonstrating convDraw)
+    message("Demonstrating convDraw functionality from saved text results...")
+    tryCatch({
+      saved_data <- read.delim("enrichdo_results.txt")
+      if (nrow(saved_data) > 0) {
+        enrich_conv <- convDraw(resultDO = saved_data)
+        
+        pdf("enrichdo_conv_bar_graph.pdf", width = 8, height = 6)
+        drawBarGraph(enrich = enrich_conv, delta = 0.05)
+        dev.off()
+      } else {
+        # Create empty fallback PDF if no results were written
+        pdf("enrichdo_conv_bar_graph.pdf", width = 8, height = 6)
+        plot.new()
+        text(0.5, 0.5, "No enrichment results available to draw.")
+        dev.off()
+      }
+    }, error = function(e) {
+      pdf("enrichdo_conv_bar_graph.pdf", width = 8, height = 6)
+      plot.new()
+      text(0.5, 0.5, paste("convDraw workflow failed:\n", e\$message), cex = 0.8)
+      dev.off()
+    })
+    
+    message("Pipeline completed successfully.")
+
+    writeLines(c(
+        '"BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS":',
+        paste0('    EnrichDO: ', as.character(packageVersion('EnrichDO')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_enrichdo_results.csv
-    touch ${prefix}_enrichdo_output.rds
-    echo "BIOC_ENRICHDO:" > versions.yml
-    echo "    enrichdo: 0.0.0" >> versions.yml
+    touch ${prefix}_enrichdo_disease_ontology_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ENRICHDO_WORKFLOW {
+workflow BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ENRICHDO(ch_input)
+    BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ENRICHDO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ENRICHDO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ENRICHDO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ENRICHDO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS.out.tables
+    plots    = BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS.out.plots
+    objects  = BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS.out.objects
+    versions = BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS.out.versions
 }

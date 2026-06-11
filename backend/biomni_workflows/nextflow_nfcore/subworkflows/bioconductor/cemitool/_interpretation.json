@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filter=logical, whether to filter genes by variance before analysis ;; plot=logical, whether to automatically generate plots ;; verbose=logical, whether to print progress messages ;; apply_vst=logical, set to TRUE for RNA-seq data if a strong mean-variance relationship is found ;; cor_method=character, correlation coefficient to use (\"pearson\" or \"spearman\") ;; sample_name_column=character, column name for sample names in annotation ;; class_column=character, column name for sample classes in annotation ;; directory=character, output directory for reports, files, or plots\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you want to automatically identify co-expressed gene modules from transcriptomics data (microarray or RNA-seq) and perform downstream functional enrichment, class-specific enrichment, and interaction network analyses.\n- pitfalls: Highly heterogeneous sample groups can cause batch effects which should be removed ;; RNA-seq data with a strong mean-variance relationship can bias results and requires setting apply_vst=TRUE ;; Non-normal distribution of expression values can affect correlation, requiring a change of cor_method to \"spearman\" ;; Input data issues can cause the analysis to fail, which should be troubleshooted using diagnostic_report().",
+  "workflows": [
+    {
+      "name": "comprehensive_coexpression_analysis",
+      "intent": "Run a complete co-expression module identification analysis including sample annotation, gene set enrichment, over-representation analysis, and interaction network integration, followed by report generation.",
+      "input": [
+        "expression_data.csv (expression matrix with gene symbols in rows and samples in columns)",
+        "sample_annotation.csv (mapping of sample names to classes/phenotypes)",
+        "pathways.gmt (GMT file containing gene sets for ORA)",
+        "interactions.tsv (tab-separated file with two columns for interacting gene pairs)"
+      ],
+      "stages": "1. Load expression, sample annotation, GMT pathway, and interaction data.\n2. Run the unified cemitool function with all inputs and parameters.\n3. Generate an HTML report using generate_report.\n4. Export analysis tables using write_files.\n5. Save generated plots using save_plots.",
+      "code": "library(\"CEMiTool\")\n# load expression data\ndata(expr0)\n# load your sample annotation data\ndata(sample_annot)\n# read GMT file\ngmt_fname <- system.file(\"extdata\", \"pathways.gmt\", package = \"CEMiTool\")\ngmt_in <- read_gmt(gmt_fname)\n# read interactions\nint_fname <- system.file(\"extdata\", \"interactions.tsv\", package = \"CEMiTool\")\nint_df <- read.delim(int_fname)\n# run cemitool\nlibrary(ggplot2)\ncem <- cemitool(expr0, sample_annot, gmt_in, interactions=int_df,\n                filter=TRUE, plot=TRUE, verbose=TRUE)\n# create report as html document\ngenerate_report(cem, directory=\"./Report\")\n\n# write analysis results into files\nwrite_files(cem, directory=\"./Tables\")\n\n# save all plots\nsave_plots(cem, \"all\", directory=\"./Plots\")"
+    },
+    {
+      "name": "diagnostic_and_troubleshooting_analysis",
+      "intent": "Generate a diagnostic report to troubleshoot data issues, assess sample heterogeneity, mean-variance relationships, and distribution properties.",
+      "input": [
+        "expression_data.csv (expression matrix with gene symbols in rows and samples in columns)"
+      ],
+      "stages": "1. Load expression data.\n2. Run cemitool to create a CEMiTool object.\n3. Generate a diagnostic report using diagnostic_report to visualize sample clustering, mean-variance relationship, Q-Q plot, and beta selection.",
+      "code": "library(\"CEMiTool\")\n# load expression data\ndata(expr0)\ncem <- cemitool(expr0)\ndiagnostic_report(cem)"
+    }
+  ]
+}

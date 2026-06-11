@@ -1,100 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: phenopath
-// PhenoPath infers genomic trajectories (pseudotimes) in the presence of heterogeneous genetic and env
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/phenopath/inst/doc/introduction_to_phenopath.R
-// Upstream  : SummarizedExperiment, dplyr, forcats, ggplot2, tidyr
-// Downstream: none
-//
-// Install: BiocManager::install("phenopath")
+// Bioconductor workflow: phenopath — standard_matrix_workflow
+// Fit the PhenoPath model using a gene expression matrix and a covariate vector to infer pseudotimes and identify significant gene-covariate interactions.
+// Input: expression_matrix.csv, covariates.csv
+// Container: quay.io/biocontainers/bioconductor-phenopath:1.34.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: dplyr, ggplot2, phenopath
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit the PhenoPath model using phenopath()
+//  * 2. [Visualization & Output] Check model convergence using plot_elbo()
+//  * 3. [Core Analysis] Extract the latent trajectory (pseudotimes) using trajectory()
+//  * 4. [Core Analysis] Retrieve interaction effects, standard deviations, and significance using interaction_effects(), interaction_sds(), and significan
 
 nextflow.enable.dsl = 2
 
-process BIOC_PHENOPATH {
+process BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-phenopath"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-phenopath:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-phenopath:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_phenopath_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_phenopath_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_phenopath_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: SummarizedExperiment
-    suppressPackageStartupMessages(library(SummarizedExperiment))
-    exprs_mat <- t(sim$y)
-    pdata <- data.frame(x = sim$x)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: as_tibble, gather, ggplot, geom_point, facet_wrap, data_frame, geom_errorbar, theme
-    genes_to_extract <- c(1,3,11,13,21,23,31,33)
-    expression_df <- as.data.frame(sim$y[,genes_to_extract])
-    names(expression_df) <- paste0("gene_", genes_to_extract)
-    # --- Simulate phenopath analysis [] ---
-    # Key functions: simulate_phenopath, phenopath, qplot, xlab
-    fit <- phenopath(sim$y, sim$x, z_init = 1) # 1, initialise to first principal component
-    fit <- phenopath(sim$y, sim$x, z_init = sim$z) # 2, initialise to true values
-    fit <- phenopath(sim$y, sim$x, z_init = "random") # 3, random initialisation
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_phenopath_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    suppressPackageStartupMessages({
+      library(phenopath)
+      library(dplyr)
+      library(ggplot2)
+    })
+    
+    # 1. Read User Inputs
+    if (!file.exists("expression_matrix.csv")) {
+      stop("Error: expression_matrix.csv not found in the working directory.")
+    }
+    if (!file.exists("covariates.csv")) {
+      stop("Error: covariates.csv not found in the working directory.")
+    }
+    
+    # Read expression matrix (samples as rows, genes as columns)
+    expression_matrix <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    sim_y <- as.matrix(expression_matrix)
+    
+    # Read covariates
+    covariates_df <- read.csv("covariates.csv", row.names = 1, check.names = FALSE)
+    
+    # Extract covariate vector/matrix 'x'
+    if ("x" %in% colnames(covariates_df)) {
+      sim_x <- covariates_df\$x
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_phenopath_results.csv")
+      sim_x <- covariates_df[, 1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_phenopath_output.rds")
+    
+    # Extract or approximate true/reference pseudotime 'z' for the correlation step
+    if ("z" %in% colnames(covariates_df)) {
+      sim_z <- covariates_df\$z
+    } else if ("pseudotime" %in% colnames(covariates_df)) {
+      sim_z <- covariates_df\$pseudotime
+    } else {
+      # Fallback: use the first principal component as a proxy for reference z
+      pca <- prcomp(sim_y, scale. = TRUE)
+      sim_z <- pca\$x[, 1]
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PHENOPATH:", paste0("    phenopath: ", packageVersion("phenopath"))),
-        "versions.yml"
+    
+    # Construct the 'sim' object to match the documented code's variable names
+    sim <- list(
+      y = sim_y,
+      x = sim_x,
+      z = sim_z
     )
+    
+    # 2. Fit the PhenoPath model
+    fit <- phenopath(sim\$y, sim\$x, elbo_tol = 1e-6, thin = 40)
+    print(fit)
+    
+    # Save the fit object
+    saveRDS(fit, "phenopath_fit.rds")
+    
+    # 3. Check model convergence
+    pdf("elbo_convergence.pdf", width = 6, height = 4)
+    p_elbo <- plot_elbo(fit)
+    print(p_elbo)
+    dev.off()
+    
+    # 4. Extract the latent trajectory (pseudotimes)
+    inferred_trajectory <- trajectory(fit)
+    trajectory_df <- data.frame(
+      sample = rownames(sim\$y),
+      inferred_pseudotime = inferred_trajectory
+    )
+    write.csv(trajectory_df, "inferred_trajectory.csv", row.names = FALSE)
+    
+    # 5. Compute correlation with reference z
+    z_corr <- cor(sim\$z, trajectory(fit))
+    cat("Correlation between reference z and inferred trajectory:", z_corr, "\n")
+    writeLines(as.character(z_corr), "trajectory_correlation.txt")
+    
+    # 6. Retrieve interaction effects, standard deviations, and significance
+    gene_names <- paste0("gene", seq_len(ncol(fit\$m_beta)))
+    df_beta <- data_frame(beta = interaction_effects(fit),
+                          beta_sd = interaction_sds(fit),
+                          is_sig = significant_interactions(fit),
+                          gene = gene_names)
+    
+    # Map back actual gene names if available
+    if (!is.null(colnames(sim\$y))) {
+      df_beta\$actual_gene_name <- colnames(sim\$y)
+    }
+    
+    write.csv(df_beta, "interaction_effects.csv", row.names = FALSE)
+    
+    # Plot interaction effects
+    pdf("interaction_effects.pdf", width = 8, height = 6)
+    p_beta <- ggplot(df_beta, aes(x = gene, y = beta, color = is_sig)) +
+      geom_point() +
+      geom_errorbar(aes(ymin = beta - 2 * beta_sd, ymax = beta + 2 * beta_sd)) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1),
+            axis.title.x = element_blank()) +
+      ylab(expression(beta)) +
+      scale_color_brewer(palette = "Set2", name = "Significant")
+    print(p_beta)
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW":',
+        paste0('    phenopath: ', as.character(packageVersion('phenopath')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_phenopath_results.csv
-    touch ${prefix}_phenopath_output.rds
-    echo "BIOC_PHENOPATH:" > versions.yml
-    echo "    phenopath: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_matrix_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_PHENOPATH_WORKFLOW {
+workflow BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, covariates.csv ] ]
 
     main:
-    BIOC_PHENOPATH(ch_input)
+    BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_PHENOPATH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PHENOPATH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PHENOPATH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PHENOPATH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW.out.tables
+    plots    = BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW.out.plots
+    objects  = BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW.out.objects
+    versions = BIOC_PHENOPATH_STANDARD_MATRIX_WORKFLOW.out.versions
 }

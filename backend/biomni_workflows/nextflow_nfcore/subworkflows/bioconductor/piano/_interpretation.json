@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datadir=Path to the directory containing CEL files or normalized data ;; setup=A data frame or file path describing the experimental setup where rownames/first column match CEL file names ;; platform=Set to \"yeast2\" for automatic yeast annotation, or NULL for custom annotation ;; contrasts=A character vector of comparisons (e.g., \"aerobic_Clim - anaerobic_Clim\") with spaces around the minus sign ;; geneSetStat=The GSA method to use (e.g., \"mean\", \"median\", \"sum\", \"maxmean\", \"fisher\", \"stouffer\", \"tailStrength\", \"reporter\", \"page\", \"gsea\", \"wilcoxon\") ;; signifMethod=Method for calculating gene set p-values (\"geneSampling\", \"nullDist\", or sample permutation) ;; nPerm=Number of permutations for significance estimation (default is 10,000; lower values like 500 or 1000 are used for fast runs) ;; gsSizeLim=A vector of minimum and maximum gene set sizes allowed (e.g., c(5, 100)) ;; class=The directionality class to plot in networkPlot (\"non\", \"distinct\", or \"mixed\")\n- alternatives: limma (used internally for differential expression analysis; prefer directly for advanced linear modeling) ;; affy, plier, affyPLM (used internally for microarray preprocessing and QC) ;; PGSEA (alternative implementation of the PAGE method) ;; samr (alternative implementation of Tail Strength) ;; GSA (alternative implementation of Maxmean) ;; Broad Institute GSEA (original implementation of GSEA) ;; rsbml (required if importing SBML models for gene sets)\n- when_to_use: Use this package when you want to perform gene set enrichment analysis on transcriptomics data (microarray or RNA-seq) and wish to compare multiple GSA methods, incorporate directionality of gene expression (up/down-regulation), or calculate consensus scores across different GSA methods.\n- pitfalls: Mismatched gene IDs between the gene-level statistics and the gene set collection (GSC) will result in genes being excluded ;; Using a GSA method that is incompatible with the input statistic type (e.g., fisher, stouffer, reporter, and tailStrength only accept p-values; maxmean, gsea, and page only accept t-values or fold-changes) ;; Forgetting the spaces around the minus sign (\" - \") in the contrasts argument of diffExp ;; Using too few permutations (nPerm) in final runs, which can lead to inaccurate p-values (always use higher values like 10,000 for publication-ready results).",
+  "workflows": [
+    {
+      "name": "microarray_preprocessing_and_differential_expression",
+      "intent": "Load raw or pre-normalized microarray data, perform quality control, and identify differentially expressed genes to generate statistics for GSA.",
+      "input": [
+        "norm_data.txt.gz (pre-normalized expression values)",
+        "setup.txt (tab-delimited experimental setup mapping samples to conditions)"
+      ],
+      "stages": "1. Define experimental setup ;; 2. Load and normalize microarray data using loadMAdata ;; 3. Run quality control diagnostics using runQC ;; 4. Extract experimental factors using extractFactors ;; 5. Perform differential expression analysis using diffExp",
+      "code": "oxygen <- c(\"aerobic\",\"anaerobic\")\nlimitation <- c(\"Clim\",\"Nlim\")\nmySetup <- cbind(oxygen[c(1,1,1,2,2,2,1,1,1,2,2,2)],\n               limitation[c(1,1,1,1,1,1,2,2,2,2,2,2)])\nrownames(mySetup) <- c(\"CAE1\",\"CAE2\",\"CAE3\",\"CAN1\",\"CAN2\",\"CAN3\",\n                     \"NAE1\",\"NAE2\",\"NAE3\",\"NAN1\",\"NAN2\",\"NAN3\")\ncolnames(mySetup) <- c(\"oxygen\",\"limitation\")\ndataPath <- system.file(\"extdata\", package=\"piano\")\nmyArrayData <- loadMAdata(datadir=dataPath, \n                          dataNorm=\"norm_data.txt.gz\", \n                          platform=\"yeast2\")\nmyArrayData\nmyArrayData$setup\nmyArrayData$annotation[1:10,]\nrunQC(myArrayData)\nrunQC(myArrayData, rnaDeg=FALSE, nuseRle=FALSE, hist=FALSE,\n      boxplot=FALSE, pca=TRUE)\nrunQC(myArrayData, rnaDeg=FALSE, nuseRle=FALSE, hist=FALSE,\n      boxplot=FALSE, pca=TRUE, colors=c(\"cyan\",\"orange\"))\nextractFactors(myArrayData)\npfc <- diffExp(myArrayData, contrasts=c(\"aerobic_Clim - anaerobic_Clim\", \n                                        \"aerobic_Nlim - anaerobic_Nlim\"))\nii <- sort(pfc$resTable[[1]]$adj.P.Val, index.return=TRUE)$ix\npfc$resTable[[1]][ii[1:5],]"
+    },
+    {
+      "name": "gene_set_analysis_and_visualization",
+      "intent": "Run gene set analysis using gene-level statistics and a gene set collection, then visualize and summarize the results.",
+      "input": [
+        "probe2metabolites_iIN800.txt.gz (tab-delimited gene-to-metabolite mapping)",
+        "myPval (named vector of gene-level p-values)",
+        "myFC (named vector of gene-level fold changes)"
+      ],
+      "stages": "1. Load gene set collection using loadGSC ;; 2. Run gene set analysis using runGSA ;; 3. Generate summary tables using GSAsummaryTable ;; 4. Extract specific gene set details using geneSetSummary ;; 5. Visualize gene set relationships using networkPlot or exploreGSAres",
+      "code": "metMap <- system.file(\"extdata\", \"probe2metabolites_iIN800.txt.gz\", \n                      package=\"piano\")\nmetMap <- read.delim(metMap)\nmyGsc <- loadGSC(metMap)\ngsaRes <- runGSA(myPval,myFC,gsc=myGsc,\n                 geneSetStat=\"reporter\",\n                 signifMethod=\"nullDist\", nPerm=1000,\n                 gsSizeLim=c(5,100))\ngsaRes\nnw <- networkPlot(gsaRes, class=\"distinct\", direction=\"both\",\n                  significance=0.005, label=\"numbers\")\nnw$geneSets\ngsaResTab <- GSAsummaryTable(gsaRes)\ngrep(\"p \\\\(\",colnames(gsaResTab),value=TRUE)\ngrep(\"p \\\\(\",colnames(gsaResTab))\nii <- which(gsaResTab[,10]<0.0001)\ngsaResTab$Name[ii]\nminPval <- apply(gsaResTab[,c(4,7,10,14,18)],1,min,na.rm=TRUE)\nii <- which(minPval<0.0001)\ngsaResTabSign <- gsaResTab[ii,c(1,4,7,10,14,18)]\ngsaResTabSign[1:10,]\nexploreGSAres(gsaRes)"
+    },
+    {
+      "name": "consensus_gsa_scoring",
+      "intent": "Run multiple GSA methods on the same dataset and combine their results into a consensus score and heatmap.",
+      "input": [
+        "mapGO (data frame mapping genes to GO terms)",
+        "myTval (named vector of gene-level t-values)",
+        "myPval (named vector of gene-level p-values)",
+        "myFC (named vector of gene-level fold changes)"
+      ],
+      "stages": "1. Load gene set collection using loadGSC ;; 2. Run multiple GSA analyses with different geneSetStat methods using runGSA ;; 3. Combine results and plot a consensus heatmap using consensusHeatmap",
+      "code": "myGsc <- loadGSC(mapGO)\ngsaRes1 <- runGSA(myTval,geneSetStat=\"mean\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\ngsaRes2 <- runGSA(myTval,geneSetStat=\"median\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\ngsaRes3 <- runGSA(myTval,geneSetStat=\"sum\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\ngsaRes4 <- runGSA(myTval,geneSetStat=\"maxmean\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\ngsaRes5 <- runGSA(myPval,myFC,geneSetStat=\"fisher\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\ngsaRes6 <- runGSA(myPval,myFC,geneSetStat=\"stouffer\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\ngsaRes7 <- runGSA(myPval,myFC,geneSetStat=\"tailStrength\",gsc=myGsc,\n                  nPerm=1000,gsSizeLim=c(10,800))\nresList <- list(gsaRes1,gsaRes2,gsaRes3,gsaRes4,gsaRes5,gsaRes6,gsaRes7)\nnames(resList) <- c(\"mean\",\"median\",\"sum\",\"maxmean\",\"fisher\",\n                    \"stouffer\",\"tailStrength\")\nch <- consensusHeatmap(resList,cutoff=30,method=\"mean\")\nch$pMat"
+    }
+  ]
+}

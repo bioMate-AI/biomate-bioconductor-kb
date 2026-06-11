@@ -1,0 +1,14 @@
+{
+  "package": "process",
+  "requirements": [
+    "PROcess"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PROcess"
+    ],
+    "mean_spectrum_peaks.nf": [
+      "PROcess"
+    ]
+  }
+}

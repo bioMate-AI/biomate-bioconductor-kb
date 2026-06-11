@@ -1,0 +1,19 @@
+{
+  "package": "cgen",
+  "requirements": [
+    "CGEN",
+    "cluster"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CGEN"
+    ],
+    "matched_case_control.nf": [
+      "CGEN",
+      "cluster"
+    ],
+    "snp_logistic_interaction.nf": [
+      "CGEN"
+    ]
+  }
+}

@@ -1,115 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SigCheck
-// While gene signatures are frequently used to predict phenotypes (e.g. predict prognosis of cancer pa
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SigCheck/inst/doc/SigCheck.R
-// Upstream  : BiocParallel, breastCancerNKI
-// Downstream: none
-//
-// Install: BiocManager::install("SigCheck")
+// Bioconductor workflow: SigCheck — survival_analysis
+// Evaluate a gene signature's survival prediction performance against random signatures, known signatures, and permuted data.
+// Input: nki, knownSignatures$cancer$VANTVEER
+// Container: quay.io/biocontainers/bioconductor-sigcheck:2.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, SigCheck
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter out samples with missing metadata
+//  * 2. [Core Analysis] Initialize the SigCheckObject and compute baseline survival performance
+//  * 3. [Core Analysis] Run all comparison checks (random, known, permuted survival, permuted features)
+//  * 4. [Visualization & Output] Plot the comparison distributions
+//  * 5. [Core Analysis] Extract empirical p-values for each check
 
 nextflow.enable.dsl = 2
 
-process BIOC_SIGCHECK {
+process BIOC_SIGCHECK_SURVIVAL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sigcheck"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sigcheck:2.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sigcheck:2.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sigcheck_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sigcheck_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sigcheck_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(SigCheck)
-    library(MulticoreParam)
-    library(jsonlite)
-
-    # --- Background Comparison and Permutation Tests [] ---
-    # Key functions: sigCheckRandom, sigCheckKnown, sigCheckPermutedSurvival, sigCheckPermutedFeatures
-    check_random <- sigCheckRandom(check, N = 100)
-    check_known <- sigCheckKnown(check, knownSignatures$cancer)
-    check_perm_surv <- sigCheckPermutedSurvival(check, N = 100)
-    check_perm_feat <- sigCheckPermutedFeatures(check, N = 100)
-    random_pval <- check_random@survivalPval
-
-
-    # --- Classifier-Based Evaluation [] ---
-    # Key functions: sigCheck
-    check_classifier <- sigCheck(
-        nki,
-        classes = "e.dmfs",
-        signature = knownSignatures$cancer$VANTVEER,
-        annotation = "HUGO.gene.symbol",
-        validationSamples = which(nki$series == "NKI2"),
-        scoreMethod = "classifier"
-    )
-    sig_perf <- check_classifier@sigPerformance
-    mode_perf <- check_classifier@modePerformance
-    confusion_mat <- check_classifier@confusion
-
-
-    # --- Visualization of Signature Performance [] ---
-    # Key functions: sigCheckPlot
+    library(Biobase)
+    
+    # Helper function to robustly load user input files (RDS or RData)
+    load_input <- function(filename) {
+      if (file.exists(filename)) {
+        res <- try(readRDS(filename), silent=TRUE)
+        if (!inherits(res, "try-error")) return(res)
+        env <- new.env()
+        res_load <- try(load(filename, envir=env), silent=TRUE)
+        if (!inherits(res_load, "try-error")) {
+          vars <- ls(env)
+          if (length(vars) > 0) return(env[[vars[1]]])
+        }
+      }
+      for (ext in c(".rds", ".RData", ".RDS", ".RDATA")) {
+        fn <- paste0(filename, ext)
+        if (file.exists(fn)) {
+          res <- try(readRDS(fn), silent=TRUE)
+          if (!inherits(res, "try-error")) return(res)
+          env <- new.env()
+          res_load <- try(load(fn, envir=env), silent=TRUE)
+          if (!inherits(res_load, "try-error")) {
+            vars <- ls(env)
+            if (length(vars) > 0) return(env[[vars[1]]])
+          }
+        }
+      }
+      stop(paste("Could not find or load file:", filename))
+    }
+    
+    # Load the required user inputs from the working directory
+    nki <- load_input("nki")
+    
+    knownSignatures <- tryCatch({
+      load_input("knownSignatures")
+    }, error = function(e) {
+      # Fallback if the signature is provided directly as a vector
+      vv <- tryCatch({
+        load_input("vantveer")
+      }, error = function(e2) {
+        load_input("VANTVEER")
+      })
+      list(cancer = list(VANTVEER = vv))
+    })
+    
+    # Stage 1: Filter out samples with missing metadata
+    nki <- nki[,!is.na(nki\$e.dmfs)]
+    
+    # Stage 2: Initialize the SigCheckObject and compute baseline survival performance
+    check <- sigCheck(nki, classes="e.dmfs", survival="t.dmfs",
+                      signature=knownSignatures\$cancer\$VANTVEER,
+                      annotation="HUGO.gene.symbol",
+                      validationSamples=which(nki\$series=="NKI2")) 
+    
+    baseline_pval <- check@survivalPval
+    
+    # Stage 3: Run all comparison checks (random, known, permuted survival, permuted features)
+    nkiResults <- sigCheckAll(check, iterations=1000) 
+    
+    # Stage 4: Plot the comparison distributions to a PDF file
+    pdf("sigcheck_plots.pdf", width=10, height=8)
     sigCheckPlot(nkiResults)
-    sigCheckPlot(classifyRandom, classifier = TRUE)
-    sigCheckPlot(classifyKnown, classifier = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sigcheck_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sigcheck_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sigcheck_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SIGCHECK:", paste0("    sigcheck: ", packageVersion("SigCheck"))),
-        "versions.yml"
+    dev.off()
+    
+    # Stage 5: Extract empirical p-values for each check and save results
+    pvals <- data.frame(
+      Check = c("Baseline", "Random", "Known", "PermutedSurvival", "PermutedFeatures"),
+      Pval = c(
+        baseline_pval,
+        nkiResults\$checkRandom\$checkPval,
+        nkiResults\$checkKnown\$checkPval,
+        nkiResults\$checkPermutedSurvival\$checkPval,
+        nkiResults\$checkPermutedFeatures\$checkPval
+      )
     )
+    
+    write.csv(pvals, "sigcheck_pvalues.csv", row.names=FALSE)
+    saveRDS(nkiResults, "sigcheck_results.rds")
+
+    writeLines(c(
+        '"BIOC_SIGCHECK_SURVIVAL_ANALYSIS":',
+        paste0('    SigCheck: ', as.character(packageVersion('SigCheck')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sigcheck_results.csv
-    touch ${prefix}_sigcheck_output.rds
-    echo "BIOC_SIGCHECK:" > versions.yml
-    echo "    sigcheck: 0.0.0" >> versions.yml
+    touch ${prefix}_survival_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SIGCHECK_WORKFLOW {
+workflow BIOC_SIGCHECK_SURVIVAL_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ nki, knownSignatures$cancer$VANTVEER ] ]
 
     main:
-    BIOC_SIGCHECK(ch_input)
+    BIOC_SIGCHECK_SURVIVAL_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SIGCHECK.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SIGCHECK.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SIGCHECK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SIGCHECK.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SIGCHECK_SURVIVAL_ANALYSIS.out.tables
+    plots    = BIOC_SIGCHECK_SURVIVAL_ANALYSIS.out.plots
+    objects  = BIOC_SIGCHECK_SURVIVAL_ANALYSIS.out.objects
+    versions = BIOC_SIGCHECK_SURVIVAL_ANALYSIS.out.versions
 }

@@ -1,0 +1,14 @@
+{
+  "package": "hmmcopy",
+  "requirements": [
+    "HMMcopy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HMMcopy"
+    ],
+    "matched_tumor_normal_correction.nf": [
+      "HMMcopy"
+    ]
+  }
+}

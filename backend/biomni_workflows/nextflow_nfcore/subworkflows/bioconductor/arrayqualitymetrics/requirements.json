@@ -1,0 +1,17 @@
+{
+  "package": "arrayqualitymetrics",
+  "requirements": [
+    "Biobase",
+    "affy",
+    "arrayQualityMetrics",
+    "vsn"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "affy",
+      "arrayQualityMetrics",
+      "vsn"
+    ]
+  }
+}

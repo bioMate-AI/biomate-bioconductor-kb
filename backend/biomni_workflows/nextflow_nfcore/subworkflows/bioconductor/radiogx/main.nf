@@ -1,151 +1,192 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RadioGx
-// Computational tool box for radio-genomic analysis which integrates radio-response data, radio-biolog
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RadioGx/inst/doc/RadioGx.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("RadioGx")
+// Bioconductor workflow: RadioGx — dose_response_modeling_and_metrics
+// Fit linear-quadratic models to radiation dose-response data, compute radio-sensitivity metrics (SF2, D10, AUC), and plot dose-response curves.
+// Input: radiation_doses.csv, survival_fractions.csv
+// Container: quay.io/biocontainers/bioconductor-radiogx:2.14.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RadioGx
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit a linear-quadratic model to dose and survival fraction data using linearQuadraticModel
+//  * 2. [Core Analysis] Compute surviving fraction at 2 Gy using computeSF2
+//  * 3. [Core Analysis] Compute dose at 10% survival using computeD10
+//  * 4. [Core Analysis] Compute area under the dose-response curve using computeAUC
+//  * 5. [Visualization & Output] Plot the dose-response curve using doseResponseCurve
 
 nextflow.enable.dsl = 2
 
-process BIOC_RADIOGX {
+process BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-radiogx"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-radiogx:2.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-radiogx:2.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_radiogx_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_radiogx_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_radiogx_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(RadioGx)
-    library(jsonlite)
-
-    # --- Dataset Exploration and Metadata Extraction [radiationInfo, radiationTypes, mDataNames, phenoInfo, availableRSets] ---
-    # Key functions: availableRSets, radiationInfo, radiationTypes, mDataNames, phenoInfo
-    data(clevelandSmall)
-    rsets <- availableRSets()
-    rad_info <- radiationInfo(clevelandSmall)
-    rad_types <- radiationTypes(clevelandSmall)
-    mol_names <- mDataNames(clevelandSmall)
-    pheno_info <- phenoInfo(clevelandSmall, "cnv")
-
-    # --- Molecular and Response Data Access [molecularProfiles, treatmentResponse, sensitivityRaw, sensitivityProfiles, sensitivityInfo] ---
-    # Key functions: molecularProfiles, treatmentResponse, sensitivityRaw, sensitivityProfiles, sensitivityInfo
-    data(clevelandSmall)
-    m_prof <- molecularProfiles(clevelandSmall, "rnaseq")
-    sens_resp <- treatmentResponse(clevelandSmall)
-    sens_raw <- sensitivityRaw(clevelandSmall)
-    sens_prof <- sensitivityProfiles(clevelandSmall)
-    sens_info <- sensitivityInfo(clevelandSmall)
-
-    # --- Dose-Response Curve Fitting and Metric Calculation [linearQuadraticModel, computeSF2, computeD10, computeAUC] ---
-    # Key functions: linearQuadraticModel, computeSF2, computeD10, computeAUC
-    data(clevelandSmall)
-    sens_raw <- sensitivityRaw(clevelandSmall)
-    rad_doses <- sens_raw[1, , "Dose"]
-    surv_fracs <- sens_raw[1, , "Viability"]
-    lq_model <- linearQuadraticModel(D = rad_doses, SF = surv_fracs)
-    sf2 <- computeSF2(pars = lq_model)
-    d10 <- computeD10(pars = lq_model)
-    auc <- computeAUC(
-        D = rad_doses,
-        pars = lq_model,
-        lower = 0,
-        upper = 1
+    
+    # 1. Read user input files
+    doses_data <- read.csv("radiation_doses.csv", header = TRUE)
+    radiationDoses <- as.numeric(doses_data[[1]])
+    
+    sf_data <- read.csv("survival_fractions.csv", header = TRUE)
+    survivalFractions <- as.numeric(sf_data[[1]])
+    
+    # 2. Fit linear-quadratic model
+    LQmodel <- linearQuadraticModel(D=radiationDoses,
+                                    SF=survivalFractions)
+    print(LQmodel)
+    
+    # Save LQmodel parameters to RDS
+    saveRDS(LQmodel, "LQmodel.rds")
+    
+    # 3. Compute radio-sensitivity metrics
+    survFracAfter2Units <- computeSF2(pars=LQmodel)
+    print(survFracAfter2Units)
+    
+    dose10PercentSurv <- computeD10(pars=LQmodel)
+    print(dose10PercentSurv)
+    
+    areaUnderDoseRespCurve <- RadioGx::computeAUC(D=radiationDoses, pars=LQmodel, lower=0,
+                                         upper=1)
+    print(areaUnderDoseRespCurve)
+    
+    # Save computed metrics to a CSV file
+    metrics_df <- data.frame(
+      Metric = c("SF2", "D10", "AUC_0_1"),
+      Value = c(survFracAfter2Units, dose10PercentSurv, areaUnderDoseRespCurve),
+      stringsAsFactors = FALSE
     )
-
-    # --- Dose-Response Visualization [doseResponseCurve, cellInfo] ---
-    # Key functions: doseResponseCurve, cellInfo
-    data(clevelandSmall)
-    cell_id <- cellInfo(clevelandSmall)$sampleid[5]
+    write.csv(metrics_df, "radio_sensitivity_metrics.csv", row.names = FALSE)
+    
+    # 4. Plot dose-response curves and save to PDF
+    pdf("dose_response_curves.pdf", width = 7, height = 7)
+    
+    # Plot 1: Using raw data lists
     doseResponseCurve(
-        rSets = list(clevelandSmall),
-        cellline = cell_id
+      Ds=list("Experiment 1" = radiationDoses),
+      SFs=list("Experiment 1" = survivalFractions),
+      plot.type="Both"
     )
-    doseResponseCurve(
-        Ds = list("Exp1" = c(0, 2, 4, 6)),
-        SFs = list("Exp1" = c(1, 0.6, 0.4, 0.2)),
-        plot.type = "Both"
-    )
+    
+    # Plot 2: Using a constructed RadioSet to avoid using bundled demo datasets
+    tryCatch({
+      # Construct minimal components for a valid RadioSet
+      cell <- data.frame(
+        sampleid = paste0("cell", 1:5),
+        row.names = paste0("cell", 1:5),
+        stringsAsFactors = FALSE
+      )
+      
+      radiation <- data.frame(
+        radiation.types = "radiation",
+        row.names = "radiation",
+        stringsAsFactors = FALSE
+      )
+      
+      sensitivityInfo <- data.frame(
+        sampleid = paste0("cell", 1:5),
+        radiation.types = rep("radiation", 5),
+        row.names = paste0("cell", 1:5),
+        stringsAsFactors = FALSE
+      )
+      
+      sensRaw <- array(
+        NA,
+        dim = c(5, length(radiationDoses), 2),
+        dimnames = list(
+          paste0("cell", 1:5),
+          paste0("dose", seq_along(radiationDoses)),
+          c("Dose", "Viability")
+        )
+      )
+      for (i in 1:5) {
+        sensRaw[i, , "Dose"] <- radiationDoses
+        sensRaw[i, , "Viability"] <- survivalFractions
+      }
+      
+      sensProf <- matrix(
+        0,
+        nrow = 5,
+        ncol = 1,
+        dimnames = list(paste0("cell", 1:5), "AUC")
+      )
+      
+      # Instantiate the RadioSet object
+      clevelandSmall <- RadioSet(
+        name = "ClevelandMock",
+        molecularProfiles = list(),
+        cell = cell,
+        radiation = radiation,
+        sensitivityInfo = sensitivityInfo,
+        sensitivityRaw = sensRaw,
+        sensitivityProfiles = sensProf,
+        verify = FALSE
+      )
+      
+      # Plot using the constructed RadioSet
+      doseResponseCurve(
+        rSets=list(clevelandSmall),
+        cellline=cellInfo(clevelandSmall)\$sampleid[5]
+      )
+    }, error = function(e) {
+      message("Optional RadioSet plotting step skipped or failed: ", e\$message)
+    })
+    
+    dev.off()
 
-    # --- Profile Summarization and Signature Computation [summarizeSensitivityProfiles, summarizeMolecularProfiles, radSensitivitySig, fNames] ---
-    # Key functions: summarizeSensitivityProfiles, summarizeMolecularProfiles, radSensitivitySig, fNames
-    data(clevelandSmall)
-    sens_sum <- summarizeSensitivityProfiles(clevelandSmall)
-    mol_sum <- summarizeMolecularProfiles(
-        clevelandSmall,
-        mDataType = "rna",
-        summary.stat = "median",
-        fill.missing = FALSE
-    )
-    feats <- fNames(clevelandSmall, "rna")[2:5]
-    rad_sig <- radSensitivitySig(
-        clevelandSmall,
-        mDataType = "rna",
-        features = feats,
-        nthread = 1
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_radiogx_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_radiogx_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_radiogx_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RADIOGX:", paste0("    radiogx: ", packageVersion("RadioGx"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS":',
+        paste0('    RadioGx: ', as.character(packageVersion('RadioGx')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_radiogx_results.csv
-    touch ${prefix}_radiogx_output.rds
-    echo "BIOC_RADIOGX:" > versions.yml
-    echo "    radiogx: 0.0.0" >> versions.yml
+    touch ${prefix}_dose_response_modeling_and_metrics.csv versions.yml
     """
 }
 
-
-workflow BIOC_RADIOGX_WORKFLOW {
+workflow BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ radiation_doses.csv, survival_fractions.csv ] ]
 
     main:
-    BIOC_RADIOGX(ch_input)
+    BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS(ch_input)
 
     emit:
-    results  = BIOC_RADIOGX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RADIOGX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RADIOGX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RADIOGX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS.out.tables
+    plots    = BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS.out.plots
+    objects  = BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS.out.objects
+    versions = BIOC_RADIOGX_DOSE_RESPONSE_MODELING_AND_METRICS.out.versions
 }

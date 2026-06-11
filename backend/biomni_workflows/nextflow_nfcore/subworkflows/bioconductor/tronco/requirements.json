@@ -1,0 +1,17 @@
+{
+  "package": "tronco",
+  "requirements": [
+    "TRONCO"
+  ],
+  "by_workflow": {
+    "export_to_external_tools.nf": [
+      "TRONCO"
+    ],
+    "main.nf": [
+      "TRONCO"
+    ],
+    "pathway_level_visualization.nf": [
+      "TRONCO"
+    ]
+  }
+}

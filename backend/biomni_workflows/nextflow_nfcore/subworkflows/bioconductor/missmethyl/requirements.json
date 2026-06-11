@@ -1,0 +1,33 @@
+{
+  "package": "missmethyl",
+  "requirements": [
+    "DMRcate",
+    "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+    "edgeR",
+    "limma",
+    "minfi",
+    "missMethyl"
+  ],
+  "by_workflow": {
+    "diff_var_methylation.nf": [
+      "limma",
+      "missMethyl"
+    ],
+    "diff_var_rnaseq.nf": [
+      "edgeR",
+      "limma",
+      "missMethyl"
+    ],
+    "main.nf": [
+      "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+      "limma",
+      "minfi",
+      "missMethyl"
+    ],
+    "region_level_gsa.nf": [
+      "DMRcate",
+      "limma",
+      "missMethyl"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "package": "genomicfeatures",
+  "requirements": [
+    "GenomicFeatures",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene"
+    ]
+  }
+}

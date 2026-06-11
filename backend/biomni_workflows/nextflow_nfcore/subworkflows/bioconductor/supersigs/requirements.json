@@ -1,0 +1,26 @@
+{
+  "package": "supersigs",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "VariantAnnotation",
+    "dplyr",
+    "ggplot2",
+    "supersigs"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "VariantAnnotation",
+      "dplyr",
+      "ggplot2",
+      "supersigs"
+    ],
+    "partial_signature_adjustment.nf": [
+      "supersigs"
+    ],
+    "predict_supersig.nf": [
+      "dplyr",
+      "supersigs"
+    ]
+  }
+}

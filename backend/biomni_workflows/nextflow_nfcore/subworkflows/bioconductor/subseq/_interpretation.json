@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: counts=A matrix of raw sequencing counts per gene (rownames should be gene IDs) ;; proportions=A vector of proportions to subsample, typically on a logarithmic scale (e.g., 10^seq(-2, 0, .5)) ;; method=A character vector of differential expression methods to run (e.g., \"edgeR\", \"voomLimma\", \"DESeq2\", \"DEXSeq\", \"edgeR.glm\") ;; treatment=A vector describing the experimental design or treatment groups ;; seed=An integer seed used to ensure reproducibility or to add methods/depths to a previous run ;; replications=The number of subsampling replications to perform (default is 1)\n- alternatives: Subsampling raw reads from FASTQ files before mapping (e.g., using Picard DownsampleSam). subSeq is preferred because it is computationally much faster, especially when using complex spliced mappers like TopHat, and is mathematically equivalent when read mapping is independent and deterministic.\n- when_to_use: Use this package during experimental design or pilot analysis to determine if sequencing depth is sufficient, or to decide if future experiments can be multiplexed further with fewer reads per sample.\n- pitfalls: Using too many proportions can significantly increase computation time. When writing custom handlers, the function must take count.matrix as its first argument and return a data.frame with coefficient and pvalue columns. If multiple methods are used in a single subsample call, they cannot take different extra arguments; instead, run them separately with the same seed and combine them using combineSubsamples.",
+  "workflows": [
+    {
+      "name": "subsampling_depth_analysis",
+      "intent": "Subsample a count matrix at multiple depths, run differential expression analyses, and evaluate the impact of depth on significance and effect size estimates.",
+      "input": [
+        "hammer.counts (matrix of raw RNA-seq counts)",
+        "hammer.design$protocol (vector of treatment groups)"
+      ],
+      "stages": "1. Filter out low-count genes ;; 2. Define logarithmic subsampling proportions ;; 3. Perform subsampling and differential expression using subsample ;; 4. Summarize the subsamples using summary ;; 5. Plot the summary metrics using plot",
+      "code": "hammer.counts = Biobase::exprs(hammer)[, 1:4]\nhammer.design = Biobase::pData(hammer)[1:4, ]\nhammer.counts = hammer.counts[rowSums(hammer.counts) >= 5, ]\nproportions = 10^seq(-2, 0, .5)\nsubsamples = subsample(hammer.counts, proportions, method=c(\"edgeR\", \"voomLimma\"), treatment=hammer.design$protocol)\nsubsamples.summary = summary(subsamples)\nplot(subsamples.summary)"
+    },
+    {
+      "name": "add_methods_or_depths",
+      "intent": "Add a new analysis method or additional depths to a previous subsampling run using the same random seed to ensure comparability.",
+      "input": [
+        "hammer.counts (matrix of raw RNA-seq counts)",
+        "subsamples (subsamples object from a previous run)",
+        "hammer.design$protocol (vector of treatment groups)"
+      ],
+      "stages": "1. Retrieve the random seed from the original run using getSeed ;; 2. Run subsample with the new method and the retrieved seed ;; 3. Combine the original and new subsamples using combineSubsamples ;; 4. Summarize and plot the combined results",
+      "code": "seed = getSeed(subsamples)\nsubsamples.more = subsample(hammer.counts, proportions, method=c(\"voomLimma\"), treatment =hammer.design$protocol, seed=seed)\nsubsamples.combined = combineSubsamples(subsamples, subsamples.more)\nplot(summary(subsamples.combined))"
+    },
+    {
+      "name": "extract_subsampled_matrix",
+      "intent": "Generate and extract the exact subsampled count matrix at a specific proportion from a previous run for detailed manual inspection.",
+      "input": [
+        "hammer.counts (matrix of raw RNA-seq counts)",
+        "seed (random seed retrieved from a previous subsamples object)"
+      ],
+      "stages": "1. Generate the subsampled matrix at a specific proportion using generateSubsampledMatrix",
+      "code": "submatrix = generateSubsampledMatrix(hammer.counts, .1, seed=seed)\ndim(submatrix)\nsum(submatrix)"
+    }
+  ]
+}

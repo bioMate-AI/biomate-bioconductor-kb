@@ -1,0 +1,26 @@
+{
+  "package": "deepsnv",
+  "requirements": [
+    "GenomicRanges",
+    "Rsamtools",
+    "VariantAnnotation",
+    "deepSNV"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rsamtools",
+      "deepSNV"
+    ],
+    "shearwater_bayes_variant_calling.nf": [
+      "GenomicRanges",
+      "VariantAnnotation",
+      "deepSNV"
+    ],
+    "shearwater_ml_variant_calling.nf": [
+      "GenomicRanges",
+      "Rsamtools",
+      "VariantAnnotation",
+      "deepSNV"
+    ]
+  }
+}

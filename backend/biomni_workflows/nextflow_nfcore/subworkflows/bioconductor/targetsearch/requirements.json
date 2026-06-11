@@ -1,0 +1,13 @@
+{
+  "package": "targetsearch",
+  "requirements": [
+    "TargetSearch",
+    "ncdf4"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TargetSearch",
+      "ncdf4"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nBurnin=number of burn-in MCMC iterations in GGPA() ;; nMain=number of main MCMC iterations in GGPA() ;; FDR=nominal FDR level in assoc() ;; fdrControl=type of FDR control (\"global\" or \"local\") in assoc() ;; i=index of first phenotype of interest for joint association mapping in assoc() or fdr() ;; j=index of second phenotype of interest for joint association mapping in assoc() or fdr()\n- alternatives: Standard GPA (without graph structure) or other multi-GWAS joint analysis methods. The docs mention that incorporating a prior disease graph (via DDNet) improves on the uninformative prior graph-GPA model.\n- when_to_use: When analyzing multiple GWAS p-value datasets simultaneously to identify shared genetic variants (pleiotropy) and understand the genetic relationships (phenotype graph) among diseases/phenotypes.\n- pitfalls: Using too few MCMC iterations (e.g., the default or vignette's 200/200) for real data; 10,000 burn-in and 40,000 main iterations are recommended. Mismatch between the columns/column names of the p-value matrix (pmat) and the prior graph (pgraph). They must match exactly.",
+  "workflows": [
+    {
+      "name": "standard_graph_gpa",
+      "intent": "Fit a graph-GPA model to multiple GWAS p-value datasets to perform association mapping and estimate the phenotype graph without prior knowledge.",
+      "input": [
+        "pmat (matrix of GWAS p-values where rows are SNPs and columns are phenotypes)"
+      ],
+      "stages": "1. Fit the graph-GPA model using GGPA ;; 2. Extract parameter estimates using estimates ;; 3. Perform marginal and joint association mapping using assoc ;; 4. Calculate local FDR using fdr ;; 5. Visualize the estimated phenotype graph using plot",
+      "code": "set.seed(12345)\nfit <- GGPA( simulation$pmat, nBurnin=200, nMain=200 )\nfit\nstr(estimates(fit))\nassoc.marg <- assoc( fit, FDR=0.10, fdrControl=\"global\" )\ndim(assoc.marg)\napply( assoc.marg, 2, table )\nfdr.marg <- fdr(fit)\ndim(fdr.marg)\nhead(fdr.marg)\nassoc.joint <- assoc( fit, FDR=0.10, fdrControl=\"global\", i=1, j=2 )\nlength(assoc.joint)\nhead(assoc.joint)\ntable(assoc.joint)\nplot(fit)"
+    },
+    {
+      "name": "graph_gpa_with_prior",
+      "intent": "Fit a graph-GPA model incorporating an informative prior disease graph (e.g., downloaded from DDNet) to improve SNP prioritization and pleiotropic architecture estimation.",
+      "input": [
+        "pmat (matrix of GWAS p-values where rows are SNPs and columns are phenotypes)",
+        "pgraph (adjacency matrix of the prior disease graph, sharing the same columns and column names as pmat)"
+      ],
+      "stages": "1. Fit the graph-GPA model with the prior graph using GGPA ;; 2. Perform downstream association mapping and visualization using assoc, fdr, and plot",
+      "code": "fit <- GGPA( pmat, pgraph )"
+    }
+  ]
+}

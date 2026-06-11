@@ -23,6 +23,13 @@ import urllib.error
 from pathlib import Path
 from typing import List, Tuple, Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:
+    from fix_bioc_versions_heredoc import sanitize_text as _sanitize_versions
+except Exception:                                  # pragma: no cover
+    def _sanitize_versions(t):  # noqa: E704 - no-op fallback
+        return t
+
 BIOC_DIR = Path("/Users/kky/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor")
 RANKED_FILE = Path("/tmp/thin_ranked.txt")
 
@@ -581,6 +588,9 @@ def process_package(pkg_lower: str) -> Tuple[str, str]:
     if not new_content:
         return (pkg_lower, "write_fail")
 
+    # Never emit a bash versions.yml heredoc inside an Rscript block (it gets R-evaluated
+    # -> "object 'END_VERSIONS' not found"). Convert to writeLines() at generation time.
+    new_content = _sanitize_versions(new_content)
     nf_path.write_text(new_content)
     return (pkg_lower, f"ok:{len(steps)}")
 

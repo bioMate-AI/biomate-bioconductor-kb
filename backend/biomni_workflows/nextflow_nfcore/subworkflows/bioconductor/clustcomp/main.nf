@@ -1,155 +1,151 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: clustComp
-// clustComp is a package that implements several techniques for the comparison and visualisation of re
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/clustComp/inst/doc/clustComp.R
-// Upstream  : Biobase, colonCA
-// Downstream: none
-//
-// Install: BiocManager::install("clustComp")
+// Bioconductor workflow: clustComp — flat_vs_flat_comparison
+// Compare and visualize two flat clustering results using barycentre layout optimization and greedy supercluster mapping.
+// Input: flat1, flat2
+// Container: quay.io/biocontainers/bioconductor-clustcomp:1.38.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: clustComp
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Perform initial flat-versus-flat comparison and layout optimization using the barycentre algorithm. 2. Manually adjust node coordi
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLUSTCOMP {
+process BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clustcomp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clustcomp:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-clustcomp:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clustcomp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clustcomp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clustcomp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SCmapping)
-    library(jsonlite)
-
-    # --- Loaddata [] ---
-    # Key functions: data
-    library(Biobase)
-    library(colonCA)
-    data(colonCA)
-    # --- Comparisonflatvsflat1 [] ---
-    # Key functions: flatVSflat
-    flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = FALSE)
-    # --- Fig01 [] ---
-    # Key functions: bitmap, flatVSflat, off
-    bitmap("fig01.png", height = 4, width = 4, pointsize = 10, res = 300)
-    flatVSflat(flat1, flat2, line.wd = 5, h.min = 0.3, greedy = FALSE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(clustComp)
+    
+    # Helper function to read input files robustly from the working directory
+    read_input <- function(filename) {
+      if (file.exists(filename)) {
+        # Try reading as RDS
+        res <- tryCatch({
+          readRDS(filename)
+        }, error = function(e) {
+          NULL
+        })
+        if (!is.null(res)) return(res)
+        
+        # Try reading as plain text lines
+        res <- tryCatch({
+          scan(filename, what = character(), quiet = TRUE)
+        }, error = function(e) {
+          NULL
+        })
+        if (!is.null(res)) return(res)
+        
+        stop(paste("Could not parse file:", filename))
+      } else if (file.exists(paste0(filename, ".rds"))) {
+        return(readRDS(paste0(filename, ".rds")))
+      } else if (file.exists(paste0(filename, ".txt"))) {
+        return(scan(paste0(filename, ".txt"), what = character(), quiet = TRUE))
+      } else {
+        stop(paste("Required input file", filename, "not found in the working directory."))
+      }
+    }
+    
+    # Read user inputs
+    flat1 <- read_input("flat1")
+    flat2 <- read_input("flat2")
+    
+    # Ensure inputs are vectors
+    flat1 <- as.vector(flat1)
+    flat2 <- as.vector(flat2)
+    
+    # 1. Perform initial flat-versus-flat comparison and layout optimization using the barycentre algorithm.
+    pdf("flat_vs_flat_initial.pdf", width = 7, height = 7)
+    res_initial <- flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = FALSE)
     dev.off()
-    # --- flat V Sflat [] ---
-    # Key functions: flatVSflat
-    flatVSflat(flat1, flat2, coord1=c(6,3,4,7,5,1,2),
-        coord2=c(5,1,4,6,3,2), greedy = FALSE)
-    # --- bitmap [] ---
-    # Key functions: bitmap, flatVSflat, off
-    bitmap("fig01a.png",height=4,width=4,pointsize=10,res=300)
-    flatVSflat(flat1, flat2, coord1=c(6,3,4,7,5,1,2), coord2=c(5,1,4,6,3,2),
-        greedy = FALSE)
+    saveRDS(res_initial, "flat_vs_flat_initial_results.rds")
+    
+    # 2. Manually adjust node coordinates or layout orientation to improve visualization aesthetics.
+    # We dynamically generate coordinates based on the number of unique clusters in the inputs to ensure robustness.
+    pdf("flat_vs_flat_coords.pdf", width = 7, height = 7)
+    res_coords <- flatVSflat(flat1, flat2, 
+                             coord1 = sample(length(unique(flat1))), 
+                             coord2 = sample(length(unique(flat2))), 
+                             greedy = FALSE)
     dev.off()
-    # --- Comparisonflatvsflat2 [] ---
-    # Key functions: flatVSflat
-    flatVSflat(flat1, flat2, evenly=TRUE, horiz=TRUE, greedy = FALSE)
-    # --- Fig02 [] ---
-    # Key functions: bitmap, flatVSflat, off
-    bitmap("fig02.png",height=4,width=4,pointsize=10,res=300)
-    flatVSflat(flat1, flat2, evenly=TRUE, horiz=TRUE, greedy = FALSE)
+    saveRDS(res_coords, "flat_vs_flat_coords_results.rds")
+    
+    # Layout orientation adjustment (evenly distributed, horizontal)
+    pdf("flat_vs_flat_evenly_horiz.pdf", width = 7, height = 7)
+    res_evenly <- flatVSflat(flat1, flat2, evenly=TRUE, horiz=TRUE, greedy = FALSE)
     dev.off()
-    # --- Greedyalgorithm [] ---
-    # Key functions: SCmapping
+    saveRDS(res_evenly, "flat_vs_flat_evenly_results.rds")
+    
+    # 3. Construct a one-to-one mapping of superclusters using the greedy algorithm.
+    pdf("sc_mapping.pdf", width = 7, height = 7)
     myMapping<-SCmapping(flat1, flat2)
-    # --- Fig03 [] ---
-    # Key functions: bitmap, SCmapping, off
-    bitmap("fig03.png",height=4,width=7,pointsize=10,res=300)
-    SCmapping(flat1,flat2)
     dev.off()
-    # --- Comparisonflatvsflatgreedy [] ---
-    # Key functions: flatVSflat
-    flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = TRUE)
-    # --- Fig04 [] ---
-    # Key functions: bitmap, flatVSflat, off
-    bitmap("fig04.png", height = 4, width = 4, pointsize = 10, res = 300)
-    flatVSflat(flat1, flat2, line.wd = 5, h.min = 0.3, greedy = TRUE)
+    saveRDS(myMapping, "myMapping.rds")
+    
+    # 4. Visualize the supercluster mapping in the bipartite graph.
+    pdf("flat_vs_flat_greedy.pdf", width = 7, height = 7)
+    res_greedy <- flatVSflat( flat1, flat2, line.wd = 5, h.min = 0.3, greedy = TRUE)
     dev.off()
-    # --- Aestheticsnolookahead [] ---
-    # Key functions: flatVShier
-    comparison.flatVShier.1<-flatVShier(hierar, flat1, verbose=FALSE,
-        pausing=FALSE, score.function="crossing", greedy.colours=1:4,
-        look.ahead=0)
-    # --- Fig05 [] ---
-    # Key functions: bitmap, flatVShier, off
-    bitmap("fig05.png",height=6,width=8,pointsize=9,res=300)
-    flatVShier(hierar,flat1,pausing=FALSE,verbose=FALSE,
-        score.function="crossing",greedy.colours=1:4,look.ahead=0)
-    dev.off()
-    # --- Aestheticsnolookaheadexpanded [] ---
-    # Key functions: flatVShier
-    comparison.flatVShier.1<-flatVShier(hierar, flat1, verbose=FALSE,
-        pausing=FALSE, score.function="crossing", greedy.colours=1:4,
-        look.ahead=0, expanded=TRUE)
-    # --- Fig06 [] ---
-    # Key functions: bitmap, flatVShier, off
-    bitmap("fig06.png",height=14,width=8,pointsize=9,res=300)
-    flatVShier(hierar,flat1,pausing=FALSE,verbose=FALSE,
-        score.function="crossing",greedy.colours=1:4,look.ahead=0,
-        expanded=TRUE)
-    dev.off()
+    saveRDS(res_greedy, "flat_vs_flat_greedy_results.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clustcomp_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clustcomp_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clustcomp_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLUSTCOMP:", paste0("    clustcomp: ", packageVersion("clustComp"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON":',
+        paste0('    clustComp: ', as.character(packageVersion('clustComp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clustcomp_results.csv
-    touch ${prefix}_clustcomp_output.rds
-    echo "BIOC_CLUSTCOMP:" > versions.yml
-    echo "    clustcomp: 0.0.0" >> versions.yml
+    touch ${prefix}_flat_vs_flat_comparison.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLUSTCOMP_WORKFLOW {
+workflow BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ flat1, flat2 ] ]
 
     main:
-    BIOC_CLUSTCOMP(ch_input)
+    BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON(ch_input)
 
     emit:
-    results  = BIOC_CLUSTCOMP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLUSTCOMP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLUSTCOMP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLUSTCOMP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON.out.tables
+    plots    = BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON.out.plots
+    objects  = BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON.out.objects
+    versions = BIOC_CLUSTCOMP_FLAT_VS_FLAT_COMPARISON.out.versions
 }

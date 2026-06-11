@@ -4,6 +4,8 @@
 // Test for global, differential, or dynamic allelic imbalance using diploid-quantified Salmon bootstrap replicates.
 // Input: coldata.csv, Diploid Salmon quantification directories
 // Container: quay.io/biocontainers/bioconductor-fishpond:2.16.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: EnsDb.Hsapiens.v86, SummarizedExperiment, dplyr, ensembldb, fishpond, plyranges
 // Visualizations: plot (ggplot/base)
 // QC: low-count filtering
@@ -38,9 +40,12 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         
         # Load required libraries
@@ -48,7 +53,6 @@ process BIOC_FISHPOND_ALLELIC_IMBALANCE_SEESAW {
         library(plyranges)
         library(EnsDb.Hsapiens.v86)
         library(fishpond)
-        library(SummarizedExperiment)
         library(dplyr)
         
         # Set random seed for reproducibility

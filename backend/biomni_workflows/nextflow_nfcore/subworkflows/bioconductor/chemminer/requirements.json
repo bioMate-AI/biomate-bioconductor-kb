@@ -1,0 +1,19 @@
+{
+  "package": "chemminer",
+  "requirements": [
+    "ChemmineR",
+    "RSQLite"
+  ],
+  "by_workflow": {
+    "large_file_streaming.nf": [
+      "ChemmineR"
+    ],
+    "main.nf": [
+      "ChemmineR"
+    ],
+    "sql_database_storage.nf": [
+      "ChemmineR",
+      "RSQLite"
+    ]
+  }
+}

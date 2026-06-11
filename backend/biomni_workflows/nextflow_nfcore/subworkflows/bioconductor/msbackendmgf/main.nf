@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_MSBACKENDMGF {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-msbackendmgf"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msbackendmgf:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msbackendmgf:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -45,25 +44,25 @@ process BIOC_MSBACKENDMGF {
     # --- Spectra Import ---
     # Key functions: MsBackendMgf, Spectra, spectraVariables
     fls <- dir(system.file("extdata", package = "MsBackendMgf"),
-               full.names = TRUE, pattern = "mgf$")
+               full.names = TRUE, pattern = "mgf\$")
     sps <- Spectra::Spectra(fls, source = MsBackendMgf())
     sps_vars <- Spectra::spectraVariables(sps)
-    rtime_vals <- sps$rtime
+    rtime_vals <- sps\$rtime
 
     # --- Custom Variable Mapping ---
     # Key functions: spectraVariableMapping, MsBackendMgf, Spectra
     fls <- dir(system.file("extdata", package = "MsBackendMgf"),
-               full.names = TRUE, pattern = "mgf$")
+               full.names = TRUE, pattern = "mgf\$")
     custom_map <- c(spectrumName = "TITLE",
                     spectraVariableMapping(MsBackendMgf()))
     sps_mapped <- Spectra::Spectra(fls, source = MsBackendMgf(),
                                   mapping = custom_map)
-    spec_names <- sps_mapped$spectrumName
+    spec_names <- sps_mapped\$spectrumName
 
     # --- Spectra Data Extraction ---
     # Key functions: mz, intensity, Spectra
     fls <- dir(system.file("extdata", package = "MsBackendMgf"),
-               full.names = TRUE, pattern = "mgf$")
+               full.names = TRUE, pattern = "mgf\$")
     sps <- Spectra::Spectra(fls, source = MsBackendMgf())
     mz_list <- Spectra::mz(sps)
     int_list <- Spectra::intensity(sps)
@@ -71,16 +70,16 @@ process BIOC_MSBACKENDMGF {
     # --- Spectra Export ---
     # Key functions: export, MsBackendMgf, Spectra
     fls <- dir(system.file("extdata", package = "MsBackendMgf"),
-               full.names = TRUE, pattern = "mgf$")
+               full.names = TRUE, pattern = "mgf\$")
     sps <- Spectra::Spectra(fls, source = MsBackendMgf())
-    sps$new_variable <- "A"
+    sps\$new_variable <- "A"
     out_file <- tempfile(fileext = ".mgf")
     Spectra::export(sps, backend = MsBackendMgf(), file = out_file)
 
     # --- Subsetting and Exporting ---
     # Key functions: selectSpectraVariables, export, MsBackendMgf
     fls <- dir(system.file("extdata", package = "MsBackendMgf"),
-               full.names = TRUE, pattern = "mgf$")
+               full.names = TRUE, pattern = "mgf\$")
     sps <- Spectra::Spectra(fls, source = MsBackendMgf())
     sps_ex <- Spectra::selectSpectraVariables(
         sps, 
@@ -93,18 +92,27 @@ process BIOC_MSBACKENDMGF {
 
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msbackendmgf_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_msbackendmgf_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msbackendmgf_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_msbackendmgf_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msbackendmgf_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_msbackendmgf_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_MSBACKENDMGF:", paste0("    msbackendmgf: ", packageVersion("MsBackendMgf"))),
+        c("BIOC_MSBACKENDMGF:", paste0("    msbackendmgf: ", as.character(packageVersion("MsBackendMgf")))),
         "versions.yml"
     )
     """

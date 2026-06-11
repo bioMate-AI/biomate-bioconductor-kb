@@ -1,0 +1,17 @@
+{
+  "package": "netzoor",
+  "requirements": [
+    "igraph",
+    "netZooR",
+    "pandaR",
+    "reshape2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "igraph",
+      "netZooR",
+      "pandaR",
+      "reshape2"
+    ]
+  }
+}

@@ -1,122 +1,187 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scHOT
-// Single cell Higher Order Testing (scHOT) is an R package that facilitates testing changes in higher 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scHOT/inst/doc/scHOT.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("scHOT")
+// Bioconductor workflow: scHOT — trajectory_variability_testing
+// Test for changes in single-gene expression variability along a developmental trajectory.
+// Input: expression_matrix.csv, pseudotime_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-schot:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, ggplot2, matrixStats, scHOT, scater
+// Visualizations: plot (ggplot/base)
+// QC: cell QC metrics
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Build scHOT object from matrix using scHOT_buildFromMatrix
+//  * 2. [Core Analysis] Add testing scaffold using scHOT_addTestingScaffold
+//  * 3. [Core Analysis] Set weight matrix using scHOT_setWeightMatrix
+//  * 4. [Core Analysis] Calculate global higher order function using scHOT_calculateGlobalHigherOrderFunction
+//  * 5. [Core Analysis] Set permutation scaffold using scHOT_setPermutationScaffold
+//  * 6. [Core Analysis] Calculate higher order test statistics using scHOT_calculateHigherOrderTestStatistics
+//  * 7. [Core Analysis] Perform permutation test using scHOT_performPermutationTest
+//  * 8. [Core Analysis] Estimate p-values using scHOT_estimatePvalues
+//  * 9. [Visualization & Output] Plot results using plotHigherOrderSequence
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCHOT {
+process BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-schot"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-schot:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-schot:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_schot_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_schot_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_schot_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    library(ggplot2)
     library(scHOT)
-    library(jsonlite)
-
-    # --- Global Higher-Order Calculation [] ---
-    # Key functions: scHOT_calculateGlobalHigherOrderFunction, scHOT_setPermutationScaffold
+    library(scater)
+    library(matrixStats)
+    
+    # 1. Read User Input Files
+    expression_matrix <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    pseudotime_metadata <- read.csv("pseudotime_metadata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align cells between expression matrix and metadata
+    common_cells <- intersect(colnames(expression_matrix), rownames(pseudotime_metadata))
+    if (length(common_cells) == 0) {
+      if (ncol(expression_matrix) == nrow(pseudotime_metadata)) {
+        common_cells <- colnames(expression_matrix)
+        rownames(pseudotime_metadata) <- common_cells
+      } else {
+        stop("Cell identifiers in expression_matrix and pseudotime_metadata do not match.")
+      }
+    }
+    
+    mat_subset <- as.matrix(expression_matrix[, common_cells, drop = FALSE])
+    
+    # Identify the pseudotime column
+    pt_col <- grep("pseudotime", colnames(pseudotime_metadata), ignore.case = TRUE, value = TRUE)
+    if (length(pt_col) == 0) {
+      numeric_cols <- sapply(pseudotime_metadata, is.numeric)
+      if (any(numeric_cols)) {
+        pt_col <- names(numeric_cols)[numeric_cols][1]
+      } else {
+        stop("No numeric column found in pseudotime_metadata to use as pseudotime.")
+      }
+    }
+    
+    pt_vector <- pseudotime_metadata[common_cells, pt_col]
+    
+    # Select exactly 3 genes to test to match the permutation scaffold length of 3
+    genes_available <- rownames(mat_subset)
+    if (length(genes_available) < 3) {
+      stop("Expression matrix must have at least 3 genes (rows) for this pipeline.")
+    }
+    gene_to_test <- as.matrix(genes_available[1:3])
+    
+    # 2. Build scHOT object from matrix
+    scHOT_traj <- scHOT_buildFromMatrix(
+      mat = mat_subset,
+      cellData = list(pseudotime = pt_vector),
+      positionType = "trajectory",
+      positionColData = "pseudotime")
+    
+    # 3. Add testing scaffold
+    scHOT_traj <- scHOT_addTestingScaffold(scHOT_traj, gene_to_test)
+    
+    # 4. Set weight matrix
+    scHOT_traj <- scHOT_setWeightMatrix(scHOT_traj,
+                                        positionType = "trajectory",
+                                        positionColData = c("pseudotime"),
+                                        nrow.out = 50,
+                                        span = 0.25)
+    
+    # 5. Calculate global higher order function
     scHOT_traj <- scHOT_calculateGlobalHigherOrderFunction(
-        scHOT_traj,
-        higherOrderFunction = matrixStats::weightedVar,
-        higherOrderFunctionType = "weighted"
-    )
-    scHOT_traj <- scHOT_setPermutationScaffold(
-        scHOT_traj,
-        numberPermutations = c(20, 50, 20),
-        storePermutations = c(TRUE, FALSE, TRUE)
-    )
-
-
-    # --- Permutation Testing [] ---
-    # Key functions: scHOT_calculateHigherOrderTestStatistics, scHOT_performPermutationTest, scHOT_estimatePvalues
+      scHOT_traj, 
+      higherOrderFunction = matrixStats::weightedVar,
+      higherOrderFunctionType = "weighted")
+    
+    # 6. Set permutation scaffold
+    scHOT_traj <- scHOT_setPermutationScaffold(scHOT_traj, 
+                                               numberPermutations = c(20,50,20),
+                                               storePermutations = c(TRUE, FALSE, TRUE))
+    
+    # 7. Calculate higher order test statistics
     scHOT_traj <- scHOT_calculateHigherOrderTestStatistics(
-        scHOT_traj,
-        higherOrderSummaryFunction = sd
-    )
+      scHOT_traj,
+      higherOrderSummaryFunction = sd)
+    
+    # 8. Perform permutation test
     scHOT_traj <- scHOT_performPermutationTest(
-        scHOT_traj,
-        verbose = FALSE,
-        parallel = FALSE
-    )
-    scHOT_traj <- scHOT_estimatePvalues(
-        scHOT_traj,
-        nperm_estimate = 10000,
-        maxDist = 5
-    )
-
-
-    # --- Visualisation [] ---
-    # Key functions: plotHigherOrderSequence, plotOrderedExpression
-    gene_to_test <- as.matrix(c("Birc5", "H2afz", "Tacc3"))
-    p1 <- plotHigherOrderSequence(scHOT_traj, gene_to_test)
-    p2 <- plotOrderedExpression(scHOT_traj, gene_to_test)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_schot_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_schot_results.csv")
+      scHOT_traj, 
+      verbose = TRUE,
+      parallel = FALSE)
+    
+    # 9. Estimate p-values
+    scHOT_traj <- scHOT_estimatePvalues(scHOT_traj,
+                                        nperm_estimate = 10000,
+                                        maxDist = 5)
+    
+    # 10. Save Results and Plots
+    saveRDS(scHOT_traj, "scHOT_trajectory_results.rds")
+    
+    # Format and save the output table
+    scHOT_out_df <- as.data.frame(slot(scHOT_traj, "scHOT_output"))
+    for (col in colnames(scHOT_out_df)) {
+      if (is.list(scHOT_out_df[[col]])) {
+        scHOT_out_df[[col]] <- sapply(scHOT_out_df[[col]], function(x) paste(x, collapse = ";"))
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_schot_output.rds")
-    }
+    write.csv(scHOT_out_df, "scHOT_trajectory_output.csv", row.names = TRUE)
+    
+    # Plot results
+    pdf("higher_order_sequence_plot.pdf", width = 8, height = 6)
+    print(plotHigherOrderSequence(scHOT_traj, gene_to_test))
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCHOT:", paste0("    schot: ", packageVersion("scHOT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING":',
+        paste0('    scHOT: ', as.character(packageVersion('scHOT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_schot_results.csv
-    touch ${prefix}_schot_output.rds
-    echo "BIOC_SCHOT:" > versions.yml
-    echo "    schot: 0.0.0" >> versions.yml
+    touch ${prefix}_trajectory_variability_testing.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCHOT_WORKFLOW {
+workflow BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, pseudotime_metadata.csv ] ]
 
     main:
-    BIOC_SCHOT(ch_input)
+    BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING(ch_input)
 
     emit:
-    results  = BIOC_SCHOT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCHOT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCHOT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCHOT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING.out.tables
+    plots    = BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING.out.plots
+    objects  = BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING.out.objects
+    versions = BIOC_SCHOT_TRAJECTORY_VARIABILITY_TESTING.out.versions
 }

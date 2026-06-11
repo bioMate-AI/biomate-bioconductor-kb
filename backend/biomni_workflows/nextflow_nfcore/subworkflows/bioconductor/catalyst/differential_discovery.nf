@@ -4,6 +4,8 @@
 // Perform high-resolution clustering, manual cluster merging, dimensionality reduction, and differential abundance (DA) and differential state (DS) testing on cyt
 // Input: PBMC_fs.fcs, PBMC_panel.csv, PBMC_md.csv
 // Container: quay.io/biocontainers/bioconductor-catalyst:1.34.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: CATALYST, SingleCellExperiment, diffcyt, flowCore, scater
 // Visualizations: UMAP plot, heatmap
 // QC: cell QC metrics
@@ -38,16 +40,18 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
                 
                 # Load required libraries
                 library(CATALYST)
                 library(flowCore)
                 library(diffcyt)
-                library(SingleCellExperiment)
                 library(scater)
                 
                 # ==========================================

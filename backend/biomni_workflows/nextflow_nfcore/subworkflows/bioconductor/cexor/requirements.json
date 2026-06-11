@@ -1,0 +1,13 @@
+{
+  "package": "cexor",
+  "requirements": [
+    "CexoR",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CexoR",
+      "GenomicRanges"
+    ]
+  }
+}

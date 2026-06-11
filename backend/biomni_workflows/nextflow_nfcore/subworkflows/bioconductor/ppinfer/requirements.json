@@ -1,0 +1,26 @@
+{
+  "package": "ppinfer",
+  "requirements": [
+    "GOstats",
+    "PPInfer",
+    "fgsea",
+    "ggplot2",
+    "igraph",
+    "org.Hs.eg.db",
+    "org.Mm.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PPInfer",
+      "fgsea",
+      "ggplot2",
+      "igraph"
+    ],
+    "species_specific_inference.nf": [
+      "GOstats",
+      "PPInfer",
+      "org.Hs.eg.db",
+      "org.Mm.eg.db"
+    ]
+  }
+}

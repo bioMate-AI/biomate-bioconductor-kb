@@ -1,0 +1,43 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: samplesize=The number of rows sampled to estimate the prior distribution (e.g., 1000 for speed, 10000 or 1e5 recommended for accuracy) ;; estimation=Method for estimating parameters in getPriors.NB, e.g., \"QL\" (quasi-likelihood) ;; nullData=Logical indicating whether to allow for the possibility of 'null' (unexpressed) data in getLikelihoods ;; estimationType=Method to calculate library scaling factors in getLibsizes, e.g., \"quantile\" ;; cl=A cluster object from the parallel package for parallel processing ;; modelPriorSets=Allows specifying different model priors for different subsets of the data in getLikelihoods\n- alternatives: Standard baySeq (uses quasi-maximum-likelihood to estimate priors for negative binomial) vs. Generic baySeq (uses maximum-likelihood for arbitrary distributions)\n- when_to_use: Appropriate when analyzing high-throughput sequencing count data (RNA-seq, sRNA-seq, paired count data) to find differential expression patterns across multiple groups or complex experimental designs, especially when custom distributions (like zero-inflated or beta-binomial) are needed.\n- pitfalls: Using too small a samplesize for prior estimation can reduce accuracy (default is 1e5, vignette uses 1000 or 1e4 for speed) ;; Using variable model priors (modelPriorSets) can bias downstream analyses like GO enrichment analysis ;; If only one parameter is variable over experimental conditions in custom density functions, Nelder-Mead optimization may be unstable, requiring user-defined lower and upper bounds ;; Estimated proportions (@estProps) are best-guess figures and should not be relied upon absolutely.",
+  "workflows": [
+    {
+      "name": "standard_nb_rna_seq",
+      "intent": "Identify differential expression in standard RNA-seq count data using the negative-binomial model.",
+      "input": [
+        "simData (matrix of raw sequence counts)"
+      ],
+      "stages": "1. Create countData object ;; 2. Estimate library sizes ;; 3. Estimate priors using getPriors.NB ;; 4. Calculate posterior likelihoods using getLikelihoods ;; 5. Extract top candidates using topCounts",
+      "code": "CD <- new(\"countData\", data = simData, replicates = replicates, groups = groups)\nlibsizes(CD) <- getLibsizes(CD)\nCD <- getPriors.NB(CD, samplesize = 1000, estimation = \"QL\", cl = cl)\nCD <- getLikelihoods(CD, cl = cl, bootStraps = 3, verbose = FALSE)\ntopCounts(CD, group = \"DE\")"
+    },
+    {
+      "name": "paired_data_beta_binomial",
+      "intent": "Identify differential expression between replicate groups and consistent differences within pairs using a beta-binomial distribution.",
+      "input": [
+        "pairData (matrix of paired counts)"
+      ],
+      "stages": "1. Create countData object with 3D array and bbDensity ;; 2. Estimate library sizes ;; 3. Estimate priors using getPriors ;; 4. Calculate likelihoods with nullData = TRUE ;; 5. Extract top counts for replicate groups or pairs",
+      "code": "pairCD <- new(\"countData\", data = array(c(pairData[,1:4], pairData[,5:8]), dim = c(nrow(pairData), 4, 2)), replicates = c(1,1,2,2), groups = list(NDE = c(1,1,1,1), DE = c(1,1,2,2)), densityFunction = bbDensity)\nlibsizes(pairCD) <- getLibsizes(pairCD)\npairCD <- getPriors(pairCD, samplesize = 1000, cl = cl)\npairCD <- getLikelihoods(pairCD, pET = 'BIC', nullData = TRUE, cl = cl)\ntopCounts(pairCD, group = 2)\ntopCounts(pairCD, group = 1)"
+    },
+    {
+      "name": "srna_seq_lengths_multiple_groups",
+      "intent": "Analyze sRNA-seq data incorporating feature lengths and evaluating multiple complex experimental models simultaneously.",
+      "input": [
+        "mobData (matrix of raw sRNA counts)",
+        "mobAnnotation (data frame with start and end coordinates to calculate lengths)"
+      ],
+      "stages": "1. Calculate segment lengths ;; 2. Create countData object with seglens ;; 3. Estimate library sizes using quantile method ;; 4. Define multiple group models ;; 5. Estimate priors ;; 6. Calculate likelihoods with nullData = TRUE ;; 7. Extract top counts for specific models",
+      "code": "seglens <- mobAnnotation$end - mobAnnotation$start + 1\ncD <- new(\"countData\", data = mobData, seglens = seglens, annotation = mobAnnotation)\nlibsizes(cD) <- getLibsizes(cD, estimationType = \"quantile\")\ncD@replicates <- as.factor(c(\"D3/D3\", \"D3/D3\", \"WT/D3\", \"WT/D3\", \"WT/WT\", \"WT/WT\"))\nNDE <- factor(c(1,1,1,1,1,1))\nd3dep <- c(\"wtRoot\",\"wtRoot\",\"wtRoot\",\"wtRoot\",\"dicerRoot\",\"dicerRoot\")\nmobile <- c(\"dicerShoot\",\"dicerShoot\",\"wtShoot\",\"wtShoot\",\"wtShoot\",\"wtShoot\")\ngroups(cD) <- list(NDE = NDE, d3dep = d3dep, mobile = mobile)  \ncD <- getPriors.NB(cD, cl = cl)\ncD <- getLikelihoods(cD, nullData = TRUE, cl = cl)\ntopCounts(cD, group = \"mobile\", normaliseData = TRUE)  \ntopCounts(cD, group = \"d3dep\", normaliseData = TRUE)"
+    },
+    {
+      "name": "generic_zinb_analysis",
+      "intent": "Identify differential expression using a pre-defined generic distribution (like ZINB) for zero-inflated data.",
+      "input": [
+        "zimData (matrix of zero-inflated counts)"
+      ],
+      "stages": "1. Create countData object ;; 2. Estimate library sizes ;; 3. Set densityFunction to ZINBDensity ;; 4. Estimate priors using generic getPriors ;; 5. Calculate likelihoods using getLikelihoods",
+      "code": "CD <- new(\"countData\", data = zimData, replicates = c(\"simA\", \"simA\", \"simA\", \"simA\", \"simA\", \"simB\", \"simB\", \"simB\", \"simB\", \"simB\"), groups = list(NDE = c(1,1,1,1,1,1,1,1,1,1), DE = c(1,1,1,1,1,2,2,2,2,2)))\nlibsizes(CD) <- getLibsizes(CD)\nCDz <- CD\ndensityFunction(CDz) <- ZINBDensity\nCDz <- getPriors(CDz, cl = cl)\nCDz <- getLikelihoods(CDz, cl = cl)"
+    }
+  ]
+}

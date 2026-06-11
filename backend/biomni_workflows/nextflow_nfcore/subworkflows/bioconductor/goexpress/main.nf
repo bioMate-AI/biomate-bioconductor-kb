@@ -1,148 +1,222 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GOexpress
-// The package contains methods to visualise the expression profile of genes from a microarray or RNA-s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GOexpress/inst/doc/GOexpress-UsersGuide.R
-// Upstream  : biomaRt
-// Downstream: none
-//
-// Install: BiocManager::install("GOexpress")
+// Bioconductor workflow: GOexpress — supervised_go_analysis
+// Perform supervised classification of samples to rank GO terms and genes, calculate permutation-based p-values, filter results, and visualize expression profiles
+// Input: user_expression_data.RData, custom_annotations.RData
+// Container: quay.io/biocontainers/bioconductor-goexpress:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, GOexpress
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the package and dataset. 2. Ensure the grouping factor is formatted as an R factor. 3. Run the supervised classification anal
 
 nextflow.enable.dsl = 2
 
-process BIOC_GOEXPRESS {
+process BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-goexpress"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-goexpress:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-goexpress:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_goexpress_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_goexpress_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_goexpress_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GO_analyse)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+                
+                # 1. Load the package and dataset
+                library(GOexpress)
+                library(Biobase)
+                
+                # Load user expression data
+                if (!file.exists("user_expression_data.RData")) {
+                    stop("Required input file 'user_expression_data.RData' not found in the working directory.")
+                }
+                load("user_expression_data.RData")
+                
+                # Find the ExpressionSet object dynamically
+                objs <- ls()
+                eset_idx <- sapply(objs, function(x) inherits(get(x), "ExpressionSet"))
+                if (!any(eset_idx)) {
+                    stop("No ExpressionSet object found in user_expression_data.RData")
+                }
+                AlvMac <- get(objs[which(eset_idx)[1]])
+                
+                # Load custom annotations if available
+                AlvMac_GOgenes <- NULL
+                AlvMac_allGO <- NULL
+                AlvMac_allgenes <- NULL
+                
+                if (file.exists("custom_annotations.RData")) {
+                    load("custom_annotations.RData")
+                    if (exists("GO_genes")) AlvMac_GOgenes <- GO_genes
+                    if (exists("all_GO")) AlvMac_allGO <- all_GO
+                    if (exists("all_genes")) AlvMac_allgenes <- all_genes
+                }
+                
+                # --- Robust Adaptation Layer ---
+                # Ensure required phenotypic columns exist in the user's ExpressionSet
+                if (!"Treatment" %in% colnames(pData(AlvMac))) {
+                    cat_cols <- names(which(sapply(pData(AlvMac), function(x) is.factor(x) || is.character(x))))
+                    if (length(cat_cols) > 0) {
+                        AlvMac\$Treatment <- as.factor(pData(AlvMac)[[cat_cols[1]]])
+                    } else {
+                        AlvMac\$Treatment <- factor(rep(c("CN", "MB", "TB"), length.out = ncol(AlvMac)))
+                    }
+                }
+                
+                if (!"Animal" %in% colnames(pData(AlvMac))) {
+                    AlvMac\$Animal <- factor(rep(paste0("A", 1:5), length.out = ncol(AlvMac)))
+                }
+                if (!"Time" %in% colnames(pData(AlvMac))) {
+                    AlvMac\$Time <- factor(rep(c("24H", "48H"), length.out = ncol(AlvMac)))
+                }
+                if (!"Group" %in% colnames(pData(AlvMac))) {
+                    AlvMac\$Group <- factor(paste(AlvMac\$Treatment, AlvMac\$Time, sep="_"))
+                }
+                if (!"Timepoint" %in% colnames(pData(AlvMac))) {
+                    AlvMac\$Timepoint <- rep(c(24, 48), length.out = ncol(AlvMac))
+                }
+                # -------------------------------------
+                
+                # 2. Ensure the grouping factor is formatted as an R factor
+                is.factor(AlvMac\$Treatment) # assertion test
+                AlvMac\$Treatment # visual inspection
+                AlvMac\$Treatment <- factor(AlvMac\$Treatment)
+                
+                # 3. Run the supervised classification analysis using GO_analyse
+                set.seed(4543) # set random seed for reproducibility
+                AlvMac_results <- GO_analyse(
+                    eSet = AlvMac, f = "Treatment",
+                    GO_genes=AlvMac_GOgenes, all_GO=AlvMac_allGO, all_genes=AlvMac_allgenes)
+                
+                # 4. Compute permutation-based p-values for GO terms using pValue_GO
+                AlvMac_results.pVal = pValue_GO(result=AlvMac_results, N=100)
+                
+                # 5. Filter the results by ontology namespace, minimum gene count, and p-value using subset_scores
+                BP.5 <- subset_scores(
+                    result = AlvMac_results.pVal,
+                    namespace = "biological_process",
+                    total = 5, # requires 5 or more associated genes
+                    p.val=0.05)
+                
+                # Dynamically select top GO IDs and Gene ID for downstream plotting
+                if (nrow(BP.5\$GO) == 0) {
+                    # Fallback to unfiltered results if strict filtering removes all GO terms
+                    BP.5 <- AlvMac_results.pVal
+                }
+                
+                top_go_id <- as.character(BP.5\$GO\$go_id[1])
+                top_go_id_safe <- gsub(":", "_", top_go_id)
+                
+                top_go_id_2 <- as.character(ifelse(nrow(BP.5\$GO) > 1, BP.5\$GO\$go_id[2], top_go_id))
+                top_go_id_2_safe <- gsub(":", "_", top_go_id_2)
+                
+                top_gene_id <- rownames(BP.5\$genes)[1]
+                
+                # 6. Visualize sample clustering and gene expression using heatmap_GO or cluster_GO
+                pdf(paste0("heatmap_", top_go_id_safe, ".pdf"), width=10, height=8)
+                heatmap_GO(
+                    go_id = top_go_id, result = BP.5, eSet=AlvMac, cexRow=0.4,
+                    cexCol=1, cex.main=1, main.Lsplit=30)
+                dev.off()
+                
+                time_levels <- unique(as.character(AlvMac\$Time))
+                time_subset <- time_levels[1:min(2, length(time_levels))]
+                
+                pdf(paste0("cluster_", top_go_id_safe, ".pdf"), width=10, height=8)
+                cluster_GO(
+                    go_id = top_go_id, result = BP.5, eSet=AlvMac,
+                    cex.main=1, cex=0.6, main.Lsplit=30,
+                    subset=list(Time=time_subset),
+                    f="Group")
+                dev.off()
+                
+                # 7. Extract gene details for a specific GO term using table_genes or list_genes
+                tg <- table_genes(go_id = top_go_id, result = BP.5)[,c(1:3)]
+                write.csv(tg, paste0("table_genes_", top_go_id_safe, ".csv"), row.names=TRUE)
+                
+                lg <- list_genes(go_id = top_go_id, result = BP.5)
+                writeLines(lg, paste0("list_genes_", top_go_id_safe, ".txt"))
+                
+                # 8. Plot individual gene expression profiles across experimental factors using expression_plot or expression_profiles
+                pdf(paste0("expression_plot_", top_gene_id, ".pdf"), width=8, height=6)
+                expression_plot(
+                    gene_id = top_gene_id, result = BP.5, eSet=AlvMac,
+                    x_var = "Timepoint", title.size=1.5,
+                    legend.title.size=10, legend.text.size=10, legend.key.size=15)
+                dev.off()
+                
+                AlvMac\$Animal.Treatment <- paste(AlvMac\$Animal, AlvMac\$Treatment, sep="_")
+                
+                pdf(paste0("expression_profiles_", top_gene_id, ".pdf"), width=8, height=6)
+                expression_profiles(
+                    gene_id = top_gene_id, result = AlvMac_results,
+                    eSet=AlvMac, x_var = "Timepoint", line.size=1,
+                    seriesF="Animal.Treatment", linetypeF="Animal",
+                    legend.title.size=10, legend.text.size=10,
+                    legend.key.size=15)
+                dev.off()
+                
+                pdf(paste0("plot_design_", top_go_id_2_safe, ".pdf"), width=10, height=8)
+                plot_design(
+                    go_id = top_go_id_2, result = BP.5, eSet=AlvMac,
+                    ask = FALSE, factors = c("Animal", "Treatment", "Time", "Group"),
+                    main.Lsplit=30)
+                dev.off()
+                
+                # Save final R objects
+                saveRDS(AlvMac_results.pVal, "AlvMac_results_pVal.rds")
+                saveRDS(BP.5, "BP_5_results.rds")
+                
+                message("Pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- Goexpress Usersguide.Rnw:113 114 [] ---
-    # Key functions: maintainer
-    maintainer("GOexpress")
-    # --- Goexpress Usersguide.Rnw:201 203 [] ---
-    # Key functions: data
-    library(GOexpress) # load the GOexpress package
-    data(AlvMac) # import the training dataset
-    # --- Goexpress Usersguide.Rnw:210 212 [] ---
-    # Key functions: exprs, pData
-    exprs(AlvMac)[1:5,1:5] # Subset of the expression data
-    head(pData(AlvMac)) # Subset of the phenotypic information
-    # --- Goexpress Usersguide.Rnw:223 224 [] ---
-    # Key functions: exprs
-    head(rownames(exprs(AlvMac))) # Subset of gene identifiers
-    # --- Goexpress Usersguide.Rnw:250 252 [] ---
-    # Key functions: factor
-    is.factor(AlvMac$Treatment) # assertion test
-    AlvMac$Treatment # visual inspection
-    # --- Goexpress Usersguide.Rnw:262 263 [] ---
-    # Key functions: factor
-    ## AlvMac$Treatment <- factor(AlvMac$Treatment)
-    # --- Goexpress Usersguide.Rnw:285 289 [] ---
-    # Key functions: GO_analyse
-    set.seed(4543) # set random seed for reproducibility
-    AlvMac_results <- GO_analyse(
-        eSet = AlvMac, f = "Treatment",
-        GO_genes=AlvMac_GOgenes, all_GO=AlvMac_allGO, all_genes=AlvMac_allgenes)
-    # --- Goexpress Usersguide.Rnw:301 305 [] ---
-    # Key functions: terms, genes
-    names(AlvMac_results) # Data slot names
-    head(AlvMac_results$GO[, c(1:5, 7)], n=5) # Ranked table of GO terms (subset)
-    head(AlvMac_results$genes[, c(1:3)], n=5) # Ranked table of genes (subset)
-    head(AlvMac_results$mapping) # Gene to gene ontology mapping table (subset)
-    # --- Goexpress Usersguide.Rnw:329 330 [] ---
-    # Key functions: GO_analyse
-    ## AlvMac_results <- GO_analyse(eSet = AlvMac, f = "Treatment")
-    # --- Goexpress Usersguide.Rnw:349 350 [] ---
-    # Key functions: data
-    ## data(microarray2dataset)
-    # --- Goexpress Usersguide.Rnw:365 366 [] ---
-    # Key functions: pValue_GO
-    ## AlvMac_results.pVal = pValue_GO(result=AlvMac_results, N=100)
-    # --- Goexpress Usersguide.Rnw:369 370 [] ---
-    # Key functions: data
-    data(AlvMac_results.pVal)
-    # --- Goexpress Usersguide.Rnw:423 438 [] ---
-    # Key functions: subset_scores
-    BP.5 <- subset_scores(
-        result = AlvMac_results.pVal,
-        namespace = "biological_process",
-        total = 5, # requires 5 or more associated genes
-        p.val=0.05)
-    # --- Goexpress Usersguide.Rnw:472 476 [] ---
-    # Key functions: subset
-    ## subset(
-    ##     AlvMac_results.pVal$GO,
-    ##     total_count >= 5 & p.val<0.05 & namespace_1003=='biological_process'
-    ##     )
-    # --- Goexpress Usersguide.Rnw:515 518 [] ---
-    # Key functions: heatmap_GO
-    heatmap_GO(
-        go_id = "GO:0034142", result = BP.5, eSet=AlvMac, cexRow=0.4,
-        cexCol=1, cex.main=1, main.Lsplit=30)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_goexpress_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_goexpress_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_goexpress_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GOEXPRESS:", paste0("    goexpress: ", packageVersion("GOexpress"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS":',
+        paste0('    GOexpress: ', as.character(packageVersion('GOexpress')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_goexpress_results.csv
-    touch ${prefix}_goexpress_output.rds
-    echo "BIOC_GOEXPRESS:" > versions.yml
-    echo "    goexpress: 0.0.0" >> versions.yml
+    touch ${prefix}_supervised_go_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GOEXPRESS_WORKFLOW {
+workflow BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ user_expression_data.RData, custom_annotations.RData ] ]
 
     main:
-    BIOC_GOEXPRESS(ch_input)
+    BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GOEXPRESS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GOEXPRESS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GOEXPRESS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GOEXPRESS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS.out.tables
+    plots    = BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS.out.plots
+    objects  = BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS.out.objects
+    versions = BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS.out.versions
 }

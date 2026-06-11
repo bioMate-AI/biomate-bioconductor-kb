@@ -1,0 +1,37 @@
+{
+  "package": "proteodisco",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biostrings",
+    "GenomicFeatures",
+    "ProteoDisco",
+    "S4Vectors",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "dplyr",
+    "ggplot2",
+    "reshape2",
+    "scales"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "ProteoDisco",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "dplyr",
+      "ggplot2",
+      "reshape2",
+      "scales"
+    ],
+    "manual_transcripts_workflow.nf": [
+      "Biostrings",
+      "GenomicFeatures",
+      "ProteoDisco",
+      "S4Vectors"
+    ],
+    "splice_junctions_workflow.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "ProteoDisco",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene"
+    ]
+  }
+}

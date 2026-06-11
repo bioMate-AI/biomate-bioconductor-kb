@@ -1,0 +1,37 @@
+{
+  "package": "meskit",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "ComplexHeatmap",
+    "MesKit",
+    "RColorBrewer",
+    "clusterProfiler",
+    "cowplot",
+    "ggplot2",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "ith_measurement.nf": [
+      "MesKit",
+      "cowplot",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "MesKit"
+    ],
+    "metastatic_routes_and_neutrality.nf": [
+      "MesKit",
+      "RColorBrewer",
+      "ggplot2"
+    ],
+    "phylogenetic_and_signature_analysis.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "ComplexHeatmap",
+      "MesKit",
+      "clusterProfiler",
+      "cowplot",
+      "ggplot2",
+      "org.Hs.eg.db"
+    ]
+  }
+}

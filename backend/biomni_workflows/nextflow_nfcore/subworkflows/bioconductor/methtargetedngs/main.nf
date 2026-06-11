@@ -1,134 +1,151 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MethTargetedNGS
-// Perform step by step methylation analysis of Next Generation Sequencing data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MethTargetedNGS/inst/doc/MethTargetedNGS.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MethTargetedNGS")
+// Bioconductor workflow: methtargetedngs — comparative_methylation_analysis
+// Align NGS reads from two conditions to a reference sequence and perform comparative methylation analysis.
+// Input: Healthy.fasta, Tumor.fasta, Reference.fasta
+// Container: quay.io/biocontainers/bioconductor-methtargetedngs:1.42.0--r45hdfd78af_0
+// R packages: MethTargetedNGS
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_METHTARGETEDNGS {
+process BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-methtargetedngs"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-methtargetedngs:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-methtargetedngs:1.38.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-methtargetedngs:1.42.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_methtargetedngs_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_methtargetedngs_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_methtargetedngs_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MethTargetedNGS)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MethTargetedNGS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Loading Files In R [] ---
-    # Key functions: file
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required Bioconductor library
     library(MethTargetedNGS)
-    healthy = system.file("extdata", "Healthy.fasta", package = "MethTargetedNGS")
-    tumor = system.file("extdata", "Tumor.fasta", package = "MethTargetedNGS")
-    reference = system.file("extdata", "Reference.fasta", package = "MethTargetedNGS")
-    # --- Aligning Samples To Reference Sequence [] ---
-    # Key functions: methAlign
-    hAlign = methAlign(healthy,reference)
-    tAlign = methAlign(tumor,reference)
-    # --- :Heatmap [] ---
-    # Key functions: methHeatmap
-    hHeatmap = methHeatmap(hAlign,plot=TRUE)
-    # --- Methheatmap [] ---
-    # Key functions: methHeatmap
-    hHeatmap = methHeatmap(hAlign,plot=TRUE)
-    # --- Calculating Methylation Average [] ---
-    # Key functions: methAvg
-    hAvg = methAvg(hAlign,plot=FALSE)
-    hAvg
-    # --- Calculating Methylation Entropy [] ---
-    # Key functions: methEntropy
+    
+    # Define input file paths (must exist in the working directory)
+    healthy <- "Healthy.fasta"
+    tumor <- "Tumor.fasta"
+    reference <- "Reference.fasta"
+    
+    # Validate existence of user input files
+    if (!file.exists(healthy)) {
+      stop("Error: 'Healthy.fasta' not found in the working directory.")
+    }
+    if (!file.exists(tumor)) {
+      stop("Error: 'Tumor.fasta' not found in the working directory.")
+    }
+    if (!file.exists(reference)) {
+      stop("Error: 'Reference.fasta' not found in the working directory.")
+    }
+    
+    # 1. Align reads to reference using methAlign
+    message("Aligning healthy reads to reference...")
+    hAlign <- methAlign(healthy, reference)
+    
+    message("Aligning tumor reads to reference...")
+    tAlign <- methAlign(tumor, reference)
+    
+    # Save alignment matrices as RDS and CSV
+    saveRDS(hAlign, "healthy_alignment.rds")
+    saveRDS(tAlign, "tumor_alignment.rds")
+    write.csv(as.data.frame(hAlign), "healthy_alignment.csv", row.names = TRUE)
+    write.csv(as.data.frame(tAlign), "tumor_alignment.csv", row.names = TRUE)
+    
+    # 2. Generate methylation heatmap using methHeatmap
+    message("Generating methylation heatmap...")
+    pdf("healthy_heatmap.pdf", width = 10, height = 8)
+    hHeatmap <- methHeatmap(hAlign, plot = TRUE)
+    dev.off()
+    saveRDS(hHeatmap, "healthy_heatmap_data.rds")
+    
+    # 3. Calculate methylation average using methAvg
+    message("Calculating methylation average...")
+    hAvg <- methAvg(hAlign, plot = FALSE)
+    write.csv(data.frame(CpG_Site = seq_along(hAvg), Average_Methylation = hAvg), 
+              "healthy_average.csv", row.names = FALSE)
+    
+    # 4. Calculate methylation entropy using methEntropy
+    message("Calculating methylation entropy...")
     hEnt <- methEntropy(hAlign)
-    hEnt
-    # --- Calculate Statistically Significant Cpg Sites In Samples [] ---
-    # Key functions: fishertest_cpg
-    SigCpGsites = fishertest_cpg(hAlign,tAlign,plot=FALSE)
-    SigCpGsites
-    # --- Odd Ratio [] ---
-    # Key functions: odd_ratio
-    odSamps = odd_ratio(hAlign,tAlign,plot=FALSE)
-    odSamps
-    # --- Compare Samples [] ---
-    # Key functions: compare_samples
-    compare_samples(hAlign,tAlign)
-    # --- Complete Methylation Analysis Comparison [] ---
-    # Key functions: compare_samples
-    compare_samples(hAlign,tAlign)
-    # --- Creating Profile Hidden Markov Model From Multiple Sequence Alignment [] ---
-    # Key functions: hmmbuild
-    msa = system.file("extdata", "msa.fasta", package = "MethTargetedNGS")
-    if (file.exists("/usr/bin/hmmbuild"))
-    hmmbuild(file_seq=msa,file_out="hmm",pathHMMER = "/usr/bin/")
-    # --- Calculate Likelihood Of Sequences Against Hmm [] ---
-    # Key functions: nhmmer
-    if (file.exists("/usr/bin/nhmmer")){
-    res <- nhmmer("hmm",tumor,pathHMMER = "/usr/bin/")
-    res$Total.Likelihood.Score
-    }
+    write.csv(data.frame(Window = seq_along(hEnt), Entropy = hEnt), 
+              "healthy_entropy.csv", row.names = FALSE)
+    
+    # 5. Identify significant CpG sites using fishertest_cpg
+    message("Identifying significant CpG sites...")
+    SigCpGsites <- fishertest_cpg(hAlign, tAlign, plot = FALSE)
+    write.csv(data.frame(CpG_Site = seq_along(SigCpGsites), Fisher_FDR = SigCpGsites), 
+              "significant_cpg_sites.csv", row.names = FALSE)
+    
+    # 6. Calculate log odd ratios using odd_ratio
+    message("Calculating log odd ratios...")
+    odSamps <- odd_ratio(hAlign, tAlign, plot = FALSE)
+    write.csv(data.frame(CpG_Site = seq_along(odSamps), Log_Odd_Ratio = odSamps), 
+              "odd_ratios.csv", row.names = FALSE)
+    
+    # 7. Run complete comparative pipeline using compare_samples
+    message("Running complete comparative pipeline and saving plots...")
+    pdf("comparative_analysis_plots.pdf", width = 12, height = 10)
+    compare_samples(hAlign, tAlign)
+    dev.off()
+    
+    message("Workflow completed successfully. All outputs saved to the working directory.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_methtargetedngs_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_methtargetedngs_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_methtargetedngs_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METHTARGETEDNGS:", paste0("    methtargetedngs: ", packageVersion("MethTargetedNGS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS":',
+        paste0('        methtargetedngs: ', as.character(packageVersion("methtargetedngs")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_methtargetedngs_results.csv
-    touch ${prefix}_methtargetedngs_output.rds
-    echo "BIOC_METHTARGETEDNGS:" > versions.yml
-    echo "    methtargetedngs: 0.0.0" >> versions.yml
+    touch ${prefix}_comparative_methylation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_METHTARGETEDNGS_WORKFLOW {
+workflow BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Healthy.fasta, Tumor.fasta, Reference.fasta ] ]
 
     main:
-    BIOC_METHTARGETEDNGS(ch_input)
+    BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_METHTARGETEDNGS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METHTARGETEDNGS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METHTARGETEDNGS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METHTARGETEDNGS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS.out.tables
+    plots    = BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS.out.plots
+    objects  = BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS.out.objects
+    versions = BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS.out.versions
 }

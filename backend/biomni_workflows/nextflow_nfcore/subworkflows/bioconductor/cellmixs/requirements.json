@@ -1,0 +1,34 @@
+{
+  "package": "cellmixs",
+  "requirements": [
+    "CellMixS",
+    "SingleCellExperiment",
+    "cowplot",
+    "dplyr",
+    "ggplot2",
+    "magrittr",
+    "purrr"
+  ],
+  "by_workflow": {
+    "comprehensive_metric_evaluation.nf": [
+      "CellMixS",
+      "SingleCellExperiment",
+      "ggplot2"
+    ],
+    "evaluate_and_compare_integration.nf": [
+      "CellMixS",
+      "SingleCellExperiment",
+      "cowplot",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "CellMixS",
+      "SingleCellExperiment",
+      "cowplot",
+      "dplyr",
+      "ggplot2",
+      "magrittr",
+      "purrr"
+    ]
+  }
+}

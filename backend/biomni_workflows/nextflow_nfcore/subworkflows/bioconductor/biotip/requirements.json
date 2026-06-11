@@ -1,0 +1,21 @@
+{
+  "package": "biotip",
+  "requirements": [
+    "BioTIP",
+    "GenomicRanges",
+    "cluster",
+    "igraph",
+    "psych",
+    "stringr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioTIP",
+      "GenomicRanges",
+      "cluster",
+      "igraph",
+      "psych",
+      "stringr"
+    ]
+  }
+}

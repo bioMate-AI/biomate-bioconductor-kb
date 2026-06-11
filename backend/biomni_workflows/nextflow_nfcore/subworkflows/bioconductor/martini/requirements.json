@@ -1,0 +1,17 @@
+{
+  "package": "martini",
+  "requirements": [
+    "martini",
+    "snpStats"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "martini",
+      "snpStats"
+    ],
+    "simulate_network_phenotypes.nf": [
+      "martini",
+      "snpStats"
+    ]
+  }
+}

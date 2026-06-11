@@ -1,115 +1,167 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: batchelor
-// Implements a variety of methods for batch correction of single-cell (RNA sequencing) data. This incl
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/batchelor/inst/doc/correction.R
-// Upstream  : knitr, scRNAseq, scater, scran, scuttle
-// Downstream: OSCA.advanced, OSCA.intro, OSCA.multisample, OSCA.workflows
-//
-// Install: BiocManager::install("batchelor")
+// Bioconductor workflow: batchelor — fast_mnn_correction
+// Correct batch effects in single-cell RNA-seq datasets using the fast Mutual Nearest Neighbors (MNN) method in PCA space.
+// Input: sce1, sce2
+// Container: quay.io/biocontainers/bioconductor-batchelor:1.26.0--r45ha27e39d_0
+// R packages: SingleCellExperiment, batchelor, ggplot2, knitr, scater, scran, scRNAseq, scuttle
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, batchelor, ggplot2, scater, scran, scuttle
+// Visualizations: t-SNE plot
+// QC: per-cell QC metrics, batch-effect correction, cell QC metrics, highly-variable feature selection
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Perform quality control on cells
+//  * 2. [Core Analysis] Subset datasets to common genes
+//  * 3. [Core Analysis] Normalize sequencing depth across batches using multiBatchNorm
+//  * 4. [Core Analysis] Model gene variance and select highly variable genes (HVGs)
+//  * 5. [Core Analysis] Run fastMNN to obtain corrected low-dimensional coordinates
 
 nextflow.enable.dsl = 2
 
-process BIOC_BATCHELOR {
+process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-batchelor"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-batchelor:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-batchelor:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_batchelor_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_batchelor_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_batchelor_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SingleCellExperiment", "batchelor", "ggplot2", "knitr", "scater", "scran", "scRNAseq", "scuttle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(scuttle)
+    library(scran)
     library(batchelor)
-    library(NoCorrectParam)
-    library(TasicBrainData)
-    library(ZeiselBrainData)
-    library(jsonlite)
+    library(scater)
+    library(ggplot2)
+    
+    # ==========================================
+    # 1. Read User Input Files
+    # ==========================================
+    # The pipeline reads exactly these files from the working directory
+    sce1 <- readRDS("sce1.rds")
+    sce2 <- readRDS("sce2.rds")
+    
+    # ==========================================
+    # 2. Perform Quality Control on Cells
+    # ==========================================
+    # Identify mitochondrial genes and calculate QC metrics
+    sce1 <- addPerCellQC(sce1, subsets=list(Mito=grep("mt-", rownames(sce1), ignore.case=TRUE)))
+    qc1 <- quickPerCellQC(colData(sce1), sub.fields="subsets_Mito_percent")
+    sce1 <- sce1[, !qc1\$discard]
+    
+    sce2 <- addPerCellQC(sce2, subsets=list(Mito=grep("mt_", rownames(sce2), ignore.case=TRUE)))
+    qc2 <- quickPerCellQC(colData(sce2), sub.fields="subsets_Mito_percent")
+    sce2 <- sce2[, !qc2\$discard]
+    
+    # ==========================================
+    # 3. Subset Datasets to Common Genes
+    # ==========================================
+    universe <- intersect(rownames(sce1), rownames(sce2))
+    sce1 <- sce1[universe,]
+    sce2 <- sce2[universe,]
+    
+    # ==========================================
+    # 4. Normalize Sequencing Depth Across Batches
+    # ==========================================
+    out <- multiBatchNorm(sce1, sce2)
+    sce1 <- out[[1]]
+    sce2 <- out[[2]]
+    
+    # ==========================================
+    # 5. Model Gene Variance and Select HVGs
+    # ==========================================
+    dec1 <- modelGeneVar(sce1)
+    dec2 <- modelGeneVar(sce2)
+    combined.dec <- combineVar(dec1, dec2)
+    chosen.hvgs <- getTopHVGs(combined.dec, n=5000)
+    
+    # ==========================================
+    # 6. Run fastMNN to Obtain Corrected Coordinates
+    # ==========================================
+    set.seed(101)
+    f.out <- fastMNN(A=sce1, B=sce2, subset.row=chosen.hvgs)
+    
+    # ==========================================
+    # 7. Visualization and Diagnostics
+    # ==========================================
+    set.seed(103)
+    f.out <- runTSNE(f.out, dimred="corrected")
+    
+    # Save t-SNE plot to PDF
+    pdf("corrected_tsne_plot.pdf", width=8, height=6)
+    print(plotTSNE(f.out, colour_by="batch") + ggtitle("fastMNN Corrected t-SNE"))
+    dev.off()
+    
+    # ==========================================
+    # 8. Save Outputs
+    # ==========================================
+    # Save the complete corrected SingleCellExperiment object
+    saveRDS(f.out, "corrected_sce.rds")
+    
+    # Save corrected low-dimensional coordinates (PCA space)
+    corrected_pcs <- reducedDim(f.out, "corrected")
+    write.csv(as.data.frame(corrected_pcs), "corrected_coordinates.csv", row.names=TRUE)
+    
+    # Save cell metadata including batch assignments
+    write.csv(as.data.frame(colData(f.out)), "corrected_metadata.csv", row.names=TRUE)
 
-    # --- Multi-Batch PCA and MNN Correction [] ---
-    # Key functions: fastMNN, multiBatchPCA
-    f_out <- fastMNN(
-        A=sce1_norm,
-        B=sce2_norm,
-        subset.row=chosen_hvgs
-    )
-    corrected_dims <- SingleCellExperiment::reducedDim(
-        f_out,
-        "corrected"
-    )
-
-
-    # --- Alternative Batch Correction [] ---
-    # Key functions: rescaleBatches, regressBatches
-    rescale_out <- rescaleBatches(sce1_norm, sce2_norm)
-    regress_out <- regressBatches(sce1_norm, sce2_norm)
-
-
-    # --- Cluster-based MNN Correction [] ---
-    # Key functions: clusterMNN
-    clust_out <- clusterMNN(
-        sce1_norm,
-        sce2_norm,
-        subset.row=chosen_hvgs,
-        clusters=list(sce1_norm$celltype, sce2_norm$celltype)
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_batchelor_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_batchelor_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_batchelor_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BATCHELOR:", paste0("    batchelor: ", packageVersion("batchelor"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BATCHELOR_FAST_MNN_CORRECTION":',
+        paste0('    batchelor: ', as.character(packageVersion('batchelor')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_batchelor_results.csv
-    touch ${prefix}_batchelor_output.rds
-    echo "BIOC_BATCHELOR:" > versions.yml
-    echo "    batchelor: 0.0.0" >> versions.yml
+    touch ${prefix}_fast_mnn_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_BATCHELOR_WORKFLOW {
+workflow BIOC_BATCHELOR_FAST_MNN_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce1, sce2 ] ]
 
     main:
-    BIOC_BATCHELOR(ch_input)
+    BIOC_BATCHELOR_FAST_MNN_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_BATCHELOR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BATCHELOR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BATCHELOR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BATCHELOR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BATCHELOR_FAST_MNN_CORRECTION.out.tables
+    plots    = BIOC_BATCHELOR_FAST_MNN_CORRECTION.out.plots
+    objects  = BIOC_BATCHELOR_FAST_MNN_CORRECTION.out.objects
+    versions = BIOC_BATCHELOR_FAST_MNN_CORRECTION.out.versions
 }

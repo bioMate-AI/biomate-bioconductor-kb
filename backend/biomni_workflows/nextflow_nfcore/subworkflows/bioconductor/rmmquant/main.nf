@@ -1,121 +1,116 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Rmmquant
-// RNA-Seq is currently used routinely, and it provides accurate information on gene transcription. How
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Rmmquant/inst/doc/Rmmquant.R
-// Upstream  : BiocStyle, DESeq2, S4Vectors, SummarizedExperiment, TBX20BamSubset
-// Downstream: none
-//
-// Install: BiocManager::install("Rmmquant")
+// Bioconductor workflow: rmmquant — file_based_quantification
+// Quantify gene expression directly from GTF annotation and BAM alignment files.
+// Input: test.gtf, test.bam
+// Container: quay.io/biocontainers/bioconductor-rmmquant:1.28.0--r45ha27e39d_0
+// R packages: BiocStyle, DESeq2, Rmmquant, S4Vectors, SummarizedExperiment, tbx20bamsubset
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_RMMQUANT {
+process BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rmmquant"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rmmquant:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rmmquant:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-rmmquant:1.28.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(deseqdataset)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rmmquant_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rmmquant_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rmmquant_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocStyle", "DESeq2", "Rmmquant", "S4Vectors", "SummarizedExperiment", "tbx20bamsubset")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(Rmmquant)
-    library(DESeq)
-    library(DESeqDataSetFromMatrix)
-    library(RmmquantRun)
-    library(jsonlite)
-
-    # --- Multi-sample Quantification [] ---
-    # Key functions: getBamFileList, RmmquantRun
-    bamFiles <- getBamFileList()
-    sampleNames <- names(bamFiles)
-    gr <- GenomicFeatures::genes(
-        TxDb.Mmusculus.UCSC.mm9.knownGene::TxDb.Mmusculus.UCSC.mm9.knownGene,
-        filter = list(tx_chrom = "chr19")
-    )
-    output <- RmmquantRun(
-        genomicRanges = gr,
-        readsFiles = bamFiles,
-        sampleNames = sampleNames,
-        sorts = FALSE
-    )
-
-
-    # --- Differential Expression Analysis [] ---
-    # Key functions: RmmquantRun
-    counts_matrix <- SummarizedExperiment::assays(output)$counts
-    coldata <- data.frame(
-        condition = factor(
-            c(rep("control", 3), rep("KO", 3)),
-            levels = c("control", "KO")
-        ),
-        row.names = sampleNames
-    )
-    dds <- DESeq2::DESeqDataSetFromMatrix(
-        countData = counts_matrix,
-        colData = coldata,
-        design = ~ condition
-    )
-    dds <- DESeq2::DESeq(dds)
-    res <- DESeq2::lfcShrink(dds, coef = 2)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rmmquant_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rmmquant_results.csv")
+    library(SummarizedExperiment)
+    library(S4Vectors)
+    
+    # 1. Locate input files from the working directory
+    gtfFile <- "test.gtf"
+    bamFile <- "test.bam"
+    
+    # Verify that the input files exist before running
+    if (!file.exists(gtfFile)) {
+      stop(paste("Required GTF file not found in the working directory:", gtfFile))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rmmquant_output.rds")
+    if (!file.exists(bamFile)) {
+      stop(paste("Required BAM file not found in the working directory:", bamFile))
     }
+    
+    # 2. Run quantification using RmmquantRun
+    output <- RmmquantRun(gtfFile, bamFile)
+    
+    # 3. Extract count matrix
+    counts_matrix <- assays(output)\$counts
+    
+    # 4. Extract mapping statistics
+    mapping_stats <- colData(output)
+    
+    # 5. Write named output files for the results
+    # Save the count matrix as a CSV file
+    write.csv(as.matrix(counts_matrix), "gene_counts.csv", row.names = TRUE)
+    
+    # Save the mapping statistics as a CSV file
+    write.csv(as.data.frame(mapping_stats), "mapping_statistics.csv", row.names = TRUE)
+    
+    # Save the complete SummarizedExperiment output object as an RDS file
+    saveRDS(output, "rmmquant_output.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RMMQUANT:", paste0("    rmmquant: ", packageVersion("Rmmquant"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION":',
+        paste0('        rmmquant: ', as.character(packageVersion("rmmquant")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rmmquant_results.csv
-    touch ${prefix}_rmmquant_output.rds
-    echo "BIOC_RMMQUANT:" > versions.yml
-    echo "    rmmquant: 0.0.0" >> versions.yml
+    touch ${prefix}_file_based_quantification.csv versions.yml
     """
 }
 
-
-workflow BIOC_RMMQUANT_WORKFLOW {
+workflow BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(deseqdataset) ]
+    ch_input  // channel: [ val(meta), [ test.gtf, test.bam ] ]
 
     main:
-    BIOC_RMMQUANT(ch_input)
+    BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION(ch_input)
 
     emit:
-    results  = BIOC_RMMQUANT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RMMQUANT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RMMQUANT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RMMQUANT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION.out.tables
+    plots    = BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION.out.plots
+    objects  = BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION.out.objects
+    versions = BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION.out.versions
 }

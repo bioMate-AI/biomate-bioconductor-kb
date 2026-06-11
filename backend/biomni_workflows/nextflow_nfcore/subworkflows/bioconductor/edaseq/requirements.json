@@ -1,0 +1,22 @@
+{
+  "package": "edaseq",
+  "requirements": [
+    "DESeq2",
+    "EDASeq",
+    "Rsamtools",
+    "ShortRead",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "gene_level_normalization_and_de.nf": [
+      "DESeq2",
+      "EDASeq",
+      "edgeR"
+    ],
+    "main.nf": [
+      "EDASeq",
+      "Rsamtools",
+      "ShortRead"
+    ]
+  }
+}

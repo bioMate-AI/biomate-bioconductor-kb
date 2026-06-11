@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: jobName=Name of the run-job used for output directories and files ;; designPath=Path to the design matrix file ;; dataPath=Path to the raw data file or normalized matrix file ;; experimentObj=A SummarizedExperiment object containing the data matrix, design matrix (in colData), and annotations (in rowData) ;; comparisons=Character vector of pairwise comparisons (e.g., c(\"condA-condB\")) ;; condCol=Column name in the design matrix containing condition levels (default \"group\") ;; stepSizeMinutes=Step size in minutes for retention time normalization window sliding ;; windowMinCount=Minimum number of features required within a window for retention time normalization ;; leastRepCount=Minimum replicate count for calculating contrasts in calculateContrasts\n- alternatives: limma::normalizeCyclicLoess=Used globally as an alternative to retention-time segmented normalization ;; read_tsv from readr package=Recommended instead of read.table for reading design matrices to avoid converting sample names to factors\n- when_to_use: Use when analyzing raw LC-MS proteomics/expression data and needing to evaluate multiple normalization methods to select the best one, especially when retention-time-based biases (e.g., electrospray intensity fluctuations) are present.\n- pitfalls: Sample names in the design matrix must be character vectors, not factors; if they are factors, extracting columns from the raw data will fail or extract incorrect columns. The first column of the design matrix (default header \"sample\") must match the sample column headers in the raw data file exactly.",
+  "workflows": [
+    {
+      "name": "normalization_evaluation",
+      "intent": "Evaluate multiple normalization methods on raw LC-MS expression data and generate performance plots.",
+      "input": [
+        "tiny_data.tsv (raw LC-MS expression data with sample columns and annotations)",
+        "tiny_design.tsv (design matrix mapping samples to groups)"
+      ],
+      "stages": "1. Load data and verify input using normalyzer (or stepwise via setupRawDataObject and getVerifiedNormalyzerObject) ;; 2. Perform normalizations using normMethods ;; 3. Generate performance measures using analyzeNormalizations ;; 4. Output normalized matrices to file using setupJobDir and writeNormalizedDatasets ;; 5. Generate evaluation plots using generatePlots",
+      "code": "library(NormalyzerDE)\noutDir <- tempdir()\ndesignFp <- system.file(package=\"NormalyzerDE\", \"extdata\", \"tiny_design.tsv\")\ndataFp <- system.file(package=\"NormalyzerDE\", \"extdata\", \"tiny_data.tsv\")\nnormalyzer(jobName=\"vignette_run\", designPath=designFp, dataPath=dataFp, \n           outputDir=outDir)\n\ndataMatrix <- read.table(dataFp, sep=\"\\t\", header = TRUE)\ndesignMatrix <- read.table(designFp, sep=\"\\t\", header = TRUE)\ndesignMatrix$sample <- as.character(designMatrix$sample)\ndataOnly <- dataMatrix[, designMatrix$sample]\nannotOnly <- dataMatrix[, !(colnames(dataMatrix) %in% designMatrix$sample)]\n\nsumExpObj <- SummarizedExperiment::SummarizedExperiment(\n    as.matrix(dataOnly),\n    colData=designMatrix,\n    rowData=annotOnly\n)\n\nnormalyzer(jobName=\"sumExpRun\", experimentObj = sumExpObj, outputDir=outDir)\n\njobName <- \"vignette_run\"\nexperimentObj <- setupRawDataObject(dataFp, designFp, \"default\", TRUE, \"sample\", \"group\")\nnormObj <- getVerifiedNormalyzerObject(jobName, experimentObj)\nnormResults <- normMethods(normObj)\nnormResultsWithEval <- analyzeNormalizations(normResults)\njobDir <- setupJobDir(\"vignette_run\", tempdir())\nwriteNormalizedDatasets(normResultsWithEval, jobDir)\ngeneratePlots(normResultsWithEval, jobDir)"
+    },
+    {
+      "name": "differential_expression",
+      "intent": "Perform differential expression analysis (Limma/ANOVA) on a selected normalized matrix.",
+      "input": [
+        "CycLoess-normalized.txt (selected normalized expression matrix)",
+        "tiny_design.tsv (design matrix mapping samples to groups)"
+      ],
+      "stages": "1. Run differential expression analysis using normalyzerDE (or stepwise via setupRawContrastObject and NormalyzerStatistics) ;; 2. Calculate statistical contrasts using calculateContrasts ;; 3. Generate annotated matrix using generateAnnotatedMatrix ;; 4. Write statistics table and generate report using generateStatsReport",
+      "code": "normMatrixPath <- paste(outDir, \"vignette_run/CycLoess-normalized.txt\", sep=\"/\")\nnormalyzerDE(\"vignette_run\", \n             comparisons=c(\"4-5\"),\n             designPath=designFp, \n             dataPath=normMatrixPath,\n             outputDir=outDir, \n             condCol=\"group\")\n\nbestNormMatPath <- paste(jobDir, \"RT-Loess-normalized.txt\", sep=\"/\")\nexperimentObj <- setupRawContrastObject(bestNormMatPath, designFp, \"sample\")\nnst <- NormalyzerStatistics(experimentObj, logTrans=FALSE)\ncomparisons <- c(\"4-5\")\nnst <- calculateContrasts(nst, comparisons, condCol=\"group\", leastRepCount=2)\nannotDf <- generateAnnotatedMatrix(nst)\nutils::write.table(annotDf, file=paste(jobDir, \"stat_table.tsv\", sep=\"/\"))\ngenerateStatsReport(nst, \"Vignette stats\", jobDir)"
+    },
+    {
+      "name": "retention_time_normalization",
+      "intent": "Apply retention-time segmented or layered/smoothed normalization directly to a raw data matrix.",
+      "input": [
+        "tiny_data.tsv (raw LC-MS expression data containing retention times)",
+        "tiny_design.tsv (design matrix mapping samples to groups)"
+      ],
+      "stages": "1. Extract raw data matrix and retention times ;; 2. Define a normalization wrapper function ;; 3. Perform retention-time based normalization using getRTNormalizedMatrix or layered normalization using getSmoothedRTNormalizedMatrix",
+      "code": "fullDf <- read.csv(dataFp, sep=\"\\t\")\ndesignDf <- read.csv(designFp, sep=\"\\t\")\nsampleNames <- as.character(designDf$sample)\ndataMat <- as.matrix(fullDf[, sampleNames])\nretentionTimes <- fullDf$Average.RT\n\nperformCyclicLoessNormalization <- function(rawMatrix) {\n    log2Matrix <- log2(rawMatrix)\n    normMatrix <- limma::normalizeCyclicLoess(log2Matrix, method=\"fast\")\n    colnames(normMatrix) <- colnames(rawMatrix)\n    normMatrix\n}\n\nrtNormMat <- getRTNormalizedMatrix(dataMat, \n                                   retentionTimes, \n                                   performCyclicLoessNormalization, \n                                   stepSizeMinutes=1, \n                                   windowMinCount=100)\n\nlayeredRtNormMat <- getSmoothedRTNormalizedMatrix(\n    dataMat, \n    retentionTimes, \n    performCyclicLoessNormalization, \n    stepSizeMinutes=1, \n    windowMinCount=100, \n    windowShifts=3, \n    mergeMethod=\"mean\")"
+    }
+  ]
+}

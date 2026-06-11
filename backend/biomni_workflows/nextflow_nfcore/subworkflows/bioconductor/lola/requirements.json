@@ -1,0 +1,15 @@
+{
+  "package": "lola",
+  "requirements": [
+    "GenomicRanges",
+    "LOLA",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "LOLA",
+      "data.table"
+    ]
+  }
+}

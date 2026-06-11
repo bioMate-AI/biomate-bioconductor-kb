@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: M=Number of methylation states in a DNA sample type (typically 3: hypomethylation, hemimethylation, hypermethylation) ;; N=Number of patients/samples ;; R=Number of treatment conditions ;; parallel_process=Logical flag to enable parallel processing for parameter estimation or DMR identification ;; treatment_group=Vector of treatment group names (e.g., c(\"Benign\", \"Tumour\")) ;; DMC_count=Number of adjacent DMCs required to identify a DMR (default is 2) ;; package_workflow=Logical flag in threshold_identification indicating whether it is run as part of the main workflow ;; parameter_estimation_only=Logical flag in threshold_identification to only estimate parameters\n- alternatives: Logit transforming beta values into M-values for standard modeling (the docs mention this as the traditional approach, whereas betaHMM directly models untransformed beta values)\n- when_to_use: When analyzing DNA methylation beta values (e.g., from Infinium MethylationEPIC Beadchip) to identify DMCs and DMRs while accounting for spatial correlation of adjacent CpG sites and sample relationships without needing logit transformation to M-values\n- pitfalls: The workflow is designed to be carried out separately for each chromosome ;; Users must provide a matching annotation file (like the EPIC annotation subset) containing chromosome and map info ;; CpG sites with low uncertainty might still not be selected as DMCs if they do not meet the user-defined threshold",
+  "workflows": [
+    {
+      "name": "dmc_dmr_detection",
+      "intent": "Identify differentially methylated CpG sites (DMCs) and regions (DMRs) from untransformed beta values and annotation data.",
+      "input": [
+        "pca_methylation_data (Dataframe containing beta values for CpG sites across patients and treatment conditions)",
+        "annotation_data (Dataframe containing EPIC annotation details including chromosome and map info)"
+      ],
+      "stages": "1. Estimate model parameters and hidden states using betaHMM ;; 2. Identify DMCs using dmc_identification ;; 3. Identify DMRs from identified DMCs using dmr_identification ;; 4. Plot fitted densities, uncertainties, and identified regions using plot",
+      "code": "betaHMM_out <- betaHMM(pca_methylation_data,\n                                annotation_data,\n                                M = 3,\n                                N = 4,\n                                R = 2,\n                                parallel_process = FALSE,\n                                seed = my.seed,\n                                treatment_group = c(\"Benign\",\"Tumour\"))\nA(betaHMM_out)\nphi(betaHMM_out)\nhead(hidden_states(betaHMM_out)[[\"chr 7\"]])\nsummary(betaHMM_out)\ndmc_out <- dmc_identification(betaHMM_out)\ndmc_df <- assay(dmc_out)\nhead(dmc_df)\nsummary(dmc_out)\nAUC_chr <- AUC(dmc_out)\nplot(betaHMM_out, chromosome = \"7\", what = \"fitted density\", AUC = AUC_chr)\nplot(betaHMM_out, chromosome = \"7\", what = \"uncertainty\",\n        uncertainty_threshold = 0.2)\ndmr_out <- dmr_identification(dmc_out, parallel_process = FALSE)\ndmr_df <- assay(dmr_out)\nhead(dmr_df)\nsummary(dmr_out)\nplot(dmc_out, start_CpG = \"cg17750844\", end_CpG = 15)"
+    },
+    {
+      "name": "threshold_estimation",
+      "intent": "Estimate methylation thresholds distinguishing hypomethylation, hemimethylation, and hypermethylation states within a single treatment condition.",
+      "input": [
+        "pca_methylation_data[,1:5] (Dataframe containing beta values for a single treatment condition)",
+        "annotation_data (Dataframe containing EPIC annotation details including chromosome and map info)"
+      ],
+      "stages": "1. Run threshold identification using threshold_identification ;; 2. Extract thresholds using threshold ;; 3. Plot threshold results using plot",
+      "code": "threshold_out <- threshold_identification(pca_methylation_data[,1:5],\n                                            package_workflow = FALSE,\n                                            annotation_file = annotation_data,\n                                            M = 3,\n                                            N = 4,\n                                            parameter_estimation_only = FALSE,\n                                            seed = my.seed)\nthreshold(threshold_out)\nplot(threshold_out, plot_threshold = TRUE, what = \"fitted density\")"
+    }
+  ]
+}

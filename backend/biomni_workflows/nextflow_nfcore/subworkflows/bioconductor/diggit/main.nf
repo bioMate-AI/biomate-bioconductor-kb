@@ -1,128 +1,157 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: diggit
-// Inference of Genetic Variants Driving Cellullar Phenotypes by the DIGGIT algorithm
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/diggit/inst/doc/diggit.R
-// Upstream  : parallel
-// Downstream: none
-//
-// Install: BiocManager::install("diggit")
+// Bioconductor workflow: diggit — diggit_driver_inference
+// Identify functional genetic drivers (CNVs) of a cellular phenotype by integrating expression, CNV, and regulatory networks.
+// Input: gbmExprs, gbmCNV, gbmTFregulon, gbmMindy, gbmCNVnormal
+// Container: quay.io/biocontainers/bioconductor-diggit:1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, diggit
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize the diggit object using diggitClass
+//  * 2. [Core Analysis] Infer functional CNVs (fCNVs) associated with expression using fCNV
+//  * 3. [Core Analysis] Identify Master Regulators (MRs) of the phenotype using marina
+//  * 4. [Core Analysis] Map activity quantitative trait loci (aQTLs) linking fCNVs to MR activity using aqtl
+//  * 5. [Core Analysis] Perform conditional association analysis using conditional to filter out passenger CNVs in linkage disequilibrium
+//  * 6. [Visualization & Output] Plot and summarize the conditional analysis results using plot and summary
 
 nextflow.enable.dsl = 2
 
-process BIOC_DIGGIT {
+process BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-diggit"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-diggit:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-diggit:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_diggit_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_diggit_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_diggit_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(OStype)
-    library(RNGkind)
-    library(jsonlite)
-
-    # --- Info [] ---
-    # Key functions: info
-    # Initialization
-    cores <- 3*(Sys.info()[1]!="Windows")+1
-    # --- Data [] ---
-    # Key functions: data
-    data(gbm.expression, package="diggitdata")
-    data(gbm.cnv, package="diggitdata")
-    data(gbm.aracne, package="diggitdata")
-    data(gbm.mindy, package="diggitdata")
-    # --- Intersect [] ---
-    # Key functions: intersect
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(diggit)
+    library(Biobase)
+    
+    # Define cores for parallel processing
+    cores <- 3 * (Sys.info()[1] != "Windows") + 1
+    
+    # Read user input files from the working directory
+    gbmExprs <- readRDS("gbmExprs.rds")
+    gbmCNV <- readRDS("gbmCNV.rds")
+    gbmTFregulon <- readRDS("gbmTFregulon.rds")
+    gbmMindy <- readRDS("gbmMindy.rds")
+    gbmCNVnormal <- readRDS("gbmCNVnormal.rds")
+    
+    # Subset genes to match the documented workflow
     genes <- intersect(rownames(gbmExprs), rownames(gbmCNV))[1:1000]
     gbmCNV <- gbmCNV[match(genes, rownames(gbmCNV)), ]
-    # --- Diggitclass [] ---
-    # Key functions: diggitClass
+    
+    # Initialize the diggit object
     dobj <- diggitClass(expset=gbmExprs, cnv=gbmCNV, regulon=gbmTFregulon, mindy=gbmMindy)
-    dobj
-    # --- Fcnv [] ---
-    # Key functions: fCNV, diggitFcnv
+    
+    # Infer functional CNVs (fCNVs) using Spearman correlation
     dobj <- fCNV(dobj, method="spearman", verbose=FALSE)
-    diggitFcnv(dobj)[1:5]
-    head(dobj, 5)$fcnv
-    # --- Rngkind [] ---
-    # Key functions: RNGkind, OStype, stream, fCNV, diggitFcnv
+    
+    # Set random seed for reproducible mutual information (MI) permutation analysis
     RNGkind("L'Ecuyer-CMRG")
     set.seed(1)
-    #if(tools:::.OStype() == "unix") {
-    #    mc.reset.stream()
-    #}
-    # --- Fcnv [] ---
-    # Key functions: diggitCNV, exprs, intersect, diggitFcnv, fCNV
-    tmp.cnv <- diggitCNV(dobj)
-    tmp.exp <- exprs(exprs(dobj))
-    samp <- intersect(colnames(tmp.cnv), colnames(tmp.exp))
-    tmp.cnv <- tmp.cnv[, match(samp, colnames(tmp.cnv))]
-    tmp.exp <- tmp.exp[, match(samp, colnames(tmp.exp))]
-    # --- Conditional [] ---
-    # Key functions: conditional
-    dobj <- conditional(dobj, pheno="subtype", group1="MES", group2="PN", mr="STAT3",
-                        cnv=cnvthr, cores=cores, verbose=FALSE)
-    dobj
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_diggit_results.csv", row.names = TRUE)
+    
+    # Infer functional CNVs (fCNVs) using Mutual Information
+    dobj <- fCNV(dobj, method="mi", cores=cores, verbose=FALSE)
+    
+    # Identify Master Regulators (MRs) of the phenotype
+    dobj <- marina(dobj, pheno="subtype", group1="MES", group2="PN", cores=cores, verbose=FALSE)
+    
+    # Map activity quantitative trait loci (aQTLs) linking fCNVs to MR activity
+    dobj <- aqtl(dobj, mr=c("CEBPD", "STAT3"), method="mi", cores=cores, verbose=FALSE)
+    
+    # Calculate CNV threshold from normal samples
+    cnvthr <- quantile(as.vector(gbmCNVnormal), c(.025, .975), na.rm=TRUE)
+    
+    # Perform conditional association analysis to filter out passenger CNVs
+    dobj <- conditional(dobj, pheno="subtype", group1="MES", group2="PN", mr="STAT3", cnv=cnvthr, cores=cores, verbose=FALSE)
+    
+    # Plot and save the conditional analysis results
+    pdf("conditional_association_plot.pdf", width=8, height=6)
+    plot(dobj, "STAT3", cluster="2")
+    dev.off()
+    
+    # Summarize and save the standard conditional analysis results
+    sum_standard <- summary(dobj)
+    if (is.list(sum_standard)) {
+      for (name in names(sum_standard)) {
+        write.csv(as.data.frame(sum_standard[[name]]), file=paste0("summary_conditional_standard_", name, ".csv"), row.names=TRUE)
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_diggit_results.csv")
+      write.csv(as.data.frame(sum_standard), file="summary_conditional_standard.csv", row.names=TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_diggit_output.rds")
+    
+    # Perform aQTL analysis restricted to upstream post-translational modulators (MINDy)
+    dobj <- aqtl(dobj, mr=c("CEBPD", "STAT3"), method="mi", mindy=TRUE, cores=cores, verbose=FALSE)
+    
+    # Perform conditional association analysis with the MINDy-restricted aQTLs
+    dobj <- conditional(dobj, pheno="subtype", group1="MES", group2="PN", mr="STAT3", cnv=cnvthr, verbose=FALSE)
+    
+    # Summarize and save the MINDy-restricted conditional analysis results
+    sum_mindy <- summary(dobj)
+    if (is.list(sum_mindy)) {
+      for (name in names(sum_mindy)) {
+        write.csv(as.data.frame(sum_mindy[[name]]), file=paste0("summary_conditional_mindy_", name, ".csv"), row.names=TRUE)
+      }
+    } else {
+      write.csv(as.data.frame(sum_mindy), file="summary_conditional_mindy.csv", row.names=TRUE)
     }
+    
+    # Save the final diggit object
+    saveRDS(dobj, file="diggit_final_object.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DIGGIT:", paste0("    diggit: ", packageVersion("diggit"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE":',
+        paste0('    diggit: ', as.character(packageVersion('diggit')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_diggit_results.csv
-    touch ${prefix}_diggit_output.rds
-    echo "BIOC_DIGGIT:" > versions.yml
-    echo "    diggit: 0.0.0" >> versions.yml
+    touch ${prefix}_diggit_driver_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_DIGGIT_WORKFLOW {
+workflow BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gbmExprs, gbmCNV, gbmTFregulon, gbmMindy, gbmCNVnormal ] ]
 
     main:
-    BIOC_DIGGIT(ch_input)
+    BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_DIGGIT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DIGGIT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DIGGIT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DIGGIT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE.out.tables
+    plots    = BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE.out.plots
+    objects  = BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE.out.objects
+    versions = BIOC_DIGGIT_DIGGIT_DRIVER_INFERENCE.out.versions
 }

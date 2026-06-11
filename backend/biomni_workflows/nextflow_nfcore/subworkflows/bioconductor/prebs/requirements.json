@@ -1,0 +1,17 @@
+{
+  "package": "prebs",
+  "requirements": [
+    "Biobase",
+    "prebs"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "prebs"
+    ],
+    "manufacturer_cdf_probeset_expression.nf": [
+      "Biobase",
+      "prebs"
+    ]
+  }
+}

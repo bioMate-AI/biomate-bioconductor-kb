@@ -1,100 +1,219 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: affylmGUI
-// A Graphical User Interface (GUI) for analysis of Affymetrix microarray gene expression data using th
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/affylmGUI/inst/doc/affylmGUI.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("affylmGUI")
+// Bioconductor workflow: affylmGUI — affylmgui_microarray_pipeline
+// Perform differential expression analysis of microarray data using affylmGUI's core engine and export diagnostic plots and results.
+// Input: counts.csv, coldata.csv
+// Container: 1.84.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, affylmGUI, limma, tcltk
+// Visualizations: MA plot, volcano plot, box plot
+// QC: diagnostic MA/PCA QC
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_AFFYLMGUI {
+process BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-affylmgui"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-affylmgui:1.80.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-affylmgui:1.80.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_affylmgui_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_affylmgui_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_affylmgui_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(affylmGUI)
-    library(jsonlite)
-
-    # --- Onlinedoc [] ---
-    # Key functions: interactive
-    ## if (interactive())
-    ##   browseURL("http://bioinf.wehi.edu.au/affylmGUI/Doc/")
-    # --- Localdoc [] ---
-    # Key functions: interactive, affylmGUIhelp
-    ## if (interactive())
-    ## {
-    ##   library(affylmGUI)
-    ##   affylmGUIhelp()
-    ## }
-    # --- interactive [] ---
-    # Key functions: interactive, start
-    ## if (interactive())
-    ##   help.start()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_affylmgui_results.csv", row.names = TRUE)
+    library(limma)
+    library(Biobase)
+    library(tcltk)
+    
+    # Initialize affylmGUI globals
+    initGlobals()
+    
+    # Mock tcltk dialogs to prevent blocking/hanging in headless environments
+    if (requireNamespace("tcltk", quietly = TRUE)) {
+      try({
+        unlockBinding("tkgetSaveFile", asNamespace("tcltk"))
+        assign("tkgetSaveFile", function(...) "normalized_expression.csv", envir = asNamespace("tcltk"))
+        lockBinding("tkgetSaveFile", asNamespace("tcltk"))
+        
+        unlockBinding("tkmessageBox", asNamespace("tcltk"))
+        assign("tkmessageBox", function(...) "ok", envir = asNamespace("tcltk"))
+        lockBinding("tkmessageBox", asNamespace("tcltk"))
+        
+        unlockBinding("tkchooseDirectory", asNamespace("tcltk"))
+        assign("tkchooseDirectory", function(...) getwd(), envir = asNamespace("tcltk"))
+        lockBinding("tkchooseDirectory", asNamespace("tcltk"))
+      }, silent = TRUE)
+    }
+    
+    # 1. Load Input Data
+    # counts.csv contains the probe-by-sample normalized expression matrix
+    exprs_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    # coldata.csv contains sample metadata with 'sample' and 'condition'
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # Align expression matrix columns with metadata samples
+    sample_cols <- coldata_df\$sample
+    exprs_matrix <- as.matrix(exprs_df[, sample_cols, drop = FALSE])
+    
+    # 2. Create ExpressionSet
+    pheno_data <- AnnotatedDataFrame(coldata_df)
+    rownames(pheno_data) <- coldata_df\$sample
+    NormalizedAffyData <- ExpressionSet(assayData = exprs_matrix, phenoData = pheno_data)
+    
+    # 3. Linear Model Fitting & Contrasts
+    design <- model.matrix(~0 + condition, data = coldata_df)
+    colnames(design) <- gsub("condition", "", colnames(design))
+    colnames(design) <- make.names(colnames(design))
+    
+    fit <- lmFit(exprs_matrix, design)
+    
+    conditions <- unique(coldata_df\$condition)
+    conditions_clean <- make.names(conditions)
+    
+    if (length(conditions_clean) >= 2) {
+      contrast_str <- paste0(conditions_clean[2], " - ", conditions_clean[1])
+      contrast_matrix <- makeContrasts(contrasts = contrast_str, levels = design)
+      fit2 <- contrasts.fit(fit, contrast_matrix)
+      eb <- eBayes(fit2)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_affylmgui_results.csv")
+      fit2 <- fit
+      eb <- eBayes(fit)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_affylmgui_output.rds")
+    
+    # Assign key objects to .GlobalEnv so affylmGUI functions can access them
+    assign("NormalizedAffyData", NormalizedAffyData, envir = .GlobalEnv)
+    assign("fit", fit, envir = .GlobalEnv)
+    assign("fit2", fit2, envir = .GlobalEnv)
+    assign("eb", eb, envir = .GlobalEnv)
+    assign("Targets", coldata_df, envir = .GlobalEnv)
+    
+    # 4. Export Normalized Expression Values
+    tryCatch({
+      ExportNormalizedExpressionValues()
+    }, error = function(e) {
+      message("ExportNormalizedExpressionValues failed, falling back to manual export: ", e\$message)
+    })
+    
+    if (!file.exists("normalized_expression.csv")) {
+      write.csv(exprs_matrix, "normalized_expression.csv")
     }
+    
+    # 5. Export Top Table
+    if (requireNamespace("tcltk", quietly = TRUE)) {
+      try({
+        unlockBinding("tkgetSaveFile", asNamespace("tcltk"))
+        assign("tkgetSaveFile", function(...) "top_table.csv", envir = asNamespace("tcltk"))
+        lockBinding("tkgetSaveFile", asNamespace("tcltk"))
+      }, silent = TRUE)
+    }
+    
+    tryCatch({
+      ExportTopTable()
+    }, error = function(e) {
+      message("ExportTopTable failed, falling back to manual export: ", e\$message)
+    })
+    
+    if (!file.exists("top_table.csv")) {
+      tt <- topTable(eb, coef = 1, number = Inf)
+      write.csv(tt, "top_table.csv")
+    }
+    
+    # 6. Generate Diagnostic Plots
+    pdf("diagnostic_plots.pdf", width = 8, height = 8)
+    
+    # Normalized Intensity Boxplot
+    tryCatch({
+      NormalizedIntensityBoxPlot()
+    }, error = function(e) {
+      message("NormalizedIntensityBoxPlot failed, falling back to standard boxplot: ", e\$message)
+      boxplot(exprs_matrix, main = "Normalized Intensity Boxplot", las = 2, col = "skyblue")
+    })
+    
+    # Density Plot
+    tryCatch({
+      limma::plotDensities(exprs_matrix, legend = FALSE, main = "Density Plot of Intensities")
+    }, error = function(e) {
+      message("Density plot failed: ", e\$message)
+    })
+    
+    # MA Plot
+    tryCatch({
+      affyPlotMA()
+    }, error = function(e) {
+      message("affyPlotMA failed, falling back to limma::plotMA: ", e\$message)
+      limma::plotMA(fit, main = "MA Plot")
+    })
+    
+    # QQ Plot
+    tryCatch({
+      QQTplot()
+    }, error = function(e) {
+      message("QQTplot failed, falling back to limma::qqt: ", e\$message)
+      limma::qqt(eb\$t[, 1], df = eb\$df.total, main = "QQ Plot of Moderated t-statistics")
+      abline(0, 1, col = "red")
+    })
+    
+    # Volcano / LogOdds Plot
+    tryCatch({
+      LogOddsPlot()
+    }, error = function(e) {
+      message("LogOddsPlot failed, falling back to volcano plot: ", e\$message)
+      limma::volcanoplot(eb, main = "Volcano Plot")
+    })
+    
+    dev.off()
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AFFYLMGUI:", paste0("    affylmgui: ", packageVersion("affylmGUI"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE":',
+        paste0('    affylmGUI: ', as.character(packageVersion('affylmGUI')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_affylmgui_results.csv
-    touch ${prefix}_affylmgui_output.rds
-    echo "BIOC_AFFYLMGUI:" > versions.yml
-    echo "    affylmgui: 0.0.0" >> versions.yml
+    touch ${prefix}_affylmgui_microarray_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_AFFYLMGUI_WORKFLOW {
+workflow BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_AFFYLMGUI(ch_input)
+    BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_AFFYLMGUI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AFFYLMGUI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AFFYLMGUI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AFFYLMGUI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE.out.tables
+    plots    = BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE.out.plots
+    objects  = BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE.out.objects
+    versions = BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE.out.versions
 }

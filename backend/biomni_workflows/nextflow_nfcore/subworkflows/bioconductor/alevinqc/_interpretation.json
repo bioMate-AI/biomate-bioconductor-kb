@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: baseDir=Path to the directory containing the output files from an alevin run. Must retain the original directory structure ;; sampleId=Character string specifying the sample identifier used in the report ;; outputFile=Character string specifying the name of the output report file (e.g., \"alevinReport.html\") ;; outputFormat=Format of the output report, such as \"html_document\" or \"pdf_document\" ;; outputDir=Directory where the generated report should be saved ;; forceOverwrite=Logical indicating whether to overwrite an existing report file with the same name\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package after running Salmon-Alevin on single-cell RNA-seq data to perform quality control checks, visualize cell barcode collapse, assess mapping/deduplication rates, and inspect knee plots of UMI counts and gene counts.\n- pitfalls: Moving or renaming the output files from alevin will cause errors, as alevinQC assumes a strict directory structure ;; To generate the full set of files required for alevinQC, alevin must be run with the --dumpFeatures flag ;; Processing output from Salmon v0.14 or later requires Alevin v1.1 or later ;; To export data from the Shiny app, users must click the 'Close app' button in the top right corner rather than just closing the window.",
+  "workflows": [
+    {
+      "name": "static_qc_report",
+      "intent": "Validate alevin output files and generate a static HTML or PDF quality control report.",
+      "input": [
+        "baseDir (Alevin output directory containing alevin/ and aux_info/ subdirectories and cmd_info.json)"
+      ],
+      "stages": "1. Check that all required alevin files are available using checkAlevinInputFiles() ;; 2. Generate the QC report using alevinQCReport()",
+      "code": "baseDir <- system.file(\"extdata/alevin_example_v0.14\", package = \"alevinQC\")\ncheckAlevinInputFiles(baseDir = baseDir)\noutputDir <- tempdir()\nalevinQCReport(baseDir = baseDir, sampleId = \"testSample\", \n               outputFile = \"alevinReport.html\", \n               outputFormat = \"html_document\",\n               outputDir = outputDir, forceOverwrite = TRUE)"
+    },
+    {
+      "name": "interactive_shiny_app",
+      "intent": "Launch an interactive Shiny application for visual quality control and optionally export the underlying data.",
+      "input": [
+        "baseDir (Alevin output directory containing alevin/ and aux_info/ subdirectories and cmd_info.json)"
+      ],
+      "stages": "1. Create the Shiny app object using alevinQCShiny() ;; 2. Run the app using shiny::runApp() and capture the output",
+      "code": "app <- alevinQCShiny(baseDir = baseDir, sampleId = \"testSample\")\nif (interactive()) {\n    out <- shiny::runApp(app)\n}"
+    },
+    {
+      "name": "custom_plotting_and_data_extraction",
+      "intent": "Read alevin QC data into R to inspect summary tables and generate individual diagnostic plots.",
+      "input": [
+        "baseDir (Alevin output directory containing alevin/ and aux_info/ subdirectories and cmd_info.json)"
+      ],
+      "stages": "1. Read the alevin output into an R object using readAlevinQC() ;; 2. Inspect cell barcode tables and summary tables ;; 3. Generate individual plots using plotAlevinKneeRaw(), plotAlevinBarcodeCollapse(), plotAlevinQuant(), and plotAlevinKneeNbrGenes()",
+      "code": "alevin <- readAlevinQC(baseDir = baseDir)\nhead(alevin$cbTable)\nknitr::kable(alevin$summaryTables$fullDataset)\nknitr::kable(alevin$summaryTables$initialWhitelist)\nknitr::kable(alevin$summaryTables$finalWhitelist)\nknitr::kable(alevin$versionTable)\nplotAlevinKneeRaw(alevin$cbTable)\nplotAlevinBarcodeCollapse(alevin$cbTable)\nplotAlevinQuant(alevin$cbTable)\nplotAlevinKneeNbrGenes(alevin$cbTable)"
+    }
+  ]
+}

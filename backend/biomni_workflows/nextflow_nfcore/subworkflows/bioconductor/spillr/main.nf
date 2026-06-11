@@ -1,114 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: spillR
-// Channel interference in mass cytometry can cause spillover and may result in miscounting of protein 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/spillR/inst/doc/spillR-vignette.R
-// Upstream  : CATALYST, cowplot, dplyr, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("spillR")
+// Bioconductor workflow: spillR — cytof_spillover_compensation
+// Compensate for channel spillover in mass cytometry data using a nonparametric finite mixture model estimated from single-stained beads.
+// Input: sce, sce_bead
+// Container: quay.io/biocontainers/bioconductor-spillr:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cowplot, dplyr, ggplot2, spillR
+// Visualizations: scatter plot
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Prepare bead and cell data using CATALYST and map markers to barcodes
+//  * 2. [Core Analysis] Perform spillover compensation using spillR::compCytof
+//  * 3. [Visualization & Output] Generate diagnostic plots using spillR::plotDiagnostics to evaluate the compensation
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPILLR {
+process BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-spillr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spillr:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-spillr:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_spillr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_spillr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_spillr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(spillR)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        library(spillR)
+        library(CATALYST)
+        library(dplyr)
+        library(ggplot2)
+        library(cowplot)
+        
+        # --------- Load user inputs ---------
+        sce <- readRDS("sce.rds")
+        sce_bead <- readRDS("sce_bead.rds")
+        
+        # --------- Process bead data ---------
+        bc_key <- rowData(sce_bead)[, c("channel_name", "is_bc")] |>
+            as_tibble() |>
+            dplyr::filter(is_bc == TRUE) |>
+            dplyr::pull(channel_name) |>
+            gsub(pattern = "[^0-9]", replacement = "") |>
+            as.numeric()
+    
+        sce_bead <- assignPrelim(sce_bead, bc_key, verbose = FALSE)
+        sce_bead <- applyCutoffs(estCutoffs(sce_bead))
+        sce_bead <- computeSpillmat(sce_bead)
+        
+        # --------- Table for mapping markers and barcode ---------
+        marker_to_barc <-
+            rowData(sce_bead)[, c("channel_name", "is_bc")] |>
+            as_tibble() |>
+            dplyr::filter(is_bc == TRUE) |>
+            mutate(barcode = bc_key) |>
+            select(marker = channel_name, barcode)
+        
+        # Save mapping table
+        write.csv(marker_to_barc, "marker_to_barc.csv", row.names = FALSE)
+        
+        # --------- Compensate function from spillR package ---------
+        sce_spillr <-
+            spillR::compCytof(sce, sce_bead, marker_to_barc, impute_value = NA, 
+                              overwrite = FALSE)
+        
+        # Save compensated SingleCellExperiment object
+        saveRDS(sce_spillr, "sce_spillr.rds")
+        
+        # --------- 2d histogram from CATALYST package -------
+        as <- c("counts", "exprs", "compcounts", "compexprs")
+        chs <- marker_to_barc\$marker[1:2]
+        ps <- lapply(as, function(a) plotScatter(sce_spillr, chs, assay = a))
+        p_scatter <- plot_grid(plotlist = ps, nrow = 2)
+        
+        # Save scatter plots
+        ggsave("compensation_scatter_plots.pdf", plot = p_scatter, width = 10, height = 8)
+        
+        # --------- Diagnostic plots -------
+        ps_diag <- spillR::plotDiagnostics(sce_spillr, chs[2])
+        x_lim <- c(0, 7)
+        p_diag <- plot_grid(ps_diag[[1]] + xlim(x_lim),
+            ps_diag[[2]] + xlim(x_lim),
+            ncol = 1, align = "v"
+        )
+        
+        # Save diagnostic plots
+        ggsave("diagnostic_plots.pdf", plot = p_diag, width = 8, height = 8)
 
-    # --- CyTOF Spillover Compensation [] ---
-    # Key functions: compCytof
-    data(mp_cells, package = "CATALYST")
-    r_data <- SummarizedExperiment::rowData(sce_bead)
-    marker_to_barc <- data.frame(
-        marker = r_data$channel_name,
-        is_bc = r_data$is_bc
-    )
-    marker_to_barc <- marker_to_barc[marker_to_barc$is_bc == TRUE, ]
-    marker_to_barc$barcode <- bc_key[seq_len(nrow(marker_to_barc))]
-    sce <- CATALYST::prepData(mp_cells)
-    sce_spillr <- spillR::compCytof(
-        sce,
-        sce_bead,
-        marker_to_barc,
-        impute_value = NA,
-        overwrite = FALSE
-    )
-
-
-    # --- Compensation Diagnostics [] ---
-    # Key functions: plotDiagnostics
-    ps <- spillR::plotDiagnostics(sce_spillr, "Yb173Di")
-    diag_plot <- cowplot::plot_grid(
-        ps[[1]] + ggplot2::xlim(c(0, 7)),
-        ps[[2]] + ggplot2::xlim(c(0, 7)),
-        ncol = 1,
-        align = "v"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spillr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spillr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spillr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPILLR:", paste0("    spillr: ", packageVersion("spillR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION":',
+        paste0('    spillR: ', as.character(packageVersion('spillR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_spillr_results.csv
-    touch ${prefix}_spillr_output.rds
-    echo "BIOC_SPILLR:" > versions.yml
-    echo "    spillr: 0.0.0" >> versions.yml
+    touch ${prefix}_cytof_spillover_compensation.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPILLR_WORKFLOW {
+workflow BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sce, sce_bead ] ]
 
     main:
-    BIOC_SPILLR(ch_input)
+    BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION(ch_input)
 
     emit:
-    results  = BIOC_SPILLR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPILLR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPILLR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPILLR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION.out.tables
+    plots    = BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION.out.plots
+    objects  = BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION.out.objects
+    versions = BIOC_SPILLR_CYTOF_SPILLOVER_COMPENSATION.out.versions
 }

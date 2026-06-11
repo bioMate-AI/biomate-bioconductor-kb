@@ -1,136 +1,179 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: seq2pathway
-// Seq2pathway is a novel tool for functional gene-set (or termed as pathway) analysis of next-generati
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/seq2pathway/inst/doc/seq2pathwaypackage.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("seq2pathway")
+// Bioconductor workflow: seq2pathway — chip_seq_region_pathway
+// Map genomic regions (such as ChIP-seq peaks) to genes and perform quantitative pathway enrichment analysis.
+// Input: Chipseq_Peak_demo, MsigDB_C5, dat_chip
+// Container: quay.io/biocontainers/bioconductor-seq2pathway:1.34.0--r43hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: seq2pathway
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Map genomic regions to genes using runseq2gene. 2. Run pathway enrichment analysis using gene2pathway_test with FAIME and Fisher's
 
 nextflow.enable.dsl = 2
 
-process BIOC_SEQ2PATHWAY {
+process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-seq2pathway"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-seq2pathway:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-seq2pathway:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_seq2pathway_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_seq2pathway_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_seq2pathway_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(seq2pathway)
-    library(jsonlite)
-
-    # --- Chipseq Peak Demo [] ---
-    # Key functions: data, class
-    data(Chipseq_Peak_demo)
-    class(Chipseq_Peak_demo)
-    head(Chipseq_Peak_demo)
-    # --- Granges Demo [] ---
-    # Key functions: data, class
-    data(GRanges_demo)
-    class(GRanges_demo)
-    GRanges_demo[1:3,]
-    # --- Msigdb C5 [] ---
-    # Key functions: data, class
-    data(MsigDB_C5,package="seq2pathway.data")
-    class(MsigDB_C5)
-    # --- Chipseq Peak Demo [] ---
-    # Key functions: data
-    data(Chipseq_Peak_demo)
-    head(Chipseq_Peak_demo)
-    # --- runseq2gene [] ---
-    # Key functions: runseq2gene
+    
+    # Helper function to robustly load user input files from the working directory
+    load_input <- function(filename) {
+      # Check various extensions in case the user saved them in different formats
+      extensions <- c("", ".rds", ".RDS", ".csv", ".CSV", ".txt", ".TXT", ".RData", ".rdata", ".rda")
+      
+      for (ext in extensions) {
+        full_path <- paste0(filename, ext)
+        if (file.exists(full_path)) {
+          if (grepl("\\\\.(rds|RDS)\$", full_path) || (ext == "" && grepl("\\\\.rds\$", full_path, ignore.case = TRUE))) {
+            return(readRDS(full_path))
+          } else if (grepl("\\\\.(csv|CSV)\$", full_path)) {
+            return(read.csv(full_path, stringsAsFactors = FALSE))
+          } else if (grepl("\\\\.(txt|TXT)\$", full_path)) {
+            return(read.table(full_path, header = TRUE, stringsAsFactors = FALSE))
+          } else if (grepl("\\\\.(RData|rdata|rda)\$", full_path)) {
+            env <- new.env()
+            load(full_path, envir = env)
+            vars <- ls(env)
+            if (length(vars) > 0) {
+              return(get(vars[1], envir = env))
+            }
+          } else {
+            # Default fallback to readRDS if no extension matches but file exists
+            tryCatch({
+              return(readRDS(full_path))
+            }, error = function(e) {
+              tryCatch({
+                return(read.csv(full_path, stringsAsFactors = FALSE))
+              }, error = function(e2) {
+                stop(paste("Failed to read file:", full_path))
+              })
+            })
+          }
+        }
+      }
+      stop(paste("Required input file not found in working directory:", filename))
+    }
+    
+    # ----------------------------------------------------------------------
+    # Step 0: Load User Inputs
+    # ----------------------------------------------------------------------
+    message("Loading user input files...")
+    Chipseq_Peak_demo <- load_input("Chipseq_Peak_demo")
+    MsigDB_C5         <- load_input("MsigDB_C5")
+    dat_chip          <- load_input("dat_chip")
+    
+    # ----------------------------------------------------------------------
+    # Step 1: Map genomic regions to genes using runseq2gene
+    # ----------------------------------------------------------------------
+    message("Mapping genomic regions to genes...")
     Chipseq_anno <- runseq2gene(
-                      inputfile=Chipseq_Peak_demo,
-                      genome="hg19", adjacent=FALSE, SNP=FALSE, search_radius=1000,
+                      inputfile=Chipseq_Peak_demo, 
+                      genome="hg19", adjacent=FALSE, SNP=FALSE, search_radius=1000, 
                       PromoterStop=FALSE,NearestTwoDirection=TRUE)
-    class(Chipseq_anno)
-    # --- Msigdb C5 [] ---
-    # Key functions: data, class
-    ## give the previously defined gene-sets
-    data(MsigDB_C5,package="seq2pathway.data")
-    class(MsigDB_C5)
-    ## load the gene-level measurements, here is an example of ChIP-seq scores
-    data(dat_chip)
-    # --- Dat Gene2Path Chip [] ---
-    # Key functions: data, class
-    data(dat_gene2path_chip,package="seq2pathway.data")
-    names(dat_gene2path_chip)
-    class(dat_gene2path_chip$gene2pathway_result.2)
-    names(dat_gene2path_chip$gene2pathway_result.2)
-    dat_gene2path_chip$gene2pathway_result.2$GO_BP[1:3,]
-    # --- Msigdb C5 [] ---
-    # Key functions: data, class
-    data(MsigDB_C5,package="seq2pathway.data")
-    class(MsigDB_C5)
-    # --- Dat Chip [] ---
-    # Key functions: data
-    data(dat_chip)
-    head(dat_chip)
-    # --- Fishertest Go Bp Mf Cc [] ---
-    # Key functions: data
-    data(dat_chip)
-    head(dat_chip)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_seq2pathway_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_seq2pathway_results.csv")
+    
+    # Save Step 1 Outputs
+    message("Saving genomic region annotation results...")
+    saveRDS(Chipseq_anno, "Chipseq_anno.rds")
+    if (is.list(Chipseq_anno) && length(Chipseq_anno) > 0) {
+      write.csv(Chipseq_anno[[1]], "Chipseq_anno_table.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_seq2pathway_output.rds")
+    
+    # ----------------------------------------------------------------------
+    # Step 2: Run pathway enrichment analysis using gene2pathway_test
+    # ----------------------------------------------------------------------
+    message("Running pathway enrichment analysis (FAIME & Fisher's Exact Test)...")
+    result_FAIME <- gene2pathway_test(dat= dat_chip, DataBase= MsigDB_C5,
+                    FisherTest=TRUE, EmpiricalTest=FALSE, method="FAIME",
+                    alpha=5, logCheck=FALSE, na.rm=FALSE)
+    
+    # Save Step 2 Outputs
+    message("Saving pathway enrichment results...")
+    saveRDS(result_FAIME, "result_FAIME.rds")
+    
+    if (is.list(result_FAIME)) {
+      for (name in names(result_FAIME)) {
+        sub_res <- result_FAIME[[name]]
+        if (is.data.frame(sub_res)) {
+          write.csv(sub_res, paste0("result_FAIME_", name, ".csv"), row.names = TRUE)
+        } else if (is.list(sub_res)) {
+          for (sub_name in names(sub_res)) {
+            if (is.data.frame(sub_res[[sub_name]])) {
+              write.csv(sub_res[[sub_name]], paste0("result_FAIME_", name, "_", sub_name, ".csv"), row.names = TRUE)
+            }
+          }
+        }
+      }
     }
+    
+    # ----------------------------------------------------------------------
+    # Step 3: Add detailed gene descriptions using addDescription
+    # ----------------------------------------------------------------------
+    message("Adding detailed gene descriptions...")
+    gene_description <- addDescription(genome="hg38", genevector=as.vector(rownames(dat_chip)))
+    
+    # Save Step 3 Outputs
+    message("Saving gene description results...")
+    saveRDS(gene_description, "gene_description.rds")
+    write.csv(gene_description, "gene_description.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SEQ2PATHWAY:", paste0("    seq2pathway: ", packageVersion("seq2pathway"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY":',
+        paste0('    seq2pathway: ', as.character(packageVersion('seq2pathway')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_seq2pathway_results.csv
-    touch ${prefix}_seq2pathway_output.rds
-    echo "BIOC_SEQ2PATHWAY:" > versions.yml
-    echo "    seq2pathway: 0.0.0" >> versions.yml
+    touch ${prefix}_chip_seq_region_pathway.csv versions.yml
     """
 }
 
-
-workflow BIOC_SEQ2PATHWAY_WORKFLOW {
+workflow BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Chipseq_Peak_demo, MsigDB_C5, dat_chip ] ]
 
     main:
-    BIOC_SEQ2PATHWAY(ch_input)
+    BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY(ch_input)
 
     emit:
-    results  = BIOC_SEQ2PATHWAY.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SEQ2PATHWAY.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SEQ2PATHWAY.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SEQ2PATHWAY.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY.out.tables
+    plots    = BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY.out.plots
+    objects  = BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY.out.objects
+    versions = BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY.out.versions
 }

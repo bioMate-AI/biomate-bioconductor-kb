@@ -1,0 +1,19 @@
+{
+  "package": "mygene",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "S4Vectors",
+    "mygene",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "S4Vectors",
+      "mygene",
+      "rtracklayer"
+    ]
+  }
+}

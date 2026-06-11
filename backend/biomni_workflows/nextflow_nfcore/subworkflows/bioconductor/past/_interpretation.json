@@ -1,0 +1,19 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: gwas_data and LD in assign_SNPs_to_genes (requires GFF file, feature types, distance window, R^2 threshold, and number of cores) ;; find_pathway_significance (requires genes data, pathways file, minimum number of genes per pathway, effect direction, number of permutations, and number of cores) ;; plot_pathways (requires rugplots data, selection metric, threshold, effect direction, and output directory)\n- alternatives: None mentioned (uses TASSEL for upstream GWAS/LD generation and QVALUE for FDR correction)\n- when_to_use: When performing metabolic pathway enrichment analysis using GWAS association statistics, allele effects, linkage disequilibrium data, GFF annotations, and a pathway-to-gene mapping file.\n- pitfalls: Non-biallelic markers are dropped during GWAS data loading ;; LD chromosome names must match the GFF annotation's chromosome column (first column) ;; Gene names in the pathways file must match the gene names in the GFF file ;; Incomplete cases in LD data are dropped.",
+  "workflows": [
+    {
+      "name": "gwas_pathway_enrichment",
+      "intent": "Run a complete GWAS-based metabolic pathway enrichment analysis from raw TASSEL outputs and GFF annotations to pathway significance plotting.",
+      "input": [
+        "association.txt.xz (TASSEL GLM/MLM association output file)",
+        "effects.txt.xz (TASSEL allele effects output file)",
+        "LD.txt.xz (TASSEL Linkage Disequilibrium output file)",
+        "genes.gff (GFF format genome annotation file)",
+        "pathways.txt.xz (Tab-delimited pathway-to-gene mapping file)"
+      ],
+      "stages": "1. Load GWAS association and effects data using load_GWAS_data ;; 2. Load Linkage Disequilibrium (LD) data using load_LD ;; 3. Assign SNPs to genes based on LD blocks and physical distance using assign_SNPs_to_genes ;; 4. Calculate pathway enrichment scores and significance using find_pathway_significance ;; 5. Plot enrichment rugplots for significant pathways using plot_pathways",
+      "code": "demo_association_file = system.file(\"extdata\", \"association.txt.xz\", \n                                    package = \"PAST\", mustWork = TRUE)\ndemo_effects_file = system.file(\"extdata\", \"effects.txt.xz\", \n                                package = \"PAST\", mustWork = TRUE)\ndemo_LD_file = system.file(\"extdata\", \"LD.txt.xz\", \n                           package = \"PAST\", mustWork = TRUE)\ndemo_genes_file = system.file(\"extdata\", \"genes.gff\", \n                              package = \"PAST\", mustWork = TRUE)\ndemo_pathways_file = system.file(\"extdata\", \"pathways.txt.xz\", \n                                 package = \"PAST\", mustWork = TRUE)\ngwas_data <- load_GWAS_data(demo_association_file, \n                            demo_effects_file)\nLD <- load_LD(demo_LD_file)\ngenes <-assign_SNPs_to_genes(gwas_data, \n                             LD, \n                             demo_genes_file,\n                             c(\"gene\"),\n                             1000, \n                             0.8, \n                             2)\nrugplots_data <- find_pathway_significance(genes, \n                                           demo_pathways_file, \n                                           5,\n                                           \"increasing\", \n                                           1000, \n                                           2)\nplot_pathways(rugplots_data, \n              \"pvalue\", \n              0.02, \n              \"increasing\", \n              tempdir())"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: lborder=integer defining the upstream boundary for peak annotation ;; rborder=integer defining the downstream boundary for peak annotation ;; method=character string specifying the peak annotation aggregation method (e.g. \"sum\") ;; network=a regulon object containing the gene regulatory network ;; contrast=character vector of length 2 specifying the conditions to compare ;; minsize=minimum number of genes in a regulon to perform the analysis ;; method in gsea=method for GSEA p-value estimation (e.g. \"pareto\")\n- alternatives: The VIPER package can be used directly for gene expression data, but vulcan is preferred when analyzing promoter-level differential binding signatures from ChIP-Seq data.\n- when_to_use: Use when you have ChIP-Seq data (BAM and BED files) for a transcription factor under different conditions and want to identify candidate co-regulators using a gene regulatory network (e.g. ARACNe network).\n- pitfalls: When working with small or reduced datasets (such as single-chromosome examples), the default minimum regulon size might be too large, resulting in no hits; in these cases, the minsize parameter must be manually reduced (e.g. minsize=5).",
+  "workflows": [
+    {
+      "name": "vulcan_pipeline",
+      "intent": "Run the full VULCAN pipeline to identify co-regulatory factors from ChIP-Seq data and a regulatory network.",
+      "input": [
+        "vfile.csv (annotation sheet pointing to BAM and BED files)",
+        "network.rda (gene regulatory network/regulon object)"
+      ],
+      "stages": "1. Import ChIP-Seq data using vulcan.import ;; 2. Annotate peaks to gene names using vulcan.annotate ;; 3. Normalize peak abundance using vulcan.normalize ;; 4. Run VULCAN analysis using vulcan ;; 5. Plot master regulators using plot",
+      "code": "vfile<-tempfile()\nvulcandata::vulcansheet(vfile)\nvobj<-vulcandata::vulcanexample()\nunlink(vfile)\nvobj<-vulcan.annotate(vobj,lborder=-10000,rborder=10000,method=\"sum\")\nvobj<-vulcan.normalize(vobj)\nnames(vobj$samples)\nload(system.file(\"extdata\",\"network.rda\",package=\"vulcandata\",mustWork=TRUE))\nvobj_analysis<-vulcan(vobj,network=network,contrast=c(\"t90\",\"t0\"),minsize=5)\nplot(vobj_analysis$msviper,mrs=7)"
+    },
+    {
+      "name": "gsea_pareto",
+      "intent": "Perform Gene Set Enrichment Analysis (GSEA) with a Pareto tail distribution for p-value estimation.",
+      "input": [
+        "reflist.rds (named numeric vector of gene signatures)",
+        "set.rds (character vector of gene names in the gene set)"
+      ],
+      "stages": "1. Run GSEA using gsea with method=\"pareto\" ;; 2. Plot GSEA results using plot_gsea",
+      "code": "reflist<-setNames(-sort(rnorm(1000)),paste0(\"gene\",1:1000))\nset<-paste0(\"gene\",sample(1:200,50))\nobj<-gsea(reflist,set,method=\"pareto\")\nobj$p.value\nplot_gsea(obj)"
+    },
+    {
+      "name": "rank_enrichment_analysis",
+      "intent": "Calculate enrichment of groups of gene sets over a vector of signature values using linear algebraic matrix multiplication.",
+      "input": [
+        "signatures.rds (named numeric vector of gene signatures)",
+        "groups.rds (named list of character vectors representing gene sets)"
+      ],
+      "stages": "1. Run Rank Enrichment Analysis using rea",
+      "code": "signatures<-setNames(-sort(rnorm(1000)),paste0(\"gene\",1:1000))\nset1<-paste0(\"gene\",sample(1:200,50))\nset2<-paste0(\"gene\",sample(1:1000,50))\ngroups<-list(set1=set1,set2=set2)\nobj<-rea(signatures=signatures,groups=groups)\nobj"
+    }
+  ]
+}

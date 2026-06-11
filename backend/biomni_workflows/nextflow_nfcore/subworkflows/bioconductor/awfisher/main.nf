@@ -1,98 +1,120 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: AWFisher
-// Implementation of the adaptively weighted fisher's method, including fast p-value computing, variabi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/AWFisher/inst/doc/AWFisher.R
-// Upstream  : limma, tightClust
-// Downstream: none
-//
-// Install: BiocManager::install("AWFisher")
+// Bioconductor workflow: AWFisher — aw_fisher_meta_analysis
+// Combine p-values from multiple independent studies to perform adaptively weighted Fisher's meta-analysis.
+// Input: pmatrix
+// Container: quay.io/biocontainers/bioconductor-awfisher:1.24.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AWFisher
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Perform differential expression analysis in each study to generate a p-value matrix
+//  * 2. [Core Analysis] Run AWFisher_pvalue to perform the meta-analysis
+//  * 3. [Core Analysis] Adjust the resulting p-values for multiple testing
 
 nextflow.enable.dsl = 2
 
-process BIOC_AWFISHER {
+process BIOC_AWFISHER_AW_FISHER_META_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-awfisher"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-awfisher:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-awfisher:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_awfisher_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_awfisher_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_awfisher_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AWFisher_pvalue)
-    library(jsonlite)
-
-    # --- Awfisher Pvalue [] ---
-    # Key functions: AWFisher_pvalue, adjust
-    ---------------------------------------------------------------------
-    res <- AWFisher_pvalue(pmatrix) ## Perform AW Fisehr meta analysis
-    qvalue <- p.adjust(res$pvalue, "BH") ## Perform BH correction to control for multiple comparison.
-    sum(qvalue < 0.05) ## Differentially expressed genes with FDR 5%
-    head(res$weights) ## Show the AW weight of the first few genes
-    # --- Clust [] ---
-    # Key functions: clust
-    ---------------------------------------------------------------------
-    library(tightClust) ## load tightClust package
-    tightClustResult <- tight.clust(result$dissimilarity, target=4, k.min=15, random.seed=15213)
-    clusterMembership <- tightClustResult$cluster
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_awfisher_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(AWFisher)
+    
+    # Stage 1: Load the p-value matrix (representing the differential expression analysis results from each study)
+    if (file.exists("pmatrix.csv")) {
+      pmatrix <- as.matrix(read.csv("pmatrix.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("pmatrix.tsv")) {
+      pmatrix <- as.matrix(read.delim("pmatrix.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("pmatrix.rds")) {
+      pmatrix <- readRDS("pmatrix.rds")
+      if (!is.matrix(pmatrix)) pmatrix <- as.matrix(pmatrix)
+    } else if (file.exists("pmatrix")) {
+      pmatrix <- as.matrix(read.table("pmatrix", header = TRUE, row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_awfisher_results.csv")
+      stop("Required input file 'pmatrix' (CSV, TSV, or RDS format) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_awfisher_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AWFISHER:", paste0("    awfisher: ", packageVersion("AWFisher"))),
-        "versions.yml"
+    
+    # Stage 2: Run AWFisher_pvalue to perform the meta-analysis
+    res <- AWFisher_pvalue(pmatrix)
+    
+    # Stage 3: Adjust the resulting p-values for multiple testing
+    qvalue <- p.adjust(res\$pvalue, "BH")
+    sum(qvalue < 0.05)
+    head(res\$weights)
+    
+    # Save outputs
+    results_df <- data.frame(
+      Gene = rownames(pmatrix),
+      pvalue = res\$pvalue,
+      qvalue = qvalue
     )
+    
+    weights_df <- as.data.frame(res\$weights)
+    if (!is.null(colnames(pmatrix))) {
+      colnames(weights_df) <- paste0("Weight_", colnames(pmatrix))
+    } else {
+      colnames(weights_df) <- paste0("Weight_Study_", 1:ncol(weights_df))
+    }
+    
+    results_df <- cbind(results_df, weights_df)
+    
+    write.csv(results_df, "awfisher_results.csv", row.names = FALSE)
+    saveRDS(res, "awfisher_results.rds")
+
+    writeLines(c(
+        '"BIOC_AWFISHER_AW_FISHER_META_ANALYSIS":',
+        paste0('    AWFisher: ', as.character(packageVersion('AWFisher')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_awfisher_results.csv
-    touch ${prefix}_awfisher_output.rds
-    echo "BIOC_AWFISHER:" > versions.yml
-    echo "    awfisher: 0.0.0" >> versions.yml
+    touch ${prefix}_aw_fisher_meta_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_AWFISHER_WORKFLOW {
+workflow BIOC_AWFISHER_AW_FISHER_META_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ pmatrix ] ]
 
     main:
-    BIOC_AWFISHER(ch_input)
+    BIOC_AWFISHER_AW_FISHER_META_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_AWFISHER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AWFISHER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AWFISHER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AWFISHER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AWFISHER_AW_FISHER_META_ANALYSIS.out.tables
+    plots    = BIOC_AWFISHER_AW_FISHER_META_ANALYSIS.out.plots
+    objects  = BIOC_AWFISHER_AW_FISHER_META_ANALYSIS.out.objects
+    versions = BIOC_AWFISHER_AW_FISHER_META_ANALYSIS.out.versions
 }

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: groups=Factor vector specifying the group/class of each sample in the training set ;; nTop=Number of top up-regulated genes to include in the signature ;; nBottom=Number of top down-regulated genes to include in the signature ;; alpha=Significance threshold for feature selection (p-value cutoff) ;; N=Fraction of edges (quantile of distances) to keep in the network\n- alternatives: Cytoscape (via scudoCytoscape) can be used for network visualization instead of R's scudoPlot. igraph community detection algorithms (like cluster_spinglass) can be used for unsupervised clustering of the network.\n- when_to_use: Use when analyzing gene expression profiles (microarray or RNA-seq) to identify robust, rank-based transcriptional signatures for sample classification, diagnostic modeling, or network-based sample clustering.\n- pitfalls: Feature selection represents a performance bottleneck during cross-validation; the documentation recommends performing feature selection/filtering before running caret cross-validation to speed up the process. Cytoscape must be open when running scudoCytoscape.",
+  "workflows": [
+    {
+      "name": "unsupervised_network_analysis",
+      "intent": "Identify sample-specific signatures, construct similarity networks, and cluster samples.",
+      "input": [
+        "trainData (ExpressionSet or gene expression matrix)",
+        "testData (ExpressionSet or gene expression matrix)"
+      ],
+      "stages": "1. Train SCUDO model and extract signatures using scudoTrain ;; 2. Inspect signatures using upSignatures and consensusUpSignatures ;; 3. Generate sample network using scudoNetwork ;; 4. Visualize network using scudoPlot or scudoCytoscape ;; 5. Analyze test set using scudoTest ;; 6. Cluster network using igraph::cluster_spinglass",
+      "code": "trainRes <- scudoTrain(trainData, groups = bt[inTrain], nTop = 100,\n    nBottom = 100, alpha = 0.1)\ntrainRes\n\nupSignatures(trainRes)[1:5,1:5]\nconsensusUpSignatures(trainRes)[1:5, ]\n\ntrainNet <- scudoNetwork(trainRes, N = 0.25)\nscudoPlot(trainNet, vertex.label = NA)\n\n# scudoCytoscape(trainNet)\n\ntestRes <- scudoTest(trainRes, testData, bt[-inTrain], nTop = 100,\n    nBottom = 100)\ntestRes\n\ntestNet <- scudoNetwork(testRes, N = 0.25)\nscudoPlot(testNet, vertex.label = NA)\n\ntestClust <- igraph::cluster_spinglass(testNet, spins = 2)\nplot(testClust, testNet, vertex.label = NA)"
+    },
+    {
+      "name": "supervised_classification_with_tuning",
+      "intent": "Perform supervised classification of test samples with hyperparameter tuning via caret.",
+      "input": [
+        "trainData (ExpressionSet or gene expression matrix)",
+        "testData (ExpressionSet or gene expression matrix)"
+      ],
+      "stages": "1. Perform pre-filtering/feature selection using Kruskal-Wallis test to avoid caret bottlenecks ;; 2. Define parameter search grid using scudoModel ;; 3. Run cross-validation using caret::train ;; 4. Classify test samples using scudoClassify with the best tuned parameters ;; 5. Evaluate classification performance using caret::confusionMatrix",
+      "code": "classRes <- scudoClassify(trainData, testData, N = 0.25, nTop = 100,\n    nBottom = 100, trainGroups = bt[inTrain], alpha = 0.1)\n\ncaret::confusionMatrix(classRes$predicted, bt[-inTrain])\n\ntrainData <- exprs(ALLB[, inTrain])\nvirtControl <- rowMeans(trainData)\ntrainDataNorm <- trainData / virtControl\npVals <- apply(trainDataNorm, 1, function(x) {\n    stats::kruskal.test(x, stage[inTrain])$p.value})\ntrainDataNorm <- t(trainDataNorm[pVals <= 0.01, ])\n\ncl <- parallel::makePSOCKcluster(2)\ndoParallel::registerDoParallel(cl)\n\nmodel <- scudoModel(nTop = (2:6)*20, nBottom = (2:6)*20, N = 0.25)\ncontrol <- caret::trainControl(method = \"cv\", number = 5,\n    summaryFunction = caret::multiClassSummary)\ncvRes <- caret::train(x = trainDataNorm, y = stage[inTrain], method = model,\n    trControl = control)\n\nparallel::stopCluster(cl)\n\nclassStage <- scudoClassify(ALLB[, inTrain], ALLB[, -inTrain], 0.25,\n    cvRes$bestTune$nTop, cvRes$bestTune$nBottom, stage[inTrain], alpha = 0.01)\ncaret::confusionMatrix(classStage$predicted, stage[-inTrain])"
+    }
+  ]
+}

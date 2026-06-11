@@ -1,0 +1,21 @@
+{
+  "package": "snapcount",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "snapcount"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "snapcount"
+    ]
+  }
+}

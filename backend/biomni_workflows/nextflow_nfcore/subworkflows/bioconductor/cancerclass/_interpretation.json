@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ngenes=Vector of integers specifying the number of genes/features to select and evaluate ;; ntrain=Size of the training set (or \"balanced\" to ensure equal representation of classes) ;; method=Feature selection method used in fit (e.g., \"welch.test\") ;; positive=The class label representing the positive outcome (e.g., \"DM\") ;; dist=Distance metric for nearest-centroid classification in predict (options: \"euclidean\", \"center\", \"angle\", \"cor\") ;; score=Prediction score calculation method in plot (options: \"z\", \"zeta\", \"ratio\") ;; type=Plot type for prediction results (options: \"histogram\", \"roc\", \"logistic\")\n- alternatives: The documentation notes that simple classifiers (like nearest-centroid) often perform as well as or better than more sophisticated methods on high-dimensional data, citing Wessels et al.\n- when_to_use: Use when developing and validating diagnostic or prognostic classifiers from high-dimensional molecular data (e.g., microarray gene expression datasets) where overfitting is a concern and robust validation (like multiple random validation) is required.\n- pitfalls: Overfitting and performance overestimation due to high dimensionality and multiple testing. Computational intensity: running multiple random validation protocols on very large feature sets can be slow, so reducing the feature space or using subsetted data during initial testing is recommended.",
+  "workflows": [
+    {
+      "name": "multiple_random_validation",
+      "intent": "Evaluate classification accuracy and estimate misclassification rates across different numbers of genes or training set sizes using a multiple random validation protocol.",
+      "input": [
+        "ExpressionSet (high-dimensional molecular data with class labels)"
+      ],
+      "stages": "1. Run multiple random validation across different gene counts using nvalidate ;; 2. Plot misclassification rates using plot ;; 3. Run validation across different training set sizes using validate ;; 4. Plot training size validation results using plot",
+      "code": "nval <- nvalidate(GOLUB1[1:200, ], ngenes=c(5, 10, 20, 50, 100, 200))\nplot(nval)\nval <- validate(GOLUB1[1:200, ], ngenes=10, ntrain=\"balanced\")\nplot(val)"
+    },
+    {
+      "name": "predictor_construction_and_independent_validation",
+      "intent": "Fit a nearest-centroid predictor on a training dataset and predict/evaluate outcomes on an independent validation dataset.",
+      "input": [
+        "ExpressionSet (training dataset with class labels)",
+        "ExpressionSet (independent validation dataset with class labels)"
+      ],
+      "stages": "1. Fit a predictor on the training dataset using fit ;; 2. Predict classes and calculate continuous scores on the validation dataset using predict ;; 3. Plot score distribution histogram using plot(..., type=\"histogram\") ;; 4. Plot ROC curve using plot(..., type=\"roc\") ;; 5. Fit and plot a logistic regression model using plot(..., type=\"logistic\")",
+      "code": "predictor <- fit(VEER, method=\"welch.test\")\nprediction <- predict(predictor, VIJVER2, positive=\"DM\", dist=\"cor\")\nplot(prediction, type=\"histogram\", positive=\"DM\", score=\"zeta\")\nplot(prediction, type=\"roc\", positive=\"DM\", score=\"zeta\")\nplot(prediction, type=\"logistic\", positive=\"DM\", score=\"zeta\")"
+    }
+  ]
+}

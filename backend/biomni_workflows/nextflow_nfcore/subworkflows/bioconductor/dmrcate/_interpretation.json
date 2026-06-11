@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rmcrosshyb=logical indicating whether to filter out cross-hybridising probes ;; epicv2Filter=strategy to resolve replicate probes mapping to the same CpG site on EPICv2 arrays (\"mean\", \"sensitivity\", \"precision\", \"random\") ;; epicv2Remap=logical indicating whether to reassign cross-hybridising probes to their likely off-target CpG site ;; lambda=Gaussian kernel bandwidth for DMR calling (default 1000) ;; C=scaling factor for kernel width (default 2) ;; min.cpgs=minimum number of CpG sites required to define a DMR ;; genome=assembly name for genomic annotation (e.g., \"hg38\", \"hg19\", \"mm10\")\n- alternatives: minfi or bsseq for upstream preprocessing and quality control of array or sequencing data, respectively ;; limma or edgeR for generating design matrices and modeling differential methylation\n- when_to_use: Use when you want to identify contiguous regions of differential DNA methylation (DMRs) rather than isolated single CpG sites, leveraging spatial correlation across the genome.\n- pitfalls: EPICv2 arrays contain replicate probes mapping to the same CpG site; failing to filter or average these (via epicv2Filter in cpg.annotate) will bias the kernel towards those sites. epicv2Remap=TRUE should only be used if rmcrosshyb=FALSE was specified in rmSNPandCH().",
+  "workflows": [
+    {
+      "name": "array_dmr_analysis",
+      "intent": "Identify and plot differentially methylated regions from Illumina Infinium array data (such as EPICv2 or EPICv1).",
+      "input": [
+        "ALLMs (matrix of M-values or Beta-values from an Illumina array)",
+        "design (design matrix representing the experimental hypothesis)"
+      ],
+      "stages": "1. Filter out SNP-proximal and cross-hybridising probes using rmSNPandCH.\n2. Annotate CpGs and model differential methylation using cpg.annotate.\n3. Call DMRs using dmrcate.\n4. Extract genomic coordinates of the identified DMRs using extractRanges.\n5. Plot specific DMRs using DMR.plot.",
+      "code": "ALLMs.noSNPs <- rmSNPandCH(ALLMs, rmcrosshyb = FALSE)\nmyannotation <- cpg.annotate(\"array\", object=ALLMs.noSNPs, what = \"M\", \n                             arraytype = \"EPICv2\", epicv2Filter = \"mean\", \n                             epicv2Remap = TRUE,  analysis.type=\"differential\", \n                             design=design, coef=2, fdr=0.001)\ndmrcoutput <- dmrcate(myannotation, lambda=1000, C=2)\nresults.ranges <- extractRanges(dmrcoutput, genome = \"hg38\")\nDMR.plot(ranges=results.ranges, dmr=3, CpGs=myannotation, \n         what = \"Beta\", arraytype = \"EPICv2\", phen.col=cols, genome = \"hg38\")"
+    },
+    {
+      "name": "sequencing_dmr_analysis",
+      "intent": "Identify and plot differentially methylated regions from sequencing-based methylation data (WGBS).",
+      "input": [
+        "bis_1072 (BSseq object containing sequencing methylation data)",
+        "methdesign (methylation design matrix)",
+        "cont.mat (contrast matrix for comparisons)"
+      ],
+      "stages": "1. Annotate sequencing data and model differential methylation using sequencing.annotate.\n2. (Optional) Adjust the FDR threshold of the annotated object using changeFDR.\n3. Call DMRs using dmrcate.\n4. Extract genomic coordinates of the identified DMRs using extractRanges.\n5. Plot specific DMRs using DMR.plot.",
+      "code": "seq_annot <- sequencing.annotate(bis_1072, methdesign, all.cov = TRUE, \n                                   contrasts = TRUE, cont.matrix = cont.mat, \n                                   coef = \"treg_vs_tcon\", fdr=0.05)\nseq_annot <- changeFDR(seq_annot, 0.25)\ndmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)\ntreg_vs_tcon.ranges <- extractRanges(dmrcate.res, genome=\"mm10\")\nDMR.plot(treg_vs_tcon.ranges, dmr = 1, \n         CpGs=bis_1072[,tissue %in% c(\"Lymph_N_Tcon\", \"Lymph_N_Treg\")], \n         phen.col = cols[tissue %in% c(\"Lymph_N_Tcon\", \"Lymph_N_Treg\")], \n         genome=\"mm10\")"
+    }
+  ]
+}

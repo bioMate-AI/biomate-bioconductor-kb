@@ -1,0 +1,17 @@
+{
+  "package": "pics",
+  "requirements": [
+    "GenomicAlignments",
+    "GenomicRanges",
+    "PICS",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicAlignments",
+      "GenomicRanges",
+      "PICS",
+      "rtracklayer"
+    ]
+  }
+}

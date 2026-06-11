@@ -1,0 +1,19 @@
+{
+  "package": "methylaid",
+  "requirements": [
+    "IlluminaHumanMethylation450kmanifest",
+    "IlluminaHumanMethylationEPICmanifest",
+    "MethylAid",
+    "ggplot2",
+    "minfi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IlluminaHumanMethylation450kmanifest",
+      "IlluminaHumanMethylationEPICmanifest",
+      "MethylAid",
+      "ggplot2",
+      "minfi"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filePath=path to the tab-separated input file containing peptide-level measurements ;; group1=character vector of sample names for the first comparison group ;; group2=character vector of sample names for the second comparison group ;; normalize=character string (e.g., \"true\") indicating whether to normalize the AffyBatch object ;; affy=an AffyBatch object containing the probe-level microarray data\n- alternatives: Standard workflows that pre-calculate gene/protein-level values before differential analysis (such as standard limma or genefilter on summarized expression sets)\n- when_to_use: Use when you have probe-level Affymetrix microarray data or peptide-level proteomics data and want to compute differential expression using probe-level change averaging (PECA) to retain low-level statistical power\n- pitfalls: Quality control and filtering of the data (e.g., based on low intensity or probe specificity) are not performed by PECA and must be done beforehand by the user ;; Column names in the input TSV must not start with a number or contain special characters ;; The first column of the TSV must contain the protein/gene ID for summarization",
+  "workflows": [
+    {
+      "name": "peca_proteomics_tsv",
+      "intent": "Identify differential protein expression from peptide-level measurements in a TSV file.",
+      "input": [
+        "peptides.tsv (tab-separated text file containing peptide-level intensity measurements with protein IDs in the first column and sample columns)"
+      ],
+      "stages": "1. Define sample groups ;; 2. Run PECA on the TSV file using PECA_tsv",
+      "code": "library(PECA)\ngroup1 <- c(\"A1\", \"A2\", \"A3\")\ngroup2 <- c(\"B1\", \"B2\", \"B3\")\nresults <- PECA_tsv(filePath, group1, group2)"
+    },
+    {
+      "name": "peca_microarray_affy",
+      "intent": "Identify differential gene expression from Affymetrix microarray probe-level data.",
+      "input": [
+        "SpikeIn133 (an AffyBatch object containing probe-level microarray data)"
+      ],
+      "stages": "1. Subset or prepare the AffyBatch object ;; 2. Run PECA on the AffyBatch object using PECA_AffyBatch",
+      "code": "data <- SpikeIn133[,c(1,15,29,2,16,30)]\nresults <- PECA_AffyBatch(normalize=\"true\", affy=data)"
+    }
+  ]
+}

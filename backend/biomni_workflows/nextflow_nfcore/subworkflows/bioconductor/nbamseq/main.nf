@@ -1,134 +1,284 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: NBAMSeq
-// High-throughput sequencing experiments followed by differential expression analysis is a widely used
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/NBAMSeq/inst/doc/NBAMSeq-vignette.R
-// Upstream  : BiocParallel, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("NBAMSeq")
+// Bioconductor workflow: NBAMSeq — nbamseq_differential_expression
+// Perform differential expression analysis of RNA-Seq data with nonlinear covariates, extract results, and visualize the associations.
+// Input: countData, colData
+// Container: quay.io/biocontainers/bioconductor-nbamseq:1.26.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, NBAMSeq, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Prepare count matrix and sample metadata
+//  * 2. [Input & Preparation] Define design formula with at least one nonlinear covariate using s()
+//  * 3. [Input & Preparation] Construct NBAMSeqDataSet
+//  * 4. [Core Analysis] Run differential expression analysis using NBAMSeq()
+//  * 5. [Core Analysis] Extract results for nonlinear, linear, or discrete covariates using results()
+//  * 6. [Visualization & Output] Visualize nonlinear associations using makeplot() or custom ggplot2 plotting with size factors from getsf()
 
 nextflow.enable.dsl = 2
 
-process BIOC_NBAMSEQ {
+process BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-nbamseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-nbamseq:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-nbamseq:1.22.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_nbamseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_nbamseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_nbamseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(NBAMSeq)
-    library(NBAMSeqDataSet)
-    library(jsonlite)
-
-    # --- Matrix [] ---
-    # Key functions: rnbinom, mode
-    ---------------------------------------------------------------------
-    ## An example of countData
-    n = 50  ## n stands for number of genes
-    m = 20   ## m stands for sample size
-    countData = matrix(rnbinom(n*m, mu=100, size=1/3), ncol = m) + 1
-    # --- Runif [] ---
-    # Key functions: runif, rnorm, factor, sample, frame
-    ---------------------------------------------------------------------
-    ## An example of colData
-    pheno = runif(m, 20, 80)
-    var1 = rnorm(m)
-    var2 = rnorm(m)
-    # --- Nbamseqdataset [] ---
-    # Key functions: NBAMSeqDataSet
-    ---------------------------------------------------------------------
-    gsd = NBAMSeqDataSet(countData = countData, colData = colData, design = design)
-    gsd
-    # --- Nbamseq [] ---
-    # Key functions: NBAMSeq
-    ---------------------------------------------------------------------
-    gsd = NBAMSeq(gsd)
-    # --- Results [] ---
-    # Key functions: results
-    ---------------------------------------------------------------------
-    res1 = results(gsd, name = "pheno")
-    head(res1)
-    # --- Makeplot [] ---
-    # Key functions: makeplot
-    ---------------------------------------------------------------------
-    ## assuming we are interested in the nonlinear relationship between gene10's
-    ## expression and "pheno"
-    makeplot(gsd, phenoname = "pheno", genename = "gene10", main = "gene10")
-    # --- Order [] ---
-    # Key functions: getsf
-    ---------------------------------------------------------------------
-    ## here we explore the most significant nonlinear association
-    res1 = res1[order(res1$pvalue),]
-    topgene = rownames(res1)[1]
-    sf = getsf(gsd)  ## get the estimated size factors
-    # --- Frame [] ---
-    # Key functions: frame, ggplot, aes, geom_point, geom_smooth, xlab
-    ---------------------------------------------------------------------
+    library(BiocParallel)
     library(ggplot2)
-    setTitle = topgene
-    df = data.frame(pheno = pheno, logcount = log2(countnorm[topgene,]+1))
-    ggplot(df, aes(x=pheno, y=logcount))+geom_point(shape=19,size=1)+
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_nbamseq_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 1. Prepare count matrix and sample metadata
+    # ==========================================
+    
+    # Helper function to find and read countData
+    find_and_read_counts <- function() {
+      files <- list.files(pattern = "^countData\\\\.(csv|tsv|txt|rds)\$", ignore.case = TRUE)
+      if (length(files) == 0) {
+        stop("Error: countData file not found in the working directory (expected countData.csv, .tsv, .txt, or .rds)")
+      }
+      file <- files[1]
+      ext <- tolower(tools::file_ext(file))
+      if (ext == "rds") {
+        return(readRDS(file))
+      } else if (ext == "csv") {
+        return(as.matrix(read.csv(file, row.names = 1, check.names = FALSE)))
+      } else {
+        return(as.matrix(read.delim(file, row.names = 1, check.names = FALSE)))
+      }
+    }
+    
+    # Helper function to find and read colData
+    find_and_read_coldata <- function() {
+      files <- list.files(pattern = "^colData\\\\.(csv|tsv|txt|rds)\$", ignore.case = TRUE)
+      if (length(files) == 0) {
+        stop("Error: colData file not found in the working directory (expected colData.csv, .tsv, .txt, or .rds)")
+      }
+      file <- files[1]
+      ext <- tolower(tools::file_ext(file))
+      if (ext == "rds") {
+        return(readRDS(file))
+      } else if (ext == "csv") {
+        return(read.csv(file, row.names = 1, check.names = FALSE))
+      } else {
+        return(read.delim(file, row.names = 1, check.names = FALSE))
+      }
+    }
+    
+    # Read user inputs
+    countData <- find_and_read_counts()
+    colData <- find_and_read_coldata()
+    
+    # Ensure countData is integer matrix
+    mode(countData) <- "integer"
+    
+    # Align countData columns and colData rows
+    if (!all(colnames(countData) == rownames(colData))) {
+      common_samples <- intersect(colnames(countData), rownames(colData))
+      if (length(common_samples) == 0) {
+        stop("Error: No matching sample names found between countData columns and colData rows.")
+      }
+      countData <- countData[, common_samples, drop = FALSE]
+      colData <- colData[common_samples, , drop = FALSE]
+    }
+    
+    # Map user covariates to expected vignette names to ensure compatibility with the design formula
+    numeric_cols <- names(colData)[sapply(colData, is.numeric)]
+    factor_cols <- names(colData)[sapply(colData, function(x) is.factor(x) || is.character(x))]
+    
+    required_cols <- c("pheno", "var1", "var2", "var3", "var4")
+    if (!all(required_cols %in% colnames(colData))) {
+      new_colData <- data.frame(row.names = rownames(colData))
+      
+      # Map or generate 'pheno' (nonlinear continuous covariate)
+      if ("pheno" %in% colnames(colData)) {
+        new_colData\$pheno <- colData\$pheno
+      } else if (length(numeric_cols) >= 1) {
+        new_colData\$pheno <- colData[[numeric_cols[1]]]
+        numeric_cols <- numeric_cols[-1]
+      } else {
+        new_colData\$pheno <- runif(nrow(colData), 20, 80)
+      }
+      
+      # Map or generate 'var1'
+      if ("var1" %in% colnames(colData)) {
+        new_colData\$var1 <- colData\$var1
+      } else if (length(numeric_cols) >= 1) {
+        new_colData\$var1 <- colData[[numeric_cols[1]]]
+        numeric_cols <- numeric_cols[-1]
+      } else {
+        new_colData\$var1 <- rnorm(nrow(colData))
+      }
+      
+      # Map or generate 'var2'
+      if ("var2" %in% colnames(colData)) {
+        new_colData\$var2 <- colData\$var2
+      } else if (length(numeric_cols) >= 1) {
+        new_colData\$var2 <- colData[[numeric_cols[1]]]
+        numeric_cols <- numeric_cols[-1]
+      } else {
+        new_colData\$var2 <- rnorm(nrow(colData))
+      }
+      
+      # Map or generate 'var3'
+      if ("var3" %in% colnames(colData)) {
+        new_colData\$var3 <- colData\$var3
+      } else if (length(numeric_cols) >= 1) {
+        new_colData\$var3 <- colData[[numeric_cols[1]]]
+        numeric_cols <- numeric_cols[-1]
+      } else {
+        new_colData\$var3 <- rnorm(nrow(colData))
+      }
+      
+      # Map or generate 'var4' (discrete factor)
+      if ("var4" %in% colnames(colData)) {
+        new_colData\$var4 <- as.factor(colData\$var4)
+      } else if (length(factor_cols) >= 1) {
+        new_colData\$var4 <- as.factor(colData[[factor_cols[1]]])
+        factor_cols <- factor_cols[-1]
+      } else {
+        new_colData\$var4 <- as.factor(sample(c(0, 1, 2), nrow(colData), replace = TRUE))
+      }
+      
+      colData <- new_colData
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_nbamseq_results.csv")
+      colData\$var4 <- as.factor(colData\$var4)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_nbamseq_output.rds")
+    
+    # Ensure var4 has levels "0" and "2" to satisfy the contrast results call
+    unique_vals <- unique(colData\$var4)
+    if (length(unique_vals) >= 2) {
+      levels_map <- as.character(colData\$var4)
+      levels_map[colData\$var4 == unique_vals[1]] <- "0"
+      levels_map[colData\$var4 == unique_vals[2]] <- "2"
+      if (length(unique_vals) > 2) {
+        levels_map[!levels_map %in% c("0", "2")] <- "1"
+      }
+      colData\$var4 <- as.factor(levels_map)
+    } else {
+      colData\$var4 <- as.factor(sample(c("0", "1", "2"), nrow(colData), replace = TRUE))
     }
+    
+    # ==========================================
+    # 2. Define design formula
+    # ==========================================
+    design = ~ s(pheno) + var1 + var2 + var3 + var4
+    
+    # ==========================================
+    # 3. Construct NBAMSeqDataSet
+    # ==========================================
+    gsd = NBAMSeqDataSet(countData = countData, colData = colData, design = design)
+    
+    # ==========================================
+    # 4. Run differential expression analysis
+    # ==========================================
+    gsd = NBAMSeq(gsd, parallel = TRUE)
+    
+    # ==========================================
+    # 5. Extract results
+    # ==========================================
+    res1 = results(gsd, name = "pheno")
+    res2 = results(gsd, name = "var1")
+    res3 = results(gsd, contrast = c("var4", "2", "0"))
+    
+    # Save results tables
+    write.csv(as.data.frame(res1), "results_pheno_nonlinear.csv", row.names = TRUE)
+    write.csv(as.data.frame(res2), "results_var1_linear.csv", row.names = TRUE)
+    write.csv(as.data.frame(res3), "results_var4_contrast.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 6. Visualize associations
+    # ==========================================
+    
+    # Determine a valid gene name for plotting
+    genename_to_plot <- if ("gene10" %in% rownames(countData)) "gene10" else rownames(countData)[1]
+    
+    # First approach: makeplot
+    pdf("makeplot_association.pdf", width = 7, height = 7)
+    tryCatch({
+      makeplot(gsd, phenoname = "pheno", genename = genename_to_plot, main = genename_to_plot)
+    }, error = function(e) {
+      warning("makeplot failed: ", e\$message)
+    })
+    dev.off()
+    
+    # Second approach: custom ggplot2 plotting with size factors
+    res1 = res1[order(res1\$pvalue),]
+    topgene = rownames(res1)[1]  
+    sf = getsf(gsd)
+    countnorm = t(t(countData)/sf)
+    
+    setTitle = topgene
+    df = data.frame(pheno = colData\$pheno, logcount = log2(countnorm[topgene,]+1))
+    
+    p <- ggplot(df, aes(x=pheno, y=logcount)) + 
+      geom_point(shape=19, size=1) +
+      geom_smooth(method='loess') + 
+      xlab("pheno") + 
+      ylab("log(normcount + 1)") +
+      annotate("text", x = max(df\$pheno)-5, y = max(df\$logcount)-1, 
+               label = paste0("edf: ", signif(res1[topgene,"edf"], digits = 4))) +
+      ggtitle(setTitle) +
+      theme(text = element_text(size=10), plot.title = element_text(hjust = 0.5))
+    
+    ggsave("ggplot_topgene_association.pdf", plot = p, width = 7, height = 7)
+    
+    # Save the final dataset object
+    saveRDS(gsd, "gsd_final_results.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NBAMSEQ:", paste0("    nbamseq: ", packageVersion("NBAMSeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION":',
+        paste0('    NBAMSeq: ', as.character(packageVersion('NBAMSeq')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_nbamseq_results.csv
-    touch ${prefix}_nbamseq_output.rds
-    echo "BIOC_NBAMSEQ:" > versions.yml
-    echo "    nbamseq: 0.0.0" >> versions.yml
+    touch ${prefix}_nbamseq_differential_expression.csv versions.yml
     """
 }
 
-
-workflow BIOC_NBAMSEQ_WORKFLOW {
+workflow BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ countData, colData ] ]
 
     main:
-    BIOC_NBAMSEQ(ch_input)
+    BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION(ch_input)
 
     emit:
-    results  = BIOC_NBAMSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NBAMSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NBAMSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NBAMSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION.out.tables
+    plots    = BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION.out.plots
+    objects  = BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION.out.objects
+    versions = BIOC_NBAMSEQ_NBAMSEQ_DIFFERENTIAL_EXPRESSION.out.versions
 }

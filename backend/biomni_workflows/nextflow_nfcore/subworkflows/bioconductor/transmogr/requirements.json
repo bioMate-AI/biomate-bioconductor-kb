@@ -1,0 +1,33 @@
+{
+  "package": "transmogr",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "Biostrings",
+    "GenomicFeatures",
+    "VariantAnnotation",
+    "extraChIPs",
+    "magrittr",
+    "rtracklayer",
+    "transmogR"
+  ],
+  "by_workflow": {
+    "coordinate_shifting_reference_extraction.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "Biostrings",
+      "GenomicFeatures",
+      "VariantAnnotation",
+      "extraChIPs",
+      "magrittr",
+      "rtracklayer",
+      "transmogR"
+    ],
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "GenomicFeatures",
+      "VariantAnnotation",
+      "extraChIPs",
+      "rtracklayer",
+      "transmogR"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "scanmirapp",
+  "requirements": [
+    "GenomicRanges",
+    "scanMiRApp"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "scanMiRApp"
+    ]
+  }
+}

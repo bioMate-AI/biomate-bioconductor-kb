@@ -1,112 +1,191 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DEsingle
-// DEsingle is an R package for differential expression (DE) analysis of single-cell RNA-seq (scRNA-seq
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DEsingle/inst/doc/DEsingle.R
-// Upstream  : BiocManager, BiocParallel, SingleCellExperiment, devtools
-// Downstream: none
-//
-// Install: BiocManager::install("DEsingle")
+// Bioconductor workflow: DEsingle — matrix_input_workflow
+// Detect and classify differentially expressed genes between two groups of cells using a raw read counts matrix.
+// Input: counts.ext, group.ext
+// Container: quay.io/biocontainers/bioconductor-desingle:1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DEsingle
+// Visualizations: bar plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and data
+//  * 2. [Core Analysis] Specify the two groups to be compared as a factor vector
+//  * 3. [Core Analysis] Detect DE genes using DEsingle()
+//  * 4. [Core Analysis] Classify DE genes into three categories using DEtype()
+//  * 5. [Core Analysis] Filter and extract significant DE genes and their subtypes
 
 nextflow.enable.dsl = 2
 
-process BIOC_DESINGLE {
+process BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-desingle"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-desingle:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-desingle:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_desingle_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_desingle_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_desingle_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(DEsingle)
-    library(MulticoreParam)
-    library(SingleCellExperiment)
-    library(SnowParam)
-    library(jsonlite)
-
-    # --- D Esingle [] ---
-    # Key functions: DEsingle
-    library(DEsingle)
-    data(TestData)
-    group <- factor(c(rep(1,50), rep(2,100)))
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, DEsingle
-    library(DEsingle)
-    library(SingleCellExperiment)
-    data(TestData)
-    # --- D Esingle [] ---
-    # Key functions: DEsingle
-    library(DEsingle)
-    results <- DEsingle(counts = counts, group = group, parallel = TRUE)
-    # --- Multicore Param [] ---
-    # Key functions: MulticoreParam, register, DEsingle
-    library(DEsingle)
-    library(BiocParallel)
-    param <- MulticoreParam(workers = 18, progressbar = TRUE)
-    # --- Snow Param [] ---
-    # Key functions: SnowParam, register, DEsingle
-    library(DEsingle)
-    library(BiocParallel)
-    param <- SnowParam(workers = 8, type = "SOCK", progressbar = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_desingle_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_desingle_results.csv")
+    
+    # Helper function to robustly read the counts matrix
+    read_counts <- function(file_path) {
+      if (!file.exists(file_path)) {
+        stop(paste("Error: Input file not found:", file_path))
+      }
+      
+      # Try reading as RDS first
+      obj <- tryCatch(readRDS(file_path), error = function(e) NULL)
+      if (!is.null(obj)) {
+        if (is.matrix(obj) || is.data.frame(obj)) {
+          return(as.matrix(obj))
+        }
+        return(obj)
+      }
+      
+      # Try reading as delimited text files
+      for (sep in c("\t", ",", "")) {
+        obj <- tryCatch({
+          df <- read.table(file_path, header = TRUE, row.names = 1, sep = sep, check.names = FALSE)
+          if (ncol(df) > 0) as.matrix(df) else NULL
+        }, error = function(e) NULL)
+        if (!is.null(obj)) {
+          # Ensure numeric matrix
+          mode(obj) <- "numeric"
+          return(obj)
+        }
+      }
+      
+      stop(paste("Error: Failed to read", file_path, "as RDS or delimited text file."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_desingle_output.rds")
+    
+    # Helper function to robustly read the group factor vector
+    read_group <- function(file_path) {
+      if (!file.exists(file_path)) {
+        stop(paste("Error: Input file not found:", file_path))
+      }
+      
+      # Try reading as RDS first
+      obj <- tryCatch(readRDS(file_path), error = function(e) NULL)
+      if (!is.null(obj)) return(as.factor(obj))
+      
+      # Try reading as delimited text file
+      for (sep in c("\t", ",", "")) {
+        obj <- tryCatch({
+          df <- read.table(file_path, header = FALSE, sep = sep, stringsAsFactors = FALSE)
+          as.factor(df[[1]])
+        }, error = function(e) NULL)
+        if (!is.null(obj)) return(obj)
+      }
+      
+      stop(paste("Error: Failed to read", file_path, "as RDS or delimited text file."))
     }
+    
+    # 1. Load the data from the declared user input files
+    counts <- read_counts("counts.ext")
+    group <- read_group("group.ext")
+    
+    # Validate dimensions
+    if (ncol(counts) != length(group)) {
+      stop(sprintf("Dimension mismatch: counts matrix has %d columns (cells), but group vector has length %d.", 
+                   ncol(counts), length(group)))
+    }
+    
+    # 2. Specify the two groups to be compared as a factor vector
+    group <- factor(group)
+    
+    # 3. Detect DE genes using DEsingle()
+    results <- DEsingle(counts = counts, group = group)
+    
+    # 4. Classify DE genes into three categories using DEtype()
+    results.classified <- DEtype(results = results, threshold = 0.05)
+    
+    # 5. Filter and extract significant DE genes and their subtypes
+    results.sig <- results.classified[results.classified\$pvalue.adj.FDR < 0.05, ]
+    results.DEs <- results.sig[results.sig\$Type == "DEs", ]
+    results.DEa <- results.sig[results.sig\$Type == "DEa", ]
+    results.DEg <- results.sig[results.sig\$Type == "DEg", ]
+    
+    # 6. Write output files
+    write.csv(results.classified, "results_classified.csv", row.names = TRUE)
+    write.csv(results.sig, "results_sig.csv", row.names = TRUE)
+    write.csv(results.DEs, "results_DEs.csv", row.names = TRUE)
+    write.csv(results.DEa, "results_DEa.csv", row.names = TRUE)
+    write.csv(results.DEg, "results_DEg.csv", row.names = TRUE)
+    
+    saveRDS(results, "results_raw.rds")
+    saveRDS(results.classified, "results_classified.rds")
+    
+    # Generate a summary visualization of the DE types
+    pdf("de_types_summary.pdf", width = 6, height = 6)
+    de_counts <- table(results.sig\$Type)
+    all_types <- c("DEs", "DEa", "DEg")
+    plot_counts <- setNames(rep(0, 3), all_types)
+    plot_counts[names(de_counts)] <- de_counts
+    
+    barplot(plot_counts, 
+            col = c("#56B4E9", "#E69F00", "#009E73"),
+            main = "Number of DE Genes by Type (FDR < 0.05)",
+            xlab = "DE Type", 
+            ylab = "Number of Genes",
+            ylim = c(0, max(plot_counts) * 1.2))
+    text(x = seq_along(plot_counts) * 1.2 - 0.5, 
+         y = plot_counts + (max(plot_counts) * 0.02), 
+         labels = plot_counts, 
+         pos = 3)
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs written to working directory.\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DESINGLE:", paste0("    desingle: ", packageVersion("DEsingle"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW":',
+        paste0('    DEsingle: ', as.character(packageVersion('DEsingle')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_desingle_results.csv
-    touch ${prefix}_desingle_output.rds
-    echo "BIOC_DESINGLE:" > versions.yml
-    echo "    desingle: 0.0.0" >> versions.yml
+    touch ${prefix}_matrix_input_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_DESINGLE_WORKFLOW {
+workflow BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts.ext, group.ext ] ]
 
     main:
-    BIOC_DESINGLE(ch_input)
+    BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_DESINGLE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DESINGLE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DESINGLE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DESINGLE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW.out.tables
+    plots    = BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW.out.plots
+    objects  = BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW.out.objects
+    versions = BIOC_DESINGLE_MATRIX_INPUT_WORKFLOW.out.versions
 }

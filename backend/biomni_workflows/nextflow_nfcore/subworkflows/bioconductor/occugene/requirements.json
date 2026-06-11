@@ -1,0 +1,11 @@
+{
+  "package": "occugene",
+  "requirements": [
+    "occugene"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "occugene"
+    ]
+  }
+}

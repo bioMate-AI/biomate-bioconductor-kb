@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Ometh=A matrix of observed bulk methylation values where rows represent CpG sites and columns represent samples ;; X=A covariate matrix where rows represent covariates (e.g., disease status, age) and columns represent samples ;; num_celltype=The number of cell types (K) specified by the user, which can be decided by prior knowledge or the penalized BIC criterion ;; tol=The relative tolerance to determine when the EM algorithm stops (default is 10^-5) ;; num_iter=The maximum number of iterations for the EM algorithm (default is 1000) ;; alpha=A threshold parameter used in the Bonferroni correction to claim a significant cell-type-specific CpG site and to calculate the penalized BIC (default is 0.01) ;; hc_row_ind=A logical argument in riskCpGpattern indicating whether the rows should be hierarchically clustered\n- alternatives: Reference-based methods (e.g., Houseman et al. 2012, Accomando et al. 2014) which require reference methylation profiles for each cell type to be known a priori ;; Reference-free methods (e.g., Houseman et al. 2016, Zou et al. 2014, Rahmani et al. 2016, Leek & Storey 2007) which correct for cell-type heterogeneity at the aggregated level but cannot identify risk-CpG sites for individual cell types\n- when_to_use: Use when performing EWAS on bulk tissue samples where cellular heterogeneity is present, and the goal is to identify which specific cell types carry the risk-CpG sites associated with binary or continuous phenotypes (or both)\n- pitfalls: Label-switching problem: Since the deconvolution is unsupervised, the estimated cell type indices in the output (e.g., ret_list$P_t) may be permuted relative to the true cell types or prior expectations, requiring manual reordering/mapping ;; Methylation values in the input matrix Ometh must be constrained between 0 and 1",
+  "workflows": [
+    {
+      "name": "hire_ewas_analysis",
+      "intent": "Perform cell-type-specific association detection and deconvolution on bulk EWAS data.",
+      "input": [
+        "Ometh (matrix of bulk methylation values, CpG sites by samples)",
+        "X (matrix of covariates, covariate types by samples)"
+      ],
+      "stages": "1. Load the HIREewas package ;; 2. Run the HIRE model using the bulk methylation matrix, covariate matrix, and specified number of cell types ;; 3. Inspect estimated cell compositions, baseline profiles, phenotype effects, and p-values ;; 4. Visualize the detected cell-type-specific association patterns using riskCpGpattern",
+      "code": "library(HIREewas)\nret_list <- HIRE(Ometh, X, num_celltype=K, tol=10^(-5), num_iter=1000, alpha=0.01)\nclass(ret_list)\nret_list$P_t[ ,1:6]\nhead(ret_list$mu_t)\nhead(ret_list$beta_t)\nret_list$pBIC\nhead(ret_list$pvalues[ ,1:3])\nhead(ret_list$pvalues[ ,4:6])\nriskCpGpattern(ret_list$pvalues[1:100, K+c(2,1,3)], main_title=\"Detected association pattern\\n with age\", hc_row_ind = FALSE)"
+    }
+  ]
+}

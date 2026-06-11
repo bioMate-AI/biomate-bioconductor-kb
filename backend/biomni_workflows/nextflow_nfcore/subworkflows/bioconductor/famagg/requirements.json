@@ -1,0 +1,13 @@
+{
+  "package": "famagg",
+  "requirements": [
+    "FamAgg",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "FamAgg",
+      "igraph"
+    ]
+  }
+}

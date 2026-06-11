@@ -1,0 +1,22 @@
+{
+  "package": "npgsea",
+  "requirements": [
+    "Biobase",
+    "GSEABase",
+    "ReportingTools",
+    "npGSEA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GSEABase",
+      "npGSEA"
+    ],
+    "npgsea_multiple_sets.nf": [
+      "Biobase",
+      "GSEABase",
+      "ReportingTools",
+      "npGSEA"
+    ]
+  }
+}

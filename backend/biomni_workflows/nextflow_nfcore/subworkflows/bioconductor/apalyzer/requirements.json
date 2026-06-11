@@ -1,0 +1,24 @@
+{
+  "package": "apalyzer",
+  "requirements": [
+    "APAlyzer",
+    "GenomicFeatures",
+    "org.Mm.eg.db"
+  ],
+  "by_workflow": {
+    "cds_gene_expression_analysis.nf": [
+      "APAlyzer",
+      "GenomicFeatures",
+      "org.Mm.eg.db"
+    ],
+    "intronic_apa_analysis.nf": [
+      "APAlyzer"
+    ],
+    "main.nf": [
+      "APAlyzer"
+    ],
+    "three_utr_apa_analysis.nf": [
+      "APAlyzer"
+    ]
+  }
+}

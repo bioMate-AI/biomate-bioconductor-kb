@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <geneIdType=specifies the type of gene identifier (e.g., \"GENENAME\", \"ENTREZID\") ;; organism=specifies the organism (e.g., \"Sc\" for yeast, \"Hs\" for human) ;; key=determines whether the network is gene-based (\"Genes\", default) or term-based (\"Terms\") ;; filterAttribute=column from the clusters or metagroups data frame used to filter the network ;; filterOperator=logical operator for filtering (e.g., \"<\", \">\", \"!=\") ;; filterThreshold=threshold value for the filter attribute ;; plotType=specifies the network type (e.g., \"bipartite\" or default) ;; plotOutput=controls the output format (\"dynamic\" for interactive tkplot, \"none\" to return igraph object without plotting, or default static) ;; geneExpr=optional vector of gene expression values (e.g., 1 for UP, -1 for DW) to color nodes>\n- alternatives: <fea_topGO()=use for offline Gene Ontology enrichment without clustering (treats each gene-term set as a cluster) ;; fea_gage()=use for gene set enrichment analysis (GSEA) when raw expression data and sample groups are available ;; format_david()=use to import Functional Annotation Clustering results downloaded from the DAVID website (since direct API queries are no longer supported in R) ;; format_results() or readGeneTermSets()=use to import custom/other FEA tool outputs>\n- when_to_use: <Use when you have a list of genes (or expression data) from an experiment and want to move from a gene-centric list to a functional-module centric network representation to visualize overlapping biological functions, identify key hub genes, or generate an HTML summary report.>\n- pitfalls: <fea_david() is no longer supported directly in R; users must run DAVID on the website and import the downloaded text file using format_david() ;; The Graphical User Interface (FGNet_GUI()) requires RGtk2, which is deprecated/unavailable in newer R versions (since April 2022) ;; fea_gtLinker() is no longer available/supported directly for new runs, but results can be retrieved via fea_gtLinker_getResults() using a pre-existing job ID ;; Gene-Term Linker groups multiple terms into each gene-term set, so direct bipartite plotting of gene-term sets might not be appropriate without formatting.>",
+  "workflows": [
+    {
+      "name": "topgo_gene_list_to_network",
+      "intent": "Perform GO enrichment analysis on a gene list offline and build a functional network.",
+      "input": [
+        "genesYeast (character vector of gene symbols/IDs)",
+        "genesYeastExpr (optional named numeric vector of gene expression values)"
+      ],
+      "stages": "1. Perform FEA using fea_topGO() ;; 2. Generate an HTML report using FGNet_report() ;; 3. Convert results to incidence matrices using fea2incidMat() ;; 4. Plot the network using functionalNetwork()",
+      "code": "feaResults_topGO <- fea_topGO(genesYeast, geneIdType=\"GENENAME\", organism=\"Sc\")\nFGNet_report(feaResults_topGO, geneExpr=genesYeastExpr)\nincidMat <- fea2incidMat(feaResults_topGO)\nfunctionalNetwork(incidMat, geneExpr=genesYeastExpr, plotTitleSub=\"Default gene view\")"
+    },
+    {
+      "name": "gage_expression_to_network",
+      "intent": "Perform gene set enrichment analysis on an expression matrix and build a functional network.",
+      "input": [
+        "gse16873 (expression matrix/ExpressionSet)",
+        "geneLabels (named character vector mapping probe/Entrez IDs to symbols)"
+      ],
+      "stages": "1. Perform GSEA using fea_gage() ;; 2. Generate an HTML report using FGNet_report() ;; 3. Convert results to incidence matrices using fea2incidMat() ;; 4. Plot the network using functionalNetwork()",
+      "code": "feaResults_gage <- fea_gage(eset=gse16873,\n                         refSamples=grep('HN',colnames(gse16873)),\n                         compSamples=grep('DCIS',colnames(gse16873)),\n                         geneLabels=geneLabels, annotations=\"REACTOME\",\n                         geneIdType=\"ENTREZID\", organism=\"Hs\")\nFGNet_report(feaResults_gage)\nincidMat <- fea2incidMat(feaResults_gage)\nfunctionalNetwork(incidMat, plotOutput=\"dynamic\")"
+    },
+    {
+      "name": "import_david_to_network",
+      "intent": "Import Functional Annotation Clustering results from the DAVID website and build a functional network.",
+      "input": [
+        "\"http://david.abcc.ncifcrf.gov/data/download/90128.txt\" (downloaded text file from DAVID website)",
+        "genesYeastExpr (optional named numeric vector of gene expression values)"
+      ],
+      "stages": "1. Import results using format_david() ;; 2. Generate an HTML report using FGNet_report() ;; 3. Convert results to incidence matrices using fea2incidMat() ;; 4. Plot the network using functionalNetwork()",
+      "code": "feaResults_David <- format_david(\"http://david.abcc.ncifcrf.gov/data/download/90128.txt\")\nFGNet_report(feaResults_David, geneExpr=genesYeastExpr)\nincidMat <- fea2incidMat(feaResults_David)\nfunctionalNetwork(incidMat)"
+    }
+  ]
+}

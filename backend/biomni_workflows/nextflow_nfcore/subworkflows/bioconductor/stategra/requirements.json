@@ -1,0 +1,22 @@
+{
+  "package": "stategra",
+  "requirements": [
+    "Biobase",
+    "STATegRa",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "holistic_differential_expression.nf": [
+      "Biobase",
+      "STATegRa"
+    ],
+    "main.nf": [
+      "STATegRa",
+      "ggplot2"
+    ],
+    "omics_clustering.nf": [
+      "Biobase",
+      "STATegRa"
+    ]
+  }
+}

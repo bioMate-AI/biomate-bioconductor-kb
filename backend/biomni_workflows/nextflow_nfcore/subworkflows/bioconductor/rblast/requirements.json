@@ -1,0 +1,19 @@
+{
+  "package": "rblast",
+  "requirements": [
+    "BiocFileCache",
+    "Biostrings",
+    "rBLAST"
+  ],
+  "by_workflow": {
+    "create_and_query_custom_db.nf": [
+      "Biostrings",
+      "rBLAST"
+    ],
+    "main.nf": [
+      "BiocFileCache",
+      "Biostrings",
+      "rBLAST"
+    ]
+  }
+}

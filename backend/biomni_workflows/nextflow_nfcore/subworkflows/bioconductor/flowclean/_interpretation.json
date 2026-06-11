@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: vectMarkers=A vector of indices specifying which markers/parameters to analyze (typically excluding scatter parameters like FSC and SSC) ;; filePrefixWithDir=A character string specifying the directory and file prefix for diagnostic output files ;; ext=The file extension for output files (typically \"fcs\") ;; diagnostic=A logical value indicating whether to output diagnostic information and files during the run\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you have flow cytometry data (FCS files) and want to programmatically identify and remove cells collected during periods of unstable flow, clogging, or other instrument perturbations over the collection timeline.\n- pitfalls: Including scatter parameters (FSC/SSC) in vectMarkers can negatively affect the compositional analysis; they should generally be excluded. Running the clean function only adds the 'GoodVsBad' parameter to the flowFrame; users must remember to actually apply a gate (e.g., selecting values < 10000) to filter out the bad cells from downstream analysis.",
+  "workflows": [
+    {
+      "name": "flow_cytometry_quality_control",
+      "intent": "Perform quality control on a flow cytometry dataset to identify and filter out cells collected during perturbed time periods.",
+      "input": [
+        "user_data.fcs (Flow cytometry data file containing marker intensities and collection time)"
+      ],
+      "stages": "1. Run the clean function on the flowFrame to identify perturbed periods and append the GoodVsBad parameter ;; 2. Estimate and apply logicle transformation for visualization and downstream analysis ;; 3. Define a rectangleGate to select cells with GoodVsBad values below 10000 ;; 4. Filter and subset the flowFrame to retain only the high-quality cells",
+      "code": "synPerturbed.c <- clean(synPerturbed, vectMarkers=c(5:16), \n                   filePrefixWithDir=\"sample_out\", ext=\"fcs\", diagnostic=TRUE)\nlgcl <- estimateLogicle(synPerturbed.c, unname(parameters(synPerturbed.c)$name[5:16]))\nsynPerturbed.cl <- transform(synPerturbed.c, lgcl)\nrg <- rectangleGate(filterId=\"gvb\", list(\"GoodVsBad\"=c(0, 9999)))\nidx <- filter(synPerturbed.cl, rg)\nsynPerturbed.clean <- Subset(synPerturbed.cl, idx)"
+    }
+  ]
+}

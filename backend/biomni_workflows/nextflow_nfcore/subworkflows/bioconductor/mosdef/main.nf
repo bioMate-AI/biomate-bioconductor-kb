@@ -1,188 +1,226 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mosdef
-// This package provides functionality to run a number of tasks in the differential expression analysis
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mosdef/inst/doc/mosdef_userguide.R
-// Upstream  : AnnotationDbi, DESeq2, ggplot2, macrophage, topGO
-// Downstream: none
-//
-// Install: BiocManager::install("mosdef")
+// Bioconductor workflow: mosdef — container_enrichment_and_visualization
+// Run functional enrichment analyses and generate standard diagnostic and exploratory plots directly from DESeq2 container objects.
+// Input: dds_macrophage, res_macrophage_IFNg_vs_naive
+// Container: quay.io/biocontainers/bioconductor-mosdef:1.6.0--r45hdfd78af_0
+// R packages: TxDb.Hsapiens.UCSC.hg38.knownGene, AnnotationDbi, clusterProfiler, DESeq2, ggplot2, goseq, macrophage, mosdef, org.Hs.eg.db, topGO
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, DESeq2, TxDb.Hsapiens.UCSC.hg38.knownGene, clusterProfiler, ggplot2, goseq, mosdef, org.Hs.eg.db, topGO
+// Visualizations: volcano plot, MA plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Validate input containers using mosdef_de_container_check and mosdef_res_check
+//  * 2. [Core Analysis] Run functional enrichment using topGO, goseq, or clusterProfiler wrappers
+//  * 3. [Visualization & Output] Plot individual gene expression levels across conditions
+//  * 4. [Visualization & Output] Generate standard and GO-highlighted volcano plots
+//  * 5. [Visualization & Output] Generate MA plots with optional gene highlighting
 
 nextflow.enable.dsl = 2
 
-process BIOC_MOSDEF {
+process BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mosdef"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mosdef:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mosdef:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mosdef_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mosdef_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mosdef_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("TxDb.Hsapiens.UCSC.hg38.knownGene", "AnnotationDbi", "clusterProfiler", "DESeq2", "ggplot2", "goseq", "macrophage", "mosdef", "org.Hs.eg.db", "topGO")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(mosdef)
-    library(DESeq)
-    library(DESeqDataSet)
-    library(FoldChange)
-    library(jsonlite)
-
-    # --- Functional Enrichment [] ---
-    # Key functions: run_topGO, run_goseq
-    res_enrich_topGO <- run_topGO(
-        de_container = dds_macrophage,
-        res_de = res_macrophage_IFNg_vs_naive,
-        ontology = "BP",
-        mapping = "org.Hs.eg.db",
-        FDR_threshold = 0.05,
-        gene_id = "symbol",
-        de_type = "up_and_down",
-        add_gene_to_terms = TRUE,
-        topGO_method2 = "elim",
-        min_counts = 20,
-        top_de = 700,
-        verbose = FALSE
+    library(DESeq2)
+    library(org.Hs.eg.db)
+    library(AnnotationDbi)
+    library(ggplot2)
+    library(topGO)
+    library(goseq)
+    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+    library(clusterProfiler)
+    
+    # Read user input files from the working directory
+    dds_macrophage <- readRDS("dds_macrophage.rds")
+    res_macrophage_IFNg_vs_naive <- readRDS("res_macrophage_IFNg_vs_naive.rds")
+    
+    # Ensure the symbol column is present in the results object
+    if (!"symbol" %in% colnames(res_macrophage_IFNg_vs_naive)) {
+      res_macrophage_IFNg_vs_naive\$symbol <- AnnotationDbi::mapIds(
+        org.Hs.eg.db,
+        keys = row.names(res_macrophage_IFNg_vs_naive),
+        column = "SYMBOL",
+        keytype = "ENSEMBL",
+        multiVals = "first"
+      )
+    }
+    
+    # 1. Validate input containers
+    mosdef_de_container_check(dds_macrophage)
+    mosdef_res_check(res_macrophage_IFNg_vs_naive)
+    
+    # 2. Run functional enrichment analyses
+    # Run topGO
+    res_enrich_macrophage_topGO <- run_topGO(
+      de_container = dds_macrophage,
+      res_de = res_macrophage_IFNg_vs_naive,
+      ontology = "BP",
+      mapping = "org.Hs.eg.db",
+      FDR_threshold = 0.05,
+      gene_id = "symbol",
+      de_type = "up_and_down",
+      add_gene_to_terms = TRUE,
+      topGO_method2 = "elim",
+      min_counts = 20,
+      top_de = 700,
+      verbose = TRUE
     )
-    res_enrich_goseq <- run_goseq(
+    write.csv(res_enrich_macrophage_topGO, "res_enrich_macrophage_topGO.csv", row.names = FALSE)
+    saveRDS(res_enrich_macrophage_topGO, "res_enrich_macrophage_topGO.rds")
+    
+    # Run goseq (wrapped in tryCatch for robustness)
+    goseq_macrophage <- tryCatch({
+      res_goseq <- run_goseq(
         de_container = dds_macrophage,
         res_de = res_macrophage_IFNg_vs_naive,
         mapping = "org.Hs.eg.db",
         testCats = "GO:BP"
-    )
-
-
-    # --- Differential Expression Visualization [] ---
-    # Key functions: gene_plot, de_volcano, plot_ma
-    g_plot <- gene_plot(
+      )
+      write.csv(res_goseq, "goseq_macrophage.csv", row.names = FALSE)
+      saveRDS(res_goseq, "goseq_macrophage.rds")
+      res_goseq
+    }, error = function(e) {
+      message("goseq analysis failed: ", e\$message)
+      NULL
+    })
+    
+    # Run clusterProfiler (wrapped in tryCatch for robustness)
+    clupro_macrophage <- tryCatch({
+      res_clupro <- run_cluPro(
         de_container = dds_macrophage,
-        gene = "ENSG00000125347",
-        intgroup = "condition"
-    )
-    volc_plot <- de_volcano(
         res_de = res_macrophage_IFNg_vs_naive,
         mapping = "org.Hs.eg.db",
-        logfc_cutoff = 1,
-        FDR = 0.05,
-        labeled_genes = 25
+        keyType = "SYMBOL",
+        ont = "BP"
+      )
+      saveRDS(res_clupro, "clupro_macrophage.rds")
+      res_clupro
+    }, error = function(e) {
+      message("clusterProfiler analysis failed: ", e\$message)
+      NULL
+    })
+    
+    # 3. Plot individual gene expression levels across conditions
+    p_gene <- gene_plot(
+      de_container = dds_macrophage,
+      gene = "ENSG00000125347",
+      intgroup = "condition"
     )
-    ma_plot <- plot_ma(
-        res_de = res_macrophage_IFNg_vs_naive,
-        FDR = 0.05,
-        hlines = 1
+    ggplot2::ggsave("gene_plot_ENSG00000125347.pdf", plot = p_gene, width = 7, height = 6)
+    
+    # 4. Generate standard and GO-highlighted volcano plots
+    volcPlot <- de_volcano(
+      res_de = res_macrophage_IFNg_vs_naive,
+      mapping = "org.Hs.eg.db",
+      logfc_cutoff = 1,
+      FDR = 0.05, 
+      labeled_genes = 25
     )
-
-
-    # --- GO-Term Volcano Visualization [] ---
-    # Key functions: go_volcano
-    volc_go <- go_volcano(
-        res_de = res_macrophage_IFNg_vs_naive,
-        res_enrich = res_enrich_topGO,
-        term_index = 1,
-        logfc_cutoff = 1,
-        FDR = 0.05,
-        mapping = "org.Hs.eg.db",
-        n_overlaps = 50,
-        col_to_use = "symbol",
-        enrich_col = "genes",
-        down_col = "black",
-        up_col = "black",
-        highlight_col = "tomato"
+    ggplot2::ggsave("volcano_plot.pdf", plot = volcPlot, width = 8, height = 8)
+    
+    Volc_GO <- go_volcano(
+      res_de = res_macrophage_IFNg_vs_naive,
+      res_enrich = res_enrich_macrophage_topGO,
+      term_index = 1,
+      logfc_cutoff = 1,
+      FDR = 0.05,
+      mapping = "org.Hs.eg.db",
+      n_overlaps = 50,
+      col_to_use = "symbol",
+      enrich_col = "genes",
+      down_col = "black",
+      up_col = "black",
+      highlight_col = "tomato"
     )
-
-
-    # --- Interactive Table Generation [] ---
-    # Key functions: deresult_to_df, buttonifier, de_table_painter
-    res_subset <- deresult_to_df(
-        res_de = res_macrophage_IFNg_vs_naive,
-        FDR = 0.05
-    )[1:100, ]
-    res_buttons <- buttonifier(
-        df = res_subset,
-        col_to_use = "symbol",
-        create_buttons_to = c("GC", "NCBI", "HPA"),
-        ens_col = "id",
-        ens_species = "Homo_sapiens",
-        output_format = "DF"
+    ggplot2::ggsave("go_volcano_plot.pdf", plot = Volc_GO, width = 8, height = 8)
+    
+    # 5. Generate MA plots with optional gene highlighting
+    maplot <- plot_ma(
+      res_de = res_macrophage_IFNg_vs_naive,
+      FDR = 0.05,
+      hlines = 1
     )
-    painted_table <- de_table_painter(
-        res_df = res_buttons,
-        rounding_digits = 3,
-        signif_digits = 5
+    ggplot2::ggsave("ma_plot.pdf", plot = maplot, width = 8, height = 6)
+    
+    maplot_genes <- plot_ma(
+      res_de = res_macrophage_IFNg_vs_naive,
+      FDR = 0.1,
+      add_rug = FALSE,
+      intgenes = c(
+        "SLC7A2",
+        "CFLAR",
+        "PDK4",
+        "IFNGR1"
+      ),
+      hlines = 1,
+      intgenes_color = "darkblue"
     )
+    ggplot2::ggsave("ma_plot_genes.pdf", plot = maplot_genes, width = 8, height = 6)
 
-
-    # --- Database Link Integration [] ---
-    # Key functions: create_link_ENSEMBL, create_link_GeneCards, create_link_PubMed, create_link_NCBI, create_link_GO
-    res_subset <- deresult_to_df(
-        res_de = res_macrophage_IFNg_vs_naive,
-        FDR = 0.05
-    )[1:100, ]
-    res_subset$ensembl_link <- create_link_ENSEMBL(
-        unlinked_vector = row.names(res_subset),
-        species = "Homo_sapiens"
-    )
-    res_subset$symbol_GC <- create_link_GeneCards(res_subset$symbol)
-    res_subset$symbol_PubMed <- create_link_PubMed(res_subset$symbol)
-    res_subset$symbol_NCBI <- create_link_NCBI(res_subset$symbol)
-    res_enrich_topGO$GO.ID <- create_link_GO(
-        unlinked_vector = res_enrich_topGO$GO.ID
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mosdef_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mosdef_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mosdef_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MOSDEF:", paste0("    mosdef: ", packageVersion("mosdef"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION":',
+        paste0('    mosdef: ', as.character(packageVersion('mosdef')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mosdef_results.csv
-    touch ${prefix}_mosdef_output.rds
-    echo "BIOC_MOSDEF:" > versions.yml
-    echo "    mosdef: 0.0.0" >> versions.yml
+    touch ${prefix}_container_enrichment_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_MOSDEF_WORKFLOW {
+workflow BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ dds_macrophage, res_macrophage_IFNg_vs_naive ] ]
 
     main:
-    BIOC_MOSDEF(ch_input)
+    BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_MOSDEF.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MOSDEF.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MOSDEF.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MOSDEF.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION.out.tables
+    plots    = BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION.out.plots
+    objects  = BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION.out.objects
+    versions = BIOC_MOSDEF_CONTAINER_ENRICHMENT_AND_VISUALIZATION.out.versions
 }

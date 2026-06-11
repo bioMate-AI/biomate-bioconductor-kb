@@ -1,0 +1,22 @@
+{
+  "package": "blacksheepr",
+  "requirements": [
+    "ComplexHeatmap",
+    "SummarizedExperiment",
+    "blacksheepr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "SummarizedExperiment",
+      "blacksheepr"
+    ],
+    "piecewise_outlier_analysis.nf": [
+      "ComplexHeatmap",
+      "blacksheepr"
+    ],
+    "raw_counts_normalization_and_formatting.nf": [
+      "blacksheepr"
+    ]
+  }
+}

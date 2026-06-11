@@ -1,0 +1,22 @@
+{
+  "package": "classifyr",
+  "requirements": [
+    "ClassifyR",
+    "S4Vectors"
+  ],
+  "by_workflow": {
+    "advanced_modelling_and_evaluation.nf": [
+      "ClassifyR"
+    ],
+    "main.nf": [
+      "ClassifyR"
+    ],
+    "multi_view_integration.nf": [
+      "ClassifyR",
+      "S4Vectors"
+    ],
+    "parameter_tuning.nf": [
+      "ClassifyR"
+    ]
+  }
+}

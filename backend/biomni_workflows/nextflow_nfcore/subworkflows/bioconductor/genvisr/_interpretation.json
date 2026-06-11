@@ -1,0 +1,54 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: fileType=Specifies the input file format, such as \"MAF\", \"MGI\", or \"Custom\" ;; variant_class_order=A character vector defining the custom mutation hierarchy from most to least deleterious when fileType is \"Custom\" ;; mainRecurCutoff=A numeric value between 0 and 1 to filter and plot only genes mutated in at least x proportion of samples ;; plotGenes=A case-insensitive character vector of specific genes to display ;; plotSamples=A character vector of specific samples to display, which can include samples not present in the input data ;; maxGenes=An integer specifying the maximum number of top recurrently mutated genes to plot ;; rmvSilent=A logical value indicating whether to remove silent mutations from the data ;; coverageSpace=An integer specifying the base pair size of the exome/genome to calculate mutation burden (defaults to SeqCap EZ Human Exome Library v2.0) ;; mutBurden=An optional data frame with columns 'sample' and 'mut_burden' for user-defined mutation burden calculations ;; clinDat=A data frame in long format (columns: 'sample', 'variable', 'value') to plot clinical data ;; plot_proportions=A logical value to display the proportion of mutation types in the cohort ;; proportions_type=A string (e.g., \"TvTi\") to specify the type of proportion plot ;; plotLayer=A ggplot2 theme or layer object to customize plot aesthetics ;; genome=A character string specifying the UCSC genome assembly (e.g., \"hg19\", \"hg38\") for chromosomal boundaries ;; y=A data frame or vector specifying custom chromosomal boundaries or apriori expectations depending on the function ;; z=A data frame specifying segment calls to overlay in cnView\n- alternatives: bedtools multicov=Recommended to obtain coverage information for a region of interest before using genCov ;; reshape2::melt=Recommended to coerce clinical data into the required \"long\" format\n- when_to_use: Use GenVisR when you need to visualize cohort-level genomic data, such as somatic mutation landscapes (waterfall plots), sequence coverage across gene tracks, transition/transversion frequencies, copy number profiles, and loss of heterozygosity.\n- pitfalls: Grob collisions=Individual graphical elements within the plots may collide if the graphics device is not given enough space. Users must manually adjust the height and width of the output device (e.g., using pdf() with explicit height and width) ;; Custom ggplot2 layers=Adding a custom ggplot2 layer (e.g., mainLayer) can overwrite default theme settings (like x-axis label suppression or rotation), leading to unintended visual consequences ;; BAM indexing=compIdent does not index BAM files and expects a .bai file to be present in the same directory ;; LOH input restriction=lohView input should be restricted to \"Heterozygous Germline\" calls only",
+  "workflows": [
+    {
+      "name": "mutation_landscape_waterfall",
+      "intent": "Visualize somatic mutations, mutation burden, and clinical data at the cohort level using a waterfall plot.",
+      "input": [
+        "brcaMAF (a data frame representing a MAF file)",
+        "clinical (a data frame of clinical data in long format)"
+      ],
+      "stages": "1. Load the GenVisR and reshape2 packages ;; 2. Format and melt clinical data into long format ;; 3. Generate the waterfall plot with customized gene filtering, clinical annotations, and color palettes.",
+      "code": "library(GenVisR)\nset.seed(383)\nwaterfall(brcaMAF, mainRecurCutoff = 0.06)\nwaterfall(brcaMAF, plotGenes = c(\"PIK3CA\", \"TP53\", \"USH2A\", \"MLL3\", \"BRCA1\"))\n\nsubtype <- c(\"lumA\", \"lumB\", \"her2\", \"basal\", \"normal\")\nsubtype <- sample(subtype, 50, replace = TRUE)\nage <- c(\"20-30\", \"31-50\", \"51-60\", \"61+\")\nage <- sample(age, 50, replace = TRUE)\nsample <- as.character(unique(brcaMAF$Tumor_Sample_Barcode))\nclinical <- as.data.frame(cbind(sample, subtype, age))\n\nlibrary(reshape2)\nclinical <- melt(clinical, id.vars = c(\"sample\"))\n\nwaterfall(brcaMAF, clinDat = clinical, clinVarCol = c(lumA = \"blue4\", lumB = \"deepskyblue\", her2 = \"hotpink2\", basal = \"firebrick2\", normal = \"green4\", `20-30` = \"#ddd1e7\", `31-50` = \"#bba3d0\", `51-60` = \"#9975b9\", `61+` = \"#7647a2\"), plotGenes = c(\"PIK3CA\", \"TP53\", \"USH2A\", \"MLL3\", \"BRCA1\"), clinLegCol = 2, clinVarOrder = c(\"lumA\", \"lumB\", \"her2\", \"basal\", \"normal\", \"20-30\", \"31-50\", \"51-60\", \"61+\"))"
+    },
+    {
+      "name": "sequence_coverage_gencov",
+      "intent": "View sequence coverage information aligned to genomic features and gene tracks.",
+      "input": [
+        "cov_input_A (a data frame of coverage coordinates for Sample A)",
+        "cov_input_B (a data frame of coverage coordinates for Sample B)"
+      ],
+      "stages": "1. Load transcript metadata and reference genome packages ;; 2. Define the genomic region of interest as a GRanges object ;; 3. Format coverage data into a named list of data frames ;; 4. Generate the coverage plot aligned to the gene track, optionally compressing introns/UTRs.",
+      "code": "library(TxDb.Hsapiens.UCSC.hg19.knownGene)\ntxdb <- TxDb.Hsapiens.UCSC.hg19.knownGene\n\nlibrary(BSgenome.Hsapiens.UCSC.hg19)\ngenome <- BSgenome.Hsapiens.UCSC.hg19\n\ngr <- GRanges(seqnames = c(\"chr10\"), ranges = IRanges(start = c(89622195), end = c(89729532)), strand = strand(c(\"+\")))\n\nstart <- c(89622194:89729524)\nend <- c(89622195:89729525)\nchr <- 10\ncov <- c(rnorm(1e+05, mean = 40), rnorm(7331, mean = 10))\ncov_input_A <- as.data.frame(cbind(chr, start, end, cov))\n\nstart <- c(89622194:89729524)\nend <- c(89622195:89729525)\nchr <- 10\ncov <- c(rnorm(50000, mean = 40), rnorm(7331, mean = 10), rnorm(50000, mean = 40))\ncov_input_B <- as.data.frame(cbind(chr, start, end, cov))\n\ndata <- list(`Sample A` = cov_input_A, `Sample B` = cov_input_B)\n\ngenCov(data, txdb, gr, genome, gene_labelTranscriptSize = 2, transform = NULL, base = NULL)\ngenCov(data, txdb, gr, genome, transform = c(\"Intron\", \"CDS\", \"UTR\"), base = c(10, 2, 2), reduce = TRUE)"
+    },
+    {
+      "name": "transition_transversion_tvti",
+      "intent": "Visualize the proportions or frequencies of transition and transversion mutation types across a cohort.",
+      "input": [
+        "brcaMAF (a data frame representing a MAF file)"
+      ],
+      "stages": "1. Load mutation data ;; 2. Generate the TvTi plot showing proportions or frequencies ;; 3. Optionally overlay apriori expectations.",
+      "code": "TvTi(brcaMAF, lab_txtAngle=75, fileType=\"MAF\")\n\nTvTi(brcaMAF, type = \"Frequency\", palette = c(\"#77C55D\", \"#A461B4\", \"#C1524B\", \"#93B5BB\", \"#4F433F\", \"#BFA753\"), lab_txtAngle = 75, fileType = \"MAF\")\n\nexpec <- c(`A->C or T->G (TV)` = 0.066, `A->G or T->C (TI)` = 0.217, `A->T or T->A (TV)` = 0.065, `G->A or C->T (TI)` = 0.4945, `G->C or C->G (TV)` = 0.0645, `G->T or C->A (TV)` = 0.093)\nTvTi(brcaMAF, y = expec, lab_txtAngle = 45, fileType = \"MAF\")"
+    },
+    {
+      "name": "copy_number_profiling",
+      "intent": "Visualize copy number segments at the cohort level or raw copy number calls for a single sample.",
+      "input": [
+        "LucCNseg (a data frame of copy number segments)",
+        "data (a data frame of raw copy number calls for a single sample)"
+      ],
+      "stages": "1. Plot cohort-level copy number segments using cnSpec ;; 2. Plot single-sample raw copy number calls with an ideogram track using cnView ;; 3. Overlay segment calls on the single-sample plot.",
+      "code": "cnSpec(LucCNseg, genome = \"hg19\")\n\nchromosome <- \"chr14\"\ncoordinate <- sort(sample(0:106455000, size = 2000, replace = FALSE))\ncn <- c(rnorm(300, mean = 3, sd = 0.2), rnorm(700, mean = 2, sd = 0.2), rnorm(1000, mean = 3, sd = 0.2))\ndata <- as.data.frame(cbind(chromosome, coordinate, cn))\n\ncnView(data, chr = \"chr14\", genome = \"hg19\", ideogram_txtSize = 4)\n\ndataSeg <- data.frame(chromosome = c(14, 14, 14), start = coordinate[c(1, 301, 1001)], end = coordinate[c(300, 1000, 2000)], segmean = c(3, 2, 3))\ncnView(data, z = dataSeg, chr = \"chr14\", genome = \"hg19\", ideogram_txtSize = 4)"
+    },
+    {
+      "name": "loss_of_heterozygosity",
+      "intent": "Visualize Loss of Heterozygosity (LOH) across a cohort or for a single chromosome in a single sample.",
+      "input": [
+        "HCC1395_Germline (a data frame containing germline and tumor variant allele fractions)"
+      ],
+      "stages": "1. Plot cohort-level LOH spectrum using lohSpec ;; 2. Plot single-sample LOH across a specific chromosome with an ideogram track using lohView.",
+      "code": "lohSpec(x = HCC1395_Germline)\n\nlohView(HCC1395_Germline, chr = \"chr5\", genome = \"hg19\", ideogram_txtSize = 4)"
+    }
+  ]
+}

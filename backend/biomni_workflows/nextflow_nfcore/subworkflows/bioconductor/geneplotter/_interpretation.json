@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: useChroms=specifies which chromosomes to display in cPlot ;; plotFormat=specifies the visualization style in alongChrom (e.g., \"cumulative\") ;; col=specifies colors for different sample groups or expression levels in alongChrom and cColor\n- alternatives: None mentioned in the provided documentation\n- when_to_use: Use when you want to visualize gene expression levels mapped to their physical chromosomal coordinates to identify regional genomic features like amplifications, deletions, or expression trends\n- pitfalls: The plots map genes to their reference coordinates; they cannot detect physical genomic rearrangements (like translocations or actual physical amplifications) present in the sample itself, only the expression patterns associated with those reference coordinates",
+  "workflows": [
+    {
+      "name": "whole_genome_expression_plotting",
+      "intent": "Visualize expression levels across all chromosomes using a reference genome",
+      "input": [
+        "sample.ExpressionSet (ExpressionSet object containing expression data)",
+        "hgu95av2 (Bioconductor annotation package)"
+      ],
+      "stages": "1. Load expression data and calculate statistics ;; 2. Build a chromLocation object using buildChromLocation ;; 3. Initialize the chromosome plot using cPlot ;; 4. Color the genes on the chromosome plot using cColor",
+      "code": "library(geneplotter)\ndata(sample.ExpressionSet)\neset = sample.ExpressionSet # legacy naming\nmytt <- function(y, cov2) {\n      ys <- split( y, cov2 )\n      t.test( ys[[1]], ys[[2]] )\n      }\n\nttout <- esApply(eset, 1, mytt, eset$type)\ns1means <- sapply(ttout, function(x) x$estimate[1])\ns2means <- sapply(ttout, function(x) x$estimate[2])\ndeciles <- quantile(c(s1means, s2means), probs=seq(0,1,.1))\ns1class <- cut(s1means, deciles)\nnames(s1class) <- names(s1means)\ns2class <- cut(s2means, deciles)\nnames(s2class) <- names(s2means)\ncols <- dChip.colors(10)\ndef.par <- par(no.readonly = TRUE)# save default, for resetting...\nnf <- layout(matrix(1:3,nr=1), widths=c(5,5,2))\nchrObj <- buildChromLocation(\"hgu95av2\")\ncPlot(chrObj)\ncColor(featureNames(eset), cols[s1class], chrObj)\ncPlot(chrObj)\ncColor(featureNames(eset), cols[s2class], chrObj)\nimage(1,1:10,matrix(1:10,nc=10),col=cols, axes=FALSE,\n         xlab=\"\", ylab=\"\")\naxis(2, at=(1:10), labels=levels(s1class), las=1)\npar(def.par)"
+    },
+    {
+      "name": "single_chromosome_expression_plotting",
+      "intent": "Plot expression levels or cumulative expression along a single chromosome to detect regional genomic features",
+      "input": [
+        "sample.ExpressionSet (ExpressionSet object containing expression data)",
+        "chrObj (chromLocation object containing genomic coordinates)"
+      ],
+      "stages": "1. Define colors for sample covariates ;; 2. Plot expression along a specific chromosome using alongChrom",
+      "code": "par(mfrow=c(1,1)) \n mycols <- c(\"red\", \"darkgreen\", \"blue\")[eset$cov3]\n alongChrom(eset, \"1\", chrObj, plotFormat=\"cumulative\", \n        col=mycols)"
+    }
+  ]
+}

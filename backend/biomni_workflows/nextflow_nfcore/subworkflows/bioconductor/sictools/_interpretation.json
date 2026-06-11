@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bam1=Path to the first BAM file ;; bam2=Path to the second BAM file ;; refFsa=Path to the reference genome FASTA file ;; regChr=Chromosome name of the region of interest ;; regStart=Start coordinate of the region of interest ;; regEnd=End coordinate of the region of interest ;; minBaseQuality=Minimum Phred base quality score (default 13) ;; minMapQuality=Minimum mapping quality score of the reads (default 0) ;; nCores=Number of threads for parallel calculation (default 1) ;; pValueCutOff=Fisher's exact test p-value threshold for filtering output (default 0.05) ;; baseDistCutOff=Euclidean distance threshold for filtering SNV output (default 0.1) ;; gtDistCutOff=Euclidean distance threshold for filtering Indel output (default 0) ;; verbose=Logical value to show progress information (default TRUE)\n- alternatives: Finding two indel lists separately and then overlapping them (which is often misleading compared to indelDiff's joint allele frequency parsing)\n- when_to_use: When comparing two closely related BAM files (e.g., tumor vs. matched normal somatic samples, or germline pairs) to identify SNV or Indel differences in a specific genomic region of interest using Fisher's exact test and Euclidean distance.\n- pitfalls: The two BAM files must be aligned using the exact same aligner, same version, and same reference genome. The input coordinates must match the reference genome format. Analyzing very long chromosomes without chunking or parallelization can be extremely slow. Somatic samples may require lower baseDistCutOff and higher pValueCutOff compared to germline samples.",
+  "workflows": [
+    {
+      "name": "snp_diff_detection",
+      "intent": "Detect single nucleotide variant (SNV) differences between two closely related BAM files across a genomic region of interest.",
+      "input": [
+        "bam1.bam (first BAM file)",
+        "bam2.bam (second BAM file)",
+        "ref.fasta (reference genome FASTA file)"
+      ],
+      "stages": "1. Define file paths to BAMs and reference FASTA ;; 2. Run snpDiff to calculate p-values and d-values for SNVs in the target region ;; 3. Sort the resulting data frame by p-value and d-value to identify candidate variants.",
+      "code": "bam1 <- system.file(package='SICtools','extdata','example1.bam')\nbam2 <- system.file(package='SICtools','extdata','example2.bam')\nrefFsa <- system.file(package='SICtools','extdata','example.ref.fasta')\n\nsnpDiffDf <- snpDiff(bam1,bam2,refFsa,'chr04',962501,1026983,pValueCutOff=1,baseDistCutOff=0)\nsnpDiffDf\n\nsnpDiffDfSort <- snpDiffDf[order(snpDiffDf$p.value,snpDiffDf$d.value),]\nsnpDiffDfSort"
+    },
+    {
+      "name": "indel_diff_detection",
+      "intent": "Detect insertion/deletion (Indel) differences between two closely related BAM files across a genomic region of interest.",
+      "input": [
+        "bam1.bam (first BAM file)",
+        "bam2.bam (second BAM file)",
+        "ref.fasta (reference genome FASTA file)"
+      ],
+      "stages": "1. Define file paths to BAMs and reference FASTA ;; 2. Run indelDiff to calculate p-values and d-values for Indels in the target region ;; 3. Sort the resulting data frame by p-value and d-value to identify candidate variants.",
+      "code": "bam1 <- system.file(package='SICtools','extdata','example1.bam')\nbam2 <- system.file(package='SICtools','extdata','example2.bam')\nrefFsa <- system.file(package='SICtools','extdata','example.ref.fasta')\n\nindelDiffDf <- indelDiff(bam1,bam2,refFsa,'chr07',828514,828914,pValueCutOff=1,gtDistCutOff=0)\nindelDiffDfSort <- indelDiffDf[order(indelDiffDf$p.value,indelDiffDf$d.value),]\nindelDiffDfSort"
+    }
+  ]
+}

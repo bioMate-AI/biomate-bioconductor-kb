@@ -1,160 +1,170 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: les
-// The 'les' package estimates Loci of Enhanced Significance (LES) in tiling microarray data. These are
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/les/inst/doc/les.R
-// Upstream  : limma
-// Downstream: none
-//
-// Install: BiocManager::install("les")
+// Bioconductor workflow: les — les_detection_and_region_identification
+// Identify regulated genomic regions (Loci of Enhanced Significance) from probe positions and p-values, estimate confidence intervals, and export the results.
+// Input: pos, pval
+// Container: quay.io/biocontainers/bioconductor-les:1.60.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: les
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create Les object
+//  * 2. [Core Analysis] Estimate local significance (Lambda) using a sliding window
+//  * 3. [Core Analysis] Estimate the significance threshold
+//  * 4. [Core Analysis] Detect regulated regions
+//  * 5. [Core Analysis] Calculate confidence intervals for a subset of probes
+//  * 6. [Visualization & Output] Export regions and statistics to BED, GFF, and WIG files
 
 nextflow.enable.dsl = 2
 
-process BIOC_LES {
+process BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-les"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-les:1.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-les:1.56.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(model_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_les_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_les_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_les_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Les)
-    library(jsonlite)
-
-    # --- Estimateprobelevelstatistics [] ---
-    # Key functions: lmFit, eBayes
-    library(limma)
-    design <- cbind(offset=1, diff=condition)
-    fit <- lmFit(exprs, design)
-    fit <- eBayes(fit)
-    pval <- fit$p.value[, "diff"]
-    # --- Plotprobelevelstatistics [] ---
-    # Key functions: getOption, expression
-    getOption("SweaveHooks")[["fig"]]()
-    plot(pos, pval, pch=20, xlab="Probe position", ylab=expression(p))
-    abline(v=region)
-    # --- Constructles [] ---
-    # Key functions: Les
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(les)
+    
+    # ---------------------------------------------------------
+    # 1. Read User Input Files
+    # ---------------------------------------------------------
+    find_and_read <- function(base_name, is_integer = FALSE) {
+      extensions <- c("", ".txt", ".csv")
+      for (ext in extensions) {
+        file_path <- paste0(base_name, ext)
+        if (file.exists(file_path)) {
+          # Try reading with scan
+          res <- tryCatch({
+            scan(file_path, quiet = TRUE)
+          }, error = function(e) NULL)
+          
+          if (!is.null(res) && length(res) > 0) {
+            if (is_integer) return(as.integer(res))
+            return(as.numeric(res))
+          }
+          
+          # Try reading with read.csv
+          res_csv <- tryCatch({
+            df <- read.csv(file_path, header = FALSE)
+            df[[1]]
+          }, error = function(e) NULL)
+          
+          if (!is.null(res_csv) && length(res_csv) > 0) {
+            if (is_integer) return(as.integer(res_csv))
+            return(as.numeric(res_csv))
+          }
+        }
+      }
+      stop(paste("Error: Could not find or read input file for", base_name))
+    }
+    
+    pos <- find_and_read("pos", is_integer = TRUE)
+    pval <- find_and_read("pval", is_integer = FALSE)
+    
+    # ---------------------------------------------------------
+    # 2. Execute Documented Workflow
+    # ---------------------------------------------------------
     res <- Les(pos, pval)
-    # --- Estimateles [] ---
-    # Key functions: estimate
-    res <- estimate(res, win=200)
-    # --- Showplotles [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    res
-    summary(res)
-    plot(res)
-    abline(v=region)
-    # --- Showplotles2 [] ---
-    # Key functions: getOption, estimate
-    getOption("SweaveHooks")[["fig"]]()
     res2 <- estimate(res, win=200, weighting=rectangWeight)
-    res2
-    plot(res2)
-    abline(v=region)
-    # --- Threshold [] ---
-    # Key functions: threshold
     res2 <- threshold(res2, grenander=TRUE, verbose=TRUE)
-    # --- Regions [] ---
-    # Key functions: regions
     res2 <- regions(res2, verbose=TRUE)
-    res2
     res2["regions"]
-    # --- Plotregions [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    plot(res2, region=TRUE)
-    abline(v=region)
-    # --- Plotci [] ---
-    # Key functions: getOption, ci
-    getOption("SweaveHooks")[["fig"]]()
+    
+    # Define subset robustly: if the hardcoded range contains no probes,
+    # fall back to a window around the most significant probe to prevent ci() failure.
     subset <- pos >= 5232400 & pos <= 5233100
+    if (sum(subset) == 0) {
+      center <- which.min(pval)
+      subset <- seq_along(pos) %in% (max(1, center - 25):min(length(pos), center + 25))
+    }
+    
     res2 <- ci(res2, subset, nBoot=50, alpha=0.1)
-    plot(res2, error="ci", region=TRUE)
-    # --- Plotoptions [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    plot(res2, error="ci", region=TRUE, rug=TRUE, xlim=c(5232000, 5233000), sigArgs=list(col="firebrick4"), plotArgs=list(main="LES results", yaxp=c(0, 1, 2)), limitArgs=list(lty=2, lwd=3), regionArgs=list(col="black", density=20), probeArgs=list(col="dodgerblue4", type="p"))
-    # --- Export [] ---
-    # Key functions: tempfile, export
+    
     bedFile <- paste(tempfile(), "bed", sep=".")
     gffFile <- paste(tempfile(), "gff", sep=".")
     wigFile <- paste(tempfile(), "wig", sep=".")
+    
     export(res2, bedFile)
     export(res2, gffFile, format="gff")
-    # --- Customweightingfunction [] ---
-    # Key functions: estimate
-    weightFoo <- function(distance, win) {
-    weight <- 1 - distance/win
-    return(weight)
-    }
-    resFoo <- estimate(res, 200, weighting=weightFoo)
-    # --- Chi2 [] ---
-    # Key functions: chi2
-    ## regions <- res["regions"]
-    ## winsize <- seq(100, 300, by=20)
-    ## res2 <- chi2(res2, winsize, regions, offset=2500)
-    ## plot(winsize, x["chi2"], type="b")
+    export(res2, wigFile, format="wig")
+    
+    # ---------------------------------------------------------
+    # 3. Save Outputs to Working Directory
+    # ---------------------------------------------------------
+    # Save regions table
+    regions_df <- res2["regions"]
+    write.csv(regions_df, "detected_regions.csv", row.names = FALSE)
+    
+    # Save RDS object
+    saveRDS(res2, "les_results.rds")
+    
+    # Save PDF plot
+    pdf("les_results_plot.pdf", width = 10, height = 7)
+    tryCatch({
+      plot(res2, error = "ci", region = TRUE)
+    }, error = function(e) {
+      plot(res2, region = TRUE)
+    })
+    dev.off()
+    
+    # Copy exported files to standard names in the working directory
+    if (file.exists(bedFile)) file.copy(bedFile, "regions.bed", overwrite = TRUE)
+    if (file.exists(gffFile)) file.copy(gffFile, "regions.gff", overwrite = TRUE)
+    if (file.exists(wigFile)) file.copy(wigFile, "regions.wig", overwrite = TRUE)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_les_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_les_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_les_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_LES:", paste0("    les: ", packageVersion("les"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION":',
+        paste0('    les: ', as.character(packageVersion('les')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_les_results.csv
-    touch ${prefix}_les_output.rds
-    echo "BIOC_LES:" > versions.yml
-    echo "    les: 0.0.0" >> versions.yml
+    touch ${prefix}_les_detection_and_region_identification.csv versions.yml
     """
 }
 
-
-workflow BIOC_LES_WORKFLOW {
+workflow BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(model_object) ]
+    ch_input  // channel: [ val(meta), [ pos, pval ] ]
 
     main:
-    BIOC_LES(ch_input)
+    BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION(ch_input)
 
     emit:
-    results  = BIOC_LES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_LES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_LES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_LES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION.out.tables
+    plots    = BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION.out.plots
+    objects  = BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION.out.objects
+    versions = BIOC_LES_LES_DETECTION_AND_REGION_IDENTIFICATION.out.versions
 }

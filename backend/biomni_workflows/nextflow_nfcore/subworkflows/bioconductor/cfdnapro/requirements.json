@@ -1,0 +1,31 @@
+{
+  "package": "cfdnapro",
+  "requirements": [
+    "cfDNAPro",
+    "dplyr",
+    "ggplot2",
+    "ggpubr",
+    "magrittr",
+    "scales"
+  ],
+  "by_workflow": {
+    "inter_peak_valley_distance.nf": [
+      "cfDNAPro",
+      "dplyr",
+      "ggplot2",
+      "magrittr"
+    ],
+    "main.nf": [
+      "cfDNAPro",
+      "dplyr",
+      "ggplot2",
+      "ggpubr",
+      "scales"
+    ],
+    "modal_fragment_size.nf": [
+      "cfDNAPro",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

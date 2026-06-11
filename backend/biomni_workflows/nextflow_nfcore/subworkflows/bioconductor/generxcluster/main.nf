@@ -1,95 +1,143 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: geneRxCluster
-// Detect Differential Clustering of Genomic Sites such as gene therapy integrations.  The package prov
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/geneRxCluster/inst/doc/tutorial.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("geneRxCluster")
+// Bioconductor workflow: geneRxCluster — differential_clustering_analysis
+// Detect and analyze genomic regions with differential clustering of integration sites between two groups.
+// Input: exptData.txt
+// Container: quay.io/biocontainers/bioconductor-generxcluster:1.46.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: geneRxCluster
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read genomic site data from a file
+//  * 2. [Core Analysis] Run the differential clustering analysis using gRxCluster
+//  * 3. [Visualization & Output] Summarize the discovered clusters and false discovery rate using gRxSummary
+//  * 4. [Visualization & Output] Plot the critical regions using gRxPlot
+//  * 5. [Core Analysis] (Optional) Customize critical regions and filters to optimize discovery power
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENERXCLUSTER {
+process BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-generxcluster"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-generxcluster:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-generxcluster:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_generxcluster_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_generxcluster_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_generxcluster_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(geneRxCluster)
-    library(GRanges)
-    library(IRanges)
-    library(jsonlite)
+    
+    # 1. Read genomic site data from a file
+    df <- read.table("exptData.txt", header=TRUE)
+    
+    # Ensure positions are sorted within each chromosome (critical pitfall for geneRxCluster)
+    df <- df[order(df\$chromo, df\$pos), ]
+    
+    # 2. Run the differential clustering analysis using gRxCluster
+    null.results <-
+        gRxCluster(df\$chromo,df\$pos,df\$grp,15L:30L,nperm=100L)
+    
+    # 3. Summarize the discovered clusters and false discovery rate using gRxSummary
+    null_summary <- gRxSummary( null.results )
+    capture.output(print(null_summary), file="null_summary.txt")
+    
+    # Set up variables for subsequent steps using the input data
+    df3 <- df
+    alt.results <- null.results
+    
+    # 4. Plot the critical regions using gRxPlot
+    pdf("critical_regions_plot.pdf", width=8, height=6)
+    gRxPlot(alt.results,method="criticalRegions")
+    dev.off()
+    
+    # 5. Customize critical regions and filters to optimize discovery power
+    generous.target.expr <-
+        quote(critVal.target(k,n, target=20, posdiff=x))
+    generous.results <-
+        gRxCluster(df3\$chromo,df3\$pos,df3\$grp,
+    	       15L:30L,nperm=100L,
+    	       cutpt.tail.expr=generous.target.expr)
+    generous_summary <- gRxSummary(generous.results)
+    capture.output(print(generous_summary), file="generous_summary.txt")
+    
+    no.filter.expr <- quote(rep(Inf,ncol(x)))
+    no.filter.results <-
+        gRxCluster(df3\$chromo,df3\$pos,df3\$grp,15L:30L,nperm=100L,
+    	       cutpt.filter.expr=no.filter.expr)
+    no_filter_summary <- gRxSummary(no.filter.results)
+    capture.output(print(no_filter_summary), file="no_filter_summary.txt")
+    
+    hard.filter.expr <-
+        quote(apply(x,2,quantile, 0.15, na.rm=TRUE))
+    hard.filter.results <-
+        gRxCluster(df3\$chromo,df3\$pos,df3\$grp,15L:30L,
+    	       nperm=100L,
+    	       cutpt.filter.expr=hard.filter.expr)
+    hard_filter_summary <- gRxSummary(hard.filter.results)
+    capture.output(print(hard_filter_summary), file="hard_filter_summary.txt")
+    
+    # Save results to RDS objects
+    saveRDS(null.results, "null_results.rds")
+    saveRDS(generous.results, "generous_results.rds")
+    saveRDS(no.filter.results, "no_filter_results.rds")
+    saveRDS(hard.filter.results, "hard_filter_results.rds")
+    
+    # Save results to CSV tables
+    write.csv(as.data.frame(null.results), "null_results.csv", row.names=FALSE)
+    write.csv(as.data.frame(generous.results), "generous_results.csv", row.names=FALSE)
+    write.csv(as.data.frame(no.filter.results), "no_filter_results.csv", row.names=FALSE)
+    write.csv(as.data.frame(hard.filter.results), "hard_filter_results.csv", row.names=FALSE)
 
-    # --- Result Summarisation [] ---
-    # Key functions: gRxSummary
-    summary_df <- gRxSummary(cluster_res)
-
-
-    # --- Visualisation [] ---
-    # Key functions: gRxPlot
-    gRxPlot(cluster_res)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_generxcluster_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_generxcluster_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_generxcluster_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENERXCLUSTER:", paste0("    generxcluster: ", packageVersion("geneRxCluster"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS":',
+        paste0('    geneRxCluster: ', as.character(packageVersion('geneRxCluster')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_generxcluster_results.csv
-    touch ${prefix}_generxcluster_output.rds
-    echo "BIOC_GENERXCLUSTER:" > versions.yml
-    echo "    generxcluster: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_clustering_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENERXCLUSTER_WORKFLOW {
+workflow BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exptData.txt ] ]
 
     main:
-    BIOC_GENERXCLUSTER(ch_input)
+    BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GENERXCLUSTER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENERXCLUSTER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENERXCLUSTER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENERXCLUSTER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS.out.tables
+    plots    = BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS.out.plots
+    objects  = BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS.out.objects
+    versions = BIOC_GENERXCLUSTER_DIFFERENTIAL_CLUSTERING_ANALYSIS.out.versions
 }

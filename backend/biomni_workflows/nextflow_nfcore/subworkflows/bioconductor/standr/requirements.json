@@ -1,0 +1,19 @@
+{
+  "package": "standr",
+  "requirements": [
+    "SpatialExperiment",
+    "ggalluvial",
+    "ggplot2",
+    "limma",
+    "standR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialExperiment",
+      "ggalluvial",
+      "ggplot2",
+      "limma",
+      "standR"
+    ]
+  }
+}

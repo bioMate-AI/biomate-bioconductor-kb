@@ -1,0 +1,13 @@
+{
+  "package": "optimalflow",
+  "requirements": [
+    "EBImage",
+    "optimalFlow"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EBImage",
+      "optimalFlow"
+    ]
+  }
+}

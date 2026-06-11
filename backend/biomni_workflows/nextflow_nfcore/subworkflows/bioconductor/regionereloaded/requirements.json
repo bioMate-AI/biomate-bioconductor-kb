@@ -1,0 +1,19 @@
+{
+  "package": "regionereloaded",
+  "requirements": [
+    "GenomicRanges",
+    "regioneR",
+    "regioneReloaded"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "regioneR",
+      "regioneReloaded"
+    ],
+    "multi_local_zscore.nf": [
+      "GenomicRanges",
+      "regioneReloaded"
+    ]
+  }
+}

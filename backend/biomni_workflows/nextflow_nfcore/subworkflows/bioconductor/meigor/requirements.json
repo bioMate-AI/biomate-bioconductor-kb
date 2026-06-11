@@ -1,0 +1,11 @@
+{
+  "package": "meigor",
+  "requirements": [
+    "MEIGOR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MEIGOR"
+    ]
+  }
+}

@@ -1,108 +1,149 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Harman
-// Harman is a PCA and constrained optimisation based technique that maximises the removal of batch eff
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Harman/inst/doc/IntroductionToHarman.R
-// Upstream  : HarmanData, RColorBrewer, bladderbatch, limma, msmsEDA
-// Downstream: none
-//
-// Install: BiocManager::install("Harman")
+// Bioconductor workflow: Harman — transcriptomic_microarray
+// Correct batch effects in log2-transformed microarray expression data and reconstruct the corrected matrix.
+// Input: olf.data, olf.info
+// Container: quay.io/biocontainers/bioconductor-harman:1.38.0--r45ha27e39d_0
+// R packages: bladderbatch, Harman, harmandata, limma, msmsEDA, RColorBrewer
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Harman
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Run harman to find and correct batch effects. 2. Inspect results using plot, arrowPlot, and summary. 3. Reconstruct the corrected 
 
 nextflow.enable.dsl = 2
 
-process BIOC_HARMAN {
+process BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-harman"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-harman:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-harman:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_harman_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_harman_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_harman_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("bladderbatch", "Harman", "harmandata", "limma", "msmsEDA", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(Harman)
-    library(jsonlite)
-
-    # --- Visualisation of Correction [] ---
-    # Key functions: arrowPlot, pcaPlot
-    arrowPlot(olf.harman, main = "Arrowplot of correction")
-    arrowPlot(olf.harman, 1, 8)
-    pcaPlot(olf.harman, colBy = "batch", pchBy = "expt")
-
-
-    # --- Data Reconstruction [] ---
-    # Key functions: reconstructData
+    
+    # Helper function to read inputs robustly (handles RDS, TSV, or CSV)
+    read_input <- function(file_path) {
+      if (!file.exists(file_path)) {
+        stop(paste("Required input file missing:", file_path))
+      }
+      
+      # Try reading as RDS
+      obj <- tryCatch(readRDS(file_path), error = function(e) NULL)
+      if (!is.null(obj)) return(obj)
+      
+      # Try reading as table (tab/space delimited)
+      obj <- tryCatch(read.table(file_path, header = TRUE, row.names = 1, check.names = FALSE), error = function(e) NULL)
+      if (!is.null(obj)) return(obj)
+      
+      # Try reading as CSV
+      obj <- tryCatch(read.csv(file_path, header = TRUE, row.names = 1, check.names = FALSE), error = function(e) NULL)
+      if (!is.null(obj)) return(obj)
+      
+      stop(paste("Failed to parse file:", file_path))
+    }
+    
+    # 1. Read User Inputs
+    olf.data <- read_input("olf.data")
+    olf.info <- read_input("olf.info")
+    
+    # Ensure correct data types and structures
+    olf.data <- as.matrix(olf.data)
+    olf.info\$Treatment <- as.factor(olf.info\$Treatment)
+    olf.info\$Batch <- as.factor(olf.info\$Batch)
+    
+    # 2. Run Harman to find and correct batch effects
+    olf.harman <- harman(olf.data, expt=olf.info\$Treatment, batch=olf.info\$Batch, limit=0.95)
+    
+    # 3. Inspect results and save outputs
+    # Save diagnostic plots to PDF
+    pdf("harman_diagnostics.pdf", width = 7, height = 7)
+    plot(olf.harman)
+    arrowPlot(olf.harman, main='Arrowplot of correction')
+    dev.off()
+    
+    # Save summary text to file
+    sink("harman_summary.txt")
+    summary(olf.harman)
+    sink()
+    
+    # Save the harmanresults object
+    saveRDS(olf.harman, "olf_harman_results.rds")
+    
+    # 4. Reconstruct the corrected data matrix
     olf.data.corrected <- reconstructData(olf.harman)
-    olf.data.remade <- reconstructData(olf.harman, this = "original")
+    
+    # Save corrected data matrix
+    write.csv(olf.data.corrected, "olf_data_corrected.csv", row.names = TRUE)
+    saveRDS(olf.data.corrected, "olf_data_corrected.rds")
+    
+    # 5. Reconstruct original data and verify reconstruction integrity
+    olf.data.remade <- reconstructData(olf.harman, this='original')
+    verification <- all.equal(as.matrix(olf.data), olf.data.remade)
+    
+    # Save verification result
+    writeLines(as.character(verification), "reconstruction_verification.txt")
 
-
-    # --- PCA Plotting [] ---
-    # Key functions: prcompPlot
-    prcompPlot(
-        imr90.pca,
-        pc_x = 1,
-        pc_y = 2,
-        colFactor = imr90.info$Batch,
-        pchFactor = imr90.info$Treatment,
-        main = "IMR90, PC1 v PC2"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_harman_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_harman_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_harman_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_HARMAN:", paste0("    harman: ", packageVersion("Harman"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY":',
+        paste0('    Harman: ', as.character(packageVersion('Harman')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_harman_results.csv
-    touch ${prefix}_harman_output.rds
-    echo "BIOC_HARMAN:" > versions.yml
-    echo "    harman: 0.0.0" >> versions.yml
+    touch ${prefix}_transcriptomic_microarray.csv versions.yml
     """
 }
 
-
-workflow BIOC_HARMAN_WORKFLOW {
+workflow BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ olf.data, olf.info ] ]
 
     main:
-    BIOC_HARMAN(ch_input)
+    BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY(ch_input)
 
     emit:
-    results  = BIOC_HARMAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_HARMAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_HARMAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_HARMAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY.out.tables
+    plots    = BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY.out.plots
+    objects  = BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY.out.objects
+    versions = BIOC_HARMAN_TRANSCRIPTOMIC_MICROARRAY.out.versions
 }

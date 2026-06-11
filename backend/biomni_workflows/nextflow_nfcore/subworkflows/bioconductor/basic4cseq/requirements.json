@@ -1,0 +1,17 @@
+{
+  "package": "basic4cseq",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm9",
+    "Basic4Cseq",
+    "GenomicAlignments",
+    "caTools"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm9",
+      "Basic4Cseq",
+      "GenomicAlignments",
+      "caTools"
+    ]
+  }
+}

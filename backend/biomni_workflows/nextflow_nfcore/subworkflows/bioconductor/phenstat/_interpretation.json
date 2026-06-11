@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: depVariable=The name of the dependent variable to analyze (e.g., \"Value\") ;; method=The statistical method to use, such as \"MM\" (Mixed Model), \"FE\" (Fisher's Exact Test), or \"RR\" (Reference Range Plus) ;; equation=Specifies the model equation, typically \"withBatch\" or \"withoutBatch\" ;; refGenotype=The character string representing the wild-type or reference genotype (e.g., \"WT\") ;; testGenotype=The character string representing the knockout or test genotype\n- alternatives: Direct use of nlme::lme or lme4::lmer for custom mixed-effects modeling when PhenStat's standard pipelines are too rigid, or standard stats::fisher.test for simple contingency tables.\n- when_to_use: Appropriate for analyzing high-throughput phenotypic data from model organisms (e.g., mice) where experimental design includes a control group, knockout groups, sex as a covariate, and batch/date of measurement as a random effect.\n- pitfalls: Model convergence failures in Mixed Models (\"MM\") when sample sizes per sex/genotype/batch combination are extremely small; incorrect formatting of the input dataset (e.g., missing Genotype or Sex columns); and failure to specify the correct reference genotype which leads to inverted effect size interpretations.",
+  "workflows": [
+    {
+      "name": "mixed_model_quantitative_analysis",
+      "intent": "Perform linear mixed model analysis on quantitative phenotypic data to test for genotype effects while controlling for batch and sex.",
+      "input": [
+        "phenotypic_data.csv (CSV file containing columns for Genotype, Sex, Batch, and the quantitative dependent variable of interest)"
+      ],
+      "stages": "1. Load data and create a PhenList object using PhenList() ;; 2. Run the statistical analysis using testDataset() with method=\"MM\" ;; 3. Extract classification tags using classificationTag() ;; 4. Generate diagnostic plots using plot()",
+      "code": "library(PhenStat)\ndataset <- read.csv(\"phenotypic_data.csv\")\nphenList <- PhenList(dataset, testGenotype=\"KO\", refGenotype=\"WT\", dataset.colname.batch=\"Batch\", dataset.colname.genotype=\"Genotype\", dataset.colname.sex=\"Sex\")\nresult <- testDataset(phenList, depVariable=\"Value\", method=\"MM\", equation=\"withBatch\")\nclassificationTag(result)\nrecommendation(result)\nplot(result)"
+    },
+    {
+      "name": "fishers_exact_categorical_analysis",
+      "intent": "Perform Fisher's exact test on categorical phenotypic data to determine association between genotype and a categorical outcome.",
+      "input": [
+        "categorical_phenotypic_data.csv (CSV file containing columns for Genotype, Sex, and a categorical dependent variable)"
+      ],
+      "stages": "1. Load data and create a PhenList object using PhenList() ;; 2. Run the statistical analysis using testDataset() with method=\"FE\" ;; 3. Extract classification tags using classificationTag()",
+      "code": "library(PhenStat)\ndataset <- read.csv(\"categorical_phenotypic_data.csv\")\nphenList <- PhenList(dataset, testGenotype=\"KO\", refGenotype=\"WT\", dataset.colname.genotype=\"Genotype\", dataset.colname.sex=\"Sex\")\nresult <- testDataset(phenList, depVariable=\"CategoryValue\", method=\"FE\")\nclassificationTag(result)"
+    }
+  ]
+}

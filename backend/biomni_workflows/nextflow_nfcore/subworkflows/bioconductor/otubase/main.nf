@@ -1,120 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: OTUbase
-// Provides a platform for Operational Taxonomic Unit based analysis
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/OTUbase/inst/doc/Introduction_to_OTUbase.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("OTUbase")
+// Bioconductor workflow: otubase — otu_based_analysis
+// Import Mothur OTU files and metadata, generate an abundance table, estimate richness, cluster samples, and subset the dataset.
+// Input: sogin.groups, sogin.unique.filter.fn.list, sample_metadata.txt, sogin.fasta
+// Container: quay.io/biocontainers/bioconductor-otubase:1.60.0--r45hdfd78af_0
+// R packages: OTUbase, vegan
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_OTUBASE {
+process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-otubase"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-otubase:1.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-otubase:1.56.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-otubase:1.60.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_otubase_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_otubase_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_otubase_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("OTUbase", "vegan")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(OTUbase)
-    library(jsonlite)
-
-    # --- Dirpath [] ---
-    # Key functions: file
-    dirPath <- system.file("extdata/Sogin_2006", package="OTUbase")
-    # --- Readotuset [] ---
-    # Key functions: readOTUset
-    soginOTU <- readOTUset(dirPath=dirPath, level="0.03", samplefile="sogin.groups", fastafile="sogin.fasta", otufile="sogin.unique.filter.fn.list", sampleADF="sample_metadata.txt")
-    soginOTU
-    # --- Readtaxset [] ---
-    # Key functions: readTAXset
-    soginTAX <- readTAXset(dirPath=dirPath, fastafile='sogin.fasta', sampleADF='sample_metadata.txt', taxfile='sogin.unique.fix.tax', namefile='sogin.names', samplefile='sogin.groups')
-    soginTAX
-    # --- Accessors [] ---
-    # Key functions: id, sread, sampleID, sData
-    head(id(soginOTU))
-    head(sread(soginOTU))
-    head(sampleID(soginOTU))
-    head(sData(soginOTU))
-    # --- Accessors [] ---
-    # Key functions: otuID, tax
-    head(otuID(soginOTU))
-    head(tax(soginTAX))
-    # --- Abundance [] ---
-    # Key functions: abundance
-    abundOTU <- abundance(soginOTU, weighted=F, collab='Site')
-    head(abundOTU)
-    abundTAX <- abundance(soginTAX, weighted=F, taxCol='genus', collab='Site')
-    head(abundTAX)
-    # --- Clustersamples [] ---
-    # Key functions: clusterSamples
-    clusterSamples(soginOTU, distmethod='jaccard', clustermethod='complete', collab='Site')
-    clusterSamples(soginTAX, taxCol='genus', distmethod='jaccard', clustermethod='complete', collab='Site')
-    # --- Subotuset [] ---
-    # Key functions: subOTUset
-    soginReduced <- subOTUset(soginOTU, samples=c("137", "138", "53R", "55R"))
-    soginReduced
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_otubase_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_otubase_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_otubase_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OTUBASE:", paste0("    otubase: ", packageVersion("OTUbase"))),
-        "versions.yml"
+    library(vegan)
+    
+    # 1. Define directory path (working directory where user files are located)
+    dirPath <- "."
+    
+    # 2. Read OTU data and metadata using readOTUset
+    soginOTU <- readOTUset(
+      dirPath = dirPath,
+      level = "0.03",
+      samplefile = "sogin.groups",
+      fastafile = "sogin.fasta",
+      otufile = "sogin.unique.filter.fn.list",
+      sampleADF = "sample_metadata.txt"
     )
+    
+    # Print object summary
+    print(soginOTU)
+    
+    # 3. Access sequence and sample IDs
+    cat("--- Sequence IDs ---\n")
+    print(head(id(soginOTU)))
+    
+    cat("--- Sequences ---\n")
+    print(head(sread(soginOTU)))
+    
+    cat("--- Sample IDs ---\n")
+    print(head(sampleID(soginOTU)))
+    
+    cat("--- Sample Metadata ---\n")
+    print(head(sData(soginOTU)))
+    
+    cat("--- OTU IDs ---\n")
+    print(head(otuID(soginOTU)))
+    
+    # 4. Generate OTU abundance table
+    abundOTU <- abundance(soginOTU, weighted = FALSE, collab = 'Site')
+    cat("--- Abundance Table ---\n")
+    print(head(abundOTU))
+    
+    # Save abundance table to CSV
+    write.csv(abundOTU, file = "abundance_table.csv", row.names = TRUE)
+    
+    # 5. Estimate richness using vegan::estimateR
+    estrichOTU <- apply(abundOTU, 2, estimateR)
+    cat("--- Richness Estimates ---\n")
+    print(estrichOTU)
+    
+    # Save richness estimates to CSV
+    write.csv(estrichOTU, file = "richness_estimates.csv", row.names = TRUE)
+    
+    # 6. Cluster samples (plots a dendrogram, save to PDF)
+    pdf("sample_clustering.pdf", width = 8, height = 6)
+    clusterSamples(soginOTU, distmethod = 'jaccard', clustermethod = 'complete', collab = 'Site')
+    dev.off()
+    
+    # 7. Subset the OTU set
+    # Wrapped in tryCatch to handle cases where user-provided metadata/groups 
+    # might not contain these exact sample IDs.
+    tryCatch({
+      soginReduced <- subOTUset(soginOTU, samples = c("137", "138", "53R", "55R"))
+      print(soginReduced)
+      saveRDS(soginReduced, file = "sogin_reduced.rds")
+    }, error = function(e) {
+      warning("Could not subset OTU set with the specified sample IDs: ", e\$message)
+    })
+
+    writeLines(c(
+        '"BIOC_OTUBASE_OTU_BASED_ANALYSIS":',
+        paste0('        otubase: ', as.character(packageVersion("otubase")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_otubase_results.csv
-    touch ${prefix}_otubase_output.rds
-    echo "BIOC_OTUBASE:" > versions.yml
-    echo "    otubase: 0.0.0" >> versions.yml
+    touch ${prefix}_otu_based_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_OTUBASE_WORKFLOW {
+workflow BIOC_OTUBASE_OTU_BASED_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sogin.groups, sogin.unique.filter.fn.list, sample_metadata.txt, sogin.fasta ] ]
 
     main:
-    BIOC_OTUBASE(ch_input)
+    BIOC_OTUBASE_OTU_BASED_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_OTUBASE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OTUBASE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OTUBASE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OTUBASE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OTUBASE_OTU_BASED_ANALYSIS.out.tables
+    plots    = BIOC_OTUBASE_OTU_BASED_ANALYSIS.out.plots
+    objects  = BIOC_OTUBASE_OTU_BASED_ANALYSIS.out.objects
+    versions = BIOC_OTUBASE_OTU_BASED_ANALYSIS.out.versions
 }

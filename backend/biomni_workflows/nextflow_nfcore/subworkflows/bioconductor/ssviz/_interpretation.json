@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=The property to plot in plotDistro (e.g., \"qwidth\" for read length) ;; samplenames=A character vector of sample names for labeling plots ;; ncounts=Total mapped reads used for scaling/normalization in plotDistro ;; region=A genomic interval string (e.g., 'chr1:3015526-3080526') for plotRegion ;; ntlength=The nucleotide length (integer) from the 5' end to compute frequency over in ntfreq\n- alternatives: fastx-toolkit=Used for pre-processing raw reads (adapter trimming and collapsing identical sequences) ;; bowtie=Used for mapping reads to the genome or contaminants ;; Rsamtools=The package containing scanBam, which readBam wraps\n- when_to_use: Use this package when analyzing small RNA-seq datasets (miRNA or piRNA) where identical sequences have been collapsed into a single read with the fastx-toolkit naming convention (readname-readcount) and mapped to a reference genome or database.\n- pitfalls: The package strictly expects collapsed read names to follow the fastx-toolkit convention (readname-readcount) to correctly extract and append the counts column ;; For accurate comparative plots, users must provide proper normalization factors (ncounts) representing the total mapped reads from the mapper.",
+  "workflows": [
+    {
+      "name": "small_rna_distribution_analysis",
+      "intent": "Load small RNA-seq BAM files, extract collapsed read counts, and visualize read length distributions and genomic region densities.",
+      "input": [
+        "file1.bam (mapped control small RNA-seq reads)",
+        "file2.bam (mapped treatment small RNA-seq reads)"
+      ],
+      "stages": "1. Identify and load BAM files using readBam ;; 2. Extract collapsed read counts and append them to the data frame using getCountMatrix ;; 3. Plot read length distribution for single or multiple datasets using plotDistro ;; 4. Plot read density over a specific genomic region using plotRegion",
+      "code": "bam.files<-dir(system.file(\"extdata\", package=\"ssviz\"), full=TRUE, patt=\"bam$\")\nctrlbam<-readBam(bam.files[1])\ntreatbam<-readBam(bam.files[2])\nctrl.count<-getCountMatrix(ctrlbam)\ntreat.count<-getCountMatrix(treatbam)\nplotDistro(list(ctrl.count), type=\"qwidth\", samplenames=c(\"Control\"), ncounts=counts[1])\nplotDistro(list(ctrl.count, treat.count), type=\"qwidth\", samplenames=c(\"Control\",\"Treatment\"), ncounts=counts)\nregion<-'chr1:3015526-3080526'\nplotRegion(list(ctrl.count), region=region)"
+    },
+    {
+      "name": "pirna_ping_pong_and_composition",
+      "intent": "Perform piRNA-specific analyses including ping-pong feedback loop overlap detection and 5-prime nucleotide frequency bias calculation.",
+      "input": [
+        "file1.bam (mapped piRNA-seq reads)"
+      ],
+      "stages": "1. Load the dataset and extract collapsed read counts using getCountMatrix ;; 2. Calculate sense and anti-sense piRNA overlap frequencies using pingpong ;; 3. Plot the ping-pong overlap frequency using plotPP ;; 4. Compute nucleotide frequency over a specified length using ntfreq ;; 5. Plot the nucleotide composition using plotFreq",
+      "code": "data(ssviz)\npp.ctrl<-pingpong(pctrlbam.count)\nplotPP(list(pp.ctrl), samplenames=c(\"Control\"))\npctrlbam.count<-getCountMatrix(pctrlbam)\nfreq.ctrl<-ntfreq(pctrlbam.count, ntlength=10)\nplotFreq(freq.ctrl)"
+    }
+  ]
+}

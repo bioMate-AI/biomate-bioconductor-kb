@@ -1,0 +1,21 @@
+{
+  "package": "dexma",
+  "requirements": [
+    "Biobase",
+    "DExMA",
+    "swamp"
+  ],
+  "by_workflow": {
+    "batch_effect_correction.nf": [
+      "Biobase",
+      "DExMA",
+      "swamp"
+    ],
+    "download_geo_data.nf": [
+      "DExMA"
+    ],
+    "main.nf": [
+      "DExMA"
+    ]
+  }
+}

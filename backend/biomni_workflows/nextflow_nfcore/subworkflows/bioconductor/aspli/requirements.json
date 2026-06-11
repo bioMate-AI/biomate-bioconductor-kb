@@ -1,0 +1,15 @@
+{
+  "package": "aspli",
+  "requirements": [
+    "ASpli",
+    "GenomicFeatures",
+    "txdbmaker"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ASpli",
+      "GenomicFeatures",
+      "txdbmaker"
+    ]
+  }
+}

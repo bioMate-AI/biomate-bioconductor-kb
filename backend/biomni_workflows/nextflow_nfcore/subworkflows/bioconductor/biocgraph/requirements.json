@@ -1,0 +1,15 @@
+{
+  "package": "biocgraph",
+  "requirements": [
+    "Rgraphviz",
+    "biocGraph",
+    "graph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Rgraphviz",
+      "biocGraph",
+      "graph"
+    ]
+  }
+}

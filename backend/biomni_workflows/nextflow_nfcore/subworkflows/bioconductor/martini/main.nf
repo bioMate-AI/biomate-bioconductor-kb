@@ -1,100 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: martini
-// martini deals with the low power inherent to GWAS studies by using prior knowledge represented as a 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/martini/inst/doc/scones_usage.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("martini")
+// Bioconductor workflow: martini — gwas_network_association
+// Find connected explanatory SNPs (ConES) using GWAS data and a SNP network.
+// Input: minigwas, minisnpMapping, minippi
+// Container: quay.io/biocontainers/bioconductor-martini:1.30.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: martini, snpStats
+// Visualizations: network plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package
+//  * 2. [Input & Preparation] Create genomic structure (GS), gene-membership (GM), or gene-interaction (GI) networks
+//  * 3. [Core Analysis] Run SConES with grid search cross-validation
+//  * 4. [Core Analysis] Inspect the selected explanatory SNPs
 
 nextflow.enable.dsl = 2
 
-process BIOC_MARTINI {
+process BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-martini"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-martini:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-martini:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_martini_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_martini_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_martini_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the packages
     library(martini)
-    library(jsonlite)
-
-    # --- create GS network [] ---
-    # Key functions: get_GS_network
-    gs <- get_GS_network(minigwas)
-    par(mar=c(0,0,0,0)+.1)
-    plot(gs)
-    # --- create GM network [] ---
-    # Key functions: get_GM_network
-    gm <- get_GM_network(minigwas, snpMapping = minisnpMapping)
-    par(mar=c(0,0,0,0)+.1)
-    plot(gm)
-    # --- create GI network [] ---
-    # Key functions: get_GI_network
-    gi <- get_GI_network(minigwas, snpMapping = minisnpMapping, ppi = minippi)
-    par(mar=c(0,0,0,0)+.1)
-    plot(gi)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_martini_results.csv", row.names = TRUE)
+    library(snpStats) # Required for SnpMatrix class handling
+    
+    # Load user input files from the working directory
+    if (file.exists("minigwas.rds")) {
+      minigwas <- readRDS("minigwas.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_martini_results.csv")
+      stop("Error: minigwas.rds not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_martini_output.rds")
+    
+    if (file.exists("minisnpMapping.rds")) {
+      minisnpMapping <- readRDS("minisnpMapping.rds")
+    } else if (file.exists("minisnpMapping.csv")) {
+      minisnpMapping <- read.csv("minisnpMapping.csv", stringsAsFactors = FALSE)
+    } else {
+      stop("Error: minisnpMapping (RDS or CSV) not found in the working directory.")
     }
+    
+    if (file.exists("minippi.rds")) {
+      minippi <- readRDS("minippi.rds")
+    } else if (file.exists("minippi.csv")) {
+      minippi <- read.csv("minippi.csv", stringsAsFactors = FALSE)
+    } else {
+      stop("Error: minippi (RDS or CSV) not found in the working directory.")
+    }
+    
+    # 2. Create genomic structure (GS), gene-membership (GM), or gene-interaction (GI) networks
+    message("Creating GS network...")
+    gs <- get_GS_network(minigwas)
+    
+    message("Creating GM network...")
+    gm <- get_GM_network(minigwas, snpMapping = minisnpMapping)
+    
+    message("Creating GI network...")
+    gi <- get_GI_network(minigwas, snpMapping = minisnpMapping, ppi = minippi)
+    
+    # Save networks to RDS
+    saveRDS(gs, "gs_network.rds")
+    saveRDS(gm, "gm_network.rds")
+    saveRDS(gi, "gi_network.rds")
+    
+    # Plot networks to PDF
+    pdf("networks_plots.pdf", width = 8, height = 8)
+    par(mar = c(0, 0, 0, 0) + 0.1)
+    plot(gs)
+    title("GS Network", line = -2)
+    plot(gm)
+    title("GM Network", line = -2)
+    plot(gi)
+    title("GI Network", line = -2)
+    dev.off()
+    
+    # 3. Run SConES with grid search cross-validation
+    message("Running SConES cross-validation...")
+    cones <- scones.cv(minigwas, gi)
+    
+    # 4. Inspect the selected explanatory SNPs
+    message("Inspecting selected explanatory SNPs:")
+    print(head(cones))
+    
+    # Save results
+    write.csv(as.data.frame(cones), "cones_results.csv", row.names = FALSE)
+    saveRDS(cones, "cones_results.rds")
+    
+    message("Pipeline completed successfully. Outputs saved to 'cones_results.csv', 'cones_results.rds', 'networks_plots.pdf', and network RDS files.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MARTINI:", paste0("    martini: ", packageVersion("martini"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION":',
+        paste0('    martini: ', as.character(packageVersion('martini')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_martini_results.csv
-    touch ${prefix}_martini_output.rds
-    echo "BIOC_MARTINI:" > versions.yml
-    echo "    martini: 0.0.0" >> versions.yml
+    touch ${prefix}_gwas_network_association.csv versions.yml
     """
 }
 
-
-workflow BIOC_MARTINI_WORKFLOW {
+workflow BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ minigwas, minisnpMapping, minippi ] ]
 
     main:
-    BIOC_MARTINI(ch_input)
+    BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION(ch_input)
 
     emit:
-    results  = BIOC_MARTINI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MARTINI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MARTINI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MARTINI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION.out.tables
+    plots    = BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION.out.plots
+    objects  = BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION.out.objects
+    versions = BIOC_MARTINI_GWAS_NETWORK_ASSOCIATION.out.versions
 }

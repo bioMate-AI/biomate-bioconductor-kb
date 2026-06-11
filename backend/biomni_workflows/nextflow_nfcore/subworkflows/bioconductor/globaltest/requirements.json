@@ -1,0 +1,26 @@
+{
+  "package": "globaltest",
+  "requirements": [
+    "globaltest",
+    "hu6800.db",
+    "rpart",
+    "vsn"
+  ],
+  "by_workflow": {
+    "gene_set_testing.nf": [
+      "globaltest",
+      "hu6800.db",
+      "vsn"
+    ],
+    "goodness_of_fit_testing.nf": [
+      "globaltest",
+      "rpart"
+    ],
+    "graph_structured_multiple_testing.nf": [
+      "globaltest"
+    ],
+    "main.nf": [
+      "globaltest"
+    ]
+  }
+}

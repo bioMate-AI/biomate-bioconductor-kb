@@ -1,112 +1,115 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: FilterFFPE
-// This package finds and filters artificial chimeric reads specifically generated in next-generation s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/FilterFFPE/inst/doc/FilterFFPE.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("FilterFFPE")
+// Bioconductor workflow: FilterFFPE — artifact_chimeric_read_filtration
+// Find and filter artificial chimeric reads and their duplicates from an FFPE BAM file to prepare it for downstream structural variation calling.
+// Input: file.bam
+// Container: quay.io/biocontainers/bioconductor-filterffpe:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: FilterFFPE, Rsamtools
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Find artifact chimeric reads and duplicate chimeric reads using findArtifactChimericReads
+//  * 2. [Input & Preparation] Filter the BAM file by read names using filterBamByReadNames
+//  * 3. [Core Analysis] Alternatively, perform both finding and filtering in a single step using FFPEReadFilter
+//  * 4. [Core Analysis] Verify the filtered BAM file using Rsamtools::scanBam
 
 nextflow.enable.dsl = 2
 
-process BIOC_FILTERFFPE {
+process BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-filterffpe"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-filterffpe:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-filterffpe:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_filterffpe_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_filterffpe_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_filterffpe_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(FilterFFPE)
-    library(FFPEReadFilter)
-    library(jsonlite)
-
-    # --- Filter BAM by Read Names [] ---
-    # Key functions: filterBamByReadNames
-    file <- system.file("extdata", "example.bam", package = "FilterFFPE")
-    outFolder <- tempdir()
+    library(Rsamtools)
+    
+    # Define input file (must exist in the working directory)
+    file <- "file.bam"
+    
+    # Define output paths in the current working directory
+    outFolder <- "."
+    FFPEReadsFile <- paste0(outFolder, "/example.FFPEReads.txt")
+    dupChimFile <- paste0(outFolder, "/example.dupChim.txt")
+    
+    # 1. Find artifact chimeric reads and duplicate chimeric reads
+    artifactReads <- findArtifactChimericReads(file = file, threads = 2,
+                                               FFPEReadsFile = FFPEReadsFile,
+                                               dupChimFile = dupChimFile)
+    
+    # Save identified artifact reads to an RDS file
+    saveRDS(artifactReads, file = "artifactReads.rds")
+    
+    # 2. Filter the BAM file by read names
+    dupChim <- readLines(dupChimFile)
+    readsToFilter <- c(artifactReads, dupChim)
     destination <- paste0(outFolder, "/example.FilterFFPE.bam")
-    filterBamByReadNames(
-        file = file, 
-        readsToFilter = c("read1", "read2"),
-        destination = destination, 
-        overwrite = TRUE
-    )
+    filterBamByReadNames(file = file, readsToFilter = readsToFilter,
+                         destination = destination, overwrite=TRUE)
+    
+    # 3. Alternatively, perform both finding and filtering in a single step
+    FFPEReadFilter(file = file, threads=2, destination = destination,
+                   overwrite=TRUE, FFPEReadsFile = FFPEReadsFile,
+                   dupChimFile = dupChimFile)
+    
+    # 4. Verify the filtered BAM file using Rsamtools::scanBam
+    newBam <- Rsamtools::scanBam(destination)
+    
+    # Save scan results to an RDS file
+    saveRDS(newBam, file = "scanBam_results.rds")
 
-
-    # --- One-step FFPE Read Filtering [] ---
-    # Key functions: FFPEReadFilter
-    file <- system.file("extdata", "example.bam", package = "FilterFFPE")
-    outFolder <- tempdir()
-    destination <- paste0(outFolder, "/example.FilterFFPE.bam")
-    FFPEReadFilter(
-        file = file, 
-        threads = 2, 
-        destination = destination,
-        overwrite = TRUE, 
-        FFPEReadsFile = paste0(outFolder, "/example.FFPEReads.txt"),
-        dupChimFile = paste0(outFolder, "/example.dupChim.txt")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_filterffpe_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_filterffpe_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_filterffpe_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FILTERFFPE:", paste0("    filterffpe: ", packageVersion("FilterFFPE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION":',
+        paste0('    FilterFFPE: ', as.character(packageVersion('FilterFFPE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_filterffpe_results.csv
-    touch ${prefix}_filterffpe_output.rds
-    echo "BIOC_FILTERFFPE:" > versions.yml
-    echo "    filterffpe: 0.0.0" >> versions.yml
+    touch ${prefix}_artifact_chimeric_read_filtration.csv versions.yml
     """
 }
 
-
-workflow BIOC_FILTERFFPE_WORKFLOW {
+workflow BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file.bam ] ]
 
     main:
-    BIOC_FILTERFFPE(ch_input)
+    BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION(ch_input)
 
     emit:
-    results  = BIOC_FILTERFFPE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FILTERFFPE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FILTERFFPE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FILTERFFPE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION.out.tables
+    plots    = BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION.out.plots
+    objects  = BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION.out.objects
+    versions = BIOC_FILTERFFPE_ARTIFACT_CHIMERIC_READ_FILTRATION.out.versions
 }

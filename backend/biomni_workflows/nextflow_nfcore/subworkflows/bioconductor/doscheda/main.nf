@@ -1,115 +1,242 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: Doscheda
-// Doscheda focuses on quantitative chemoproteomics used to determine protein interaction profiles of s
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/Doscheda/inst/doc/Doscheda.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("Doscheda")
+// Bioconductor workflow: Doscheda — doscheda_chemoproteomics
+// Quantitative chemoproteomics analysis pipeline to determine protein-small molecule interaction profiles from peptide/protein intensity data.
+// Input: intensity.csv, coldata.csv
+// Container: 1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Doscheda
+// Visualizations: box plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DOSCHEDA {
+process BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-doscheda"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-doscheda:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-doscheda:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_doscheda_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_doscheda_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_doscheda_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(Doscheda)
-    library(jsonlite)
-
-    # --- Dataset Loading [] ---
-    # Key functions: setData
-    channelNames <- c(
-        "Abundance..F1..126..Control..REP_1",
-        "Abundance..F1..127..Sample..REP_1",
-        "Abundance..F2..126..Control..REP_2",
-        "Abundance..F2..127..Sample..REP_2"
+    
+    # Define parameters (can be configured)
+    pearson_threshold <- 0.4
+    normalization_method <- "loess" # Options: 'loess', 'median', 'none'
+    
+    # Stage 1: Read and validate input files
+    if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    intensity <- read.csv("intensity.csv", stringsAsFactors = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    if (!"feature_id" %in% colnames(intensity)) {
+      stop("intensity.csv must contain a 'feature_id' column representing protein/peptide IDs.")
+    }
+    
+    if (!all(c("sample", "condition") %in% colnames(coldata))) {
+      stop("coldata.csv must contain 'sample' and 'condition' columns.")
+    }
+    
+    # Align coldata with intensity columns
+    common_samples <- intersect(coldata\$sample, colnames(intensity))
+    if (length(common_samples) == 0) {
+      stop("No matching sample columns found between intensity.csv and coldata.csv.")
+    }
+    
+    coldata <- coldata[coldata\$sample %in% common_samples, ]
+    
+    # Stage 2: Replicate and Channel Ordering
+    # Doscheda expects channels to be ordered by replicate, then by concentration/condition.
+    # We dynamically assign replicate indices based on the occurrence of each condition.
+    coldata <- coldata[order(coldata\$condition), ]
+    coldata\$replicate <- ave(seq_len(nrow(coldata)), coldata\$condition, FUN = seq_along)
+    coldata <- coldata[order(coldata\$replicate, coldata\$condition), ]
+    
+    channelNames <- coldata\$sample
+    chansVal <- length(unique(coldata\$condition))
+    repsVal <- length(unique(coldata\$replicate))
+    
+    message(paste("Detected", chansVal, "channels and", repsVal, "replicates."))
+    
+    # Stage 3: Prepare Data Frame for Doscheda
+    # Doscheda requires specific columns for peptide intensity datasets:
+    # 'Master.Protein.Accessions', 'Sequence', and 'Qvality.PEP'
+    intensity\$Master.Protein.Accessions <- intensity\$feature_id
+    intensity\$Sequence <- intensity\$feature_id
+    intensity\$Qvality.PEP <- 1e-5 # Assign a high-quality default PEP score to prevent filtering
+    
+    # Stage 4: Initialize ChemoProtSet and Set Parameters
+    ex <- new('ChemoProtSet')
+    ex <- setParameters(
+      x = ex,
+      chansVal = chansVal,
+      repsVal = repsVal,
+      dataTypeStr = 'intensity',
+      modelTypeStr = 'linear',
+      PDBool = FALSE,
+      removePepsBool = FALSE,
+      incPDofPDBool = FALSE,
+      incGeneFileBool = FALSE,
+      organismStr = 'H.sapiens',
+      pearsonThrshVal = pearson_threshold
     )
-    ex <- doscheda::setData(
-        x = ex, dataFrame = Doscheda::doschedaData,
-        dataChannels = channelNames,
-        accessionChannel = "Master.Protein.Accessions",
-        sequenceChannel = 'Sequence',
-        qualityChannel = "Qvality.PEP"
+    
+    # Set Data
+    ex <- setData(
+      x = ex,
+      dataFrame = intensity,
+      dataChannels = channelNames,
+      accessionChannel = "Master.Protein.Accessions",
+      sequenceChannel = "Sequence",
+      qualityChannel = "Qvality.PEP"
     )
-
-
-    # --- Peptide Filtering and Normalisation [] ---
-    # Key functions: removePeptides, runNormalisation, fitModel
-    ex <- doscheda::removePeptides(ex, removePeps = FALSE)
-    ex <- doscheda::runNormalisation(ex)
-    ex <- doscheda::fitModel(ex)
-
-
-    # --- Diagnostic Plotting [] ---
-    # Key functions: corrPlot, pcaPlot, replicatePlot, volcanoPlot
-    doscheda::corrPlot(ex)
-    doscheda::pcaPlot(ex)
-    doscheda::replicatePlot(ex, conc = 0, repIndex1 = 1, repIndex2 = 2)
-    doscheda::volcanoPlot(ex)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_doscheda_results.csv", row.names = TRUE)
+    
+    # Stage 5: Run Doscheda Pipeline Steps
+    message("Running peptide removal process...")
+    ex <- removePeptides(ex, removePeps = FALSE)
+    
+    message(paste("Running normalization using method:", normalization_method))
+    ex <- runNormalisation(ex, normalise = normalization_method)
+    
+    # Fit model if we have at least 3 channels (required for quadratic linear model fit)
+    model_fitted <- FALSE
+    if (chansVal >= 3) {
+      message("Fitting quadratic linear model to the data...")
+      ex <- fitModel(ex)
+      model_fitted <- TRUE
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_doscheda_results.csv")
+      warning("Model fitting skipped: Doscheda linear model requires at least 3 channels/concentrations.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_doscheda_output.rds")
+    
+    # Stage 6: Export Results
+    if (model_fitted) {
+      results <- getFinal(ex)
+    } else {
+      results <- getNorm(ex)
+      results\$warning <- "Model not fitted: requires >= 3 channels."
     }
+    write.csv(results, "doscheda_results.csv", row.names = FALSE)
+    message("Results successfully written to 'doscheda_results.csv'.")
+    
+    # Stage 7: Generate Diagnostic and Results Plots
+    message("Generating diagnostic plots...")
+    pdf("doscheda_plots.pdf", width = 10, height = 8)
+    
+    # Boxplot of channels
+    tryCatch({
+      print(boxplot(ex))
+    }, error = function(e) {
+      message("Skipped boxplot: ", e\$message)
+    })
+    
+    # Correlation Plot
+    tryCatch({
+      corrPlot(ex)
+    }, error = function(e) {
+      message("Skipped corrPlot: ", e\$message)
+    })
+    
+    # Density Plot
+    tryCatch({
+      print(densityPlot(ex))
+    }, error = function(e) {
+      message("Skipped densityPlot: ", e\$message)
+    })
+    
+    # PCA Plot
+    tryCatch({
+      print(pcaPlot(ex))
+    }, error = function(e) {
+      message("Skipped pcaPlot: ", e\$message)
+    })
+    
+    # Mean-SD Plot
+    tryCatch({
+      print(meanSdPlot(ex))
+    }, error = function(e) {
+      message("Skipped meanSdPlot: ", e\$message)
+    })
+    
+    # Replicate Plot (only if multiple replicates exist)
+    if (repsVal >= 2) {
+      tryCatch({
+        replicatePlot(ex, conc = coldata\$condition[1], repIndex1 = 1, repIndex2 = 2)
+      }, error = function(e) {
+        message("Skipped replicatePlot: ", e\$message)
+      })
+    }
+    
+    # Model-specific plots
+    if (model_fitted) {
+      tryCatch({
+        print(plot(ex))
+      }, error = function(e) {
+        message("Skipped default model plot: ", e\$message)
+      })
+      
+      tryCatch({
+        print(volcanoPlot(ex))
+      }, error = function(e) {
+        message("Skipped volcanoPlot: ", e\$message)
+      })
+    }
+    
+    dev.off()
+    message("Plots successfully saved to 'doscheda_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DOSCHEDA:", paste0("    doscheda: ", packageVersion("Doscheda"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS":',
+        paste0('    Doscheda: ', as.character(packageVersion('Doscheda')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_doscheda_results.csv
-    touch ${prefix}_doscheda_output.rds
-    echo "BIOC_DOSCHEDA:" > versions.yml
-    echo "    doscheda: 0.0.0" >> versions.yml
+    touch ${prefix}_doscheda_chemoproteomics.csv versions.yml
     """
 }
 
-
-workflow BIOC_DOSCHEDA_WORKFLOW {
+workflow BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_DOSCHEDA(ch_input)
+    BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS(ch_input)
 
     emit:
-    results  = BIOC_DOSCHEDA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DOSCHEDA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DOSCHEDA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DOSCHEDA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS.out.tables
+    plots    = BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS.out.plots
+    objects  = BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS.out.objects
+    versions = BIOC_DOSCHEDA_DOSCHEDA_CHEMOPROTEOMICS.out.versions
 }

@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mat=Input matrix of molecular readouts (e.g., gene expression, logFC, t-values, p-values) where rows are features (genes) and columns are samples/cells ;; net/network=Prior knowledge network relating target features (genes) to source biological entities (TFs, pathways) ;; .source=Column name in the network containing the source biological entities (e.g., 'source') ;; .target=Column name in the network containing the target features (e.g., 'target') ;; .mor=Column name in the network containing the mode of regulation/weights (e.g., 'mor' or 'weight') ;; minsize=Minimum number of target features per biological entity (default is 5) to filter out noisy activity estimates\n- alternatives: run_fgsea=Fast Gene Set Enrichment Analysis, which cannot model weights when inferring biological activities ;; run_ulm/run_mlm=Univariate/Multivariate Linear Models, which model interaction weights and are recommended when weights are available in the prior knowledge ;; decouple=Runs multiple top-performing methods (by default mlm, ulm, and wsum) simultaneously and computes a consensus score\n- when_to_use: When you have transcriptomics data (bulk RNA-seq, single-cell RNA-seq, microarray) and want to summarize gene-level readouts into interpretable biological activities (transcription factors, pathways, or gene sets) using prior knowledge resources (like PROGENy or CollecTRI)\n- pitfalls: Using methods that do not support weights (like GSEA) when regulatory weights/mode of regulation are available, which can lead to mislabeled activities (e.g., identifying a repressor as active when it is actually inactive) ;; setting minsize too low on real datasets, which can lead to noisy activity estimates from biological entities with very few matching target features",
+  "workflows": [
+    {
+      "name": "pathway_activity_scrnaseq",
+      "intent": "Infer pathway activities from single-cell RNA-seq data using the PROGENy model and a multivariate linear model (MLM).",
+      "input": [
+        "sc_data.rds (Seurat object containing normalized log-transformed counts)"
+      ],
+      "stages": "1. Load Seurat object ;; 2. Retrieve PROGENy pathway-gene weights using get_progeny() ;; 3. Extract normalized log-transformed counts matrix from Seurat object ;; 4. Run Multivariate Linear Model using run_mlm() ;; 5. Store inferred activities back into the Seurat object as a new assay ;; 6. Scale and visualize pathway activities",
+      "code": "inputs_dir <- system.file(\"extdata\", package = \"decoupleR\")\ndata <- readRDS(file.path(inputs_dir, \"sc_data.rds\"))\nnet <- get_progeny(organism = 'human', top = 500)\nmat <- as.matrix(data@assays$RNA@data)\nacts <- run_mlm(mat=mat, net=net, .source='source', .target='target', .mor='weight', minsize = 5)\ndata[['pathwaysmlm']] <- acts %>% pivot_wider(id_cols = 'source', names_from = 'condition', values_from = 'score') %>% column_to_rownames('source') %>% Seurat::CreateAssayObject(.)\nDefaultAssay(object = data) <- \"pathwaysmlm\"\ndata <- ScaleData(data)\ndata@assays$pathwaysmlm@data <- data@assays$pathwaysmlm@scale.data"
+    },
+    {
+      "name": "pathway_activity_bulk_rnaseq",
+      "intent": "Infer pathway activities from bulk RNA-seq differential expression statistics (t-values) or counts using the PROGENy model and a multivariate linear model (MLM).",
+      "input": [
+        "bk_data.rds (Bulk RNA-seq data containing normalized counts and limma top table)"
+      ],
+      "stages": "1. Load bulk RNA-seq data ;; 2. Extract normalized log-transformed counts and limma t-values ;; 3. Retrieve PROGENy pathway-gene weights using get_progeny() ;; 4. Run Multivariate Linear Model on counts or t-values using run_mlm() ;; 5. Visualize sample-specific or contrast-specific pathway activities",
+      "code": "inputs_dir <- system.file(\"extdata\", package = \"decoupleR\")\ndata <- readRDS(file.path(inputs_dir, \"bk_data.rds\"))\ncounts <- data$counts %>% dplyr::mutate_if(~ any(is.na(.x)), ~ if_else(is.na(.x),0,.x)) %>% column_to_rownames(var = \"gene\") %>% as.matrix()\ndeg <- data$limma_ttop %>% select(ID, t) %>% filter(!is.na(t)) %>% column_to_rownames(var = \"ID\") %>% as.matrix()\nnet <- get_progeny(organism = 'human', top = 500)\nsample_acts <- run_mlm(mat=counts, net=net, .source='source', .target='target', .mor='weight', minsize = 5)\ncontrast_acts <- run_mlm(mat=deg, net=net, .source='source', .target='target', .mor='weight', minsize = 5)"
+    },
+    {
+      "name": "tf_activity_scrnaseq",
+      "intent": "Infer transcription factor activities from single-cell RNA-seq data using the CollecTRI network and a univariate linear model (ULM).",
+      "input": [
+        "sc_data.rds (Seurat object containing normalized log-transformed counts)"
+      ],
+      "stages": "1. Load Seurat object ;; 2. Retrieve CollecTRI network using get_collectri() ;; 3. Extract normalized log-transformed counts matrix from Seurat object ;; 4. Run Univariate Linear Model using run_ulm() ;; 5. Store inferred TF activities back into the Seurat object as a new assay ;; 6. Scale and visualize TF activities",
+      "code": "inputs_dir <- system.file(\"extdata\", package = \"decoupleR\")\ndata <- readRDS(file.path(inputs_dir, \"sc_data.rds\"))\nnet <- get_collectri(organism='human', split_complexes=FALSE)\nmat <- as.matrix(data@assays$RNA@data)\nacts <- run_ulm(mat=mat, net=net, .source='source', .target='target', .mor='mor', minsize = 5)\ndata[['tfsulm']] <- acts %>% pivot_wider(id_cols = 'source', names_from = 'condition', values_from = 'score') %>% column_to_rownames('source') %>% Seurat::CreateAssayObject(.)\nDefaultAssay(object = data) <- \"tfsulm\"\ndata <- ScaleData(data)\ndata@assays$tfsulm@data <- data@assays$tfsulm@scale.data"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n_features=controls the number of features selected in selectFeatures (default is 500) ;; cluster_col=specifies the column in colData of the reference to identify clusters in indexCluster (default is cell_type1) ;; threshold=similarity threshold in scmapCell2Cluster for assigning a cell to a reference cluster (default is 0.5)\n- alternatives: None mentioned in the documentation.\n- when_to_use: When comparing scRNA-seq datasets of similar biological origin collected by different labs, or projecting cells from a new sample onto a large reference (like the Human Cell Atlas) to characterize composition differences or detect new cell-types.\n- pitfalls: scmap-cell contains a k-means step which makes it stochastic, so set.seed() must be used for reproducibility ;; The input SingleCellExperiment must not contain duplicate feature names ;; Cell type information must be stored in the cell_type1 column of the colData slot of the reference SingleCellExperiment object (or specified via cluster_col) ;; If the counts() slot is missing, dropouts are calculated using the logcounts() slot, which triggers a warning.",
+  "workflows": [
+    {
+      "name": "scmap_cluster",
+      "intent": "Project query single-cell RNA-seq data onto reference cell-type clusters to assign cell-type labels.",
+      "input": [
+        "yan (matrix of FPKM gene expression)",
+        "ann (data frame containing cell type annotations)"
+      ],
+      "stages": "1. Create SingleCellExperiment object and preprocess ;; 2. Feature selection using selectFeatures ;; 3. Reference indexing using indexCluster ;; 4. Projection using scmapCluster ;; 5. Visualization using getSankey",
+      "code": "sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)\nlogcounts(sce) <- log2(normcounts(sce) + 1)\nrowData(sce)$feature_symbol <- rownames(sce)\nsce <- sce[!duplicated(rownames(sce)), ]\nsce <- selectFeatures(sce, suppress_plot = FALSE)\nsce <- indexCluster(sce)\nscmapCluster_results <- scmapCluster(\n  projection = sce, \n  index_list = list(\n    yan = metadata(sce)$scmap_cluster_index\n  )\n)\nplot(\n  getSankey(\n    colData(sce)$cell_type1,\n    scmapCluster_results$scmap_cluster_labs[,'yan'],\n    plot_height = 400\n  )\n)"
+    },
+    {
+      "name": "scmap_cell",
+      "intent": "Project query single-cell RNA-seq data onto individual reference cells and optionally annotate them using reference cluster labels.",
+      "input": [
+        "yan (matrix of FPKM gene expression)",
+        "ann (data frame containing cell type annotations)"
+      ],
+      "stages": "1. Create SingleCellExperiment object and preprocess ;; 2. Feature selection using selectFeatures ;; 3. Reference cell indexing using indexCell ;; 4. Projection using scmapCell ;; 5. Cluster annotation using scmapCell2Cluster ;; 6. Visualization using getSankey",
+      "code": "sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)\nlogcounts(sce) <- log2(normcounts(sce) + 1)\nrowData(sce)$feature_symbol <- rownames(sce)\nsce <- sce[!duplicated(rownames(sce)), ]\nsce <- selectFeatures(sce, suppress_plot = FALSE)\nset.seed(1)\nsce <- indexCell(sce)\nscmapCell_results <- scmapCell(\n  sce, \n  list(\n    yan = metadata(sce)$scmap_cell_index\n  )\n)\nscmapCell_clusters <- scmapCell2Cluster(\n  scmapCell_results, \n  list(\n    as.character(colData(sce)$cell_type1)\n  )\n)\nplot(\n  getSankey(\n    colData(sce)$cell_type1,\n    scmapCell_clusters$scmap_cluster_labs[,\"yan\"],\n    plot_height = 400\n  )\n)"
+    }
+  ]
+}

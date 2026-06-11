@@ -1,0 +1,13 @@
+{
+  "package": "geneclassifiers",
+  "requirements": [
+    "Biobase",
+    "geneClassifiers"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "geneClassifiers"
+    ]
+  }
+}

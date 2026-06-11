@@ -1,139 +1,167 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: standR
-// standR is an user-friendly R package providing functions to assist conducting good-practice analysis
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/standR/inst/doc/Quick_start.R
-// Upstream  : ExperimentHub, SpatialExperiment, ggalluvial, limma
-// Downstream: none
-//
-// Install: BiocManager::install("standR")
+// Bioconductor workflow: standr — geomx_dsp_qc_norm_batch_correction
+// Perform quality control, TMM normalization, and RUV4 batch correction on NanoString GeoMx DSP data.
+// Input: countFile, sampleAnnoFile, featureAnnoFile
+// Container: quay.io/biocontainers/bioconductor-standr:1.14.0--r45hdfd78af_0
+// R packages: ExperimentHub, ggalluvial, ggplot2, limma, SpatialExperiment, standR
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_STANDR {
+process BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-standr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-standr:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-standr:1.10.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-standr:1.14.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_standr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_standr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_standr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ExperimentHub", "ggalluvial", "ggplot2", "limma", "SpatialExperiment", "standR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Define input file paths in the working directory
+    countFile <- "countFile"
+    sampleAnnoFile <- "sampleAnnoFile"
+    featureAnnoFile <- "featureAnnoFile"
+    
+    # Validate existence of input files
+    if (!file.exists(countFile) || !file.exists(sampleAnnoFile) || !file.exists(featureAnnoFile)) {
+      stop("Error: Missing required input files ('countFile', 'sampleAnnoFile', 'featureAnnoFile') in the working directory.")
+    }
+    
+    # Load required libraries
     library(standR)
-    library(jsonlite)
-
-    # --- Coldata [] ---
-    # Key functions: colData, plotSampleInfo
-    ---------------------------------------------------------------------
-    colData(spe)$regions <- paste0(colData(spe)$region,"_",colData(spe)$SegmentLabel) |>
+    library(SpatialExperiment)
+    library(limma)
+    library(ggalluvial)
+    library(ggplot2)
+    
+    # 1. Import raw GeoMx data
+    spe <- readGeoMx(countFile, sampleAnnoFile, featureAnnoFile = featureAnnoFile, rmNegProbe = TRUE)
+    
+    # 2. Preprocess metadata to avoid collinearity
+    colData(spe)\$regions <- paste0(colData(spe)\$region,"_",colData(spe)\$SegmentLabel) |> 
       (\(.) gsub("_Geometric Segment","",.))() |>
-      paste0("_",colData(spe)$pathology) |>
+      paste0("_",colData(spe)\$pathology) |>
       (\(.) gsub("_NA","_ns",.))()
-    # --- Addperroiqc [] ---
-    # Key functions: addPerROIQC
-    ---------------------------------------------------------------------
+    
+    # Set up PDF multi-page plot output
+    pdf("standR_workflow_plots.pdf", width = 10, height = 8)
+    
+    # Visualize sample metadata
+    p_sample_info <- plotSampleInfo(spe, column2plot = c("SlideName","disease_status","regions"))
+    print(p_sample_info)
+    
+    # 3. Perform gene-level QC
     spe <- addPerROIQC(spe, rm_genes = TRUE)
-    # --- Plotgeneqc [] ---
-    # Key functions: plotGeneQC
-    ---------------------------------------------------------------------
-    plotGeneQC(spe, ordannots = "regions", col = regions, point_size = 2)
-    # --- Plotroiqc [] ---
-    # Key functions: plotROIQC
-    ---------------------------------------------------------------------
-    plotROIQC(spe, y_threshold = 50000, col = SlideName)
-    # --- Rownames [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    spe <- spe[,rownames(colData(spe))[colData(spe)$lib_size > 50000]]
-    # --- Plotrlexpr [] ---
-    # Key functions: plotRLExpr
-    ---------------------------------------------------------------------
-    plotRLExpr(spe, ordannots = "SlideName", assay = 2, col = SlideName)
-    # --- Drawpca [] ---
-    # Key functions: drawPCA
-    ---------------------------------------------------------------------
-    drawPCA(spe, assay = 2, col = SlideName, shape = regions)
-    # --- Coldata [] ---
-    # Key functions: colData, geomxNorm
-    ---------------------------------------------------------------------
-    colData(spe)$biology <- paste0(colData(spe)$disease_status, "_", colData(spe)$regions)
+    
+    p_gene_qc <- plotGeneQC(spe, ordannots = "regions", col = regions, point_size = 2)
+    print(p_gene_qc)
+    
+    # 4. Perform ROI-level QC and filter low-quality ROIs
+    p_roi_qc <- plotROIQC(spe, y_threshold = 50000, col = SlideName)
+    print(p_roi_qc)
+    
+    spe <- spe[,rownames(colData(spe))[colData(spe)\$lib_size > 50000]]
+    
+    # 5. Inspect variations using RLE and PCA (Pre-normalization)
+    p_rle_pre <- plotRLExpr(spe, ordannots = "SlideName", assay = 2, col = SlideName)
+    print(p_rle_pre)
+    
+    p_pca_pre <- drawPCA(spe, assay = 2, col = SlideName, shape = regions)
+    print(p_pca_pre)
+    
+    # 6. Normalize data using TMM
+    colData(spe)\$biology <- paste0(colData(spe)\$disease_status, "_", colData(spe)\$regions)
+    
     spe_tmm <- geomxNorm(spe, method = "TMM")
-    # --- Findncgs [] ---
-    # Key functions: findNCGs, metadata
-    ---------------------------------------------------------------------
+    
+    # 7. Identify Negative Control Genes (NCGs)
     spe <- findNCGs(spe, batch_name = "SlideName", top_n = 500)
-    metadata(spe) |> names()
-    # --- Geomxbatchcorrection [] ---
-    # Key functions: geomxBatchCorrection, metadata
-    ---------------------------------------------------------------------
-    spe_ruv <- geomxBatchCorrection(spe, factors = "biology",
-                       NCGs = metadata(spe)$NCGs, k = 5)
-    # --- Plotpairpca [] ---
-    # Key functions: plotPairPCA
-    ---------------------------------------------------------------------
-    plotPairPCA(spe_ruv, assay = 2, color = disease_status, shape = regions, title = "RUV4")
-    # --- Plotrlexpr [] ---
-    # Key functions: plotRLExpr, ggtitle
-    ---------------------------------------------------------------------
-    plotRLExpr(spe_ruv, assay = 2, color = SlideName) + ggtitle("RUV4")
+    
+    # Print NCG metadata names to console
+    message("Metadata fields after NCG identification:")
+    print(names(metadata(spe)))
+    
+    # 8. Perform RUV4 batch correction
+    spe_ruv <- geomxBatchCorrection(spe, factors = "biology", 
+                                    NCGs = metadata(spe)\$NCGs, k = 5)
+    
+    # 9. Visualize corrected data
+    p_pca_post <- plotPairPCA(spe_ruv, assay = 2, color = disease_status, shape = regions, title = "RUV4")
+    print(p_pca_post)
+    
+    p_rle_post <- plotRLExpr(spe_ruv, assay = 2, color = SlideName) + ggtitle("RUV4")
+    print(p_rle_post)
+    
+    # Close PDF device
+    dev.off()
+    
+    # Save meaningful results to output files
+    saveRDS(spe_tmm, "spe_normalized_tmm.rds")
+    saveRDS(spe_ruv, "spe_corrected_ruv.rds")
+    
+    # Export sample metadata and normalized expression data
+    write.csv(as.data.frame(colData(spe_ruv)), "spe_corrected_metadata.csv", row.names = TRUE)
+    
+    message("standR pipeline completed successfully. Outputs saved to 'standR_workflow_plots.pdf', 'spe_normalized_tmm.rds', 'spe_corrected_ruv.rds', and 'spe_corrected_metadata.csv'.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_standr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_standr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_standr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_STANDR:", paste0("    standr: ", packageVersion("standR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION":',
+        paste0('        standr: ', as.character(packageVersion("standr")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_standr_results.csv
-    touch ${prefix}_standr_output.rds
-    echo "BIOC_STANDR:" > versions.yml
-    echo "    standr: 0.0.0" >> versions.yml
+    touch ${prefix}_geomx_dsp_qc_norm_batch_correction.csv versions.yml
     """
 }
 
-
-workflow BIOC_STANDR_WORKFLOW {
+workflow BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ countFile, sampleAnnoFile, featureAnnoFile ] ]
 
     main:
-    BIOC_STANDR(ch_input)
+    BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION(ch_input)
 
     emit:
-    results  = BIOC_STANDR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_STANDR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_STANDR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_STANDR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION.out.tables
+    plots    = BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION.out.plots
+    objects  = BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION.out.objects
+    versions = BIOC_STANDR_GEOMX_DSP_QC_NORM_BATCH_CORRECTION.out.versions
 }

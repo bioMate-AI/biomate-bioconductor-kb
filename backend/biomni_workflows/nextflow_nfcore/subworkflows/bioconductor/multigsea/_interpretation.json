@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dbs=Vector of database names to query (e.g., c(\"kegg\", \"reactome\")) ;; layer=Vector of omics layers to initialize or query (e.g., c(\"transcriptome\", \"proteome\", \"metabolome\")) ;; returnTranscriptome=ID format to return for transcriptome (e.g., \"SYMBOL\") ;; returnProteome=ID format to return for proteome (e.g., \"SYMBOL\") ;; returnMetabolome=ID format to return for metabolome (e.g., \"HMDB\") ;; useLocal=Boolean indicating whether to use local pathway definitions ;; method=Method to aggregate p-values in combinePvalues (\"fisher\", \"edgington\", or default Stouffer's Z-method) ;; col_pattern=Parameter in extractPvalues to specify whether to extract raw p-values or adjusted p-values (\"padj\") for combination\n- alternatives: Stouffer's Z-method (default, no bias towards small or large p-values) ;; Fisher's combined probability test (biased towards small p-values) ;; Edgington's method (biased towards large p-values)\n- when_to_use: Use this package when you have matched multi-omics datasets (transcriptomics, proteomics, and/or metabolomics) from the same biological experiment and want to identify pathways enriched across these layers collectively.\n- pitfalls: Combining adjusted p-values (padj) instead of raw p-values violates assumptions of certain combination methods (like Fisher's). Since RELEASE 3.18, multiGSEA uses raw p-values by default, but users must set col_pattern to \"padj\" to reproduce older results. HMDB metabolite IDs must be updated to the new format (e.g., prepending \"HMDB00\" instead of \"HMDB\") to map correctly. Custom gene sets across multiple layers must be in the same order and have identical names.",
+  "workflows": [
+    {
+      "name": "multi_omics_gsea_enrichment",
+      "intent": "Run a multi-omics GSEA-based pathway enrichment analysis across transcriptome, proteome, and metabolome layers and aggregate the p-values.",
+      "input": [
+        "transcriptome (data frame with Symbol, logFC, and pValue columns)",
+        "proteome (data frame with Symbol, logFC, and pValue columns)",
+        "metabolome (data frame with HMDB, logFC, and pValue columns)"
+      ],
+      "stages": "1. Initialize the multi-omics data structure using initOmicsDataStructure. ;; 2. Rank features for each omics layer using rankFeatures and assign feature names. ;; 3. Download and map pathway definitions using getMultiOmicsFeatures. ;; 4. Calculate enrichment scores for all layers using multiGSEA. ;; 5. Extract p-values using extractPvalues and aggregate them using combinePvalues. ;; 6. Adjust combined p-values using p.adjust.",
+      "code": "omics_data <- initOmicsDataStructure(layer = c(\n  \"transcriptome\",\n  \"proteome\",\n  \"metabolome\"\n))\n\nomics_data$transcriptome <- rankFeatures(\n  transcriptome$logFC,\n  transcriptome$pValue\n)\nnames(omics_data$transcriptome) <- transcriptome$Symbol\n\nomics_data$proteome <- rankFeatures(proteome$logFC, proteome$pValue)\nnames(omics_data$proteome) <- proteome$Symbol\n\nomics_data$metabolome <- rankFeatures(metabolome$logFC, metabolome$pValue)\nnames(omics_data$metabolome) <- metabolome$HMDB\nnames(omics_data$metabolome) <- gsub(\n  \"HMDB\", \"HMDB00\",\n  names(omics_data$metabolome)\n)\n\ndatabases <- c(\"kegg\", \"reactome\")\nlayers <- names(omics_data)\n\npathways <- getMultiOmicsFeatures(\n  dbs = databases, layer = layers,\n  returnTranscriptome = \"SYMBOL\",\n  returnProteome = \"SYMBOL\",\n  returnMetabolome = \"HMDB\",\n  useLocal = FALSE\n)\n\nenrichment_scores <- multiGSEA(pathways, omics_data)\n\ndf <- extractPvalues(\n  enrichmentScores = enrichment_scores,\n  pathwayNames = names(pathways[[1]])\n)\n\ndf$combined_pval <- combinePvalues(df)\ndf$combined_padj <- p.adjust(df$combined_pval, method = \"BH\")\n\ndf <- cbind(data.frame(pathway = names(pathways[[1]])), df)"
+    },
+    {
+      "name": "custom_gene_sets_enrichment",
+      "intent": "Format and run single or multi-omics GSEA using custom gene sets (e.g., MSigDB Hallmark) instead of downloaded database pathways.",
+      "input": [
+        "hallmark (list of gene sets from msigdbr)"
+      ],
+      "stages": "1. Retrieve and format custom gene sets from MSigDB using msigdbr. ;; 2. Format the custom gene sets into a nested list structure.",
+      "code": "hallmark <- msigdbr(species = \"Rattus norvegicus\", category = \"H\") %>%\n  dplyr::select(gs_name, ensembl_gene) %>%\n  dplyr::filter(!is.na(ensembl_gene)) %>%\n  unstack(ensembl_gene ~ gs_name)\n\npathways <- list(\"transcriptome\" = hallmark)"
+    }
+  ]
+}

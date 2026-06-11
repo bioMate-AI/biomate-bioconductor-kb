@@ -1,127 +1,213 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scPCA
-// A toolbox for sparse contrastive principal component analysis (scPCA) of high-dimensional biological
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scPCA/inst/doc/scpca_intro.R
-// Upstream  : SingleCellExperiment, dplyr, elasticnet, ggplot2, ggpubr
-// Downstream: OSCA.advanced, OSCA.workflows
-//
-// Install: BiocManager::install("scPCA")
+// Bioconductor workflow: scPCA — sparse_contrastive_pca
+// Perform Sparse Contrastive Principal Component Analysis (scPCA) to identify stable, interpretable, and condition-specific biological signals by contrasting targ
+// Input: counts.csv, coldata.csv
+// Container: 1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: dplyr, ggplot2, ggpubr, scPCA
+// Visualizations: PCA plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCPCA {
+process BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scpca"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scpca:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scpca:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scpca_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scpca_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scpca_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
     library(scPCA)
-    library(jsonlite)
-
-    # --- Sparse Contrastive Principal Component Analysis [] ---
-    # Key functions: scPCA
-    scpca_sim <- scPCA(
-        target = toy_df[, 1:30],
-        background = background_df,
-        n_centers = 4,
-        penalties = exp(seq(log(0.01), log(0.5), length.out = 10)),
-        alg = "var_proj"
-    )
-    scpca_df <- as.data.frame(scpca_sim$x)
-    colnames(scpca_df) <- c("scPC1", "scPC2")
-    scpca_df$label <- as.character(toy_df[, 31])
-
-
-    # --- Cross Validated Contrastive PCA [] ---
-    # Key functions: scPCA
-    scpca_cv_sim <- scPCA(
-        target = toy_df[, 1:30],
-        background = background_df,
-        n_centers = 4,
-        cv = 3,
-        penalties = exp(seq(log(0.01), log(0.5), length.out = 10)),
-        alg = "var_proj"
-    )
-    cv_df <- as.data.frame(scpca_cv_sim$x)
-    colnames(cv_df) <- c("scPC1_cv", "scPC2_cv")
-
-
-    # --- Algorithm Comparison and Benchmarking [] ---
-    # Key functions: scPCA
-    scpca_iter <- scPCA(
-        target = toy_df[, 1:30],
-        background = background_df,
-        n_centers = 4,
-        alg = "iterative"
-    )
-    scpca_rand <- scPCA(
-        target = toy_df[, 1:30],
-        background = background_df,
-        n_centers = 4,
-        alg = "rand_var_proj"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scpca_results.csv", row.names = TRUE)
+    library(dplyr)
+    library(ggplot2)
+    library(ggpubr)
+    
+    # Stage 2: Read and preprocess input data
+    message("Reading input files...")
+    counts_df <- read.csv("counts.csv", check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Set row names for counts if 'gene_id' column is present
+    if ("gene_id" %in% colnames(counts_df)) {
+      rownames(counts_df) <- counts_df\$gene_id
+      counts_df\$gene_id <- NULL
+    }
+    counts_mat <- as.matrix(counts_df)
+    
+    # Align counts and coldata
+    common_samples <- intersect(colnames(counts_mat), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between counts.csv and coldata.csv.")
+    }
+    counts_mat <- counts_mat[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
+    
+    # Log-transform counts
+    log_counts <- log1p(counts_mat)
+    
+    # Filter genes by variance to focus on highly variable features
+    message("Filtering genes by variance...")
+    gene_vars <- apply(log_counts, 1, var)
+    n_genes_to_keep <- min(250, nrow(log_counts))
+    top_genes <- names(sort(gene_vars, decreasing = TRUE)[1:n_genes_to_keep])
+    log_counts_sub <- log_counts[top_genes, , drop = FALSE]
+    
+    # Stage 3: Identify Target and Background Groups
+    # Contrastive PCA requires splitting the dataset into target (interest) and background (control)
+    unique_conds <- unique(coldata\$condition)
+    if (length(unique_conds) < 2) {
+      stop("At least two conditions are required to perform contrastive PCA (one target, one background).")
+    }
+    
+    # Identify background condition using common keywords, otherwise default to the second unique condition
+    bg_idx <- grep("control|background|normal|ref|bg", unique_conds, ignore.case = TRUE)
+    if (length(bg_idx) > 0) {
+      bg_cond <- unique_conds[bg_idx[1]]
+      tg_conds <- unique_conds[-bg_idx[1]]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scpca_results.csv")
+      tg_conds <- unique_conds[1]
+      bg_cond <- unique_conds[2:length(unique_conds)]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scpca_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCPCA:", paste0("    scpca: ", packageVersion("scPCA"))),
-        "versions.yml"
+    
+    message("Target conditions: ", paste(tg_conds, collapse = ", "))
+    message("Background condition: ", paste(bg_cond, collapse = ", "))
+    
+    tg_samples <- coldata\$sample[coldata\$condition %in% tg_conds]
+    bg_samples <- coldata\$sample[coldata\$condition %in% bg_cond]
+    
+    # Transpose matrices so that rows represent samples and columns represent genes
+    tg_mat <- t(log_counts_sub[, tg_samples, drop = FALSE])
+    bg_mat <- t(log_counts_sub[, bg_samples, drop = FALSE])
+    
+    # Stage 4: Run Contrastive PCA (cPCA) and Sparse Contrastive PCA (scPCA)
+    message("Running cPCA and scPCA...")
+    
+    # Define hyperparameter grids for contrastive and sparsity parameters
+    contrasts <- exp(seq(log(0.1), log(100), length.out = 5))
+    penalties <- exp(seq(log(0.001), log(0.1), length.out = 3))
+    
+    # Determine the number of clusters in the target data
+    n_centers <- max(2, length(unique(coldata\$condition[coldata\$sample %in% tg_samples])))
+    
+    # Run cPCA (by setting penalties to 0)
+    cpca_out <- scPCA(
+      target = tg_mat,
+      background = bg_mat,
+      n_centers = n_centers,
+      n_eigen = 2,
+      contrasts = contrasts,
+      penalties = 0,
+      center = TRUE,
+      scale = TRUE,
+      alg = "var_proj"
     )
+    
+    # Run scPCA (with sparsity penalties)
+    scpca_out <- scPCA(
+      target = tg_mat,
+      background = bg_mat,
+      n_centers = n_centers,
+      n_eigen = 2,
+      contrasts = contrasts,
+      penalties = penalties,
+      center = TRUE,
+      scale = TRUE,
+      alg = "var_proj"
+    )
+    
+    # Stage 5: Save Results
+    message("Saving coordinates and loadings...")
+    
+    # Save scPCA coordinates
+    scpca_coords <- as.data.frame(scpca_out\$x)
+    colnames(scpca_coords) <- c("scPC1", "scPC2")
+    scpca_coords\$sample <- rownames(tg_mat)
+    scpca_coords\$condition <- coldata\$condition[match(scpca_coords\$sample, coldata\$sample)]
+    write.csv(scpca_coords, "scpca_coordinates.csv", row.names = FALSE)
+    
+    # Save scPCA gene loadings
+    scpca_loadings <- as.data.frame(scpca_out\$rotation)
+    colnames(scpca_loadings) <- c("scPC1_loading", "scPC2_loading")
+    scpca_loadings\$gene_id <- colnames(tg_mat)
+    write.csv(scpca_loadings, "scpca_loadings.csv", row.names = FALSE)
+    
+    # Stage 6: Visualization
+    message("Generating diagnostic plots...")
+    
+    # Prepare cPCA dataframe for plotting
+    cpca_df <- as.data.frame(cpca_out\$x)
+    colnames(cpca_df) <- c("cPC1", "cPC2")
+    cpca_df\$condition <- coldata\$condition[match(rownames(tg_mat), coldata\$sample)]
+    
+    p_cpca <- ggplot(cpca_df, aes(x = cPC1, y = cPC2, color = condition)) +
+      geom_point(size = 3, alpha = 0.8) +
+      theme_minimal() +
+      labs(title = "Contrastive PCA (cPCA)", x = "cPC1", y = "cPC2") +
+      scale_color_brewer(palette = "Set1")
+    
+    p_scpca <- ggplot(scpca_coords, aes(x = scPC1, y = scPC2, color = condition)) +
+      geom_point(size = 3, alpha = 0.8) +
+      theme_minimal() +
+      labs(title = "Sparse Contrastive PCA (scPCA)", x = "scPC1", y = "scPC2") +
+      scale_color_brewer(palette = "Set1")
+    
+    # Combine and save plots
+    combined_plot <- ggarrange(p_cpca, p_scpca, ncol = 2, common.legend = TRUE, legend = "right")
+    ggsave("scpca_plots.pdf", plot = combined_plot, width = 12, height = 5)
+    
+    message("Analysis complete. Outputs written successfully.")
+
+    writeLines(c(
+        '"BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA":',
+        paste0('    scPCA: ', as.character(packageVersion('scPCA')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scpca_results.csv
-    touch ${prefix}_scpca_output.rds
-    echo "BIOC_SCPCA:" > versions.yml
-    echo "    scpca: 0.0.0" >> versions.yml
+    touch ${prefix}_sparse_contrastive_pca.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCPCA_WORKFLOW {
+workflow BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SCPCA(ch_input)
+    BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA(ch_input)
 
     emit:
-    results  = BIOC_SCPCA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCPCA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCPCA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCPCA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA.out.tables
+    plots    = BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA.out.plots
+    objects  = BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA.out.objects
+    versions = BIOC_SCPCA_SPARSE_CONTRASTIVE_PCA.out.versions
 }

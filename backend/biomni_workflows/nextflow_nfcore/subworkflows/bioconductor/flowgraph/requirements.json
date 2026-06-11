@@ -1,0 +1,14 @@
+{
+  "package": "flowgraph",
+  "requirements": [
+    "flowGraph"
+  ],
+  "by_workflow": {
+    "fast_flowgraph_subset_analysis.nf": [
+      "flowGraph"
+    ],
+    "main.nf": [
+      "flowGraph"
+    ]
+  }
+}

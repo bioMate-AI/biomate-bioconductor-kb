@@ -1,0 +1,11 @@
+{
+  "package": "rgenometracks",
+  "requirements": [
+    "rGenomeTracks"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rGenomeTracks"
+    ]
+  }
+}

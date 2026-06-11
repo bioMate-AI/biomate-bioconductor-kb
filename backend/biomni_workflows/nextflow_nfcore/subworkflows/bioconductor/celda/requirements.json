@@ -1,0 +1,17 @@
+{
+  "package": "celda",
+  "requirements": [
+    "SingleCellExperiment",
+    "celda"
+  ],
+  "by_workflow": {
+    "decontx_decontamination.nf": [
+      "SingleCellExperiment",
+      "celda"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "celda"
+    ]
+  }
+}

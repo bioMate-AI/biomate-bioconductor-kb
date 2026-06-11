@@ -1,0 +1,14 @@
+{
+  "package": "piano",
+  "requirements": [
+    "piano"
+  ],
+  "by_workflow": {
+    "consensus_gsa_scoring.nf": [
+      "piano"
+    ],
+    "main.nf": [
+      "piano"
+    ]
+  }
+}

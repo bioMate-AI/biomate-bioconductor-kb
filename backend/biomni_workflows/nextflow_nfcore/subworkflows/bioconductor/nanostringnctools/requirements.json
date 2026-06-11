@@ -1,0 +1,19 @@
+{
+  "package": "nanostringnctools",
+  "requirements": [
+    "NanoStringNCTools",
+    "ggiraph",
+    "ggplot2",
+    "ggthemes",
+    "pheatmap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "NanoStringNCTools",
+      "ggiraph",
+      "ggplot2",
+      "ggthemes",
+      "pheatmap"
+    ]
+  }
+}

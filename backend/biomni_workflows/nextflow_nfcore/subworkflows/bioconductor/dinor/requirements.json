@@ -1,0 +1,23 @@
+{
+  "package": "dinor",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "dinoR",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "dinoR",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

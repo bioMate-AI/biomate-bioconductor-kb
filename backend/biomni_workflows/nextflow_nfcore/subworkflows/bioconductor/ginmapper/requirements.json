@@ -1,0 +1,11 @@
+{
+  "package": "ginmapper",
+  "requirements": [
+    "ginmappeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ginmappeR"
+    ]
+  }
+}

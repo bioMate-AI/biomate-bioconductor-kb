@@ -1,103 +1,183 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ChromHeatMap
-// The ChromHeatMap package can be used to plot genome-wide data (e.g. expression, CGH, SNP) along each
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ChromHeatMap/inst/doc/ChromHeatMap.R
-// Upstream  : ALL
-// Downstream: none
-//
-// Install: BiocManager::install("ChromHeatMap")
+// Bioconductor workflow: ChromHeatMap — chrom_heatmap_analysis
+// Map genomic expression data to chromosome coordinates, plot strand-specific or combined chromosome heatmaps, and interactively extract probe identifiers of inte
+// Input: expression_matrix.csv, annotation_package
+// Container: quay.io/biocontainers/bioconductor-chromheatmap:1.64.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationDbi, ChromHeatMap
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Map probe identifiers to chromosome coordinates using makeChrStrandData. 2. Plot the chromosome heatmap using plotChrMap with opti
 
 nextflow.enable.dsl = 2
 
-process BIOC_CHROMHEATMAP {
+process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-chromheatmap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-chromheatmap:1.60.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-chromheatmap:1.60.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_chromheatmap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_chromheatmap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_chromheatmap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ChromHeatMap)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(ChromHeatMap)
+        library(AnnotationDbi)
+        
+        # ==========================================
+        # 1. Read User Input Files
+        # ==========================================
+        if (!file.exists("expression_matrix.csv")) {
+          stop("Error: 'expression_matrix.csv' not found in the working directory.")
+        }
+        if (!file.exists("annotation_package")) {
+          stop("Error: 'annotation_package' file not found in the working directory.")
+        }
+        
+        # Read expression matrix (probes/genes as row names, samples as columns)
+        expr_matrix <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+        
+        # Read the annotation package name from the file
+        anno_pkg <- trimws(readLines("annotation_package", n = 1))
+        
+        # Load the specified annotation package
+        if (!requireNamespace(anno_pkg, quietly = TRUE)) {
+          # Try appending '.db' if not found
+          anno_pkg_db <- paste0(anno_pkg, ".db")
+          if (requireNamespace(anno_pkg_db, quietly = TRUE)) {
+            anno_pkg <- anno_pkg_db
+          } else {
+            stop(paste("Error: Annotation package", anno_pkg, "is not installed."))
+          }
+        }
+        library(anno_pkg, character.only = TRUE)
+        
+        # ==========================================
+        # 2. Map Probe Identifiers to Coordinates
+        # ==========================================
+        # Adapt the documented call: chrdata<-makeChrStrandData(exprs(ALLs), lib='hgu95av2')
+        chrdata <- makeChrStrandData(expr_matrix, lib = gsub("\\\\.db\$", "", anno_pkg))
+        
+        # Save the mapped genomic coordinates object
+        saveRDS(chrdata, file = "chrdata.rds")
+        
+        # ==========================================
+        # 3. Plot Chromosome Heatmaps
+        # ==========================================
+        # Generate sample annotation colors matching the number of samples
+        groupcol <- rep(c("red", "green"), length.out = ncol(expr_matrix))
+        
+        # Open PDF device to save the plots
+        pdf("chrom_heatmap_plots.pdf", width = 10, height = 8)
+        
+        # Plot 1: Whole chromosome (Chromosome 19), both strands combined
+        tryCatch({
+          plotChrMap(chrdata, 19, strands='both', RowSideColors=groupcol)
+        }, error = function(e) {
+          message("Skipped plotting Chromosome 19 (might not be present in the dataset): ", e\$message)
+        })
+        
+        # Plot 2: Subsetted chromosome (Chromosome 1, cytoband q23)
+        plotmap <- NULL
+        tryCatch({
+          plotmap <- plotChrMap(chrdata, 1, cytoband='q23', interval=50000, srtCyto=0, cexCyto=1.2)
+        }, error = function(e) {
+          message("Skipped plotting Chromosome 1 cytoband q23 (might not be present in the dataset): ", e\$message)
+        })
+        
+        # ==========================================
+        # 4. Extract Probe Identifiers and Map to Genes
+        # ==========================================
+        # Set up the symbol environment alias to match the exact documented code variable name
+        symbol_env_name <- paste0(gsub("\\\\.db\$", "", anno_pkg), "SYMBOL")
+        if (exists(symbol_env_name)) {
+          hgu95av2SYMBOL <- get(symbol_env_name)
+        } else {
+          hgu95av2SYMBOL <- new.env()
+        }
+        
+        probes <- NULL
+        # Attempt interactive selection; fallback to programmatic extraction if non-interactive
+        tryCatch({
+          probes <- grabChrMapProbes( plotmap )
+        }, error = function(e) {
+          message("Interactive grabChrMapProbes skipped/failed. Extracting probes programmatically from plotmap.")
+          if (!is.null(plotmap)) {
+            probes <<- unique(unlist(plotmap))
+          }
+        })
+        
+        dev.off()
+        
+        # Fallback to top probes from the expression matrix if no probes were extracted
+        if (is.null(probes) || length(probes) == 0) {
+          message("No probes found in plotmap. Using top 10 probes from expression matrix as fallback.")
+          probes <- head(rownames(expr_matrix), 10)
+        }
+        
+        # Map the extracted probes to gene symbols using the exact documented call
+        genes <- unlist(mget(probes, envir=hgu95av2SYMBOL, ifnotfound=NA))
+        
+        # Save the extracted probes and mapped gene symbols to a CSV file
+        output_df <- data.frame(
+          Probe_ID = names(genes),
+          Gene_Symbol = genes,
+          stringsAsFactors = FALSE
+        )
+        write.csv(output_df, file = "extracted_probes_genes.csv", row.names = FALSE)
+        
+        message("Pipeline completed successfully. Outputs saved: 'chrdata.rds', 'chrom_heatmap_plots.pdf', 'extracted_probes_genes.csv'.")
 
-    # --- Data [] ---
-    # Key functions: makeChrStrandData, exprs
-    library('ALL')
-    data('ALL')
-    selSamples <- ALL$mol.biol %in% c('ALL1/AF4', 'E2A/PBX1')
-    ALLs <- ALL[, selSamples]
-    library('ChromHeatMap')
-    # --- Ifelse [] ---
-    # Key functions: ifelse, plotChrMap
-    groupcol <- ifelse( ALLs$mol.biol == 'ALL1/AF4', 'red', 'green' )
-    plotChrMap(chrdata, 19, strands='both', RowSideColors=groupcol)
-    # --- Plotchrmap [] ---
-    # Key functions: plotChrMap
-    plotmap<-plotChrMap(chrdata, 1, cytoband='q23', interval=50000, srtCyto=0, cexCyto=1.2)
-    # --- Grabchrmapprobes [] ---
-    # Key functions: grabChrMapProbes, unlist, mget
-    ## probes <- grabChrMapProbes( plotmap )
-    ## genes <- unlist(mget(probes, envir=hgu95av2SYMBOL, ifnotfound=NA))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_chromheatmap_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_chromheatmap_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_chromheatmap_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CHROMHEATMAP:", paste0("    chromheatmap: ", packageVersion("ChromHeatMap"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS":',
+        paste0('    ChromHeatMap: ', as.character(packageVersion('ChromHeatMap')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_chromheatmap_results.csv
-    touch ${prefix}_chromheatmap_output.rds
-    echo "BIOC_CHROMHEATMAP:" > versions.yml
-    echo "    chromheatmap: 0.0.0" >> versions.yml
+    touch ${prefix}_chrom_heatmap_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_CHROMHEATMAP_WORKFLOW {
+workflow BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, annotation_package ] ]
 
     main:
-    BIOC_CHROMHEATMAP(ch_input)
+    BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_CHROMHEATMAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CHROMHEATMAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CHROMHEATMAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CHROMHEATMAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS.out.tables
+    plots    = BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS.out.plots
+    objects  = BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS.out.objects
+    versions = BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS.out.versions
 }

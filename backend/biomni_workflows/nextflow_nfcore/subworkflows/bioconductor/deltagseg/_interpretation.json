@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=The transformation method in transformSeries ('splitting', 'override_splitting', or 'differentiation') ;; breakpoints=The breakpoints used to split non-stationary series in transformSeries ;; segsplits=A vector specifying the number of splits per trajectory in splitTraj ;; numbreaks=The number of evenly-spaced breakpoints to select in chooseBreaks ;; seg_method=The segmentation method in denoiseSegments (e.g., 'SegNeigh') ;; maxQ=The maximum number of segments in denoiseSegments ;; bootstrap=The number of bootstrap replicates in clusterPV ;; intervention=The clustering method in clusterSegments (e.g., 'pvclust') ;; norm.test=The normality test used in diagnosticPlots (e.g., 'KS')\n- alternatives: method='differentiation' in transformSeries is an alternative to 'splitting' when the series exhibits a strong trend-like behavior. Simple hierarchical clustering (by specifying the number of clusters or using interactive point-and-click) can be used in clusterSegments instead of the pvclust algorithm.\n- when_to_use: Use this package when you have replicated time series data (such as free binding energy trajectories from molecular dynamics simulations) and want to identify coexisting, weakly-stationary macrostates or subpopulations.\n- pitfalls: If a time series is non-stationary (ADF p-value > 0.05), failing to split or differentiate it violates the weak-stationarity assumption required for downstream segmentation. In clusterSegments with intervention='pvclust', the user must interactively click and group ALL segments in the plot, otherwise the function will not exit. Splitting a series too many times can result in segments that are too small (minimum length is typically 200 observations), which is methodologically incorrect.",
+  "workflows": [
+    {
+      "name": "macrostate_identification",
+      "intent": "Identify distinct subpopulations (macrostates) from replicated time series data using stationarity splitting, wavelet denoising, and bootstrap-supported hierarchical clustering.",
+      "input": [
+        "D_GBTOT1 (space-separated 2-column file of timepoints and measurements)",
+        "D_GBTOT2 (space-separated 2-column file of timepoints and measurements)",
+        "D_GBTOT3 (space-separated 2-column file of timepoints and measurements)"
+      ],
+      "stages": "1. Load and parse trajectories using parseTraj.\n2. Split non-stationary trajectories into weakly-stationary subseries using transformSeries.\n3. Optionally identify and choose custom breakpoints using splitTraj and chooseBreaks.\n4. Segment and denoise the subseries using denoiseSegments.\n5. Calculate multi-scale bootstrap p-values using clusterPV.\n6. Group segments into subpopulations using clusterSegments.\n7. Retrieve subpopulation intervals using getIntervals.\n8. Perform residual diagnostics using diagnosticPlots.",
+      "code": "dir<-system.file(\"extdata\",package=\"deltaGseg\")\ntraj1<-parseTraj(path=dir, files=c(\"D_GBTOT1\",\"D_GBTOT2\",\"D_GBTOT3\"))\ntraj1.tr<-transformSeries(object=traj1,method='splitting',breakpoints=1)\nall_breakpoints<-splitTraj(traj1,segsplits=c(5,5,5))\nmybreaks<-chooseBreaks(all_breakpoints,numbreaks=3)\ntraj1.sp.tr<-transformSeries(object=traj1,method='override_splitting',breakpoints=mybreaks)\ntraj1.denoise<-denoiseSegments(object=traj1.tr,seg_method=\"SegNeigh\",maxQ=15,fn=1,factor=0.8,thresh_level=TRUE,minobs=200)\npvals<-clusterPV(object=traj1.denoise,bootstrap=500)\ntraj1.ss<-clusterSegments(object=traj1.denoise,intervention = \"pvclust\",pv=pvals)\ngetIntervals(traj1.ss)\ndiagnosticPlots(object=traj1.ss,norm.test=\"KS\",single.series=TRUE)"
+    },
+    {
+      "name": "differentiation_transformation",
+      "intent": "Transform trend-like non-stationary time series using differentiation before segmentation and clustering.",
+      "input": [
+        "simtraj.tr (TransTrajectories object containing non-stationary subseries with trend-like behavior)"
+      ],
+      "stages": "1. Apply differentiation transformation using transformSeries with method='differentiation'.\n2. Visualize the differentiated series and identified segments using plotDiff.",
+      "code": "simtraj.tr2<-transformSeries(object=simtraj.tr,method='differentiation')\nplotDiff(simtraj.tr2,name=\"1_2\")"
+    }
+  ]
+}

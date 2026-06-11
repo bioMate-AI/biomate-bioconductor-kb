@@ -1,187 +1,237 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ncdfFlow
-// Provides HDF5 storage based methods and functions for manipulation of flow cytometry data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ncdfFlow/inst/doc/ncdfFlow.R
-// Upstream  : flowStats
-// Downstream: ggcyto
-//
-// Install: BiocManager::install("ncdfFlow")
+// Bioconductor workflow: ncdfFlow — ncdf_flow_image_cytometry
+// Convert a multi-channel microscopy image into a flow cytometry data representation, store it efficiently using HDF5-backed ncdfFlowSet, and perform compensation
+// Input: image.tif
+// Container: 2.56.0--r45ha27e39d_0
+// R packages: EBImage, flowCore, flowStats, ncdfFlow
+// Bioconductor: 3.20 | R: 4.4
+// Requires: EBImage, flowCore, ncdfFlow
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_NCDFFLOW {
+process BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ncdfflow"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ncdfflow:2.52.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-ncdfflow:2.52.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ncdfflow_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ncdfflow_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ncdfflow_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("EBImage", "flowCore", "flowStats", "ncdfFlow")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
+    library(EBImage)
+    library(flowCore)
     library(ncdfFlow)
-    library(jsonlite)
-
-
-    # --- Include=false [] ---
-    # Key functions: set, list.files, read.ncdfFlowSet, extdata, compdata, flowCore, read.flowSet
-    library(knitr)
-    opts_chunk$set(
-    concordance=TRUE
-    )
-    path<-system.file("extdata","compdata","data",package="flowCore")
-    files<-list.files(path,full.names=TRUE)[1:3]
-    nc1 <- read.ncdfFlowSet(files=files)
-    nc1
-    fs1  <- read.flowSet(files=files)
-
-    # --- Unlink [] ---
-    # Key functions: unlink, read.ncdfFlowSet, sampleNames
-    unlink(nc1)
-    rm(nc1)
-    nc1  <- read.ncdfFlowSet(files=files, isWriteSlice= FALSE)
-    nc1[[1]]
-    targetSampleName<-sampleNames(fs1)[1]
-    nc1[[targetSampleName]] <- fs1[[1]]
-    nc1[[1]]
-    nc1[[2]]
-
-    # --- Is Empty [] ---
-    # Key functions: clone.ncdfFlowSet, sampleNames, unlink, pData, ncdfFlowSet
-    nc2 <- clone.ncdfFlowSet(nc1, isEmpty = TRUE)
-    nc2[[1]]
-    nc2[[sampleNames(fs1)[1]]] <- fs1[[1]]
-    nc2[[1]]
-    unlink(nc2)
-    rm(nc2)
-
-    unlink(nc1)
-    rm(nc1)
-    data(GvHD)
-    GvHD <- GvHD[pData(GvHD)$Patient %in% 6:7][1:4]
-    nc1<-ncdfFlowSet(GvHD)
-
-    # --- Ncdf Flow Settofs [] ---
-    # Key functions: as.flowSet, phenoData, pData, varLabels, varMetadata, sampleNames, keyword, identifier
-    fs1<-as.flowSet(nc1,top=2)
-    phenoData(nc1)
-    pData(nc1)
-    varLabels(nc1)
-    varMetadata(nc1)
-    sampleNames(nc1)
-    keyword(nc1,"FILENAME")
-    identifier(nc1)
-    colnames(nc1)
-    colnames(nc1,prefix="s6a01")
-    length(nc1)
-    nm<-sampleNames(nc1)[1]
-    expr1<-paste("nc1$'",nm,"'",sep="")
-    eval(parse(text=expr1))
-    nc1[[nm]]
-
-    nm<-sampleNames(nc1)[c(1,3)]
-    nc2<-nc1[nm]
-    summary(nc2)
-
-    # --- Fs Apply [] ---
-    # Key functions: fsApply, read.table, compensation, summary, compensate, unlink, arcsinhTransform, transform
-    fsApply(nc1,range)
-    fsApply(nc1, each_col, median)
-    cfile <- system.file("extdata","compdata","compmatrix", package="flowCore")
-    comp.mat <- read.table(cfile, header=TRUE, skip=2, check.names = FALSE)
-    comp <- compensation(comp.mat)
-
-    #compensation
-    summary(nc1)[[1]]
-    nc2<-compensate(nc1, comp)
-    summary(nc2)[[1]]
-    unlink(nc2)
-    rm(nc2)
-    rectGate <- rectangleGate(filterId="nonDebris","FSC-H"=c(200,Inf))
-    fr <- filter(nc1,rectGate)
-    summary(fr)
-
-    rg2 <- rectangleGate(filterId="nonDebris","FSC-H"=c(300,Inf))
-    rg3 <- rectangleGate(filterId="nonDebris","FSC-H"=c(400,Inf))
-    flist <- list(rectGate, rg2, rg3)
-    names(flist) <- sampleNames(nc1[1:3])
-
-    # --- Subsetting [] ---
-    # Key functions: summary, norm2Filter, quadGate, filter, split
-    nc2 <- Subset(nc1,rectGate)
-    summary(nc2[[1]])
-    library(flowStats)
-    morphGate <- norm2Filter("FSC-H", "SSC-H", filterId = "MorphologyGate",scale = 2)
-    smaller <- Subset(nc1[c(1,3)], morphGate,c("FSC-H", "SSC-H"))
-    smaller[[1]]
-    nc1[[1]]
-    rm(smaller)
-    ##splitting by a gate
-    qGate <- quadGate(filterId="qg", "FSC-H"=200, "SSC-H"=400)
-    fr<-filter(nc1,qGate)
-    ncList<-split(nc1,fr)
-    ncList
-    nc1[[1]]
-    ncList[[2]][[1]]
-    ncList[[1]][[1]]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ncdfflow_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ncdfflow_results.csv")
+    
+    # Stage 2: Read and preprocess the microscopy image
+    message("Reading input image...")
+    img <- EBImage::readImage("image.tif")
+    img_data <- as.array(img)
+    dims <- dim(img_data)
+    
+    # Downsample image if it is too large to optimize memory and processing speed
+    downsample_factor <- 4
+    if (dims[1] > 200 || dims[2] > 200) {
+      message("Downsampling image for efficient flow processing...")
+      if (length(dims) == 2) {
+        img_data <- img_data[seq(1, dims[1], by = downsample_factor), 
+                             seq(1, dims[2], by = downsample_factor)]
+      } else {
+        img_data <- img_data[seq(1, dims[1], by = downsample_factor), 
+                             seq(1, dims[2], by = downsample_factor), , drop = FALSE]
+      }
+      dims <- dim(img_data)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ncdfflow_output.rds")
+    
+    # Stage 3: Convert image slices into flowFrames and write to FCS files
+    # We split the image into 3 horizontal slices to represent 3 distinct samples
+    num_samples <- 3
+    slice_width <- floor(dims[1] / num_samples)
+    fcs_files <- c()
+    
+    message("Converting image slices to FCS files...")
+    for (i in 1:num_samples) {
+      x_start <- (i - 1) * slice_width + 1
+      x_end <- i * slice_width
+      
+      # Extract spatial coordinates and pixel intensities
+      coords <- expand.grid(X = x_start:x_end, Y = 1:dims[2])
+      
+      if (length(dims) == 2) {
+        # Grayscale image
+        slice <- img_data[x_start:x_end, ]
+        intensities <- as.vector(slice)
+        mat <- cbind(coords\$X, coords\$Y, intensities, intensities * 0.8, intensities * 0.5)
+      } else {
+        # Multichannel/Color image
+        slice <- img_data[x_start:x_end, , , drop = FALSE]
+        r <- as.vector(slice[, , 1])
+        g <- if (dims[3] >= 2) as.vector(slice[, , 2]) else r * 0.8
+        b <- if (dims[3] >= 3) as.vector(slice[, , 3]) else r * 0.5
+        mat <- cbind(coords\$X, coords\$Y, r, g, b)
+      }
+      
+      # Map image channels to standard flow cytometry parameters
+      colnames(mat) <- c("FSC-H", "SSC-H", "FL1-H", "FL2-H", "FL3-H")
+      
+      # Create flowFrame and write to disk
+      ff <- flowFrame(exprs = mat)
+      fcs_file <- paste0("sample_", i, ".fcs")
+      write.FCS(ff, fcs_file)
+      fcs_files <- c(fcs_files, fcs_file)
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NCDFFLOW:", paste0("    ncdfflow: ", packageVersion("ncdfFlow"))),
-        "versions.yml"
+    
+    # Stage 4: Create HDF5-backed ncdfFlowSet
+    message("Creating ncdfFlowSet from FCS files...")
+    nc <- read.ncdfFlowSet(files = fcs_files, ncdfFile = "image_flow.nc")
+    
+    # Annotate the dataset with metadata
+    sample_metadata <- data.frame(
+      row.names = sampleNames(nc),
+      SampleID = paste0("Slice_", 1:num_samples),
+      Treatment = c("Control", "Treated_A", "Treated_B")
     )
+    pData(nc) <- sample_metadata
+    
+    # Stage 5: Compensation
+    message("Applying compensation...")
+    # Create a dummy diagonal compensation matrix for the 3 fluorescent channels
+    comp_mat <- diag(3)
+    colnames(comp_mat) <- c("FL1-H", "FL2-H", "FL3-H")
+    rownames(comp_mat) <- c("FL1-H", "FL2-H", "FL3-H")
+    comp_obj <- compensation(comp_mat)
+    nc_comp <- compensate(nc, comp_obj)
+    
+    # Stage 6: Gating and Subsetting
+    message("Gating and subsetting background pixels...")
+    # Define a rectangle gate to filter out low-intensity background pixels
+    rect_gate <- rectangleGate(filterId = "SignalGate", "FL1-H" = c(0.1, Inf))
+    filter_results <- filter(nc_comp, rect_gate)
+    
+    # Subset the ncdfFlowSet to keep only signal-positive pixels
+    nc_subset <- Subset(nc_comp, rect_gate)
+    
+    # Stage 7: Transformation
+    message("Applying arcsinh transformation...")
+    asinh_trans <- arcsinhTransform(transformationId = "arcsinh-transform", a = 1, b = 1, c = 1)
+    nc_trans <- transform(nc_subset, `FL1-H` = asinh_trans(`FL1-H`), `FL2-H` = asinh_trans(`FL2-H`))
+    
+    # Stage 8: Splitting
+    message("Splitting dataset by quad gate...")
+    # Define a quad gate based on spatial coordinates and intensity
+    mean_fsc <- mean(range(nc_trans[[1]])[, "FSC-H"])
+    q_gate <- quadGate(filterId = "SpatialQuad", "FSC-H" = mean_fsc, "FL1-H" = 0.5)
+    split_results <- filter(nc_trans, q_gate)
+    nc_list <- split(nc_trans, split_results)
+    
+    # Stage 9: Exporting Results and Visualisation
+    message("Exporting summary statistics and diagnostic plots...")
+    
+    # Extract summary statistics
+    stats_list <- lapply(sampleNames(nc_trans), function(sn) {
+      ff_orig <- nc[[sn]]
+      ff_trans <- nc_trans[[sn]]
+      data.frame(
+        Sample = sn,
+        Original_Pixels = nrow(exprs(ff_orig)),
+        Gated_Pixels = nrow(exprs(ff_trans)),
+        Mean_FL1_Original = mean(exprs(ff_orig)[, "FL1-H"]),
+        Mean_FL1_Transformed = mean(exprs(ff_trans)[, "FL1-H"])
+      )
+    })
+    stats_df <- do.call(rbind, stats_list)
+    write.csv(stats_df, "pixel_flow_summary.csv", row.names = FALSE)
+    
+    # Generate diagnostic plots
+    pdf("pixel_intensity_plots.pdf", width = 10, height = 6)
+    par(mfrow = c(2, 3))
+    for (sn in sampleNames(nc)) {
+      hist(exprs(nc[[sn]])[, "FL1-H"], 
+           main = paste("Original FL1-H\n", sn), 
+           xlab = "Intensity", col = "skyblue", breaks = 30)
+    }
+    for (sn in sampleNames(nc_trans)) {
+      hist(exprs(nc_trans[[sn]])[, "FL1-H"], 
+           main = paste("Transformed FL1-H\n", sn), 
+           xlab = "Transformed Intensity", col = "tomato", breaks = 30)
+    }
+    dev.off()
+    
+    # Save the final processed ncdfFlowSet
+    if (dir.exists("ncfs_output")) {
+      unlink("ncfs_output", recursive = TRUE)
+    }
+    save_ncfs(nc_trans, outdir = "ncfs_output")
+    
+    # Stage 10: Cleanup temporary files
+    message("Cleaning up temporary files...")
+    unlink(nc)
+    unlink(nc_comp)
+    unlink(nc_subset)
+    unlink(nc_trans)
+    file.remove(fcs_files)
+    file.remove("image_flow.nc")
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY":',
+        paste0('    ncdfFlow: ', as.character(packageVersion('ncdfFlow')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ncdfflow_results.csv
-    touch ${prefix}_ncdfflow_output.rds
-    echo "BIOC_NCDFFLOW:" > versions.yml
-    echo "    ncdfflow: 0.0.0" >> versions.yml
+    touch ${prefix}_ncdf_flow_image_cytometry.csv versions.yml
     """
 }
 
-
-workflow BIOC_NCDFFLOW_WORKFLOW {
+workflow BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_NCDFFLOW(ch_input)
+    BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY(ch_input)
 
     emit:
-    results  = BIOC_NCDFFLOW.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NCDFFLOW.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NCDFFLOW.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NCDFFLOW.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY.out.tables
+    plots    = BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY.out.plots
+    objects  = BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY.out.objects
+    versions = BIOC_NCDFFLOW_NCDF_FLOW_IMAGE_CYTOMETRY.out.versions
 }

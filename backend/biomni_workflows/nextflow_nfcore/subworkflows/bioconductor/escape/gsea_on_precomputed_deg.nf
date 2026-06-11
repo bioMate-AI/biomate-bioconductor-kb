@@ -4,6 +4,8 @@
 // Perform classical GSEA on precomputed differential expression results using ranked gene lists and visualize the output.
 // Input: deg_results.csv, gene_sets.rds
 // Container: quay.io/biocontainers/bioconductor-escape:2.6.2--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: escape, ggplot2
 // Visualizations: enrichment plot
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -38,9 +40,12 @@ process BIOC_ESCAPE_GSEA_ON_PRECOMPUTED_DEG {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries

@@ -1,116 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TMixClust
-// Implementation of a clustering method for time series gene expression data based on mixed-effects mo
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TMixClust/inst/doc/TMixClust.R
-// Upstream  : SPEM
-// Downstream: none
-//
-// Install: BiocManager::install("TMixClust")
+// Bioconductor workflow: tmixclust — text_file_clustering
+// Load time series gene expression data from a text file, perform clustering, run stability analysis to find the global optimum, validate the results with silhoue
+// Input: toy_time_series.txt
+// Container: quay.io/biocontainers/bioconductor-tmixclust:1.32.0--r45hdfd78af_0
+// R packages: SPEM, TMixClust
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_TMIXCLUST {
+process BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tmixclust"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tmixclust:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tmixclust:1.28.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-tmixclust:1.32.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tmixclust_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tmixclust_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tmixclust_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SPEM", "TMixClust")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required library
     library(TMixClust)
-    library(jsonlite)
-
-    # --- Time Series Clustering [] ---
-    # Key functions: TMixClust
-    cluster_obj <- TMixClust(
-        toy_data,
-        nb_clusters = 3,
-        time_points = c(0, 24, 48, 63, 87)
-    )
-
-
-    # --- Stability Analysis [] ---
-    # Key functions: analyse_stability
-    best_clust_obj <- analyse_stability(
-        toy_data,
-        nb_clusters = 3,
-        nb_clustering_runs = 5,
-        nb_cores = 1
-    )
-
-
-    # --- Cluster Visualization and Validation [] ---
-    # Key functions: plot_silhouette, plot_time_series_df
-    plot_silhouette(best_clust_obj)
-    for (i in seq_len(3)) {
-        c_df <- toy_data[best_clust_obj$em_cluster_assignment == i, ]
-        plot_time_series_df(c_df, plot_title = paste("Cluster", i))
+    
+    # Define the input file path (must be in the working directory)
+    toy_data_file <- "toy_time_series.txt"
+    
+    # Verify that the input file exists
+    if (!file.exists(toy_data_file)) {
+      stop(paste("Error: Input file", toy_data_file, "not found in the working directory."))
     }
-
-
-    # --- Report Generation [] ---
-    # Key functions: generate_TMixClust_report
-    generate_TMixClust_report(best_clust_obj)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tmixclust_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tmixclust_results.csv")
+    
+    # 1. Load the time series data from the text file
+    toy_data <- get_time_series_df(toy_data_file)
+    
+    # Open a PDF device to save all generated plots
+    pdf_output_file <- "TMixClust_plots.pdf"
+    pdf(pdf_output_file, width = 8, height = 6)
+    
+    # 2. Visualize the raw time series data
+    plot_time_series_df(toy_data)
+    
+    # 3. Perform initial clustering (K = 3)
+    cluster_obj <- TMixClust(toy_data, nb_clusters = 3)
+    
+    # 4. Run stability analysis to find the global optimum
+    # (Runs the clustering 10 times using 3 cores)
+    best_clust_toy_obj <- analyse_stability(toy_data, nb_clusters = 3,
+                                           nb_clustering_runs = 10,
+                                           nb_cores = 3)
+    
+    # 5. Plot the time series for each identified cluster
+    for (i in 1:3) {
+        c_df = toy_data[which(best_clust_toy_obj\$em_cluster_assignment == i), ]
+        plot_time_series_df(c_df, plot_title = paste("cluster", i))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tmixclust_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TMIXCLUST:", paste0("    tmixclust: ", packageVersion("TMixClust"))),
-        "versions.yml"
+    
+    # 6. Generate a silhouette plot to validate cluster quality
+    plot_silhouette(best_clust_toy_obj)
+    
+    # Close the PDF device
+    dev.off()
+    
+    # 7. Generate a comprehensive HTML/PDF report
+    # This will create a folder named "TMixClust_report/" in the working directory
+    generate_TMixClust_report(cluster_obj)
+    
+    # Save the clustering results and objects to disk
+    saveRDS(cluster_obj, "initial_cluster_obj.rds")
+    saveRDS(best_clust_toy_obj, "best_cluster_stability_obj.rds")
+    
+    # Export cluster assignments to a CSV file
+    assignments_df <- data.frame(
+      Gene = rownames(toy_data),
+      Cluster_Assignment = best_clust_toy_obj\$em_cluster_assignment
     )
+    write.csv(assignments_df, "gene_cluster_assignments.csv", row.names = FALSE)
+    
+    cat("Pipeline completed successfully.\n")
+    cat("Outputs generated:\n")
+    cat("- TMixClust_plots.pdf (Visualization of raw data, clusters, and silhouette plot)\n")
+    cat("- TMixClust_report/ (Comprehensive HTML report directory)\n")
+    cat("- initial_cluster_obj.rds (Serialized initial clustering object)\n")
+    cat("- best_cluster_stability_obj.rds (Serialized optimal clustering object)\n")
+    cat("- gene_cluster_assignments.csv (Table of gene cluster assignments)\n")
+
+    writeLines(c(
+        '"BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING":',
+        paste0('        tmixclust: ', as.character(packageVersion("tmixclust")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tmixclust_results.csv
-    touch ${prefix}_tmixclust_output.rds
-    echo "BIOC_TMIXCLUST:" > versions.yml
-    echo "    tmixclust: 0.0.0" >> versions.yml
+    touch ${prefix}_text_file_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_TMIXCLUST_WORKFLOW {
+workflow BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ toy_time_series.txt ] ]
 
     main:
-    BIOC_TMIXCLUST(ch_input)
+    BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_TMIXCLUST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TMIXCLUST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TMIXCLUST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TMIXCLUST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING.out.tables
+    plots    = BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING.out.plots
+    objects  = BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING.out.objects
+    versions = BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING.out.versions
 }

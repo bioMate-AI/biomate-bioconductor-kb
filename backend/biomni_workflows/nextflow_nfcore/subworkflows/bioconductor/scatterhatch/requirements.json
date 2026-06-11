@@ -1,0 +1,13 @@
+{
+  "package": "scatterhatch",
+  "requirements": [
+    "ggplot2",
+    "scatterHatch"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "scatterHatch"
+    ]
+  }
+}

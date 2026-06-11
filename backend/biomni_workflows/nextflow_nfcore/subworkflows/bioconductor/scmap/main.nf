@@ -1,129 +1,200 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scmap
-// Single-cell RNA-seq (scRNA-seq) is widely used to investigate the composition of complex tissues sin
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scmap/inst/doc/scmap.R
-// Upstream  : SingleCellExperiment, googleVis
-// Downstream: none
-//
-// Install: BiocManager::install("scmap")
+// Bioconductor workflow: scmap — scmap_cluster
+// Project query single-cell RNA-seq data onto reference cell-type clusters to assign cell-type labels.
+// Input: yan, ann
+// Container: quay.io/biocontainers/bioconductor-scmap:1.32.0--r45ha27e39d_0
+// R packages: googlevis, scmap, SingleCellExperiment
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, scmap
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create SingleCellExperiment object and preprocess
+//  * 2. [Core Analysis] Feature selection using selectFeatures
+//  * 3. [Core Analysis] Reference indexing using indexCluster
+//  * 4. [Core Analysis] Projection using scmapCluster
+//  * 5. [Visualization & Output] Visualization using getSankey
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCMAP {
+process BIOC_SCMAP_SCMAP_CLUSTER {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scmap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scmap:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scmap:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(seurat_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scmap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scmap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scmap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("googlevis", "scmap", "SingleCellExperiment")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(scmap)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Cluster Indexing [] ---
-    # Key functions: indexCluster
-    sce <- indexCluster(
-        sce,
-        cluster_col = "cell_type1"
-    )
-    cluster_index <- metadata(sce)$scmap_cluster_index
-
-
-    # --- Cluster Projection [] ---
-    # Key functions: scmapCluster
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Read User Input and Preprocess
+    # -----------------------------------------------------------------------------
+    
+    # Helper function to robustly load user input files (RDS, CSV, or TSV)
+    load_input_file <- function(base_name) {
+      rds_file <- paste0(base_name, ".rds")
+      csv_file <- paste0(base_name, ".csv")
+      tsv_file <- paste0(base_name, ".txt")
+      
+      if (file.exists(rds_file)) {
+        return(readRDS(rds_file))
+      } else if (file.exists(csv_file)) {
+        return(read.csv(csv_file, row.names = 1, check.names = FALSE))
+      } else if (file.exists(tsv_file)) {
+        return(read.table(tsv_file, header = TRUE, row.names = 1, sep = "\t", check.names = FALSE))
+      } else if (file.exists(base_name)) {
+        # Try reading the file directly if no extension was appended but file exists
+        try_rds <- try(readRDS(base_name), silent = TRUE)
+        if (!inherits(try_rds, "try-error")) return(try_rds)
+        
+        try_csv <- try(read.csv(base_name, row.names = 1, check.names = FALSE), silent = TRUE)
+        if (!inherits(try_csv, "try-error")) return(try_csv)
+        
+        stop(paste("File found but could not be parsed as RDS or CSV:", base_name))
+      } else {
+        stop(paste("Required input file not found in the working directory:", base_name))
+      }
+    }
+    
+    # Load the exact user inputs
+    yan <- load_input_file("yan")
+    ann <- load_input_file("ann")
+    
+    # Ensure yan is a matrix
+    yan <- as.matrix(yan)
+    
+    # Create SingleCellExperiment object and preprocess
+    sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+    logcounts(sce) <- log2(normcounts(sce) + 1)
+    rowData(sce)\$feature_symbol <- rownames(sce)
+    sce <- sce[!duplicated(rownames(sce)), ]
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Feature selection using selectFeatures
+    # -----------------------------------------------------------------------------
+    sce <- selectFeatures(sce, suppress_plot = FALSE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Reference indexing using indexCluster
+    # -----------------------------------------------------------------------------
+    sce <- indexCluster(sce)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Projection using scmapCluster
+    # -----------------------------------------------------------------------------
     scmapCluster_results <- scmapCluster(
-        projection = query_sce,
-        index_list = list(
-            reference = metadata(ref_sce)$scmap_cluster_index
-        )
+      projection = sce, 
+      index_list = list(
+        yan = metadata(sce)\$scmap_cluster_index
+      )
     )
-    predicted_labels <- scmapCluster_results$scmap_cluster_labs
-
-
-    # --- Cell Indexing [] ---
-    # Key functions: indexCell
-    sce <- indexCell(
-        sce,
-        number_of_centroids = 100
+    
+    # -----------------------------------------------------------------------------
+    # Stage 5: Visualization using getSankey and Saving Outputs
+    # -----------------------------------------------------------------------------
+    
+    # Save the main results to RDS
+    saveRDS(scmapCluster_results, "scmap_cluster_results.rds")
+    saveRDS(sce, "sce_processed.rds")
+    
+    # Save projection results as a CSV table
+    results_df <- data.frame(
+      Cell = colnames(sce),
+      Actual_Cell_Type = colData(sce)\$cell_type1,
+      Projected_Cell_Type = scmapCluster_results\$scmap_cluster_labs[,'yan'],
+      Similarity = scmapCluster_results\$scmap_cluster_siml[,'yan'],
+      Combined_Labs = scmapCluster_results\$combined_labs,
+      stringsAsFactors = FALSE
     )
-    cell_index <- metadata(sce)$scmap_cell_index
-
-
-    # --- Cell Projection and Mapping [] ---
-    # Key functions: scmapCell, scmapCell2Cluster
-    scmapCell_results <- scmapCell(
-        projection = query_sce,
-        index_list = list(
-            reference = metadata(ref_sce)$scmap_cell_index
-        )
+    write.csv(results_df, "scmap_cluster_predictions.csv", row.names = FALSE)
+    
+    # Generate and save the Sankey diagram
+    sankey_gvis <- getSankey(
+      colData(sce)\$cell_type1,
+      scmapCluster_results\$scmap_cluster_labs[,'yan'],
+      plot_height = 400
     )
-    scmapCell_clusters <- scmapCell2Cluster(
-        scmapCell_results,
-        list(
-            as.character(colData(ref_sce)$cell_type1)
-        )
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scmap_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scmap_results.csv")
+    
+    # Save the interactive Sankey plot as an HTML file
+    if (!is.null(sankey_gvis\$html\$chart)) {
+      cat(sankey_gvis\$html\$chart, file = "sankey_plot.html")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scmap_output.rds")
-    }
+    
+    # Execute the documented plot call (wrapped in tryCatch to prevent headless environment failures)
+    tryCatch({
+      pdf("sankey_plot.pdf", width = 8, height = 6)
+      plot(
+        getSankey(
+          colData(sce)\$cell_type1,
+          scmapCluster_results\$scmap_cluster_labs[,'yan'],
+          plot_height = 400
+        )
+      )
+      dev.off()
+    }, error = function(e) {
+      warning("Could not plot Sankey to PDF (this is normal in non-interactive/headless environments): ", e\$message)
+    })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCMAP:", paste0("    scmap: ", packageVersion("scmap"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCMAP_SCMAP_CLUSTER":',
+        paste0('    scmap: ', as.character(packageVersion('scmap')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scmap_results.csv
-    touch ${prefix}_scmap_output.rds
-    echo "BIOC_SCMAP:" > versions.yml
-    echo "    scmap: 0.0.0" >> versions.yml
+    touch ${prefix}_scmap_cluster.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCMAP_WORKFLOW {
+workflow BIOC_SCMAP_SCMAP_CLUSTER_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(seurat_object) ]
+    ch_input  // channel: [ val(meta), [ yan, ann ] ]
 
     main:
-    BIOC_SCMAP(ch_input)
+    BIOC_SCMAP_SCMAP_CLUSTER(ch_input)
 
     emit:
-    results  = BIOC_SCMAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCMAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCMAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCMAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCMAP_SCMAP_CLUSTER.out.tables
+    plots    = BIOC_SCMAP_SCMAP_CLUSTER.out.plots
+    objects  = BIOC_SCMAP_SCMAP_CLUSTER.out.objects
+    versions = BIOC_SCMAP_SCMAP_CLUSTER.out.versions
 }

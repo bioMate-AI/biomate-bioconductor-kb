@@ -1,0 +1,21 @@
+{
+  "package": "metcirc",
+  "requirements": [
+    "MetCirc",
+    "MsCoreUtils",
+    "S4Vectors",
+    "Spectra",
+    "amap",
+    "circlize"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MetCirc",
+      "MsCoreUtils",
+      "S4Vectors",
+      "Spectra",
+      "amap",
+      "circlize"
+    ]
+  }
+}

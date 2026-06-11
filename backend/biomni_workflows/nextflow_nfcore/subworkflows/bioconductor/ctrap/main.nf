@@ -1,133 +1,152 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cTRAP
-// Compare differential gene expression results with those from known cellular perturbations (such as g
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cTRAP/inst/doc/cTRAP.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("cTRAP")
+// Bioconductor workflow: cTRAP — prepare_differential_expression_input
+// Download ENCODE RNA-seq data, perform differential expression analysis, and prepare the t-statistics vector required for downstream cTRAP analyses.
+// Input: cellLine, gene
+// Container: quay.io/biocontainers/bioconductor-ctrap:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: cTRAP
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Download ENCODE knockdown metadata
+//  * 2. [Input & Preparation] Load ENCODE samples
+//  * 3. [Input & Preparation] Prepare gene expression counts
+//  * 4. [Core Analysis] Convert gene identifiers to gene symbols
+//  * 5. [Core Analysis] Perform differential expression analysis
+//  * 6. [Core Analysis] Extract t-statistics and name them with gene symbols
 
 nextflow.enable.dsl = 2
 
-process BIOC_CTRAP {
+process BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ctrap"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ctrap:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ctrap:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ctrap_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ctrap_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ctrap_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(cTRAP)
-    library(jsonlite)
-
-    # --- Rank Similar Perturbations [] ---
-    # Key functions: rankSimilarPerturbations
-    compareKD <- rankSimilarPerturbations(
-        diffExprStat,
-        cmapPerturbationsKD
-    )
-    compareCompounds <- rankSimilarPerturbations(
-        diffExprStat,
-        cmapPerturbationsCompounds
-    )
-    plot(compareKD, "spearman", n=c(10, 3))
-    kd_table <- as.table(compareKD)
-
-
-    # --- Predict Targeting Drugs [] ---
-    # Key functions: listExpressionDrugSensitivityAssociation, loadExpressionDrugSensitivityAssociation, predictTargetingDrugs
-    ctrp <- listExpressionDrugSensitivityAssociation()[[2]]
-    assoc <- loadExpressionDrugSensitivityAssociation(ctrp)
-    predicted <- predictTargetingDrugs(diffExprStat, assoc)
-    plot(predicted, method="rankProduct")
-    plot(predicted, predicted[[1, 1]], method="spearman")
-
-
-    # --- Compare Drug Predictions and Perturbations [] ---
-    # Key functions: plotTargetingDrugsVSsimilarPerturbations
-    plotTargetingDrugsVSsimilarPerturbations(
-        predicted,
-        compareCompounds,
-        column="spearman_rank"
-    )
-    plotTargetingDrugsVSsimilarPerturbations(
-        predicted,
-        compareCompounds,
-        column="spearman_rank",
-        labelBy="target"
-    )
-
-
-    # --- Drug Set Enrichment Analysis [] ---
-    # Key functions: loadDrugDescriptors, prepareDrugSets, analyseDrugSetEnrichment, plotDrugSetEnrichment
-    descriptors <- loadDrugDescriptors("CMap", "2D")
-    drugSets <- prepareDrugSets(descriptors)
-    dsea <- analyseDrugSetEnrichment(drugSets, predicted)
-    plotDrugSetEnrichment(
-        drugSets,
-        predicted,
-        selectedSets=head(dsea$descriptor, 6)
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ctrap_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ctrap_results.csv")
+    
+    # Read user input files from the working directory
+    if (!file.exists("cellLine") || !file.exists("gene")) {
+      stop("Required input files 'cellLine' and/or 'gene' are missing in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ctrap_output.rds")
-    }
+    
+    cellLine <- trimws(readLines("cellLine", warn = FALSE)[1])
+    gene <- trimws(readLines("gene", warn = FALSE)[1])
+    
+    message(paste("Processing cell line:", cellLine))
+    message(paste("Target gene:", gene))
+    
+    # 1. Download ENCODE knockdown metadata
+    message("Downloading ENCODE knockdown metadata...")
+    ENCODEmetadata <- downloadENCODEknockdownMetadata(cellLine, gene)
+    
+    # Print metadata summary
+    message("Metadata summary:")
+    print(table(ENCODEmetadata\$`Experiment target`))
+    message(paste("Unique experiment targets:", length(unique(ENCODEmetadata\$`Experiment target`))))
+    
+    # Save metadata to CSV
+    write.csv(ENCODEmetadata, "ENCODE_metadata.csv", row.names = FALSE)
+    
+    # 2. Load ENCODE samples
+    message("Loading ENCODE samples...")
+    ENCODEsamples <- loadENCODEsamples(ENCODEmetadata)[[1]]
+    
+    # 3. Prepare gene expression counts
+    message("Preparing gene expression counts...")
+    counts <- prepareENCODEgeneExpression(ENCODEsamples)
+    
+    # Filter low coverage (at least 10 counts shared across two samples)
+    minReads <- 10
+    minSamples <- 2
+    filter <- rowSums(counts[ , -c(1, 2)] >= minReads) >= minSamples
+    counts <- counts[filter, ]
+    
+    # 4. Convert ENSEMBL identifier to gene symbol
+    message("Converting gene identifiers...")
+    counts\$gene_id <- convertGeneIdentifiers(counts\$gene_id)
+    
+    # Save prepared counts
+    write.csv(counts, "prepared_counts.csv", row.names = FALSE)
+    
+    # 5. Perform differential gene expression analysis
+    message("Performing differential expression analysis...")
+    diffExpr <- performDifferentialExpression(counts)
+    
+    # Save full differential expression results
+    write.csv(diffExpr, "differential_expression_results.csv", row.names = FALSE)
+    
+    # 6. Extract t-statistics and name them with gene symbols
+    message("Extracting and naming t-statistics...")
+    diffExprStat <- diffExpr\$t
+    names(diffExprStat) <- diffExpr\$Gene_symbol
+    
+    # Save t-statistics vector as RDS (required input for downstream cTRAP analyses)
+    saveRDS(diffExprStat, "diffExprStat.rds")
+    
+    # Generate a diagnostic plot of the t-statistics distribution
+    pdf("t_statistics_distribution.pdf")
+    hist(diffExprStat, breaks = 100, 
+         main = paste("t-statistics Distribution\n", gene, "Knockdown in", cellLine),
+         xlab = "t-statistic", col = "skyblue", border = "white")
+    abline(v = 0, col = "red", lty = 2, lwd = 2)
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs written to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CTRAP:", paste0("    ctrap: ", packageVersion("cTRAP"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT":',
+        paste0('    cTRAP: ', as.character(packageVersion('cTRAP')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ctrap_results.csv
-    touch ${prefix}_ctrap_output.rds
-    echo "BIOC_CTRAP:" > versions.yml
-    echo "    ctrap: 0.0.0" >> versions.yml
+    touch ${prefix}_prepare_differential_expression_input.csv versions.yml
     """
 }
 
-
-workflow BIOC_CTRAP_WORKFLOW {
+workflow BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cellLine, gene ] ]
 
     main:
-    BIOC_CTRAP(ch_input)
+    BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT(ch_input)
 
     emit:
-    results  = BIOC_CTRAP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CTRAP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CTRAP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CTRAP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT.out.tables
+    plots    = BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT.out.plots
+    objects  = BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT.out.objects
+    versions = BIOC_CTRAP_PREPARE_DIFFERENTIAL_EXPRESSION_INPUT.out.versions
 }

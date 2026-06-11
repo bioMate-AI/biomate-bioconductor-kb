@@ -1,0 +1,14 @@
+{
+  "package": "genomicinstability",
+  "requirements": [
+    "genomicInstability"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "genomicInstability"
+    ],
+    "reference_based_gia.nf": [
+      "genomicInstability"
+    ]
+  }
+}

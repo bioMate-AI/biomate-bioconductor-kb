@@ -1,0 +1,13 @@
+{
+  "package": "siggenes",
+  "requirements": [
+    "multtest",
+    "siggenes"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "multtest",
+      "siggenes"
+    ]
+  }
+}

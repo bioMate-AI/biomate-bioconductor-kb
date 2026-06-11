@@ -1,139 +1,198 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RDRToolbox
-// A package for nonlinear dimension reduction using the Isomap and LLE algorithm. It also includes a r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RDRToolbox/inst/doc/vignette.R
-// Upstream  : golubEsets
-// Downstream: none
-//
-// Install: BiocManager::install("RDRToolbox")
+// Bioconductor workflow: RDRToolbox — nonlinear_dimension_reduction
+// Perform nonlinear dimension reduction using Isomap and LLE on transcriptomics data, estimate intrinsic dimensionality, validate clusters using the Davies-Bouldi
+// Input: expression_matrix.csv, sample_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-rdrtoolbox:1.60.0--r45h575d39b_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RDRToolbox
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Transpose the expression matrix to format it as N x D (samples x features)
+//  * 2. [Visualization & Output] Estimate the intrinsic dimension of the dataset using Isomap with residual variance plotting
+//  * 3. [Core Analysis] Perform Isomap dimension reduction to 2 dimensions
+//  * 4. [Core Analysis] Perform LLE dimension reduction to 2 dimensions
+//  * 5. [Core Analysis] Validate the quality of the resulting clusters using the Davies-Bouldin Index
+//  * 6. [Visualization & Output] Visualize the low-dimensional embeddings using plotDR
 
 nextflow.enable.dsl = 2
 
-process BIOC_RDRTOOLBOX {
+process BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rdrtoolbox"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rdrtoolbox:1.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rdrtoolbox:1.56.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rdrtoolbox_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rdrtoolbox_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rdrtoolbox_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DBIndex)
-    library(Isomap)
-    library(LLE)
-    library(SwissRoll)
-    library(jsonlite)
-
-    # --- Swissroll [] ---
-    # Key functions: SwissRoll
-    ## swissData=SwissRoll(N = 1000, Plot=TRUE)
-    # --- Generatedata [] ---
-    # Key functions: generateData
-    sim = generateData(samples=20, genes=1000, diffgenes=100, diffsamples=10)
-    simData = sim[[1]]
-    simLabels = sim[[2]]
-    # --- Lle [] ---
-    # Key functions: LLE
-    simData_dim3_lle = LLE(data=simData, dim=3, k=10)
-    head(simData_dim3_lle)
-    simData_dim2_lle = LLE(data=simData, dim=2, k=5)
-    head(simData_dim2_lle)
-    # --- Isomap [] ---
-    # Key functions: Isomap
-    simData_dim2_IM = Isomap(data=simData, dims=2, k=10)
-    head(simData_dim2_IM$dim2)
-    # --- Plotdr [] ---
-    # Key functions: plotDR
-    plotDR(data=simData_dim2_lle, labels=simLabels)
-    # --- Generatedata [] ---
-    # Key functions: generateData, DBIndex
-    d = generateData(samples=20, genes=50, diffgenes=10, blocksize=5)
-    DBIndex(data=d[[1]], labels=d[[2]])
-    # --- Dbindex [] ---
-    # Key functions: DBIndex
-    DBIndex(data=simData_dim2_lle, labels=simLabels)
-    # --- Data [] ---
-    # Key functions: data
-    library(golubEsets)
-    data(Golub_Merge)
-    # --- Isomap [] ---
-    # Key functions: Isomap
-    Isomap(data=golubExprs, dims=1:10, plotResiduals=TRUE, k=5)
-    # --- Isomap [] ---
-    # Key functions: Isomap, LLE
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(RDRToolbox)
+    
+    # ==========================================
+    # 1. Read and Preprocess User Input Files
+    # ==========================================
+    
+    # Read the high-dimensional gene expression matrix (genes as rows, samples as columns)
+    expr_mat <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    
+    # Read the sample metadata containing class labels
+    metadata <- read.csv("sample_metadata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align samples between expression matrix and metadata
+    common_samples <- intersect(colnames(expr_mat), rownames(metadata))
+    if (length(common_samples) == 0) {
+      # Fallback if row names of metadata do not match column names of expression matrix
+      # Assume first column of metadata contains sample IDs
+      metadata_raw <- read.csv("sample_metadata.csv", check.names = FALSE)
+      common_samples <- intersect(colnames(expr_mat), metadata_raw[[1]])
+      rownames(metadata_raw) <- metadata_raw[[1]]
+      metadata <- metadata_raw[common_samples, , drop = FALSE]
+    }
+    
+    expr_mat <- expr_mat[, common_samples, drop = FALSE]
+    metadata <- metadata[common_samples, , drop = FALSE]
+    
+    # Extract class labels
+    # Look for common label column names, fallback to the first non-ID column
+    label_col <- "class"
+    if (!label_col %in% colnames(metadata)) {
+      possible_cols <- colnames(metadata)[grepl("class|label|ALL.AML|type|group", colnames(metadata), ignore.case = TRUE)]
+      if (length(possible_cols) > 0) {
+        label_col <- possible_cols[1]
+      } else {
+        label_col <- colnames(metadata)[1]
+        if (ncol(metadata) > 1) {
+          label_col <- colnames(metadata)[2]
+        }
+      }
+    }
+    labels <- metadata[[label_col]]
+    
+    # Transpose the expression matrix to format it as N x D (samples x features)
+    golubExprs = t(as.matrix(expr_mat))
+    
+    # Display dimensions and labels
+    dim(golubExprs)
+    show(labels)
+    
+    # ==========================================
+    # 2. Estimate Intrinsic Dimensionality
+    # ==========================================
+    
+    # Estimate the intrinsic dimension of the dataset using Isomap with residual variance plotting
+    # Wrapped in tryCatch to handle cases where the input dataset has fewer samples than dimensions
+    tryCatch({
+      pdf("isomap_residual_variance.pdf")
+      Isomap(data=golubExprs, dims=1:10, plotResiduals=TRUE, k=5)
+      dev.off()
+    }, error = function(e) {
+      warning("Could not plot residual variance for dims 1:10: ", e\$message)
+      if (dev.cur() > 1) dev.off()
+    })
+    
+    # ==========================================
+    # 3. Perform Dimension Reduction
+    # ==========================================
+    
+    # Perform Isomap dimension reduction to 2 dimensions
     golubIsomap = Isomap(data=golubExprs, dims=2, k=5)
+    
+    # Perform LLE dimension reduction to 2 dimensions
     golubLLE = LLE(data=golubExprs, dim=2, k=5)
-    # --- Dbindex [] ---
-    # Key functions: DBIndex
-    DBIndex(data=golubIsomap$dim2, labels=labels)
-    DBIndex(data=golubLLE, labels=labels)
-    # --- Plotgolubisomap [] ---
-    # Key functions: plotDR
-    plotDR(data=golubIsomap$dim2, labels=labels, axesLabels=c("", ""), legend=TRUE)
+    
+    # ==========================================
+    # 4. Validate Clusters (Davies-Bouldin Index)
+    # ==========================================
+    
+    # Validate the quality of the resulting clusters using the Davies-Bouldin Index
+    db_isomap <- DBIndex(data=golubIsomap\$dim2, labels=labels)
+    db_lle <- DBIndex(data=golubLLE, labels=labels)
+    
+    # Save validation results to a CSV file
+    db_results <- data.frame(
+      Method = c("Isomap", "LLE"),
+      DBIndex = c(db_isomap, db_lle)
+    )
+    write.csv(db_results, "db_index_validation.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 5. Visualize Low-Dimensional Embeddings
+    # ==========================================
+    
+    # Visualize the low-dimensional embeddings using plotDR and save to PDF
+    pdf("dimension_reduction_plots.pdf", width = 12, height = 6)
+    par(mfrow = c(1, 2))
+    
+    plotDR(data=golubIsomap\$dim2, labels=labels, axesLabels=c("", ""), legend=TRUE)
     title(main="Isomap")
-    # --- Plotgolublle [] ---
-    # Key functions: plotDR
+    
     plotDR(data=golubLLE, labels=labels, axesLabels=c("", ""), legend=TRUE)
     title(main="LLE")
+    
+    dev.off()
+    
+    # ==========================================
+    # 6. Save Outputs
+    # ==========================================
+    
+    # Save coordinates as CSV files
+    write.csv(golubIsomap\$dim2, "isomap_coordinates.csv", row.names = TRUE)
+    write.csv(golubLLE, "lle_coordinates.csv", row.names = TRUE)
+    
+    # Save full objects as RDS
+    saveRDS(golubIsomap, "golubIsomap.rds")
+    saveRDS(golubLLE, "golubLLE.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rdrtoolbox_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rdrtoolbox_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rdrtoolbox_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RDRTOOLBOX:", paste0("    rdrtoolbox: ", packageVersion("RDRToolbox"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION":',
+        paste0('    RDRToolbox: ', as.character(packageVersion('RDRToolbox')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rdrtoolbox_results.csv
-    touch ${prefix}_rdrtoolbox_output.rds
-    echo "BIOC_RDRTOOLBOX:" > versions.yml
-    echo "    rdrtoolbox: 0.0.0" >> versions.yml
+    touch ${prefix}_nonlinear_dimension_reduction.csv versions.yml
     """
 }
 
-
-workflow BIOC_RDRTOOLBOX_WORKFLOW {
+workflow BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, sample_metadata.csv ] ]
 
     main:
-    BIOC_RDRTOOLBOX(ch_input)
+    BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION(ch_input)
 
     emit:
-    results  = BIOC_RDRTOOLBOX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RDRTOOLBOX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RDRTOOLBOX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RDRTOOLBOX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION.out.tables
+    plots    = BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION.out.plots
+    objects  = BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION.out.objects
+    versions = BIOC_RDRTOOLBOX_NONLINEAR_DIMENSION_REDUCTION.out.versions
 }

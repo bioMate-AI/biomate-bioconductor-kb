@@ -1,202 +1,226 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: microbiome
-// Utilities for microbiome analysis.
-//
-// Source : https://microbiome.github.io/tutorials/Preprocessing.html
-// Upstream  : knitr
-// Downstream: none
-//
-// Install: BiocManager::install("microbiome")
+// Bioconductor workflow: microbiome — microbiome_analysis_pipeline
+// Perform a comprehensive microbiome analysis including quality control, alpha diversity profiling, taxonomic composition visualization, core microbiome identific
+// Input: abundance.csv, coldata.csv
+// Container: 1.32.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: microbiome
+// Visualizations: box plot, heatmap
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MICROBIOME {
+process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-microbiome"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-microbiome:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-microbiome:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_microbiome_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_microbiome_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_microbiome_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the authoritative microbiome package
     library(microbiome)
-    library(jsonlite)
-
-    # --- Summarizing the contents of a phyloseq object [] ---
-    # Key functions: summarize_phyloseq
-    summarize_phyloseq(pseq)
-    # --- Retrieving data elements from phyloseq object [] ---
-    # Key functions: meta, tax_table, abundances, readcount, sample_data, psmelt, kable
-    meta <- meta(pseq)
     
-    taxonomy <- tax_table(pseq)
+    # ==========================================
+    # STAGE 1: Data Loading & Preprocessing
+    # ==========================================
+    message("Stage 1: Loading and preprocessing input data...")
     
-    # Absolute abundances
-    otu.absolute <- abundances(pseq)
+    # Read the abundance matrix and metadata
+    abundance_df <- read.csv("abundance.csv", check.names = FALSE)
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE)
     
-    # Relative abundances
-    otu.relative <- abundances(pseq, "compositional")
-    
-    reads_sample <- readcount(pseq)
-    # check for first 5 samples
-    # --- Sample operations [] ---
-    # Key functions: sample_names, sample_sums, abundances, subset_samples, subset, meta, prune_samples, baseline
-    head(sample_names(pseq))
-    
-    s <- sample_sums(pseq)
-    
-    head(abundances(pseq)["Akkermansia",])
-    
-    pseq.subset <- subset_samples(pseq, nationality == "AFR")
-    
-    # Check sample names for African Females in this phyloseq object
-    s <- rownames(subset(meta(pseq), nationality == "AFR" & sex == "Female"))
-    
-    # Pick the phyloseq subset with these sample names
-    # --- Data transformations [] ---
-    # Key functions: transform, data
-    pseq.compositional <- microbiome::transform(pseq, "compositional")
-    
-    data(dietswap)
-    x <- dietswap
-    # Compositional data
-    x2 <- microbiome::transform(x, "compositional")
-    # --- Variable operations [] ---
-    # Key functions: sample_variables, get_variable, alpha, sample_data
-    sample_variables(pseq)
-    
-    head(get_variable(pseq, sample_variables(pseq)[1]))
-    
-    # Calculate diversity for samples
-    div <- microbiome::alpha(pseq, index = "shannon")
-    
-    # Assign the estimated diversity to sample metadata
-    sample_data(pseq)$diversity <- div
-    # --- Taxa operations [] ---
-    # Key functions: ntaxa, top_taxa, rank_names, taxa, subset_taxa, map_levels, prune_taxa, taxa_sums
-    n <- ntaxa(pseq)
-    
-    topx <- top_taxa(pseq, n = 10)
-    
-    ranks <- rank_names(pseq)  # Taxonomic levels
-    taxa  <- taxa(pseq)        # Taxa names at the analysed level
-    
-    pseq.bac <- subset_taxa(pseq, Phylum == "Bacteroidetes")
-    
-    # List of Genera in the Bacteroideted Phylum
-    taxa <- map_levels(NULL, "Phylum", "Genus", pseq)$Bacteroidetes
-    
-    # --- Labelling ASVs with best taxonomy [] ---
-    # Key functions: add_besthit, taxa_names
-    ps <- add_besthit(ps)
-    taxa_names(ps)[1:2]
-    
-    taxa_names(ps) <- gsub("[a-x]__", "",taxa_names(ps))
-    taxa_names(ps)[1:2]
-    # --- Merging operations [] ---
-    # Key functions: aggregate_taxa, merge_taxa2, merge_phyloseq, data, combine_otu_tax
-    pseq2 <- aggregate_taxa(pseq, "Phylum")
-    
-    pseq2 <- merge_taxa2(pseq, pattern = "^Bacteroides", name = "Bacteroides")
-    
-    merge_phyloseq(pseqA, pseqB)
-    
-    library(dplyr)
-    library(microbiome)
-    data("atlas1006") # example data from microbiome pkg
-    otu.tax.tibble <- combine_otu_tax(atlas1006, column.id = "ASVID")
-    # view first fist rows and columns
-    otu.tax.tibble[1:5,1:5]
-    # --- Get tibbles [] ---
-    # Key functions: otu_tibble, tax_tibble, sample_tibble
-    otu.tib <- otu_tibble(atlas1006, column.id = "FeatureID")
-    
-    tax.tib <- tax_tibble(atlas1006, column.id = "FeatureID")
-    
-    sample.tib <- sample_tibble(atlas1006, column.id = "SampleID")
-    # --- Convert to tidy long format [] ---
-    # Key functions: psmelt2
-    ps.long.tib <- psmelt2(pseq)
-    head(ps.long.tib)
-    # --- Rarefaction [] ---
-    # Key functions: rarefy_even_depth
-    pseq.rarified <- rarefy_even_depth(pseq)
-    # --- Taxonomy [] ---
-    # Key functions: map_levels, tax_table
-    m <- map_levels("Akkermansia", "Genus", "Phylum", tax_table(pseq))
-    print(m)
-    # --- Metadata [] ---
-    # Key functions: plot_frequencies, sample_data, kable, group_bmi, group_age, data, meta
-    p <- plot_frequencies(sample_data(pseq), "bmi_group", "sex")
-    print(p)
-    
-    # Retrieving the actual data values:
-    # kable(head(p@data), digits = 2)
-    
-    group_bmi(c(22, 28, 31), "standard")
-    
-    group_age(c(17, 41, 102), "decades")
-    
-    # Example data
-    data(dietswap)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_microbiome_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_microbiome_results.csv")
+    # Format abundance data: ensure taxon_id is set as row names
+    if ("taxon_id" %in% colnames(abundance_df)) {
+      rownames(abundance_df) <- abundance_df\$taxon_id
+      abundance_df\$taxon_id <- NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_microbiome_output.rds")
+    
+    # Format metadata: ensure sample column is set as row names
+    if ("sample" %in% colnames(coldata_df)) {
+      rownames(coldata_df) <- coldata_df\$sample
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MICROBIOME:", paste0("    microbiome: ", packageVersion("microbiome"))),
-        "versions.yml"
+    
+    # Write temporary files formatted specifically for read_csv2phyloseq
+    # read_csv2phyloseq expects the first column of OTU file to be taxon IDs,
+    # and the first column of metadata file to be sample IDs.
+    otu_temp <- data.frame(taxon_id = rownames(abundance_df), abundance_df, check.names = FALSE)
+    write.csv(otu_temp, "temp_otu.csv", row.names = FALSE)
+    
+    meta_temp <- data.frame(sample = rownames(coldata_df), coldata_df, check.names = FALSE)
+    write.csv(meta_temp, "temp_meta.csv", row.names = FALSE)
+    
+    # Load into a phyloseq object using microbiome's native parser
+    pseq <- read_csv2phyloseq(otu.file = "temp_otu.csv", metadata.file = "temp_meta.csv", sep = ",")
+    
+    # Clean up temporary files immediately
+    unlink("temp_otu.csv")
+    unlink("temp_meta.csv")
+    
+    # ==========================================
+    # STAGE 2: Quality Control & Profiling
+    # ==========================================
+    message("Stage 2: Profiling samples and taxa...")
+    
+    # Calculate sample read counts
+    sample_reads <- readcount(pseq)
+    
+    # Identify the dominant taxon in each sample
+    dom_taxa <- dominant(pseq)
+    
+    # Calculate sample divergence (beta diversity divergence to the median profile)
+    div_val <- tryCatch({
+      divergence(pseq)
+    }, error = function(e) {
+      warning("Divergence calculation failed: ", e\$message)
+      rep(NA, ncol(abundances(pseq)))
+    })
+    
+    # Combine metadata with QC and profiling metrics
+    metadata <- meta(pseq)
+    sample_summary <- data.frame(
+      sample = rownames(metadata),
+      metadata,
+      read_count = sample_reads[rownames(metadata)],
+      dominant_taxon = dom_taxa[rownames(metadata)],
+      divergence = div_val[rownames(metadata)],
+      stringsAsFactors = FALSE
     )
+    write.csv(sample_summary, "sample_summary.csv", row.names = FALSE)
+    
+    # ==========================================
+    # STAGE 3: Alpha Diversity Analysis
+    # ==========================================
+    message("Stage 3: Analyzing alpha diversity...")
+    
+    # Calculate comprehensive alpha diversity indices
+    alpha_metrics <- alpha(pseq, index = "all")
+    write.csv(alpha_metrics, "alpha_diversity.csv", row.names = TRUE)
+    
+    # Generate alpha diversity boxplot grouped by the 'group' variable
+    tryCatch({
+      pdf("alpha_boxplot.pdf", width = 8, height = 6)
+      p_alpha <- boxplot_alpha(pseq, index = "shannon", x = "group")
+      print(p_alpha)
+      dev.off()
+    }, error = function(e) {
+      warning("Alpha boxplot generation failed: ", e\$message)
+      # Create fallback empty PDF
+      pdf("alpha_boxplot.pdf", width = 8, height = 6)
+      plot.new()
+      text(0.5, 0.5, "Alpha boxplot generation failed", cex = 1.2)
+      dev.off()
+    })
+    
+    # ==========================================
+    # STAGE 4: Compositional & Core Microbiome Analysis
+    # ==========================================
+    message("Stage 4: Analyzing taxonomic composition and core members...")
+    
+    # Transform abundances to relative abundances (compositional)
+    pseq_rel <- transform(pseq, "compositional")
+    
+    # Generate taxonomic composition plot
+    tryCatch({
+      pdf("composition_plot.pdf", width = 10, height = 8)
+      p_comp <- plot_composition(pseq_rel)
+      print(p_comp)
+      dev.off()
+    }, error = function(e) {
+      warning("Composition plot generation failed: ", e\$message)
+      pdf("composition_plot.pdf", width = 10, height = 8)
+      plot.new()
+      text(0.5, 0.5, "Composition plot generation failed", cex = 1.2)
+      dev.off()
+    })
+    
+    # Identify core taxa members
+    core_taxa <- core_members(pseq_rel, detection = 0.001, prevalence = 0.1)
+    
+    # Generate core microbiome heatmap
+    tryCatch({
+      pdf("core_heatmap.pdf", width = 10, height = 8)
+      p_core <- plot_core(pseq_rel, plot.type = "heatmap")
+      print(p_core)
+      dev.off()
+    }, error = function(e) {
+      warning("Core heatmap generation failed: ", e\$message)
+      pdf("core_heatmap.pdf", width = 10, height = 8)
+      plot.new()
+      text(0.5, 0.5, "Core heatmap generation failed", cex = 1.2)
+      dev.off()
+    })
+    
+    # ==========================================
+    # STAGE 5: Taxon-Level Summary
+    # ==========================================
+    message("Stage 5: Generating taxon-level summary...")
+    
+    taxa_names <- taxa(pseq)
+    tax_abundances <- abundances(pseq_rel)
+    mean_abundance <- rowMeans(tax_abundances)
+    tax_prevalence <- prevalence(pseq)
+    
+    taxon_summary <- data.frame(
+      taxon_id = taxa_names,
+      mean_relative_abundance = mean_abundance[taxa_names],
+      prevalence = tax_prevalence[taxa_names],
+      is_core = taxa_names %in% core_taxa,
+      stringsAsFactors = FALSE
+    )
+    write.csv(taxon_summary, "taxon_summary.csv", row.names = FALSE)
+    
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE":',
+        paste0('    microbiome: ', as.character(packageVersion('microbiome')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_microbiome_results.csv
-    touch ${prefix}_microbiome_output.rds
-    echo "BIOC_MICROBIOME:" > versions.yml
-    echo "    microbiome: 0.0.0" >> versions.yml
+    touch ${prefix}_microbiome_analysis_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_MICROBIOME_WORKFLOW {
+workflow BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MICROBIOME(ch_input)
+    BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_MICROBIOME.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MICROBIOME.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MICROBIOME.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MICROBIOME.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE.out.tables
+    plots    = BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE.out.plots
+    objects  = BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE.out.objects
+    versions = BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE.out.versions
 }

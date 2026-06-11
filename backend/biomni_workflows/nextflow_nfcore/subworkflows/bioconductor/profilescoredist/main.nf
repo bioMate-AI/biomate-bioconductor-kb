@@ -1,91 +1,132 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: profileScoreDist
-// Regularization and score distributions for position count matrices.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/profileScoreDist/inst/doc/profileScoreDist-vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("profileScoreDist")
+// Bioconductor workflow: profileScoreDist — tfbs_score_cutoff_estimation
+// Regularize a position count matrix, compute score distributions across GC contents, and estimate statistically rigorous score cutoffs for TFBS detection.
+// Input: INR
+// Container: quay.io/biocontainers/bioconductor-profilescoredist:1.38.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: profileScoreDist
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Regularize the position count matrix using regularizeMatrix()
+//  * 2. [Input & Preparation] Define GC fractions and granularity parameters
+//  * 3. [Core Analysis] Compute probability distributions for log-odds scores using computeScoreDist()
+//  * 4. [Visualization & Output] Plot the distribution using plotDist()
+//  * 5. [Core Analysis] Estimate score cutoffs for specified FDR/FNR thresholds using scoreDistCutoffs()
 
 nextflow.enable.dsl = 2
 
-process BIOC_PROFILESCOREDIST {
+process BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-profilescoredist"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-profilescoredist:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-profilescoredist:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_profilescoredist_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_profilescoredist_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_profilescoredist_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required library
     library(profileScoreDist)
-    library(jsonlite)
-
-    # --- plot Dist [] ---
-    # Key functions: plotDist
+    
+    # 1. Read the user input file 'INR' from the working directory
+    # The file is expected to be a space- or tab-delimited position count matrix
+    # with row names (A, C, G, T) and numeric columns.
+    if (!file.exists("INR")) {
+      stop("Error: Required input file 'INR' not found in the working directory.")
+    }
+    
+    INR <- as.matrix(read.table("INR", header = TRUE, row.names = 1, check.names = FALSE))
+    storage.mode(INR) <- "numeric"
+    
+    # 2. Regularize the position count matrix
+    inr.reg <- regularizeMatrix(INR)
+    
+    # Save the regularized matrix to a CSV file
+    write.csv(inr.reg, file = "inr_regularized.csv", row.names = TRUE)
+    
+    # 3. Define GC fractions and granularity parameters
+    granularity <- 0.05
+    gcgran <- 0.01
+    gcmin <- 0.01
+    gcmax <- 0.99
+    gcs <- seq(gcgran*round(gcmin/gcgran), gcgran*round(gcmax/gcgran), gcgran)
+    
+    # 4. Compute probability distributions for log-odds scores
+    distlist <- lapply(gcs, function(x) computeScoreDist(inr.reg, x, granularity))
+    
+    # Save the computed distributions list as an RDS object
+    saveRDS(distlist, file = "score_distributions.rds")
+    
+    # 5. Plot the distribution for GC content 50% (index 50 in gcs)
+    pdf("distribution_plot_gc50.pdf", width = 7, height = 5)
     plotDist(distlist[[50]])
-    # --- score Dist Cutoffs [] ---
-    # Key functions: scoreDistCutoffs
+    dev.off()
+    
+    # 6. Estimate score cutoffs for specified FDR/FNR thresholds
     ab5 <- scoreDistCutoffs(distlist[[50]], 500, 1, c=1, 0.05)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_profilescoredist_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_profilescoredist_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_profilescoredist_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PROFILESCOREDIST:", paste0("    profilescoredist: ", packageVersion("profileScoreDist"))),
-        "versions.yml"
+    
+    # Extract and save the cutoffs
+    cutoff_results <- data.frame(
+      Metric = c("5% FDR Cutoff (cutoffa)", "5% FNR Cutoff (cutoffb)", "Balanced FDR=FNR Cutoff (cutoffopt)"),
+      Value = c(ab5\$cutoffa, ab5\$cutoffb, ab5\$cutoffopt)
     )
+    write.csv(cutoff_results, file = "estimated_cutoffs.csv", row.names = FALSE)
+    
+    # Print the results to standard output
+    cat("Score Cutoff Estimation Complete.\n")
+    cat("5% FDR Cutoff (cutoffa):", ab5\$cutoffa, "\n")
+    cat("5% FNR Cutoff (cutoffb):", ab5\$cutoffb, "\n")
+    cat("Balanced Cutoff (cutoffopt):", ab5\$cutoffopt, "\n")
+
+    writeLines(c(
+        '"BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION":',
+        paste0('    profileScoreDist: ', as.character(packageVersion('profileScoreDist')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_profilescoredist_results.csv
-    touch ${prefix}_profilescoredist_output.rds
-    echo "BIOC_PROFILESCOREDIST:" > versions.yml
-    echo "    profilescoredist: 0.0.0" >> versions.yml
+    touch ${prefix}_tfbs_score_cutoff_estimation.csv versions.yml
     """
 }
 
-
-workflow BIOC_PROFILESCOREDIST_WORKFLOW {
+workflow BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ INR ] ]
 
     main:
-    BIOC_PROFILESCOREDIST(ch_input)
+    BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION(ch_input)
 
     emit:
-    results  = BIOC_PROFILESCOREDIST.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PROFILESCOREDIST.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PROFILESCOREDIST.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PROFILESCOREDIST.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION.out.tables
+    plots    = BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION.out.plots
+    objects  = BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION.out.objects
+    versions = BIOC_PROFILESCOREDIST_TFBS_SCORE_CUTOFF_ESTIMATION.out.versions
 }

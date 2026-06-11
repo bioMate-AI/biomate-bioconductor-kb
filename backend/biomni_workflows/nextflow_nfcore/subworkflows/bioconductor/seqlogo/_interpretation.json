@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pwm=An instance of class pwm, a matrix, or a data.frame representing the position weight matrix ;; ic.scale=A logical indicating whether the height of each column is proportional to its information content (default is TRUE) ;; fill=A named character vector specifying custom colors for the letters ;; alphabet=Character string specifying the alphabet (e.g., \"DNA\" or \"RNA\") in makePWM()\n- alternatives: None mentioned\n- when_to_use: Use when you want to visualize the conservation and relative frequency of nucleotides at each position of a DNA or RNA sequence motif (such as a transcription factor binding site) using a sequence logo.\n- pitfalls: makePWM() strictly requires that all column probabilities in the input matrix add up to exactly 1.0 ;; For RNA logos, seqLogo accepts fill colors specified for c(\"A\", \"C\", \"G\", \"U\") or c(\"A\", \"C\", \"G\", \"T\") and uses the color specified in element \"T\" for letter \"U\".",
+  "workflows": [
+    {
+      "name": "sequence_logo_generation",
+      "intent": "Generate and customize sequence logos from a position weight matrix of DNA or RNA sequences.",
+      "input": [
+        "pwm_matrix.txt (a text file containing a position weight matrix where columns represent positions and rows represent nucleotide probabilities summing to 1.0)"
+      ],
+      "stages": "1. Load the package and read the position weight matrix from a file ;; 2. Create a PWM object using makePWM() ;; 3. Access PWM slots like information content and consensus sequence ;; 4. Plot the sequence logo using seqLogo(), optionally adjusting information content scaling, colors, or alphabet (DNA/RNA).",
+      "code": "library(seqLogo)\nmFile <- system.file(\"extdata/pwm1\", package=\"seqLogo\")\nm <- read.table(mFile)\nm\np <- makePWM(m)\nslotNames(p)\npwm(p)\nic(p)\nconsensus(p)\nseqLogo(p)\nseqLogo(p, ic.scale=FALSE)\nseqLogo(p, fill=c(A=\"#4daf4a\", C=\"#377eb8\", G=\"#ffd92f\", T=\"#e41a1c\"),\n        ic.scale=FALSE)\nr <- makePWM(m, alphabet=\"RNA\")\nseqLogo(r, ic.scale=FALSE)"
+    }
+  ]
+}

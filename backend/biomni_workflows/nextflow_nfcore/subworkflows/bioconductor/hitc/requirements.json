@@ -1,0 +1,17 @@
+{
+  "package": "hitc",
+  "requirements": [
+    "GenomicRanges",
+    "HiTC",
+    "IRanges",
+    "Matrix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "HiTC",
+      "IRanges",
+      "Matrix"
+    ]
+  }
+}

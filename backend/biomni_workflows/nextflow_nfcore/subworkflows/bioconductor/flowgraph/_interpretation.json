@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - no_cores=Number of cores to parallelize calculations on (typically 1 for small datasets). ;;\n    - meta=A data frame containing sample metadata, which must include an 'id' column matching the row names of the count matrix. ;;\n    - path=A directory path where flowGraph outputs results and plots. ;;\n    - summary_pars=Parameters for calculating summary statistics; must be specified if using the fast flowGraphSubset constructor. ;;\n    - class=The column name in the metadata data frame containing the class labels (e.g., \"class\"). ;;\n    - type=Specifies whether the feature or summary is for a \"node\" or \"edge\".\n- alternatives:\n    - flowGraphSubset: A fast version of the flowGraph constructor. It should be preferred only if the dataset has more than 10,000 cell populations and there is only one set of classes to test on the same set of samples. Standard flowGraph should be preferred if testing multiple different sets of sample class labels on the same samples.\n- when_to_use:\n    - When analyzing flow cytometry cell count data to identify driver cell populations whose abundance changes significantly and independently between sample classes (e.g., healthy vs. diseased), avoiding the propagation of false positives caused by standard proportion-based dependencies.\n- pitfalls:\n    - Markers/measurements must not contain underscores, dashes, or pluses (_, +, -) in their names. If underscores are used to separate marker conditions, they will be removed from feature matrix column names but saved in fg_get_meta(fg)$phenotype_. ;;\n    - To calculate SpecEnr for a cell population (e.g., A+B+C+), all of its parent (e.g., A+B+) and grandparent (e.g., A+) populations must be present in the input matrix. ;;\n    - The count node feature is a core requirement and cannot be removed using fg_rm_feature.",
+  "workflows": [
+    {
+      "name": "standard_flowgraph_analysis",
+      "intent": "Perform standard differential cell population analysis on flow cytometry cell count data using SpecEnr.",
+      "input": [
+        "count (sample x cell population numeric matrix of cell counts)",
+        "meta (data frame with sample metadata, containing an 'id' column matching row names of count)"
+      ],
+      "stages": "1. Initialize the flowGraph object using flowGraph. ;; 2. Retrieve sample metadata and features using fg_get_meta and fg_get_feature. ;; 3. Calculate summary statistics using fg_summary. ;; 4. Retrieve summary statistics using fg_get_summary. ;; 5. Save and load the flowGraph object using fg_save and fg_load. ;; 6. Visualize results using fg_plot, plot_gr, fg_plot_qq, fg_plot_box, and fg_plot_pVSdiff.",
+      "code": "fg <- flowGraph(fg_data_pos2$count, meta=fg_data_pos2$meta, no_cores=no_cores)\nmeta <- fg_get_meta(fg)\nmcount <- fg_get_feature(fg, \"node\", \"count\")\nfg_sum <- fg_get_summary(fg, type=\"node\", summary_meta=list(\n    node_feature=\"SpecEnr\", \n    test_name=\"t_diminish\", \n    class=\"class\", \n    labels=c(\"exp\",\"control\"))\n)\nfg_save(fg, \"path/to/user/specified/folder/directory\")\nfg <- fg_load(\"path/to/user/specified/folder/directory\")\nmeta_new <- fg_get_meta(fg)\nmeta_new$id[1] <- \"new_sample_id1\"\nfg <- fg_replace_meta(fg, meta_new)\nmc <- fg_get_feature(fg, type=\"node\", feature=\"count\")\nfg <- fg_add_feature(fg, type=\"node\", feature=\"count_copy\", m=mc)\nfg <- fg_rm_feature(fg, type=\"node\", feature=\"count_copy\")\nfg <- fg_summary(fg, no_cores=no_cores, class=\"class\", label1=\"control\",\n                 node_features=\"count\", edge_features=\"NONE\",\n                 overwrite=FALSE, test_name=\"t\", diminish=FALSE)\ngr <- fg_plot(fg, index=1, p_thres=.01, show_bgedges=TRUE)\nplot_gr(gr, interactive=TRUE)\nfg_plot_qq(fg, type=\"node\", index=1)\nfg_plot_box(fg, type=\"node\", summary_meta=NULL, index=1, node_edge=\"A+\")\nfg_plot_pVSdiff(fg, type=\"node\", summary_meta=NULL, index=1)"
+    },
+    {
+      "name": "fast_flowgraph_subset_analysis",
+      "intent": "Perform a fast differential cell population analysis on large datasets (>10,000 cell populations) with a single class comparison.",
+      "input": [
+        "count (sample x cell population numeric matrix of cell counts)",
+        "meta (data frame with sample metadata, containing an 'id' column matching row names of count)"
+      ],
+      "stages": "1. Initialize the flowGraph object using flowGraphSubset with custom summary parameters and adjustments.",
+      "code": "fg <- flowGraphSubset(fg_data_pos2$count, meta=fg_data_pos2$meta, no_cores=no_cores,\n                 summary_pars=flowGraphSubset_summary_pars(),\n                 summary_adjust=flowGraphSubset_summary_adjust())"
+    }
+  ]
+}

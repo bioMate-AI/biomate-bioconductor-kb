@@ -1,120 +1,132 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SC3
-// A tool for unsupervised clustering and analysis of single cell RNA-Seq data.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SC3/inst/doc/SC3.R
-// Upstream  : SingleCellExperiment, knitr, mclust, scater
-// Downstream: none
-//
-// Install: BiocManager::install("SC3")
+// Bioconductor workflow: SC3 — standard_sc3_clustering
+// Run the standard SC3 clustering and biological analysis pipeline using the high-level wrapper function and visualize the results.
+// Input: expression_matrix.csv, cell_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-sc3:1.38.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SC3, SingleCellExperiment
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Create a SingleCellExperiment object with counts and logcounts assays
+//  * 2. [Input & Preparation] Define unique feature symbols in rowData
+//  * 3. [Core Analysis] Run the main sc3 wrapper function
+//  * 4. [Visualization & Output] Visualize results using interactive Shiny app or static plotting functions
 
 nextflow.enable.dsl = 2
 
-process BIOC_SC3 {
+process BIOC_SC3_STANDARD_SC3_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sc3"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sc3:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sc3:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sc3_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sc3_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sc3_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+    # Load required libraries
     library(SC3)
-    library(SingleCellExperiment)
-    library(jsonlite)
-
-    # --- Single-Cell Clustering [] ---
-    # Key functions: sc3
+    
+    # Read user input files
+    yan <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    ann <- read.csv("cell_metadata.csv", row.names = 1, check.names = FALSE)
+    
+    # Create a SingleCellExperiment object
+    sce <- SingleCellExperiment(
+        assays = list(
+            counts = as.matrix(yan),
+            logcounts = log2(as.matrix(yan) + 1)
+        ), 
+        colData = ann
+    )
+    
+    # define feature names in feature_symbol column
+    rowData(sce)\$feature_symbol <- rownames(sce)
+    # remove features with duplicated names
+    sce <- sce[!duplicated(rowData(sce)\$feature_symbol), ]
+    
+    # Run SC3 clustering
     sce <- sc3(sce, ks = 2:4, biology = TRUE)
-    col_data <- colData(sce)
-    sc3_cols <- grep("sc3_", colnames(col_data), value = TRUE)
-    cluster_results <- col_data[, sc3_cols]
+    
+    # Save plots to PDF
+    pdf("sc3_plots.pdf", width = 8, height = 8)
+    
+    print(sc3_plot_consensus(sce, k = 3))
+    
+    print(sc3_plot_consensus(
+        sce, k = 3, 
+        show_pdata = c(
+            "sc3_3_clusters", 
+            "sc3_3_log2_outlier_score"
+        )
+    ))
+    
+    print(sc3_plot_silhouette(sce, k = 3))
+    
+    print(sc3_plot_expression(sce, k = 3))
+    
+    print(sc3_plot_cluster_stability(sce, k = 3))
+    
+    print(sc3_plot_de_genes(sce, k = 3))
+    
+    print(sc3_plot_markers(sce, k = 3))
+    
+    dev.off()
+    
+    # Save results to files
+    write.csv(as.data.frame(colData(sce)), "sc3_cell_metadata_results.csv", row.names = TRUE)
+    write.csv(as.data.frame(rowData(sce)), "sc3_gene_metadata_results.csv", row.names = TRUE)
+    saveRDS(sce, "sc3_sce_output.rds")
 
-
-    # --- Consensus and Stability Analysis [] ---
-    # Key functions: sc3_plot_consensus, sc3_plot_silhouette, sc3_plot_cluster_stability
-    sc3_plot_consensus(
-        sce, k = 3,
-        show_pdata = c("sc3_3_clusters", "sc3_3_log2_outlier_score")
-    )
-    sc3_plot_silhouette(sce, k = 3)
-    sc3_plot_cluster_stability(sce, k = 3)
-
-
-    # --- Biological Feature Analysis [] ---
-    # Key functions: sc3_calc_biology, sc3_plot_de_genes, sc3_plot_markers
-    sce <- sc3_calc_biology(sce, ks = 2:4)
-    sc3_plot_de_genes(
-        sce, k = 3,
-        show_pdata = c("sc3_3_clusters", "sc3_3_log2_outlier_score")
-    )
-    sc3_plot_markers(sce, k = 3)
-
-
-    # --- Hybrid SVM Clustering for Large Datasets [] ---
-    # Key functions: sc3_run_svm, sc3_calc_biology
-    sce <- sc3(sce, ks = 2:4, biology = TRUE, svm_num_cells = 50)
-    sce <- sc3_run_svm(sce, ks = 2:4)
-    metadata(sce)$sc3$svm_train_inds <- NULL
-    sce <- sc3_calc_biology(sce, ks = 2:4)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sc3_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sc3_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sc3_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SC3:", paste0("    sc3: ", packageVersion("SC3"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SC3_STANDARD_SC3_CLUSTERING":',
+        paste0('    SC3: ', as.character(packageVersion('SC3')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sc3_results.csv
-    touch ${prefix}_sc3_output.rds
-    echo "BIOC_SC3:" > versions.yml
-    echo "    sc3: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_sc3_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_SC3_WORKFLOW {
+workflow BIOC_SC3_STANDARD_SC3_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, cell_metadata.csv ] ]
 
     main:
-    BIOC_SC3(ch_input)
+    BIOC_SC3_STANDARD_SC3_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_SC3.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SC3.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SC3.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SC3.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SC3_STANDARD_SC3_CLUSTERING.out.tables
+    plots    = BIOC_SC3_STANDARD_SC3_CLUSTERING.out.plots
+    objects  = BIOC_SC3_STANDARD_SC3_CLUSTERING.out.objects
+    versions = BIOC_SC3_STANDARD_SC3_CLUSTERING.out.versions
 }

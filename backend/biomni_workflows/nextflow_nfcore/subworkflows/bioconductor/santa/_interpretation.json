@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nperm=The number of permutations used to compute the empirical p-value; at least 1000 is recommended for accuracy ;; dist.method=The method to measure distance between vertex pairs, such as \"shortest.paths\" (default), diffusion kernel-based, or mean first-passage time (MFPT) ;; vertex.attr=The name of the vertex attribute in the igraph object containing the phenotype weights or binary hit indicators ;; edge.attr=The name of the edge attribute representing edge distances, where smaller values indicate stronger interactions ;; B=A binned distance matrix precomputed with BinGraph to significantly reduce Knet computation time\n- alternatives: Compactness=Measures the mean distance between pairs of hits. Unlike Knet, Compactness cannot handle continuous vertex weights and does not account for vertex degree when evaluating significance, making Knet preferable when vertex degrees vary across the network.\n- when_to_use: Use this package when you want to evaluate how strongly a set of genes or a continuous phenotype clusters within a biological network, or when comparing multiple networks to see which one best explains a given functional phenotype.\n- pitfalls: Failing to set missing vertex weights to NA can bias the significance analysis, as they must be excluded from permutations rather than treated as zero ;; Running Knet on large networks without pre-computing and binning distances using DistGraph and BinGraph can result in extremely slow execution times.",
+  "workflows": [
+    {
+      "name": "network_association_analysis",
+      "intent": "Measure the clustering of a phenotype (binary or continuous vertex weights) across a network to quantify their strength of association.",
+      "input": [
+        "network.gml (an igraph-compatible network file)",
+        "phenotype_weights.csv (a table of gene names and their associated continuous weights or binary hit indicators)"
+      ],
+      "stages": "1. Compute pairwise vertex distances across the network using DistGraph ;; 2. Bin the distances into discrete intervals using BinGraph to optimize performance ;; 3. Assign the phenotype weights to the network vertices ;; 4. Run Knet to calculate the clustering significance (p-value) via permutation testing.",
+      "code": "D <- DistGraph(g, dist.method=dist.method, verbose=FALSE)\nB <- BinGraph(D, verbose=FALSE)\npvalues[i, as.character(s)] <- Knet(g, nperm=100,\n    dist.method=dist.method, vertex.attr=\"hits\",\n    B=B, verbose=FALSE)$pval"
+    }
+  ]
+}

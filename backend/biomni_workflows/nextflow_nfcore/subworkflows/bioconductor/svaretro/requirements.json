@@ -1,0 +1,27 @@
+{
+  "package": "svaretro",
+  "requirements": [
+    "AnnotationDbi",
+    "GenomeInfoDb",
+    "S4Vectors",
+    "StructuralVariantAnnotation",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "VariantAnnotation",
+    "circlize",
+    "dplyr",
+    "svaRetro"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "GenomeInfoDb",
+      "S4Vectors",
+      "StructuralVariantAnnotation",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "VariantAnnotation",
+      "circlize",
+      "dplyr",
+      "svaRetro"
+    ]
+  }
+}

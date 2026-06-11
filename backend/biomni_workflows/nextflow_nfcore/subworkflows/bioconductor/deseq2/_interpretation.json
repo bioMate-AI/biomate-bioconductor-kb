@@ -1,0 +1,54 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: design=Formula specifying the experimental design (e.g., ~ batch + condition). The variable of interest should be at the end, and the control level should be the first level of the factor ;; contrast=Character vector of length 3 (e.g., c(\"factorName\", \"numeratorLevel\", \"denominatorLevel\")) or a list/numeric vector used in results() to extract specific comparisons ;; type=Shrinkage estimator type in lfcShrink() (\"apeglm\", \"ashr\", or \"normal\"), with \"apeglm\" being the default ;; blind=Logical indicating whether the transformation in vst() or rlog() should be blind to the sample information in the design formula (default TRUE for QA/QC, FALSE for downstream analysis where design-driven differences are expected) ;; test=Hypothesis test to use, either \"Wald\" (default) or \"LRT\" (Likelihood Ratio Test) ;; reduced=Formula for the reduced model when using test=\"LRT\" ;; alpha=Significance cutoff for independent filtering (default 0.1)\n- alternatives: edgeR, limma, DSS, EBSeq, baySeq=Alternative packages for differential expression analysis ;; IHW=Independent Hypothesis Weighting package, used as an alternative to default BH p-value adjustment via results(dds, filterFun=ihw) ;; vst=A faster alternative to rlog for large sample sizes (100s of samples) ;; glmGamPoi=An alternative faster NB GLM engine specified via fitType=\"glmGamPoi\" in DESeq() for complex designs\n- when_to_use: When analyzing un-normalized integer count data from RNA-seq, ChIP-seq, HiC, shRNA screening, or mass spectrometry to identify systematic changes between conditions while controlling for within-condition variability.\n- pitfalls: Providing normalized counts (e.g., FPKM, TPM, or library-size scaled counts) instead of raw, un-normalized integer counts ;; Mismatched sample order between the columns of the count matrix and the rows of the sample metadata (column data) ;; Relying on default alphabetical factor levels for reference groups without explicitly setting them (e.g., using relevel or factor(..., levels=...)) ;; Collapsing biological replicates using collapseReplicates (which is only for technical replicates) ;; Using blind dispersion estimation (blind=TRUE) for downstream analysis when major design-driven differences are expected, leading to over-shrinkage ;; Using the original normal shrinkage estimator for designs with interaction terms (not recommended; use apeglm or ashr instead, or rearrange the design) ;; Model matrix not full rank errors due to linear combinations, nested groups, or levels without samples",
+  "workflows": [
+    {
+      "name": "standard_de_from_matrix",
+      "intent": "Perform standard differential expression analysis starting from a raw count matrix and sample metadata.",
+      "input": [
+        "cts (matrix of un-normalized integer counts)",
+        "coldata (data.frame of sample metadata)"
+      ],
+      "stages": "1. Construct DESeqDataSet from matrix ;; 2. Pre-filter low count genes ;; 3. Set factor levels and reference group ;; 4. Run DESeq() pipeline ;; 5. Extract results and apply LFC shrinkage ;; 6. Visualize results (MA-plot, plotCounts) ;; 7. Export results to CSV",
+      "code": "library(\"DESeq2\")\ndds <- DESeqDataSetFromMatrix(countData = cts,\n                              colData = coldata,\n                              design = ~ condition)\nsmallestGroupSize <- 3\nkeep <- rowSums(counts(dds) >= 10) >= smallestGroupSize\ndds <- dds[keep,]\ndds$condition <- factor(dds$condition, levels = c(\"untreated\",\"treated\"))\ndds$condition <- relevel(dds$condition, ref = \"untreated\")\ndds <- DESeq(dds)\nres <- results(dds)\nresultsNames(dds)\nresLFC <- lfcShrink(dds, coef=\"condition_treated_vs_untreated\", type=\"apeglm\")\nresOrdered <- res[order(res$pvalue),]\nsummary(res)\nplotMA(res, ylim=c(-2,2))\nplotMA(resLFC, ylim=c(-2,2))\nplotCounts(dds, gene=which.min(res$padj), intgroup=\"condition\")\nwrite.csv(as.data.frame(resOrdered),\n          file=\"condition_treated_results.csv\")"
+    },
+    {
+      "name": "de_from_transcript_abundance",
+      "intent": "Import transcript-level quantification files and summarize them to gene-level counts for differential expression analysis.",
+      "input": [
+        "quant.sf.gz (Salmon transcript quantification files)",
+        "samples.txt (sample metadata table)",
+        "tx2gene.gencode.v27.csv (transcript-to-gene mapping file)"
+      ],
+      "stages": "1. Read sample metadata ;; 2. Locate quantification files ;; 3. Import and summarize to gene-level counts using tximport ;; 4. Construct DESeqDataSet from tximport object",
+      "code": "library(\"tximport\")\nlibrary(\"readr\")\nlibrary(\"tximportData\")\ndir <- system.file(\"extdata\", package=\"tximportData\")\nsamples <- read.table(file.path(dir,\"samples.txt\"), header=TRUE)\nsamples$condition <- factor(rep(c(\"A\",\"B\"),each=3))\nrownames(samples) <- samples$run\nfiles <- file.path(dir,\"salmon\", samples$run, \"quant.sf.gz\")\nnames(files) <- samples$run\ntx2gene <- read_csv(file.path(dir, \"tx2gene.gencode.v27.csv\"))\ntxi <- tximport(files, type=\"salmon\", tx2gene=tx2gene)\nlibrary(\"DESeq2\")\nddsTxi <- DESeqDataSetFromTximport(txi,\n                                   colData = samples,\n                                   design = ~ condition)"
+    },
+    {
+      "name": "multi_factor_analysis",
+      "intent": "Perform differential expression analysis controlling for additional batch or technical covariates.",
+      "input": [
+        "dds (DESeqDataSet object)"
+      ],
+      "stages": "1. Update design formula to include covariates ;; 2. Run DESeq() pipeline ;; 3. Extract results for the primary condition ;; 4. Extract results for the covariate using contrasts",
+      "code": "design(ddsMF) <- formula(~ type + condition)\nddsMF <- DESeq(ddsMF)\nresMF <- results(ddsMF)\nresMFType <- results(ddsMF,\n                     contrast=c(\"type\", \"single\", \"paired\"))"
+    },
+    {
+      "name": "likelihood_ratio_test",
+      "intent": "Perform a Likelihood Ratio Test (LRT) to identify genes with significant changes across multi-level factors or time-series.",
+      "input": [
+        "dds (DESeqDataSet object)"
+      ],
+      "stages": "1. Run DESeq() with LRT test and specify a reduced design formula ;; 2. Extract results",
+      "code": "dds <- DESeq(dds, test=\"LRT\", reduced=~1)\nres <- results(dds)"
+    },
+    {
+      "name": "transformation_and_qc",
+      "intent": "Transform count data to stabilize variance across the mean and perform sample-level quality control visualization.",
+      "input": [
+        "dds (DESeqDataSet object)"
+      ],
+      "stages": "1. Apply VST and rlog transformations ;; 2. Plot standard deviation vs mean to assess variance stabilization ;; 3. Generate sample distance heatmap ;; 4. Generate Principal Component Analysis (PCA) plot",
+      "code": "vsd <- vst(dds, blind=FALSE)\nrld <- rlog(dds, blind=FALSE)\nntd <- normTransform(dds)\nlibrary(\"vsn\")\nmeanSdPlot(assay(ntd))\nmeanSdPlot(assay(vsd))\nmeanSdPlot(assay(rld))\nlibrary(\"pheatmap\")\nselect <- order(rowMeans(counts(dds,normalized=TRUE)),\n                decreasing=TRUE)[1:20]\ndf <- as.data.frame(colData(dds)[,c(\"condition\",\"type\")])\npheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,\n         cluster_cols=FALSE, annotation_col=df)\nsampleDists <- dist(t(assay(vsd)))\nlibrary(\"RColorBrewer\")\nsampleDistMatrix <- as.matrix(sampleDists)\nrownames(sampleDistMatrix) <- paste(vsd$condition, vsd$type, sep=\"-\")\ncolnames(sampleDistMatrix) <- NULL\ncolors <- colorRampPalette( rev(brewer.pal(9, \"Blues\")) )(255)\npheatmap(sampleDistMatrix,\n         clustering_distance_rows=sampleDists,\n         clustering_distance_cols=sampleDists,\n         col=colors)\nplotPCA(vsd, intgroup=c(\"condition\", \"type\"))"
+    }
+  ]
+}

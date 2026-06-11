@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: Y=vector or matrix of gene-specific contrast estimates (e.g., log2 fold changes) ;; SE=vector or matrix of standard errors corresponding to the contrast estimates Y ;; two.sided=logical indicating whether to perform a two-sided test (defaults to TRUE)\n- alternatives: limma=preferred for complex experimental designs and general linear modeling using moderated t-statistics ;; multtest=preferred when non-parametric permutation-based testing is desired\n- when_to_use: Appropriate for two-channel or single-channel microarray differential expression analysis when the distribution of true differences has heavier tails than a normal distribution.\n- pitfalls: Providing raw intensity values instead of pre-computed contrast estimates (log-fold changes) and standard errors ;; failing to ensure that Y and SE are properly paired and of matching dimensions.",
+  "workflows": [
+    {
+      "name": "laplace_mixture_differential_expression",
+      "intent": "Identify differentially expressed genes from microarray contrast estimates and standard errors using a Laplace mixture model.",
+      "input": [
+        "estimates.csv (matrix or vector of gene-specific contrast estimates/log-fold changes)",
+        "standard_errors.csv (matrix or vector of corresponding standard errors)"
+      ],
+      "stages": "1. Fit the empirical Bayes Laplace mixture model using lapmix.fit ;; 2. Calculate the posterior odds of differential expression using lap.odds",
+      "code": "fit <- lapmix.fit(Y, SE)\nodds <- lap.odds(Y, SE, fit)"
+    }
+  ]
+}

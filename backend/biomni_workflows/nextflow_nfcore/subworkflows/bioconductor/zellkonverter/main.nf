@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_ZELLKONVERTER {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-zellkonverter"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-zellkonverter:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-zellkonverter:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -46,6 +45,17 @@ process BIOC_ZELLKONVERTER {
     library(ZeiselBrainData)
     library(jsonlite)
 
+    # --- Import H5AD Data [] ---
+    # Key functions: readH5AD
+    example_h5ad <- system.file(
+        "extdata", "krumsiek11.h5ad",
+        package = "zellkonverter"
+    )
+    sce <- readH5AD(
+        file = example_h5ad,
+        verbose = TRUE
+    )
+
     # --- Export SingleCellExperiment Data [] ---
     # Key functions: writeH5AD
     out_path <- tempfile(
@@ -58,7 +68,6 @@ process BIOC_ZELLKONVERTER {
         verbose = TRUE
     )
 
-
     # --- Convert SingleCellExperiment to AnnData [] ---
     # Key functions: SCE2AnnData, zellkonverterAnnDataEnv
     adata <- basilisk::basiliskRun(
@@ -68,7 +77,6 @@ process BIOC_ZELLKONVERTER {
         env = zellkonverterAnnDataEnv(),
         x = sce
     )
-
 
     # --- Convert AnnData to SingleCellExperiment [] ---
     # Key functions: AnnData2SCE, zellkonverterAnnDataEnv
@@ -80,26 +88,35 @@ process BIOC_ZELLKONVERTER {
         x = adata
     )
 
-
     # --- Check Environment Dependencies [] ---
     # Key functions: AnnDataDependencies
     deps <- AnnDataDependencies(
         version = "0.7.6"
     )
 
+
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_zellkonverter_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_zellkonverter_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_zellkonverter_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_zellkonverter_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_zellkonverter_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_zellkonverter_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_ZELLKONVERTER:", paste0("    zellkonverter: ", packageVersion("zellkonverter"))),
+        c("BIOC_ZELLKONVERTER:", paste0("    zellkonverter: ", as.character(packageVersion("zellkonverter")))),
         "versions.yml"
     )
     """

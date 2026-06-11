@@ -1,0 +1,23 @@
+{
+  "package": "kegggraph",
+  "requirements": [
+    "KEGGgraph",
+    "RColorBrewer",
+    "Rgraphviz",
+    "hgu133plus2.db",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "chemical_reaction_network_analysis.nf": [
+      "KEGGgraph",
+      "Rgraphviz"
+    ],
+    "main.nf": [
+      "KEGGgraph",
+      "RColorBrewer",
+      "Rgraphviz",
+      "hgu133plus2.db",
+      "org.Hs.eg.db"
+    ]
+  }
+}

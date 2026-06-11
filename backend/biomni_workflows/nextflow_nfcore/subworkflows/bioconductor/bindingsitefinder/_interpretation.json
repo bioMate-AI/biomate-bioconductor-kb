@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=A BSFDataSet object containing crosslink sites and coverage signal ;; anno.genes=A GRanges object containing gene annotations with metadata columns like gene_id, gene_name, and gene_type ;; anno.transcriptRegionList=A GRangesList containing transcript regions (e.g., CDS, Introns, UTRs) ;; est.subsetChromosome=The chromosome used to estimate binding site width (e.g., \"chr22\") ;; bsSize=Explicit binding site width in nucleotides; if omitted, it is estimated automatically ;; cutoff.geneWiseFilter=The top percentage threshold of crosslink sites to retain per gene ;; overlaps=Strategy to handle overlapping annotations (\"keepSingle\", \"removeAll\", \"keepAll\" for crosslinks; \"frequency\", \"hierarchy\", \"remove\", \"keep\" for genes/transcript regions) ;; nReps=Minimum number of replicates that must meet the reproducibility threshold (default is N-1) ;; minCrosslinks=Lower boundary of crosslinks required per replicate for reproducibility (default is 1)\n- alternatives: PureCLIP=Recommended for peak calling on merged replicate BAM files prior to using BindingSiteFinder ;; rtracklayer::export=Used for exporting raw or merged iCLIP coverage signal to BigWig format instead of a package-specific function\n- when_to_use: Use this package when you have single-nucleotide resolution crosslink sites (e.g., from PureCLIP) and replicate-specific iCLIP coverage files (.bigwig) and want to define precise, reproducible, and equally sized RBP binding sites, or when you want to perform differential RBP binding analysis between two conditions while correcting for gene expression changes.\n- pitfalls: Input crosslink ranges must be exactly a single nucleotide wide ;; Gene IDs in the annotation must use a valid format (ENSEMBL, UCSC, etc.) to match correctly ;; Not all binding sites can be assigned to genes or transcript regions, resulting in NA values ;; Sparse or incomplete data can cause warning messages during automatic binding site width estimation ;; For differential binding, both datasets (e.g., WT and KO) must be handled strictly separately from preprocessing to peak-calling and binding site definition before merging ;; Binding sites that do not overlap a distinct gene may end up with NA values as background counts during differential analysis and should be filtered.",
+  "workflows": [
+    {
+      "name": "standard_binding_site_definition",
+      "intent": "Define precise, reproducible RBP binding sites from iCLIP crosslink sites and coverage bigwig files, and annotate them with gene and transcript region features.",
+      "input": [
+        "PureCLIP_crosslink_sites_examples.bed (PureCLIP crosslink sites)",
+        "plus.bw (strand-specific plus bigwig coverage files for each replicate)",
+        "minus.bw (strand-specific minus bigwig coverage files for each replicate)",
+        "gencode_v37_annotation.gff3 (GENCODE gene annotation file)"
+      ],
+      "stages": "1. Import crosslink sites as a GRanges object ;; 2. Create a metadata table pointing to strand-specific bigwig files ;; 3. Construct a BSFDataSet using BSFDataSetFromBigWig ;; 4. Build gene and transcript region annotation objects (GRanges and GRangesList) ;; 5. Run the main wrapper BSFind to estimate width, filter, merge, check reproducibility, and annotate ;; 6. Export results to BED or Excel",
+      "code": "csFile <- system.file(\"extdata\", \"PureCLIP_crosslink_sites_examples.bed\", \n                      package=\"BindingSiteFinder\")\ncs = rtracklayer::import(con = csFile, format = \"BED\", extraCols=c(\"additionalScores\" = \"character\"))\ncs$additionalScores = NULL\n\nfiles <- system.file(\"extdata\", package=\"BindingSiteFinder\")\nclipFilesP <- list.files(files, pattern = \"plus.bw$\", full.names = TRUE)\nclipFilesM <- list.files(files, pattern = \"minus.bw$\", full.names = TRUE)\n\nmeta = data.frame(\n  id = c(1:4),\n  condition = factor(rep(\"WT\", 4)), \n  clPlus = clipFilesP, clMinus = clipFilesM)\n\nlibrary(BindingSiteFinder)\nbds = BSFDataSetFromBigWig(ranges = cs, meta = meta, silent = TRUE)\n\ngeneFile <- list.files(files, pattern = \"gns.rds$\", full.names = TRUE)\nload(geneFile)\n\nregionFile <- list.files(files, pattern = \"regions.rds$\", full.names = TRUE)\nload(regionFile)\n\nbdsOut = BSFind(object = bds, anno.genes = gns, anno.transcriptRegionList = regions,\n              est.subsetChromosome = \"chr22\", veryQuiet = TRUE, est.maxBsWidth = 29)\n\ngetRanges(bdsOut)\nexportToBED(bdsOut, con = \"./myResults.bed\")\nexportTargetGenes(bdsOut, format = \"xslx\", split = \"transcriptRegion\")"
+    },
+    {
+      "name": "differential_binding_analysis",
+      "intent": "Compare RBP binding sites between two conditions (e.g., WT vs KO) while correcting for gene expression changes using a binding-bin vs background-bin approach.",
+      "input": [
+        "wt_pureclip.bed (PureCLIP crosslink sites for WT)",
+        "ko_pureclip.bed (PureCLIP crosslink sites for KO)",
+        "wt_plus.bw (WT plus strand bigwig files)",
+        "wt_minus.bw (WT minus strand bigwig files)",
+        "ko_plus.bw (KO plus strand bigwig files)",
+        "ko_minus.bw (KO minus strand bigwig files)",
+        "gencode_v37_annotation.gff3 (GENCODE gene annotation file)"
+      ],
+      "stages": "1. Define binding sites for each condition separately ;; 2. Combine the datasets using the + operator ;; 3. Calculate binding site and background counts per gene using calculateBsBackground ;; 4. Filter out low-signal or imbalanced genes using filterBsBackground ;; 5. Perform differential testing using calculateBsFoldChange ;; 6. Visualize results using plotBsMA or geneRegulationPlot",
+      "code": "myDataSets = makeExampleDataSets()\n\nbds.wt = myDataSets$wt\nbds.ko = myDataSets$ko\n\nbds.comb = bds.wt + bds.ko\n\nbds.diff = calculateBsBackground(bds.comb, anno.genes = gns)\n\nbds.diff = filterBsBackground(bds.diff)\n\nbds.diff = calculateBsFoldChange(bds.diff)\ngetRanges(bds.diff)\n\nplotBsMA(bds.diff, what = \"bs\")\n\nbds.diff = assignToTranscriptRegions(bds.diff, anno.transcriptRegionList = regions)\ngeneRegulationPlot(bds.diff, plot.geneID = \"ENSG00000180957.18\", anno.genes = gns)"
+    }
+  ]
+}

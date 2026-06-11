@@ -1,119 +1,208 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bnem
-// bnem combines the use of indirect measurements of Nested Effects Models (package mnem) with the Bool
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bnem/inst/doc/bnem.R
-// Upstream  : CellNOptR, mnem
-// Downstream: none
-//
-// Install: BiocManager::install("bnem")
+// Bioconductor workflow: bnem — pathway_logic_inference
+// Infer Boolean logic gates of a signaling pathway from fold-change data and a prior knowledge network.
+// Input: sifMatrix, fc
+// Container: quay.io/biocontainers/bioconductor-bnem:1.18.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CellNOptR, bnem, mnem
+// Visualizations: network plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Create and read the Prior Knowledge Network (PKN) from a SIF file. 2. Define the experimental design using dummyCNOlist. 3. Prepro
 
 nextflow.enable.dsl = 2
 
-process BIOC_BNEM {
+process BIOC_BNEM_PATHWAY_LOGIC_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bnem"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bnem:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bnem:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bnem_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bnem_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bnem_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(bnem)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(bnem)
+        library(CellNOptR)
+        library(mnem)
+        
+        # Helper function to find and read sifMatrix from the working directory
+        find_and_read_sif <- function() {
+          candidates <- c("sifMatrix", "sifMatrix.tsv", "sifMatrix.csv", "sifMatrix.txt", "sifMatrix.sif")
+          for (f in candidates) {
+            if (file.exists(f)) {
+              try({
+                df <- read.table(f, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+                if (ncol(df) >= 3) return(df)
+              }, silent = TRUE)
+              try({
+                df <- read.csv(f, header = FALSE, stringsAsFactors = FALSE)
+                if (ncol(df) >= 3) return(df)
+              }, silent = TRUE)
+            }
+          }
+          stop("Could not find or read 'sifMatrix' in the working directory.")
+        }
+        
+        # Helper function to find and read fc from the working directory
+        find_and_read_fc <- function() {
+          candidates <- c("fc", "fc.tsv", "fc.csv", "fc.txt")
+          for (f in candidates) {
+            if (file.exists(f)) {
+              try({
+                mat <- as.matrix(read.table(f, header = TRUE, row.names = 1, sep = "\t", check.names = FALSE))
+                return(mat)
+              }, silent = TRUE)
+              try({
+                mat <- as.matrix(read.csv(f, header = TRUE, row.names = 1, check.names = FALSE))
+                return(mat)
+              }, silent = TRUE)
+            }
+          }
+          stop("Could not find or read 'fc' in the working directory.")
+        }
+        
+        # Read user inputs
+        sifMatrix <- find_and_read_sif()
+        fc <- find_and_read_fc()
+        
+        # Define parallel and expression variables
+        parallel <- NULL
+        expression <- NULL
+        
+        # 1. Create and read the Prior Knowledge Network (PKN) from a SIF file
+        file <- tempfile(pattern="interaction",fileext=".sif")
+        write.table(sifMatrix, file = file, sep = "\t",
+                    row.names = FALSE, col.names = FALSE, quote = FALSE)
+        PKN <- readSIF(file)
+        
+        # Dynamically determine stimuli and inhibitors from the PKN
+        children <- unique(gsub(".*=|!", "", PKN\$reacID))
+        stimuli <- unique(gsub("=.*|!", "", PKN\$reacID))
+        stimuli <- stimuli[which(!(stimuli %in% children))]
+        inhibitors <- PKN\$namesSpecies[!(PKN\$namesSpecies %in% stimuli)]
+        
+        # 2. Define the experimental design using dummyCNOlist
+        CNOlist <- dummyCNOlist(stimuli = stimuli,
+                                inhibitors = inhibitors,
+                                maxStim = 1, maxInhibit = 3)
+        
+        # 3. Preprocess the PKN and CNOlist to build the Boolean search space
+        model <- preprocessing(CNOlist, PKN)
+        
+        # 4. Initialize the network state (binary string)
+        initBstring <- rep(0, length(model\$reacID))
+        
+        # 5. Run the B-NEM optimization using greedy, genetic, or exhaustive search
+        bcrRes <- bnem(search = "greedy",
+                           fc=fc,
+                           CNOlist=CNOlist,
+                           model=model,
+                           parallel=parallel,
+                           initBstring=initBstring,
+                           draw = FALSE,
+                           verbose = FALSE,
+                           method = "cosine"
+                           )
+        
+        # Save greedy results
+        saveRDS(bcrRes, "bcrRes_greedy.rds")
+        
+        # Run genetic search
+        genetic <- bnem(search = "genetic",
+                   fc=fc,
+                   expression=expression,
+                   parallel = parallel,
+                   CNOlist=CNOlist,
+                   model=model,
+                   initBstring=initBstring,
+                   popSize = 10,
+                   stallGenMax = 10,
+                   draw = FALSE,
+                   verbose = FALSE
+                   )
+        
+        # Save genetic results
+        saveRDS(genetic, "bcrRes_genetic.rds")
+        
+        # Run exhaustive search conditionally (only if search space <= 20 hyper-edges)
+        if (length(model\$reacID) <= 20) {
+          exhaustive <- bnem(search = "exhaustive",
+                             parallel = parallel,
+                             CNOlist=CNOlist,
+                             fc=fc,
+                             expression=expression,
+                             model=model
+                             )
+          
+          # Save exhaustive results
+          saveRDS(exhaustive, "bcrRes_exhaustive.rds")
+        } else {
+          message("Skipping exhaustive search because the network has more than 20 hyper-edges.")
+        }
+        
+        # 6. Visualize the optimized network and save to PDF
+        pdf("network_plots.pdf", width = 12, height = 6)
+        par(mfrow=c(1,3))
+        plotDnf(PKN\$reacID, main = "PKN", stimuli = stimuli)
+        plotDnf(bcrRes\$graph, main = "greedy optimum (empty start)",
+                stimuli = stimuli)
+        dev.off()
+        
+        # Write out greedy optimum graph edges to a text file
+        if (!is.null(bcrRes\$graph)) {
+          writeLines(bcrRes\$graph, "greedy_optimum_edges.txt")
+        }
 
-    # --- Network Inference [] ---
-    # Key functions: bnem
-    greedy <- bnem(
-        search = "greedy",
-        fc = fc,
-        expression = sim$expression,
-        CNOlist = sim$CNOlist,
-        model = sim$model,
-        parallel = NULL,
-        initBstring = NULL,
-        draw = FALSE,
-        verbose = FALSE,
-        maxSteps = Inf,
-        method = "s"
-    )
-
-
-    # --- Validation and Visualisation [] ---
-    # Key functions: validateGraph
-    fitinfo <- validateGraph(
-        sim$CNOlist,
-        fc = fc,
-        expression = sim$expression,
-        model = sim$model,
-        bString = greedy$bString,
-        Sgene = 4,
-        Egenes = 1000,
-        cexRow = 0.8,
-        cexCol = 0.7,
-        xrot = 45,
-        Colv = TRUE,
-        Rowv = TRUE,
-        dendrogram = "both"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bnem_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bnem_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bnem_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BNEM:", paste0("    bnem: ", packageVersion("bnem"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BNEM_PATHWAY_LOGIC_INFERENCE":',
+        paste0('    bnem: ', as.character(packageVersion('bnem')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bnem_results.csv
-    touch ${prefix}_bnem_output.rds
-    echo "BIOC_BNEM:" > versions.yml
-    echo "    bnem: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_logic_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_BNEM_WORKFLOW {
+workflow BIOC_BNEM_PATHWAY_LOGIC_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sifMatrix, fc ] ]
 
     main:
-    BIOC_BNEM(ch_input)
+    BIOC_BNEM_PATHWAY_LOGIC_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_BNEM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BNEM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BNEM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BNEM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BNEM_PATHWAY_LOGIC_INFERENCE.out.tables
+    plots    = BIOC_BNEM_PATHWAY_LOGIC_INFERENCE.out.plots
+    objects  = BIOC_BNEM_PATHWAY_LOGIC_INFERENCE.out.objects
+    versions = BIOC_BNEM_PATHWAY_LOGIC_INFERENCE.out.versions
 }

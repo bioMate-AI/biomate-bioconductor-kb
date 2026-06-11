@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: db=Path to the BLAST database directory and base name used in blast() ;; db_name=The destination path and name for the custom database created by makeblastdb() ;; dbtype=Type of database to create in makeblastdb(), such as 'nucl' for nucleotides ;; BLAST_args=Additional command-line arguments passed to the BLAST executable in predict() ;; custom_format=A space-separated string specifying custom output columns for predict()\n- alternatives: blastSequences() in the annotate package, which runs BLAST queries remotely by connecting to the NCBI server instead of running locally.\n- when_to_use: Use this package when you need to perform local BLAST searches on custom or downloaded databases directly within R, integrating seamlessly with Bioconductor's Biostrings classes (like RNAStringSet or DNAStringSet).\n- pitfalls: BLAST+ must be installed on the system and R must be able to find the executable; if Sys.which(\"blastn\") returns empty, the system PATH must be manually updated in R using Sys.setenv(). Downloaded databases from NCBI are compressed and must be extracted using untar() before querying. Custom databases require writing sequences to a FASTA file on disk before calling makeblastdb().",
+  "workflows": [
+    {
+      "name": "query_existing_blast_db",
+      "intent": "Download, extract, and query an existing NCBI BLAST database using local BLAST.",
+      "input": [
+        "16S_ribosomal_RNA.tar.gz (compressed NCBI BLAST database)",
+        "RNA_example.fasta (user query sequences in FASTA format)"
+      ],
+      "stages": "1. Download the database archive using blast_db_get ;; 2. Extract the database files using untar ;; 3. Load the BLAST database using blast ;; 4. Read query sequences using readRNAStringSet ;; 5. Query the database using predict with optional custom arguments and formats",
+      "code": "tgz_file <- blast_db_get ( \"16S_ribosomal_RNA.tar.gz\" )\nuntar (tgz_file, exdir = \"16S_rRNA_DB\" )\nbl <- blast ( db = \"./16S_rRNA_DB/16S_ribosomal_RNA\" )\nseq <- readRNAStringSet ( system.file ( \"examples/RNA_example.fasta\" , package = \"rBLAST\" ))[ 1 ]\ncl <- predict (bl, seq)\nfmt <- paste ( \"qaccver saccver pident length mismatch gapopen qstart qend\" , \"sstart send evalue bitscore qseq sseq\" )\ncl <- predict (bl, seq, BLAST_args = \"-perc_identity 99\" , custom_format = fmt )"
+    },
+    {
+      "name": "create_custom_blast_db",
+      "intent": "Create a custom BLAST database from user-provided sequences and query it locally.",
+      "input": [
+        "RNA_example.fasta (user sequences to build the database)",
+        "fragment (user query sequence)"
+      ],
+      "stages": "1. Read sequences using readRNAStringSet ;; 2. Write sequences to a FASTA file using writeXStringSet ;; 3. Build the BLAST database using makeblastdb ;; 4. Load the custom database using blast ;; 5. Extract a query fragment using subseq ;; 6. Query the custom database using predict",
+      "code": "seq <- readRNAStringSet ( system.file ( \"examples/RNA_example.fasta\" , package = \"rBLAST\" ))\nwriteXStringSet (seq, filepath = \"seqs.fasta\" )\nmakeblastdb ( \"seqs.fasta\" , db_name = \"db/small\" , dbtype = \"nucl\" )\ndb <- blast ( \"db/small\" )\nfragment <- subseq (seq[ 1 ], start = 101 , end = 200 )\npredict (db, fragment)"
+    }
+  ]
+}

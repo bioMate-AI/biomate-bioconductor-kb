@@ -1,0 +1,15 @@
+{
+  "package": "interest",
+  "requirements": [
+    "BiocParallel",
+    "IntEREst",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocParallel",
+      "IntEREst",
+      "SummarizedExperiment"
+    ]
+  }
+}

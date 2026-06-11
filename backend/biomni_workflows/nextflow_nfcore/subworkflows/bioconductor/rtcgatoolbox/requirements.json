@@ -1,0 +1,15 @@
+{
+  "package": "rtcgatoolbox",
+  "requirements": [
+    "RTCGAToolbox",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RTCGAToolbox",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

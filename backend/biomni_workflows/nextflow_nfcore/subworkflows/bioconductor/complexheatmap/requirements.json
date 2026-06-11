@@ -1,0 +1,17 @@
+{
+  "package": "complexheatmap",
+  "requirements": [
+    "ComplexHeatmap"
+  ],
+  "by_workflow": {
+    "annotations_only.nf": [
+      "ComplexHeatmap"
+    ],
+    "custom_dendrogram_axes.nf": [
+      "ComplexHeatmap"
+    ],
+    "main.nf": [
+      "ComplexHeatmap"
+    ]
+  }
+}

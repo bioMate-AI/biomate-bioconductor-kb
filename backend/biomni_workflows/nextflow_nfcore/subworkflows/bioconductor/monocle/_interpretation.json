@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None specified in the provided text. ;; None specified in the provided text.\n- alternatives: None specified in the provided text.\n- when_to_use: When analyzing single-cell RNA-Seq (or other single-cell assays) to order individual cells along a pseudotime trajectory (e.g., during cell differentiation), identify cell subtypes, or perform differential expression and clustering across biological processes.\n- pitfalls: None specified in the provided text.",
+  "workflows": [
+    {
+      "name": "single_cell_trajectory_analysis",
+      "intent": "Order single cells in pseudotime along a trajectory and perform differential expression and clustering.",
+      "input": [
+        "single_cell_expression_matrix.txt (matrix of expression counts)",
+        "cell_metadata.txt (phenotypic metadata for cells)",
+        "gene_metadata.txt (feature annotation metadata for genes)"
+      ],
+      "stages": "1. Create a CellDataSet object using newCellDataSet ;; 2. Filter genes and detect expressed genes using detectGenes ;; 3. Classify or cluster cells using clusterCells or classifyCells ;; 4. Order cells along a trajectory using orderCells ;; 5. Perform differential expression analysis using differentialGeneTest or BEAM ;; 6. Plot trajectories and gene expression using plot_cell_trajectory or plot_genes_in_pseudotime",
+      "code": "# No Monocle workflow code is provided in the source document text."
+    }
+  ]
+}

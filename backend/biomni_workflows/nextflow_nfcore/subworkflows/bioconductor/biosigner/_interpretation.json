@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=The input dataset, which can be a numerical matrix, data frame, SummarizedExperiment, ExpressionSet, MultiAssayExperiment, or MultiDataSet ;; y=The binary class labels, provided as a factor/character vector for matrix inputs, or as a character string indicating the metadata column name for Bioconductor containers ;; methodVc=The classifier(s) to use, either \"all\" (default, runs plsda, randomforest, and svm) or a subset/single classifier (e.g., \"plsda\", \"svm\") ;; bootI=The number of bootstrap resamplings (default is 50; higher values increase signature stability, while lower values like 5 speed up computation) ;; tierMaxC=Character argument (e.g., 'A') used in print and plot methods to view features from larger signatures (e.g., S+A) ;; typeC=The plot type, either \"boxplot\" to visualize individual feature intensities or \"tier\" to visualize feature tiers\n- alternatives: Filter approaches (e.g., p-value thresholding), wrapper approaches (e.g., recursive feature elimination), and embedded approaches (e.g., sparse PLS) are alternative feature selection methods. Unsupervised PCA (via ropls::opls) can be used for initial data visualization before running biosigner.\n- when_to_use: Use this package when performing binary classification on high-dimensional omics data (transcriptomics, proteomics, metabolomics) and you need to identify a minimal, robust, and stable subset of features (molecular signature) that maintains or improves classifier performance.\n- pitfalls: Missing values (NA) in the input matrix will cause those features to be discarded prior to modeling with Random Forest and SVM (though PLS-DA can handle them via NIPALS). Using too few bootstraps (bootI < 50) can result in unstable and less reproducible signatures. Only binary classification is supported; multi-class classification is not available. Legacy formats like ExpressionSet and MultiDataSet are supported but are being supplanted by SummarizedExperiment and MultiAssayExperiment.",
+  "workflows": [
+    {
+      "name": "matrix_and_dataframe_analysis",
+      "intent": "Perform feature selection, model training, signature visualization, and class prediction using standard matrix or data frame inputs.",
+      "input": [
+        "dataMatrix (numeric matrix of samples as rows and features as columns)",
+        "sampleMetadata (data frame containing sample annotations and the binary class labels)"
+      ],
+      "stages": "1. Run feature selection and model training using biosign.\n2. Visualize individual boxplots of the selected features.\n3. Extract the names of the selected features in the final signature.\n4. Train a model on a training subset and predict classes on training or new test data.\n5. Retrieve the balanced accuracy of the models.",
+      "code": "diaSign <- biosign(dataMatrix, sampleMetadata[, \"type\"], bootI = 5)\nplot(diaSign, typeC = \"boxplot\")\nvariableMetadata[getSignatureLs(diaSign)[[\"complete\"]], ]\ndiaTrain <- biosign(dataMatrix[trainVi, ], sampleMetadata[trainVi, \"type\"], bootI = 5)\ndiaFitDF <- predict(diaTrain)\nround(getAccuracyMN(diaTrain)[\"S\", ], 3)\ndiaTestDF <- predict(diaTrain, newdata = dataMatrix[testVi, ])"
+    },
+    {
+      "name": "summarized_experiment_analysis",
+      "intent": "Perform feature selection directly on a SummarizedExperiment object, updating the container with feature tiers and retrieving the trained models.",
+      "input": [
+        "dia.se (SummarizedExperiment object containing assay data and sample/feature metadata)"
+      ],
+      "stages": "1. Run feature selection using biosign, specifying the column name of the response variable in colData.\n2. Extract the updated rowData containing the assigned feature tiers.\n3. Retrieve the trained biosign models from the metadata slot of the SummarizedExperiment.\n4. Plot the feature tiers for the selected classifiers.",
+      "code": "dia.se <- biosign(dia.se, \"type\", bootI = 5)\nfeat.DF <- SummarizedExperiment::rowData(dia.se)\ndia_type.biosign <- getBiosign(dia.se)\nplot(dia_type.biosign[[\"type_plsda.forest.svm\"]], typeC = \"tier\")"
+    },
+    {
+      "name": "multi_assay_experiment_analysis",
+      "intent": "Perform parallel feature selection across multiple omics datasets stored within a MultiAssayExperiment object.",
+      "input": [
+        "nci.mae (MultiAssayExperiment object containing multiple experiments and sample metadata)"
+      ],
+      "stages": "1. Run feature selection using biosign on the MultiAssayExperiment, specifying the response variable.\n2. Extract the updated rowData containing feature tiers from individual experiments.\n3. Retrieve the list of trained biosign models from the metadata of the individual experiments.\n4. Plot the feature tiers for each experiment.",
+      "code": "nci.mae <- biosign(nci.mae, \"cancer\", bootI = 5)\nSummarizedExperiment::rowData(nci.mae[[\"agilent\"]])\nmae_biosign.ls <- getBiosign(nci.mae)\nfor (set.c in names(mae_biosign.ls))\nplot(mae_biosign.ls[[set.c]][[\"cancer_plsda.forest.svm\"]],\n     typeC = \"tier\",\n     plotSubC = set.c)"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "package": "scarray_sat",
+  "requirements": [
+    "S4Vectors",
+    "SCArray.sat",
+    "SummarizedExperiment",
+    "scarray_sat"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "S4Vectors",
+      "SCArray.sat",
+      "SummarizedExperiment",
+      "scarray_sat"
+    ]
+  }
+}

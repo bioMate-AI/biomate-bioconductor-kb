@@ -1,0 +1,11 @@
+{
+  "package": "metabcombiner",
+  "requirements": [
+    "metabCombiner"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metabCombiner"
+    ]
+  }
+}

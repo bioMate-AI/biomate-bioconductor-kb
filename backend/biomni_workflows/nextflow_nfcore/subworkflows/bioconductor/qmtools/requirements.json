@@ -1,0 +1,21 @@
+{
+  "package": "qmtools",
+  "requirements": [
+    "SummarizedExperiment",
+    "ggplot2",
+    "patchwork",
+    "pls",
+    "qmtools",
+    "vsn"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "patchwork",
+      "pls",
+      "qmtools",
+      "vsn"
+    ]
+  }
+}

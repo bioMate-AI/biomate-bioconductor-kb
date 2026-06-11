@@ -1,94 +1,126 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CGHregions
-// Dimension Reduction for Array CGH Data with Minimal Information Loss
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CGHregions/inst/doc/CGHregions.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("CGHregions")
+// Bioconductor workflow: CGHregions — cgh_dimension_reduction
+// Reduce segmented and called array CGH data into genomic regions of minimal information loss and visualize the results.
+// Input: called_cgh_data.RData
+// Container: quay.io/biocontainers/bioconductor-cghregions:1.68.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, CGHregions
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and input data
+//  * 2. [Core Analysis] Run the CGHregions dimension reduction algorithm
+//  * 3. [Visualization & Output] Inspect and plot the resulting genomic regions
 
 nextflow.enable.dsl = 2
 
-process BIOC_CGHREGIONS {
+process BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cghregions"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cghregions:1.64.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cghregions:1.64.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cghregions_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cghregions_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cghregions_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the package and input data
     library(CGHregions)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: data
-    library(CGHregions)
-    data(WiltingCalled)
+    library(Biobase)
+    
+    # Load the user input file
+    input_file <- "called_cgh_data.RData"
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file missing:", input_file))
+    }
+    
+    # Load the RData file into a temporary environment to locate the cghCall object
+    temp_env <- new.env()
+    load(input_file, envir = temp_env)
+    
+    # Find the object of class 'cghCall'
+    obj_names <- ls(temp_env)
+    cgh_obj_name <- NULL
+    for (name in obj_names) {
+      if (inherits(temp_env[[name]], "cghCall")) {
+        cgh_obj_name <- name
+        break
+      }
+    }
+    
+    if (is.null(cgh_obj_name)) {
+      stop("No object of class 'cghCall' found in the loaded RData file.")
+    }
+    
+    # Assign to the variable name used in the documented code
+    WiltingCalled <- temp_env[[cgh_obj_name]]
     WiltingCalled
-    # --- Cghregions [] ---
-    # Key functions: CGHregions
+    
+    # 2. Run the CGHregions dimension reduction algorithm
     regions <- CGHregions(WiltingCalled, averror=0.01)
     regions
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cghregions_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cghregions_results.csv")
+    
+    # 3. Inspect and plot the resulting genomic regions
+    pdf("regions_plot.pdf", width = 10, height = 8)
+    plot(regions)
+    dev.off()
+    
+    # Save the resulting regions object
+    saveRDS(regions, file = "regions.rds")
+    
+    # Export the region features (metadata) to a CSV file
+    if (length(fData(regions)) > 0) {
+      write.csv(fData(regions), file = "regions_features.csv", row.names = TRUE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cghregions_output.rds")
-    }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CGHREGIONS:", paste0("    cghregions: ", packageVersion("CGHregions"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION":',
+        paste0('    CGHregions: ', as.character(packageVersion('CGHregions')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cghregions_results.csv
-    touch ${prefix}_cghregions_output.rds
-    echo "BIOC_CGHREGIONS:" > versions.yml
-    echo "    cghregions: 0.0.0" >> versions.yml
+    touch ${prefix}_cgh_dimension_reduction.csv versions.yml
     """
 }
 
-
-workflow BIOC_CGHREGIONS_WORKFLOW {
+workflow BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ called_cgh_data.RData ] ]
 
     main:
-    BIOC_CGHREGIONS(ch_input)
+    BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION(ch_input)
 
     emit:
-    results  = BIOC_CGHREGIONS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CGHREGIONS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CGHREGIONS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CGHREGIONS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION.out.tables
+    plots    = BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION.out.plots
+    objects  = BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION.out.objects
+    versions = BIOC_CGHREGIONS_CGH_DIMENSION_REDUCTION.out.versions
 }

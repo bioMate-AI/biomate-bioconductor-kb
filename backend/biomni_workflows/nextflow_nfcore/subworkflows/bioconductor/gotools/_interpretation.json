@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - probeType: The type/platform of the probe IDs being analyzed (e.g., \"hgu133a\").\n    - plot: Logical; if TRUE, automatically calls ontoPlot to generate a graphical comparison.\n    - endnode: A vector of GO IDs representing the DAG nodes to roll up to (defaults to EndNodeList()).\n    - goType: Specifies the GO ontology category to search (\"MF\" for Molecular Function, \"BP\" for Biological Process, or \"CC\" for Cellular Component).\n    - method: Method to estimate percentages under each end node. Options are \"TGenes\" (default; direct children / total probe IDs, including unannotated), \"TIDS\" (direct children / total GO IDs describing the list), or \"none\" (returns raw counts).\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when you have one or more lists of microarray probe IDs (e.g., from different experimental conditions) and want to compare or describe their functional composition using Gene Ontology categories at a specific level of depth.\n- pitfalls:\n    - The default percentage method (\"TGenes\") includes probes without any GO annotations in the denominator, which may lower the calculated percentages if many probes are unannotated.\n    - Custom GO IDs passed to the endnode argument must strictly follow the \"GO:XXXXXXX\" format.\n    - The GO.db package must be loaded in the session for ontoCompare to function.",
+  "workflows": [
+    {
+      "name": "compare_and_plot_gene_lists",
+      "intent": "Compare the functional profiles of multiple probe ID lists using Gene Ontology and plot the results.",
+      "input": [
+        "subset (a list of vectors containing Affymetrix probe IDs)"
+      ],
+      "stages": "1. Load the goTools package and the probe ID dataset.\n2. Load the GO.db annotation database.\n3. Define the subset of probe lists to compare.\n4. Run ontoCompare to map probes, calculate percentages, and plot the comparison.",
+      "code": "library(\"goTools\", verbose=FALSE)\ndata(probeID)\nlibrary(GO.db)\nsubset=c(L1=list(affylist[[1]][1:5]),L2=list(affylist[[2]][1:5]))\nres <- ontoCompare(subset, probeType=\"hgu133a\", plot=TRUE)"
+    },
+    {
+      "name": "custom_endnode_comparison",
+      "intent": "Compare gene lists using a customized set of GO end nodes up to a specific rank/level.",
+      "input": [
+        "subset (a list of vectors containing Affymetrix probe IDs)"
+      ],
+      "stages": "1. Load the goTools package and the probe ID dataset.\n2. Load the GO.db annotation database.\n3. Define the subset of probe lists to compare.\n4. Generate a customized end node list using CustomEndNodeList starting from a specific GO term and rank.\n5. Run ontoCompare with the custom end nodes and restrict the search to a specific GO category (e.g., Molecular Function).",
+      "code": "library(\"goTools\", verbose=FALSE)\ndata(probeID)\nlibrary(GO.db)\nsubset=c(L1=list(affylist[[1]][1:5]),L2=list(affylist[[2]][1:5]))\nMFendnode <- CustomEndNodeList(\"GO:0003674\", rank=2)\nres <- ontoCompare(subset, probeType=\"hgu133a\", endnode=MFendnode, goType=\"MF\")"
+    }
+  ]
+}

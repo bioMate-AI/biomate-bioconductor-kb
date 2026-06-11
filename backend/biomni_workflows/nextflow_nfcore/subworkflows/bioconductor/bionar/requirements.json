@@ -1,0 +1,15 @@
+{
+  "package": "bionar",
+  "requirements": [
+    "BioNAR",
+    "ggplot2",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BioNAR",
+      "ggplot2",
+      "igraph"
+    ]
+  }
+}

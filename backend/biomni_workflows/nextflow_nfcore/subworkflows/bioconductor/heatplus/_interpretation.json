@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: legend=Controls legend display and placement (e.g., 1-4 for sides, TRUE/FALSE) ;; dendrogram=List specifying clustering function (clustfun), distance function (distfun), status ('yes'/'hide'/'no'), and line width (lwd) ;; cluster=List specifying cutting height (cuth), group membership (grp), cluster labels (label), and cluster colors (col) ;; annotation=List specifying data and control parameters for row/column annotations ;; labels=List specifying label properties like font size (cex), number of rows (nrow), side, and custom labels ;; scale=Character string indicating if values should be centered and scaled ('row', 'col', or 'none') ;; asIs=Logical indicating whether to use annotation data as-is without factor conversion ;; inclRef=Logical indicating whether to include reference levels for factor variables during conversion\n- alternatives: standard heatmap=Mentioned as the baseline comparison for regHeatmap, which adds legend support ;; library(mva)=Mentioned as the source for standard dendrogram plotting, which cutplot.dendrogram modifies\n- when_to_use: Appropriate for visualizing high-dimensional rectangular data matrices (such as gene expression data) alongside complex sample (column) and/or feature (row) annotations, especially when dendrograms need to be cut into colored subtrees representing distinct clusters.\n- pitfalls: Dendrogram order mismatch errors can occur if the dendrogram order does not match the number of leaves (e.g., when using a subtree) ;; Neighboring clusters in picket plots having the same color can be misleading ;; Specifying more or fewer labels than groups in picket plots triggers warnings and fills with blanks or ignores extras ;; Setting asIs=TRUE requires a strictly numerical matrix or the function will fail ;; Repeated calls on the same device can lead to inconsistent distances between the dendrogram and heatmap if graphical parameters are not preserved (Issue 8)",
+  "workflows": [
+    {
+      "name": "regular_heatmap",
+      "intent": "Generate a standard heatmap without annotations, with optional custom clustering, distance metrics, and legend.",
+      "input": [
+        "exprs_matrix.csv (numeric matrix of features by samples)"
+      ],
+      "stages": "1. Load expression data. 2. Define custom distance and clustering functions (optional). 3. Generate heatmap object using regHeatmap. 4. Plot the heatmap using plot.",
+      "code": "reg1 = regHeatmap(exprs(exdat))\nplot(reg1)\nreg2 = regHeatmap(exprs(exdat2), legend=2, col=heat.colors, breaks=-3:3)\nplot(reg2)\ncorrdist = function(x) as.dist(1-cor(t(x)))\nhclust.avl = function(x) hclust(x, method=\"average\")\nreg3 = regHeatmap(exprs(exdat2), legend=2, dendrogram = list(clustfun=hclust.avl, distfun=corrdist))\nplot(reg3)\nreg4 = regHeatmap(exprs(exdat2), legend=3, dendrogram=list(Col=list(status=\"hide\")))\nplot(reg4)"
+    },
+    {
+      "name": "annotated_heatmap",
+      "intent": "Generate a heatmap with column (sample) annotations and colored dendrogram clusters.",
+      "input": [
+        "exprs_matrix.csv (numeric matrix of features by samples)",
+        "sample_metadata.csv (data frame of sample annotations)"
+      ],
+      "stages": "1. Load expression data and sample metadata. 2. Generate annotated heatmap object using annHeatmap. 3. Specify dendrogram cutting height and cluster labels using the cluster argument. 4. Plot the heatmap using plot.",
+      "code": "ann1 = annHeatmap(exprs(exdat), ann=pData(exdat))\nplot(ann1)\nann2 = annHeatmap(exprs(exdat2), ann=pData(exdat2), cluster=list(cuth=5000))\nplot(ann2)\nann3 = annHeatmap(exprs(exdat2), ann=pData(exdat2), cluster=list(cuth=7500, label=c(\"Control-like\", \"Case-like\")))\nplot(ann3)"
+    },
+    {
+      "name": "double_annotated_heatmap",
+      "intent": "Generate a highly customized heatmap with both column (sample) and row (feature) annotations.",
+      "input": [
+        "exprs_matrix.csv (numeric matrix of features by samples)",
+        "sample_metadata.csv (data frame of sample annotations)",
+        "feature_metadata.csv (data frame of feature annotations)"
+      ],
+      "stages": "1. Prepare sample and feature annotation data frames. 2. Convert annotation data using convAnnData if manual control over reference levels or variable selection is needed. 3. Generate double-annotated heatmap using annHeatmap2. 4. Plot the heatmap using plot, optionally specifying custom widths and heights.",
+      "code": "ann4 = annHeatmap2(exprs(exdat2), ann=list(Col=list(data=pData(exdat2)), Row=list(data=annFeatures)))\nplot(ann4)\nann4a = annHeatmap2(exprs(exdat2), ann=list(Col=list(data=pData(exdat2)), Row=list(data=annFeatures)), labels=list(Row=list(nrow=7), Col=list(nrow=2)))\nplot(ann4a)\nann4b = annHeatmap2(exprs(exdat2), ann=list( inclRef=FALSE, Col=list(data=pData(exdat2)), Row=list(data=annFeatures)   ), labels=list(Row=list(nrow=7), Col=list(nrow=2)))\nplot(ann4b, widths=c(2,5,1), heights=c(2,5,1))\nann1 = convAnnData(pData(exdat2), inclRef=FALSE)[, 3:1]\ncolnames(ann1) = c(\"Score\", \"isControl\", \"isMale\")\nann2 = convAnnData(annFeatures, inclRef=FALSE)[, 3:1]\ncolnames(ann2) = c(\"isTranslationalElongation\", \"isCorrelated\", \"SE\")\nann4c = annHeatmap2(exprs(exdat2), ann=list(asIs=TRUE, Col=list(data=ann1), Row=list(data=ann2)), labels=list(Row=list(nrow=7), Col=list(nrow=2)))\nplot(ann4c)"
+    },
+    {
+      "name": "legacy_heatmap",
+      "intent": "Generate heatmaps using the older legacy functions heatmap_2 and heatmap_plus.",
+      "input": [
+        "exprs_matrix.csv (numeric matrix of features by samples)",
+        "sample_metadata.csv (data frame of sample annotations)"
+      ],
+      "stages": "1. Generate basic legacy heatmap using heatmap_2. 2. Generate annotated legacy heatmap using heatmap_plus.",
+      "code": "heatmap_2(mm)\nheatmap_2(mm, do.dendro=c(FALSE, TRUE), legend=1, legfrac=12)\nheatmap_plus(mm)\nheatmap_plus(mm, addvar=addvar, cov=4)\nheatmap_plus(mm, addvar=addvar, cov=4, h=20, col=RGBColVec(64))"
+    }
+  ]
+}

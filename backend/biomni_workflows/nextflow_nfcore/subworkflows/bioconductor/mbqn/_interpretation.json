@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=Input matrix of intensity values (e.g., log2-transformed), where rows are features and columns are samples. May contain NAs. ;; FUN=Function or character string (\"mean\" or \"median\") used to select the balancing method. Set to NULL for classical quantile normalization. ;; low_thr=Threshold value (e.g., 0.5) used in mbqnGetNRIfeatures or mbqnNRI to identify RI/NRI features based on rank invariance frequency. ;; verbose=Logical value to enable or disable status messages during computation.\n- alternatives: limma::normalizeQuantiles()=Used internally; preferred if classical quantile normalization without RI/NRI balancing is desired. ;; preprocessCore::normalize.quantiles()=An optional alternative for classical quantile normalization.\n- when_to_use: Use when preprocessing matrix-like omics data (such as proteomics protein abundances) that suffer from global, columnwise distortions of mean and scale, particularly when rank-invariant or nearly rank-invariant features are present and need their intensity variation preserved.\n- pitfalls: Classical quantile normalization completely suppresses intensity variation of RI features, leading to false negatives in downstream differential expression analyses. ;; Be aware that there might be multiple RI/NRI features in a dataset, which can be checked using mbqnGetNRIfeatures().",
+  "workflows": [
+    {
+      "name": "mbqn_normalization_workflow",
+      "intent": "Detect rank-invariant features and apply mean/median-balanced quantile normalization to a distorted intensity matrix.",
+      "input": [
+        "mtx (A matrix of intensity values, e.g., log2-transformed protein abundances, with features as rows and samples as columns; may contain NAs)"
+      ],
+      "stages": "1. Detect rank-invariant (RI) or nearly rank-invariant (NRI) features using mbqnGetNRIfeatures.\n2. Perform classical quantile normalization, full MBQN, or selective NRI-balanced quantile normalization using mbqn and mbqnNRI.\n3. Visualize and compare the normalized intensities using mbqnBoxplot.",
+      "code": "res <- mbqnGetNRIfeatures(mtx, low_thr = 0.5)\nmbqn.mtx <- mbqnNRI(x = mtx, FUN = median, verbose = FALSE)\nqn.mtx <- mbqnNRI(x = mtx, FUN = NULL, verbose = FALSE)\nmbqnBoxplot(mbqn.mtx, irow = res$ip, vals = data.frame(QN = qn.mtx[res$ip,]), main = \"Normalized\")\nqn.mtx <- mbqn(mtx,FUN=NULL, verbose = FALSE)\nmbqn.mtx <- mbqn(mtx,FUN = \"median\", verbose = FALSE)\nqn.nri.mtx <- mbqnNRI(mtx,FUN = \"median\", low_thr = 0.5, verbose = FALSE)"
+    }
+  ]
+}

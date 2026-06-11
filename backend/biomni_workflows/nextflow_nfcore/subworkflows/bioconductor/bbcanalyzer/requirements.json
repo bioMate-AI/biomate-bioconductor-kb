@@ -1,0 +1,16 @@
+{
+  "package": "bbcanalyzer",
+  "requirements": [
+    "BBCAnalyzer",
+    "BSgenome.Hsapiens.UCSC.hg19"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BBCAnalyzer",
+      "BSgenome.Hsapiens.UCSC.hg19"
+    ],
+    "visualization_only.nf": [
+      "BBCAnalyzer"
+    ]
+  }
+}

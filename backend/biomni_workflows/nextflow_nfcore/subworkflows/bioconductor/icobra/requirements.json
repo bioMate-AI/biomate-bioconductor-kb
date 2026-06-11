@@ -1,0 +1,17 @@
+{
+  "package": "icobra",
+  "requirements": [
+    "iCOBRA"
+  ],
+  "by_workflow": {
+    "interactive_shiny_visualization.nf": [
+      "iCOBRA"
+    ],
+    "main.nf": [
+      "iCOBRA"
+    ],
+    "text_file_import_export.nf": [
+      "iCOBRA"
+    ]
+  }
+}

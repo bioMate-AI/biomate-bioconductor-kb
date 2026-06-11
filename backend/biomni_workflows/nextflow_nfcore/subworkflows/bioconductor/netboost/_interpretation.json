@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: datan=Matrix or data frame of omics features (samples as rows, features as columns) ;; stepno=Number of boosting steps taken (e.g., 20L) ;; soft_power=Exponent in the transformation of the correlation (automatically chosen if NULL) ;; min_cluster_size=Minimal size of clusters (e.g., 10L) ;; n_pc=Number of maximally computed principal components (e.g., 2) ;; scale=Logical indicating if data should be scaled and centered prior to analysis ;; ME_diss_thres=Merging threshold for identified clusters (e.g., 0.25) ;; cores=Number of CPU cores to use for parallel execution ;; filter_method=Method used for filtering (e.g., \"spearman\" for non-parametric) ;; robust_PCs=Logical indicating whether to use robust principal components ;; method=Correlation method (e.g., \"spearman\")\n- alternatives: WGCNA (Weighted Gene Co-expression Network Analysis) is a related method, but netboost uses a boosting-based filter to identify essential edges first, making it more suitable for high-dimensional data.\n- when_to_use: When performing dimension reduction and network-based module detection on high-dimensional omics datasets (e.g., DNA methylation, gene expression) where features greatly outnumber samples.\n- pitfalls: Multicore execution (cores > 1) may not be supported in certain environments (like Bioconductor vignette builders). Plotting labels (labels = TRUE in nb_plot_dendro) is only suitable for applications with few features or with an appropriately large PDF device.",
+  "workflows": [
+    {
+      "name": "netboost_dimension_reduction",
+      "intent": "Perform boosting-supported network clustering, extract module eigengenes, plot dendrograms, and transfer the clustering to new datasets.",
+      "input": [
+        "tcga_aml_meth_rna_chr18 (matrix or data frame of omics features where rows are samples and columns are features)"
+      ],
+      "stages": "1. Load the package and input dataset ;; 2. Run the netboost pipeline to identify modules and aggregate them into principal components ;; 3. Inspect results (module names, colors, and explained variance) ;; 4. Plot the dendrogram using nb_plot_dendro ;; 5. Transfer the clustering to a new dataset using nb_transfer",
+      "code": "require(\"netboost\")\ndata(\"tcga_aml_meth_rna_chr18\", package = \"netboost\")\ndim(tcga_aml_meth_rna_chr18)\nresults <- netboost(datan = tcga_aml_meth_rna_chr18, stepno = 20L, soft_power = 3L, min_cluster_size = 10L, n_pc = 2, scale = TRUE, ME_diss_thres = 0.25)\nnames(results)\ncolnames(results$MEs)\nresults$var_explained[,1:5]\nresults$names[results$colors==8]\nset.seed(123)\nnb_plot_dendro(nb_summary = results, labels = FALSE, colorsrandom = TRUE)\nME_transfer <- nb_transfer(nb_summary = results, new_data = tcga_aml_meth_rna_chr18, scale = TRUE)\nall(round(results$MEs, 10) == round(ME_transfer, 10))"
+    }
+  ]
+}

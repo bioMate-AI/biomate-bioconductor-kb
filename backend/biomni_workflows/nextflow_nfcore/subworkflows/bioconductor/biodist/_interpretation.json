@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=\"density\" (specifies density estimation followed by numerical integration in KLD.matrix) ;; supp=range(exData) (defines the support range for numerical integration in KLD.matrix) ;; sample=FALSE (determines whether to compute distances between genes/rows [FALSE] or samples/columns [TRUE] in tau.dist and spearman.dist)\n- alternatives: Standard R dist function (for basic distance metrics like Euclidean, Manhattan, etc., whereas bioDist provides advanced biological distance measures like MI and KLD).\n- when_to_use: Appropriate when analyzing high-dimensional biological data (e.g., gene expression) where non-linear associations (Mutual Information) or distributional shape differences (Kullback-Leibler Divergence) are more informative than standard Euclidean distances.\n- pitfalls: Mutual information calculations (MIdist and mutualInfo) are computationally intensive and can be very slow on large datasets.",
+  "workflows": [
+    {
+      "name": "mutual_information_and_kl_divergence_distance",
+      "intent": "Calculate mutual information and Kullback-Leibler divergence distances between samples in an expression dataset.",
+      "input": [
+        "expression_matrix.csv (a matrix of gene expression values with genes as rows and samples as columns)"
+      ],
+      "stages": "1. Transpose the expression matrix to compute distances between samples. 2. Compute mutual information distance using MIdist or distance from independence using mutualInfo. 3. Compute Kullback-Leibler divergence using binning (KLdist.matrix) or density estimation (KLD.matrix).",
+      "code": "library(\"bioDist\")\ndata(sample.ExpressionSet)\nexData = t(exprs(sample.ExpressionSet))\ns1 = MIdist(exData)\ns2 = as.matrix(s1)\ndim(s2)\nr1 = mutualInfo(exData)\nkl1 = KLdist.matrix(exData)\nkl2 = KLD.matrix(exData, method=\"density\", supp=range(exData))"
+    },
+    {
+      "name": "correlation_distance_and_neighbor_search",
+      "intent": "Calculate correlation-based distances (Spearman's rho and Kendall's tau) between genes and find the nearest neighbors for a specific gene.",
+      "input": [
+        "expression_set.RData (an ExpressionSet object containing gene expression data)"
+      ],
+      "stages": "1. Subset the ExpressionSet to the genes of interest. 2. Compute Kendall's tau distance between genes using tau.dist with sample=FALSE. 3. Compute Spearman's rho distance between genes using spearman.dist with sample=FALSE. 4. Find the top nearest neighbor genes for a query gene using closest.top.",
+      "code": "eS = sample.ExpressionSet[401:500,]\ntauD = tau.dist(eS, sample=FALSE)\nsp = spearman.dist(eS, sample=FALSE)\nf1 = featureNames(eS)[1]\nclosest.top(f1, sp, 3)"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "package": "gsreg",
+  "requirements": [
+    "GSReg",
+    "GenomicRanges",
+    "Homo.sapiens",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSReg"
+    ],
+    "splice_eva_analysis.nf": [
+      "GSReg",
+      "GenomicRanges",
+      "Homo.sapiens",
+      "org.Hs.eg.db"
+    ]
+  }
+}

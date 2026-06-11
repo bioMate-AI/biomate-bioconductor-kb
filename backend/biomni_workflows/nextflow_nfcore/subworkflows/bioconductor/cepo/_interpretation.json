@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprsMat=Input normalized data matrix (e.g., CPM, log2-CPM, logcounts) ;; cellType/cellTypes=Vector of cell-type labels, must match columns of exprsMat in length and order ;; exprsPct=Threshold between 0 and 1 for filtering lowly expressed genes (recommends 0.05 to 0.07 for microfluidic data) ;; logfc=Minimum log fold-change in gene expression to filter genes ;; computePvalue=Number of runs for p-value computation ;; computeFastPvalue=Logical, whether to use fast normal approximation (default TRUE, needs 100-200 runs) or permutation bootstrap (FALSE, recommends >= 10000 runs) ;; prefilter_pzero=Prefiltering parameter used during fast p-value computation ;; block=Vector indicating batch/block structure to run analysis independently per batch and average results ;; minCelltype=Minimum number of cells of a cell type in a block to keep it\n- alternatives: Differential expression (DE) methods=Cepo is preferred over standard DE methods when the goal is to capture stable gene expression and subtle variations in distribution that do not necessarily involve changes in mean abundance ;; scMerge=Used for batch correction prior to Cepo, though Cepo's block argument can handle uncorrected batch data directly\n- when_to_use: When identifying cell identity genes or marker genes from scRNA-seq data ;; For large-scale single-cell atlas datasets where computational efficiency is required ;; For multi-group comparisons in single-cell data\n- pitfalls: If cell-type labels are unknown, cells must be clustered first ;; If batches are present and data is not batch-corrected, the block argument must be used to avoid batch-confounded results ;; Out-of-memory computation with DelayedArray is slower and should be paired with parallel processing via BiocParallel ;; The length and order of cellTypes must exactly match the columns of exprsMat",
+  "workflows": [
+    {
+      "name": "standard_differential_stability",
+      "intent": "Run differential stability analysis on normalized scRNA-seq data to identify cell identity genes, with optional filtering, p-value calculation, and visualization.",
+      "input": [
+        "cellbench (SingleCellExperiment object containing logcounts assay and celltype colData)"
+      ],
+      "stages": "1. Load data and extract logcounts matrix ;; 2. Run Cepo with default parameters ;; 3. Run Cepo with expression percentage filtering ;; 4. Run Cepo with log fold-change filtering ;; 5. Compute p-values using fast normal approximation or permutation bootstrap ;; 6. Extract top marker genes ;; 7. Visualize results using UpSet plots and density plots.",
+      "code": "library(Cepo)\nlibrary(SingleCellExperiment)\ndata(\"cellbench\", package = \"Cepo\")\ncellbench\ncellbench = cellbench[!duplicated(rownames(cellbench)),]\nds_res = Cepo(exprsMat = logcounts(cellbench),\n              cellType = cellbench$celltype)\nds_res_zprop = Cepo::Cepo(exprsMat = logcounts(cellbench),\n                          cellTypes = cellbench$celltype,\n                          exprsPct = 0.5)\nds_res_logfc = Cepo(exprsMat = logcounts(cellbench),\n                    cellTypes = cellbench$celltype,\n                    logfc = 1)\nds_res_pvalues = Cepo(exprsMat = logcounts(cellbench),\n                      cellType = cellbench$celltype, \n                      computePvalue = 200,\n                      prefilter_pzero = 0.4)\nds_res_pvalues = Cepo(exprsMat = logcounts(cellbench),\n                      cellType = cellbench$celltype, \n                      # we use a low value for demonstration purposes\n                      computePvalue = 100,\n                      computeFastPvalue = FALSE)\nlibrary(UpSetR)\nres_name = topGenes(object = ds_res, n = 500)\nupset(fromList(res_name), nsets = 3)\nplotDensities(x = cellbench,\n              cepoOutput = ds_res,\n              nGenes = 2,\n              assay = \"logcounts\",\n              celltypeColumn = \"celltype\")\nplotDensities(x = cellbench,\n              cepoOutput = ds_res,\n              genes = c(\"PLTP\", \"CPT1C\", \"MEG3\", \"SYCE1\", \"MICOS10P3\", \"HOXB7\"),\n              assay = \"logcounts\",\n              celltypeColumn = \"celltype\")"
+    },
+    {
+      "name": "batch_aware_differential_stability",
+      "intent": "Perform differential stability analysis across multiple batches using the block argument to avoid batch effects.",
+      "input": [
+        "sce_pancreas (SingleCellExperiment object containing counts assay, batch and cellTypes colData)"
+      ],
+      "stages": "1. Load data and normalize ;; 2. Run Cepo with the block argument to perform analysis independently per batch ;; 3. Extract top genes from the averaged results.",
+      "code": "library(Cepo)\nlibrary(SingleCellExperiment)\ndata(\"sce_pancreas\", package = \"Cepo\")\nlibrary(scater)\nsce = sce_pancreas\nsce = scater::logNormCounts(sce)\nds_res_batches = Cepo::Cepo(exprsMat = logcounts(sce),\n                            cellTypes = sce$cellTypes,\n                            block = sce$batch,\n                            minCelltype = 2)\nnames(ds_res_batches)\ncepo_genes = Cepo::topGenes(ds_res_batches$average, n = 3)"
+    },
+    {
+      "name": "out_of_memory_parallel_differential_stability",
+      "intent": "Run Cepo on large-scale atlas datasets using out-of-memory HDF5 arrays and parallel processing.",
+      "input": [
+        "cellbench (SingleCellExperiment object containing logcounts assay and celltype colData)"
+      ],
+      "stages": "1. Convert logcounts matrix to an HDF5-backed DelayedArray ;; 2. Run Cepo on the HDF5 matrix ;; 3. Configure parallel backend using BiocParallel and setAutoBPPARAM ;; 4. Run Cepo in parallel ;; 5. Revert parallel settings to serial.",
+      "code": "library(Cepo)\nlibrary(SingleCellExperiment)\ndata(\"cellbench\", package = \"Cepo\")\ncellbench = cellbench[!duplicated(rownames(cellbench)),]\nlibrary(DelayedArray)\nlibrary(HDF5Array)\nda_matrix = DelayedArray(realize(logcounts(cellbench), \"HDF5Array\"))\nda_output = Cepo(exprsMat = da_matrix, cellType = cellbench$celltype)\nlibrary(BiocParallel)\nBPPARAM = if (.Platform$OS.type == \"windows\") {\n  BiocParallel::SnowParam(workers = 2)\n} else {\n  BiocParallel::MulticoreParam(workers = 2)\n}\nDelayedArray::setAutoBPPARAM(BPPARAM = BPPARAM) ## Setting two cores for computation\nda_output_parallel = Cepo(exprsMat = da_matrix, cellTypes = cellbench$celltype)\nDelayedArray::setAutoBPPARAM(BPPARAM = SerialParam()) ## Revert back to only one core"
+    }
+  ]
+}

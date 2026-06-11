@@ -1,0 +1,22 @@
+{
+  "package": "phenopath",
+  "requirements": [
+    "SummarizedExperiment",
+    "dplyr",
+    "ggplot2",
+    "phenopath"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dplyr",
+      "ggplot2",
+      "phenopath"
+    ],
+    "summarized_experiment_workflow.nf": [
+      "SummarizedExperiment",
+      "dplyr",
+      "ggplot2",
+      "phenopath"
+    ]
+  }
+}

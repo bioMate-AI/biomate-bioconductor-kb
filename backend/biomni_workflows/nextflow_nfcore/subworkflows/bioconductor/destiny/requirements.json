@@ -1,0 +1,36 @@
+{
+  "package": "destiny",
+  "requirements": [
+    "Biobase",
+    "SingleCellExperiment",
+    "cowplot",
+    "destiny",
+    "ggplot2",
+    "purrr",
+    "readxl",
+    "viridis"
+  ],
+  "by_workflow": {
+    "censored_and_missing_data.nf": [
+      "Biobase",
+      "destiny",
+      "readxl"
+    ],
+    "gene_relevance.nf": [
+      "SingleCellExperiment",
+      "cowplot",
+      "destiny",
+      "ggplot2",
+      "purrr"
+    ],
+    "main.nf": [
+      "Biobase",
+      "destiny",
+      "viridis"
+    ],
+    "projection_prediction.nf": [
+      "Biobase",
+      "destiny"
+    ]
+  }
+}

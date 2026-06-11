@@ -1,0 +1,41 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sampling = Type of experiment, either \"static\" or \"timecourse\" ;; adj.var = Adjustment variables to control for (e.g., sex, batch) ;; tme = Time variable in time-course studies ;; grp = Variable containing group assignments ;; ind = Variable tracking individuals sampled multiple times ;; basis.df = Degrees of freedom for the spline fit ;; null.model / full.model = Formulae specifying the null and full models ;; bs.its = Number of bootstrap iterations for ODP ;; n.mods = Number of clusters in k-means to speed up ODP (setting to ~50 reduces runtime with negligible power loss) ;; nullDistn = Null distribution method in lrt (\"normal\" or \"bootstrap\") ;; n.sv = Number of surrogate variables to estimate in apply_sva\n- alternatives: Traditional single-gene testing methods (t-test, F-test) like limma, SAM, MA-ANOVA, or Bayesian \"local FDR\" (Efron et al. 2001). edge's ODP is preferred because it uses information across all genes to maximize power in high-dimensional studies.\n- when_to_use: Genome-wide gene expression studies (microarray, transcriptomics) to identify differentially expressed genes across distinct biological groups (static), over time (independent time course), or over time between different groups (longitudinal time course), especially when wanting to control FDR using q-values and leverage information across all genes (ODP).\n- pitfalls: Running ODP without setting n.mods to a smaller value (like 50) on large datasets can take a very long time. Making significance decisions based on raw p-values in high-dimensional multiple testing problems can lead to many false positives; q-values or local FDR should be used instead. Failing to include adjustment variables in the formulation of the full model (they must be in both full and null models).",
+  "workflows": [
+    {
+      "name": "static_de_analysis",
+      "intent": "Identify differentially expressed genes across distinct biological groups in a static experiment (without respect to time), adjusting for covariates.",
+      "input": [
+        "gibexpr (matrix of gene expression measurements)",
+        "gender (vector of gender covariates)",
+        "batch (vector of batch covariates)",
+        "location (vector of group/location assignments)"
+      ],
+      "stages": "1. Build the deSet object using build_study with sampling=\"static\" ;; 2. Fit the models using fit_models ;; 3. Perform significance testing using odp or lrt ;; 4. Extract p-values, q-values, local FDR, and pi0 using qvalueObj",
+      "code": "de_obj <- build_study(data = gibexpr, adj.var = cbind(gender, batch), grp = location, sampling = \"static\")\nef_obj <- fit_models(de_obj, stat.type=\"lrt\")\nde_lrt <- lrt(de_obj, nullDistn=\"normal\")\nde_odp <- odp(de_obj, bs.its = 50, verbose = FALSE, n.mods = 50)\nsummary(de_odp)\nsig_results <- qvalueObj(de_odp)\npvalues <- sig_results$pvalues\nqvalues <- sig_results$qvalues\nlfdr <- sig_results$lfdr\npi0 <- sig_results$pi0"
+    },
+    {
+      "name": "timecourse_de_analysis",
+      "intent": "Identify genes showing temporal differential expression over time (either within a single group or between different treatment groups) in longitudinal or independent time-course designs.",
+      "input": [
+        "kidexpr or endoexpr (matrix of gene expression measurements)",
+        "sex or class (vector of adjustment or group covariates)",
+        "age or time (vector of time points)",
+        "ind (vector of individual IDs for longitudinal studies)"
+      ],
+      "stages": "1. Build the deSet object using build_study with sampling=\"timecourse\" (specifying basis.df and optionally ind for longitudinal data) ;; 2. Fit the models using fit_models ;; 3. Perform significance testing using odp or lrt ;; 4. Extract significance statistics (p-values, q-values, local FDR) using qvalueObj",
+      "code": "de_obj <- build_study(data = kidexpr, adj.var = sex, tme = age, sampling = \"timecourse\", basis.df = 4)\nde_obj <- build_study(data = endoexpr, grp = class, tme = time, ind = ind, sampling = \"timecourse\")\nef_obj <- fit_models(de_obj, stat.type=\"lrt\")\nde_lrt <- lrt(de_obj, nullDistn=\"normal\")\nde_odp <- odp(de_obj, bs.its = 50, verbose = FALSE, n.mods = 50)\nsummary(de_odp)\nsig_results <- qvalueObj(de_odp)\npvalues <- sig_results$pvalues\nqvalues <- sig_results$qvalues\nlfdr <- sig_results$lfdr\npi0 <- sig_results$pi0"
+    },
+    {
+      "name": "sva_de_analysis",
+      "intent": "Perform differential expression analysis while identifying and adjusting for surrogate variables (unknown sources of variation or batch effects) using SVA.",
+      "input": [
+        "kidexpr (matrix of gene expression measurements)",
+        "sex (vector of sex covariates)",
+        "age (vector of age covariates)"
+      ],
+      "stages": "1. Build the initial deSet object using build_models ;; 2. Apply surrogate variable analysis using apply_sva to estimate surrogate variables and update the models ;; 3. Perform significance testing on the SVA-adjusted object using odp or lrt ;; 4. Extract significance statistics using qvalueObj",
+      "code": "library(splines)\ncov <- data.frame(sex = sex, age = age)\nnull_model <- ~sex\nfull_model <- ~sex + ns(age, df=4)\nde_obj <- build_models(data = kidexpr, cov = cov, full.model = full_model, null.model = null_model)\nde_sva <- apply_sva(de_obj, n.sv = 3, B = 10)\nde_odp <- odp(de_sva, bs.its = 50, verbose = FALSE)\nde_lrt <- lrt(de_sva, verbose = FALSE)\nqval_obj <- qvalueObj(de_odp)\nqvals <- qval_obj$qvalues\nlfdr <- qval_obj$lfdr\npvals <- qval_obj$pvalues\npi0 <- qval_obj$pi0"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "package": "hpip",
+  "requirements": [
+    "Biostrings",
+    "HPiP",
+    "SummarizedExperiment",
+    "dplyr",
+    "stringr",
+    "tibble"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "HPiP",
+      "SummarizedExperiment",
+      "dplyr",
+      "stringr",
+      "tibble"
+    ]
+  }
+}

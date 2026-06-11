@@ -1,0 +1,13 @@
+{
+  "package": "targetdecoy",
+  "requirements": [
+    "TargetDecoy",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "TargetDecoy",
+      "ggplot2"
+    ]
+  }
+}

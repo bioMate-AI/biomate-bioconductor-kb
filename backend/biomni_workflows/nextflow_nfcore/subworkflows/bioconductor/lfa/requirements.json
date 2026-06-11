@@ -1,0 +1,15 @@
+{
+  "package": "lfa",
+  "requirements": [
+    "genio",
+    "ggplot2",
+    "lfa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "genio",
+      "ggplot2",
+      "lfa"
+    ]
+  }
+}

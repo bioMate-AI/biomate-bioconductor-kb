@@ -1,119 +1,144 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CoGAPS
-// Coordinated Gene Activity in Pattern Sets (CoGAPS) implements a Bayesian MCMC matrix factorization a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CoGAPS/inst/doc/CoGAPS.R
-// Upstream  : Seurat, viridis
-// Downstream: none
-//
-// Install: BiocManager::install("CoGAPS")
+// Bioconductor workflow: CoGAPS — standard_cogaps_workflow
+// Run standard sequential Bayesian NMF on a gene expression matrix to learn latent patterns.
+// Input: modsimdata
+// Container: quay.io/biocontainers/bioconductor-cogaps:3.30.0--r45ha27e39d_0
+// R packages: CoGAPS, Seurat, viridis
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CoGAPS
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Initialize parameters using new("CogapsParams")
+//  * 2. [Core Analysis] Modify parameters using setParam()
+//  * 3. [Core Analysis] Run factorization using CoGAPS()
+//  * 4. [Core Analysis] Extract sample factors and feature loadings from the CogapsResult object
 
 nextflow.enable.dsl = 2
 
-process BIOC_COGAPS {
+process BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cogaps"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cogaps:3.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cogaps:3.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(ggplot_object)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cogaps_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cogaps_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cogaps_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BiocFileCache)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CoGAPS", "Seurat", "viridis")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(CoGAPS)
-    library(CogapsParams)
-    library(DefaultAssay)
-    library(FeaturePlot)
-    library(MANOVA)
-    library(jsonlite)
-
-    # --- CoGAPS Execution [] ---
-    # Key functions: CoGAPS, toCSV
-    cogaps_res <- CoGAPS(
-        data = modsimdata,
-        allParams = params,
-        outputFrequency = 10000
-    )
-    toCSV(cogaps_res, "cogaps_output")
-
-
-    # --- Pattern Marker Identification [] ---
-    # Key functions: patternMarkers
-    pm_markers <- patternMarkers(cogaps_res)
-    sample_facs <- cogaps_res@sampleFactors
-    feat_loads <- cogaps_res@featureLoadings
-
-
-    # --- Gene Set Enrichment Analysis [] ---
-    # Key functions: getPatternGeneSet, plotPatternGeneSet
-    hallmarks_ora <- getPatternGeneSet(
-        cogaps_res,
-        gene.sets = hallmark_ls,
-        method = "overrepresentation"
-    )
-    pl_pattern7 <- plotPatternGeneSet(
-        patterngeneset = hallmarks_ora,
-        whichpattern = 7,
-        padj_threshold = 0.05
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cogaps_results.csv", row.names = TRUE)
+    
+    # ----------------------------------------------------------------------
+    # 1. Load User Input
+    # ----------------------------------------------------------------------
+    # The pipeline expects 'modsimdata' in the working directory.
+    # We check for common extensions (.rds, .csv, .tsv, .txt) or the bare name.
+    if (file.exists("modsimdata.rds")) {
+      modsimdata <- readRDS("modsimdata.rds")
+    } else if (file.exists("modsimdata.csv")) {
+      modsimdata <- read.csv("modsimdata.csv", row.names = 1, check.names = FALSE)
+    } else if (file.exists("modsimdata.tsv")) {
+      modsimdata <- read.delim("modsimdata.tsv", row.names = 1, check.names = FALSE)
+    } else if (file.exists("modsimdata.txt")) {
+      modsimdata <- read.table("modsimdata.txt", header = TRUE, row.names = 1, check.names = FALSE)
+    } else if (file.exists("modsimdata")) {
+      modsimdata <- tryCatch({
+        read.csv("modsimdata", row.names = 1, check.names = FALSE)
+      }, error = function(e) {
+        read.table("modsimdata", header = TRUE, row.names = 1, check.names = FALSE)
+      })
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cogaps_results.csv")
+      stop("Required input file 'modsimdata' (with or without extension .csv/.tsv/.rds) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cogaps_output.rds")
-    }
+    
+    # Ensure the input is formatted as a matrix
+    modsimdata <- as.matrix(modsimdata)
+    
+    # ----------------------------------------------------------------------
+    # 2. Initialize and Modify Parameters
+    # ----------------------------------------------------------------------
+    params <- new("CogapsParams", nPatterns=6)
+    params
+    getParam(params, "nPatterns")
+    
+    params <- setParam(params, "nPatterns", 3)
+    getParam(params, "nPatterns")
+    
+    # ----------------------------------------------------------------------
+    # 3. Run CoGAPS Factorization
+    # ----------------------------------------------------------------------
+    cogapsresult <- CoGAPS(modsimdata, params, outputFrequency = 10000)
+    cogapsresult
+    
+    # ----------------------------------------------------------------------
+    # 4. Extract and Save Results
+    # ----------------------------------------------------------------------
+    sample_factors <- cogapsresult@sampleFactors
+    feature_loadings <- cogapsresult@featureLoadings
+    
+    # Save the full result object
+    saveRDS(cogapsresult, "cogaps_result.rds")
+    
+    # Save extracted matrices to CSV
+    write.csv(sample_factors, "sample_factors.csv", row.names = TRUE)
+    write.csv(feature_loadings, "feature_loadings.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COGAPS:", paste0("    cogaps: ", packageVersion("CoGAPS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW":',
+        paste0('    CoGAPS: ', as.character(packageVersion('CoGAPS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cogaps_results.csv
-    touch ${prefix}_cogaps_output.rds
-    echo "BIOC_COGAPS:" > versions.yml
-    echo "    cogaps: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_cogaps_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_COGAPS_WORKFLOW {
+workflow BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(ggplot_object) ]
+    ch_input  // channel: [ val(meta), [ modsimdata ] ]
 
     main:
-    BIOC_COGAPS(ch_input)
+    BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_COGAPS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COGAPS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COGAPS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COGAPS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW.out.tables
+    plots    = BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW.out.plots
+    objects  = BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW.out.objects
+    versions = BIOC_COGAPS_STANDARD_COGAPS_WORKFLOW.out.versions
 }

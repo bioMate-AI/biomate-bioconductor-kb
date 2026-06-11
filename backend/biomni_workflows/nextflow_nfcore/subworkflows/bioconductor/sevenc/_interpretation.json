@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: maxDist=Maximum genomic distance between motif pairs to consider as candidates in prepareCisPairs() (default is 10^6 bp) ;; formula=Formula specifying the predictive variables for the logistic regression model in predLoops() ;; betas=Coefficients of the logistic regression model in predLoops() (uses a default model optimized for several TF ChIP-seq datasets if not specified) ;; cutoff=Minimal prediction score threshold to report loops in predLoops() (set to NULL to report all candidates without filtering) ;; colname=Modifies the column name for experimental support in addInteractionSupport()\n- alternatives: Experimental methods like Hi-C or ChIA-PET are mentioned as the gold standard for measuring chromatin conformation, but they are elaborate, expensive, and have limited resolution/availability compared to ChIP-seq.\n- when_to_use: Use this package when high-resolution chromatin looping data (like Hi-C or ChIA-PET) is unavailable for a specific cell type or condition, but ChIP-seq data (e.g., CTCF or other transcription factors) and motif locations are available.\n- pitfalls: Reading bigWig files using addCovToGR() or addCor() is not supported on Windows systems; Windows users must manually provide ChIP-seq signals around motif sites as a NumericList object (e.g., motifs$chip <- l). Evaluating prediction performance on the same dataset used for training (without cross-validation) is insufficient and can lead to overoptimistic results.",
+  "workflows": [
+    {
+      "name": "predict_loops_default_model",
+      "intent": "Predict chromatin looping interactions from CTCF motifs and a ChIP-seq bigWig file using the default pre-trained model.",
+      "input": [
+        "motifs.hg19.CTCF.chr22 (GRanges object containing CTCF motif locations with -log10 transformed p-values in the 'score' column)",
+        "GM12878_Stat1.chr22_1-30000000.bigWig (ChIP-seq signal bigWig file)"
+      ],
+      "stages": "1. Load CTCF motifs ;; 2. Read ChIP-seq coverage at motif sites using addCovToGR() ;; 3. Build candidate motif pairs within a distance threshold using prepareCisPairs() ;; 4. Compute ChIP-seq signal correlation between pairs using addCovCor() ;; 5. Predict loops using predLoops() ;; 6. Export predicted loops to a BEDPE file using export.bedpe()",
+      "code": "library(sevenC)\n\n# load provided CTCF motifs\nmotifs <- motif.hg19.CTCF.chr22\n\n# use example ChIP-seq bigWig file\nbigWigFile <- system.file(\"extdata\", \"GM12878_Stat1.chr22_1-30000000.bigWig\", \n  package = \"sevenC\")\n\n# read ChIP-seq coverage \nmotifs <- addCovToGR(motifs, bigWigFile)\n\ngi <- prepareCisPairs(motifs, maxDist = 10^6)\n\n# add ChIP-seq coverage and compute correaltion at motif pairs\ngi <- addCovCor(gi)\n\nloops <- predLoops(gi)\n\nlibrary(GenomicInteractions)\n\n# export to output file\nexport.bedpe(loops, \"loop_interactions.bedpe\", score = \"pred\")"
+    },
+    {
+      "name": "train_custom_prediction_model",
+      "intent": "Train a custom logistic regression model using known experimental loops and use it to predict chromatin loops.",
+      "input": [
+        "motifs.hg19.CTCF.chr22 (GRanges object containing CTCF motif locations)",
+        "GM12878_Stat1.chr22_1-30000000.bigWig (ChIP-seq signal bigWig file)",
+        "GM12878_HiCCUPS.chr22_1-30000000.loop.txt (Text file containing known experimental loops in Rao et al. format)"
+      ],
+      "stages": "1. Load CTCF motifs and read ChIP-seq coverage using addCovToGR() ;; 2. Build candidate motif pairs using prepareCisPairs() and compute ChIP-seq signal correlation using addCovCor() ;; 3. Parse known experimental loops using parseLoopsRao() ;; 4. Annotate candidate pairs with experimental interaction support using addInteractionSupport() ;; 5. Fit a logistic regression model using glm() ;; 6. Predict loops using the custom model coefficients and formula in predLoops()",
+      "code": "# load provided CTCF motifs\nmotifs <- motif.hg19.CTCF.chr22\n\n# use example ChIP-seq coverage file\nbigWigFile <- system.file(\"extdata\", \"GM12878_Stat1.chr22_1-30000000.bigWig\", \n  package = \"sevenC\")\n\n# add ChIP-seq coverage\nmotifs <- addCovToGR(motifs, bigWigFile)\n  \ngi <- prepareCisPairs(motifs, maxDist = 10^6)\n\n# add correaltion of ChIP-signal\ngi <- addCovCor(gi)\n\n# parse known loops\nknownLoopFile <- system.file(\"extdata\", \n  \"GM12878_HiCCUPS.chr22_1-30000000.loop.txt\", package = \"sevenC\")\n\nknownLoops <- parseLoopsRao(knownLoopFile)\n\n# add known loops\ngi <- addInteractionSupport(gi, knownLoops)\n\nfit <- glm(\n  formula = loop ~ cor_chip + dist + strandOrientation, \n  data = mcols(gi), \n  family = binomial()\n  )\n\n# add predict loops\ngi <- predLoops(\n  gi,\n  formula = loop ~ cor_chip + dist + strandOrientation,\n  betas = coef(fit),\n  cutoff = NULL\n)"
+    }
+  ]
+}

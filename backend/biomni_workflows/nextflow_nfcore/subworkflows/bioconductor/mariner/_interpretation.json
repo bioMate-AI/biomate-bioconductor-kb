@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: binSize=Resolution (in base pairs) used for binning, snapping, or pulling data from .hic files ;; radius=Genomic distance threshold (in base pairs) used by mergePairs() to cluster nearby interactions ;; column=Metadata column name used in mergePairs() to select the representative interaction ;; selectMax=Logical indicating whether to select the interaction with the maximum value in the specified column ;; buffer=Buffer size in pixels around a central pixel used to define submatrices or selection regions ;; fg=Foreground selection matrix/function used in calcLoopEnrichment() ;; bg=Background selection matrix/function used in calcLoopEnrichment()\n- alternatives: InteractionSet=mariner extends the GInteractions class and accessors from this package ;; strawr=Used to inspect metadata (normalizations, resolutions, chromosomes) of .hic files ;; plotgardener=A genomic visualization package compatible with plotMatrix() for advanced figure layout\n- when_to_use: Use when you have chromatin loop calls (e.g., BEDPE format) from multiple replicates and want to generate a consensus set, extract contact frequencies or submatrices from .hic files, aggregate contact matrices for aggregate peak analysis (APA), or calculate loop enrichment over local backgrounds.\n- pitfalls: Coordinate systems differ because GenomicRanges/GInteractions are 1-based while .hic files are 0-based; assignToBins() handles this by returning ranges of width binSize + 1 ;; Chromosome naming styles must match between the GInteractions object and the .hic files (e.g., 'ENSEMBL' vs 'UCSC'), which can be resolved using GenomeInfoDb::seqlevelsStyle() ;; Large datasets can cause memory issues; use the block processing parameters (e.g., blockSize in pulling functions or nBlocks in aggHicMatrices()) to manage memory usage.",
+  "workflows": [
+    {
+      "name": "loop_merging_and_replicate_comparison",
+      "intent": "Merge chromatin loops from multiple replicates, resolve duplicates within a specified radius, and identify shared or unique loops.",
+      "input": [
+        "FS_5kbLoops.txt (BEDPE file of loops for replicate FS)",
+        "WT_5kbLoops.txt (BEDPE file of loops for replicate WT)"
+      ],
+      "stages": "1. Read BEDPE files into R ;; 2. Convert to GInteractions objects ;; 3. Merge nearby interactions across replicates using mergePairs() ;; 4. Inspect clustered interactions and identify unique/shared sets using sets() and sources()",
+      "code": "library(mariner)\nlibrary(marinerData)\n\n## BEDPE-formatted files\nbedpeFiles <- c(\n    marinerData::FS_5kbLoops.txt(),\n    marinerData::WT_5kbLoops.txt()\n)\nnames(bedpeFiles) <- c(\"FS\", \"WT\")\n\n## Read as list of GInteractions\ngiList <-\n    lapply(bedpeFiles, read.table, header=TRUE) |>\n    lapply(as_ginteractions)\n\nlapply(giList, summary)\nmgi <- mergePairs(\n    x=giList,\n    radius=10e3,\n    column=\"APScoreAvg\",\n    selectMax=TRUE\n)\nmgi\nmgi[12772]\nclusters(mgi[12772])\n## List the input sources\nsources(mgi)\n\n## Interactions unique to each source\nsets(mgi) |> lapply(summary)\n\n## Interactions shared by both sources\nsets(x=mgi, include=sources(mgi))"
+    },
+    {
+      "name": "extract_and_aggregate_hic_matrices",
+      "intent": "Extract submatrices around chromatin loops from .hic files, aggregate them across interactions or files, and plot the aggregated matrix.",
+      "input": [
+        "FS_5kbLoops.txt (BEDPE file of loops)",
+        "WT_5kbLoops.txt (BEDPE file of loops)",
+        "LEUK_HEK_PJA27_inter_30.hic (.hic file for FS)",
+        "LEUK_HEK_PJA30_inter_30.hic (.hic file for WT)"
+      ],
+      "stages": "1. Read and merge loops ;; 2. Match chromosome naming styles to the .hic files ;; 3. Assign loops to bins ;; 4. Define submatrix regions with a buffer using pixelsToMatrices() ;; 5. Pull contact matrices using pullHicMatrices() ;; 6. Aggregate matrices using aggHicMatrices() ;; 7. Plot the aggregated matrix using plotMatrix()",
+      "code": "library(mariner)\nlibrary(marinerData)\n\n## BEDPE-formatted files\nbedpeFiles <- c(\n    marinerData::FS_5kbLoops.txt(),\n    marinerData::WT_5kbLoops.txt()\n)\nnames(bedpeFiles) <- c(\"FS\", \"WT\")\n\n## Read as list of GInteractions\ngiList <-\n    lapply(bedpeFiles, read.table, header=TRUE) |>\n    lapply(as_ginteractions)\n\n## Merge\nmgi <- mergePairs(x=giList, radius=10e3, column=\"APScoreAvg\")\n\nsummary(mgi)\nlibrary(marinerData)\nhicFiles <- c(\n    LEUK_HEK_PJA27_inter_30.hic(),\n    LEUK_HEK_PJA30_inter_30.hic()\n)\nnames(hicFiles) <- c(\"FS\", \"WT\")\nhicFiles\nGenomeInfoDb::seqlevelsStyle(mgi) <- 'ENSEMBL'\n## Assign interactions to 100Kb bins\nbinned <- assignToBins(x=mgi, binSize=100e3)\n## Define region with 1-pixel buffer\nregions <- pixelsToMatrices(x=binned[1:1000], buffer=1)\n\n## Pull 3x3 matrices from 1000 interactions and 2 hic files\niarr <- pullHicMatrices(\n    x=regions,\n    files=hicFiles,\n    binSize=100e3\n)\n\n## See count matrices\ncounts(iarr)\nmat <- aggHicMatrices(x=iarr)\nplotMatrix(data=mat)"
+    },
+    {
+      "name": "calculate_loop_enrichment",
+      "intent": "Calculate the enrichment of chromatin loops compared to their local background.",
+      "input": [
+        "WT_5kbLoops.txt (BEDPE file of loops)",
+        "LEUK_HEK_PJA27_inter_30.hic (.hic file for FS)",
+        "LEUK_HEK_PJA30_inter_30.hic (.hic file for WT)"
+      ],
+      "stages": "1. Read loops and assign to bins ;; 2. Match chromosome naming styles to the .hic files ;; 3. Define foreground and background selection regions using selection functions ;; 4. Calculate loop enrichment using calcLoopEnrichment()",
+      "code": "library(mariner)\nlibrary(marinerData)\n\n## Define hicFiles\nhicFiles <- c(\n    LEUK_HEK_PJA27_inter_30.hic(),\n    LEUK_HEK_PJA30_inter_30.hic()\n) |> setNames(c(\"FS\", \"WT\"))\n\n## Read in loops\nloops <- \n    WT_5kbLoops.txt() |>\n    setNames(\"WT\") |>\n    read.table(header=TRUE, nrows=1000) |>\n    as_ginteractions() |>\n    assignToBins(binSize=100e3) |>\n    GenomeInfoDb::`seqlevelsStyle<-`('ENSEMBL')\n\n## Define foreground & background\nbuffer <- 10\nfg <- selectCenterPixel(mhDist=0:1, buffer=buffer)\nbg <- selectTopLeft(n=2, buffer=buffer) +\n    selectBottomRight(n=2, buffer=buffer)\n\n## Calculate loop enrichment\nenrich <- calcLoopEnrichment(\n    x=loops,\n    files=hicFiles,\n    fg=fg,\n    bg=bg\n)\nenrich"
+    }
+  ]
+}

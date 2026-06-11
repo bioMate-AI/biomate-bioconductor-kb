@@ -1,0 +1,18 @@
+{
+  "package": "genega",
+  "requirements": [
+    "GeneGA",
+    "hash",
+    "seqinr"
+  ],
+  "by_workflow": {
+    "custom_codon_weights_computation.nf": [
+      "GeneGA",
+      "hash",
+      "seqinr"
+    ],
+    "main.nf": [
+      "GeneGA"
+    ]
+  }
+}

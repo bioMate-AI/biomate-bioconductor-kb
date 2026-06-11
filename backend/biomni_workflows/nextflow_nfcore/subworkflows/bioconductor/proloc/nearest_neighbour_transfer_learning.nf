@@ -1,16 +1,13 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor workflow: pRoloc — nearest_neighbour_transfer_learning
-// Combine primary experimental spatial proteomics data with auxiliary annotation data (such as Gene Ontology terms) using a weighted k-nearest neighbor transfer l
+// Bioconductor workflow: proloc — nearest_neighbour_transfer_learning
+// Combine primary experimental spatial proteomics data with auxiliary data (e.g., GO terms) using weighted k-nearest neighbour transfer learning to predict sub-ce
 // Input: primary_data.csv, auxiliary_data.csv
 // Container: quay.io/biocontainers/bioconductor-proloc:1.50.0--r45ha27e39d_0
-// Requires: BiocParallel, MSnbase, pRoloc
-// Visualizations: plot (ggplot/base)
+// R packages: MSnbase, pRoloc
+// Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
-
-// Steps:
-//  * 1. [Input & Preparation] Load the primary and auxiliary MSnSet objects, ensuring they contain the same features in the same order. 2. Generate a matrix of 
 
 nextflow.enable.dsl = 2
 
@@ -18,7 +15,7 @@ process BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
+    container "quay.io/biocontainers/bioconductor-proloc:1.50.0--r45ha27e39d_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -36,114 +33,126 @@ process BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
-        }
-            
-    # Load required libraries
-    library(pRoloc)
-    library(MSnbase)
-    library(BiocParallel)
-    
-    # Check if input files exist
-    if (!file.exists("primary_data.csv") || !file.exists("auxiliary_data.csv")) {
-      stop("Required input files 'primary_data.csv' and/or 'auxiliary_data.csv' are missing.")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MSnbase", "pRoloc")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    
-    # 1. Load the primary and auxiliary MSnSet objects, ensuring they contain the same features in the same order.
-    primary_df <- read.csv("primary_data.csv", row.names = 1, check.names = FALSE)
-    fcol <- "markers.tl"
-    
-    if (!fcol %in% colnames(primary_df)) {
-      if ("markers" %in% colnames(primary_df)) {
-        colnames(primary_df)[colnames(primary_df) == "markers"] <- fcol
-      } else {
-        stop("primary_data.csv must contain a 'markers.tl' or 'markers' column.")
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
       }
     }
     
-    # Separate expression and feature data
-    # Use is.numeric to identify continuous expression data and exclude integer metadata columns
-    exprs_cols <- sapply(primary_df, is.numeric)
-    exprs_cols[fcol] <- FALSE
+    # Load required libraries
+    library(MSnbase)
+    library(pRoloc)
     
-    exprs_mat <- as.matrix(primary_df[, exprs_cols, drop = FALSE])
-    fdata_df <- primary_df[, !exprs_cols, drop = FALSE]
-    
-    # Ensure markers.tl is character and has "unknown" for missing values
-    fdata_df[[fcol]] <- as.character(fdata_df[[fcol]])
-    fdata_df[[fcol]][is.na(fdata_df[[fcol]]) | fdata_df[[fcol]] == ""] <- "unknown"
-    
-    primary_msnset <- MSnSet(exprs = exprs_mat, fData = fdata_df)
-    
-    # Read auxiliary data
-    auxiliary_df <- read.csv("auxiliary_data.csv", row.names = 1, check.names = FALSE)
-    aux_exprs <- as.matrix(auxiliary_df)
-    
-    # Align features
-    common_features <- intersect(featureNames(primary_msnset), rownames(aux_exprs))
-    if (length(common_features) == 0) {
-      stop("No common features (proteins) found between primary and auxiliary data.")
+    # 1. Read primary and auxiliary data from the working directory
+    if (!file.exists("primary_data.csv")) {
+      stop("Error: 'primary_data.csv' not found in the working directory.")
     }
-    primary_msnset <- primary_msnset[common_features, ]
-    aux_exprs <- aux_exprs[common_features, , drop = FALSE]
+    if (!file.exists("auxiliary_data.csv")) {
+      stop("Error: 'auxiliary_data.csv' not found in the working directory.")
+    }
     
-    # Construct auxiliary MSnSet
-    auxiliary_msnset <- MSnSet(exprs = aux_exprs, fData = fData(primary_msnset))
+    primary_df <- read.csv("primary_data.csv", row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+    aux_df <- read.csv("auxiliary_data.csv", row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
     
-    # 2. Generate a matrix of candidate class-specific weights using thetas.
-    m <- unique(fData(primary_msnset)\$markers.tl)
+    # Ensure markers.tl column exists in primary data
+    if (!"markers.tl" %in% colnames(primary_df)) {
+      if ("markers" %in% colnames(primary_df)) {
+        primary_df\$markers.tl <- primary_df\$markers
+      } else {
+        stop("Error: primary_data.csv must contain a 'markers.tl' or 'markers' column.")
+      }
+    }
+    
+    # Clean marker annotations: treat empty strings or NA as "unknown"
+    markers <- as.character(primary_df\$markers.tl)
+    markers[is.na(markers) | markers == "" | tolower(markers) == "unknown"] <- "unknown"
+    primary_df\$markers.tl <- markers
+    
+    # Separate quantitative columns (numeric) from feature metadata
+    numeric_cols <- sapply(primary_df, is.numeric)
+    numeric_cols["markers.tl"] <- FALSE  # Ensure markers.tl is treated as feature metadata
+    
+    exprs_primary <- as.matrix(primary_df[, numeric_cols, drop = FALSE])
+    fdata_primary <- primary_df[, !numeric_cols, drop = FALSE]
+    
+    # Construct primary MSnSet
+    andy2011 <- MSnSet(exprs = exprs_primary, fData = fdata_primary)
+    
+    # Align proteins between primary and auxiliary datasets
+    common_proteins <- intersect(rownames(andy2011), rownames(aux_df))
+    if (length(common_proteins) == 0) {
+      stop("Error: No common protein identifiers found between primary_data.csv and auxiliary_data.csv.")
+    }
+    
+    andy2011 <- andy2011[common_proteins, ]
+    aux_df_matched <- aux_df[common_proteins, , drop = FALSE]
+    
+    # Separate quantitative columns for auxiliary data
+    numeric_aux_cols <- sapply(aux_df_matched, is.numeric)
+    exprs_aux <- as.matrix(aux_df_matched[, numeric_aux_cols, drop = FALSE])
+    
+    # Construct auxiliary MSnSet (must share feature names and metadata with primary)
+    andy2011goCC <- MSnSet(exprs = exprs_aux, fData = fData(andy2011))
+    
+    # Define marker classes excluding "unknown"
+    m <- unique(fData(andy2011)\$markers.tl)
     m <- m[m != "unknown"]
-    if (length(m) == 0) {
-      stop("No marker classes found in 'markers.tl' column (excluding 'unknown').")
-    }
     
-    th <- thetas(length(m), length.out=3)
+    # 2. Define weight combinations using thetas
+    th <- thetas(length(m), length.out=4)
     
-    # 3. Optimize the class-specific weights using knntlOptimisation with parallel execution support.
-    set.seed(1)
+    # 3. Optimize class-specific weights using knntlOptimisation
+    topt <- knntlOptimisation(andy2011, andy2011goCC, th = th, k = c(3, 3), fcol = "markers.tl", times = 50)
     
-    topt <- knntlOptimisation(primary_msnset, auxiliary_msnset, th = th, k = c(3, 3), fcol = "markers.tl", times = 50, BPPARAM = BiocParallel::bpparam())
-    
-    # 4. Extract the optimized weight parameters using getParams.
+    # 4. Extract the best parameters using getParams
     bw <- getParams(topt)
+    getParams(topt)
     
-    # 5. Apply the optimized weights to classify unlabelled proteins using knntlClassification.
-    primary_msnset <- knntlClassification(primary_msnset, auxiliary_msnset, bestTheta = bw, k = c(3, 3), fcol = "markers.tl")
+    # 5. Apply the optimal weights and classify unlabelled proteins using knntlClassification
+    andy2011 <- knntlClassification(andy2011, andy2011goCC, bestTheta = bw, k = c(3, 3), fcol = "markers.tl")
     
-    # 6. Retrieve the final localization predictions and classification scores using getPredictions.
-    primary_msnset <- getPredictions(primary_msnset, fcol = "knntl", mcol = "markers.tl")
+    # 6. Extract predictions and scores using getPredictions
+    andy2011 <- getPredictions(andy2011, fcol = "knntl")
     
-    # Write named output files
-    saveRDS(topt, "optimized_weights.rds")
-    saveRDS(primary_msnset, "classified_proteins.rds")
-    
-    # Extract predictions and scores to CSV
-    results_df <- data.frame(
-      Protein = featureNames(primary_msnset),
-      Primary_Markers = fData(primary_msnset)\$markers.tl,
-      Predicted_Localisation = fData(primary_msnset)\$knntl,
-      Classification_Score = fData(primary_msnset)\$knntl.scores,
+    # 7. Write named output files for the results
+    # Save predictions and scores to CSV
+    predictions_df <- data.frame(
+      Protein = rownames(fData(andy2011)),
+      Prediction = fData(andy2011)\$knntl,
+      Score = fData(andy2011)\$knntl.scores,
       stringsAsFactors = FALSE
     )
-    write.csv(results_df, "predictions.csv", row.names = FALSE)
+    write.csv(predictions_df, "predictions.csv", row.names = FALSE)
     
-    # Save PDF plot
-    pdf("classification_plot.pdf", width = 8, height = 6)
+    # Save RDS objects
+    saveRDS(topt, "topt_parameters.rds")
+    saveRDS(andy2011, "classification_results.rds")
+    
+    # Save PCA plot of the classification results
+    pdf("pca_plot.pdf", width = 8, height = 8)
     setStockcol(paste0(getStockcol(), "80"))
-    ptsze <- exp(fData(primary_msnset)\$knntl.scores) - 1
-    plot2D(primary_msnset, fcol = "knntl", cex = ptsze)
+    ptsze <- exp(fData(andy2011)\$knntl.scores) - 1
+    plot2D(andy2011, fcol = "knntl", cex = ptsze)
     setStockcol(NULL)
-    addLegend(primary_msnset, where = "topright", fcol = "markers.tl", bty = "n", cex = .7)
+    addLegend(andy2011, where = "topright", fcol = "markers.tl", bty = "n", cex = .7)
     dev.off()
-    
-    message("Pipeline completed successfully. Outputs written to 'optimized_weights.rds', 'classified_proteins.rds', 'predictions.csv', and 'classification_plot.pdf'.")
 
     writeLines(c(
         '"BIOC_PROLOC_NEAREST_NEIGHBOUR_TRANSFER_LEARNING":',
-        paste0('    pRoloc: ', as.character(packageVersion('pRoloc')))
+        paste0('        proloc: ', as.character(packageVersion("proloc")))
     ), "versions.yml")
     """
 

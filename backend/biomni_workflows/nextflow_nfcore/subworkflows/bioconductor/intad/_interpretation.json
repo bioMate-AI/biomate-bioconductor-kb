@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: checkExprDistr=If TRUE, filterGeneExpr uses the mclust package to automatically determine a minimum gene expression threshold ;; plot.proportions=If TRUE, findCorrelation generates plots showing the proportions of connections to illustrate differences in gene and signal regulations ;; method=Specifies the correlation method (e.g., \"pearson\" or \"spearman\") in findCorFromLoops ;; colByPhenotype=Specifies a sample annotation column in plotCorrelation to color-code samples in the correlation plot ;; targetRegion=A GRanges object in plotCorAcrossRef defining the genomic region to visualize ;; showCorVals=If TRUE, plotCorAcrossRef displays positive correlation values (0 to 1) instead of correlation strength (-log10 P-val) ;; symmetric=If TRUE, plotCorAcrossRef adjusts the plot for symmetry to focus on correlation values, similar to JuiceBox visualization ;; tads=A GRanges object of TAD regions passed to plotCorAcrossRef to display TAD boundaries on the plot\n- alternatives: TADs vs Chromatin Loops: TADs are stable across cell types and can be sourced from public data (e.g., IMR90), whereas chromatin loops (e.g., from FitHiC or HiCCUPS) provide higher specificity but should ideally be derived from the same target research material (e.g., the same tumor type).\n- when_to_use: Use this package when you have paired gene expression data (RNA-seq) and epigenetic signal data (e.g., ChIP-seq H3K27ac) across multiple samples, along with TAD coordinates or chromatin loop data, and want to identify potential enhancer-gene target pairs.\n- pitfalls: Sample names must match exactly between the epigenetic signals and gene expression datasets. Genomic regions for genes must include \"gene_id\" and \"gene_name\" metadata columns (typical GTF markers). The number of signal regions in the GRanges object must match the number of rows in the signal matrix. For chromatin loops, a 6-column format is assumed by default; if using a 4-column format, the fragmentLength parameter must be specified.",
+  "workflows": [
+    {
+      "name": "tad_based_correlation",
+      "intent": "Correlate gene expression and epigenetic signals within topologically associating domains (TADs).",
+      "input": [
+        "enhSel (matrix/data.frame of epigenetic signals)",
+        "enhSelGR (GRanges of epigenetic signal coordinates)",
+        "rpkmCountsSel (matrix/data.frame of gene expression counts)",
+        "txsSel (GRanges of gene coordinates with gene_id and gene_name)",
+        "mbAnnData (data.frame of sample annotations)",
+        "tadGR (GRanges of TAD coordinates)"
+      ],
+      "stages": "1. Initialize the InTADSig object ;; 2. Filter low-expressed genes ;; 3. Combine signals and genes within TADs ;; 4. Perform correlation analysis ;; 5. Visualize correlation for a specific pair or across a genomic region",
+      "code": "inTadSig <- newSigInTAD(enhSel, enhSelGR, rpkmCountsSel, txsSel,mbAnnData)\ninTadSig <- filterGeneExpr(inTadSig, checkExprDistr = TRUE)\ninTadSig <- combineInTAD(inTadSig, tadGR)\npar(mfrow=c(1,2))\ncorData <- findCorrelation(inTadSig,plot.proportions = TRUE)\ncID <- \"chr15:26372163-26398073\"\nselCorData <- corData[corData$peakid == cID, ]\nselCorData[ selCorData$name == \"GABRA5\", ]\nplotCorrelation(inTadSig, cID, \"GABRA5\",\n                xLabel = \"RPKM gene expr log2\",\n                yLabel = \"H3K27ac enrichment log2\", \n                colByPhenotype = \"Subgroup\")\nplotCorAcrossRef(inTadSig,corData,\n                 targetRegion = GRanges(\"chr15:25000000-28000000\"), \n                 tads = tadGR)\nplotCorAcrossRef(inTadSig,corData,\n                 targetRegion = GRanges(\"chr15:25000000-28000000\"), \n                 showCorVals = TRUE, tads = tadGR)\nplotCorAcrossRef(inTadSig,corData,\n                 targetRegion = GRanges(\"chr15:25000000-28000000\"), \n                 showCorVals = TRUE, symmetric = TRUE, tads = tadGR)"
+    },
+    {
+      "name": "loop_based_correlation",
+      "intent": "Correlate gene expression and epigenetic signals connected via chromatin loops.",
+      "input": [
+        "enhSel (matrix/data.frame of epigenetic signals)",
+        "enhSelGR (GRanges of epigenetic signal coordinates)",
+        "rpkmCountsSel (matrix/data.frame of gene expression counts)",
+        "txsSel (GRanges of gene coordinates with gene_id and gene_name)",
+        "mbAnnData (data.frame of sample annotations)",
+        "loopsDfSel (data.frame of chromatin loops)"
+      ],
+      "stages": "1. Initialize the InTADSig object ;; 2. Filter low-expressed genes ;; 3. Combine signals and genes using chromatin loops ;; 4. Perform correlation analysis",
+      "code": "inTadSig <- newSigInTAD(enhSel, enhSelGR, rpkmCountsSel, txsSel,mbAnnData)\ninTadSig <- filterGeneExpr(inTadSig, checkExprDistr = TRUE)\ninTadSig <- combineWithLoops(inTadSig, loopsDfSel)\nloopEag <- findCorFromLoops(inTadSig,method = \"spearman\")"
+    }
+  ]
+}

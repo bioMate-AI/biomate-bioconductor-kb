@@ -1,0 +1,11 @@
+{
+  "package": "treeio",
+  "requirements": [
+    "treeio"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "treeio"
+    ]
+  }
+}

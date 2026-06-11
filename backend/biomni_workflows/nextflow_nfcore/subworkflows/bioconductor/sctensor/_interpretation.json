@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - ranks=c(L, R) ;; Used in cellCellDecomp to specify the dimensions of the core tensor (e.g., L ligand-patterns and R receptor-patterns).\n    - thr=value ;; Used in cellCellReport (0 to 100) to filter core tensor values; larger values generate more HTML files and increase compilation time.\n    - keytype=\"GENEID_L\" ;; Used in select/keys functions for LRBase objects to specify the ligand gene identifier type.\n    - params=CCSParams ;; Parameter object used in cellCellSimulate to control simulation settings like nGene, nCell, cciInfo, lambda, and seed.\n- alternatives:\n    - CellPhoneDB and SingleCellSignalR ;; Mentioned as alternative manually curated ligand-receptor databases.\n    - featureCounts or HTSeq-count ;; Mentioned as alternative gene-level quantification methods, though transcript-level quantification summarized by tximport is preferred for accuracy.\n- when_to_use:\n    - Use this package when you have single-cell RNA-Seq expression data with cell-type annotations and want to identify, decompose, and interactively visualize cell-cell communication patterns and their underlying ligand-receptor pairs.\n- pitfalls:\n    - Gene Identifier Constraint ;; scTensor strictly requires NCBI Gene IDs (ENTREZID) as row names. Other formats (Ensembl, Gene Symbols) must be converted first or they will be filtered out.\n    - Dense Matrix Requirement ;; scTensor assumes a dense matrix format. Sparse matrices (e.g., from Seurat or Matrix packages) must be explicitly converted using as.matrix() before input.\n    - High Threshold Compilation Time ;; Setting a very large thr value in cellCellReport can generate an excessive number of HTML files and take a long time to compile.",
+  "workflows": [
+    {
+      "name": "cell_cell_interaction_analysis",
+      "intent": "Perform cell-cell interaction tensor construction, rank estimation, decomposition, and HTML report generation on single-cell RNA-Seq data.",
+      "input": [
+        "gene_expression_matrix.csv (dense matrix with NCBI Gene IDs as row names)",
+        "cell_metadata.csv (containing cell type labels and 2D coordinates like t-SNE/UMAP)"
+      ],
+      "stages": "1. Retrieve the organism-specific LRBase database from AnnotationHub.\n2. Create a SingleCellExperiment object and assign 2D coordinates.\n3. Register cell types and the LRBase database using cellCellSetting.\n4. Estimate optimal decomposition ranks using cellCellRanks.\n5. Perform non-negative Tucker decomposition using cellCellDecomp.\n6. Generate an interactive HTML report using cellCellReport.",
+      "code": "library(\"AnnotationHub\")\nlibrary(\"LRBaseDbi\")\nah <- AnnotationHub()\ndbfile <- query(ah, c(\"LRBaseDb\", \"Homo sapiens\"))[[1]]\nLRBase.Hsa.eg.db <- LRBaseDbi::LRBaseDb(dbfile)\n\nsuppressPackageStartupMessages(library(\"scTensor\"))\nsuppressPackageStartupMessages(library(\"SingleCellExperiment\"))\ndata(GermMale)\ndata(labelGermMale)\ndata(tsneGermMale)\nsce <- SingleCellExperiment(assays=list(counts = GermMale))\nreducedDims(sce) <- SimpleList(TSNE=tsneGermMale$Y)\n\ncellCellSetting(sce, LRBase.Hsa.eg.db, names(labelGermMale))\n\n(rks <- cellCellRanks(sce))\n\nset.seed(1234)\ncellCellDecomp(sce, ranks=c(2,3))"
+    },
+    {
+      "name": "gene_id_conversion",
+      "intent": "Convert gene symbols or Ensembl IDs in an expression matrix to NCBI Gene IDs (ENTREZID) to make the matrix compatible with scTensor.",
+      "input": [
+        "raw_expression_matrix.csv (matrix with Gene Symbols or Ensembl IDs as row names)"
+      ],
+      "stages": "1. Load the appropriate Organism DB package (e.g., Homo.sapiens) or query AnnotationHub.\n2. Retrieve the mapping table between current identifiers and ENTREZID using select.\n3. Convert the row identifiers of the expression matrix using convertRowID from the scTGIF package.",
+      "code": "suppressPackageStartupMessages(library(\"scTensor\"))\nif(!require(Homo.sapiens)){\nBiocManager::install(\"Homo.sapiens\")\nsuppressPackageStartupMessages(library(Homo.sapiens))\n}\nif(!require(scTGIF)){\nBiocManager::install(\"scTGIF\")\nsuppressPackageStartupMessages(library(scTGIF))\n}\ninput <- matrix(1:20, nrow=4, ncol=5)\nrowID <- c(\"POU5F1\", \"SOX2\", \"MYC\", \"KLF4\")\nLefttoRight <- select(Homo.sapiens, column=c(\"SYMBOL\", \"ENTREZID\"), keytype=\"SYMBOL\", keys=rowID)\n(input <- convertRowID(input, rowID, LefttoRight))"
+    },
+    {
+      "name": "cci_simulation",
+      "intent": "Generate synthetic single-cell RNA-Seq expression matrices and ligand-receptor pair lists with predefined cell-cell interaction patterns.",
+      "input": [
+        "None (generates synthetic data based on user-defined parameters)"
+      ],
+      "stages": "1. Initialize default simulation parameters using newCCSParams.\n2. Customize parameters (number of genes, cells, dropout rate, and specific CCI patterns) using setParam.\n3. Generate the synthetic dataset using cellCellSimulate.",
+      "code": "suppressPackageStartupMessages(library(\"scTensor\"))\nsim <- cellCellSimulate()\nparams <- newCCSParams()\nsetParam(params, \"nGene\") <- 1000\nsetParam(params, \"nCell\") <- c(20, 20, 20)\nsetParam(params, \"cciInfo\") <- list(\n nPair=500,\n CCI1=list(\n LPattern=c(1,0,0),\n RPattern=c(0,1,0),\n nGene=50,\n fc=\"E10\"),\n CCI2=list(\n LPattern=c(0,1,0),\n RPattern=c(0,0,1),\n nGene=30,\n fc=\"E100\")\n )\nsetParam(params, \"lambda\") <- 10\nsetParam(params, \"seed\") <- 123\nsim <- cellCellSimulate(params)"
+    }
+  ]
+}

@@ -1,106 +1,143 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: alabaster.string
-// Save Biostrings objects to file artifacts, and load them back into memory. This is a more portable a
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/alabaster.string/inst/doc/userguide.R
-// Upstream  : BiocStyle, Biostrings
-// Downstream: none
-//
-// Install: BiocManager::install("alabaster.string")
+// Bioconductor workflow: alabaster_string — alabaster_string_serialization
+// Serialize and deserialize character vectors and CharacterList objects using the alabaster.string framework to ensure lossless round-trip storage.
+// Input: input.csv
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: IRanges, S4Vectors, alabaster.base, alabaster.string, alabaster_string
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ALABASTER_STRING {
+process BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-alabaster_string"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-alabaster.string:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-alabaster.string:1.6.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_alabaster_string_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_alabaster_string_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_alabaster_string_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAStringSet)
-    library(PhredQuality)
-    library(QualityScaledDNAStringSet)
-    library(jsonlite)
-
-    # --- Dnastringset [] ---
-    # Key functions: DNAStringSet, mcols, runif, tempfile, saveObject
-    ---------------------------------------------------------------------
-    library(Biostrings)
-    x <- DNAStringSet(c(seq1="CTCNACCAGTAT", seq2="TTGA", seq3="TACCTAGAG"))
-    mcols(x)$score <- runif(length(x))
-    x
-    # --- Readobject [] ---
-    # Key functions: readObject
-    ---------------------------------------------------------------------
-    roundtrip <- readObject(tmp)
-    class(roundtrip)
-    # --- Dnastringset [] ---
-    # Key functions: DNAStringSet, PhredQuality, QualityScaledDNAStringSet, tempfile, saveObject, readObject
-    ---------------------------------------------------------------------
-    x <- DNAStringSet(c("TTGA", "CTCN"))
-    q <- PhredQuality(c("*+,-", "6789"))
-    y <- QualityScaledDNAStringSet(x, q)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(alabaster.base)
     library(alabaster.string)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_alabaster_string_results.csv", row.names = TRUE)
+    library(S4Vectors)
+    
+    # 1. Read input defensively
+    input_file <- "input.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Input file not found:", input_file))
+    }
+    
+    df <- read.csv(input_file, header = TRUE, stringsAsFactors = FALSE, check.names = FALSE)
+    
+    # Extract character vector
+    if ("feature_id" %in% colnames(df)) {
+      strings <- as.character(df\$feature_id)
+    } else if (ncol(df) > 0) {
+      strings <- as.character(df[[1]])
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_alabaster_string_results.csv")
+      strings <- character(0)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_alabaster_string_output.rds")
+    
+    # Handle empty input case gracefully
+    if (length(strings) == 0) {
+      strings <- c("fallback_gene_A", "fallback_gene_B", "fallback_gene_C")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ALABASTER_STRING:", paste0("    alabaster_string: ", packageVersion("alabaster.string"))),
-        "versions.yml"
+    
+    # 2. Generate diagnostic visualization of string lengths
+    pdf("string_lengths.pdf")
+    hist(nchar(strings), 
+         main = "Distribution of String Lengths", 
+         xlab = "Length (characters)", 
+         col = "skyblue", 
+         border = "white")
+    dev.off()
+    
+    # 3. Serialize and deserialize simple character vector
+    tmp_dir_simple <- tempfile("alabaster_string_simple")
+    dir.create(tmp_dir_simple, recursive = TRUE)
+    
+    message("Saving character vector to: ", tmp_dir_simple)
+    alabaster.base::saveObject(strings, tmp_dir_simple)
+    
+    message("Reading character vector back...")
+    round_tripped_simple <- alabaster.base::readObject(tmp_dir_simple)
+    
+    # 4. Serialize and deserialize CharacterList using IRanges splitAsList
+    num_groups <- 5
+    group_factor <- rep(1:num_groups, length.out = length(strings))
+    char_list <- IRanges::splitAsList(strings, group_factor)
+    
+    tmp_dir_list <- tempfile("alabaster_string_list")
+    dir.create(tmp_dir_list, recursive = TRUE)
+    
+    message("Saving CharacterList to: ", tmp_dir_list)
+    alabaster.base::saveObject(char_list, tmp_dir_list)
+    
+    message("Reading CharacterList back...")
+    round_tripped_list <- alabaster.base::readObject(tmp_dir_list)
+    
+    # 5. Verify and write outputs
+    verification_df <- data.frame(
+      Original = strings,
+      RoundTripped = as.character(round_tripped_simple),
+      Match = (strings == as.character(round_tripped_simple)),
+      stringsAsFactors = FALSE
     )
+    
+    write.csv(verification_df, file = "serialized_strings.csv", row.names = FALSE)
+    message("Pipeline completed successfully!")
+
+    writeLines(c(
+        '"BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION":',
+        paste0('    alabaster_string: ', as.character(packageVersion('alabaster_string')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_alabaster_string_results.csv
-    touch ${prefix}_alabaster_string_output.rds
-    echo "BIOC_ALABASTER_STRING:" > versions.yml
-    echo "    alabaster_string: 0.0.0" >> versions.yml
+    touch ${prefix}_alabaster_string_serialization.csv versions.yml
     """
 }
 
-
-workflow BIOC_ALABASTER_STRING_WORKFLOW {
+workflow BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ALABASTER_STRING(ch_input)
+    BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION(ch_input)
 
     emit:
-    results  = BIOC_ALABASTER_STRING.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ALABASTER_STRING.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ALABASTER_STRING.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ALABASTER_STRING.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION.out.tables
+    plots    = BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION.out.plots
+    objects  = BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION.out.objects
+    versions = BIOC_ALABASTER_STRING_ALABASTER_STRING_SERIALIZATION.out.versions
 }

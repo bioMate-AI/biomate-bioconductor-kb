@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: n=number of clones or insertions in multinomial modeling ;; p=vector of multinomial probabilities (e.g., gene or target sizes) ;; iter=number of iterations for Monte Carlo approximation or bootstrap estimation ;; seed=random seed for reproducibility in Monte Carlo/bootstrap ;; alpha=significance level for confidence intervals ;; TR=logical flag for tracing/tracking in bootstrap functions ;; orf=matrix of ORF start and end coordinates ;; clone=vector of insertion positions\n- alternatives: negenes package (similar functionality but uses a different data format; occugene provides occup2Negenes to convert data for compatibility)\n- when_to_use: When analyzing random transposon mutagenesis libraries in prokaryotes to estimate the number of essential genes and predict future knockout rates.\n- pitfalls: The bootstrap estimators (unbiasDelta0, unbiasB0) can be computationally intensive, and using too few iterations (e.g., iter=10 in examples) may yield imprecise confidence intervals. The input format requires tracking the exact order and coordinates of insert locations, which differs from negenes.",
+  "workflows": [
+    {
+      "name": "essential_gene_and_knockout_estimation",
+      "intent": "Estimate the number of essential genes and predict the number of new gene knockouts in future clones using experimental transposon insertion data and genome annotations.",
+      "input": [
+        "annotation.csv (table containing ORF start and end coordinates)",
+        "insertions.csv (table containing genomic positions of transposon insertions)"
+      ],
+      "stages": "1. Load genome annotation and insertion data ;; 2. Format ORF coordinates and clone insertion positions ;; 3. Estimate future knockouts using the Efron and Thisted estimator ;; 4. Fit a nonlinear regression model to cumulative knockouts ;; 5. Estimate future knockouts using the Will and Jacobs' bootstrap ;; 6. Estimate the number of essential genes using the Will and Jacobs' bootstrap ;; 7. Convert data to negenes format if compatibility is needed",
+      "code": "data(sampleAnnotation)\ndata(sampleInsertions)\na.data <- sampleAnnotation\nexperiment <- sampleInsertions\norf <- cbind(a.data$first,a.data$last)\nclone <- experiment$position\netDelta(10,orf,clone)\nfFit(orf,clone,FALSE)\nunbiasDelta0(10,orf,clone,iter=10,seed=4,alpha=0.05,TR=F)\nunbiasB0(orf,clone,iter=10,seed=4,alpha=0.05,TR=F)\nnewOrf <- occup2Negenes(orf,clone)"
+    }
+  ]
+}

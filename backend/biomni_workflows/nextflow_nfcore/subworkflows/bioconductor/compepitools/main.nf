@@ -1,109 +1,139 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: compEpiTools
-// Tools for computational epigenomics developed for the analysis, integration and simultaneous visuali
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/compEpiTools/inst/doc/compEpiTools.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("compEpiTools")
+// Bioconductor workflow: compEpiTools — read_counting_and_coverage
+// Calculate base-level coverage, total coverage, binned coverage, and identify peak summits within genomic regions of interest from aligned BAM files.
+// Input: user_regions.RData, aligned_reads.bam
+// Container: quay.io/biocontainers/bioconductor-compepitools:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, compEpiTools
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Calculate base-level coverage using GRbaseCoverage
+//  * 2. [Core Analysis] Calculate total coverage using GRcoverage
+//  * 3. [Core Analysis] Calculate binned coverage using GRcoverageInbins
+//  * 4. [Core Analysis] Identify peak summits using GRcoverageSummit
+//  * 5. [Visualization & Output] Plot coverage and highlight the summit
 
 nextflow.enable.dsl = 2
 
-process BIOC_COMPEPITOOLS {
+process BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-compepitools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-compepitools:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-compepitools:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_compepitools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_compepitools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_compepitools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GRanges)
-    library(GRannotate)
-    library(GRbaseCoverage)
-    library(GRcoverage)
-    library(GRcoverageInbins)
-    library(IRanges)
-    library(TSS)
-    library(jsonlite)
-
-    # --- Create GenomicRanges object [] ---
-    # Key functions: IRanges, GRanges, GRbaseCoverage, GRcoverage, GRcoverageInbins
-    bampath <- system.file("extdata", "ex1.bam", package="Rsamtools")
-    ir <- IRanges(start=c(1000, 100), end=c(2000, 1000))
-    gr <- GRanges(seqnames=Rle(c('seq1','seq2')), ranges=ir)
-    # --- T S S [] ---
-    # Key functions: TSS, start, end, mcols, GRannotate
-    TSSpos <- TSS(txdb)
-    start(gr) <- start(gr) - 1000
-    end(gr) <- end(gr) - 600
-    # --- Create GenomicRanges object [] ---
-    # Key functions: start, end, GRanges, heatmapData
-    start(gr) <- start(gr) - 1000
-    end(gr) <- end(gr) - 600
-    extgr <- GRanges(seqnames(gr), ranges=IRanges(start(gr) - 1000, end(gr) + 1000))
-    # --- heatmap Plot [] ---
-    # Key functions: heatmapPlot
-    heatmapPlot(matList=data[[1]], sigMat=pvalues, clusterInds=1:3)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_compepitools_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_compepitools_results.csv")
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(compEpiTools)
+    library(GenomicRanges)
+    
+    # Define input file paths
+    regions_file <- "user_regions.RData"
+    bampath <- "aligned_reads.bam"
+    
+    # Check if input files exist
+    if (!file.exists(regions_file)) {
+      stop(paste("Required input file missing:", regions_file))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_compepitools_output.rds")
+    if (!file.exists(bampath)) {
+      stop(paste("Required input file missing:", bampath))
     }
+    
+    # Load the GRanges object from user_regions.RData
+    env <- new.env()
+    load(regions_file, envir = env)
+    gr_names <- ls(env)
+    gr_objs <- sapply(gr_names, function(x) inherits(env[[x]], "GRanges"))
+    
+    if (!any(gr_objs)) {
+      stop("No GRanges object found in user_regions.RData")
+    }
+    
+    # Extract the first GRanges object found
+    gr <- env[[gr_names[which(gr_objs)[1]]]]
+    
+    # 1. Calculate base-level coverage using GRbaseCoverage
+    res <- GRbaseCoverage(Object=gr, bam=bampath)
+    
+    # 2. Calculate total coverage using GRcoverage
+    cov_total <- GRcoverage(Object=gr, bam=bampath, Nnorm=FALSE, Snorm=FALSE)
+    
+    # 3. Calculate binned coverage using GRcoverageInbins
+    cov_bins <- GRcoverageInbins(Object=gr, bam=bampath, Nnorm=FALSE, Snorm=FALSE, Nbins=5)
+    
+    # 4. Identify peak summits using GRcoverageSummit
+    summit <- GRcoverageSummit(Object=gr, bam=bampath)
+    
+    # Write meaningful results to output files
+    saveRDS(res, "base_level_coverage.rds")
+    write.csv(as.data.frame(cov_total), "total_coverage.csv", row.names = FALSE)
+    write.csv(as.data.frame(cov_bins), "binned_coverage.csv", row.names = FALSE)
+    saveRDS(summit, "coverage_summits.rds")
+    
+    # 5. Plot coverage and highlight the summit
+    pdf("coverage_plot.pdf", width=6, height=5)
+    plot(res[[1]], type='l', xlab='bp', ylab='reads count')
+    abline(v=start(summit[1])-start(gr[1])+1, lty=2, lwd=2)
+    dev.off()
+    
+    # Print summary of results to standard output
+    cat("Pipeline completed successfully.\n")
+    cat("Total coverage for first region:\n")
+    print(cov_total[1])
+    cat("Binned coverage for first region:\n")
+    print(cov_bins[1,])
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_COMPEPITOOLS:", paste0("    compepitools: ", packageVersion("compEpiTools"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE":',
+        paste0('    compEpiTools: ', as.character(packageVersion('compEpiTools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_compepitools_results.csv
-    touch ${prefix}_compepitools_output.rds
-    echo "BIOC_COMPEPITOOLS:" > versions.yml
-    echo "    compepitools: 0.0.0" >> versions.yml
+    touch ${prefix}_read_counting_and_coverage.csv versions.yml
     """
 }
 
-
-workflow BIOC_COMPEPITOOLS_WORKFLOW {
+workflow BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ user_regions.RData, aligned_reads.bam ] ]
 
     main:
-    BIOC_COMPEPITOOLS(ch_input)
+    BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE(ch_input)
 
     emit:
-    results  = BIOC_COMPEPITOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_COMPEPITOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_COMPEPITOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_COMPEPITOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE.out.tables
+    plots    = BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE.out.plots
+    objects  = BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE.out.objects
+    versions = BIOC_COMPEPITOOLS_READ_COUNTING_AND_COVERAGE.out.versions
 }

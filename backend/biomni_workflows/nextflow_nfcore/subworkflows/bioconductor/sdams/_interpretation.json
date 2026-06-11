@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: path1=Path to the feature CSV file containing non-negative abundance/expression values ;; path2=Path to the group CSV file containing subject grouping/covariate information ;; feature=A matrix of non-negative feature values (e.g., gene expression or protein abundance) where rows are features and columns are samples/cells ;; colData=A data frame containing grouping/covariate information where rownames must match the column names of the feature matrix\n- alternatives: None mentioned in the documentation\n- when_to_use: Use when performing differential abundance or expression analysis on mass spectrometry (proteomics/metabolomics) or single-cell RNA-seq data that contain a large fraction of zero values and where the non-zero values are potentially non-normally distributed\n- pitfalls: The first column in the feature CSV must represent feature names and the first row must represent subject codes ;; The first column in the group CSV must represent subject codes ;; For matrix input, the rownames of the colData data frame must match the column names of the feature matrix ;; All values in the feature matrix or CSV must be non-negative",
+  "workflows": [
+    {
+      "name": "csv_to_sda",
+      "intent": "Create a SummarizedExperiment object from feature and group CSV files and perform semi-parametric differential abundance analysis.",
+      "input": [
+        "feature.csv (matrix of non-negative feature abundances with feature names in the first column and subject codes in the first row)",
+        "group.csv (subject grouping/covariate information with subject codes in the first column)"
+      ],
+      "stages": "1. Define paths to the feature and group CSV files ;; 2. Load the SDAMS library ;; 3. Create a SummarizedExperiment object using createSEFromCSV ;; 4. Perform differential abundance analysis using SDA ;; 5. Extract results for gamma (zero proportion), beta (non-zero abundance), and the two-part test",
+      "code": "directory1 <- system.file(\"extdata\", package = \"SDAMS\", mustWork = TRUE)\npath1 <- file.path(directory1, \"ProstateFeature.csv\")\ndirectory2 <- system.file(\"extdata\", package = \"SDAMS\", mustWork = TRUE)\npath2 <- file.path(directory2, \"ProstateGroup.csv\")\nlibrary(\"SDAMS\")\nexampleSE1 <- createSEFromCSV(path1, path2)\nresults <- SDA(exampleSE1)\nhead(results$gamma[,1])\nhead(results$pv_gamma[,1])\nhead(results$qv_gamma[,1])\nhead(results$beta[,1])\nhead(results$pv_beta[,1])\nhead(results$qv_beta[,1])\nhead(results$pv_2part[,1])\nhead(results$qv_2part[,1])\nhead(results$feat.names)"
+    },
+    {
+      "name": "matrix_to_sda",
+      "intent": "Create a SummarizedExperiment object from in-memory feature and covariate matrices and perform semi-parametric differential expression analysis.",
+      "input": [
+        "featureInfo (matrix of non-negative expression values where rows are features/genes and columns are cells/subjects)",
+        "groupInfo (data frame of grouping/covariate information with rownames matching the column names of featureInfo)"
+      ],
+      "stages": "1. Create a SummarizedExperiment object from the feature matrix and covariate data frame using createSEFromMatrix ;; 2. Perform differential expression analysis using SDA ;; 3. Extract results for gamma, beta, and the two-part test",
+      "code": "set.seed(100)\nfeatureInfo <- matrix(runif(8000, -2, 5), ncol = 40)\nfeatureInfo[featureInfo<0] <- 0\nrownames(featureInfo) <- paste(\"gene\", 1:200, sep = '')\ncolnames(featureInfo) <- paste('cell', 1:40, sep = '')\ngroupInfo <- data.frame(grouping=matrix(sample(0:1, 40, replace = TRUE),\n                        ncol = 1))\nrownames(groupInfo) <- colnames(featureInfo)\nexampleSE2 <- createSEFromMatrix(feature = featureInfo, colData = groupInfo)\nresults_SC <- SDA(exampleSE2)\nhead(results_SC$pv_gamma[,1])\nhead(results_SC$qv_gamma[,1])\nhead(results_SC$pv_beta[,1])\nhead(results_SC$qv_beta[,1])\nhead(results_SC$pv_2part[,1])\nhead(results_SC$qv_2part[,1])\nhead(results_SC$feat.names)"
+    }
+  ]
+}

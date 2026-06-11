@@ -1,0 +1,30 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sce=A SingleCellExperiment object containing spliced, unspliced, and ambiguous assays ;; EC_list=A list containing equivalence classes and their counts, loaded via load_EC or load_bulk_EC ;; design=A data.frame specifying sample names and group allocations ;; sample_col_name=The column name in design indicating sample IDs ;; group_col_name=The column name in design indicating group IDs ;; sce_cluster_name=The column name in colData(sce) indicating cell clusters/types ;; n_cores=Number of cores to use for parallel computation ;; traceplot=Logical indicating whether to save posterior chains of pi_U for traceplots ;; SE=A SummarizedExperiment object containing bulk spliced and unspliced counts\n- alternatives: RNA velocity tools like velocyto and scVelo compare spliced/unspliced abundances to equilibrium levels to model future cell states, whereas DifferentialRegulation compares these proportions across sample groups to identify differential regulation. Canonical differential gene expression focuses on overall abundance changes, whereas DifferentialRegulation targets changes in the rate of regulation (conceptually similar to the derivative of spliced expression over time).\n- when_to_use: Use this package when you have multi-sample single-cell or bulk RNA-seq data and want to detect genes or transcripts that are being actively up- or down-regulated between two experimental conditions (e.g., healthy vs. disease, or developmental timepoints), particularly when you want to model mapping uncertainty using equivalence classes.\n- pitfalls: For single-cell data, alevin-fry must be run with --d (or --dump-eqclasses) and --use-mtx options to generate the required equivalence classes and quants_mat.mtx files. For bulk data, salmon must be run with --dumpEq, or kallisto must be run with both quant and pseudo. The EC_list object is highly memory-intensive; it is recommended to remove it using rm(EC_list) before running the main DifferentialRegulation function. Cells/samples should only be filtered in the sce or SE object, as they will automatically be removed from the EC_list during pseudo-bulk computation or testing.",
+  "workflows": [
+    {
+      "name": "single_cell_rna_seq_pipeline",
+      "intent": "Detect cell-type specific differentially regulated genes between two groups of samples using single-cell RNA-seq data.",
+      "input": [
+        "quants_mat.mtx (alevin-fry counts matrix)",
+        "quants_mat_rows.txt (cell IDs)",
+        "quants_mat_cols.txt (gene IDs)",
+        "geqc_counts.mtx (equivalence class counts)",
+        "gene_eqclass.txt.gz (equivalence classes)",
+        "DF_cell_types.txt (cell type assignments)"
+      ],
+      "stages": "1. Load USA counts using load_USA ;; 2. Assign cell types to the SingleCellExperiment object ;; 3. Load equivalence classes using load_EC ;; 4. Define experimental design ;; 5. Compute pseudo-bulk counts using compute_PB_counts ;; 6. Run differential testing using DifferentialRegulation ;; 7. Visualize results using plot_pi and plot_traceplot",
+      "code": "sce = load_USA(path_to_counts,\n               path_to_cell_id,\n               path_to_gene_id,\n               sample_ids)\n\npath_to_DF = file.path(data_dir,\"DF_cell_types.txt\")\nDF_cell_types = read.csv(path_to_DF, sep = \"\\t\", header = TRUE)\nmatches = match(colnames(sce), DF_cell_types$cell_id)\nsce$cell_type = DF_cell_types$cell_type[matches]\n\nEC_list = load_EC(path_to_EC_counts,\n                  path_to_EC,\n                  path_to_cell_id,\n                  path_to_gene_id,\n                  sample_ids)\n\ndesign = data.frame(sample = sample_ids,\n                    group = c( rep(\"3 mon\", 3), rep(\"6 mon\", 3) ))\n\nPB_counts = compute_PB_counts(sce = sce,\n                              EC_list = EC_list,\n                              design =  design,\n                              sample_col_name = \"sample\",\n                              group_col_name = \"group\",\n                              sce_cluster_name = \"cell_type\")\n\nrm(EC_list)\n\nset.seed(1609612)\nresults = DifferentialRegulation(PB_counts,\n                                 n_cores = 2,\n                                 traceplot = TRUE)\n\nplot_pi(results,\n        type = \"US\",\n        gene_id = results$Differential_results$Gene_id[1],\n        cluster_id = results$Differential_results$Cluster_id[1])\n\nplot_traceplot(results,\n               gene_id = results$Differential_results$Gene_id[1],\n               cluster_id = results$Differential_results$Cluster_id[1])"
+    },
+    {
+      "name": "bulk_rna_seq_pipeline",
+      "intent": "Detect differentially regulated transcripts between two groups of samples using bulk RNA-seq data.",
+      "input": [
+        "quant.sf (salmon transcript quantification files)",
+        "eq_classes.txt.gz (salmon equivalence classes files)"
+      ],
+      "stages": "1. Load bulk US counts using load_bulk_US ;; 2. Load bulk equivalence classes using load_bulk_EC ;; 3. Define experimental design ;; 4. Run bulk differential testing using DifferentialRegulation_bulk ;; 5. Visualize results using plot_bulk_pi and plot_bulk_traceplot",
+      "code": "SE = load_bulk_US(quant_files,\n                  sample_ids)\n\nEC_list = load_bulk_EC(path_to_eq_classes = equiv_classes_files,\n                       n_cores = 2)\n\ngroup_names = rep(c(\"A\", \"B\"), each = 3)\ndesign = data.frame(sample = sample_ids,\n                    group = group_names)\n\nset.seed(1609612)\nresults = DifferentialRegulation_bulk(SE = SE, \n                                      EC_list = EC_list,\n                                      design = design,\n                                      n_cores = 2,\n                                      traceplot = TRUE)\n\nplot_bulk_pi(results,\n             transcript_id = results$Differential_results$Transcript_id[1])\n\nplot_bulk_traceplot(results,\n                    transcript_id = results$Differential_results$Transcript_id[1])"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pValues=A numerical vector of p-values to be analyzed ;; X=A design matrix, data frame, or vector containing numeric covariates (no factors or categorical variables allowed directly) ;; truncated=A vector of 0s and 1s indicating if a p-value is truncated (e.g., p < 0.01) ;; rounded=A vector of 0s and 1s indicating if a p-value is rounded ;; type=The regression model type, either \"logistic\" (default and recommended) or \"linear\" ;; smoothing=The spline-fitting algorithm, either \"unit.spline\" (default, fast) or \"smooth.spline\" (exact parity with the qvalue package but slower) ;; smooth.df=Degrees of freedom for spline smoothing (default is 3, must be >= 3) ;; threshold=If TRUE (default), forces pi0 predictions to lie within the [0, 1] range\n- alternatives: qvalue=The classic qvalue package (via the qvalue function) is preferred when all statistical tests are a-priori similar and no covariate metadata is available ;; Bonferroni correction=A conservative alternative that controls family-wise error rate but leads to a high rate of false negatives compared to FDR-based methods\n- when_to_use: Use covariate-conditioned workflows when performing large-scale multiple testing (e.g., GWAS or differential expression) where metadata (like sample size or allele frequency) can inform the prior probability of a null hypothesis being true. Use the swfdr workflow when estimating the false positive rate of published scientific literature using web-scraped or reported p-values.\n- pitfalls: Covariate matrix X must contain only numeric data; factors and categorical variables must be pre-processed into dummy variables (e.g., using model.matrix) ;; Covariate matrix X cannot contain missing (NA) or non-finite (NULL, Inf, NaN) values ;; For small datasets (e.g., under 100 tests), the default lambda vector may be too long and should be manually shortened to avoid spline fitting issues ;; Using smoothing=\"smooth.spline\" on large datasets significantly increases computation time compared to the default \"unit.spline\"",
+  "workflows": [
+    {
+      "name": "covariate_conditioned_fdr",
+      "intent": "Estimate the proportion of true null hypotheses and compute adjusted q-values while conditioning on one or more numeric covariates.",
+      "input": [
+        "BMI_GIANT_GWAS_sample (a data frame containing a column of p-values and columns of metadata covariates like sample size N and allele frequency Freq_MAF_Int_Hapmap)"
+      ],
+      "stages": "1. Construct a numeric design matrix from covariates using model.matrix ;; 2. Estimate the conditional proportion of nulls (pi0) using lm_pi0 ;; 3. Compute conditional q-values using lm_qvalue",
+      "code": "X <- model.matrix(~ splines::ns(N,5) + Freq_MAF_Int_Hapmap, data = BMI_GIANT_GWAS_sample)[,-1]\npi0x <- lm_pi0(BMI_GIANT_GWAS_sample$p, X=X)\nGWAS_lm_qvalue <- lm_qvalue(GWAS$p, X=GWAS[, c(\"N\", \"Freq_MAF_Hapmap\")])"
+    },
+    {
+      "name": "science_wise_fdr_estimation",
+      "intent": "Estimate the science-wise false discovery rate from published literature p-values, accounting for rounding and truncation.",
+      "input": [
+        "journals_pVals (a data frame containing published p-values and truncation status metadata)"
+      ],
+      "stages": "1. Filter the dataset to keep only p-values below 0.05 ;; 2. Define vectors indicating truncation and rounding status ;; 3. Run the EM algorithm using calculateSwfdr to estimate the overall false discovery rate (pi0)",
+      "code": "journals_pVals1 <- dplyr::filter(journals_pVals,\n                                 year == 2005,\n                                 journal == \"American Journal of Epidemiology\",\n                                 pvalue < 0.05)\ntt <- data.frame(journals_pVals1)[,2]\nrr <- rep(0,length(tt))\nrr[tt == 0] <- (data.frame(journals_pVals1)[tt==0,1] == \n                  round(data.frame(journals_pVals1)[tt==0,1],2))\npVals <- data.frame(journals_pVals1)[,1]\nresSwfdr <- calculateSwfdr(pValues = pVals, \n                           truncated = tt, \n                           rounded = rr, numEmIterations=100)"
+    }
+  ]
+}

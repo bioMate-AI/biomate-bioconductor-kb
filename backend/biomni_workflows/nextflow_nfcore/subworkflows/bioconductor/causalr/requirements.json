@@ -1,0 +1,14 @@
+{
+  "package": "causalr",
+  "requirements": [
+    "CausalR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CausalR"
+    ],
+    "sequential_causal_analysis_of_networks_scan.nf": [
+      "CausalR"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: type=Specifies the model/CpG set type in extractSites(); \"se\" (default) uses the Lasso penalty within one standard error of the minimum (retaining fewer CpGs), while \"all\" retrieves all sites. ;; mlmatr=A data frame or matrix of CpG beta values (between 0 and 1) passed to predictGA().\n- alternatives: None mentioned.\n- when_to_use: Use when estimating gestational age from blood-based DNA methylation data generated on Illumina HumanMethylation450 arrays.\n- pitfalls: The input CpG matrix must not contain NA values for the required predictor CpGs. The input CpGs must be fully compliant with the Illumina HumanMethylation450 array design.",
+  "workflows": [
+    {
+      "name": "gestational_age_prediction",
+      "intent": "Predict gestational age from blood DNA methylation data.",
+      "input": [
+        "mlmatr (A data frame or matrix of Illumina HumanMethylation450 CpG beta values between 0 and 1, with samples as rows and CpGs as columns)"
+      ],
+      "stages": "1. Extract required CpG sites using extractSites ;; 2. Prepare the input matrix ensuring no NAs in required CpGs ;; 3. Predict gestational age using predictGA",
+      "code": "cpgs <- extractSites( type=\"se\" )\nallcpgs <- extractSites( type=\"all\" )\nnumsamples <- 100\nmlmatr <- matrix( NA, ncol=length( allcpgs ), nrow=numsamples )\nmlmatr <- data.frame( mlmatr )\nfor( i in cpgs )\n  mlmatr[,i] <- runif( numsamples, min=0, max=1 )\nmypred <- predictGA( mlmatr )\nhead( mypred )"
+    }
+  ]
+}

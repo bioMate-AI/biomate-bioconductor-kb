@@ -1,119 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ddCt
-// The Delta-Delta-Ct (ddCt) Algorithm is an approximation method to determine relative gene expression
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ddCt/inst/doc/RT-PCR-Script-ddCt.R
-// Upstream  : Biobase, RColorBrewer, lattice
-// Downstream: none
-//
-// Install: BiocManager::install("ddCt")
+// Bioconductor workflow: ddct — ddct_high_level_pipeline
+// Run the end-to-end ddCt analysis pipeline using a single parameter list and the high-level wrapper function ddCtExec.
+// Input: Experiment1.txt, SampleAnno.txt, ddCt.conf
+// Container: quay.io/biocontainers/bioconductor-ddct:1.66.0--r45hdfd78af_0
+// R packages: Biobase, ddCt, lattice, RColorBrewer
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DDCT {
+process BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ddct"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ddct:1.62.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ddct:1.62.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ddct:1.66.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ddct_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ddct_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ddct_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biobase", "ddCt", "lattice", "RColorBrewer")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(Biobase)
+    library(lattice)
+    library(RColorBrewer)
     library(ddCt)
-    library(SDMFrame)
-    library(jsonlite)
-
-    # --- Sample Annotation Setup [] ---
-    # Key functions: sampleNames
-    samples <- sampleNames(ct_data)
-    sample_info <- new("AnnotatedDataFrame",
-        data = data.frame(Sample = samples),
-        varMetadata = data.frame(
-            labelDescription = c("unique identifier"),
-            row.names = c("Sample")
-        )
-    )
-
-
-    # --- Relative Quantification Calculation [] ---
-    # Key functions: ddCtExpression
-    ref_sample <- "Sample2"
-    ref_genes <- c("Gene3", "Gene2")
-    result <- ddCtExpression(
-        ct_data,
-        calibrationSample = ref_sample,
-        housekeepingGenes = ref_genes,
-        sampleInformation = sample_info
-    )
-
-
-    # --- Housekeeping Gene Correlation Analysis [] ---
-    # Key functions: assayData, pData
-    ct_matrix <- assayData(result)$Ct
-    ref_genes <- c("Gene3", "Gene2")
-    if (all(ref_genes %in% rownames(ct_matrix))) {
-        gene1_vals <- ct_matrix[ref_genes[1], ]
-        gene2_vals <- ct_matrix[ref_genes[2], ]
-        hk_cor <- cor(gene1_vals, gene2_vals, use = "pairwise.complete.obs")
+    
+    # Locate the ddCt.R script within the package installation directory without using system.file
+    ddct_path <- find.package("ddCt")
+    script_path <- file.path(ddct_path, "scripts", "ddCt.R")
+    
+    if (!file.exists(script_path)) {
+      stop("Could not find ddCt.R script in the package directory.")
     }
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ddct_results.csv", row.names = TRUE)
+    
+    # Source the ddCt execution script
+    source(script_path)
+    
+    # Define input files from the working directory
+    input_file <- "Experiment1.txt"
+    anno_file <- "SampleAnno.txt"
+    conf_file <- "ddCt.conf"
+    
+    if (!file.exists(input_file)) {
+      stop(paste("Required input file", input_file, "is missing from the working directory."))
+    }
+    
+    # Set up the parameter list as documented, adapting paths to the working directory
+    params <- list(
+      loadPath = getwd(),
+      savePath = getwd()
+    )
+    
+    # Configure optional files if they exist in the working directory
+    if (file.exists(conf_file)) {
+      params\$confFile <- conf_file
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ddct_results.csv")
+      # Fallback to the default configuration file from the package if local is not present
+      default_conf <- file.path(ddct_path, "scripts", "ddCt.conf")
+      params\$confFile <- if (file.exists(default_conf)) default_conf else NULL
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ddct_output.rds")
+    
+    params\$inputFile <- input_file
+    
+    if (file.exists(anno_file)) {
+      params\$sampleAnnotationFile <- anno_file
+    } else {
+      params\$sampleAnnotationFile <- NULL
     }
+    
+    # Reproduce the documented parameters faithfully
+    params\$columnForGrouping    <- NULL
+    params\$onlyFromAnnotation   <- FALSE
+    params\$referenceGene        <- c("Gene1", "Gene2")
+    params\$referenceSample      <- c("Sample1")
+    params\$threshold            <- 40
+    params\$mode                 <- "median"
+    params\$plotMode             <- c("level", "Ct")
+    params\$genesRemainInOutput   <- NULL
+    params\$samplesRemainInOutput <- NULL
+    params\$genesNotInOutput      <- NULL
+    params\$samplesNotInOutput    <- NULL
+    params\$groupingBySamples    <- FALSE
+    params\$plotPerObject        <- TRUE
+    params\$legende              <- TRUE
+    params\$ttestPerform         <- FALSE
+    
+    # Execute the high-level pipeline
+    # ddCtExec will process the files and write the outputs (CSV, PDF, RData) to the savePath (getwd())
+    ddCtExec(params)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DDCT:", paste0("    ddct: ", packageVersion("ddCt"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE":',
+        paste0('        ddct: ', as.character(packageVersion("ddct")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ddct_results.csv
-    touch ${prefix}_ddct_output.rds
-    echo "BIOC_DDCT:" > versions.yml
-    echo "    ddct: 0.0.0" >> versions.yml
+    touch ${prefix}_ddct_high_level_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_DDCT_WORKFLOW {
+workflow BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Experiment1.txt, SampleAnno.txt, ddCt.conf ] ]
 
     main:
-    BIOC_DDCT(ch_input)
+    BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_DDCT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DDCT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DDCT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DDCT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE.out.tables
+    plots    = BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE.out.plots
+    objects  = BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE.out.objects
+    versions = BIOC_DDCT_DDCT_HIGH_LEVEL_PIPELINE.out.versions
 }

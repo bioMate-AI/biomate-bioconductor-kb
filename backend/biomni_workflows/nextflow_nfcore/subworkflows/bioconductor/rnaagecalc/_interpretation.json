@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprdata=A matrix or data frame containing gene expression data with genes as rows (gene IDs as rownames) and samples as columns (sample IDs as colnames) ;; se=A SummarizedExperiment object containing gene expression data in assays (named \"FPKM\" or \"counts\") ;; tissue=A string indicating the tissue of origin (e.g., \"brain\", \"blood\", \"liver\"). If omitted or not in the supported list, an across-tissue predictor is used ;; exprtype=Either \"counts\" or \"FPKM\". If \"counts\", data is automatically converted to FPKM ;; idtype=Gene ID type in exprdata (\"SYMBOL\", \"ENSEMBL\", \"ENTREZID\", \"REFSEQ\"). Default is \"SYMBOL\" ;; stype=Calculator version to use: \"all\" (all races) or \"Caucasian\" (Caucasian only) ;; signature=The age signature to use (\"DESeq2\", \"Pearson\", \"Dev\", \"deMagalhaes\", \"GenAge\", \"GTExAge\", \"Peters\", \"all\") ;; genelength=Optional vector of gene lengths in bp, used only when exprtype=\"counts\" ;; chronage=Optional data frame with sample ID in the 1st column and chronological age in the 2nd column, used to calculate age acceleration residuals\n- alternatives: Microarray-based transcriptional age predictors, which the documentation notes are typically limited to only a few tissues compared to this RNASeq-based multi-tissue calculator\n- when_to_use: Use this package when you have human RNA-seq data (raw counts or FPKM) from specific tissues or across tissues and want to estimate biological/transcriptional age and calculate age acceleration residuals\n- pitfalls: Age acceleration residuals will not be calculated if the chronological age is not provided or if the sample size with available chronological age is 30 or fewer ;; The genelength argument is ignored if exprtype is set to \"FPKM\" ;; When using predict_age_fromse, the chronological age column in colData(se) must be named exactly \"age\", and the gene length column in rowData(se) must be named exactly \"bp_length\"",
+  "workflows": [
+    {
+      "name": "predict_age_dataframe",
+      "intent": "Calculate transcriptional age and age acceleration residuals from a gene expression data frame or matrix and visualize the results.",
+      "input": [
+        "fpkm (matrix or data frame of FPKM or raw counts with gene IDs as rownames)",
+        "chronage (data frame containing sample IDs and chronological ages)"
+      ],
+      "stages": "1. Load the package and expression data. 2. Define chronological age data frame. 3. Predict age using predict_age. 4. Visualize results using makeplot.",
+      "code": "library(RNAAgeCalc)\ndata(fpkmExample)\nhead(fpkm)\nchronage = data.frame(sampleid = colnames(fpkm), age = c(30,50))\nres = predict_age(exprdata = fpkm, tissue = \"brain\", exprtype = \"FPKM\", \n                  chronage = chronage)\nhead(res)\nfpkm_large = cbind(fpkm, fpkm+1, fpkm+2, fpkm+3)   \nfpkm_large = cbind(fpkm_large, fpkm_large, fpkm_large, fpkm_large)\ncolnames(fpkm_large) = paste0(\"sample\",1:32)\nchronage2 = data.frame(sampleid = colnames(fpkm_large), age = 31:62)\nres2 = predict_age(exprdata = fpkm_large, exprtype = \"FPKM\",\n                  chronage = chronage2)\nhead(res2)\nmakeplot(res2)"
+    },
+    {
+      "name": "predict_age_summarized_experiment",
+      "intent": "Calculate transcriptional age from a SummarizedExperiment object.",
+      "input": [
+        "se (SummarizedExperiment object containing expression data in assays and chronological age in colData)"
+      ],
+      "stages": "1. Load SummarizedExperiment and package. 2. Construct or load SummarizedExperiment with \"FPKM\" or \"counts\" assay and \"age\" column in colData. 3. Predict age using predict_age_fromse.",
+      "code": "library(SummarizedExperiment)\ncolData = data.frame(age = c(40, 50))\nse = SummarizedExperiment(assays=list(FPKM=fpkm), colData=colData)\nres3 = predict_age_fromse(se = se, exprtype = \"FPKM\")\nhead(res3)"
+    }
+  ]
+}

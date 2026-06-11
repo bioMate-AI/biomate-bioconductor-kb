@@ -1,0 +1,22 @@
+{
+  "package": "ramwas",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "filematrix",
+    "ramwas"
+  ],
+  "by_workflow": {
+    "cpg_snp_joint_analysis.nf": [
+      "filematrix",
+      "ramwas"
+    ],
+    "custom_cpg_set_and_qc.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "filematrix",
+      "ramwas"
+    ],
+    "main.nf": [
+      "ramwas"
+    ]
+  }
+}

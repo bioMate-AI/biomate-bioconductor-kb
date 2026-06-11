@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dir=Path to the directory containing raw 10x Cell Ranger output files (barcodes, features/genes, matrix) ;; h5file=Path to raw 10x data in HDF5 format ;; AsSeurat=Logical indicating whether to return a Seurat object instead of a sparse matrix ;; FDR_threshold=False discovery rate threshold for cell calling, default is 0.01 ;; lower=Background cutoff threshold below which barcodes are assumed to be empty droplets, default is 100 ;; Ncores=Number of cores for parallel computation, default is 2 ;; MTfilter=Proportion threshold for filtering out damaged cells based on mitochondrial gene expression, default is 1 (no filtering)\n- alternatives: EmptyDrops (from DropletUtils)=The baseline method which scCB2 extends by adding a clustering step ;; DropletUtils::write10xCounts=Used to save the output sparse matrix back to 10x format ;; Seurat::CreateSeuratObject=Used to convert the filtered matrix into a Seurat object for downstream analysis\n- when_to_use: Use when analyzing raw droplet-based single-cell RNA-seq data (such as 10x Genomics Chromium) to accurately distinguish real cells from background empty droplets, especially when seeking improved detection power for low-content cells.\n- pitfalls: scCB2 does not test for doublets or multiplets, meaning some high-count identifications may consist of multiple cells and require downstream doublet filtering ;; Damaged cells with high mitochondrial expression can be falsely identified as real cells because their expression profiles differ from the background; users should apply GetCellMat with an appropriate MTfilter to remove them ;; The default background cutoff of 100 may not be appropriate for datasets with special structures or unexpected cell counts, so users should always verify it using CheckBackgroundCutoff.",
+  "workflows": [
+    {
+      "name": "quick_cb2_pipeline",
+      "intent": "Run the all-in-one CB2 pipeline on raw 10x Cell Ranger data to directly obtain a filtered cell matrix or Seurat object.",
+      "input": [
+        "raw_data_directory (directory containing barcodes, features, and matrix files)",
+        "raw_data_HDF5 (10x raw data in HDF5 format)"
+      ],
+      "stages": "1. Run QuickCB2 on the raw data directory or H5 file to perform cell calling and optionally output a Seurat object.",
+      "code": "RealCell <-  QuickCB2(dir = \"/path/to/raw/data/directory\")\nRealCell_S <-  QuickCB2(h5file = \"/path/to/raw/data/HDF5\", AsSeurat = TRUE)\nRealCell_Quick <- QuickCB2(dir = data.dir, Ncores = 2)"
+    },
+    {
+      "name": "detailed_cb2_pipeline",
+      "intent": "Run the step-by-step CB2 pipeline to read raw 10x data, evaluate the background cutoff, identify real cells, and filter out damaged cells.",
+      "input": [
+        "raw_data_directory (directory containing barcodes, features, and matrix files)"
+      ],
+      "stages": "1. Read raw 10x data into R ;; 2. Evaluate and choose an appropriate background cutoff ;; 3. Run CB2 to distinguish real cells from empty droplets ;; 4. Extract the real cell matrix and filter out damaged cells based on mitochondrial gene expression.",
+      "code": "mbrainSub_2 <- Read10xRaw(data.dir)\ncheck_cutoff <- CheckBackgroundCutoff(mbrainSub)\ncheck_cutoff$summary_table\ncheck_cutoff$recommended_cutoff\nCBOut <- CB2FindCell(mbrainSub, FDR_threshold = 0.01, lower = 100, Ncores = 2)\nRealCell <- GetCellMat(CBOut, MTfilter = 0.25)"
+    }
+  ]
+}

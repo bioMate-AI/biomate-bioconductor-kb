@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: G=The input mutation feature object containing mutation catalogs ;; Kfold=The number of cross-validation folds (e.g., 3) ;; nRep=The number of replications for the cross-validation process (e.g., 3) ;; Klimit=The upper limit of the number of signatures (K) to explore (e.g., 7) ;; numBases=The number of flanking bases to consider including the central base (e.g., 5) ;; trDir=Logical value indicating whether to include transcription direction information\n- alternatives: HiLDA and pmsignature are related packages; selectKSigs specifically builds on pmsignature's data representation and uses HiLDA's file reading capabilities to perform cross-validated signature number selection.\n- when_to_use: Use this package when you have somatic mutation data in Mutation Position Format and need to systematically determine the most appropriate number of mutational signatures to extract.\n- pitfalls: Some mutations may be discarded during data loading if transcription direction information cannot be obtained (resulting in a warning message). Ensure the input file strictly follows the 5-column Mutation Position Format (sample, chromosome, coordinate, reference base, alternate base).",
+  "workflows": [
+    {
+      "name": "select_optimal_signatures",
+      "intent": "Determine the optimal number of mutational signatures from somatic mutation data using cross-validated perplexity.",
+      "input": [
+        "esophageal.mp.txt.gz (Mutation Position Format file containing sample, chromosome, coordinate, reference, and alternate bases)"
+      ],
+      "stages": "1. Read the mutation position file using HiLDA's reader function ;; 2. Run cross-validation across a range of signature counts using cv_PMSignature ;; 3. Format and plot the cross-validation results to identify the K value that minimizes perplexity",
+      "code": "library(HiLDA)\nlibrary(tidyr)\nlibrary(ggplot2)\nlibrary(dplyr)\ninputFile <- system.file(\"extdata/esophageal.mp.txt.gz\", package=\"HiLDA\")\nG <- hildaReadMPFile(inputFile, numBases=5, trDir=TRUE)\nlibrary(selectKSigs)\nload(system.file(\"extdata/sample.rdata\", package = \"selectKSigs\"))\nset.seed(5)\nresults <- cv_PMSignature(G, Kfold = 3, nRep = 3, Klimit = 7)\nresults$Kvalue <- seq_len(nrow(results)) + 1\nresults_df <- gather(results, Method, value, -Kvalue) %>% \n  group_by(Method) %>%\n  mutate(xmin = which.min(value) + 1 - 0.1,\n         xmax = which.min(value) + 1 + 0.1)\nggplot(results_df) +\n  geom_point(aes(x = Kvalue, y = value, color = Method), size = 2) +\n  facet_wrap(~ Method, scales = \"free\") + \n  geom_rect(mapping = aes(xmin = xmin, xmax = xmax, \n                          ymin = -Inf, ymax = Inf),\n            fill = 'grey', alpha = 0.05) +\n  theme_bw()+\n  xlab(\"Number of signatures\")"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "gpa",
+  "requirements": [
+    "GPA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GPA"
+    ]
+  }
+}

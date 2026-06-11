@@ -1,0 +1,17 @@
+{
+  "package": "degseq",
+  "requirements": [
+    "DEGseq"
+  ],
+  "by_workflow": {
+    "deg_from_mapped_reads.nf": [
+      "DEGseq"
+    ],
+    "get_gene_expression.nf": [
+      "DEGseq"
+    ],
+    "main.nf": [
+      "DEGseq"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n  - `in_mutation_catalogue_df` = The input mutational catalogue matrix/dataframe (features as rows, samples as columns).\n  - `in_signatures_df` = Dataframe containing the known mutational signatures to use for decomposition.\n  - `in_cutoff_vector` = A numeric vector specifying the threshold below which signatures are discarded. Can be a single generalized value (e.g., 0.06) or signature-specific values.\n  - `in_sig_ind_df` = Dataframe containing metadata (index, colors, biological processes) for the signatures.\n  - `in_sigLevel` = Significance level for confidence interval estimation (typically 0.025 for 95% CIs).\n  - `in_delta` = Perturbation parameter used in profile likelihood calculation for confidence intervals.\n  - `column_name` = The column in the variant dataframe defining the strata for Stratification of the Mutational Catalogue (SMC).\n- alternatives:\n  - `SomaticSignatures` = Mentioned as an alternative package that uses NMF or PCA for unsupervised discovery/extraction of *new* signatures. Prefer `YAPSA` when signatures are already known and supervised analysis is required.\n  - `deconstructSigs` = Another supervised signature analysis package. Its `whichSignatures` function uses a fixed general cutoff of 0.06, whereas `YAPSA` allows signature-specific cutoffs to account for varying detectability of different signatures.\n- when_to_use:\n  - Use when analyzing mutational signatures using a set of pre-defined, known signatures (e.g., COSMIC v2, COSMIC v3/PCAWG).\n  - Highly appropriate for small cohorts or single-sample analyses (e.g., personalized oncology) where unsupervised methods like NMF lack statistical power.\n  - Use when you need to compute confidence intervals for signature exposures or perform stratified analyses across genomic regions/features.\n- pitfalls:\n  - **High Sensitivity of NNLS**: NNLS is highly sensitive and will report tiny exposures for signatures within floating-point precision, leading to false positives. Always use `LCD_complex_cutoff` or `LCD_complex_cutoff_combined` with appropriate cutoffs.\n  - **Non-Orthogonality**: Mutational signatures extracted by NMF are not orthogonal, leading to signature bleeding/overlapping during deconvolution. Signature-specific cutoffs help mitigate this.\n  - **WGS vs. WES Cutoffs**: Cutoffs trained on absolute exposures (`_abs_df`) should be used for Whole Genome Sequencing (WGS) data, whereas cutoffs trained on relative exposures (`_rel_df`) are suited for Whole Exome Sequencing (WES) data.\n  - **Inappropriate Stratification**: Performing completely separate and independent NNLS analyses on different strata artificially reduces statistical power. Instead, use the unstratified analysis results as a constraint in the stratified analysis (`run_SMC`).",
+  "workflows": [
+    {
+      "name": "supervised_signature_analysis",
+      "intent": "Perform supervised mutational signature analysis on a cohort of samples using known signatures and signature-specific cutoffs, followed by visualization and sample clustering.",
+      "input": [
+        "lymphoma_Nature2013_df (dataframe of SNV variant calls with columns CHROM, POS, REF, ALT, PID, SUBGROUP)",
+        "BSgenome.Hsapiens.UCSC.hg19 (reference genome object)"
+      ],
+      "stages": "1. Build the mutational catalogue from the variant dataframe.\n2. Load the known signatures, metadata, and optimal signature-specific cutoffs.\n3. Run the supervised Linear Combination Decomposition (LCD) with signature-specific cutoffs.\n4. Annotate sample subgroups and plot absolute and relative signature exposures.\n5. Cluster samples based on their signature exposures and plot a heatmap.",
+      "code": "lymphomaNature2013_mutCat_list <- create_mutation_catalogue_from_df(\n  lymphoma_Nature2013_df, this_seqnames.field = \"CHROM\",\n  this_start.field = \"POS\", this_end.field = \"POS\",\n  this_PID.field = \"PID\", this_subgroup.field = \"SUBGROUP\",\n  this_refGenome = BSgenome.Hsapiens.UCSC.hg19, this_wordLength = word_length)\nlymphomaNature2013_mutCat_df <- as.data.frame(\n  lymphomaNature2013_mutCat_list$matrix)\n\ndata(sigs)\ndata(cutoffs)\ncurrent_sig_df <- AlexCosmicValid_sig_df\ncurrent_sigInd_df <- AlexCosmicValid_sigInd_df\ncurrent_cutoff_df <- cutoffCosmicValid_abs_df\ncurrent_cost_factor <- 6\ncurrent_cutoff_vector <- current_cutoff_df[current_cost_factor,]\n\nlymphoma_COSMIC_listsList <- LCD_complex_cutoff_combined(\n  in_mutation_catalogue_df = lymphomaNature2013_mutCat_df,\n  in_cutoff_vector = current_cutoff_vector,\n  in_signatures_df = current_sig_df,\n  in_sig_ind_df = current_sigInd_df)\n\nCOSMIC_subgroups_df <- make_subgroups_df(lymphoma_PID_df, lymphoma_COSMIC_listsList$cohort$exposures)\nresult_cohort <- lymphoma_COSMIC_listsList$cohort\n\nexposures_barplot(\n  in_exposures_df = result_cohort$exposures,\n  in_signatures_ind_df = result_cohort$out_sig_ind_df,\n  in_subgroups_df = COSMIC_subgroups_df)\n\ncomplex_heatmap_exposures(CosmicValid_cutoffGen_LCDlist$norm_exposures, COSMIC_subgroups_df, CosmicValid_cutoffGen_LCDlist$out_sig_ind_df, in_data_type=\"norm exposures\", in_subgroup_colour_column=\"col\", in_method=\"manhattan\", in_subgroup_column=\"subgroup\")"
+    },
+    {
+      "name": "signature_confidence_intervals",
+      "intent": "Compute and plot 95% confidence intervals for mutational signature exposures using the profile likelihood method.",
+      "input": [
+        "lymphomaNature2013_mutCat_df (mutational catalogue dataframe)",
+        "lymphoma_COSMIC_listsList (results list from LCD analysis containing signatures and exposures)",
+        "COSMIC_subgroups_df (dataframe of sample subgroup annotations)"
+      ],
+      "stages": "1. Compute confidence intervals for the exposures using profile likelihood.\n2. Plot the exposures with confidence interval whiskers.",
+      "code": "complete_df <- variateExp(\n  in_catalogue_df = lymphomaNature2013_mutCat_df,\n  in_sig_df = lymphoma_COSMIC_listsList$cohort$signatures,\n  in_exposures_df = lymphoma_COSMIC_listsList$cohort$exposures,\n  in_sigLevel = 0.025,\n  in_delta = 0.4)\n\nplotExposuresConfidence(\n  in_complete_df = complete_df,\n  in_subgroups_df = COSMIC_subgroups_df,\n  in_sigInd_df = lymphoma_COSMIC_listsList$cohort$out_sig_ind_df)"
+    },
+    {
+      "name": "stratified_signature_analysis",
+      "intent": "Perform a stratified analysis of mutational signatures (SMC) to identify signature enrichment and depletion patterns across different genomic strata (e.g., mutation density).",
+      "input": [
+        "lymphoma_Nature2013_df (dataframe of SNV variant calls with intermutational distances annotated)",
+        "lymphoma_COSMIC_listsList (results list from unstratified LCD analysis)",
+        "COSMIC_subgroups_df (dataframe of sample subgroup annotations)",
+        "BSgenome.Hsapiens.UCSC.hg19 (reference genome object)"
+      ],
+      "stages": "1. Define exclusive strata categories (e.g., high, intermediate, and background mutation density) based on intermutational distance.\n2. Run the Stratification of the Mutational Catalogue (SMC) analysis.\n3. Perform statistical significance testing (Kruskal-Wallis with Benjamini-Hochberg correction) to identify significant enrichment/depletion patterns across strata.",
+      "code": "lymphoma_Nature2013_df$density_cat <- cut(lymphoma_Nature2013_df$dist, c(0,1001,100001,Inf), right=FALSE, labels=c(\"high\",\"intermediate\", \"background\"))\n\nstrata_order_ind <- c(1,3,2)\nmut_density_list <- run_SMC(lymphoma_Nature2013_df, lymphoma_COSMIC_listsList$cohort$signatures, lymphoma_COSMIC_listsList$cohort$out_sig_ind_df, COSMIC_subgroups_df, column_name=\"density_cat\", refGenome=BSgenome.Hsapiens.UCSC.hg19, cohort_method_flag=\"norm_PIDs\", in_strata_order_ind=strata_order_ind)\n\nstat_mut_density_list <- stat_test_SMC(mut_density_list,in_flag=\"norm\")"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "package": "sechm",
+  "requirements": [
+    "ComplexHeatmap",
+    "SummarizedExperiment",
+    "sechm"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ComplexHeatmap",
+      "SummarizedExperiment",
+      "sechm"
+    ]
+  }
+}

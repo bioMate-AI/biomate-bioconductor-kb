@@ -1,0 +1,15 @@
+{
+  "package": "peco",
+  "requirements": [
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "peco"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "peco"
+    ]
+  }
+}

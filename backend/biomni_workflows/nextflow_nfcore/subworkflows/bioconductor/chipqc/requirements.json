@@ -1,0 +1,14 @@
+{
+  "package": "chipqc",
+  "requirements": [
+    "ChIPQC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ChIPQC"
+    ],
+    "single_sample_qc.nf": [
+      "ChIPQC"
+    ]
+  }
+}

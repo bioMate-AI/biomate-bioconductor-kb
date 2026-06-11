@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nGenes=The number of genes to simulate ;; batchCells=A vector specifying the number of cells in each batch, which implicitly sets the total cells and batches ;; group.prob=A vector of probabilities for assigning cells to different groups (must sum to 1) ;; method=The simulation method to use, which can be \"single\", \"groups\", or \"paths\" ;; de.prob=The probability that a gene is selected to be differentially expressed between groups ;; path.from=A vector specifying the starting position of each differentiation path to define lineage structures ;; similarity.scale=Scaling factor for population variance in splatPop; increasing this increases similarity between individuals ;; eqtl.group.specific=Percent of eQTL effects to make group-specific in splatPop ;; eqtl.condition.specific=Percent of eQTL effects to make condition-specific in splatPop\n- alternatives: simple=A simple simulation with gamma means and negative binomial counts ;; lun=Gamma distributed means and negative binomial counts with size factors and fixed fold changes ;; lun2=Negative binomial counts with plate effects and optional zero-inflation ;; scDD=Samples a real dataset to simulate differentially expressed and distributed genes ;; BASiCS=Bayesian model to deconvolve biological and technical variation, including spike-ins and batch effects ;; mfa=Produces a bifurcating pseudotime trajectory (deprecated) ;; pheno=Produces a pseudotime trajectory with different gene types ;; zinb=Sophisticated zero-inflated negative-binomial model with cell and gene-level covariates ;; sparseDC=Simulates clusters across two conditions\n- when_to_use: Use when developing, benchmarking, or evaluating single-cell RNA-seq analysis methods (such as clustering, batch correction, trajectory inference, differential expression, or eQTL mapping) where a known ground truth is required.\n- pitfalls: bcv.df=If this parameter is estimated or set to infinite, it will be ignored with a warning ;; lib.norm=Library sizes may be found to be normally distributed instead of log-normal during estimation, triggering a warning that requires manual verification ;; object_size=Simulations store many intermediate values which can greatly increase the SingleCellExperiment object size; use minimiseSCE() to discard unneeded slots ;; visualization=Once there are more than three or four groups, they become difficult to resolve in PCA space; non-linear dimensionality reduction (t-SNE or UMAP) is recommended instead",
+  "workflows": [
+    {
+      "name": "splat_standard_simulation",
+      "intent": "Estimate simulation parameters from an empirical single-cell count matrix and simulate a new synthetic dataset.",
+      "input": [
+        "sce (SingleCellExperiment containing real scRNA-seq counts)",
+        "counts (integer matrix of real scRNA-seq counts)"
+      ],
+      "stages": "1. Estimate parameters from real data using splatEstimate. 2. Simulate synthetic counts using splatSimulate.",
+      "code": "# Create mock data\nset.seed(1)\nsce <- mockSCE()\n\n# Estimate parameters from mock data\nparams <- splatEstimate(sce)\n# Simulate data using estimated parameters\nsim <- splatSimulate(params)"
+    },
+    {
+      "name": "splatpop_population_simulation",
+      "intent": "Simulate population-scale single-cell RNA-seq count data incorporating genotype structure and eQTL effects.",
+      "input": [
+        "vcf (VariantAnnotation object containing population genotypes)",
+        "gff (GFF/GTF file as a data.frame containing gene annotations)"
+      ],
+      "stages": "1. Initialize population parameters using newSplatPopParams. 2. Simulate population gene means using splatPopSimulateMeans. 3. Simulate single-cell counts for the population using splatPopSimulateSC.",
+      "code": "vcf <- mockVCF()\ngff <- mockGFF()\nsim <- splatPopSimulate(vcf = vcf, gff = gff, sparsify = FALSE)"
+    },
+    {
+      "name": "compare_and_diff_simulations",
+      "intent": "Compare simulated datasets with each other or against a real reference dataset to evaluate simulation quality.",
+      "input": [
+        "sim1 (SingleCellExperiment object of first dataset)",
+        "sim2 (SingleCellExperiment object of second dataset)"
+      ],
+      "stages": "1. Combine and compare datasets using compareSCEs. 2. Calculate differences relative to a reference dataset using diffSCEs.",
+      "code": "sim1 <- splatSimulate(nGenes = 1000, batchCells = 20, verbose = FALSE)\nsim2 <- simpleSimulate(nGenes = 1000, nCells = 20, verbose = FALSE)\ncomparison <- compareSCEs(list(Splat = sim1, Simple = sim2))\ndifference <- diffSCEs(list(Splat = sim1, Simple = sim2), ref = \"Simple\")"
+    }
+  ]
+}

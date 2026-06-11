@@ -1,0 +1,11 @@
+{
+  "package": "birewire",
+  "requirements": [
+    "BiRewire"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiRewire"
+    ]
+  }
+}

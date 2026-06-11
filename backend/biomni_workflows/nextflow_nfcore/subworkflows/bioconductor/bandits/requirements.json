@@ -1,0 +1,11 @@
+{
+  "package": "bandits",
+  "requirements": [
+    "BANDITS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BANDITS"
+    ]
+  }
+}

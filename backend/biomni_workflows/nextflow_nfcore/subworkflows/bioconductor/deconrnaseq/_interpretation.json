@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None documented in the provided text. ;; None documented in the provided text.\n- alternatives: None mentioned in the provided text.\n- when_to_use: Appropriate when you need to estimate the relative proportions of different cell types within heterogeneous tissue samples using mRNA-Seq expression profiles.\n- pitfalls: The package is deprecated and has been removed from the Bioconductor release (3.23), meaning it may not be available or supported in modern R environments.",
+  "workflows": [
+    {
+      "name": "decon_rna_seq_analysis",
+      "intent": "Deconvolve heterogeneous tissue mRNA-Seq samples to estimate cell type proportions.",
+      "input": [
+        "mixture_expression.csv (mRNA-Seq expression profiles of heterogeneous tissues)",
+        "signature_matrix.csv (expression profiles of pure cell types)"
+      ],
+      "stages": "1. Run the deconvolution analysis using the main package function to estimate cell type fractions.",
+      "code": ""
+    }
+  ]
+}

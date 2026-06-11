@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: speciesRef=Abbreviation of the reference scientific species name used in Ensembl (e.g., \"hsapiens\") ;; speciesCompare=Abbreviation of the comparison scientific species name used in Ensembl (e.g., \"ptroglodytes\") ;; expDesign=Logical value; set to TRUE for two-species comparison, and FALSE for control vs. treatment within the same species ;; geneTable=Count table of genes where the first column must be Ensembl gene IDs ;; teTable=Count table of TEs where the first column must be TE names ;; rmsk=RepeatMasker track annotation table containing four columns (TE name, TE class, average TE length in reference species, average TE length in comparison species) ;; corrMethod=Correlation method (e.g., \"pearson\") ;; padjMethod=Adjusted p-value method (e.g., \"fdr\")\n- alternatives: prepareRMSK() can be used to obtain RepeatMasker tracks from UCSC, but GenomeInfoDb::registered_UCSC_genomes() should be used to check if the track exists for the species of interest.\n- when_to_use: Use when analyzing RNA-seq data to find correlations between gene expression (specifically orthologs) and transposable elements (TEs) either comparing two different species or comparing control vs. treatment/experiment within the same species.\n- pitfalls: The first column of the gene count table must be Ensembl gene ID, and the first column of the TE count table must be the TE name. orthologScale() queries Ensembl via biomaRt, which can be slow or fail due to connection issues; users may need to try different mirrors. corrOrthologTE() is highly time-consuming for large datasets; users should consider subsetting data to focus on genes/TEs of interest. For two-species comparison, expDesign must be TRUE and metadata column must be named 'species'. For same-species comparison, expDesign must be FALSE and metadata column must be named 'experiment'.",
+  "workflows": [
+    {
+      "name": "two_species_comparison",
+      "intent": "Compare orthologous gene and transposable element (TE) expression and estimate their correlations between two different species.",
+      "input": [
+        "geneCountRef (gene count table for reference species with Ensembl IDs in first column)",
+        "geneCountCompare (gene count table for comparison species with Ensembl IDs in first column)",
+        "teCountRef (TE count table for reference species with TE names in first column)",
+        "teCountCompare (TE count table for comparison species with TE names in first column)",
+        "rmsk (RepeatMasker track annotation table)"
+      ],
+      "stages": "1. Query orthologs and calculate scaling factors using orthologScale() ;; 2. Format inputs for DE and correlation analysis using DECorrInputs() ;; 3. Perform differential expression analysis using DEgeneTE() with expDesign = TRUE ;; 4. Estimate correlations between genes and TEs using corrOrthologTE() ;; 5. Visualize results using appTEKRABber()",
+      "code": "fetchData <- orthologScale(\n    speciesRef = \"hsapiens\",\n    speciesCompare = \"ptroglodytes\",\n    geneCountRef = hmGeneSample,\n    geneCountCompare = chimpGeneSample,\n    teCountRef = hmTE,\n    teCountCompare = chimpTE,\n    rmsk = hg38_panTro6_rmsk\n)\n\ninputBundle <- DECorrInputs(fetchData)\n\nmeta <- data.frame(\n    species = c(rep(\"human\", ncol(hmGene) - 1), \n    rep(\"chimpanzee\", ncol(chimpGene) - 1))\n)\n\nmeta$species <- factor(meta$species, levels = c(\"human\", \"chimpanzee\"))\nrownames(meta) <- colnames(inputBundle$geneInputDESeq2)\nhmchimpDE <- DEgeneTE(\n    geneTable = inputBundle$geneInputDESeq2,\n    teTable = inputBundle$teInputDESeq2,\n    metadata = meta,\n    expDesign = TRUE\n)\n\nhmCorrResult <- corrOrthologTE(\n    geneInput = hmchimpDE$geneCorrInputRef[c(1:200),],\n    teInput = hmchimpDE$teCorrInputRef,\n    numCore = 1,\n    corrMethod = \"pearson\",\n    padjMethod = \"fdr\"\n)\n\nchimpCorrResult <- corrOrthologTE(\n    geneInput = hmchimpDE$geneCorrInputCompare[c(1:200), ],\n    teInput = hmchimpDE$teCorrInputCompare,\n    numCore = 1,\n    corrMethod = \"pearson\",\n    padjMethod = \"fdr\"\n)\n\nappTEKRABber(\n    corrRef = hmCorrResult,\n    corrCompare = chimpCorrResult,\n    DEobject = hmchimpDE\n)"
+    },
+    {
+      "name": "within_species_comparison",
+      "intent": "Compare gene and transposable element (TE) expression and estimate their correlations between control and treatment samples within the same species.",
+      "input": [
+        "geneInputDE (gene count table for control and treatment samples with Ensembl IDs in first column)",
+        "teInputDE (TE count table for control and treatment samples with TE names in first column)"
+      ],
+      "stages": "1. Perform differential expression analysis using DEgeneTE() with expDesign = FALSE ;; 2. Estimate correlations between genes and TEs using corrOrthologTE() ;; 3. Visualize results using appTEKRABber()",
+      "code": "metaExp <- data.frame(experiment = c(rep(\"control\", 5), rep(\"treatment\", 5)))\nrownames(metaExp) <- colnames(geneInputDE)\nmetaExp$experiment <- factor(\n    metaExp$experiment, \n    levels = c(\"control\", \"treatment\")\n)\n\nresultDE <- DEgeneTE(\n    geneTable = geneInputDE,\n    teTable = teInputDE,\n    metadata = metaExp,\n    expDesign = FALSE\n)\n\ncontrolCorr <- corrOrthologTE(\n    geneInput = resultDE$geneCorrInputRef[c(1:200),],\n    teInput = resultDE$teCorrInputRef,\n    numCore = 1,\n    corrMethod = \"pearson\",\n    padjMethod = \"fdr\"\n)\n\ntreatmentCorr <- corrOrthologTE(\n    geneInput = resultDE$geneCorrInputCompare[c(1:200),],\n    teInput = resultDE$teCorrInputCompare,\n    numCore = 1,\n    corrMethod = \"pearson\",\n    padjMethod = \"fdr\"\n)\n\nappTEKRABber(\n    corrRef = controlCorr,\n    corrCompare = treatmentCorr,\n    DEobject = resultDE\n)"
+    }
+  ]
+}

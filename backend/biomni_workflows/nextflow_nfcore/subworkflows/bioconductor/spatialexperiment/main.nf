@@ -12,14 +12,13 @@
 
 nextflow.enable.dsl = 2
 
+
 process BIOC_SPATIALEXPERIMENT {
     tag "${meta.id}"
     label 'process_medium'
 
     conda "bioconductor-spatialexperiment"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-spatialexperiment:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-spatialexperiment:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
     tuple val(meta), path(count_data)
@@ -41,7 +40,7 @@ process BIOC_SPATIALEXPERIMENT {
     library(SpatialExperiment)
     library(jsonlite)
 
-    # --- Data Loading [] ---
+    # --- Import 10x Visium Data [] ---
     # Key functions: read10xVisium
     dir <- system.file(
         file.path("extdata", "10xVisium"),
@@ -50,41 +49,79 @@ process BIOC_SPATIALEXPERIMENT {
     sample_ids <- c("section1", "section2")
     samples <- file.path(dir, sample_ids, "outs")
     spe10x <- read10xVisium(
-        samples = samples,
-        sample_ids = sample_ids,
-        type = "sparse",
-        data = "raw",
-        images = "lowres",
-        load = FALSE
+        samples, sample_ids,
+        type = "sparse", data = "raw",
+        images = "lowres", load = FALSE
     )
 
+    # --- Custom Object Construction [] ---
+    # Key functions: SpatialExperiment
+    n <- 10
+    m <- 20
+    y <- matrix(rnorm(n * m), nrow = n, ncol = m)
+    cd <- S4Vectors::DataFrame(x = seq(m), y = seq(m))
+    xy <- matrix(runif(m * 2), nrow = m, ncol = 2)
+    colnames(xy) <- c("x", "y")
+    spe <- SpatialExperiment(
+        assays = list(counts = y),
+        colData = cd,
+        spatialCoordsNames = c("x", "y"),
+        spatialCoords = xy
+    )
 
-    # --- Image Manipulation [] ---
-    # Key functions: addImg, imgRaster, rmvImg
-    spe <- addImg(
-        spe,
+    # --- Spatial Coordinates Extraction [] ---
+    # Key functions: spatialCoords, spatialCoordsNames
+    coords <- spatialCoords(spe10x)
+    coord_names <- spatialCoordsNames(spe10x)
+    has_coords <- !isEmpty(spatialCoords(spe10x))
+
+    # --- Image Data Management [] ---
+    # Key functions: imgData, addImg, getImg, rmvImg
+    url <- "https://i.redd.it/3pw5uah7xo041.jpg"
+    spe_img <- addImg(
+        spe10x,
         sample_id = "section1",
         image_id = "pomeranian",
-        imageSource = "https://i.redd.it/3pw5uah7xo041.jpg",
+        imageSource = url,
         scaleFactor = NA_real_,
-        load = TRUE
+        load = FALSE
     )
-    img <- imgRaster(spe, sample_id = "section1", image_id = "pomeranian")
-    spe <- rmvImg(spe, "section1", "pomeranian")
+    img_list <- imgData(spe_img)
+    spi <- getImg(spe_img, sample_id = "section1", image_id = "pomeranian")
+    spe_clean <- rmvImg(spe_img, "section1", "pomeranian")
+
+    # --- Subsetting and Merging [] ---
+    # Key functions: colData, cbind
+    sub_tissue <- spe10x[, colData(spe10x)\$in_tissue == 1]
+    spe1 <- spe10x[, spe10x\$sample_id == "section1"]
+    spe2 <- spe10x[, spe10x\$sample_id == "section2"]
+    spe1\$sample_id <- paste(spe1\$sample_id, "A", sep = ".")
+    spe2\$sample_id <- paste(spe2\$sample_id, "B", sep = ".")
+    spe_combined <- cbind(spe1, spe2)
+
 
     # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_spatialexperiment_results.csv", row.names = TRUE)
+    .objs <- setdiff(ls(), c("args", "prefix", ".objs"))
+    .cells <- function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                            if (is.data.frame(x) || is.matrix(x)) prod(dim(x)) else -1 }
+    .dfs  <- Filter(function(v) is.data.frame(tryCatch(get(v), error = function(e) NULL)), .objs)
+    .tabs <- Filter(function(v) { x <- tryCatch(get(v), error = function(e) NULL)
+                                  is.data.frame(x) || is.matrix(x) }, .objs)
+    .cand <- if (length(.dfs) > 0) .dfs else .tabs
+    if (length(.cand) > 0) {
+        .main <- get(.cand[[ which.max(sapply(.cand, .cells)) ]])
+        write.csv(as.data.frame(.main), "${prefix}_spatialexperiment_results.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_spatialexperiment_results.csv")
+        write.csv(data.frame(status = "completed", n_objects = length(.objs)),
+                  "${prefix}_spatialexperiment_results.csv", row.names = FALSE)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_spatialexperiment_output.rds")
-    }
+    .payload <- tryCatch(mget(.objs, ifnotfound = list(NULL)),
+                         error = function(e) list(status = "completed"))
+    saveRDS(.payload, "${prefix}_spatialexperiment_output.rds")
 
     # --- versions.yml ---
     writeLines(
-        c("BIOC_SPATIALEXPERIMENT:", paste0("    spatialexperiment: ", packageVersion("SpatialExperiment"))),
+        c("BIOC_SPATIALEXPERIMENT:", paste0("    spatialexperiment: ", as.character(packageVersion("SpatialExperiment")))),
         "versions.yml"
     )
     """

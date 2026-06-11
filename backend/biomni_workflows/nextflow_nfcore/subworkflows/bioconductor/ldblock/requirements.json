@@ -1,0 +1,15 @@
+{
+  "package": "ldblock",
+  "requirements": [
+    "GenomeInfoDb",
+    "Matrix",
+    "ldblock"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomeInfoDb",
+      "Matrix",
+      "ldblock"
+    ]
+  }
+}

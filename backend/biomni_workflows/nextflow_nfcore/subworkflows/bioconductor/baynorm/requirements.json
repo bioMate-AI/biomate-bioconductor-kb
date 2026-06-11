@@ -1,0 +1,20 @@
+{
+  "package": "baynorm",
+  "requirements": [
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "bayNorm"
+  ],
+  "by_workflow": {
+    "baynorm_supplementary_generation.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "bayNorm"
+    ],
+    "main.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "bayNorm"
+    ]
+  }
+}

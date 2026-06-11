@@ -1,0 +1,23 @@
+{
+  "package": "degreport",
+  "requirements": [
+    "DEGreport",
+    "DESeq2",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "de_downstream_and_reporting.nf": [
+      "DEGreport",
+      "DESeq2",
+      "ggplot2"
+    ],
+    "expression_pattern_clustering.nf": [
+      "DEGreport",
+      "DESeq2"
+    ],
+    "main.nf": [
+      "DEGreport",
+      "DESeq2"
+    ]
+  }
+}

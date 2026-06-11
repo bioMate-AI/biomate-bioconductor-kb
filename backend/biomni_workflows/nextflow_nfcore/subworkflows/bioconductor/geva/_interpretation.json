@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: col.values=Column name(s) for logFC values (default \"logFC\") ;; col.pvals=Column name(s) for (adjusted) p-values (default \"adj.P.Val\") ;; col.other=Column name(s) for additional columns to append (e.g., gene symbols) ;; p.value.cutoff=Threshold for filtering out insignificant rows in geva.input.filter (e.g., 0.05) ;; attr.column=Column name used to rename rows in geva.input.rename.rows ;; dupl.rm.method=Method to resolve duplicates when renaming rows (\"least.p.vals\" or \"order\") ;; summary.method=Method for summarization in geva.summarize (\"mean\" or \"median\") ;; variation.method=Method for variation in geva.summarize (\"sd\" or \"mad\") ;; initial.thresholds=Custom thresholds for S and V axes in geva.quantiles (e.g., c(S=1, V=0.5)) ;; cluster.method=Method for clustering in geva.cluster (\"hierarchical\", \"density\", or \"quantiles\") ;; resolution=Numeric between 0 and 1 defining the ratio of output clusters in geva.cluster ;; grouped.return=Logical; if TRUE, geva.cluster returns a GEVAGroupedSummary object ;; p.value=Significance cutoff for ANOVA tests in geva.finalize (default 0.05) ;; add.cols=Column names to append to the output of top.genes\n- alternatives: limma (for microarray DE analysis) and DESeq2 (for RNA-seq DE analysis) are mentioned as external tools to produce the input tables. GEAP and Chipster are mentioned as standalone GUI alternatives for users with less programming familiarity.\n- when_to_use: Use when you have differential expression results (logFC and p-values) from multiple experimental comparisons (at least two, but preferably more) and want to classify genes based on their expression patterns (e.g., similar, factor-dependent, or factor-specific) across these conditions.\n- pitfalls: Missing values (NA), not-a-number (NaN), and infinite values (Inf) can bias calculations and should be corrected using geva.input.correct. If an entire column is made of invalid values, correcting it might remove the entire table, so geva.input.correct removes such columns in advance. Including rows where all p-values are insignificant can introduce statistical errors; use geva.input.filter to remove them. Duplicate gene symbols (e.g., from multiple probes in microarrays) must be resolved using geva.input.rename.rows to avoid duplicate row names. Factor analysis requires at least two values per level (replicates/experiments per factor) to perform ANOVA.",
+  "workflows": [
+    {
+      "name": "detailed_geva_pipeline",
+      "intent": "Perform a detailed, step-by-step Gene Expression Variation Analysis (GEVA) from input files to final gene classification, allowing fine-tuning of each intermediate step.",
+      "input": [
+        "cond_A_2h.txt (DE results for condition A at 2h)",
+        "cond_B_2h.txt (DE results for condition B at 2h)",
+        "cond_C_2h.txt (DE results for condition C at 2h)",
+        "cond_A_4h.txt (DE results for condition A at 4h)",
+        "cond_B_4h.txt (DE results for condition B at 4h)",
+        "cond_C_4h.txt (DE results for condition C at 4h)"
+      ],
+      "stages": "1. Read input files ;; 2. Correct numeric tables ;; 3. Filter out insignificant rows ;; 4. Rename row names and resolve duplicates ;; 5. Summarize logFC and variation ;; 6. Calculate SV-space quantiles ;; 7. Perform cluster analysis ;; 8. Combine intermediate results ;; 9. Finalize classifications ;; 10. Extract top relevant genes",
+      "code": "filenms <- c(\"cond_A_2h.txt\", \"cond_B_2h.txt\", \"cond_C_2h.txt\",\n             \"cond_A_4h.txt\", \"cond_B_4h.txt\", \"cond_C_4h.txt\")\nginput <- geva.read.tables(filenms)\nginput <- geva.input.correct(ginput)\nginput <- geva.input.filter(ginput, p.value.cutoff = 0.05)\nginput <- geva.input.rename.rows(ginput,\n                                 attr.column = \"Symbol\")\ngsummary <- geva.summarize(ginput)\nplot(gsummary)\ngquants <- geva.quantiles(gsummary)\nplot(gquants)\ngcluster <- geva.cluster(gsummary,\n                         cluster.method=\"hierarchical\",\n                         resolution=0.3)\nplot(gcluster)\nggroupedsummary <- gsummary\ngroupsets(ggroupedsummary) <- gquants\ngroupsets(ggroupedsummary) <- gcluster\nplot(ggroupedsummary)\ngresults <- geva.finalize(ggroupedsummary)\nplot(gresults)\ntail(results.table(gresults), 10)\ndtgens <- top.genes(gresults, add.cols = \"Symbol\")"
+    },
+    {
+      "name": "quick_geva_pipeline",
+      "intent": "Perform the entire GEVA analysis pipeline quickly using a single shortcut function.",
+      "input": [
+        "ginput (GEVAInput object containing logFC and weights)"
+      ],
+      "stages": "1. Run the shortcut function geva.quick on the input data ;; 2. Re-analyze or fine-tune parameters by calling geva.quick on the results object",
+      "code": "ginput <- geva.ideal.example()\ngresults <- geva.quick(ginput, resolution=0.25)\ngresults <- geva.quick(gresults, summary.method='median')"
+    }
+  ]
+}

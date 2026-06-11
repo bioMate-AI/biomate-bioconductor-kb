@@ -1,0 +1,11 @@
+{
+  "package": "dnacopy",
+  "requirements": [
+    "DNAcopy"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DNAcopy"
+    ]
+  }
+}

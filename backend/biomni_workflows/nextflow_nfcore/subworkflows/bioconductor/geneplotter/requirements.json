@@ -1,0 +1,21 @@
+{
+  "package": "geneplotter",
+  "requirements": [
+    "Biobase",
+    "annotate",
+    "geneplotter",
+    "hgu95av2.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "geneplotter",
+      "hgu95av2.db"
+    ],
+    "single_chromosome_expression_plotting.nf": [
+      "Biobase",
+      "annotate",
+      "geneplotter"
+    ]
+  }
+}

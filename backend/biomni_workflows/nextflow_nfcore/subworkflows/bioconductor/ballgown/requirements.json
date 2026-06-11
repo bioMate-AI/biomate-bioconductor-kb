@@ -1,0 +1,14 @@
+{
+  "package": "ballgown",
+  "requirements": [
+    "ballgown"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ballgown"
+    ],
+    "transcript_clustering_and_analysis.nf": [
+      "ballgown"
+    ]
+  }
+}

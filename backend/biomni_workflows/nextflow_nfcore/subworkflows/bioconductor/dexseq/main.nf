@@ -1,99 +1,151 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DEXSeq
-// The package is focused on finding differential exon usage using RNA-seq exon counts between samples 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DEXSeq/inst/doc/DEXSeq.R
-// Upstream  : none
-// Downstream: IsoformSwitchAnalyzeR, pasilla, rnaseqDTU
-//
-// Install: BiocManager::install("DEXSeq")
+// Bioconductor workflow: dexseq — r_based_bam_workflow
+// Perform differential exon usage analysis starting from BAM files and a GTF annotation entirely within R.
+// Input: annotation.gtf, sample1.bam, sample2.bam
+// Container: quay.io/biocontainers/bioconductor-dexseq:1.56.0--r45hdfd78af_0
+// R packages: GenomeInfoDb, GenomicAlignments, GenomicFeatures, Rsamtools, DEXSeq, txdbmaker
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEXSEQ {
+process BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-dexseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-dexseq:1.52.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-dexseq:1.52.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-dexseq:1.56.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_dexseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_dexseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_dexseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DEXSeqHTML)
-    library(IRanges)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("GenomeInfoDb", "GenomicAlignments", "GenomicFeatures", "Rsamtools", "DEXSeq", "txdbmaker")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Find overlapping genomic intervals [] ---
-    # Key functions: IRanges, subsetByOverlaps, findOverlaps
-    interestingRegion = GRanges( "chr2L",
-    IRanges(start=3872658, end=3875302) )
-    subsetByOverlaps( x=dxr, ranges=interestingRegion )
-    # --- MA plot of DE results [] ---
-    # Key functions: plotMA
-    plotMA( dxr1, cex=0.8 )
-    # --- Sample metadata inspection [] ---
-    # Key functions: colData, split, sampleAnnotation, mcols, plotDEXSeq, DEXSeqHTML
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(GenomicFeatures)
+    library(txdbmaker)
+    library(Rsamtools)
+    library(GenomicAlignments)
+    library(GenomeInfoDb)
     library(DEXSeq)
-    colData(se)$condition = factor(c("untreated1", "untreated3"))
-    colData(se)$libType = factor(c("single-end", "paired-end"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_dexseq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_dexseq_results.csv")
+    
+    # 1. Prepare annotation using makeTxDbFromGFF() and exonicParts()
+    txdb = makeTxDbFromGFF("annotation.gtf")
+    flattenedAnnotation = exonicParts( txdb, linked.to.single.gene.only=TRUE )
+    names(flattenedAnnotation) =
+        sprintf("%s:E%0.3d", flattenedAnnotation\$gene_id, flattenedAnnotation\$exonic_part)
+    
+    # 2. Count reads overlapping exonic parts using BamFileList() and summarizeOverlaps()
+    bamFiles = c( "sample1.bam", "sample2.bam" )
+    bamFiles = BamFileList( bamFiles )
+    
+    # Safely attempt to set seqlevelsStyle to UCSC as in the documented code
+    tryCatch({
+        seqlevelsStyle(flattenedAnnotation) = "UCSC"
+    }, error = function(e) {
+        message("Warning: Could not set seqlevelsStyle to UCSC. Proceeding with default style.")
+    })
+    
+    se = summarizeOverlaps(
+        flattenedAnnotation, BamFileList(bamFiles), singleEnd=FALSE,
+        fragments=TRUE, ignore.strand=TRUE )
+    
+    # 3. Build a DEXSeqDataSet using DEXSeqDataSetFromSE()
+    colData(se)\$condition = factor(c("untreated1", "untreated3"))
+    colData(se)\$libType = factor(c("single-end", "paired-end"))
+    dxd = DEXSeqDataSetFromSE( se, design= ~ sample + exon + condition:exon )
+    
+    # 4. Estimate size factors using estimateSizeFactors()
+    dxd = estimateSizeFactors( dxd )
+    
+    # 5. Estimate dispersions using estimateDispersions()
+    dxd = estimateDispersions( dxd )
+    
+    # 6. Test for differential exon usage using testForDEU()
+    dxd = testForDEU( dxd )
+    
+    # 7. Estimate exon fold changes using estimateExonFoldChanges()
+    dxd = estimateExonFoldChanges( dxd, fitExpToVar="condition")
+    
+    # 8. Extract results using DEXSeqResults()
+    dxr1 = DEXSeqResults( dxd )
+    
+    # Write meaningful output files
+    write.csv(as.data.frame(dxr1), file="dexseq_results.csv", row.names=TRUE)
+    saveRDS(dxd, file="dexseq_dxd.rds")
+    saveRDS(dxr1, file="dexseq_results.rds")
+    
+    # Generate diagnostic and results plots
+    pdf("dispersion_plots.pdf")
+    plotDispEsts( dxd )
+    dev.off()
+    
+    pdf("ma_plot.pdf")
+    plotMA( dxr1, cex=0.8 )
+    dev.off()
+    
+    # Plot the first gene in the results if available
+    if (nrow(dxr1) > 0) {
+        first_gene = dxr1\$groupID[1]
+        pdf("dexseq_plot.pdf")
+        plotDEXSeq( dxr1, first_gene, legend=TRUE, cex.axis=1.2, cex=1.3, lwd=2 )
+        dev.off()
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_dexseq_output.rds")
-    }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEXSEQ:", paste0("    dexseq: ", packageVersion("DEXSeq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW":',
+        paste0('        dexseq: ', as.character(packageVersion("dexseq")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_dexseq_results.csv
-    touch ${prefix}_dexseq_output.rds
-    echo "BIOC_DEXSEQ:" > versions.yml
-    echo "    dexseq: 0.0.0" >> versions.yml
+    touch ${prefix}_r_based_bam_workflow.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEXSEQ_WORKFLOW {
+workflow BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ annotation.gtf, sample1.bam, sample2.bam ] ]
 
     main:
-    BIOC_DEXSEQ(ch_input)
+    BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW(ch_input)
 
     emit:
-    results  = BIOC_DEXSEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEXSEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEXSEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEXSEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW.out.tables
+    plots    = BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW.out.plots
+    objects  = BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW.out.objects
+    versions = BIOC_DEXSEQ_R_BASED_BAM_WORKFLOW.out.versions
 }

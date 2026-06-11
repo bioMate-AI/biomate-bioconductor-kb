@@ -1,0 +1,11 @@
+{
+  "package": "lbe",
+  "requirements": [
+    "LBE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "LBE"
+    ]
+  }
+}

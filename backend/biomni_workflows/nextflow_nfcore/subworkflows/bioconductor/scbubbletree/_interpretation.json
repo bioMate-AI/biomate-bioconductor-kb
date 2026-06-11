@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - x: A low-dimensional numeric projection matrix (e.g., PCA embeddings) with cells as rows and features as columns.\n    - B_gap: Number of Monte Carlo simulations for Gap statistic calculation (used in get_r and get_k).\n    - rs: Vector of resolution parameters to inspect in get_r.\n    - ks: Vector of cluster numbers to inspect in get_k.\n    - r: Resolution parameter for Louvain clustering in get_bubbletree_graph.\n    - k: Number of clusters for k-means clustering in get_bubbletree_kmeans.\n    - B: Number of bootstrap iterations to compute consensus hierarchical grouping and branch support.\n    - N_eff: Number of cells randomly drawn with replacement from each cluster per bootstrap iteration.\n    - integrate_vertical: Logical parameter in get_cat_tiles; TRUE scales relative frequencies vertically (across bubbles), while FALSE scales them horizontally (within bubbles).\n- alternatives:\n    - Graph-based community detection (Louvain via get_bubbletree_graph) vs. centroid-based clustering (k-means via get_bubbletree_kmeans).\n    - External clustering methods (e.g., k-medoids/PAM) can be used instead of the built-in clustering algorithms by passing assignments to get_bubbletree_dummy.\n- when_to_use:\n    - Use when you want to visualize relationships between single-cell clusters quantitatively, preserving local and global cell distances and density distributions.\n    - Useful for quality control (e.g., mapping mitochondrial percentage or RNA counts across clusters) and biological interpretation (e.g., mapping cell line or marker gene expression).\n- pitfalls:\n    - The workflow requires a low-dimensional numeric matrix (like PCA embeddings) as input; users must manually extract this matrix from Seurat or SingleCellExperiment objects.\n    - Low bootstrap support values on branches indicate that the hierarchical relationship between those specific bubbles is not robust.",
+  "workflows": [
+    {
+      "name": "sc_bubbletree_louvain_workflow",
+      "intent": "Determine clustering resolution, perform Louvain clustering, build a bubbletree, and annotate it with categorical and numeric features.",
+      "input": [
+        "A (low-dimensional PCA embedding matrix)",
+        "m (cell metadata dataframe)",
+        "e (normalized marker gene expression matrix)"
+      ],
+      "stages": "1. Determine the Louvain resolution parameter r using get_r.\n2. Perform Louvain clustering and hierarchical grouping using get_bubbletree_graph.\n3. Annotate the bubbletree with categorical features using get_cat_tiles.\n4. Annotate the bubbletree with numeric features using get_num_tiles and get_num_violins.\n5. Visualize individual cell features using get_num_cell_tiles.",
+      "code": "b_r <- get_r(B_gap = 5,\n             rs = 10^seq(from = -4, to = 0.5, by = 0.5),\n             x = A,\n             n_start = 10,\n             iter_max = 50,\n             algorithm = \"original\",\n             knn_k = 50,\n             cores = 1)\n\nl <- get_bubbletree_graph(x = A,\n                          r = 0.1,\n                          algorithm = \"original\",\n                          n_start = 20,\n                          iter_max = 100,\n                          knn_k = 50,\n                          cores = 1,\n                          B = 300,\n                          N_eff = 200,\n                          round_digits = 1,\n                          show_simple_count = FALSE)\n\nw1 <- get_cat_tiles(btd = l,\n                    f = m$cell_line_demuxlet,\n                    integrate_vertical = TRUE,\n                    round_digits = 1,\n                    x_axis_name = 'Cell line',\n                    rotate_x_axis_labels = TRUE,\n                    tile_text_size = 2.75)\n\nw3 <- get_num_tiles(btd = l,\n                    fs = e,\n                    summary_function = \"mean\",\n                    x_axis_name = 'Gene expression',\n                    rotate_x_axis_labels = TRUE,\n                    round_digits = 1,\n                    tile_text_size = 2.75)\n\nw4 <- get_num_violins(btd = l,\n                      fs = e,\n                      x_axis_name = 'Gene expression',\n                      rotate_x_axis_labels = TRUE)\n\ng_cell_feature_1 <- get_num_cell_tiles(btd = l,\n                   f = e[,1],\n                   tile_bw = FALSE,\n                   x_axis_name = \"ALDH1A1 gene expr.\",\n                   rotate_x_axis_labels = FALSE)"
+    },
+    {
+      "name": "sc_bubbletree_external_clustering",
+      "intent": "Incorporate external clustering results (e.g., PAM/k-medoids) into the scBubbletree workflow to generate a hierarchical bubbletree and annotate it.",
+      "input": [
+        "A (low-dimensional PCA embedding matrix)",
+        "m (cell metadata dataframe)"
+      ],
+      "stages": "1. Perform external clustering (e.g., PAM).\n2. Generate a dummy bubbletree using get_bubbletree_dummy.\n3. Annotate the dummy bubbletree with categorical features using get_cat_tiles.",
+      "code": "pam_k5 <- cluster::pam(x = A, k = 5, metric = \"euclidean\")\n\ndummy_k5_pam <- get_bubbletree_dummy(x = A,\n                                     cs = pam_k5$clustering,\n                                     B = 200,\n                                     N_eff = 200,\n                                     cores = 2,\n                                     round_digits = 1)\n\ndummy_k5_pam$tree|\n  get_cat_tiles(btd = dummy_k5_pam, \n                f = m$cell_line_demuxlet,\n                integrate_vertical = TRUE,\n                round_digits = 1,\n                tile_text_size = 2.75,\n                x_axis_name = 'Cell line',\n                rotate_x_axis_labels = TRUE)$plot"
+    },
+    {
+      "name": "sc_bubbletree_comparison",
+      "intent": "Compare two different bubbletree clustering solutions (e.g., Louvain vs. k-means) visually and quantitatively.",
+      "input": [
+        "A (low-dimensional PCA embedding matrix)"
+      ],
+      "stages": "1. Generate the first bubbletree (Louvain) using get_bubbletree_graph.\n2. Generate the second bubbletree (k-means) using get_bubbletree_kmeans.\n3. Compare the two bubbletrees using compare_bubbletrees.",
+      "code": "l <- get_bubbletree_graph(x = A,\n                          r = 0.1,\n                          algorithm = \"original\",\n                          n_start = 20,\n                          iter_max = 100,\n                          knn_k = 50,\n                          cores = 1,\n                          B = 300,\n                          N_eff = 200,\n                          round_digits = 1,\n                          show_simple_count = FALSE)\n\nk <- get_bubbletree_kmeans(x = A,\n                           k = 5,\n                           cores = 1,\n                           B = 300,\n                           N_eff = 200,\n                           round_digits = 1,\n                           show_simple_count = FALSE,\n                           kmeans_algorithm = \"MacQueen\")\n\ncp <- compare_bubbletrees(btd_1 = l, \n                          btd_2 = k,\n                          ratio_heatmap = 0.6,\n                          tile_bw = F,\n                          tile_text_size = 3)\ncp$comparison"
+    }
+  ]
+}

@@ -1,90 +1,146 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: pathifier
-// Pathifier is an algorithm that infers pathway deregulation scores for each tumor sample on the basis
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/pathifier/inst/doc/Overview.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("pathifier")
+// Bioconductor workflow: pathifier — pathway_deregulation_analysis
+// Quantify pathway deregulation scores for tumor samples using expression data and pathway gene sets.
+// Input: expression_matrix.csv, gene_identifiers.txt, pathway_database.rds, sample_annotations.csv
+// Container: quay.io/biocontainers/bioconductor-pathifier:1.48.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: pathifier
+// Visualizations: box plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the pathifier library and input datasets
+//  * 2. [Core Analysis] Calculate pathway deregulation scores using quantify_pathways_deregulation
+//  * 3. [Core Analysis] Compare scores between normal and tumor samples using boxplots
+//  * 4. [Core Analysis] Identify highly deregulated samples by filtering based on score thresholds
 
 nextflow.enable.dsl = 2
 
-process BIOC_PATHIFIER {
+process BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pathifier"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pathifier:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pathifier:1.44.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pathifier_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pathifier_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pathifier_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # 1. Load the pathifier library and input datasets
     library(pathifier)
-    library(jsonlite)
-
-    # --- Quantify Pathways Deregulation [] ---
-    # Key functions: quantify_pathways_deregulation
-    PDS<-quantify_pathways_deregulation(sheffer$data, sheffer$allgenes,
-      kegg$gs, kegg$pathwaynames, sheffer$normals, attempts = 100,
-      min_exp=sheffer$minexp, min_std=sheffer$minstd)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pathifier_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pathifier_results.csv")
+    
+    # Read expression matrix (genes as rows, samples as columns)
+    expression_matrix <- as.matrix(read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE))
+    
+    # Read gene identifiers corresponding to the matrix rows
+    gene_identifiers <- as.character(readLines("gene_identifiers.txt"))
+    
+    # Read pathway database (list of pathways with constituent gene identifiers)
+    pathway_list <- readRDS("pathway_database.rds")
+    if (is.null(names(pathway_list))) {
+      names(pathway_list) <- paste0("Pathway_", seq_along(pathway_list))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pathifier_output.rds")
+    
+    # Read sample annotations (metadata indicating which samples are normal controls)
+    annotations <- read.csv("sample_annotations.csv", stringsAsFactors = FALSE)
+    
+    # Construct sheffer and kegg objects to match the documented code structure
+    sheffer <- list()
+    sheffer\$data <- expression_matrix
+    sheffer\$allgenes <- gene_identifiers
+    sheffer\$samples <- colnames(expression_matrix)
+    
+    # Match annotations to expression matrix columns to get normals logical vector
+    if (!all(c("sample_id", "is_normal") %in% colnames(annotations))) {
+      stop("sample_annotations.csv must contain 'sample_id' and 'is_normal' columns.")
     }
+    matched_idx <- match(sheffer\$samples, annotations\$sample_id)
+    sheffer\$normals <- as.logical(annotations\$is_normal[matched_idx])
+    
+    # Set min_exp and min_std from annotations if available, otherwise use defaults
+    sheffer\$minexp <- if ("minexp" %in% colnames(annotations)) annotations\$minexp[1] else 4
+    sheffer\$minstd <- if ("minstd" %in% colnames(annotations)) annotations\$minstd[1] else 0.2254005
+    
+    kegg <- list()
+    kegg\$gs <- pathway_list
+    kegg\$pathwaynames <- names(pathway_list)
+    
+    # 2. Calculate pathway deregulation scores using quantify_pathways_deregulation
+    PDS<-quantify_pathways_deregulation(sheffer\$data, sheffer\$allgenes,
+      kegg\$gs, kegg\$pathwaynames, sheffer\$normals, attempts = 100,
+      min_exp=sheffer\$minexp, min_std=sheffer\$minstd)
+    
+    # 3. Compare scores between normal and tumor samples using boxplots
+    pdf("pathway_deregulation_plots.pdf")
+    first_pathway <- names(PDS\$scores)[1]
+    x<-list()
+    x\$normals<-PDS\$scores[[first_pathway]][sheffer\$normals]
+    x\$tumors<-PDS\$scores[[first_pathway]][!sheffer\$normals]
+    boxplot(x)
+    boxplot(x,ylab="score")
+    dev.off()
+    
+    # 4. Identify highly deregulated samples by filtering based on score thresholds
+    second_pathway <- if (length(PDS\$scores) >= 2) names(PDS\$scores)[2] else names(PDS\$scores)[1]
+    deregulated_samples <- as.character(sheffer\$samples[PDS\$scores[[second_pathway]]>0.8])
+    
+    # Save meaningful results to output files
+    saveRDS(PDS, "pathway_deregulation_scores.rds")
+    
+    # Convert scores list to a data frame and save as CSV
+    scores_df <- do.call(rbind, PDS\$scores)
+    write.csv(scores_df, "pathway_scores.csv", row.names = TRUE)
+    
+    # Save highly deregulated samples to a text file
+    writeLines(deregulated_samples, "highly_deregulated_samples.txt")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PATHIFIER:", paste0("    pathifier: ", packageVersion("pathifier"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS":',
+        paste0('    pathifier: ', as.character(packageVersion('pathifier')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pathifier_results.csv
-    touch ${prefix}_pathifier_output.rds
-    echo "BIOC_PATHIFIER:" > versions.yml
-    echo "    pathifier: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_deregulation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_PATHIFIER_WORKFLOW {
+workflow BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, gene_identifiers.txt, pathway_database.rds, sample_annotations.csv ] ]
 
     main:
-    BIOC_PATHIFIER(ch_input)
+    BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_PATHIFIER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PATHIFIER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PATHIFIER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PATHIFIER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS.out.tables
+    plots    = BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS.out.plots
+    objects  = BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS.out.objects
+    versions = BIOC_PATHIFIER_PATHWAY_DEREGULATION_ANALYSIS.out.versions
 }

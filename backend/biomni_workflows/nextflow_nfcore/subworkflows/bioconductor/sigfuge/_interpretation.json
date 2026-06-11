@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=RNA-seq read coverage matrix or GRanges object representing genomic regions ;; classlabel=vector of cluster labels for the samples being tested\n- alternatives: sigclust=the underlying statistical framework, which SigFuge adapts specifically for genomic coverage data\n- when_to_use: Use when you have clustered RNA-seq samples based on locus-level read coverage and want to determine if the clusters represent statistically significant biological subgroups rather than random variation.\n- pitfalls: The package is deprecated and has been removed from the active Bioconductor release (3.23), requiring legacy R/Bioconductor environments for installation and execution.",
+  "workflows": [
+    {
+      "name": "sigfuge_significance_testing",
+      "intent": "Cluster RNA-seq coverage data and test the statistical significance of the resulting clusters.",
+      "input": [
+        "coverage_data.RData (matrix of locus-level RNA-seq read coverage across samples)",
+        "clusters.csv (pre-defined or computed sample cluster assignments)"
+      ],
+      "stages": "1. Load the coverage data and cluster assignments ;; 2. Visualize the coverage curves across clusters using sfPlot ;; 3. Cluster the coverage curves using sfCluster ;; 4. Test the significance of the clusters using sfSignificance",
+      "code": "# No code is available in the provided documentation text."
+    }
+  ]
+}

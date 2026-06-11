@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tracrRNA=Specifies the type of tracrRNA used in getRuleSet3Scores, either \"Hsu2013\" or \"Chen2013\" ;; condaEnv=The file path to the specific conda environment built for Python-based algorithms (RuleSet3, DeepHF, enPAM+GB, Lindel) ;; enzyme=Specifies the Cas9 variant in getDeepHFScores, options are \"WT\" (default), \"HF\", or \"ESP\" ;; promoter=Specifies the promoter used for expressing sgRNAs in getDeepHFScores (default is \"U6\") ;; directRepeat=Specifies the direct repeat sequence used in the CasRx construct in getCasRxRFScores (defaults to \"aacccctaccaactggtcggggtttgaaac\") ;; binaries=Path to external binaries for RNAfold, RNAplfold, and RNAhybrid in getCasRxRFScores; if NULL, they must be on the system PATH ;; spacers=Character vector of 20bp spacer sequences for getMITScores and getCFDScores ;; protospacers=Character vector of 20bp protospacer sequences of putative off-targets for getMITScores and getCFDScores ;; pams=Character vector of PAM sequences for getMITScores and getCFDScores\n- alternatives: RuleSet3 and DeepHF are recommended as more modern and performant alternatives to the deprecated Azimuth algorithm ;; enPAM+GB is recommended as an alternative to the deprecated DeepCpf1 algorithm ;; crisprDesign is a higher-level package that automates sequence extraction and calls crisprScore internally via addOnTargetScores\n- when_to_use: Use when designing CRISPR gRNAs to evaluate and select candidates with high on-target cutting efficiency, low off-target activity, or high probability of causing frameshift mutations\n- pitfalls: Python 2-based algorithms (Azimuth, DeepCpf1, DeepSpCas9, CRISPRai) are no longer supported ;; DeepHF and enPAM+GB are not supported on Windows machines ;; Users must manually build and manage conda environments for Python-based algorithms (RuleSet3, DeepHF, enPAM+GB, Lindel) and pass the environment path to condaEnv ;; CasRxRF requires external command-line tools (RNAfold, RNAplfold, RNAhybrid) to be installed and accessible ;; Different scoring algorithms require highly specific sequence lengths and contexts (e.g., 30bp for RuleSet1/3, 23bp for DeepHF, 35bp for CRISPRscan, 20bp for CRISPRater, 34bp for enPAM+GB, 65bp for Lindel) relative to the PAM site",
+  "workflows": [
+    {
+      "name": "on_target_efficiency_prediction",
+      "intent": "Predict on-target cutting efficiency for Cas9, Cas12a, or Cas13d gRNAs using sequence-based algorithms.",
+      "input": [
+        "sequences.txt (character vector of target sequences with specific flanking contexts)",
+        "test.fa (FASTA file containing mRNA sequence for CasRxRF)"
+      ],
+      "stages": "1. Load the package and prepare input sequences with correct flanking lengths ;; 2. Run RuleSet1 scoring using getRuleSet1Scores ;; 3. Run RuleSet3 scoring using getRuleSet3Scores with a specified conda environment ;; 4. Run DeepHF scoring using getDeepHFScores with a specified conda environment ;; 5. Run CRISPRscan scoring using getCRISPRscanScores ;; 6. Run CRISPRater scoring using getCRISPRaterScores ;; 7. Run enPAM+GB scoring for Cas12a using getEnPAMGBScores ;; 8. Run CasRxRF scoring for Cas13d using getCasRxRFScores on a DNAStringSet",
+      "code": "flank5 <- \"ACCT\" #4bp\nspacer <- \"ATCGATGCTGATGCTAGATA\" #20bp\npam    <- \"AGG\" #3bp \nflank3 <- \"TTG\" #3bp\ninput  <- paste0(flank5, spacer, pam, flank3) \nresults <- getRuleSet1Scores(input)\n\ncondaEnv <- \"/Users/fortin946/miniforge3/envs/rs3-env\"\nresults <- getRuleSet3Scores(input, tracrRNA=\"Hsu2013\", condaEnv=condaEnv)\n\nspacer  <- \"ATCGATGCTGATGCTAGATA\" #20bp\npam     <- \"AGG\" #3bp\ninput   <- paste0(spacer, pam)\ncondaEnv <- \"/Users/fortin946/miniforge3/envs/deephf-env\"\nresults <- getDeepHFScores(input, condaEnv=condaEnv)\n\nflank5 <- \"ACCTAA\" #6bp\nspacer <- \"ATCGATGCTGATGCTAGATA\" #20bp\npam    <- \"AGG\" #3bp \nflank3 <- \"TTGAAT\" #6bp\ninput  <- paste0(flank5, spacer, pam, flank3) \nresults <- getCRISPRscanScores(input)\n\nspacer <- \"ATCGATGCTGATGCTAGATA\" #20bp\nresults <- getCRISPRaterScores(spacer)\n\nflank5 <- \"ACCG\" #4bp\npam    <- \"TTTT\" #4bp\nspacer <- \"AATCGATGCTGATGCTAGATATT\" #23bp\nflank3 <- \"AAG\" #3bp\ninput  <- paste0(flank5, pam, spacer, flank3)\ncondaEnv <- \"/Users/fortin946/miniforge3/envs/enpamgb-env\"\nresults <- getEnPAMGBScores(input, condaEnv=condaEnv)\n\nfasta <- file.path(system.file(package=\"crisprScore\"),\n                   \"casrxrf/test.fa\")\nmrnaSequence <- Biostrings::readDNAStringSet(filepath=fasta,\n                                             format=\"fasta\",\n                                             use.names=TRUE)\nresults <- getCasRxRFScores(mrnaSequence)"
+    },
+    {
+      "name": "off_target_specificity_prediction",
+      "intent": "Predict off-target specificity of gRNAs against potential genomic off-target sites using MIT and CFD scoring.",
+      "input": [
+        "spacers.txt (character vector of 20bp spacer sequences)",
+        "protospacers.txt (character vector of 20bp protospacer sequences of putative off-targets)",
+        "pams.txt (character vector of PAM sequences)"
+      ],
+      "stages": "1. Define spacer, protospacer, and PAM sequences ;; 2. Calculate MIT scores using getMITScores ;; 3. Calculate CFD scores using getCFDScores",
+      "code": "spacer   <- \"ATCGATGCTGATGCTAGATA\"\nprotospacers  <- c(\"ACCGATGCTGATGCTAGATA\",\n                   \"ATCGATGCTGATGCTAGATT\",\n                   \"ATCGATGCTGATGCTAGATA\")\npams <- c(\"AGG\", \"AGG\", \"AGA\")\ngetMITScores(spacers=spacer,\n             protospacers=protospacers,\n             pams=pams)\n\ngetCFDScores(spacers=spacer,\n             protospacers=protospacers,\n             pams=pams)"
+    },
+    {
+      "name": "indel_frameshift_prediction",
+      "intent": "Predict the probability of a Cas9 gRNA to produce indels inducing a frameshift mutation using the Lindel algorithm.",
+      "input": [
+        "sequences.txt (character vector of 65bp sequences containing 13bp upstream, 23bp protospacer, and 29bp downstream flanking regions)"
+      ],
+      "stages": "1. Define the 65bp sequence context around the protospacer ;; 2. Run Lindel scoring using getLindelScores with a specified conda environment",
+      "code": "flank5 <- \"ACCTTTTAATCGA\" #13bp\nspacer <- \"TGCTGATGCTAGATATTAAG\" #20bp\npam    <- \"TGG\" #3bp\nflank3 <- \"CTTTTAATCGATGCTGATGCTAGATATTA\" #29bp\ninput <- paste0(flank5, spacer, pam, flank3)\ncondaEnv <- \"/Users/fortin946/miniforge3/envs/lindel-env\"\nresults <- getLindelScores(input, condaEnv=condaEnv)"
+    }
+  ]
+}

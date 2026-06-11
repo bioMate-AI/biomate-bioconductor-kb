@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: varNames=A vector of parameter/column names in the input data that need to be analyzed ;; MaxN=The maximum number of clusters to consider during the merging process ;; x=The input flow cytometry data matrix or data frame\n- alternatives: Model-based population identification methods (flowMeans is preferred for faster runtime without decreasing accuracy) ;; Standard k-means (flowMeans builds on k-means but allows multiple clusters to represent a single non-spherical population)\n- when_to_use: When performing automated gating and cell population identification on high-throughput flow cytometry data, especially when populations are non-spherical.\n- pitfalls: The user must ensure that no extra parameters (such as time or ID columns) are passed to the flowMeans function via varNames, as the function will not automatically remove them.",
+  "workflows": [
+    {
+      "name": "flow_cytometry_gating",
+      "intent": "Identify and visualize cell populations in flow cytometry data using non-parametric clustering and change point detection.",
+      "input": [
+        "flow_data.csv (matrix or data frame of flow cytometry measurements with marker channels)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Run the flowMeans clustering algorithm on specified marker channels ;; 3. Plot the minimum distances between merged clusters ;; 4. Detect the optimal number of clusters using changepointDetection and plot the change point ;; 5. Visualize the final cluster memberships in 2D and multi-dimensional plots",
+      "code": "library(flowMeans)\ndata(x)\nres <- flowMeans(x, varNames=c(\"FL1.H\", \"FL2.H\", \"FL3.H\", \"FL4.H\"), MaxN=10)\nplot(x[,c(3,4)], col=res@Labels[[1]], pch=20);\nplot(res@Mins, xlab='Iteration', ylab='Distance')\nplot(res@Mins, xlab=' ', ylab=' ', xlim=c(1, res@MaxN), ylim=c(0, max(res@Mins)))\nft<-changepointDetection(res@Mins)\nabline(ft$l1)\nabline(ft$l2);\npar(new=TRUE)\nplot(ft$MinIndex+1, res@Mins[ft$MinIndex+1], col='red', xlab='Iteration', ylab='Distance', xlim=c(1, res@MaxN), ylim=c(0, max(res@Mins)), pch=19);\nplot(x, res, c(\"FL1.H\", \"FL2.H\"))\nplot(x, res, c(\"FL1.H\", \"FL2.H\",\"FL3.H\", \"FL4.H\"),pch='.')"
+    }
+  ]
+}

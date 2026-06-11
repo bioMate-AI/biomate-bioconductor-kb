@@ -1,0 +1,17 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: SNP_index=A vector of indices assigning labels to SNPs (e.g., by chromosome) to divide them into non-overlapping sets for clustering or testing ;; global.test=Logical parameter in test.hierarchy; if set to FALSE, avoids re-testing the global null hypothesis once it has already been rejected for another chromosome ;; covar=A vector or matrix of covariates (e.g., sex, age) to control for in the regression models ;; dendr=The hierarchical tree object returned by cluster.snp ;; res.multisplit=The output list from multisplit containing sample splits and selected coefficients\n- alternatives: Marginal analysis (traditional GWAS) which tests SNPs individually but does not use a joint model and omits missing data ;; Imputation packages like mice, mi, or missforest for general multiple imputation in R, or SHAPEIT for GWAS-specific phasing and imputation before running hierGWAS\n- when_to_use: Use this package when you want to assess the statistical significance of single SNPs or groups of correlated SNPs in GWAS using a joint model (linear or logistic regression) while controlling the FWER, applicable to both continuous traits and case-control studies.\n- pitfalls: Multivariate methods like lm and glm do not allow missing data, so missing genotypes must be imputed before starting the analysis ;; Hierarchical clustering is computationally intensive; clustering all SNPs at once may be unfeasible, so SNPs should be divided into non-overlapping sets (e.g., chromosomes) and processed in parallel ;; Running global.test = TRUE repeatedly for different chromosomes is redundant once the global null is rejected; set it to FALSE for subsequent chromosomes to save time.",
+  "workflows": [
+    {
+      "name": "hierarchical_gwas_analysis",
+      "intent": "Perform hierarchical clustering, multi-split LASSO regression, hierarchical testing, and explained variance computation on GWAS SNP data.",
+      "input": [
+        "genotype_matrix.txt (n x p matrix of numerically coded SNPs: 0, 1, 2)",
+        "phenotype_vector.txt (vector of length n, binary or continuous)",
+        "covariates.txt (optional vector or matrix of covariates)"
+      ],
+      "stages": "1. Load and prepare genotype, phenotype, and covariate data ;; 2. Cluster SNPs hierarchically per chromosome using cluster.snp ;; 3. Perform multiple sample splitting and LASSO regression using multisplit ;; 4. Perform hierarchical testing of SNPs using test.hierarchy ;; 5. Compute explained variance (R2) for a group of SNPs using compute.r2",
+      "code": "library(hierGWAS)\ndata(simGWAS)\nsim.geno <- data.matrix(simGWAS[,1:1000])\nsim.pheno <- simGWAS$y\nsim.covar <- cbind(simGWAS$sex,simGWAS$age)\nSNPindex.chrom1 <- seq(1,500)\ndendr.chrom1 <- cluster.snp(sim.geno,SNP_index = SNPindex.chrom1)\nSNPindex.chrom2 <- seq(501,1000)\ndendr.chrom2 <- cluster.snp(sim.geno,SNP_index = SNPindex.chrom2)\nres.multisplit <- multisplit(sim.geno,sim.pheno,covar = sim.covar)\nresult.chrom1 <- test.hierarchy(sim.geno, sim.pheno, dendr.chrom1, res.multisplit,\n                                covar = sim.covar, SNP_index = SNPindex.chrom1)\nresult.chrom2 <- test.hierarchy(sim.geno, sim.pheno, dendr.chrom1, res.multisplit,\n                                covar = sim.covar, SNP_index = SNPindex.chrom2,\n                                global.test = FALSE, verbose = FALSE)\nSNP_index <- seq(991,1000)\nres.r2 <- compute.r2(sim.geno, sim.pheno, res.multisplit, covar = sim.covar, SNP_index = SNP_index)"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: min_depth=Minimum sequencing depth threshold for filtering variants (default 10) ;; filter_gd=Logical, whether to remove duplicate variants at the gene-level (default TRUE) ;; filter_pd=Logical, whether to remove duplicate variants at the positional level (default FALSE) ;; filter_vc=Logical, whether to filter variants using variant caller-specific criteria (default TRUE) ;; filter_mt=Logical, whether to remove mitochondrial variants (default TRUE) ;; filter_ns=Logical, whether to remove variants in non-standard chromosomes (default TRUE) ;; mode=In compare_profiles, 'intersection' (default) discards non-overlapping variants, while 'union' retains them ;; a, b=Parameters in calculate_similarity to weigh concordance in favor of comparisons with more overlaps (default a=1, b=5) ;; one=In compare_many, specifies a single baseline profile (e.g., COSMIC) to compare all other profiles against\n- alternatives: COSMIC database (specifically CosmicCLP_MutantExport.tsv.gz or CosmicCompleteTargetedScreensMutantExport.tsv.gz) for comparing against external somatic mutation profiles instead of internal samples ;; Yu et al. (2015) 48 SNP panel, which serves as the baseline reference for the 90% cell line authenticity threshold\n- when_to_use: Use when you need to authenticate cell lines or HTS samples (RNA-seq or WGS) to verify their genetic identity, or when you want to evaluate genetic similarities/differences between biological samples and characterize the biological impact of differing SNVs.\n- pitfalls: Do not use the minimal subset of COSMIC files included in the package for real analyses, as results will be incomplete and inaccurate ;; If analysis of which genes or transcripts are affected by variants is desired, duplicates should be removed at the gene-level (filter_gd = TRUE) or not at all, rather than at the positional level (filter_pd = TRUE) ;; Hard thresholds for similarity are discouraged; scores just below 90% require more rigorous evaluation of specific genes/regions ;; Performing many-to-many comparisons of annotated VCF files can be computationally expensive, so saving profiles to disk using write_profile is recommended",
+  "workflows": [
+    {
+      "name": "snv_profile_comparison_and_similarity_analysis",
+      "intent": "Create SNV profiles from VCF files, compare them to evaluate genetic similarity, and visualize the results.",
+      "input": [
+        "example.vcf.gz (VCF file containing variant calls for multiple samples)"
+      ],
+      "stages": "1. Create individual SNV profiles using create_profile ;; 2. Filter variants by depth or duplicates using filter_variants and filter_duplicates ;; 3. Compare profiles using compare_profiles ;; 4. Calculate similarity statistics using calculate_similarity ;; 5. Plot variant impact distributions using plot_impacts ;; 6. Perform many-to-many comparisons using compare_many ;; 7. Visualize multiple comparisons using plot_heatmap",
+      "code": "library(\"seqCAT\")\nvcf <- system.file(\"extdata\", \"example.vcf.gz\", package = \"seqCAT\")\nhct116 <- create_profile(vcf, \"HCT116\")\nrko <- create_profile(vcf, \"RKO\", min_depth = 15, filter_gd = FALSE)\nrko_filtered <- filter_variants(rko, min_depth = 20)\nrko_deduplicated <- filter_duplicates(rko, filter_pd = TRUE)\nhct116_rko <- compare_profiles(hct116, rko)\nhct116_rko_union <- compare_profiles(hct116, rko, mode = \"union\")\nsimilarity <- calculate_similarity(hct116_rko)\nhke3 <- create_profile(vcf, \"HKE3\")\nhct116_hke3 <- compare_profiles(hct116, hke3)\nsimilarities <- calculate_similarity(hct116_hke3, similarity, b = 10)\nimpacts <- plot_impacts(hct116_rko)\nprofiles <- list(hct116, hke3, rko)\nmany <- compare_many(profiles)\nheatmap <- plot_heatmap(many[[1]])"
+    },
+    {
+      "name": "cosmic_database_comparison",
+      "intent": "Compare sample SNV profiles against external COSMIC somatic mutation profiles to authenticate cell lines.",
+      "input": [
+        "subset_CosmicCLP_MutantExport.tsv.gz (COSMIC cell line project export file)",
+        "example.vcf.gz (VCF file containing variant calls)"
+      ],
+      "stages": "1. List available cell lines in the COSMIC file using list_cosmic ;; 2. Read the specific COSMIC profile using read_cosmic ;; 3. Compare the sample profile to the COSMIC profile using compare_profiles ;; 4. Perform one-to-many comparisons against COSMIC using compare_many",
+      "code": "library(\"seqCAT\")\nvcf <- system.file(\"extdata\", \"example.vcf.gz\", package = \"seqCAT\")\nhct116 <- create_profile(vcf, \"HCT116\")\nfile <- system.file(\"extdata\", \"subset_CosmicCLP_MutantExport.tsv.gz\", package = \"seqCAT\")\ncell_lines <- list_cosmic(file)\ncosmic <- read_cosmic(file, \"HCT116\")\nhct116_cosmic <- compare_profiles(hct116, cosmic)\nhke3 <- create_profile(vcf, \"HKE3\")\nrko <- create_profile(vcf, \"RKO\", min_depth = 15, filter_gd = FALSE)\nprofiles <- list(hct116, hke3, rko)\nmany_cosmic <- compare_many(profiles, one = cosmic)"
+    },
+    {
+      "name": "targeted_variant_validation",
+      "intent": "Extract and visualize the genotypes of specific known variants of interest across multiple sample profiles.",
+      "input": [
+        "example.vcf.gz (VCF file containing variant calls)"
+      ],
+      "stages": "1. Create a data frame of known variants with chromosome and position ;; 2. Extract genotypes for these variants across profiles using list_variants ;; 3. Format the variant list and plot the genotype grid using plot_variant_list",
+      "code": "library(\"seqCAT\")\nvcf <- system.file(\"extdata\", \"example.vcf.gz\", package = \"seqCAT\")\nhct116 <- create_profile(vcf, \"HCT116\")\nrko <- create_profile(vcf, \"RKO\", min_depth = 15, filter_gd = FALSE)\nknown_variants <- data.frame(chr  = c(12, 12, 12, 12),\n                             pos  = c(25358650, 21788465, 21797029, 25398281),\n                             gene = c(\"LYRM5\", \"LDHB\", \"LDHB\", \"KRAS\"),\n                             stringsAsFactors = FALSE)\nvariant_list <- list_variants(list(hct116, rko), known_variants)\nrow.names(variant_list) <- paste0(variant_list$chr, \":\", variant_list$pos,\n                                  \" (\", variant_list$gene, \")\")\nto_remove <- c(\"chr\", \"pos\", \"gene\")\nvariant_list <- variant_list[, !names(variant_list) %in% to_remove]\ngenotype_grid <- plot_variant_list(variant_list)"
+    }
+  ]
+}

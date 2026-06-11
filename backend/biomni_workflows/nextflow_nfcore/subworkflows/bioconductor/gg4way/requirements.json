@@ -1,0 +1,30 @@
+{
+  "package": "gg4way",
+  "requirements": [
+    "DESeq2",
+    "edgeR",
+    "gg4way",
+    "ggplot2",
+    "limma",
+    "purrr"
+  ],
+  "by_workflow": {
+    "gg4way_with_deseq2.nf": [
+      "DESeq2",
+      "gg4way",
+      "ggplot2",
+      "purrr"
+    ],
+    "gg4way_with_edger.nf": [
+      "edgeR",
+      "gg4way",
+      "ggplot2",
+      "purrr"
+    ],
+    "main.nf": [
+      "gg4way",
+      "ggplot2",
+      "limma"
+    ]
+  }
+}

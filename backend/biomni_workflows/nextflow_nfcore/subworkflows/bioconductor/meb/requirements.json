@@ -1,0 +1,21 @@
+{
+  "package": "meb",
+  "requirements": [
+    "MEB",
+    "SingleCellExperiment",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MEB"
+    ],
+    "scmeb_single_cell.nf": [
+      "MEB",
+      "SingleCellExperiment"
+    ],
+    "sfmeb_bulk_different_species.nf": [
+      "MEB",
+      "SummarizedExperiment"
+    ]
+  }
+}

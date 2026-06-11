@@ -1,0 +1,15 @@
+{
+  "package": "mmdiff2",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm9",
+    "GenomicRanges",
+    "MMDiff2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm9",
+      "GenomicRanges",
+      "MMDiff2"
+    ]
+  }
+}

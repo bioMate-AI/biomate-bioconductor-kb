@@ -1,0 +1,13 @@
+{
+  "package": "gemini",
+  "requirements": [
+    "gemini",
+    "magrittr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gemini",
+      "magrittr"
+    ]
+  }
+}

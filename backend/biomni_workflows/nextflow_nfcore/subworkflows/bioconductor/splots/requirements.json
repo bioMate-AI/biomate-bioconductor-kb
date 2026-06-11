@@ -1,0 +1,11 @@
+{
+  "package": "splots",
+  "requirements": [
+    "splots"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "splots"
+    ]
+  }
+}

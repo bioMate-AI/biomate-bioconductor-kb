@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: structure=Specifies the tRNA structural element to extract (e.g., \"anticodonLoop\") ;; joinFeatures=Logical, whether to join features in gettRNAstructureSeqs ;; joinCompletely=Logical, whether to return a fully blank padded set of sequences ;; unpaired=Logical, subsetting parameter for unpaired bases in stems ;; mismatches=Logical, subsetting parameter for mismatches in stems ;; bulged=Logical, subsetting parameter for bulges in stems ;; length=Integer, expected length of a loop for subsetting ;; plotScores=Logical, whether to use the score column of GRanges for correlation plotting ;; scores=A list of numeric scores matching the dimensions of the GRangesList for correlation plotting\n- alternatives: tRNAscanImport::import.tRNAscanAsGRanges=Preferred for importing raw tRNAscan-SE output files ;; tRNAdbImport::import.tRNAdb=Preferred for importing selected tRNA information directly from tRNAdb ;; Structstrings::getBasePairing=Underlying function for retrieving base pairing details from dot-bracket strings ;; Structstrings::getLoopIndices=Underlying function for retrieving loop indices\n- when_to_use: Use this package when you have tRNA sequences with secondary structure annotations (dot-bracket format) and need to extract specific structural domains, filter tRNAs by structural features (e.g., stem mismatches, loop lengths), or compare tRNA feature distributions (like length, GC content, or intron presence) across different samples or species.\n- pitfalls: The functions gettRNAstructureGRanges and gettRNAstructureSeqs may fail or return unexpected results if the tRNAs are armless or deviate drastically from the canonical tRNA model (e.g., certain mitochondrial tRNAs) ;; Input GRanges objects must contain specific metadata columns: tRNA_length, tRNA_type, tRNA_anticodon, tRNA_seq, tRNA_str, and tRNA_CCA.end ;; The tRNA_str column must contain a valid dot-bracket annotation using only <>{}[ ]() and . characters.",
+  "workflows": [
+    {
+      "name": "trna_structure_analysis_and_subsetting",
+      "intent": "Extract specific tRNA structural elements and subset tRNA sequences based on structural features and base-pairing properties.",
+      "input": [
+        "gr (GRanges object containing tRNA sequences, types, anticodons, and dot-bracket structures in metadata columns)"
+      ],
+      "stages": "1. Extract coordinates of specific tRNA structures ;; 2. Retrieve sequences of specific tRNA structures with optional padding ;; 3. Subset tRNAs based on structural features (unpaired bases, mismatches, bulges, or loop lengths) ;; 4. Retrieve detailed base pairing and loop ID annotations.",
+      "code": "gettRNAstructureGRanges(gr, structure = \"anticodonLoop\")\ngettRNAstructureSeqs(gr, joinFeatures = TRUE, structure = \"anticodonLoop\")\nseqs <- gettRNAstructureSeqs(gr[1L:10L], joinCompletely = TRUE)\nmetadata(seqs)[[\"tRNA_structures\"]]\ngr[hasAcceptorStem(gr, unpaired = TRUE)]\ngr[hasAcceptorStem(gr, mismatches = TRUE)]\ngr[hasAcceptorStem(gr, bulged = TRUE)]\ngr[hasAcceptorStem(gr, mismatches = TRUE) & \n     hasDloop(gr, length = 8L)]\nhead(gettRNABasePairing(gr)[[1L]])\ngettRNALoopIDs(gr)[[1L]]"
+    },
+    {
+      "name": "trna_feature_comparison_and_visualization",
+      "intent": "Compare tRNA feature parameters across multiple datasets and correlate features with external scores.",
+      "input": [
+        "grl (GRangesList containing multiple tRNA GRanges datasets to compare)"
+      ],
+      "stages": "1. Generate comparative feature plots for tRNA sets ;; 2. Correlate tRNA features with external numeric scores ;; 3. Customize the resulting ggplot2 visualization layers.",
+      "code": "grl <- GRangesList(Sce = gr,\n                   Hsa = gr_human,\n                   Eco = gr_eco)\nplots <- gettRNAFeaturePlots(grl)\nplots$length\nplots$tRNAscan_score\nplots$gc\nplots$tRNAscan_intron\nplots$variableLoop_length\nplots <- gettRNAFeaturePlots(grl,\n                             scores = list(runif(length(grl[[1L]]),0L,100L),\n                                           runif(length(grl[[2L]]),0L,100L),\n                                           runif(length(grl[[3L]]),0L,100L)))\nplots$length$layers <- plots$length$layers[c(-1L,-2L)]\nplots$length + ggplot2::geom_boxplot()\nhead(plots$length$data)"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "rcyjs",
+  "requirements": [
+    "RCyjs",
+    "graph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RCyjs",
+      "graph"
+    ]
+  }
+}

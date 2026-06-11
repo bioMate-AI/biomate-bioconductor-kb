@@ -1,0 +1,13 @@
+{
+  "package": "dyebias",
+  "requirements": [
+    "dyebias",
+    "marray"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "dyebias",
+      "marray"
+    ]
+  }
+}

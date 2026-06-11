@@ -1,0 +1,23 @@
+{
+  "package": "coseq",
+  "requirements": [
+    "DESeq2",
+    "coseq",
+    "edgeR",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "deseq2_integrated_coexpression.nf": [
+      "DESeq2",
+      "coseq",
+      "ggplot2"
+    ],
+    "edger_integrated_coexpression.nf": [
+      "coseq",
+      "edgeR"
+    ],
+    "main.nf": [
+      "coseq"
+    ]
+  }
+}

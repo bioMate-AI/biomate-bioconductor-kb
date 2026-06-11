@@ -1,0 +1,20 @@
+{
+  "package": "sevenc",
+  "requirements": [
+    "GenomicInteractions",
+    "GenomicRanges",
+    "InteractionSet",
+    "sevenC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicInteractions",
+      "sevenC"
+    ],
+    "train_custom_prediction_model.nf": [
+      "GenomicRanges",
+      "InteractionSet",
+      "sevenC"
+    ]
+  }
+}

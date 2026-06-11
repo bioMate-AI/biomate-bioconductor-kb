@@ -1,0 +1,17 @@
+{
+  "package": "bloodgen3module",
+  "requirements": [
+    "BloodGen3Module",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "individual_comparison_repertoire.nf": [
+      "BloodGen3Module",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "BloodGen3Module",
+      "SummarizedExperiment"
+    ]
+  }
+}

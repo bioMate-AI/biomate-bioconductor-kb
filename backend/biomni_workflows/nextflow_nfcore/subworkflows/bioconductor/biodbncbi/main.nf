@@ -1,130 +1,181 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: biodbNcbi
-// The biodbNcbi library provides access to the NCBI databases CCDS, Gene, Pubchem Comp and Pubchem Sub
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/biodbNcbi/inst/doc/biodbNcbi.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("biodbNcbi")
+// Bioconductor workflow: biodbNcbi — ncbi_gene_annotation
+// Retrieve functional annotations and metadata from the NCBI Gene database for a list of gene identifiers using biodbNcbi.
+// Input: input.csv
+// Container: 1.10.0--r44hdfd78af_0
+// R packages: biodb, biodbNcbi
+// Bioconductor: 3.20 | R: 4.4
+// Requires: biodb, biodbNcbi
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIODBNCBI {
+process BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biodbncbi"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biodbncbi:1.10.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biodbncbi:1.10.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biodbncbi_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biodbncbi_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biodbncbi_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biodb", "biodbNcbi")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries safely
+    library(biodb)
     library(biodbNcbi)
-    library(jsonlite)
-
-    # --- Getfactory [] ---
-    # Key functions: getFactory, createConn
-    ---------------------------------------------------------------------
-    gene <- mybiodb$getFactory()$createConn('ncbi.gene')
-    # --- Getnbentries [] ---
-    # Key functions: getNbEntries
-    ---------------------------------------------------------------------
-    gene$getNbEntries()
-    # --- Getentryids [] ---
-    # Key functions: getEntryIds
-    ---------------------------------------------------------------------
-    ids <- gene$getEntryIds(2)
-    ids
-    # --- Getentry [] ---
-    # Key functions: getEntry
-    ---------------------------------------------------------------------
-    entries <- gene$getEntry(ids)
-    entries
-    # --- Entriestodataframe [] ---
-    # Key functions: entriesToDataframe
-    ---------------------------------------------------------------------
-    x <- mybiodb$entriesToDataframe(entries)
-    x
-    # --- Wsefetch [] ---
-    # Key functions: wsEfetch, getNodeSet
-    ---------------------------------------------------------------------
-    entryxml <- gene$wsEfetch('2833', retmode='xml', retfmt='parsed')
-    XML::getNodeSet(entryxml, "//Entrezgene_prot")
-    # --- Wsesearch [] ---
-    # Key functions: wsEsearch
-    ---------------------------------------------------------------------
-    gene$wsEsearch(term='"chemokine"[Gene Name]', retmax=10, retfmt='ids')
-    # --- Searchforentries [] ---
-    # Key functions: searchForEntries
-    ---------------------------------------------------------------------
-    gene$searchForEntries(fields=list(name='chemokine'), max.results=10)
-    # --- Wseinfo [] ---
-    # Key functions: wsEinfo, getNodeSet
-    ---------------------------------------------------------------------
-    infoxml <- pubchem.comp$wsEinfo(retfmt='parsed')
-    XML::getNodeSet(infoxml, "//Field[1]")
-    # --- Terminate [] ---
-    # Key functions: terminate
-    ---------------------------------------------------------------------
-    mybiodb$terminate()
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biodbncbi_results.csv", row.names = TRUE)
+    
+    # Stage 2: Read and clean input identifiers defensively
+    input_file <- "input.csv"
+    if (!file.exists(input_file)) {
+      stop("Input file 'input.csv' not found in the working directory.")
+    }
+    
+    # Read input CSV
+    data <- read.csv(input_file, stringsAsFactors = FALSE, check.names = FALSE)
+    
+    # Extract candidate gene/feature IDs
+    if (ncol(data) == 1) {
+      ids <- data[[1]]
+    } else if ("feature_id" %in% colnames(data)) {
+      ids <- data\$feature_id
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biodbncbi_results.csv")
+      # Fallback to row names or the first column
+      ids <- rownames(data)
+      if (is.null(ids) || all(ids == as.character(seq_len(nrow(data))))) {
+        ids <- data[[1]]
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biodbncbi_output.rds")
+    
+    # Clean and deduplicate IDs
+    ids <- as.character(ids)
+    ids <- unique(ids[!is.na(ids) & ids != ""])
+    
+    if (length(ids) == 0) {
+      stop("No valid identifiers found in the input file.")
     }
+    
+    # Limit queries to prevent API timeouts and rate-limiting issues
+    max_queries <- 50
+    if (length(ids) > max_queries) {
+      message(sprintf("Limiting query to the first %d IDs to prevent API rate-limiting.", max_queries))
+      ids <- ids[1:max_queries]
+    }
+    
+    # Stage 3: Initialize biodb and NCBI Gene connector
+    message("Initializing biodb framework and NCBI Gene connector...")
+    bd <- biodb::newBiodb()
+    
+    # Create the NCBI Gene connector (registered by loading biodbNcbi)
+    conn <- bd\$getFactory()\$createConn('ncbi.gene')
+    
+    # Stage 4: Query NCBI Gene database
+    message("Querying NCBI Gene database for annotations...")
+    entries <- list()
+    for (id in ids) {
+      tryCatch({
+        # Retrieve entry for the given ID
+        entry <- conn\$getEntry(id)
+        if (!is.null(entry)) {
+          entries <- c(entries, entry)
+        }
+      }, error = function(e) {
+        warning(sprintf("Failed to retrieve NCBI Gene entry for ID '%s': %s", id, e\$message))
+      })
+    }
+    
+    # Stage 5: Extract annotations and compile results
+    message("Compiling annotation results...")
+    if (length(entries) > 0) {
+      # Attempt to convert entries to a data frame using biodb's built-in converter
+      df <- tryCatch({
+        bd\$entriesToDf(entries)
+      }, error = function(e) {
+        message("Falling back to manual field extraction...")
+        # Manual fallback extraction of common fields
+        do.call(rbind, lapply(entries, function(entry) {
+          id <- entry\$getFieldValue('id')
+          name <- entry\$getFieldValue('name')
+          desc <- entry\$getFieldValue('description')
+          org <- entry\$getFieldValue('organism')
+          
+          data.frame(
+            id = ifelse(is.null(id), "", paste(id, collapse = "; ")),
+            name = ifelse(is.null(name), "", paste(name, collapse = "; ")),
+            description = ifelse(is.null(desc), "", paste(desc, collapse = "; ")),
+            organism = ifelse(is.null(org), "", paste(org, collapse = "; ")),
+            stringsAsFactors = FALSE
+          )
+        }))
+      })
+    } else {
+      # Fallback empty dataframe if no entries were successfully retrieved
+      message("No entries were successfully retrieved. Creating empty output template.")
+      df <- data.frame(
+        id = ids,
+        status = "No NCBI Gene entry found or query failed",
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    # Stage 6: Write output to CSV
+    write.csv(df, "ncbi_annotations.csv", row.names = FALSE)
+    message("Analysis complete. Annotations written to 'ncbi_annotations.csv'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIODBNCBI:", paste0("    biodbncbi: ", packageVersion("biodbNcbi"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION":',
+        paste0('    biodbNcbi: ', as.character(packageVersion('biodbNcbi')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biodbncbi_results.csv
-    touch ${prefix}_biodbncbi_output.rds
-    echo "BIOC_BIODBNCBI:" > versions.yml
-    echo "    biodbncbi: 0.0.0" >> versions.yml
+    touch ${prefix}_ncbi_gene_annotation.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIODBNCBI_WORKFLOW {
+workflow BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BIODBNCBI(ch_input)
+    BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION(ch_input)
 
     emit:
-    results  = BIOC_BIODBNCBI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIODBNCBI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIODBNCBI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIODBNCBI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION.out.tables
+    plots    = BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION.out.plots
+    objects  = BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION.out.objects
+    versions = BIOC_BIODBNCBI_NCBI_GENE_ANNOTATION.out.versions
 }

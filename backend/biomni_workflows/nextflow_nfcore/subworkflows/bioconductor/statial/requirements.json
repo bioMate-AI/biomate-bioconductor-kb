@@ -1,0 +1,43 @@
+{
+  "package": "statial",
+  "requirements": [
+    "ClassifyR",
+    "SingleCellExperiment",
+    "Statial",
+    "dplyr",
+    "ggplot2",
+    "ggsurvfit",
+    "lisaClust",
+    "spicyR",
+    "survival",
+    "tibble",
+    "treekoR"
+  ],
+  "by_workflow": {
+    "continuous_cell_state_changes.nf": [
+      "ClassifyR",
+      "SingleCellExperiment",
+      "Statial",
+      "dplyr",
+      "ggplot2",
+      "ggsurvfit",
+      "lisaClust",
+      "spicyR",
+      "survival",
+      "tibble"
+    ],
+    "main.nf": [
+      "ClassifyR",
+      "SingleCellExperiment",
+      "Statial",
+      "dplyr",
+      "ggplot2",
+      "ggsurvfit",
+      "lisaClust",
+      "spicyR",
+      "survival",
+      "tibble",
+      "treekoR"
+    ]
+  }
+}

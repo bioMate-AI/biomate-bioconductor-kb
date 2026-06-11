@@ -1,0 +1,25 @@
+{
+  "package": "crisprdesign",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "S4Vectors",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "crisprBase",
+    "crisprDesign",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "S4Vectors",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "crisprBase",
+      "crisprDesign",
+      "org.Hs.eg.db"
+    ]
+  }
+}

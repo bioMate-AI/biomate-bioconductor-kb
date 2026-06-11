@@ -1,0 +1,58 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=An SPHM object containing the parsed aSVG and assay data ;; ID=A character vector of biomolecule IDs (e.g., genes) to plot ;; lay.shm=Layout arrangement ('gen' to organize by genes, 'con' to organize by conditions) ;; ft.trans=A character vector of aSVG features to make transparent to expose underlying overlapping tissue layers ;; col.idp=Logical, if TRUE activates 'cell-by-value' coloring to color cells and tissues independently based on expression values ;; charcoal=Logical, if TRUE displays superimposed raster images in black and white to reduce masking ;; alpha.overlay=Numeric, transparency level for superimposing raster and vector graphics ;; com.by=Specifies whether enrichment is performed on spatial features ('ft') or variables ('var')\n- alternatives: Web-based spatial visualization tools (e.g., Expression Atlas, BAR, eFP browser) or local tools (e.g., fslr) which typically lack customization and restrict users to pre-existing expression datasets or fixed anatomical images.\n- when_to_use: Use when you have quantitative spatial assay data (bulk or single-cell) and want to map and visualize these values onto custom or public anatomical SVG images, identify spatially enriched biomolecules, or co-visualize single-cell embeddings with tissue-level spatial heatmaps.\n- pitfalls: Double underscores ('__') are strictly reserved as separators between spatial features and experimental variables (e.g., 'tissue__condition') in column names; users must avoid using double underscores in their raw feature or variable names. Mismatched identifiers between the assay data and the aSVG feature names will result in unmapped features that cannot be colored.",
+  "workflows": [
+    {
+      "name": "standard_spatial_heatmap",
+      "intent": "Generate and customize spatial heatmaps from bulk assay data mapped onto an annotated SVG anatomical image.",
+      "input": [
+        "bulk_expression.tsv (matrix of gene expression values)",
+        "experimental_design.txt (metadata mapping samples to tissues and conditions)",
+        "anatomical_map.svg (annotated SVG image of the target organism/organ)"
+      ],
+      "stages": "1. Import the aSVG image using read_svg ;; 2. Normalize raw count data using norm_data ;; 3. Aggregate replicates using aggr_rep ;; 4. Filter low-abundance and low-variance genes using filter_data ;; 5. Convert gene identifiers if necessary using cvt_id ;; 6. Subset aSVG features if needed using sub_sf ;; 7. Store data in an SPHM container and plot the spatial heatmap using shm",
+      "code": "svg.hum.pa <- system.file(\"extdata/shinyApp/data\", 'homo_sapiens.brain.svg', package=\"spatialHeatmap\")\nsvg.hum <- read_svg(svg.hum.pa)\nse.nor.hum <- norm_data(data=rse.hum, norm.fun='ESF', log2.trans=TRUE)\nse.aggr.hum <- aggr_rep(data=se.nor.hum, sam.factor='organism_part', con.factor='disease', aggr='mean')\nse.fil.hum <- filter_data(data=se.aggr.hum, sam.factor='organism_part', con.factor='disease', pOA=c(0.01, 5), CV=c(0.3, 100))\nse.fil.hum <- cvt_id(db='org.Hs.eg.db', data=se.fil.hum, from.id='ENSEMBL', to.id='SYMBOL')\nsvg.hum.sub <- sub_sf(svg.hum, show=c(64:132, 162:163, 164, 190:218))\ndat.hum <- SPHM(svg=svg.hum.sub, bulk=se.fil.hum)\nres.hum <- shm(data=dat.hum, ID=c('OLFM4', 'PRSS22'), lay.shm='con', legend.r=1.5, legend.nrow=3, h=0.6)"
+    },
+    {
+      "name": "spatial_enrichment",
+      "intent": "Identify and visualize biomolecules that are significantly enriched or depleted in specific spatial regions.",
+      "input": [
+        "bulk_expression.rds (SummarizedExperiment of raw counts)",
+        "anatomical_map.svg (annotated SVG image)"
+      ],
+      "stages": "1. Subset spatial features and variables of interest using sf_var ;; 2. Filter low-expression data using filter_data ;; 3. Perform spatial enrichment analysis using spatial_enrich ;; 4. Visualize enrichment overlaps across features using ovl_enrich ;; 5. Query enriched/depleted genes for a target tissue using query_enrich ;; 6. Plot enrichment spatial heatmaps using shm",
+      "code": "sub.mus <- sf_var(data=rse.mus, feature='organism_part', ft.sel=c('brain', 'lung', 'colon', 'kidney', 'liver'), variable='strain', var.sel=c('DBA.2J', 'C57BL.6', 'CD1'), com.by='ft')\nsub.mus.fil <- filter_data(data=sub.mus, pOA=c(0.5, 15), CV=c(0.8, 100), verbose=FALSE)\nenr.res <- spatial_enrich(sub.mus.fil, method=c('edgeR'), norm='TMM', log2.fc=1, fdr=0.05, outliers=1)\novl_enrich(enr.res, type='up', plot='upset')\nen.brain <- query_enrich(enr.res, 'brain')\ndat.enrich <- SPHM(svg=svg.mus, bulk=en.brain)\nshm(data=dat.enrich, ID=c('Kif5c', 'Cdhr5'), legend.r=1, legend.nrow=7, sub.title.size=15, ncol=3, bar.width=0.09, lay.shm='gene')"
+    },
+    {
+      "name": "coexpression_clustering_network",
+      "intent": "Identify and visualize groups of biomolecules sharing similar abundance profiles using hierarchical clustering and co-expression networks.",
+      "input": [
+        "filtered_expression.rds (SummarizedExperiment of preprocessed expression data)"
+      ],
+      "stages": "1. Identify biomolecules with similar profiles to a query gene using submatrix ;; 2. Perform hierarchical clustering and plot a matrix heatmap using matrix_hm ;; 3. Extract specific clusters from the dendrogram using cut_dendro ;; 4. Construct an adjacency matrix and identify network modules using adj_mod ;; 5. Visualize the co-expression network module using network",
+      "code": "sub.mat <- submatrix(data=se.fil.mus, ID='Kif5c', p=0.15)\nres.hc <- matrix_hm(ID=c('Kif5c'), data=sub.mat, angleCol=60, angleRow=60, cexRow=0.8, cexCol=0.8, margin=c(10, 6), static=TRUE, arg.lis1=list(offsetRow=0.01, offsetCol=0.01))\ncut_dendro(res.hc$rowDendrogram, h=15, 'Kif5c')\nadj.mod <- adj_mod(data=sub.mat)\nnetwork(ID=\"Kif5c\", data=sub.mat, adj.mod=adj.mod, adj.min=0, vertex.label.cex=1.2, vertex.cex=3, edge.cex=3, mar.key=c(3, 10, 1, 10), static=TRUE)"
+    },
+    {
+      "name": "bulk_single_cell_covisualization",
+      "intent": "Co-visualize single-cell embedding plots with tissue-level spatial heatmaps using annotation labels or automated co-clustering.",
+      "input": [
+        "single_cell_data.rds (SingleCellExperiment)",
+        "bulk_data.rds (SummarizedExperiment)",
+        "anatomical_map.svg (annotated SVG image)"
+      ],
+      "stages": "1. Jointly normalize bulk and single-cell data using norm_cell ;; 2. Perform dimension reduction on single-cell data using reduce_dim ;; 3. Aggregate bulk replicates using aggr_rep ;; 4. (Optional) Perform automated co-clustering to assign cells to tissues using cocluster and filter assignments using filter_asg ;; 5. Define cell-to-tissue mappings and store in an SPHM container ;; 6. Generate the co-visualization plot using covis",
+      "code": "mus.lis.nor <- norm_cell(sce=sce, bulk=blk.mus, com=FALSE)\nblk.mus.nor <- mus.lis.nor$bulk\ncell.mus.nor <- mus.lis.nor$cell\ncolData(cell.mus.nor) <- colData(sce)\ncell.dim <- reduce_dim(cell.mus.nor)\nblk.mus.aggr <- aggr_rep(blk.mus.nor, sam.factor='sample', aggr='mean')\ncoclus.mus <- cocluster(bulk=blk.sc.mus.fil$bulk, cell=blk.sc.mus.fil$cell, min.dim=14, dimred='PCA', graph.meth='knn', cluster='fg')\ncoclus.mus <- filter_asg(coclus.mus, min.sim=0.1)\ncoclus.blk <- subset(coclus.mus, , bulkCell=='bulk')\ncoclus.sc <- subset(coclus.mus, , bulkCell=='cell')\ndat.auto.idp <- SPHM(svg=svg.mus.brain, bulk=coclus.blk, cell=coclus.sc)\ncovis(data=dat.auto.idp, ID=c('Atp2b1'), dimred='TSNE', tar.cell=c('hippocampus', 'hypothalamus', 'cerebellum', 'cerebral.cortex'), col.idp=TRUE, dim.lgd.text.size=10, dim.lgd.nrow=2, bar.width=0.08, legend.nrow=3, h=0.6, legend.key.size=0.01, legend.text.size=10, legend.r=0.27)"
+    },
+    {
+      "name": "spatial_single_cell_covisualization",
+      "intent": "Co-visualize spatially resolved single-cell (SRSC) data (e.g., 10X Visium) with anatomical spatial heatmaps.",
+      "input": [
+        "spatial_single_cell.rds (Seurat object containing spatial coordinates)",
+        "bulk_data.rds (SummarizedExperiment)",
+        "anatomical_map_sp.svg (annotated SVG image containing an 'overlay' shape defining the spatial spot region)"
+      ],
+      "stages": "1. Import the spatial aSVG image with srsc=TRUE using read_svg ;; 2. Rotate spatial coordinates if necessary by modifying the angle slot ;; 3. Define the cell-cluster-to-tissue association list ;; 4. Store objects in an SPHM container ;; 5. Generate the composite co-visualization plot (embedding, single-cell SHM, and bulk SHM) using covis",
+      "code": "svg.mus.sp <- read_svg(system.file(\"extdata/shinyApp/data\", \"mus_musculus.brain_sp.svg\", package=\"spatialHeatmap\"), srsc=TRUE)\nangle(svg.mus.sp)[[1]] <- angle(svg.mus.sp)[[1]] + 90\nlis.match <- list(cerebral.cortex=c('clus1', 'clus3', 'clus5', 'clus10', 'clus14'))\ndat.srsc <- SPHM(svg=svg.mus.sp, bulk=blk.sp, cell=srt.sc, match=lis.match)\ncovis(data=dat.srsc, ID='Epha4', assay.na='logcounts', dimred='TSNE', cell.group='seurat_clusters', tar.bulk=c('cerebral.cortex'), col.idp=TRUE, image='anterior1', bar.width=0.07, dim.lgd.nrow=2, dim.lgd.text.size=8, legend.r=0.1, legend.key.size=0.013, legend.text.size=10, legend.nrow=3, h=0.6, profile=TRUE, ncol=3, vjust=5, dim.lgd.key.size=3, size.r=0.97, dim.axis.font.size=8, size.pt=1.5, lgd.plots.size=c(0.35, 0.25, 0.35), verbose=FALSE)"
+    }
+  ]
+}

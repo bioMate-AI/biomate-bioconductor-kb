@@ -1,0 +1,14 @@
+{
+  "package": "dart",
+  "requirements": [
+    "DART"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DART"
+    ],
+    "wrapper_dart.nf": [
+      "DART"
+    ]
+  }
+}

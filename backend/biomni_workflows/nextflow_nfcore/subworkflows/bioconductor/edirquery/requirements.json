@@ -1,0 +1,11 @@
+{
+  "package": "edirquery",
+  "requirements": [
+    "EDIRquery"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EDIRquery"
+    ]
+  }
+}

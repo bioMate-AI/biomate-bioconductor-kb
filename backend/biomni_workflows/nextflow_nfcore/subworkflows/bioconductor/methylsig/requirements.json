@@ -1,0 +1,17 @@
+{
+  "package": "methylsig",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "bsseq",
+    "methylSig"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "bsseq",
+      "methylSig"
+    ]
+  }
+}

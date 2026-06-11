@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: parameters=A vector of parameter indices or names (e.g., c(\"SS Log\", \"FL3 Log\")) to be considered during model construction ;; nRecursions=Number of times the FCS training data will be subdivided, resulting in 2^nRecursions bins ;; dequantize=If TRUE, adds a tiny value to make event values unique, preventing binning artifacts ;; sampleSize=Specifies the per-flowFrame sample size of the data to use in model generation to speed up processing ;; transformation=In counts(), can be \"raw\", \"normalize\", or \"log2norm\" to control how bin counts are scaled\n- alternatives: Manual gating software (FlowJo, WinList, FCSExpress) which is subjective, labor-intensive, and lacks reproducibility ;; Model-based methods such as Gaussian Mixture Modeling which assume a specific functional form for the distribution, unlike flowFP's independent probability binning approach\n- when_to_use: When preparing high-throughput flow cytometry data for downstream machine learning, clustering, or classification ;; When performing rapid quality control (QC) to detect consistency of marker distributions (e.g., CD45 vs SSC) across multiple tubes or 96-well plates without manually inspecting dotplots\n- pitfalls: Sensitivity to non-biological variations (instrumental, reagent, or systematic variations) which can cause spurious signals ;; Events piling up on zero or full-scale axes due to compensation or detector limits, which artificially attracts bins and distorts the distribution ;; Data scaling issues: Linear data is heavily skewed, so a transformation that produces the most spread-out distribution (like logicle or log) should be used before fingerprinting ;; Event starvation: If the number of bins is on the order of the number of events in an instance, the expected number of events per bin is too small for statistical significance ;; Memory footprint: Large datasets (e.g., 96-well plates) consume vast amounts of memory in R, requiring downsampling or high-memory machines",
+  "workflows": [
+    {
+      "name": "fingerprint_generation_and_plexing",
+      "intent": "Create a probability binning model from flow cytometry data, generate fingerprints, and combine them into a plex for multi-model or multi-resolution analysis.",
+      "input": [
+        "fs1 (flowSet containing raw flow cytometry list-mode data)",
+        "fs2 (flowSet containing raw flow cytometry list-mode data for comparison)"
+      ],
+      "stages": "1. Build a probability binning model using flowFPModel ;; 2. Generate fingerprints for the dataset using flowFP ;; 3. Combine multiple fingerprints into a flowFPPlex ;; 4. Dynamically adjust resolution using nRecursions and append to the plex ;; 5. Visualize fingerprints using plot",
+      "code": "mod <-  flowFPModel(fs1, name=\"CD45/SS Model\", parameters=c(2,5), nRecursions=7)\nplot(mod)\nfp <- flowFP (fs1, mod)\nshow(fp)\nplot (fp, type=\"stack\")\nmod1 <-  flowFPModel(fs1, name=\"CD45/SS Model vs fs1\", parameters=c(\"SS Log\", \"FL3 Log\"), nRecursions=7)\nmod2 <-  flowFPModel(fs2, name=\"CD45/SS Model vs fs2\", parameters=c(\"SS Log\", \"FL3 Log\"), nRecursions=7)\nfp1_1 <- flowFP (fs1, mod1)\nfp1_2 <- flowFP (fs1, mod2)\nplex <- flowFPPlex(c(fp1_1, fp1_2))\nplot (plex, type='grid', vert_scale=10)\nfp <- flowFP (fs1, param=c(\"SS Log\", \"FL3 Log\"), nRecursions=8)\nplex <- flowFPPlex()\nfor (levels in 8:5) {\n\tnRecursions(fp) <- levels\n\tplex <- append (plex, fp)\n}\nplot (plex, type=\"tangle\", transformation=\"norm\")"
+    },
+    {
+      "name": "gating_quality_control",
+      "intent": "Perform quality control on multi-tube or plate-based flow cytometry data to detect sample/tube inconsistencies and identify outlier bins.",
+      "input": [
+        "fs1 (flowSet containing multi-tube flow cytometry data)",
+        "fs2 (flowSet containing multi-tube flow cytometry data with potential outliers)",
+        "plate (flowSet containing 96-well plate flow cytometry data)"
+      ],
+      "stages": "1. Generate fingerprints using flowFP with specific parameters ;; 2. Visualize fingerprint deviations across tubes or plate wells using plot with type=\"qc\" or type=\"plate\" ;; 3. Identify specific outlier bins by plotting fingerprints against raw data using plot with showbins and transformation='norm'",
+      "code": "fp1 <- flowFP (fs1, parameters=c(\"SS Log\", \"FL3 Log\"), name=\"self model: fs1\", nRecursions=5)\nplot (fp1, type=\"qc\", main=\"Gate QC for Sample fs1\")\nfp2 <- flowFP (fs2, parameters=c(\"SS Log\", \"FL3 Log\"), name=\"self model: fs2\", nRecursions=5)\nplot (fp2, type=\"qc\", main=\"Gate QC for Sample fs2\")\nplot (fp2, fs2, hi=5, showbins=c(6,7,10,11), pch=20, cex=.3, transformation='norm')\ndata(plate)\nfp <- flowFP (plate, parameters=c(\"SSC-H\",\"FL3-H\",\"FL4-H\"), nRecursions=5)\nplot (fp, type='plate')"
+    }
+  ]
+}

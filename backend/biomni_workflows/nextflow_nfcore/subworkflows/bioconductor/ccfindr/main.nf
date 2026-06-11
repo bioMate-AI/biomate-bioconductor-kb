@@ -1,148 +1,116 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ccfindR
-// A collection of tools for cancer genomic data clustering analyses, including those for single cell R
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ccfindR/inst/doc/ccfindR.R
-// Upstream  : S4Vectors
-// Downstream: none
-//
-// Install: BiocManager::install("ccfindR")
+// Bioconductor workflow: ccfindr — maximum_likelihood_nmf
+// Perform unsupervised clustering of single-cell RNA-seq data using Maximum Likelihood NMF and evaluate factorization quality across multiple ranks.
+// Input: matrix.mtx, genes.tsv, barcodes.tsv
+// Container: quay.io/biocontainers/bioconductor-ccfindr:1.30.0--r45ha27e39d_0
+// R packages: ccfindR, S4Vectors
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CCFINDR {
+process BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ccfindr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ccfindr:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ccfindr:1.26.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-ccfindr:1.30.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ccfindr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ccfindr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ccfindr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ccfindR", "S4Vectors")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required package
     library(ccfindR)
-    library(jsonlite)
+    
+    # Define the input directory as the current working directory
+    dir <- "."
+    
+    # 1. Read 10x Genomics data to create an scNMFSet object
+    sc <- read_10x(dir = dir, count = 'matrix.mtx', genes = 'genes.tsv', barcodes = 'barcodes.tsv')
+    
+    # 2. Filter cells based on UMI count thresholds
+    sc <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
+    
+    # 3. Filter genes based on variance-to-mean ratio (VMR) and minimum cell expression
+    markers <- c('CD4','CD8A','CD8B','CD19','CD3G','CD3D',
+                 'CD3Z','CD14')
+    sc0 <- filter_genes(sc, markers = markers, vmr.min = 1.5, 
+                min.cells.expressed = 50, rescue.genes = FALSE)
+    
+    # Assign the gene-filtered object to sc to proceed with factorization on the filtered dataset
+    sc <- sc0
+    
+    # 4. Perform Maximum Likelihood NMF factorization across a range of ranks
+    sc <- factorize(sc, ranks = seq(3,7), nrun = 5, verbose = 1, progress.bar = FALSE)
+    
+    # 5. Evaluate factorization quality measures (dispersion, cophenetic correlation)
+    measures_df <- measure(sc)
+    
+    # Write outputs to the working directory
+    write.csv(measures_df, "factorization_measures.csv", row.names = FALSE)
+    
+    pdf("factorization_plots.pdf")
+    plot(sc)
+    dev.off()
+    
+    saveRDS(sc, "sc_factorized.rds")
 
-    # --- Quality Control and Filtering [] ---
-    # Key functions: filter_cells, filter_genes, remove_zeros
-    sc_filtered <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
-    markers <- c("CD4", "CD8A", "CD8B", "CD19", "CD3G", "CD3D", "CD3Z", "CD14")
-    sc_clean <- filter_genes(
-        sc_filtered,
-        markers = markers,
-        vmr.min = 1.5,
-        min.cells.expressed = 50,
-        rescue.genes = TRUE,
-        progress.bar = FALSE
-    )
-    sc_clean <- remove_zeros(sc_clean)
-
-
-    # --- Non-negative Matrix Factorization [] ---
-    # Key functions: factorize, measure
-    sc_fact <- factorize(
-        sc_clean,
-        ranks = seq(3, 5),
-        nrun = 5,
-        verbose = 1,
-        progress.bar = FALSE
-    )
-    perf_measures <- measure(sc_fact)
-
-
-    # --- Bayesian Variational Factorization [] ---
-    # Key functions: vb_factorize, optimal_rank, ranks, basis
-    sb <- vb_factorize(
-        sc_clean,
-        ranks = seq(2, 5),
-        nrun = 5,
-        verbose = 1,
-        Tol = 1e-4,
-        progress.bar = FALSE
-    )
-    opt_r <- optimal_rank(sb)
-    all_ranks <- ranks(sb)
-    basis_mat <- basis(sb)[all_ranks == opt_r][[1]]
-
-
-    # --- Cluster Visualization and Mapping [] ---
-    # Key functions: feature_map, cell_map, visualize_clusters
-    markers <- c("CD4", "CD8A", "CD8B", "CD19", "CD3G", "CD3D", "CD3Z", "CD14")
-    feature_map(
-        sb,
-        markers = markers,
-        rank = 5,
-        max.per.cluster = 4,
-        gene.name = rowData(sb)[, 2],
-        cexRow = 0.7
-    )
-    cell_map(sb, rank = 5)
-    visualize_clusters(sb, rank = 5, cex = 0.7)
-
-
-    # --- Hierarchical Tree Construction [] ---
-    # Key functions: build_tree, rename_tips, plot_tree
-    cell_types <- c("B_cell", "CD8+_T", "CD4+_T", "Monocytes", "NK")
-    tree <- build_tree(sb, rmax = 5)
-    tree <- rename_tips(tree, rank = 5, tip.labels = cell_types)
-    plot_tree(tree, cex = 0.8, show.node.label = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ccfindr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ccfindr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ccfindr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CCFINDR:", paste0("    ccfindr: ", packageVersion("ccfindR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF":',
+        paste0('        ccfindr: ', as.character(packageVersion("ccfindr")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ccfindr_results.csv
-    touch ${prefix}_ccfindr_output.rds
-    echo "BIOC_CCFINDR:" > versions.yml
-    echo "    ccfindr: 0.0.0" >> versions.yml
+    touch ${prefix}_maximum_likelihood_nmf.csv versions.yml
     """
 }
 
-
-workflow BIOC_CCFINDR_WORKFLOW {
+workflow BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ matrix.mtx, genes.tsv, barcodes.tsv ] ]
 
     main:
-    BIOC_CCFINDR(ch_input)
+    BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF(ch_input)
 
     emit:
-    results  = BIOC_CCFINDR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CCFINDR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CCFINDR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CCFINDR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF.out.tables
+    plots    = BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF.out.plots
+    objects  = BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF.out.objects
+    versions = BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF.out.versions
 }

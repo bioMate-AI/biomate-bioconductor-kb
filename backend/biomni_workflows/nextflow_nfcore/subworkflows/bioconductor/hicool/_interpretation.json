@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: r1=Path to R1 fastq file ;; r2=Path to R2 fastq file ;; restriction=Restriction enzyme(s) used for Hi-C (e.g., 'DpnII,HinfI') ;; binning=Minimum resolution for binning (e.g., 1000) ;; genome=Genome reference (path to .fasta, pre-computed bowtie2 index, or supported ID like 'hg38', 'mm10', 'dm6', 'R64-1-1', 'WBcel235', 'GRCz10', 'Galgal4') ;; output=Directory path where output files will be placed ;; iterative=Logical (default TRUE); if TRUE, performs iterative truncation and alignment to rescue more pairs ;; balancing_args=Character (default \" --min-nnz 10 --mad-max 5 \"); arguments passed to cooler for matrix normalization ;; threads=Integer (default 1L); number of CPUs to use ;; exclude_chr=Character (default 'Mito|chrM|MT'); chromosomes to remove from the final contact matrix ;; keep_bam=Logical (default FALSE); whether to keep intermediate BAM files ;; scratch=Path to temporary directory for processing (default tempdir())\n- alternatives: None mentioned in the documentation.\n- when_to_use: Appropriate when processing raw paired-end Hi-C sequencing reads (FASTQ format) into standard, shareable, and normalized contact matrices (.mcool) and interaction pairs (.pairs) within an R environment.\n- pitfalls: The first execution of HiCool() will trigger a fresh conda environment installation via basilisk, which may take some time and requires internet access. Iterative mapping (iterative = TRUE) is computationally intensive and takes longer than standard mapping.",
+  "workflows": [
+    {
+      "name": "hic_processing_pipeline",
+      "intent": "Process raw paired-end Hi-C FASTQ files into binned, normalized contact matrices (.mcool) and interaction pairs (.pairs).",
+      "input": [
+        "R1.fq.gz (raw forward paired-end reads)",
+        "R2.fq.gz (raw reverse paired-end reads)"
+      ],
+      "stages": "1. Load the HiCool package ;; 2. Run the HiCool() function with FASTQ inputs, restriction enzymes, binning resolution, genome ID, and output directory ;; 3. Inspect the returned CoolFile object and its metadata",
+      "code": "library(HiCool)\nhcf <- HiCool(\n    r1 = HiContactsData::HiContactsData(sample = 'yeast_wt', format = 'fastq_R1'), \n    r2 = HiContactsData::HiContactsData(sample = 'yeast_wt', format = 'fastq_R2'), \n    restriction = 'DpnII,HinfI', \n    binning = 1000, \n    genome = 'R64-1-1', \n    output = './HiCool/'\n)\nhcf\nS4Vectors::metadata(hcf)"
+    }
+  ]
+}

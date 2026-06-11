@@ -1,0 +1,17 @@
+{
+  "package": "hicaggr",
+  "requirements": [
+    "GenomicRanges",
+    "HicAggR",
+    "InteractionSet",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "HicAggR",
+      "InteractionSet",
+      "rtracklayer"
+    ]
+  }
+}

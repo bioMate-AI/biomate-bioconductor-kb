@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A matrix of normalized genomic features (rows) and samples (columns) ;; groups=A vector defining the experimental design (sample groups), matching the column order of the data matrix ;; B=Number of bootstraps (e.g., 100 for quick runs, but 1000 is preferred for real analyses) ;; K=Largest top list size considered in reproducibility calculations (e.g., 500 for quick runs, several thousands for large matrices) ;; seed=Random seed for reproducibility of the bootstrap/permutation ;; fdr=FDR cutoff used in summary() and plot() to filter or visualize significant features ;; type=Type of plot to generate in plot(), either \"volcano\" or \"heatmap\"\n- alternatives: edgeR (TMM normalization) and limma (Voom transformation) are recommended for preprocessing count-based data (RNA-seq) before running ROTS ;; impute package (K-nearest neighbor imputation) is recommended for handling missing values prior to ROTS\n- when_to_use: Use when performing differential expression/abundance testing in two-group, multi-group, or survival analyses across various omics technologies (microarray, proteomics, RNA-seq, single-cell) especially when sample sizes are small and a data-adaptive, reproducibility-optimized statistic is desired.\n- pitfalls: Each row of the data matrix must contain at least two non-missing values in both groups; rows with too many missing values must be removed or imputed ;; The order of samples in the data matrix must exactly match the order of the groups vector ;; Reproducibility Z-scores below 2 indicate that the data or statistics are insufficient for reliable detection ;; Optimization parameters a1 and a2 must always be non-negative",
+  "workflows": [
+    {
+      "name": "differential_expression_testing",
+      "intent": "Perform differential expression testing on omics data using the Reproducibility-Optimized Test Statistic (ROTS) and visualize the results.",
+      "input": [
+        "input (a matrix of normalized genomic features as rows and samples as columns)",
+        "groups (a vector defining the experimental design/sample groups)"
+      ],
+      "stages": "1. Load the package and input data ;; 2. Define the experimental design groups ;; 3. Run the ROTS optimization and differential testing ;; 4. Summarize the top-ranked features ;; 5. Visualize results with volcano and heatmap plots",
+      "code": "library(ROTS)\ndata(upsSpikeIn)\ninput = upsSpikeIn\ngroups = c(rep(0,3), rep(1,3))\ngroups\nresults = ROTS(data = input, groups = groups , B = 100 , K = 500 , seed = 1234)\nnames(results) \nsummary(results, fdr = 0.05)\nplot(results, fdr = 0.05, type = \"volcano\")\nplot(results, fdr = 0.05, type = \"heatmap\")"
+    }
+  ]
+}

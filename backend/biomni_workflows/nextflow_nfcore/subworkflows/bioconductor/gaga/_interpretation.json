@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: equalcv=TRUE (default) assumes constant coefficient of variation across groups, while equalcv=FALSE allows varying CV ;; nclust=1 (default) fits the GaGa model, while nclust > 1 fits the MiGaGa mixture model ;; method specifies the fitting algorithm: 'EM', 'quickEM' (fast 1-step EM, recommended for large datasets), 'SA' (simulated annealing), 'Gibbs' (Gibbs sampling MCMC, provides credibility intervals), or 'MH' (Metropolis-Hastings MCMC) ;; parametric=TRUE in findgenes performs parametric FDR estimation, while parametric=FALSE uses bootstrap permutations ;; underpattern in posmeansGG specifies the expression pattern hypothesis under which posterior means are calculated.\n- alternatives: The Gamma-Gamma model (Newton et al. 2001, Kendziorski et al. 2003) is a simpler alternative but often fits real data poorly compared to GaGa/MiGaGa. Normalization via just.rma (from affy) or just.gcrma (from gcrma) is recommended before using gaga's default prior parameters.\n- when_to_use: Use when performing differential expression analysis, fold-change estimation, or class prediction on normalized high-throughput transcriptomics data (e.g., microarrays). It is also highly suitable for determining optimal sample sizes (fixed or sequential) for future high-throughput experiments based on pilot data.\n- pitfalls: The column names of the patterns matrix must exactly match the group codes in the groups vector, or the fitting function will return an error ;; Posterior-predictive plots (checkfit) can fail to detect model departures due to double use of the data; prior-predictive checks using simGG with hyper-parameters set to posterior means are safer ;; MCMC methods (Gibbs, MH) are computationally intensive and may be slow on very large datasets compared to quickEM.",
+  "workflows": [
+    {
+      "name": "differential_expression_and_fold_change",
+      "intent": "Fit the GaGa model to expression data, identify differentially expressed genes under a target FDR, and estimate posterior fold changes.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix where rows are genes and columns are samples)",
+        "sample_groups.csv (metadata containing group labels for each sample)"
+      ],
+      "stages": "1. Define experimental groups and the hypothesis patterns matrix.\n2. Fit the GaGa model using fitGG.\n3. Estimate hyper-parameters and posterior probabilities using parest.\n4. Assess model goodness-of-fit using checkfit.\n5. Identify differentially expressed genes using findgenes.\n6. Compute posterior expected expression values and log-fold changes using posmeansGG.",
+      "code": "groups <- pData(xsim)$group[c(-6,-12)]\npatterns <- matrix(c(0,0,0,1),2,2)\ncolnames(patterns) <- c('group 1','group 2')\ngg1 <- fitGG(x[,c(-6,-12)],groups,patterns=patterns,nclust=1,method='Gibbs',B=1000,trace=FALSE)\ngg1 <- parest(gg1,x=x[,c(-6,-12)],groups,burnin=100,alpha=.05)\ncheckfit(gg1,x=x[,c(-6,-12)],groups,type='data',main='')\ncheckfit(gg1,x=x[,c(-6,-12)],groups,type='shape',main='')\ncheckfit(gg1,x=x[,c(-6,-12)],groups,type='mean',main='')\ncheckfit(gg1,x=x[,c(-6,-12)],groups,type='shapemean',main='',xlab='Mean',ylab='1/sqrt(CV)')\nd1 <- findgenes(gg1,x[,c(-6,-12)],groups,fdrmax=.05,parametric=TRUE)\nd1.nonpar <- findgenes(gg1,x[,c(-6,-12)],groups,fdrmax=.05,parametric=FALSE,B=1000)\nmpos <- posmeansGG(gg1,x=x[,c(-6,-12)],groups=groups,underpattern=1)\nfc <- mpos[,1]-mpos[,2]"
+    },
+    {
+      "name": "class_prediction",
+      "intent": "Predict the group/class of new samples using a fitted GaGa model.",
+      "input": [
+        "training_expression.csv (normalized expression matrix for training samples)",
+        "new_expression.csv (expression matrix for new samples to classify)",
+        "training_groups.csv (group labels for training samples)"
+      ],
+      "stages": "1. Fit the GaGa model on training data using fitGG and parest.\n2. Predict the class of new samples and obtain posterior probabilities using classpred.",
+      "code": "pred1 <- classpred(gg1,xnew=x[,6],x=x[,c(-6,-12)],groups,ngene=50,prgroups=c(.5,.5))"
+    },
+    {
+      "name": "sample_size_calculation",
+      "intent": "Perform fixed and sequential sample size calculations to determine the optimal number of additional samples to collect.",
+      "input": [
+        "pilot_expression.csv (normalized expression matrix from a pilot study)",
+        "pilot_groups.csv (group labels for the pilot samples)"
+      ],
+      "stages": "1. Fit the GaGa model to pilot data using fitGG and parest.\n2. Calculate expected discoveries for fixed additional sample sizes using powfindgenes.\n3. Run forward simulations for sequential design using forwsimDiffExpr.\n4. Determine optimal sequential stopping boundaries using seqBoundariesGrid.",
+      "code": "gg1 <- fitGG(x,groups=1:2,method='EM')\ngg1 <- parest(gg1,x=x,groups=1:2)\npow1 <- powfindgenes(gg1, x=x, groups=1:2, batchSize=1, fdrmax=0.05, B=1000)\nfs1 <- forwsimDiffExpr(gg1, x=x, groups=1:2, maxBatch=3,batchSize=1,fdrmax=0.05, B=100, Bsummary=100, randomSeed=1)\nb0seq <- seq(0,20,length=200); b1seq <- seq(0,40,length=200)\nbopt <-seqBoundariesGrid(b0=b0seq,b1=b1seq,forwsim=fs1,samplingCost=samplingCost,powmin=0)"
+    }
+  ]
+}

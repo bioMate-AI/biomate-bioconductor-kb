@@ -1,0 +1,11 @@
+{
+  "package": "asgsca",
+  "requirements": [
+    "ASGSCA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ASGSCA"
+    ]
+  }
+}

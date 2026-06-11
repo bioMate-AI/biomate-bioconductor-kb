@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A matrix or data.frame containing the beta values (or other real numbers) with genes/probes as row names and samples as column names ;; samples=A data.frame containing sample-to-batch assignments where the first column must be named \"sample_id\" and the second column \"batch_id\" ;; adjusted=Logical value in calcBatchEffects indicating whether p-values should be adjusted for multiple testing (default is TRUE) ;; method=The p-value adjustment method in calcBatchEffects (default is \"fdr\", supports all methods in p.adjust.methods) ;; rowBlockSize=The row size of blocks for dividing the matrix during imputation in imputeMissingData (default is 60; set to 0 to run on the whole matrix without division) ;; colBlockSize=The column size of blocks for dividing the matrix during imputation in imputeMissingData (default is 60; set to 0 to run on the whole matrix without division) ;; epochs=The number of iterations for the gradient descent in imputeMissingData (default is 50) ;; BPPARAM=An optional BiocParallelParam class instance to enable parallelization in calcBatchEffects, imputeMissingData, and correctBatchEffect\n- alternatives: None mentioned for batch correction, but the core imputation method is based on Latent Factor Models and stochastic gradient descent techniques.\n- when_to_use: Use when you have DNA methylation microarray data (or other high-throughput molecular data represented as a numeric matrix) with known batch assignments, and you need to identify, quantify, and correct batch effects without losing biological variation.\n- pitfalls: Imputation can sometimes predict values outside the valid boundaries of beta values (i.e., < 0 or > 1). Users must run replaceOutsideValues to reset these values to 0 or 1. The samples data.frame must strictly have \"sample_id\" as the first column name and \"batch_id\" as the second column name.",
+  "workflows": [
+    {
+      "name": "step_by_step_batch_correction",
+      "intent": "Detect, score, and correct batch effects in DNA methylation data using a step-by-step manual workflow.",
+      "input": [
+        "beta_values.csv (Matrix of DNA methylation beta values with genes/probes as rows and samples as columns)",
+        "sample_metadata.csv (Data frame with sample_id and batch_id columns mapping samples to their respective batches)"
+      ],
+      "stages": "1. Calculate batch effects (median differences and p-values) using calcBatchEffects ;; 2. Summarize batch-affected gene-sample combinations using calcSummary ;; 3. Calculate batch severity scores using calcScore ;; 4. Set batch-affected values to NA using clearBEgenes ;; 5. Impute the missing values using block-based stochastic gradient descent with imputeMissingData ;; 6. Correct out-of-bounds predicted values using replaceOutsideValues ;; 7. Visualize the distributions before and after correction using makeBoxplot",
+      "code": "batchEffect <- calcBatchEffects(\n  data = ex.data, samples = ex.samples,\n  adjusted = TRUE, method = \"fdr\"\n)\nmdifs <- batchEffect$med\npvals <- batchEffect$pval\nsummary <- calcSummary(medians = mdifs, pvalues = pvals)\nscore <- calcScore(ex.data, ex.samples, summary, dir = getwd())\ncleared.data <- clearBEgenes(ex.data, ex.samples, summary)\nlibrary(ids)\ncorrected.data <- imputeMissingData(cleared.data,\n  rowBlockSize = 60,\n  colBlockSize = 60, epochs = 50,\n  outputFormat = \"\", dir = getwd()\n)\ncorrected.data.valid<-replaceOutsideValues(corrected.data)\nmakeBoxplot(ex.data, ex.samples, score,\n  bySamples = TRUE,\n  col = \"standard\", main = \"Example data\", xlab = \"Batch\",\n  ylab = \"Beta value\", scoreCol = TRUE)\nmakeBoxplot(corrected.data, ex.samples, score,\n  bySamples = TRUE,\n  col = \"standard\", main = \"Corrected example data\",\n  xlab = \"Batch\", ylab = \"Beta value\", scoreCol = FALSE)"
+    },
+    {
+      "name": "one_step_batch_correction",
+      "intent": "Perform automated batch effect detection, clearing, and imputation in a single function call.",
+      "input": [
+        "beta_values.csv (Matrix of DNA methylation beta values with genes/probes as rows and samples as columns)",
+        "sample_metadata.csv (Data frame with sample_id and batch_id columns mapping samples to their respective batches)"
+      ],
+      "stages": "1. Run the overall batch correction wrapper function correctBatchEffect",
+      "code": "result <- correctBatchEffect(data = ex.data, samples = ex.samples)"
+    }
+  ]
+}

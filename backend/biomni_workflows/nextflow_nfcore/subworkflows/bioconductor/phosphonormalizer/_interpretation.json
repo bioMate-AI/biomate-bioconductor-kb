@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: enriched=A data frame or MSnSet containing the enriched phosphoproteomics data ;; non.enriched=A data frame or MSnSet containing the non-enriched proteomics data ;; samplesCols=A data frame specifying the column indices of abundances in both enriched and non-enriched data frames ;; modseqCols=A data frame specifying the column indices of sequence and modification in both data frames ;; techRep=A factor indicating the samples and their technical replicates ;; plot.fc=An optional list specifying control and sample indices to generate fold change distribution plots\n- alternatives: Global centering-based normalization (median normalization), which is commonly used but can introduce bias in phosphoproteomics because the enrichment of phosphopeptides can mask large unidirectional biological changes.\n- when_to_use: When analyzing label-free MS-based phosphoproteomics data where both enriched and non-enriched samples have been run, and the abundances have been pre-normalized with median normalization.\n- pitfalls: If there are no common phosphopeptides between the enriched and non-enriched data, the normalization is not possible and an error is generated ;; The input abundances must be pre-normalized with median normalization before running this package ;; Sequence and modification columns must be in character format, and abundance columns must be numeric.",
+  "workflows": [
+    {
+      "name": "pairwise_phospho_normalization",
+      "intent": "Normalize enriched phosphoproteomics data using overlapping peptides from non-enriched data to correct for enrichment-induced bias.",
+      "input": [
+        "enriched_data.csv (enriched phosphoproteomics data frame with sequence, modification, and abundance columns)",
+        "non_enriched_data.csv (non-enriched proteomics data frame with sequence, modification, and abundance columns)"
+      ],
+      "stages": "1. Define abundance column indices for enriched and non-enriched datasets ;; 2. Define sequence and modification column indices ;; 3. Define technical replicates as a factor ;; 4. Specify plot parameters for fold change distribution ;; 5. Run normalizePhospho to perform pairwise normalization",
+      "code": "library(phosphonormalizer)\nsamplesCols <- data.frame(enriched=3:17, non.enriched=3:17)\nmodseqCols <- data.frame(enriched = 1:2, non.enriched = 1:2)\ntechRep <- factor(x = c(1,1,1,2,2,2,3,3,3,4,4,4,5,5,5))\nplot.param <- list(control = c(1), samples = c(3))\nnorm <- normalizePhospho(enriched = enriched.rd, non.enriched = non.enriched.rd, samplesCols = samplesCols, modseqCols = modseqCols, techRep = techRep, plot.fc = plot.param)"
+    }
+  ]
+}

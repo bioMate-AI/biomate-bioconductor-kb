@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: nPermutations=Number of permutations for significance testing in tni.permutation, tna.gsea1, and tna.gsea2 (should be set to >= 1000 for robust results) ;; eps=Tolerance parameter in tni.dpi.filter for removing the weakest edge in a triplet (empirically between 0 and 0.15, or set to NA to estimate from the null distribution) ;; pValueCutoff=Significance threshold in tni.permutation to control Type I error rate ;; parChunks=Argument in tni.permutation and tni.bootstrap to adjust job size sent for parallelization to avoid memory ceiling ;; what=Argument in tni.get and tna.get to specify the type of results to retrieve (e.g., 'regulons.and.mode', 'mra', 'gsea1', 'gsea2', 'regulonActivity')\n- alternatives: RTNduals=For searching co-regulatory associations between pairs of regulators ;; RTNsurvival=For integrating regulon activity profiles with clinical survival variables ;; minet=Alternative R/Bioconductor package mentioned for mutual information network inference\n- when_to_use: Use when you have large gene expression datasets (RNA-Seq or microarray, minimum 100 samples recommended) and a list of transcription factors, and you want to reconstruct transcriptional regulatory networks (TRNs) or analyze regulon activity across samples or phenotypes.\n- pitfalls: Using cohorts with fewer than 100 samples, which is below the empirical lower bound for the ARACNe algorithm ;; Using sample sets with low expression variability (e.g., normal, non-cancerous samples), as mutual information relies on expression variation ;; Small regulons (< 15 targets) are not useful for downstream methods ;; Highly unbalanced regulons (e.g., only positive targets) provide unstable activity readouts ;; Running large datasets in parallel without monitoring memory, which can consume all system memory (use parChunks to adjust)",
+  "workflows": [
+    {
+      "name": "trn_reconstruction_and_enrichment",
+      "intent": "Reconstruct a transcriptional regulatory network from gene expression data and perform enrichment analysis (MRA, GSEA-1T, GSEA-2T) against a gene expression signature.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix with genes on rows and samples on columns)",
+        "tf_list.txt (vector of transcription factor gene symbols)",
+        "gene_annotation.csv (data frame with gene annotations)",
+        "sample_annotation.csv (data frame with sample annotations)",
+        "phenotype_signature.tsv (named numeric vector of log2 fold changes and character vector of differentially expressed genes)"
+      ],
+      "stages": "1. Initialize the TNI object using tni.constructor ;; 2. Run permutation analysis to compute mutual information using tni.permutation ;; 3. Run bootstrap analysis to remove unstable interactions using tni.bootstrap ;; 4. Apply the ARACNe DPI filter to remove indirect interactions using tni.dpi.filter ;; 5. Summarize and retrieve regulons using tni.regulon.summary and tni.get ;; 6. Preprocess the TNI object into a TNA object using tni2tna.preprocess ;; 7. Run Master Regulator Analysis (MRA) using tna.mra ;; 8. Run one-tailed GSEA using tna.gsea1 ;; 9. Run two-tailed GSEA using tna.gsea2 ;; 10. Retrieve enrichment results using tna.get",
+      "code": "tfs <- c(\"FOXM1\",\"E2F2\",\"E2F3\",\"RUNX2\",\"PTTG1\")\nrtni <- tni.constructor(expData = tniData$expData, \n                        regulatoryElements = tfs, \n                        rowAnnotation = tniData$rowAnnotation, \n                        colAnnotation = tniData$colAnnotation)\nrtni <- tni.permutation(rtni, nPermutations = 100)\nrtni <- tni.bootstrap(rtni)\nrtni <- tni.dpi.filter(rtni)\ntni.regulon.summary(rtni)\ntni.regulon.summary(rtni, regulatoryElements = \"FOXM1\")\nregulons <- tni.get(rtni, what = \"regulons.and.mode\", idkey = \"SYMBOL\")\nhead(regulons$FOXM1)\nrtna <- tni2tna.preprocess(object = rtni, \n                           phenotype = tnaData$phenotype, \n                           hits = tnaData$hits, \n                           phenoIDs = tnaData$phenoIDs)\nrtna <- tna.mra(rtna)\nmra <- tna.get(rtna, what=\"mra\", ntop = -1)\nhead(mra)\nrtna <- tna.gsea1(rtna, nPermutations=100)\ngsea1 <- tna.get(rtna, what=\"gsea1\", ntop = -1)\nhead(gsea1)\nrtna <- tna.gsea2(rtna, nPermutations = 100)\ngsea2 <- tna.get(rtna, what = \"gsea2\", ntop = -1)\nhead(gsea2$differential)"
+    },
+    {
+      "name": "regulon_activity_profiling_and_cohort_projection",
+      "intent": "Calculate sample-specific regulon activity profiles (RAPs) for a cohort and project previously calculated regulons onto a new cohort.",
+      "input": [
+        "cohort_a_tni.RData (previously calculated TNI object from Cohort A)",
+        "cohort_b_expression.csv (gene expression matrix or SummarizedExperiment for Cohort B)"
+      ],
+      "stages": "1. Compute sample-specific regulon activity for Cohort A using tni.gsea2 ;; 2. Retrieve activity scores using tni.get ;; 3. Replace the expression data and sample annotations of the Cohort A TNI object with Cohort B using tni.replace.samples ;; 4. Compute sample-specific regulon activity for Cohort B using tni.gsea2 ;; 5. Retrieve Cohort B activity scores using tni.get",
+      "code": "rtni1st <- tni.gsea2(rtni1st, regulatoryElements = risk.tfs)\nmetabric_regact <- tni.get(rtni1st, what = \"regulonActivity\")\nrtni1st_tcgasamples <- tni.replace.samples(rtni1st, tcgaBRCA_mRNA_data)\nrtni1st_tcgasamples <- tni.gsea2(rtni1st_tcgasamples, regulatoryElements = risk.tfs)\ntcga_regact <- tni.get(rtni1st_tcgasamples, what = \"regulonActivity\")"
+    }
+  ]
+}

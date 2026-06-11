@@ -4,6 +4,8 @@
 // Perform consensus clustering using a pre-computed custom distance matrix to reduce computation time on large datasets.
 // Input: expression_matrix.csv
 // Container: quay.io/biocontainers/bioconductor-consensusclusterplus:1.74.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: ConsensusClusterPlus
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
@@ -37,9 +39,12 @@ process BIOC_CONSENSUSCLUSTERPLUS_CUSTOM_DISTANCE_CONSENSUS_CLUSTERING {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
     
     # Load required libraries

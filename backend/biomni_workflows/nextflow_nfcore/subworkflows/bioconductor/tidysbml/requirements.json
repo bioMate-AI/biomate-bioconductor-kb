@@ -1,0 +1,19 @@
+{
+  "package": "tidysbml",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "S4Vectors",
+    "rtracklayer",
+    "tidysbml"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "S4Vectors",
+      "rtracklayer",
+      "tidysbml"
+    ]
+  }
+}

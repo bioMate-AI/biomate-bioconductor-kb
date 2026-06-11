@@ -1,131 +1,166 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: decoupleR
-// Many methods allow us to extract biological activities from omics data using information from prior 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/decoupleR/inst/doc/decoupleR.R
-// Upstream  : RefManageR, Seurat, dplyr, ggplot2, ggrepel
-// Downstream: none
-//
-// Install: BiocManager::install("decoupleR")
+// Bioconductor workflow: decoupleR — pathway_activity_scrnaseq
+// Infer pathway activities from single-cell RNA-seq data using the PROGENy model and a multivariate linear model (MLM).
+// Input: sc_data.rds
+// Container: quay.io/biocontainers/bioconductor-decoupler:2.16.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Seurat, decoupleR, dplyr, ggplot2, pheatmap, tibble, tidyr
+// Visualizations: heatmap, UMAP/t-SNE plot, feature plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load Seurat object
+//  * 2. [Core Analysis] Retrieve PROGENy pathway-gene weights using get_progeny()
+//  * 3. [Core Analysis] Extract normalized log-transformed counts matrix from Seurat object
+//  * 4. [Core Analysis] Run Multivariate Linear Model using run_mlm()
+//  * 5. [Core Analysis] Store inferred activities back into the Seurat object as a new assay
+//  * 6. [Visualization & Output] Scale and visualize pathway activities
 
 nextflow.enable.dsl = 2
 
-process BIOC_DECOUPLER {
+process BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-decoupler"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-decoupler:2.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-decoupler:2.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_decoupler_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_decoupler_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_decoupler_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(Seurat)
     library(decoupleR)
-    library(PrintBibliography)
-    library(jsonlite)
+    library(dplyr)
+    library(tibble)
+    library(tidyr)
+    library(ggplot2)
+    library(pheatmap)
+    
+    # 1. Load Seurat object from the user input file
+    data <- readRDS("sc_data.rds")
+    
+    # 2. Retrieve PROGENy pathway-gene weights using get_progeny()
+    net <- get_progeny(organism = 'human', top = 500)
+    
+    # 3. Extract normalized log-transformed counts matrix from Seurat object
+    mat <- as.matrix(data@assays\$RNA@data)
+    
+    # 4. Run Multivariate Linear Model using run_mlm()
+    acts <- run_mlm(mat=mat, net=net, .source='source', .target='target', .mor='weight', minsize = 5)
+    
+    # 5. Store inferred activities back into the Seurat object as a new assay
+    data[['pathwaysmlm']] <- acts %>% 
+      pivot_wider(id_cols = 'source', names_from = 'condition', values_from = 'score') %>% 
+      column_to_rownames('source') %>% 
+      Seurat::CreateAssayObject(.)
+    
+    DefaultAssay(object = data) <- "pathwaysmlm"
+    data <- ScaleData(data)
+    data@assays\$pathwaysmlm@data <- data@assays\$pathwaysmlm@scale.data
+    
+    # Save the inferred activities table
+    write.csv(acts, "pathway_activities_mlm.csv", row.names = FALSE)
+    
+    # Save the updated Seurat object
+    saveRDS(data, "sc_data_with_pathways.rds")
+    
+    # 6. Visualize pathway activities and save to PDF
+    pdf("pathway_activity_plots.pdf", width = 12, height = 8)
+    
+    # Try to plot UMAP and FeaturePlot if coordinates and identities exist
+    tryCatch({
+      p1 <- DimPlot(data, reduction = "umap", label = TRUE, pt.size = 0.5) + 
+        NoLegend() + 
+        ggtitle('Cell types')
+      print(p1)
+    }, error = function(e) {
+      message("Could not generate DimPlot: ", e\$message)
+    })
+    
+    tryCatch({
+      p2 <- (FeaturePlot(data, features = c("Trail")) & 
+               scale_colour_gradient2(low = 'blue', mid = 'white', high = 'red')) + 
+        ggtitle('Trail activity')
+      print(p2)
+    }, error = function(e) {
+      message("Could not generate FeaturePlot: ", e\$message)
+    })
+    
+    # Generate heatmap of mean activity per cluster
+    tryCatch({
+      df <- t(as.matrix(data@assays\$pathwaysmlm@data)) %>% 
+        as.data.frame() %>% 
+        mutate(cluster = Idents(data)) %>% 
+        pivot_longer(cols = -cluster, names_to = "source", values_to = "score") %>% 
+        group_by(cluster, source) %>% 
+        summarise(mean = mean(score), .groups = 'drop')
+    
+      top_acts_mat <- df %>% 
+        pivot_wider(id_cols = 'cluster', names_from = 'source', values_from = 'mean') %>% 
+        column_to_rownames('cluster') %>% 
+        as.matrix()
+    
+      palette_length <- 100
+      my_color <- colorRampPalette(c("Darkblue", "white", "red"))(palette_length)
+      my_breaks <- c(seq(-2, 0, length.out=ceiling(palette_length/2) + 1), 
+                     seq(0.05, 2, length.out=floor(palette_length/2)))
+    
+      pheatmap(top_acts_mat, border_color = NA, color=my_color, breaks = my_breaks, 
+               main = "Mean Pathway Activity per Cluster")
+    }, error = function(e) {
+      message("Could not generate Heatmap: ", e\$message)
+    })
+    
+    dev.off()
 
-    # --- GSEA Activity Estimation [] ---
-    # Key functions: run_fgsea
-    res_gsea <- run_fgsea(
-        mat = mat,
-        network = network,
-        .source = "source",
-        .target = "target",
-        nproc = 1,
-        minsize = 0
-    )
-
-
-    # --- ULM Activity Estimation [] ---
-    # Key functions: run_ulm
-    res_ulm <- run_ulm(
-        mat = mat,
-        network = network,
-        .source = "source",
-        .target = "target",
-        .mor = "mor",
-        minsize = 0
-    )
-
-
-    # --- Consensus Activity Estimation [] ---
-    # Key functions: decouple
-    res_decouple <- decouple(
-        mat = mat,
-        network = network,
-        .source = "source",
-        .target = "target",
-        minsize = 0
-    )
-
-
-    # --- Profile Reshaping and Formatting [] ---
-    # Key functions: pivot_wider_profile
-    res_consensus <- res_decouple[res_decouple$statistic == "consensus", ]
-    mat_consensus <- pivot_wider_profile(
-        res_consensus,
-        id_cols = source,
-        names_from = condition,
-        values_from = score
-    )
-    final_matrix <- as.matrix(mat_consensus)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_decoupler_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_decoupler_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_decoupler_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DECOUPLER:", paste0("    decoupler: ", packageVersion("decoupleR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ":',
+        paste0('    decoupleR: ', as.character(packageVersion('decoupleR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_decoupler_results.csv
-    touch ${prefix}_decoupler_output.rds
-    echo "BIOC_DECOUPLER:" > versions.yml
-    echo "    decoupler: 0.0.0" >> versions.yml
+    touch ${prefix}_pathway_activity_scrnaseq.csv versions.yml
     """
 }
 
-
-workflow BIOC_DECOUPLER_WORKFLOW {
+workflow BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sc_data.rds ] ]
 
     main:
-    BIOC_DECOUPLER(ch_input)
+    BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ(ch_input)
 
     emit:
-    results  = BIOC_DECOUPLER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DECOUPLER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DECOUPLER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DECOUPLER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ.out.tables
+    plots    = BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ.out.plots
+    objects  = BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ.out.objects
+    versions = BIOC_DECOUPLER_PATHWAY_ACTIVITY_SCRNASEQ.out.versions
 }

@@ -1,0 +1,19 @@
+{
+  "package": "ibbig",
+  "requirements": [
+    "biclust",
+    "iBBiG"
+  ],
+  "by_workflow": {
+    "bicluster_comparison.nf": [
+      "iBBiG"
+    ],
+    "expression_data_preprocessing.nf": [
+      "biclust",
+      "iBBiG"
+    ],
+    "main.nf": [
+      "iBBiG"
+    ]
+  }
+}

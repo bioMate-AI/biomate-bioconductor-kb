@@ -1,0 +1,18 @@
+{
+  "package": "harman",
+  "requirements": [
+    "Biobase",
+    "Harman",
+    "minfi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Harman"
+    ],
+    "methylation_m_values.nf": [
+      "Biobase",
+      "Harman",
+      "minfi"
+    ]
+  }
+}

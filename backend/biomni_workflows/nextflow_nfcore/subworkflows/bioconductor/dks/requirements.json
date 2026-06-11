@@ -1,0 +1,17 @@
+{
+  "package": "dks",
+  "requirements": [
+    "cubature",
+    "dks"
+  ],
+  "by_workflow": {
+    "bayesian_beta_parameter_analysis.nf": [
+      "cubature",
+      "dks"
+    ],
+    "main.nf": [
+      "cubature",
+      "dks"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <updateCache=logical indicating whether to download the latest KEGG pathways ;; edgeTypeAttr=the edge attribute containing interaction types (e.g., \"subtype\") ;; edgeWeightByType=a list mapping interaction types to numeric weights ;; weights=a vector of node weights, typically computed using alphaMLG or alpha1MR ;; nboot=number of bootstrap simulations for p-value computation ;; pathNames=a named vector of pathway titles ;; order.by=column name to sort the summary table by>\n- alternatives: <The documentation mentions Onto-Express for GO profiling and SPIA (Signaling Pathway Impact Analysis) as related methods, but ROntoTools should be preferred when running the updated Pathway-Express or Primary dis-regulation algorithms.>\n- when_to_use: <Use when analyzing high-throughput gene expression data (fold changes and p-values) to identify significantly impacted signaling pathways while accounting for pathway topology, gene-gene interaction types, and the position/magnitude of expression changes.>\n- pitfalls: <Downloading and updating the KEGG cache with updateCache=TRUE is time-consuming and depends on network bandwidth. Low values for nboot can lead to less accurate p-value estimations.>",
+  "workflows": [
+    {
+      "name": "pathway_express",
+      "intent": "Perform Pathway-Express analysis to identify significantly impacted signaling pathways using gene fold changes, p-values, and pathway topology.",
+      "input": [
+        "topTable.RData (a data frame containing logFC, P.Value, adj.P.Val, and entrez gene IDs)"
+      ],
+      "stages": "1. Download and load KEGG pathway graphs using keggPathwayGraphs ;; 2. Set edge weights based on interaction subtypes using setEdgeWeights ;; 3. Retrieve pathway names using keggPathwayNames ;; 4. Filter differentially expressed genes and extract fold changes and p-values ;; 5. Set node weights using gene significance via setNodeWeights and alphaMLG ;; 6. Run Pathway-Express analysis using pe ;; 7. Summarize results using Summary ;; 8. Visualize results using plot and renderGraph",
+      "code": "kpg <- keggPathwayGraphs(\"hsa\", verbose = FALSE)\nkpg <- setEdgeWeights(kpg, edgeTypeAttr = \"subtype\", \n\tedgeWeightByType = list(activation = 1, inhibition = -1, \n\t\texpression = 1, repression = -1), \n\tdefaultWeight = 0)\nkpn <- keggPathwayNames(\"hsa\")\nload(system.file(\"extdata/E-GEOD-21942.topTable.RData\", package = \"ROntoTools\"))\nfc <- top$logFC[top$adj.P.Val <= .01]\nnames(fc) <- top$entrez[top$adj.P.Val <= .01]\npv <- top$P.Value[top$adj.P.Val <= .01]\nnames(pv) <- top$entrez[top$adj.P.Val <= .01]\nref <- top$entrez\nkpg <- setNodeWeights(kpg, weights = alphaMLG(pv), defaultWeight = 1)\npeRes <- pe(x = fc, graphs = kpg, ref = ref,  nboot = 200, verbose = FALSE)\nhead(Summary(peRes))\nhead(Summary(peRes, pathNames = kpn, totalAcc = FALSE, totalPert = FALSE,\n             pAcc = FALSE, pORA = FALSE, comb.pv = NULL, order.by = \"pPert\"))\nplot(peRes)\nplot(peRes, c(\"pAcc\", \"pORA\"), comb.pv.func = compute.normalInv, threshold = .01)\nplot(peRes@pathways[[\"path:hsa05216\"]], type = \"two.way\")\nplot(peRes@pathways[[\"path:hsa05216\"]], type = \"boot\")\np <- peRes@pathways[[\"path:hsa05216\"]]\ng <- layoutGraph(p@map, layoutType = \"dot\")\ngraphRenderInfo(g) <- list(fixedsize = FALSE)\nedgeRenderInfo(g) <- peEdgeRenderInfo(p)\nnodeRenderInfo(g) <- peNodeRenderInfo(p)\nrenderGraph(g)"
+    },
+    {
+      "name": "primary_dis_regulation",
+      "intent": "Perform Primary dis-regulation analysis to analyze signaling pathways based on the unexplained dis-regulation of genes and upstream signaling.",
+      "input": [
+        "topTable.RData (a data frame containing logFC, P.Value, adj.P.Val, and entrez gene IDs)"
+      ],
+      "stages": "1. Download and load KEGG pathway graphs using keggPathwayGraphs ;; 2. Retrieve pathway names using keggPathwayNames ;; 3. Filter differentially expressed genes and extract fold changes and p-values ;; 4. Run Primary dis-regulation analysis using pDis ;; 5. Summarize results using Summary",
+      "code": "kpg <- keggPathwayGraphs(\"hsa\", verbose = FALSE)\nkpn <- keggPathwayNames(\"hsa\")\nload(system.file(\"extdata/E-GEOD-21942.topTable.RData\", package = \"ROntoTools\"))\nfc <- top$logFC[top$adj.P.Val <= .01]\nnames(fc) <- top$entrez[top$adj.P.Val <= .01]\npv <- top$P.Value[top$adj.P.Val <= .01]\nnames(pv) <- top$entrez[top$adj.P.Val <= .01]\nref <- top$entrez\npDisRes <- pDis(x = fc, graphs = kpg, ref = ref,  nboot = 200, verbose = FALSE)\nhead(Summary(pDisRes))\nhead(Summary(pDisRes, pathNames = kpn, totalpDis = FALSE,\n              pORA = FALSE, comb.pv = NULL, order.by = \"ppDis\"))"
+    }
+  ]
+}

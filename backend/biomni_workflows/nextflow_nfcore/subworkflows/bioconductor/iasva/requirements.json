@@ -1,0 +1,27 @@
+{
+  "package": "iasva",
+  "requirements": [
+    "DescTools",
+    "RColorBrewer",
+    "Rtsne",
+    "SummarizedExperiment",
+    "corrplot",
+    "iasva",
+    "irlba",
+    "pheatmap",
+    "sva"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DescTools",
+      "RColorBrewer",
+      "Rtsne",
+      "SummarizedExperiment",
+      "corrplot",
+      "iasva",
+      "irlba",
+      "pheatmap",
+      "sva"
+    ]
+  }
+}

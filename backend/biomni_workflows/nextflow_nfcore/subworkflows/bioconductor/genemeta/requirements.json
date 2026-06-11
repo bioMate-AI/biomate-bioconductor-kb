@@ -1,0 +1,19 @@
+{
+  "package": "genemeta",
+  "requirements": [
+    "Biobase",
+    "GeneMeta",
+    "RColorBrewer"
+  ],
+  "by_workflow": {
+    "automated_meta_analysis_fdr.nf": [
+      "Biobase",
+      "GeneMeta",
+      "RColorBrewer"
+    ],
+    "main.nf": [
+      "Biobase",
+      "GeneMeta"
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: obj=SummarizedExperiment object containing expression and survival data ;; bfname=Base name for automatically generated output files ;; n_iter=Number of iterations for the random permutation test in km_opt_pcut ;; wlabels=Logical indicating whether to write low/high sample labels to a CSV file ;; wpdf=Logical indicating whether to write Kaplan-Meier plots to a PDF file ;; verbose=Logical indicating whether to print progress messages ;; nproc=Number of processors to use for parallel execution in km_opt_pcut ;; quant=Quantile (0 to 100) used for stratification in km_qcut ;; cutoff=User-supplied fixed value used for stratification in km_ucut ;; min_uval=Minimum percentage of unique values required for a feature to be analyzed\n- alternatives: km_opt_scut is a fast exploratory alternative to km_opt_pcut that does not use the permutation test to estimate statistical significance. km_qcut and km_ucut are non-optimization alternatives that perform a single log-rank test per feature using quantile or fixed thresholds.\n- when_to_use: Use this package when you have right-censored survival data and quantitative features (such as RNA-seq, microarray, or ssGSEA signatures) for a cohort of subjects, and you want to find or validate prognostic thresholds.\n- pitfalls: The permutation test in km_opt_pcut is highly computationally intensive; it is recommended to first filter features using km_opt_scut before running km_opt_pcut. The p-value from km_opt_scut is for informational purposes only and does not correct for multiple testing during optimization. Sample identifiers in the survival and expression files must match exactly.",
+  "workflows": [
+    {
+      "name": "optimal_cutoff_permutation",
+      "intent": "Identify optimal prognostic cutoffs for features and estimate their statistical significance using a permutation test.",
+      "input": [
+        "survival_data.txt (tab-delimited file with sample_id, stime, and scens columns)",
+        "example_genes.txt (tab-delimited file with features in rows and samples in columns)"
+      ],
+      "stages": "1. Create a SummarizedExperiment object from the input files ;; 2. Run the permutation test and cutoff optimization",
+      "code": "fdat = system.file(\"extdata\", \"example_genes.txt\", package = \"kmcut\")\nsdat = system.file(\"extdata\", \"survival_data.txt\", package = \"kmcut\")\nse = create_se_object(efile = fdat, sfile = sdat)\nkm_opt_pcut(obj = se, bfname = \"test\", n_iter = 10, wlabels = TRUE, wpdf = FALSE, verbose = FALSE, nproc = 1)"
+    },
+    {
+      "name": "optimal_cutoff_exploratory",
+      "intent": "Perform a fast exploratory search for optimal prognostic cutoffs without running the time-consuming permutation test.",
+      "input": [
+        "survival_data.txt (tab-delimited file with sample_id, stime, and scens columns)",
+        "example_genes.txt (tab-delimited file with features in rows and samples in columns)"
+      ],
+      "stages": "1. Create a SummarizedExperiment object from the input files ;; 2. Search for optimal cutoffs",
+      "code": "fdat = system.file(\"extdata\", \"example_genes.txt\", package = \"kmcut\")\nsdat = system.file(\"extdata\", \"survival_data.txt\", package = \"kmcut\")\nse <- create_se_object(efile = fdat, sfile = sdat)\nkm_opt_scut(obj = se, bfname = \"test\", wpdf = FALSE, verbose = FALSE)"
+    },
+    {
+      "name": "fixed_or_quantile_cutoff",
+      "intent": "Stratify samples and calculate log-rank test p-values using a specified quantile or a fixed user-supplied cutoff value.",
+      "input": [
+        "survival_data.txt (tab-delimited file with sample_id, stime, and scens columns)",
+        "example_genes.txt (tab-delimited file with features in rows and samples in columns)"
+      ],
+      "stages": "1. Create a SummarizedExperiment object from the input files ;; 2. Stratify samples using a quantile cutoff or a fixed user-defined cutoff",
+      "code": "fdat = system.file(\"extdata\", \"example_genes.txt\", package = \"kmcut\")\nsdat = system.file(\"extdata\", \"survival_data.txt\", package=\"kmcut\")\nse <- create_se_object(efile = fdat, sfile = sdat)\nkm_qcut(obj = se, bfname = \"test\", quant = 50, wpdf = FALSE)\nkm_ucut(obj = se, bfname = \"test\", cutoff = 5, min_uval = 90, wpdf = FALSE)"
+    },
+    {
+      "name": "cutoff_validation",
+      "intent": "Validate previously determined stratification cutoffs on an independent validation dataset.",
+      "input": [
+        "expression_data_1.txt (tab-delimited training expression file)",
+        "expression_data_2.txt (tab-delimited validation expression file)",
+        "survival_data.txt (tab-delimited survival file)"
+      ],
+      "stages": "1. Create SummarizedExperiment for training data ;; 2. Run training stratification to generate a cutoff file ;; 3. Create SummarizedExperiment for validation data ;; 4. Validate the training cutoffs on the validation data",
+      "code": "fdat1 <- system.file(\"extdata\", \"expression_data_1.txt\", package = \"kmcut\")\nfdat2 <- system.file(\"extdata\", \"expression_data_2.txt\", package = \"kmcut\")\nsdat <- system.file(\"extdata\", \"survival_data.txt\", package = \"kmcut\")\nse1 <- create_se_object(efile = fdat1, sfile = sdat)\nkm_qcut(obj = se1, bfname = \"training_data\", quant = 50, min_uval = 40)\nse2 <- create_se_object(efile = fdat2, sfile = sdat)\nkm_val_cut(infile = \"training_data_KM_quant_50.txt\", obj = se2, bfname = \"test\", wpdf = TRUE, min_uval = 40)"
+    },
+    {
+      "name": "batch_cox_regression",
+      "intent": "Fit univariate Cox proportional hazard regression models and perform likelihood ratio tests for all features in batch.",
+      "input": [
+        "survival_data.txt (tab-delimited file with sample_id, stime, and scens columns)",
+        "example_genes.txt (tab-delimited file with features in rows and samples in columns)"
+      ],
+      "stages": "1. Create a SummarizedExperiment object from the input files ;; 2. Perform batch Cox regression",
+      "code": "fdat = system.file(\"extdata\", \"example_genes.txt\", package = \"kmcut\")\nsdat = system.file(\"extdata\", \"survival_data.txt\", package = \"kmcut\")\nse <- create_se_object(efile = fdat, sfile = sdat)\nucox_batch(obj = se, bfname = \"test\")"
+    },
+    {
+      "name": "cox_risk_prediction",
+      "intent": "Fit univariate Cox proportional hazard models on training data and calculate risk scores for a test dataset.",
+      "input": [
+        "expression_data_1.txt (tab-delimited training expression file)",
+        "expression_data_2.txt (tab-delimited test expression file)",
+        "survival_data.txt (tab-delimited survival file)"
+      ],
+      "stages": "1. Create SummarizedExperiment for training data ;; 2. Create SummarizedExperiment for test data ;; 3. Fit Cox models on training data and calculate risk scores for test data",
+      "code": "fdat1 = system.file(\"extdata\", \"expression_data_1.txt\", package = \"kmcut\")\nfdat2 = system.file(\"extdata\", \"expression_data_2.txt\", package = \"kmcut\")\nsdat = system.file(\"extdata\", \"survival_data.txt\", package = \"kmcut\")\nse1 <- create_se_object(efile = fdat1, sfile = sdat)\nse2 <- create_se_object(efile = fdat2, sfile = sdat)\nucox_pred(obj1 = se1, obj2 = se2, bfname = \"demo\", min_uval = 40)"
+    }
+  ]
+}

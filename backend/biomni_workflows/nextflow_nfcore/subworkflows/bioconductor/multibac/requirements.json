@@ -1,0 +1,21 @@
+{
+  "package": "multibac",
+  "requirements": [
+    "MultiAssayExperiment",
+    "MultiBaC",
+    "ggplot2",
+    "ropls"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "MultiBaC"
+    ],
+    "multi_omic_correction.nf": [
+      "MultiAssayExperiment",
+      "MultiBaC",
+      "ggplot2",
+      "ropls"
+    ]
+  }
+}

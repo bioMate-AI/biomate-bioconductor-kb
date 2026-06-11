@@ -1,118 +1,110 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BiocSklearn
-// This package provides interfaces to selected sklearn elements, and demonstrates fault tolerant use o
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BiocSklearn/inst/doc/BiocSklearn.R
-// Upstream  : BiocStyle
-// Downstream: none
-//
-// Install: BiocManager::install("BiocSklearn")
+// Bioconductor workflow: BiocSklearn — incremental_pca
+// Perform memory-bounded incremental principal component analysis on large datasets.
+// Input: irismat
+// Container: quay.io/biocontainers/bioconductor-biocsklearn:1.32.0--py314r45hdfd78af_0
+// R packages: BiocSklearn, BiocStyle
+// Bioconductor: 3.20 | R: 4.4
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIOCSKLEARN {
+process BIOC_BIOCSKLEARN_INCREMENTAL_PCA {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biocsklearn"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biocsklearn:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biocsklearn:1.28.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-biocsklearn:1.32.0--py314r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biocsklearn_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biocsklearn_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biocsklearn_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BiocSklearn", "BiocStyle")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
     library(BiocSklearn)
-    library(jsonlite)
+    
+    # Import numpy with convert=FALSE as specified in the package guidelines
+    np <- reticulate::import("numpy", convert=FALSE, delay_load=TRUE)
+    
+    # Read the user input file 'irismat' from the working directory
+    irismat <- tryCatch({
+      np\$genfromtxt("irismat", delimiter=",")
+    }, error = function(e) {
+      np\$load("irismat")
+    })
+    
+    # Convert the numpy array to an R matrix to compute the standard PCA (fullpc)
+    r_mat <- reticulate::py_to_r(irismat)
+    fullpc <- prcomp(r_mat)\$x
+    
+    # === DOCUMENTED CODE ===
+    ippcab = skIncrPCA (irismat, batch_size= 25L)
+    round ( cor ( getTransformed (ippcab), fullpc), 3 )
+    # === END DOCUMENTED CODE ===
+    
+    # Extract transformed coordinates
+    transformed_coords <- getTransformed(ippcab)
+    
+    # Save the meaningful results to output files
+    write.csv(as.matrix(transformed_coords), "transformed_coords.csv", row.names = FALSE)
+    
+    correlation_matrix <- round(cor(transformed_coords, fullpc), 3)
+    write.csv(as.data.frame(correlation_matrix), "correlation_matrix.csv")
 
-    # --- Principal Component Analysis [] ---
-    # Key functions: skPCA
-    iris_matrix <- data.matrix(iris[, 1:4])
-    pca_model <- skPCA(iris_matrix, n_components = 3L)
-    pca_summary <- summary(pca_model)
-
-
-    # --- Dimensionality Reduction Retrieval [] ---
-    # Key functions: skPCA, getTransformed
-    iris_matrix <- data.matrix(iris[, 1:4])
-    pca_model <- skPCA(iris_matrix, n_components = 2L)
-    transformed_coords <- getTransformed(pca_model)
-    coords_dimensions <- dim(transformed_coords)
-    coords_preview <- head(transformed_coords)
-
-
-    # --- Incremental PCA for Large Datasets [] ---
-    # Key functions: skIncrPCA, getTransformed
-    iris_matrix <- data.matrix(iris[, 1:4])
-    inc_pca_model <- skIncrPCA(
-        iris_matrix, 
-        n_components = 2L, 
-        batch_size = 10L
-    )
-    inc_transformed <- getTransformed(inc_pca_model)
-
-
-    # --- Clustering with KMeans [] ---
-    # Key functions: skKMeans
-    iris_matrix <- data.matrix(iris[, 1:4])
-    kmeans_model <- skKMeans(iris_matrix, n_clusters = 3L)
-    cluster_assignments <- kmeans_model$labels_
-    cluster_centers <- kmeans_model$cluster_centers_
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biocsklearn_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biocsklearn_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biocsklearn_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIOCSKLEARN:", paste0("    biocsklearn: ", packageVersion("BiocSklearn"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIOCSKLEARN_INCREMENTAL_PCA":',
+        paste0('        BiocSklearn: ', as.character(packageVersion("BiocSklearn")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biocsklearn_results.csv
-    touch ${prefix}_biocsklearn_output.rds
-    echo "BIOC_BIOCSKLEARN:" > versions.yml
-    echo "    biocsklearn: 0.0.0" >> versions.yml
+    touch ${prefix}_incremental_pca.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIOCSKLEARN_WORKFLOW {
+workflow BIOC_BIOCSKLEARN_INCREMENTAL_PCA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ irismat ] ]
 
     main:
-    BIOC_BIOCSKLEARN(ch_input)
+    BIOC_BIOCSKLEARN_INCREMENTAL_PCA(ch_input)
 
     emit:
-    results  = BIOC_BIOCSKLEARN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIOCSKLEARN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIOCSKLEARN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIOCSKLEARN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIOCSKLEARN_INCREMENTAL_PCA.out.tables
+    plots    = BIOC_BIOCSKLEARN_INCREMENTAL_PCA.out.plots
+    objects  = BIOC_BIOCSKLEARN_INCREMENTAL_PCA.out.objects
+    versions = BIOC_BIOCSKLEARN_INCREMENTAL_PCA.out.versions
 }

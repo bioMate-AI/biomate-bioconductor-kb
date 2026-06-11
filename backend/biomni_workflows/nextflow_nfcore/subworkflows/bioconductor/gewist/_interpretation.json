@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: p=Minor allele frequency (MAF) of the SNP ;; N=Sample size (number of individuals) ;; theta_gc=Proportion of quantitative trait variance explained by the gene-environment (or gene-gene) interaction ;; theta_c=Proportion of quantitative trait variance explained by the covariate (e.g., environmental factor) ;; M=Total number of SNPs tested in the study (used for multiple testing correction) ;; K=Number of simulations to run for threshold estimation ;; distribution=Probability distribution for interaction effect sizes when unknown (e.g., \"weibull\", \"beta\", \"normal\", \"uniform\") ;; nb_incr=Number of intervals for numerical integration in effectPDF (computational time is proportional to this)\n- alternatives: The documentation mentions the conventional approach of testing all M SNPs for interaction and correcting for M tests, which has lower statistical power compared to the variance prioritization (VP) method implemented here.\n- when_to_use: Use this package when performing genome-wide gene-environment (GxE) or gene-gene (GxG) interaction studies on quantitative traits, and you want to increase statistical power and reduce computational burden by prioritizing SNPs using Levene's test for variance inequality.\n- pitfalls: Calculating the optimal threshold for every single SNP in a genome-wide dataset can be computationally heavy; the authors suggest calculating an optimal VP p-value threshold matrix for combinations of MAF and estimated interaction effect sizes instead of running the function for every single SNP individually. Computational time for effectPDF is highly dependent on the number of integration intervals (nb_incr).",
+  "workflows": [
+    {
+      "name": "snp_prioritization_known_effect",
+      "intent": "Prioritize SNPs and perform interaction testing when the interaction effect size (theta_gc) is known or estimated.",
+      "input": [
+        "GenoSet (genotype matrix of m SNPs for n individuals)",
+        "Trait (quantitative phenotype vector of length n)",
+        "COV (covariate measurements vector of length n)",
+        "SNPset (data frame containing SNP names and MAF values)",
+        "theta_gc (estimated variance explained by GxE interaction)",
+        "theta_c (estimated variance explained by covariate)"
+      ],
+      "stages": "1. Compute Levene's test p-values for all SNPs using car::leveneTest ;; 2. Compute optimal variance prioritization p-value thresholds for each SNP using gewistLevene ;; 3. Filter SNPs where Levene's p-value is less than the optimal threshold ;; 4. Perform interaction testing on the prioritized SNPs using linear regression (lm)",
+      "code": "n  <- dim(GenoSet)[1]\nm <- dim(GenoSet)[2]\n\nlibrary(car)\n\nlevene_pval <- NA\n\n\tfor (i in 1: m) {\n\t\t\n\t\tlevene_pval[i] <- leveneTest(Trait, as.factor(GenoSet[,i]),center = mean)[1,3]\n\t\t\n\t\t\t   }\n\noptimal_pval <- NA\n\nfor ( i in 1: m){\n\t\noptimal_pval[i] <- gewistLevene(p = SNPset[i,2], N = n, theta_gc = theta_gc, \ntheta_c = theta_c, M = m )$Optimal_pval\n\t\t\n\t\t\t    }\n\t\t\t    \n\nSNPind <- which(levene_pval < optimal_pval)\n\n Reduced <- GenoSet[,SNPind]\n \n intPval <- NA\n \n \tfor (j in 1: length(SNPind)) {\n \n \t\tintPval[j] <- summary(lm(Trait~ Reduced[,j] * COV ))$coef[4,4]\n\t\t\n \t\t\t\t\t\t}"
+    },
+    {
+      "name": "snp_prioritization_unknown_effect",
+      "intent": "Calculate the optimal variance prioritization threshold when the interaction effect size is unknown and modeled via a probability density function (e.g., Weibull distribution).",
+      "input": [
+        "p (minor allele frequency of the SNP)",
+        "N (sample size)",
+        "theta_c (variance explained by covariate)",
+        "M (total SNPs)",
+        "K (simulations)",
+        "nb_incr (integration intervals)",
+        "range (range of interaction effect sizes)"
+      ],
+      "stages": "1. Compute the optimal variance prioritization threshold using effectPDF with a specified distribution (e.g., Weibull)",
+      "code": "weibull_exp1 <- effectPDF(distribution = \"weibull\", parameter1 = 0.8, parameter2 = 0.3,\nparameter3 = NULL, p = 0.1 ,N = 10000, theta_c = 0.1, M = 350000, K = 10000, nb_incr = 50, range = c(0.025/100,0.3/100), verbose = FALSE)"
+    }
+  ]
+}

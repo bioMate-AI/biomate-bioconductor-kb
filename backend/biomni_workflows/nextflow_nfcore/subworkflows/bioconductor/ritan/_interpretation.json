@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: resources=Character vector of annotation or network resources to use (e.g., \"ReactomePathways\", \"MSigDB_Hallmarks\", \"GO\", \"CCSB\", \"STRING\") or a path to a custom GMT/SIF file ;; all_symbols=Vector of background gene symbols (e.g., cached_coding_genes) used as the background universe for hypergeometric tests ;; q_value_threshold=FDR-adjusted p-value threshold for filtering significant enrichment results ;; minStringScore=Minimum confidence score threshold (0 to 1000 scale) for filtering STRING database interactions (default recommended is 700) ;; include_neighbors=Logical indicating whether to expand the induced subnetwork to include first-degree neighbors of the input genes ;; dedup=Logical indicating whether to remove duplicate edges and self-loops from the extracted network ;; cap=Numeric value to cap the -log10(q-value) significance in plots to prevent highly significant terms from dominating the heatmap color scale ;; annotation_matrix=Matrix of sample/study metadata used to annotate columns in the enrichment heatmap plot\n- alternatives: GeneMANIA (webserver or Cytoscape App) or CyTargetLinker=Preferred for prioritizing computational candidates when only a few top genes are of interest ;; igraph=Preferred for advanced network topology analysis and custom network plotting ;; Cytoscape=Preferred for advanced, interactive network visualization and publication-quality figure generation\n- when_to_use: Use RITAN when you have one or more lists of gene symbols (e.g., from differential expression analysis) and want to rapidly identify enriched biological pathways across multiple databases simultaneously, or when you want to discover how those genes physically or regulatory interact by extracting high-confidence subnetworks.\n- pitfalls: Running enrichment across all available resources simultaneously can make false discovery rate (FDR) adjustments overly conservative due to non-independence and overlap between terms across different databases ;; Enabling neighbor expansion (include_neighbors = TRUE) can easily generate massive, uninterpretable \"hairball\" networks due to the small-world nature of biological networks ;; Gene symbols are case-sensitive and version-dependent; mismatching symbols between input lists and network resources will result in poor coverage (always verify coverage using check_any_net_input or check_net_input) ;; Improperly formatted custom GMT files can lead to incorrect active geneset sizes (verify using show_active_genesets_hist)",
+  "workflows": [
+    {
+      "name": "term_enrichment_analysis",
+      "intent": "Run hypergeometric enrichment analysis on a list of genes of interest across selected annotation resources or a custom GMT file.",
+      "input": [
+        "my_genes.txt (vector of gene symbols)",
+        "curated_gene_disease_associations.gmt.gz (optional user-defined GMT file containing custom gene sets)"
+      ],
+      "stages": "1. Load the input gene list and define the target resources.\n2. Run hypergeometric enrichment testing using term_enrichment().\n3. Summarize and inspect the top enriched terms using summary().",
+      "code": "e <- term_enrichment (my_genes, resources = resources, all_symbols = cached_coding_genes)\nsummary (e)\ne2 <- term_enrichment ( gs, resources = gmt, all_symbols = cached_coding_genes )\nprint ( e2[ 1 : 3 , - 5 ] )"
+    },
+    {
+      "name": "comparative_subset_enrichment",
+      "intent": "Compare functional enrichment profiles across multiple gene lists (e.g., different treatment conditions) and visualize the results as an annotated heatmap.",
+      "input": [
+        "study_set.rds (R list object containing multiple vectors of gene symbols, one per condition)",
+        "annotation_metadata.csv (optional matrix of sample/study conditions to annotate the columns of the heatmap)"
+      ],
+      "stages": "1. Run comparative enrichment across all subsets simultaneously using term_enrichment_by_subset().\n2. Generate a heatmap of the enrichment results using plot(), adjusting the color scale with the cap parameter.\n3. Optionally, add an annotation matrix to the plot to facilitate visual evaluation of relationships between study conditions and enrichment.",
+      "code": "e <- term_enrichment_by_subset ( study_set, q_value_threshold = 1e-5 , resources = resources, all_symbols = cached_coding_genes )\nplot ( e, show_values = FALSE , label_size_y = 7 , label_size_x = 7 , cap= 10 )\nplot ( e, show_values = TRUE , label_size_y = 7 , label_size_x = 7 , cap= 10 , annotation_matrix = mat, grid_line_color = 'black' )"
+    },
+    {
+      "name": "induced_subnetwork_extraction",
+      "intent": "Extract and visualize known physical or regulatory interactions among a set of genes of interest (and optionally their first-degree neighbors) from network resources, with options to export for Cytoscape.",
+      "input": [
+        "my_genes.txt (vector of gene symbols)",
+        "BIOGRID-ORGANISM-Mus_musculus-3.4.136.symbols.sif.gz (optional user-defined network SIF file)"
+      ],
+      "stages": "1. Check input gene symbol coverage in the network resources using check_any_net_input() or check_net_input().\n2. Extract the induced subnetwork using network_overlap(), applying confidence filtering (minStringScore) or neighbor expansion (include_neighbors) as needed.\n3. Convert the network to an igraph object for visualization within R, or export the network and node attributes to text files using write_simple_table() for import into Cytoscape.",
+      "code": "i <- check_any_net_input ( my_genes )\ntable (i)\nnet <- network_overlap ( my_genes, resources = 'CCSB' )\nnet2 <- network_overlap ( my_genes, resources = c ( 'CCSB' , 'STRING' ), minStringScore = 700 )\nnet3.3 <- network_overlap ( my_genes, resources = 'PID' , include_neighbors = TRUE , dedup = TRUE )\nedges <- as.matrix ( net4[, c ( 1 , 3 )] )\nG <- igraph :: make_undirected_graph ( c ( t (edges)) )\nplot (G, vertex.size = 20 , vertex.frame.color = 'white' )\nwrite_simple_table (net3 .1 , 'net_example.sif' )\nwrite_simple_table (tab, 'net_example.tab' )"
+    }
+  ]
+}

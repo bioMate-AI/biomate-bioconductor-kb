@@ -1,0 +1,11 @@
+{
+  "package": "lrcell",
+  "requirements": [
+    "LRcell"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "LRcell"
+    ]
+  }
+}

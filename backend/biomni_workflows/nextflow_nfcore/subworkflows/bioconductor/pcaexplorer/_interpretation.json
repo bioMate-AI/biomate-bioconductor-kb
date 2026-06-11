@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: dds=A DESeqDataSet object containing raw counts and experimental design metadata ;; dst=A DESeqTransform object containing normalized, variance-stabilized expression values (e.g., from rlog or VST) ;; countmatrix=A matrix of raw counts used as alternative input to launch the app ;; coldata=A data frame of experimental covariates matching the columns of countmatrix ;; annotation=A data frame mapping gene IDs to readable symbols, requiring a gene_name column ;; pca2go=An enrichment object containing GO terms associated with high-loading genes per PC ;; intgroup=Character vector of covariates in colData to use for grouping/coloring samples in PCA plots ;; ntop=Number of most variable genes to use for computing PCA\n- alternatives: limmaquickpca2go=A faster alternative to pca2go for live functional enrichment, relying on limma::goana instead of topGO (which is more precise but slower) ;; mosdef::run_topGO=Preferred over the deprecated topGOtable function (from version 2.32.0 onwards) for robust GO enrichment analysis ;; webshot2=Uses headless Chrome (via chromote) as an alternative to webshot (which uses PhantomJS) for rendering HTML widgets in report previews\n- when_to_use: Use when performing exploratory data analysis (EDA) on RNA-seq datasets to detect outlier samples, identify batch effects or dominant sources of variation, visualize gene expression profiles, and interpret the biological meaning of principal components via functional enrichment.\n- pitfalls: Mismatched sample names: Row names of coldata must exactly match the column names of countmatrix (or dds) ;; Yeast annotation: When using get_annotation_orgdb for yeast (Saccharomyces cerevisiae with org.Sc.sgd.db), key_for_genenames must be explicitly specified to avoid errors ;; Missing gene_name column: The annotation data frame must contain at least one column named exactly gene_name containing gene symbols ;; HTML widget rendering in reports: DataTable objects and other HTML widgets may not render correctly in the report preview unless PhantomJS (via webshot) or headless Chrome (via webshot2) is installed ;; Normalization assumption: The default size factor estimation assumes most genes are not differentially expressed; if violated, custom normalization factors must be pre-computed and stored in the input dds object.",
+  "workflows": [
+    {
+      "name": "interactive_pca_exploration",
+      "intent": "Launch the interactive Shiny application for comprehensive RNA-seq exploration using pre-computed DESeq2 objects and gene annotations.",
+      "input": [
+        "count_matrix.txt (raw count matrix)",
+        "metadata.txt (sample covariates)"
+      ],
+      "stages": "1. Retrieve gene annotations using get_annotation_orgdb ;; 2. Pre-compute functional enrichment of PC loadings using pca2go ;; 3. Launch the interactive Shiny app using pcaExplorer",
+      "code": "anno_df_orgdb <- get_annotation_orgdb(dds = dds_airway, orgdb_species = \"org.Hs.eg.db\", idtype = \"ENSEMBL\")\npca2go_airway <- pca2go(rld_airway, annotation = annotation_airway, organism = \"Hs\", ensToGeneSymbol = TRUE, background_genes = bg_ids)\npcaExplorer(dds_airway,rld_airway, pca2go = pca2go_airway, annotation = annotation_airway)"
+    },
+    {
+      "name": "standalone_pca_and_covariate_correlation",
+      "intent": "Perform programmatic PCA, plot sample distributions, and correlate principal components with experimental covariates.",
+      "input": [
+        "count_matrix.txt (raw count matrix)",
+        "metadata.txt (sample covariates)"
+      ],
+      "stages": "1. Plot sample PCA using pcaplot ;; 2. Generate a scree plot of explained variance using pcascree ;; 3. Correlate principal components with sample covariates using correlatePCs ;; 4. Plot the correlation significance matrix using plotPCcorrs ;; 5. Extract and plot genes with the highest loadings using hi_loadings",
+      "code": "pcaplot(rld_airway,intgroup = c(\"cell\",\"dex\"),ntop = 1000, pcX = 1, pcY = 2, title = \"airway dataset PCA on samples - PC1 vs PC2\")\npcaobj_airway <- prcomp(t(assay(rld_airway)))\npcascree(pcaobj_airway,type=\"pev\", title=\"Proportion of explained proportion of variance - airway dataset\")\nres_pcairway <- correlatePCs(pcaobj_airway,colData(dds_airway))\nplotPCcorrs(res_pcairway)\nhi_loadings(pcaobj_airway,topN = 10,exprTable=counts(dds_airway))\nhi_loadings(pcaobj_airway,topN = 10,annotation = annotation_airway)"
+    },
+    {
+      "name": "gene_level_pca_and_profiling",
+      "intent": "Analyze and visualize gene-level PCA biplots and expression profiles across samples.",
+      "input": [
+        "count_matrix.txt (raw count matrix)",
+        "metadata.txt (sample covariates)"
+      ],
+      "stages": "1. Compute and plot gene-level PCA biplots using genespca ;; 2. Plot expression distributions across samples using distro_expr ;; 3. Plot standardized expression profiles for a subset of genes using geneprofiler",
+      "code": "groups_airway <- colData(dds_airway)$dex\ncols_airway <- scales::hue_pal()(2)[groups_airway]\ngenespca(rld_airway,ntop=100, choices = c(1,2), arrowColors=cols_airway,groupNames=groups_airway, alpha = 0.7, varname.size = 5, annotation = annotation_airway )\ndistro_expr(rld_airway,plot_type = \"boxplot\")\ndds <- makeExampleDESeqDataSet_multifac(betaSD_condition = 3,betaSD_tissue = 1)\ndst <- DESeq2::rlogTransformation(dds)\nset.seed(42)\ngeneprofiler(dst,paste0(\"gene\",sample(1:1000,20)), plotZ = FALSE)"
+    }
+  ]
+}

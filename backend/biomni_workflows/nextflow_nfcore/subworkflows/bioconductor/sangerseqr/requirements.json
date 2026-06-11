@@ -1,0 +1,13 @@
+{
+  "package": "sangerseqr",
+  "requirements": [
+    "Biostrings",
+    "sangerseqR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "sangerseqR"
+    ]
+  }
+}

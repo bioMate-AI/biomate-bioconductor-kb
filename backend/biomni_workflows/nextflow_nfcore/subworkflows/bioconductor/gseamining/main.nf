@@ -1,125 +1,135 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GSEAmining
-// Gene Set Enrichment Analysis is a very powerful and interesting computational method that allows an 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GSEAmining/inst/doc/GSEAmining.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GSEAmining")
+// Bioconductor workflow: GSEAmining — gsea_clustering_and_visualization
+// Filter, cluster, and visualize GSEA results based on leading-edge gene similarity, and generate a comprehensive PDF report.
+// Input: gsea_results.csv
+// Container: quay.io/biocontainers/bioconductor-gseamining:1.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSEAmining
+// Visualizations: enrichment plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Filter GSEA results using gm_filter
+//  * 2. [Core Analysis] Perform hierarchical clustering of gene sets using gm_clust
+//  * 3. [Visualization & Output] Plot the cluster dendrogram using gm_dendplot
+//  * 4. [Visualization & Output] Visualize enriched terms in gene set names per cluster using gm_enrichterms
+//  * 5. [Visualization & Output] Visualize enriched genes in leading edge subsets per cluster using gm_enrichcores
+//  * 6. [Visualization & Output] Generate a comprehensive PDF report using gm_enrichreport
 
 nextflow.enable.dsl = 2
 
-process BIOC_GSEAMINING {
+process BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gseamining"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gseamining:1.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gseamining:1.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gseamining_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gseamining_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gseamining_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(GSEAmining)
-    library(jsonlite)
-
-    # --- Gene Set Clustering [] ---
-    # Key functions: gm_clust
+    
+    # 1. Read the user input GSEA results file
+    # The input file must contain at least: ID, NES, p.adjust, and core_enrichment columns
+    genesets_sel <- read.csv("gsea_results.csv", stringsAsFactors = FALSE)
+    
+    # 2. Filter GSEA results using gm_filter
+    gs.filt <- gm_filter(genesets_sel, 
+                         p.adj = 0.05, 
+                         neg_NES = 2.6, 
+                         pos_NES = 2)
+    
+    # Save the filtered gene sets to a CSV file
+    write.csv(gs.filt, "gs_filtered.csv", row.names = FALSE)
+    
+    # 3. Perform hierarchical clustering of gene sets using gm_clust
     gs.cl <- gm_clust(gs.filt)
+    
+    # Save the cluster object as an RDS file
+    saveRDS(gs.cl, "gs_clusters.rds")
+    
+    # 4. Plot the cluster dendrograms and save to PDF
+    pdf("gm_dendrogram_plots.pdf", width = 10, height = 8)
+    gm_dendplot(gs.filt, 
+                gs.cl)
+    
+    gm_dendplot(gs.filt, 
+                gs.cl, 
+                col_pos = 'orange', 
+                col_neg = 'black', 
+                rect = TRUE,
+                dend_len = 20, 
+                rect_len = 2)
+    dev.off()
+    
+    # 5. Visualize enriched terms in gene set names per cluster and save to PDF
+    pdf("gm_enrichterms_plots.pdf", width = 10, height = 8)
+    print(gm_enrichterms(gs.filt, gs.cl))
+    
+    print(gm_enrichterms(gs.filt, 
+                   gs.cl, 
+                   clust = FALSE,
+                   col_pos = 'chocolate3',
+                   col_neg = 'skyblue3'))
+    dev.off()
+    
+    # 6. Visualize enriched genes in leading edge subsets per cluster and save to PDF
+    pdf("gm_enrichcores_plots.pdf", width = 10, height = 12)
+    print(gm_enrichcores(gs.filt, gs.cl))
+    dev.off()
+    
+    # 7. Generate a comprehensive PDF report
+    gm_enrichreport(gs.filt, gs.cl, output = 'gm_report')
 
-
-    # --- Dendrogram Visualization [] ---
-    # Key functions: gm_dendplot
-    gm_dendplot(
-        gs.filt,
-        gs.cl,
-        col_pos = "orange",
-        col_neg = "black",
-        rect = TRUE,
-        dend_len = 20,
-        rect_len = 2
-    )
-
-
-    # --- Enriched Terms Identification [] ---
-    # Key functions: gm_enrichterms
-    terms_clustered <- gm_enrichterms(
-        gs.filt,
-        gs.cl,
-        clust = TRUE
-    )
-    terms_unclustered <- gm_enrichterms(
-        gs.filt,
-        gs.cl,
-        clust = FALSE,
-        col_pos = "chocolate3",
-        col_neg = "skyblue3"
-    )
-
-
-    # --- Core Genes Enrichment [] ---
-    # Key functions: gm_enrichcores
-    cores_enriched <- gm_enrichcores(
-        gs.filt,
-        gs.cl
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gseamining_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gseamining_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gseamining_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GSEAMINING:", paste0("    gseamining: ", packageVersion("GSEAmining"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION":',
+        paste0('    GSEAmining: ', as.character(packageVersion('GSEAmining')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gseamining_results.csv
-    touch ${prefix}_gseamining_output.rds
-    echo "BIOC_GSEAMINING:" > versions.yml
-    echo "    gseamining: 0.0.0" >> versions.yml
+    touch ${prefix}_gsea_clustering_and_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_GSEAMINING_WORKFLOW {
+workflow BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gsea_results.csv ] ]
 
     main:
-    BIOC_GSEAMINING(ch_input)
+    BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_GSEAMINING.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GSEAMINING.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GSEAMINING.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GSEAMINING.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION.out.tables
+    plots    = BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION.out.plots
+    objects  = BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION.out.objects
+    versions = BIOC_GSEAMINING_GSEA_CLUSTERING_AND_VISUALIZATION.out.versions
 }

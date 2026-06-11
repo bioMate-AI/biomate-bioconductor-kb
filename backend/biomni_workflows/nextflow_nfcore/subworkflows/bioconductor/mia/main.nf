@@ -1,104 +1,169 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mia
-// mia implements tools for microbiome analysis based on the SummarizedExperiment, SingleCellExperiment
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mia/inst/doc/mia.R
-// Upstream  : MultiAssayExperiment, phyloseq, scater
-// Downstream: miaViz
-//
-// Install: BiocManager::install("mia")
+// Bioconductor workflow: mia — taxonomic_agglomeration_and_tree_construction
+// Agglomerate microbiome count data at specific taxonomic ranks and construct or update the corresponding phylogenetic tree.
+// Input: esophagus.RDS, GlobalPatterns.RDS
+// Container: quay.io/biocontainers/bioconductor-mia:1.18.0--r45ha27e39d_0
+// R packages: TreeSummarizedExperiment, mia, MultiAssayExperiment, phyloseq, scater
+// Bioconductor: 3.20 | R: 4.4
+// Requires: TreeSummarizedExperiment, mia, phyloseq
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Convert legacy phyloseq objects to TreeSummarizedExperiment format. 2. Inspect available taxonomic ranks and identify empty classi
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIA {
+process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mia"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mia:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mia:1.14.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mia_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mia_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mia_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(mia)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("TreeSummarizedExperiment", "mia", "MultiAssayExperiment", "phyloseq", "scater")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library("mia")
-    library(jsonlite)
-
-
-    # --- Eval=false [] ---
-    # Key functions: requireNamespace, install, rowData, mia
-    #  if (!requireNamespace("BiocManager", quietly = TRUE))
-    #      install.packages("BiocManager")
-    #  BiocManager::install("mia")
-
-    ## ----load-packages, message=FALSE, warning=FALSE------------------------------
-    library("mia")
-
-    ## -----------------------------------------------------------------------------
-    data(GlobalPatterns, package = "mia")
-    tse <- GlobalPatterns
-    tse
-
-    ## -----------------------------------------------------------------------------
-    # print the available taxonomic ranks
+    library("phyloseq")
+    library("TreeSummarizedExperiment")
+    
+    # ==========================================
+    # 1. Read User Input Files
+    # ==========================================
+    # Read the esophagus phyloseq object
+    esophagus_phyloseq <- readRDS("esophagus.RDS")
+    
+    # Read the GlobalPatterns TreeSummarizedExperiment object
+    tse <- readRDS("GlobalPatterns.RDS")
+    
+    # ==========================================
+    # 2. Convert Legacy Phyloseq Object
+    # ==========================================
+    esophagus <- convertFromPhyloseq(esophagus_phyloseq)
+    
+    # Save converted esophagus object
+    saveRDS(esophagus, "esophagus_tse.RDS")
+    
+    # ==========================================
+    # 3. Inspect Taxonomic Ranks and Labels
+    # ==========================================
     colnames(rowData(tse))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mia_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mia_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mia_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIA:", paste0("    mia: ", packageVersion("mia"))),
-        "versions.yml"
+    taxonomyRanks(tse)
+    rowData(tse)[, taxonomyRanks(tse)]
+    
+    # Check for empty classifications at Species level
+    species_empty_table <- table(taxonomyRankEmpty(tse, "Species"))
+    write.csv(as.data.frame(species_empty_table), "species_empty_status.csv", row.names = FALSE)
+    
+    # Get taxonomy labels
+    tax_labels_head <- head(getTaxonomyLabels(tse))
+    write.csv(data.frame(TaxonomyLabels = tax_labels_head), "taxonomy_labels_head.csv", row.names = FALSE)
+    
+    # ==========================================
+    # 4. Agglomerate Feature Counts
+    # ==========================================
+    # Agglomerate at Family rank without shrinking the tree
+    x1 <- agglomerateByRank(tse, rank = "Family")
+    
+    # Agglomerate at Family rank and shrink the tree
+    x2 <- agglomerateByRank(tse, rank = "Family", agglomerateTree = TRUE)
+    
+    # Store as alternative experiment
+    altExp(tse, "family") <- x2
+    
+    # Agglomerate at Species rank with and without removing empty classifications
+    x1 <- agglomerateByRank(tse, rank = "Species", empty.rm = TRUE)
+    altExp(tse, "species") <- agglomerateByRank(tse, rank = "Species", empty.rm = FALSE)
+    
+    # Agglomerate on all available ranks
+    tse <- agglomerateByRanks(tse)
+    
+    # ==========================================
+    # 5. Construct and Update Taxonomic Tree
+    # ==========================================
+    taxa <- rowData(altExp(tse, "Species"))[, taxonomyRanks(tse)]
+    taxa_res <- resolveLoop(as.data.frame(taxa))
+    taxa_tree <- toTree(data = taxa_res)
+    taxa_tree\$tip.label <- getTaxonomyLabels(altExp(tse, "Species"))
+    rowNodeLab <- getTaxonomyLabels(altExp(tse, "Species"), make.unique = FALSE)
+    
+    altExp(tse, "Species") <- changeTree(
+        altExp(tse, "Species"),
+        rowTree = taxa_tree,
+        rowNodeLab = rowNodeLab
     )
+    
+    # ==========================================
+    # 6. Save Outputs
+    # ==========================================
+    # Save the final updated TreeSummarizedExperiment object
+    saveRDS(tse, "tse_agglomerated.RDS")
+    
+    # Save the rowData of the updated Species alternative experiment
+    write.csv(as.data.frame(rowData(altExp(tse, "Species"))), "species_rowData.csv", row.names = TRUE)
+    
+    # Plot and save the constructed taxonomic tree
+    pdf("taxonomic_tree.pdf", width = 10, height = 10)
+    plot(taxa_tree, show.tip.label = FALSE, main = "Constructed Taxonomic Tree (Species)")
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION":',
+        paste0('    mia: ', as.character(packageVersion('mia')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mia_results.csv
-    touch ${prefix}_mia_output.rds
-    echo "BIOC_MIA:" > versions.yml
-    echo "    mia: 0.0.0" >> versions.yml
+    touch ${prefix}_taxonomic_agglomeration_and_tree_construction.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIA_WORKFLOW {
+workflow BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ esophagus.RDS, GlobalPatterns.RDS ] ]
 
     main:
-    BIOC_MIA(ch_input)
+    BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION(ch_input)
 
     emit:
-    results  = BIOC_MIA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION.out.tables
+    plots    = BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION.out.plots
+    objects  = BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION.out.objects
+    versions = BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION.out.versions
 }

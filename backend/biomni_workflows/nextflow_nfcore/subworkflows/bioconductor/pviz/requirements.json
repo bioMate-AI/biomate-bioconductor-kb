@@ -1,0 +1,11 @@
+{
+  "package": "pviz",
+  "requirements": [
+    "Pviz"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Pviz"
+    ]
+  }
+}

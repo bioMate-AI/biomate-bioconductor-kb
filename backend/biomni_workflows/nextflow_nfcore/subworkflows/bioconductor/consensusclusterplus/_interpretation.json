@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: d=The input data matrix (features as rows, items as columns) or a pre-computed dist object ;; maxK=The maximum number of clusters to evaluate (e.g., 6) ;; reps=The number of subsampling repetitions (e.g., 50 or 1000) ;; pItem=The proportion of items (columns) to sample in each iteration (e.g., 0.8) ;; pFeature=The proportion of features (rows) to sample in each iteration (e.g., 1.0) ;; title=Character string specifying the output directory path where graphical and tabular results are saved ;; clusterAlg=The clustering algorithm to use, such as \"hc\" (hierarchical), \"pam\" (partitioning around medoids), \"km\" (kmeans), or a custom function ;; distance=The distance metric to use, such as \"pearson\", \"spearman\", \"euclidean\", \"binary\", \"maximum\", \"canberra\", \"minkowski\", or a custom function ;; seed=A random number seed to ensure reproducibility ;; plot=The output plot format, such as \"png\", \"pdf\", \"pngBMP\", or NULL ;; writeTable=Boolean indicating whether to write consensus matrices, ICL, and logs to CSV files\n- alternatives: Web-based Consensus Clustering (Monti et al., 2003) ;; Custom clustering algorithms can be supplied as a hook function (e.g., using diana from the cluster package)\n- when_to_use: When performing unsupervised class discovery on high-dimensional genomic datasets (e.g., microarray or RNA-seq expression profiles) to identify stable molecular subtypes and determine the optimal number of clusters (k)\n- pitfalls: Using too few repetitions (reps=50 is fine for testing, but reps=1000 is recommended for actual analyses) ;; High computational cost on large datasets when recalculating distance matrices (if feature resampling is not needed, i.e., pFeature=1, passing a pre-computed distance matrix as 'd' is much faster) ;; Plotting failures on large datasets (use plot=\"pngBMP\" to avoid plotting the consensus matrix dendrogram and use bitmap plotting instead of standard png)",
+  "workflows": [
+    {
+      "name": "standard_consensus_clustering",
+      "intent": "Perform consensus clustering on a gene expression matrix to identify stable sample clusters and calculate cluster/item consensus.",
+      "input": [
+        "expression_matrix.csv (a numeric matrix of gene expression values where columns represent samples and rows represent genes)"
+      ],
+      "stages": "1. Filter features by variability using median absolute deviation (mad) ;; 2. Median-center the features using sweep ;; 3. Run consensus clustering using ConsensusClusterPlus ;; 4. Calculate cluster and item consensus using calcICL",
+      "code": "library(ALL)\ndata(ALL)\nd=exprs(ALL)\nmads=apply(d,1,mad)\nd=d[rev(order(mads))[1:5000],]\nd = sweep(d,1, apply(d,1,median,na.rm=T))\nlibrary(ConsensusClusterPlus)\ntitle=tempdir()\nresults = ConsensusClusterPlus(d,maxK=6,reps=50,pItem=0.8,pFeature=1,title=title,clusterAlg=\"hc\",distance=\"pearson\",seed=1262118388.71279,plot=\"png\")\nicl = calcICL(results,title=title,plot=\"png\")"
+    },
+    {
+      "name": "custom_distance_consensus_clustering",
+      "intent": "Perform consensus clustering using a pre-computed custom distance matrix to reduce computation time on large datasets.",
+      "input": [
+        "expression_matrix.csv (a numeric matrix of gene expression values where columns represent samples and rows represent genes)"
+      ],
+      "stages": "1. Compute a custom distance matrix from the expression data ;; 2. Run consensus clustering using ConsensusClusterPlus with the pre-computed distance matrix",
+      "code": "dt = as.dist(1-cor(d,method=\"pearson\"))\nConsensusClusterPlus(dt,maxK=4,reps=100,pItem=0.8,pFeature=1,title=\"example2\",distance=\"pearson\",clusterAlg=\"hc\")"
+    }
+  ]
+}

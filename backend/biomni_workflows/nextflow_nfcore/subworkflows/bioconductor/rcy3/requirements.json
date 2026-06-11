@@ -1,0 +1,24 @@
+{
+  "package": "rcy3",
+  "requirements": [
+    "RCy3",
+    "graph",
+    "igraph"
+  ],
+  "by_workflow": {
+    "graphnel_interoperability.nf": [
+      "RCy3",
+      "graph"
+    ],
+    "igraph_interoperability.nf": [
+      "RCy3",
+      "igraph"
+    ],
+    "import_attribute_data.nf": [
+      "RCy3"
+    ],
+    "main.nf": [
+      "RCy3"
+    ]
+  }
+}

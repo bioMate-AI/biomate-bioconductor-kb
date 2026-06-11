@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: xx=The gene expression matrix (rows represent genes, columns represent samples) ;; group=Vector defining the clinical groups/diagnoses for the samples ;; covars=Vector or matrix of covariates to adjust for ;; formula.full=Formula for the full model containing all parameters ;; formula.red=Formula for the reduced model where terms of interest are omitted ;; model.dat=Data frame containing phenotype and covariate information for the samples ;; test.genes=Vector or list of gene identifiers representing the pathway(s) to be tested ;; perm=Number of permutations for the permutation test (default is 10,000) ;; method=Character string (\"both\", \"approx\", or \"perm\") specifying whether permutation-based, asymptotic, or both p-values are calculated ;; zz=Expression matrix of a global covariate (e.g., normal tissue baseline) used to reduce variance ;; zz.per.gene=Logical indicating whether baseline adjustment parameters should be estimated on a gene-wise basis ;; H=Dendrogram object representing the hierarchy of variables for hierarchical testing\n- alternatives: globaltest=Goeman's global test, which determines if an expression profile has prognostic power with respect to clinical outcome (and can handle survival times), whereas GlobalAncova tests for differences in mean expression between clinical groups and can evaluate differential co-expression.\n- when_to_use: Use when you want to test whether a predefined group of genes (e.g., a metabolic pathway or genomic region) is differentially expressed as a whole between clinical groups, rather than testing single genes individually. It is also appropriate for testing groups of categorical variables (like SNPs) or mixed data types using generalized linear models.\n- pitfalls: Missing values in the expression matrix 'xx' are not allowed and must be filtered or imputed beforehand ;; The asymptotic p-value approximation ('method=\"approx\"') is computationally infeasible for very large gene groups (typically > 2500 genes) because the covariance matrix cannot be estimated ;; Standard multiple testing corrections (e.g., Bonferroni) may be overly conservative due to high correlation between pathway tests; closed testing ('GlobalAncova.closed') or hierarchical testing ('gGlobalAncova.hierarchical') should be preferred ;; Sum of squares decompositions ('GlobalAncova.decomp') and pairwise comparisons ('pair.compare') do not have permutation-based p-values fully integrated in all contexts and should be treated as descriptive tools.",
+  "workflows": [
+    {
+      "name": "global_ancova_standard",
+      "intent": "Test the association of a single gene set or pathway with clinical groups, optionally adjusting for covariates, and visualize the gene-wise and subject-wise contributions.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix)",
+        "phenotype_data.csv (sample clinical annotations and covariates)"
+      ],
+      "stages": "1. Run GlobalAncova on all genes or a specific pathway using clinical group labels.\n2. Run GlobalAncova adjusting for clinical covariates (e.g., sample source).\n3. Generate a gene plot to visualize individual gene contributions to the global test statistic.\n4. Generate a subjects plot to visualize individual sample contributions and identify outliers.",
+      "code": "gr <- as.numeric(golubX$ALL.AML==\"ALL\")\nga.all <- GlobalAncova(xx=exprs(golubX), group=gr, covars=NULL, perm=100)\nga.cc <- GlobalAncova(xx=exprs(golubX), group=gr, test.genes=cellcycle, method=\"both\", perm=1000)\nga.cc.BMPB <- GlobalAncova(xx=exprs(golubX), group=gr, covars=golubX$BM.PB, test.genes=cellcycle, method=\"both\", perm=1000)\nPlot.genes(xx=vantVeer, group=metastases, test.genes=p53)\nPlot.subjects(xx=vantVeer, group=metastases, test.genes=p53, legendpos=\"bottomright\")"
+    },
+    {
+      "name": "sum_of_squares_decomposition",
+      "intent": "Decompose the model sum of squares to evaluate the sequential or Type III effects of multiple clinical factors on gene expression, and perform pairwise comparisons of factor levels.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix)",
+        "phenotype_data.csv (sample clinical annotations with multi-level factors)"
+      ],
+      "stages": "1. Perform sequential sum of squares decomposition to evaluate hierarchical factor effects.\n2. Perform Type III sum of squares decomposition to evaluate marginal factor effects.\n3. Perform pairwise comparisons between specific levels of a categorical factor.\n4. Plot the sequential decomposition of sum of squares across genes in a pathway.",
+      "code": "formula <- ~ grade + metastases + ERstatus\nGlobalAncova.decomp(xx = vantVeer, formula = formula, model.dat = phenodata, method = \"sequential\")\nGlobalAncova.decomp(xx = vantVeer, formula = formula, model.dat = phenodata, method = \"type3\")\npair.compare(xx = vantVeer, formula = ~ grade, model.dat = phenodata, group = \"grade\", perm = 100)\nPlot.sequential(vantVeer, formula = ~ ERstatus + metastases + grade, model.dat = phenodata, test.genes = pathways[[3]], name.geneset = \"cell cycle pathway\")\nPlot.all(vantVeer, formula = ~ ERstatus + metastases + grade, model.dat = phenodata, test.genes = pathways[[3]], name.geneset = \"cell cycle pathway\")"
+    },
+    {
+      "name": "generalized_and_hierarchical_testing",
+      "intent": "Apply global testing to non-quantitative or mixed variables (e.g., SNPs) and perform hierarchical testing to identify significant variable clusters.",
+      "input": [
+        "variable_matrix.csv (matrix of categorical or mixed variables)",
+        "phenotype_data.csv (sample clinical annotations)"
+      ],
+      "stages": "1. Run generalized GlobalAncova to test for global differences between groups.\n2. Generate a features plot to visualize variable-wise differences in model deviances.\n3. Cluster the variables to create a dendrogram hierarchy.\n4. Perform hierarchical testing down the dendrogram to identify significant end nodes.\n5. Plot the hierarchy highlighting significant paths.",
+      "code": "gGlobalAncova(X, formula.full=~group, model.dat=bindata, perm=1000)\ngGlobalAncova(X, formula.full=~group, model.dat=bindata, Sets=list(2:5, 6:10, 19:24), perm=1000)\nPlot.features(X, formula.full=~group, model.dat=bindata)\ndend <- as.dendrogram(hclust(dist(t(X))))\nres <- gGlobalAncova.hierarchical(X, H=dend, formula.full=~group, model.dat=bindata, alpha=0.05, perm=1000)\nresults(res)\nsigEndnodes(res)\nPlot.hierarchy(res, dend)"
+    },
+    {
+      "name": "public_gene_set_testing",
+      "intent": "Test public gene set collections (Gene Ontology or Broad Institute MSigDB) for association with clinical groups using specialized multiple testing corrections.",
+      "input": [
+        "expression_matrix.csv (normalized gene expression matrix)",
+        "phenotype_data.csv (sample clinical annotations)"
+      ],
+      "stages": "1. Run GAGO to test Gene Ontology terms using the focus level multiple testing procedure.\n2. Run GABroad to test Broad Institute MSigDB gene sets.",
+      "code": "gago <- GAGO(xx=exprs(golubX), formula.full=~ALL.AML, formula.red=~1, model.dat=pData(golubX), id=c(\"GO:0007049\", descendants), annotation=\"hu6800\", ontology=\"BP\", multtest=\"focuslevel\")\nGABroad(xx=exprs(golubX), formula.full=~ALL.AML, formula.red=~1, model.dat=pData(golubX), id=\"chr5q33\", collection=broad, annotation=\"hu6800\")"
+    }
+  ]
+}

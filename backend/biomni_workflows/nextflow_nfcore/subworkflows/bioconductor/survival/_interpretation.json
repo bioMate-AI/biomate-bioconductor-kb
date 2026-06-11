@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: formula=formula specifying the survival model (e.g., Surv(time, status) ~ predictors) ;; data=data frame containing the variables ;; weights=vector of case weights ;; subset=expression indicating which subset of rows to use\n- alternatives: coxme=for mixed-effects Cox models ;; survminer=for advanced visualization of survival curves ;; eha=for alternative parametric models\n- when_to_use: Appropriate when analyzing time-to-event data, particularly when censoring is present (right, left, or interval censoring), such as patient survival, time-to-recurrence, or equipment failure times.\n- pitfalls: Failing to properly format time-dependent covariates (leading to immortal time bias) ;; ignoring the proportional hazards assumption in Cox models ;; misinterpreting the sign of coefficients in survreg (which models log-time) versus coxph (which models log-hazard).",
+  "workflows": [
+    {
+      "name": "kaplan_meier_survival_curves",
+      "intent": "Estimate and plot non-parametric survival curves using the Kaplan-Meier method to compare survival times between groups.",
+      "input": [
+        "patient_clinical_data.csv (clinical table containing survival time, survival status, and grouping factors like treatment or gender)"
+      ],
+      "stages": "1. Define the survival outcome using Surv() ;; 2. Fit the Kaplan-Meier survival curve using survfit() ;; 3. Summarize survival probabilities and median survival times using summary() ;; 4. Plot the survival curves using plot().",
+      "code": "library(survival)\nfit <- survfit(Surv(time, status) ~ sex, data = lung)\nsummary(fit)\nplot(fit)"
+    },
+    {
+      "name": "cox_proportional_hazards_regression",
+      "intent": "Fit a semi-parametric Cox proportional hazards model to evaluate the effect of multiple continuous and categorical covariates on survival.",
+      "input": [
+        "patient_clinical_data.csv (clinical table containing survival time, survival status, and multiple clinical covariates)"
+      ],
+      "stages": "1. Fit the Cox proportional hazards model using coxph() ;; 2. Summarize hazard ratios and significance using summary() ;; 3. Test the proportional hazards assumption using cox.zph().",
+      "code": "library(survival)\nfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, data = lung)\nsummary(fit)\ncz <- cox.zph(fit)\nprint(cz)"
+    }
+  ]
+}

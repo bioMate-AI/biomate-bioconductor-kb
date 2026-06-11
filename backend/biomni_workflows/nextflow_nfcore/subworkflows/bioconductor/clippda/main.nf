@@ -1,163 +1,163 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: clippda
-// Methods for the nalysis of data from clinical proteomic profiling studies. The focus is on the studi
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/clippda/inst/doc/clippda.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("clippda")
+// Bioconductor workflow: clippda — clinical_proteomics_sample_size_planning
+// Pre-process raw mass spectrometry peak data with technical replicates, format it with phenotypic covariates into an S4 object, and calculate the required sample
+// Input: raw_mass_spec_peaks.csv, phenotypic_data.csv
+// Container: quay.io/biocontainers/bioconductor-clippda:1.60.0--r45h575d39b_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: clippda
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Check the number of replicates per sample using checkNo.replicates
+//  * 2. [Core Analysis] Pre-process repeated peak data using preProcRepeatedPeakData to resolve mislabelling and select the most similar replicates
+//  * 3. [Core Analysis] Filter out samples with low replicate correlation using spectrumFilter
+//  * 4. [Core Analysis] Format the data into a clustered structure using sampleClusteredData
+//  * 5. [Core Analysis] Combine expression and phenotypic data into an aclinicalProteomicsData S4 object
+//  * 6. [Core Analysis] Extract expression and phenotypic data using proteomicsExprsData and proteomicspData
+//  * 7. [Core Analysis] Estimate biological and technical parameters using sampleSizeParameters
+//  * 8. [Core Analysis] Calculate the heterogeneity correction factor Z using fisherInformation
+//  * 9. [Core Analysis] Compute the required sample sizes using sampleSize
+//  * 10. [Visualization & Output] Visualize sample size requirements using sampleSizeContourPlots and sampleSize3DscatterPlots
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLIPPDA {
+process BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clippda"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clippda:1.56.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-clippda:1.56.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clippda_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clippda_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clippda_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ZvaluescasesVcontrolsPlots)
-    library(ZvaluesfrommultinomPlots)
-    library(jsonlite)
-
-    # --- Liverdata [] ---
-    # Key functions: data
-    data(liverdata)
-    data(liverRawData)
-    data(liver_pheno)
-    liverdata[1:4,]
-    liverRawData[1:4,]
-    # --- replicates [] ---
-    # Key functions: replicates
-    no.peaks <- 53
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the clippda library
+    library(clippda)
+    
+    # Read user input files from the working directory
+    liverRawData <- read.csv("raw_mass_spec_peaks.csv", stringsAsFactors = FALSE)
+    liver_pheno <- read.csv("phenotypic_data.csv", stringsAsFactors = FALSE)
+    
+    # Determine parameters dynamically from the input data
+    no.peaks <- length(unique(liverRawData\$Peak))
     no.replicates <- 2
-    checkNo.replicates(liverRawData,no.peaks,no.replicates)
-    # --- Preprocrepeatedpeakdata [] ---
-    # Key functions: preProcRepeatedPeakData
-    threshold <- 0.80
+    
+    # 1. Check the number of replicates per sample
+    checkNo.replicates(liverRawData, no.peaks, no.replicates) 
+    
+    # 2. Pre-process repeated peak data to resolve mislabelling and select the most similar replicates
+    threshold <- 0.80 
     Data <- preProcRepeatedPeakData(liverRawData, no.peaks, no.replicates, threshold)
-    # --- Difference [] ---
-    # Key functions: setdiff
-    setdiff(unique(liverRawData$SampleTag),unique(liverdata$SampleTag))
-    setdiff(unique(Data$SampleTag),unique(liverdata$SampleTag))
-    # --- Spectrumfilter [] ---
-    # Key functions: spectrumFilter
-    TAGS <- spectrumFilter(Data,threshold,no.peaks)$SampleTag
-    NewRawData2 <- Data[Data$SampleTag %in% TAGS,]
-    dim(Data)
-    dim(liverdata)
-    dim(NewRawData2)
-    # --- Coherencepeaks [] ---
-    # Key functions: mostSimilarTwo
-    Mat1 <- matrix(liverRawData[liverRawData$SampleTag == 25,]$Intensity,53,3)
-    Mat2 <-matrix(liverRawData[liverRawData$SampleTag == 40,]$Intensity,53,4)
-    sort(mostSimilarTwo(cor(log2(Mat1))))
-    sort(mostSimilarTwo(cor(log2(Mat2))))
-    # --- Confirmpreprocessing [] ---
-    # Key functions: setdiff
-    names(NewRawData2)
-    dim(NewRawData2)
-    names(liverdata)
-    dim(liverdata)
-    setdiff(NewRawData2$SampleTag,liverdata$SampleTag)
-    # --- Sampleclustereddata [] ---
-    # Key functions: sampleClusteredData
-    JUNK_DATA <- sampleClusteredData(NewRawData2,no.peaks)
-    head(JUNK_DATA)[,1:5]
-    # --- Extractcomponetsofeset [] ---
-    # Key functions: proteomicsExprsData, proteomicspData
-    head(proteomicsExprsData(OBJECT))
-    head(proteomicspData(OBJECT))
-    # --- Zplots 1 [] ---
-    # Key functions: ZvaluescasesVcontrolsPlots
-    probs=seq(0,1,0.01) # provide hypothetical proportions of cases vs controls
-    ZvaluescasesVcontrolsPlots(probs)
-    # --- Zplots 2 [] ---
-    # Key functions: ZvaluesfrommultinomPlots
-    nsim=10000;nobs=300;proposeddesign=c(1,2,1,7);balanceddesign=c(1,1,1,1)
-    ZvaluesfrommultinomPlots(nsim, nobs, proposeddesign, balanceddesign)
-    # --- Biologicalparameters [] ---
-    # Key functions: sampleSizeParameters, fisherInformation, sampleSize
-    intraclasscorr  <-  0.60
-    signifcut <- 0.05
-    Data=OBJECT
-    sampleSizeParameters(Data, intraclasscorr, signifcut)
+    
+    # 3. Filter out samples with low replicate correlation
+    TAGS <- spectrumFilter(Data, threshold, no.peaks)\$SampleTag
+    NewRawData2 <- Data[Data\$SampleTag %in% TAGS,]
+    
+    # 4. Format the data into a clustered structure
+    JUNK_DATA <- sampleClusteredData(NewRawData2, no.peaks)
+    write.csv(JUNK_DATA, "clustered_data.csv", row.names = TRUE)
+    
+    # 5. Combine expression and phenotypic data into an aclinicalProteomicsData S4 object
+    OBJECT <- new("aclinicalProteomicsData")
+    OBJECT@rawSELDIdata <- as.matrix(NewRawData2)
+    OBJECT@covariates <- c("tumor", "sex")
+    OBJECT@phenotypicData <- as.matrix(liver_pheno)
+    OBJECT@variableClass <- c('numeric', 'factor', 'factor')
+    OBJECT@no.peaks <- no.peaks
+    
+    # 6. Extract expression and phenotypic data
+    exprs_data <- proteomicsExprsData(OBJECT)
+    p_data <- proteomicspData(OBJECT)
+    write.csv(exprs_data, "preprocessed_expression_data.csv", row.names = FALSE)
+    write.csv(p_data, "preprocessed_phenotypic_data.csv", row.names = FALSE)
+    
+    # 7. Estimate biological and technical parameters
+    intraclasscorr <- 0.60 
+    signifcut <- 0.05  
+    Data <- OBJECT
+    params <- sampleSizeParameters(Data, intraclasscorr, signifcut)
+    saveRDS(params, "sample_size_parameters.rds")
+    
+    # 8. Calculate the heterogeneity correction factor Z
     Z <- as.vector(fisherInformation(Data)[2,2])/2
-    # --- Contourplot [] ---
-    # Key functions: frame, sampleSizeContourPlots
+    
+    # 9. Compute the required sample sizes
+    sizes <- sampleSize(Data, intraclasscorr, signifcut)
+    sizes_df <- as.data.frame(sizes\$sample_size)
+    write.csv(sizes_df, "sample_size_calculations.csv", row.names = TRUE)
+    
+    # 10. Visualize sample size requirements using contour and 3D scatter plots
     m <- 2
-    DIFF <- seq(0.1,0.50,0.01)
-    VAR <- seq(0.2,4,0.1)
-    beta <- c(0.90,0.80,0.70)
-    alpha <-  1 - c(0.001, 0.01,0.05)/2
-    # --- Scatterplot [] ---
-    # Key functions: sampleSize3DscatterPlots
+    DIFF <- seq(0.1, 0.50, 0.01) 
+    VAR <- seq(0.2, 4, 0.1)
+    beta <- c(0.90, 0.80, 0.70)
+    alpha <- 1 - c(0.001, 0.01, 0.05)/2
+    Corr <- c(0.70, 0.90) 
+    Z <- 2.4   
+    Indicator <- 1 
+    observedPara <- c(1, 0.4)
+    sampleSizeContourPlots(Z, m, DIFF, VAR, beta, alpha, observedPara, Indicator)
+    
     Z <- 2.460018
     m <- 2
-    DIFF <- seq(0.1,0.50,0.01)
-    VAR <- seq(0.2,4,0.1)
-    beta <- c(0.90,0.80,0.70)
+    DIFF <- seq(0.1, 0.50, 0.01) 
+    VAR <- seq(0.2, 4, 0.1)
+    beta <- c(0.90, 0.80, 0.70)
+    alpha <- 1 - c(0.001, 0.01, 0.05)/2
+    observedDIFF <- 0.4
+    observedVAR <- 1.0
+    observedSampleSize <- 80
+    Indicator <- 1 
+    Angle <- 60    
+    sampleSize3DscatterPlots(Z, m, DIFF, VAR, beta, alpha, observedDIFF, observedVAR, observedSampleSize, Angle, Indicator)
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clippda_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clippda_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clippda_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLIPPDA:", paste0("    clippda: ", packageVersion("clippda"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING":',
+        paste0('    clippda: ', as.character(packageVersion('clippda')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clippda_results.csv
-    touch ${prefix}_clippda_output.rds
-    echo "BIOC_CLIPPDA:" > versions.yml
-    echo "    clippda: 0.0.0" >> versions.yml
+    touch ${prefix}_clinical_proteomics_sample_size_planning.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLIPPDA_WORKFLOW {
+workflow BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_mass_spec_peaks.csv, phenotypic_data.csv ] ]
 
     main:
-    BIOC_CLIPPDA(ch_input)
+    BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING(ch_input)
 
     emit:
-    results  = BIOC_CLIPPDA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLIPPDA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLIPPDA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLIPPDA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING.out.tables
+    plots    = BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING.out.plots
+    objects  = BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING.out.objects
+    versions = BIOC_CLIPPDA_CLINICAL_PROTEOMICS_SAMPLE_SIZE_PLANNING.out.versions
 }

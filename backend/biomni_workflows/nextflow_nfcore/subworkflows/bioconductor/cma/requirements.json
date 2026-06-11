@@ -1,0 +1,14 @@
+{
+  "package": "cma",
+  "requirements": [
+    "CMA"
+  ],
+  "by_workflow": {
+    "classifier_comparison.nf": [
+      "CMA"
+    ],
+    "main.nf": [
+      "CMA"
+    ]
+  }
+}

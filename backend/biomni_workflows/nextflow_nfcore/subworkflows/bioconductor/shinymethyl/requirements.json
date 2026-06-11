@@ -1,0 +1,17 @@
+{
+  "package": "shinymethyl",
+  "requirements": [
+    "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+    "SummarizedExperiment",
+    "minfi",
+    "shinyMethyl"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+      "SummarizedExperiment",
+      "minfi",
+      "shinyMethyl"
+    ]
+  }
+}

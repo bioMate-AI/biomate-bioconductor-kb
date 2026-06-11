@@ -1,102 +1,159 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MEAT
-// This package estimates epigenetic age in skeletal muscle, using DNA methylation data generated with 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MEAT/inst/doc/MEAT.R
-// Upstream  : SummarizedExperiment, minfi
-// Downstream: none
-//
-// Install: BiocManager::install("MEAT")
+// Bioconductor workflow: MEAT — meat_epigenetic_age
+// Estimate epigenetic age and age acceleration in skeletal muscle DNA methylation data using the MEAT package.
+// Input: matrix.csv, coldata.csv
+// Container: 1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: MEAT, SummarizedExperiment
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MEAT {
+process BIOC_MEAT_MEAT_EPIGENETIC_AGE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-meat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-meat:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-meat:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_meat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_meat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_meat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(MEAT)
-    library(BMIQcalibration)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Data Calibration [] ---
-    # Key functions: BMIQcalibration
-    GSE121961_SE_calibrated <- BMIQcalibration(
-        SE = GSE121961_SE_clean,
-        version = "MEAT2.0"
+    
+    # Stage 1: Read and align input data
+    message("Stage 1: Loading and aligning input data...")
+    if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'matrix.csv' and/or 'coldata.csv' are missing.")
+    }
+    
+    # Read methylation beta matrix
+    beta_df <- read.csv("matrix.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if (!"feature_id" %in% colnames(beta_df)) {
+      stop("matrix.csv must contain a 'feature_id' column for CpG/probe names.")
+    }
+    rownames(beta_df) <- beta_df\$feature_id
+    beta_df\$feature_id <- NULL
+    beta_matrix <- as.matrix(beta_df)
+    
+    # Read sample metadata
+    coldata_df <- read.csv("coldata.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if (!"sample" %in% colnames(coldata_df)) {
+      stop("coldata.csv must contain a 'sample' column matching the matrix columns.")
+    }
+    rownames(coldata_df) <- coldata_df\$sample
+    
+    # Align samples between beta matrix and coldata
+    common_samples <- intersect(colnames(beta_matrix), rownames(coldata_df))
+    if (length(common_samples) == 0) {
+      stop("No matching samples found between matrix.csv and coldata.csv.")
+    }
+    message(paste("Aligned", length(common_samples), "samples for analysis."))
+    beta_matrix <- beta_matrix[, common_samples, drop = FALSE]
+    coldata_df <- coldata_df[common_samples, , drop = FALSE]
+    
+    # Stage 2: Format data into a SummarizedExperiment object
+    message("Stage 2: Formatting data into SummarizedExperiment...")
+    # MEAT requires the assay containing beta values to be named "beta"
+    SE <- SummarizedExperiment(
+      assays = list(beta = beta_matrix),
+      colData = coldata_df
     )
-
-
-    # --- Epigenetic Age Estimation [] ---
-    # Key functions: epiage_estimation
-    GSE121961_SE_epiage <- epiage_estimation(
-        SE = GSE121961_SE_calibrated,
-        age_col_name = "Age",
-        version = "MEAT2.0"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_meat_results.csv", row.names = TRUE)
+    
+    # Stage 3: Data cleaning (subsetting to clock CpGs and imputing missing values)
+    message("Stage 3: Cleaning beta values...")
+    version_param <- "MEAT2.0" # Default version
+    SE_clean <- clean_beta(SE = SE, version = version_param)
+    
+    # Stage 4: Data calibration (re-scaling to the gold standard dataset)
+    message("Stage 4: Calibrating beta values using BMIQcalibration...")
+    SE_calibrated <- BMIQcalibration(SE = SE_clean, version = version_param)
+    
+    # Save calibrated beta values
+    calibrated_beta <- assays(SE_calibrated)\$beta
+    write.csv(calibrated_beta, "calibrated_beta.csv", row.names = TRUE)
+    message("Calibrated beta matrix saved to 'calibrated_beta.csv'.")
+    
+    # Stage 5: Epigenetic age estimation
+    message("Stage 5: Estimating epigenetic age...")
+    # Check if chronological age is provided in coldata (case-insensitive search)
+    age_col <- grep("^age\$", colnames(colData(SE_calibrated)), ignore.case = TRUE, value = TRUE)
+    
+    if (length(age_col) > 0) {
+      age_col_name <- age_col[1]
+      message(paste("Chronological age column detected:", age_col_name))
+      # Ensure age is numeric
+      colData(SE_calibrated)[[age_col_name]] <- as.numeric(colData(SE_calibrated)[[age_col_name]])
+      
+      # Run estimation with age acceleration calculation
+      SE_epiage <- epiage_estimation(
+        SE = SE_calibrated,
+        age_col_name = age_col_name,
+        version = version_param
+      )
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_meat_results.csv")
+      message("No chronological age column detected. Estimating DNAmage only.")
+      # Run estimation without age acceleration
+      SE_epiage <- epiage_estimation(
+        SE = SE_calibrated,
+        version = version_param
+      )
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_meat_output.rds")
-    }
+    
+    # Stage 6: Export results
+    message("Stage 6: Exporting final results...")
+    results_df <- as.data.frame(colData(SE_epiage))
+    write.csv(results_df, "epigenetic_age_results.csv", row.names = TRUE)
+    message("Epigenetic age estimation completed successfully. Results saved to 'epigenetic_age_results.csv'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MEAT:", paste0("    meat: ", packageVersion("MEAT"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MEAT_MEAT_EPIGENETIC_AGE":',
+        paste0('    MEAT: ', as.character(packageVersion('MEAT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_meat_results.csv
-    touch ${prefix}_meat_output.rds
-    echo "BIOC_MEAT:" > versions.yml
-    echo "    meat: 0.0.0" >> versions.yml
+    touch ${prefix}_meat_epigenetic_age.csv versions.yml
     """
 }
 
-
-workflow BIOC_MEAT_WORKFLOW {
+workflow BIOC_MEAT_MEAT_EPIGENETIC_AGE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MEAT(ch_input)
+    BIOC_MEAT_MEAT_EPIGENETIC_AGE(ch_input)
 
     emit:
-    results  = BIOC_MEAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MEAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MEAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MEAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MEAT_MEAT_EPIGENETIC_AGE.out.tables
+    plots    = BIOC_MEAT_MEAT_EPIGENETIC_AGE.out.plots
+    objects  = BIOC_MEAT_MEAT_EPIGENETIC_AGE.out.objects
+    versions = BIOC_MEAT_MEAT_EPIGENETIC_AGE.out.versions
 }

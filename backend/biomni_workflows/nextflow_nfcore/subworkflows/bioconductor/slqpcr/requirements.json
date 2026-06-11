@@ -1,0 +1,11 @@
+{
+  "package": "slqpcr",
+  "requirements": [
+    "SLqPCR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SLqPCR"
+    ]
+  }
+}

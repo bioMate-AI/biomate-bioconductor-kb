@@ -1,0 +1,21 @@
+{
+  "package": "alabaster_mae",
+  "requirements": [
+    "MultiAssayExperiment",
+    "S4Vectors",
+    "SummarizedExperiment",
+    "alabaster.base",
+    "alabaster.mae",
+    "alabaster_mae"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MultiAssayExperiment",
+      "S4Vectors",
+      "SummarizedExperiment",
+      "alabaster.base",
+      "alabaster.mae",
+      "alabaster_mae"
+    ]
+  }
+}

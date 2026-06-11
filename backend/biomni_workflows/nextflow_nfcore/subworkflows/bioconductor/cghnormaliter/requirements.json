@@ -1,0 +1,13 @@
+{
+  "package": "cghnormaliter",
+  "requirements": [
+    "CGHnormaliter",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CGHnormaliter",
+      "rtracklayer"
+    ]
+  }
+}

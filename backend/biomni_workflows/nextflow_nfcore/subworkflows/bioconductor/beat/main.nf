@@ -1,107 +1,141 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: BEAT
-// Model-based analysis of single-cell methylation data
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/BEAT/inst/doc/BEAT.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("BEAT")
+// Bioconductor workflow: BEAT — single_cell_epimutation_analysis
+// Quantify DNA methylation and call regional epimutations from single-cell bisulfite sequencing data compared to a reference sample.
+// Input: reference.positions.csv, sample.positions.csv
+// Container: quay.io/biocontainers/bioconductor-beat:1.48.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BEAT
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and define the local path and sample parameters using makeParams
+//  * 2. [Core Analysis] Pool individual CpG counts into genomic regions using positions_to_regions
+//  * 3. [Core Analysis] Model regional methylation rates and correct for experimental biases using generate_results
+//  * 4. [Core Analysis] Call methylating and demethylating epimutations using epimutation_calls
 
 nextflow.enable.dsl = 2
 
-process BIOC_BEAT {
+process BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-beat"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-beat:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-beat:1.44.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_beat_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_beat_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_beat_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load the required BEAT library
     library(BEAT)
-    library(jsonlite)
-
-    # --- Showinput [] ---
-    # Key functions: csv, path
-    library(BEAT)
-    localpath <- system.file('extdata', package = 'BEAT')
+    
+    # Define the local path as the current working directory where the user input files are located
+    localpath <- getwd()
+    
+    # Verify that the required user input files exist in the working directory
+    required_files <- c("reference.positions.csv", "sample.positions.csv")
+    missing_files <- required_files[!file.exists(file.path(localpath, required_files))]
+    if (length(missing_files) > 0) {
+      stop(paste("Missing required input file(s):", paste(missing_files, collapse = ", ")))
+    }
+    
+    # Read and display the first few rows of the single-cell sample positions
     positions <- read.csv(file.path(localpath, "sample.positions.csv"))
-    head(positions)
-    # --- Setconfig [] ---
-    # Key functions: makeParams
-    params <- makeParams(localpath, sampNames, convrates,
-    is.reference, pminus = 0.2, regionSize = 10000, minCounts = 5)
-    params
-    # --- Doconvert [] ---
-    # Key functions: positions_to_regions
-    positions_to_regions(params)
-    # --- Domodel [] ---
-    # Key functions: generate_results
-    generate_results(params)
-    # --- Doepimutations [] ---
-    # Key functions: epimutation_calls
-    epiCalls <- epimutation_calls(params)
-    head(epiCalls$methSites$singlecell,3)
-    head(epiCalls$demethSites$singlecell,3)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_beat_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_beat_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_beat_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BEAT:", paste0("    beat: ", packageVersion("BEAT"))),
-        "versions.yml"
+    cat("--- First few rows of sample.positions.csv ---\n")
+    print(head(positions))
+    
+    # Define sample names and reference status
+    sampNames <- c('reference', 'sample')
+    is.reference <- c(TRUE, FALSE)
+    
+    # Define conversion rates based on false positive rates (pplus)
+    pplus <- c(0.2, 0.5)
+    convrates <- 1 - pplus
+    
+    # Create the parameter object for the BEAT pipeline
+    params <- makeParams(
+      localpath = localpath,
+      sampNames = sampNames,
+      convrates = convrates,
+      is.reference = is.reference,
+      pminus = 0.2,
+      regionSize = 10000,
+      minCounts = 5
     )
+    
+    cat("\n--- Parameter Configuration ---\n")
+    print(params)
+    
+    # Step 1: Pool individual CpG counts into genomic regions
+    cat("\n--- Pooling CpG counts into regions ---\n")
+    positions_to_regions(params)
+    
+    # Step 2: Model regional methylation rates and correct for experimental biases
+    cat("\n--- Modeling regional methylation rates ---\n")
+    generate_results(params)
+    
+    # Step 3: Call methylating and demethylating epimutations
+    cat("\n--- Calling epimutations ---\n")
+    epiCalls <- epimutation_calls(params)
+    
+    # Display the head of the epimutation calls if available
+    cat("\n--- Methylating Epimutation Sites (First 3) ---\n")
+    print(head(epiCalls\$methSites\$singlecell, 3))
+    
+    cat("\n--- Demethylating Epimutation Sites (First 3) ---\n")
+    print(head(epiCalls\$demethSites\$singlecell, 3))
+    
+    # Save the final epimutation calls object to an RDS file for downstream analysis
+    output_rds <- file.path(localpath, "epimutation_calls_results.rds")
+    saveRDS(epiCalls, file = output_rds)
+    cat(paste("\nPipeline completed successfully. Results saved to:", output_rds, "\n"))
+
+    writeLines(c(
+        '"BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS":',
+        paste0('    BEAT: ', as.character(packageVersion('BEAT')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_beat_results.csv
-    touch ${prefix}_beat_output.rds
-    echo "BIOC_BEAT:" > versions.yml
-    echo "    beat: 0.0.0" >> versions.yml
+    touch ${prefix}_single_cell_epimutation_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_BEAT_WORKFLOW {
+workflow BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ reference.positions.csv, sample.positions.csv ] ]
 
     main:
-    BIOC_BEAT(ch_input)
+    BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_BEAT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BEAT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BEAT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BEAT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS.out.tables
+    plots    = BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS.out.plots
+    objects  = BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS.out.objects
+    versions = BIOC_BEAT_SINGLE_CELL_EPIMUTATION_ANALYSIS.out.versions
 }

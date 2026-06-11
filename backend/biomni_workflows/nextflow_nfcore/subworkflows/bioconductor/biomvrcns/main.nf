@@ -1,160 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: biomvRCNS
-// In this package, a Hidden Semi Markov Model (HSMM) and one homogeneous segmentation model are design
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/biomvRCNS/inst/doc/biomvRCNS.R
-// Upstream  : Rsamtools
-// Downstream: none
-//
-// Install: BiocManager::install("biomvRCNS")
+// Bioconductor workflow: biomvRCNS — acgh_copy_number_segmentation
+// Segment array CGH (aCGH) data to identify genomic regions of copy number deletion, duplication, or neutrality across multiple samples.
+// Input: coriell.txt
+// Container: quay.io/biocontainers/bioconductor-biomvrcns:1.50.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, biomvRCNS
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load data and construct a sorted GRanges object
+//  * 2. [Core Analysis] Run the Hidden Semi-Markov Model (HSMM) segmentation using biomvRhsmm
+//  * 3. [Visualization & Output] Visualize the segmentation results using biomvRGviz
+//  * 4. [Core Analysis] Run alternative homogeneous segmentation using biomvRseg
+//  * 5. [Core Analysis] Run alternative max-gap-min-run segmentation using biomvRmgmr
 
 nextflow.enable.dsl = 2
 
-process BIOC_BIOMVRCNS {
+process BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-biomvrcns"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-biomvrcns:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-biomvrcns:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_biomvrcns_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_biomvrcns_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_biomvrcns_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(biomvRCNS)
-    library(DataFrame)
-    library(GRanges)
-    library(IRanges)
-    library(ScanBamParam)
-    library(jsonlite)
+    library(GenomicRanges)
+    
+    # 1. Load data and construct a sorted GRanges object
+    # Read the user input file 'coriell.txt' from the working directory
+    coriell <- read.table("coriell.txt", header = TRUE, stringsAsFactors = FALSE)
+    
+    # Construct GRanges object exactly as documented
+    xgr<-GRanges(seqnames=coriell[,2], 
+    	IRanges(start=coriell[,3], width=1, names=coriell[,1]))
+    values(xgr)<-DataFrame(coriell[,4:5], row.names=NULL)
+    xgr<-sort(xgr)
+    head(xgr, n=3)
+    
+    # 2. Run the Hidden Semi-Markov Model (HSMM) segmentation using biomvRhsmm
+    rhsmm<-biomvRhsmm(x=xgr, maxbp=1E5, J=3, soj.type='gamma', 
+    	com.emis=T, emis.type='norm', prior.m='quantile', grp=c(1,2))
+    show(rhsmm)
+    
+    # 3. Visualize the segmentation results using biomvRGviz
+    # We wrap the visualization in a PDF device to save the output plot while keeping tofile=FALSE
+    sample_name <- colnames(coriell)[4]
+    chrom_name <- as.character(seqnames(xgr)[1])
+    
+    pdf("hsmm_segmentation_plot.pdf", width = 10, height = 6)
+    obj<-biomvRGviz(exprgr=xgr[seqnames(xgr)==chrom_name, sample_name], 
+    	seggr=rhsmm@res[mcols(rhsmm@res)[,'SAMPLE']==sample_name], tofile=FALSE)
+    dev.off()
+    
+    # 4. Run alternative homogeneous segmentation using biomvRseg
+    rseg<-biomvRseg(x=xgr, maxbp=4E4, maxseg=10, family='norm', grp=c(1,2))
+    head(rseg@res)
+    
+    # 5. Run alternative max-gap-min-run segmentation using biomvRmgmr
+    rmgmrh<-biomvRmgmr(xgr, q=0.9, high=T, maxgap=1000, minrun=2500, grp=c(1,2))
+    rmgmrl<-biomvRmgmr(xgr, q=0.1, high=F, maxgap=1000, minrun=2500, grp=c(1,2))
+    res<-c(rmgmrh@res, rmgmrl@res)
+    
+    # Save meaningful results to output files
+    saveRDS(rhsmm, "rhsmm_model.rds")
+    write.csv(as.data.frame(rhsmm@res), "rhsmm_segments.csv", row.names = FALSE)
+    
+    saveRDS(rseg, "rseg_model.rds")
+    write.csv(as.data.frame(rseg@res), "rseg_segments.csv", row.names = FALSE)
+    
+    saveRDS(res, "mgmr_segments.rds")
+    write.csv(as.data.frame(res), "mgmr_segments.csv", row.names = FALSE)
 
-    # --- Data Preparation [GRanges, DataFrame] ---
-    # Key functions: GRanges, DataFrame
-    data('coriell', package = 'biomvrcns')
-    xgr <- GRanges(
-        seqnames = coriell[, 2],
-        IRanges(
-            start = coriell[, 3],
-            width = 1,
-            names = coriell[, 1]
-        )
-    )
-    values(xgr) <- DataFrame(coriell[, 4:5], row.names = NULL)
-    xgr <- sort(xgr)
-
-    # --- HSMM Segmentation [biomvRhsmm] ---
-    # Key functions: biomvRhsmm
-    rhsmm <- biomvRhsmm(
-        x = xgr,
-        maxbp = 1E5,
-        J = 3,
-        soj.type = 'gamma',
-        com.emis = TRUE,
-        emis.type = 'norm',
-        prior.m = 'quantile',
-        grp = c(1, 2)
-    )
-
-    # --- Alternative Segmentation [biomvRseg, biomvRmgmr] ---
-    # Key functions: biomvRseg, biomvRmgmr
-    rseg <- biomvRseg(
-        x = xgr,
-        maxbp = 4E4,
-        maxseg = 10,
-        family = 'norm',
-        grp = c(1, 2)
-    )
-    rmgmrh <- biomvRmgmr(
-        xgr,
-        q = 0.9,
-        high = TRUE,
-        maxgap = 1000,
-        minrun = 2500,
-        grp = c(1, 2)
-    )
-
-    # --- DMR Detection [biomvRhsmm] ---
-    # Key functions: biomvRhsmm
-    data('variosm', package = 'biomvrcns')
-    rhsmm_var <- biomvRhsmm(
-        x = variosm,
-        J = 6,
-        maxbp = 100,
-        emis.type = 'mvnorm',
-        prior.m = 'cluster',
-        maxgap = 100,
-        com.emis = TRUE
-    )
-    DMRs <- GenomicRanges::reduce(
-        rhsmm_var@res[mcols(rhsmm_var@res)[, 'STATE'] == '6'],
-        min.gapwidth = 100
-    )
-
-    # --- Genomic Visualisation [biomvRGviz, plot] ---
-    # Key functions: biomvRGviz, plot
-    obj <- biomvRGviz(
-        exprgr = xgr[seqnames(xgr) == '11', 'Coriell.05296'],
-        seggr = rhsmm@res[mcols(rhsmm@res)[, 'SAMPLE'] == 'Coriell.05296'],
-        tofile = FALSE
-    )
-    plot(rhsmm, tofile = FALSE)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_biomvrcns_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_biomvrcns_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_biomvrcns_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BIOMVRCNS:", paste0("    biomvrcns: ", packageVersion("biomvRCNS"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION":',
+        paste0('    biomvRCNS: ', as.character(packageVersion('biomvRCNS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_biomvrcns_results.csv
-    touch ${prefix}_biomvrcns_output.rds
-    echo "BIOC_BIOMVRCNS:" > versions.yml
-    echo "    biomvrcns: 0.0.0" >> versions.yml
+    touch ${prefix}_acgh_copy_number_segmentation.csv versions.yml
     """
 }
 
-
-workflow BIOC_BIOMVRCNS_WORKFLOW {
+workflow BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ coriell.txt ] ]
 
     main:
-    BIOC_BIOMVRCNS(ch_input)
+    BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION(ch_input)
 
     emit:
-    results  = BIOC_BIOMVRCNS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BIOMVRCNS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BIOMVRCNS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BIOMVRCNS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION.out.tables
+    plots    = BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION.out.plots
+    objects  = BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION.out.objects
+    versions = BIOC_BIOMVRCNS_ACGH_COPY_NUMBER_SEGMENTATION.out.versions
 }

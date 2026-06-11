@@ -1,0 +1,24 @@
+{
+  "package": "sc3",
+  "requirements": [
+    "SC3",
+    "SingleCellExperiment",
+    "scater"
+  ],
+  "by_workflow": {
+    "hybrid_svm_clustering.nf": [
+      "SC3",
+      "SingleCellExperiment",
+      "scater"
+    ],
+    "main.nf": [
+      "SC3",
+      "SingleCellExperiment"
+    ],
+    "step_by_step_sc3_pipeline.nf": [
+      "SC3",
+      "SingleCellExperiment",
+      "scater"
+    ]
+  }
+}

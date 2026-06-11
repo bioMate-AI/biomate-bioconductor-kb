@@ -4,6 +4,8 @@
 // Estimate the expected number of rare variants per MAC bin using ancestry-specific default parameters.
 // Input: mac_bins.csv
 // Container: quay.io/biocontainers/bioconductor-raresim:1.14.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
 // Requires: RAREsim
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
@@ -36,9 +38,12 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_WITH_DEFAULTS {
     """
     #!/usr/bin/env Rscript
         # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
-          .bm_bn <- basename(.bm_f)
-          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
         }
         
         # Load the required library

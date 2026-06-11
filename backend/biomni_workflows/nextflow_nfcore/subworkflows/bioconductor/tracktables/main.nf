@@ -1,104 +1,153 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: tracktables
-// Methods to create complex IGV genome browser sessions and dynamic IGV reports in HTML pages.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/tracktables/inst/doc/tracktables.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("tracktables")
+// Bioconductor workflow: tracktables — igv_session_and_html_report_generation
+// Generate IGV session XML files and interactive HTML tracktable reports from genomics file paths and sample metadata.
+// Input: FileSheet, SampleSheet
+// Container: quay.io/biocontainers/bioconductor-tracktables:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: tracktables
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Prepare the FileSheet and SampleSheet matrices
+//  * 2. [Core Analysis] Generate the IGV session XML and metadata file using MakeIGVSession()
+//  * 3. [Input & Preparation] Define custom IGV display parameters using igvParam()
+//  * 4. [Visualization & Output] Generate the interactive HTML report using maketracktable()
 
 nextflow.enable.dsl = 2
 
-process BIOC_TRACKTABLES {
+process BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-tracktables"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-tracktables:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-tracktables:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_tracktables_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_tracktables_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_tracktables_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(tracktables)
-    library(MakeIGVSession)
-    library(jsonlite)
-
-    # --- Metadata Annotation [] ---
-    # Key functions: None
-    sample_sheet <- cbind(
-        as.vector(file_sheet[, "SampleName"]),
-        c("EBF", "H3K4me3", "H3K9ac", "RNAPol2"),
-        c("ProB", "ProB", "ProB", "ProB")
-    )
-    colnames(sample_sheet) <- c("SampleName", "Antibody", "Species")
-
-
-    # --- Tracktable Generation [] ---
-    # Key functions: makeTracktable
-    html_report <- makeTracktable(
-        df = file_sheet,
-        samplesheet = sample_sheet,
-        annotation = "hg19",
-        outputDir = "tracktables_html"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_tracktables_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_tracktables_results.csv")
+    
+    # Read user input files from the working directory
+    # The pipeline expects "FileSheet.csv" and "SampleSheet.csv" to be present in the working directory.
+    if (!file.exists("FileSheet.csv") || !file.exists("SampleSheet.csv")) {
+      stop("Required input files 'FileSheet.csv' and/or 'SampleSheet.csv' are missing from the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_tracktables_output.rds")
+    
+    # Read FileSheet and convert to matrix as expected by tracktables
+    FileSheet_df <- read.csv("FileSheet.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NA", ""))
+    FileSheet <- as.matrix(FileSheet_df)
+    
+    # Read SampleSheet and convert to matrix
+    SampleSheet_df <- read.csv("SampleSheet.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NA", ""))
+    SampleSheet <- as.matrix(SampleSheet_df)
+    
+    # Ensure correct column names and structure
+    required_file_cols <- c("SampleName", "bigwig", "interval", "bam")
+    if (!all(required_file_cols %in% colnames(FileSheet))) {
+      stop("FileSheet must contain columns: 'SampleName', 'bigwig', 'interval', 'bam'")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TRACKTABLES:", paste0("    tracktables: ", packageVersion("tracktables"))),
-        "versions.yml"
+    # Reorder columns to match exact expected order if necessary
+    FileSheet <- FileSheet[, required_file_cols, drop = FALSE]
+    
+    if (!"SampleName" %in% colnames(SampleSheet)) {
+      stop("SampleSheet must contain a 'SampleName' column.")
+    }
+    
+    # Stage 2: Generate the IGV session XML and metadata file using MakeIGVSession()
+    message("Generating IGV Session...")
+    MakeIGVSession(
+      SampleSheet = SampleSheet,
+      FileSheet = FileSheet,
+      igvdirectory = getwd(),
+      "Example",
+      "mm9"
     )
+    
+    # Stage 3: Generate the interactive HTML report using maketracktable()
+    message("Generating first HTML report (IGVExample.html)...")
+    HTMLreport <- maketracktable(
+      fileSheet = FileSheet,
+      SampleSheet = SampleSheet,
+      filename = "IGVExample.html",
+      basedirectory = getwd(),
+      genome = "mm9"
+    )
+    
+    # Save the first HTML report object
+    saveRDS(HTMLreport, file = "HTMLreport_v1.rds")
+    
+    # Stage 4: Define custom IGV display parameters using igvParam() and generate second report
+    message("Defining custom IGV display parameters...")
+    igvDisplayParams <- igvParam(
+      bigwig.autoScale = "false",
+      bigwig.minimum = 1,
+      bigwig.maximum = 5
+    )
+    
+    message("Generating second HTML report with custom parameters (IGVex2.html)...")
+    HTMLreport2 <- maketracktable(
+      FileSheet,
+      SampleSheet,
+      "IGVex2.html",
+      getwd(),
+      "mm9",
+      colourBy = "Antibody",
+      igvParam = igvDisplayParams
+    )
+    
+    # Save the second HTML report object
+    saveRDS(HTMLreport2, file = "HTMLreport_v2.rds")
+    
+    message("Pipeline completed successfully. Outputs generated in the working directory.")
+
+    writeLines(c(
+        '"BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION":',
+        paste0('    tracktables: ', as.character(packageVersion('tracktables')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_tracktables_results.csv
-    touch ${prefix}_tracktables_output.rds
-    echo "BIOC_TRACKTABLES:" > versions.yml
-    echo "    tracktables: 0.0.0" >> versions.yml
+    touch ${prefix}_igv_session_and_html_report_generation.csv versions.yml
     """
 }
 
-
-workflow BIOC_TRACKTABLES_WORKFLOW {
+workflow BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ FileSheet, SampleSheet ] ]
 
     main:
-    BIOC_TRACKTABLES(ch_input)
+    BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION(ch_input)
 
     emit:
-    results  = BIOC_TRACKTABLES.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TRACKTABLES.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TRACKTABLES.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TRACKTABLES.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION.out.tables
+    plots    = BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION.out.plots
+    objects  = BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION.out.objects
+    versions = BIOC_TRACKTABLES_IGV_SESSION_AND_HTML_REPORT_GENERATION.out.versions
 }

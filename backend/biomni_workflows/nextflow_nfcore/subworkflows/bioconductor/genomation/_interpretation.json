@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: target=The genomic signal data to extract (can be a GRanges, RleList, or path to an indexed BAM/BigWig file) ;; windows=The genomic regions of interest (GRanges or GRangesList) over which enrichment is calculated ;; bin.num=The number of bins to split each window into (essential for unequal window widths in ScoreMatrixBin or ScoreMatrixList) ;; strand.aware=Logical indicating whether to reverse the orientation of matrix columns for windows on the negative strand ;; meta.col=A list specifying which columns of a tabular file to read as metadata in readGeneric (e.g., list(score=5)) ;; split.group=Logical indicating whether to split the last column of a GFF/GTF file into separate metadata columns in gffToGRanges ;; intersect.chr=Logical indicating whether to intersect chromosomes before annotation in annotateWithFeature or annotateWithGeneParts\n- alternatives: AnnotationHub can be used to retrieve genomic annotations (like CpG islands or DNase peaks) directly from online repositories instead of reading local flat files.\n- when_to_use: Use when you have genomic interval data (e.g., ChIP-seq peaks, BAM alignments, methylation scores) and want to visualize their distribution, average enrichment, or overlap with genomic annotations (e.g., promoters, TSS, exons, introns, CpG islands).\n- pitfalls: Windows falling off the target: ScoreMatrix will warn if windows extend beyond chromosome boundaries or target limits ;; Unequal window widths: Using ScoreMatrix on windows of unequal width will fail or be inappropriate; ScoreMatrixBin must be used instead with a specified bin.num ;; Exons/windows shorter than bin.num: ScoreMatrixBin will filter out and remove windows that are shorter than the specified number of bins, which can lead to missing rows in the output matrix ;; BAM files must be indexed (have a corresponding .bai file) when used directly as targets.",
+  "workflows": [
+    {
+      "name": "genomic_signal_extraction_and_visualization",
+      "intent": "Extract genomic signal (e.g., CAGE, ChIP-seq) over windows of interest (e.g., promoters, exons) and visualize via heatmaps or meta-plots.",
+      "input": [
+        "aligned_reads.bam (BAM file of aligned reads)",
+        "genomic_features.gtf (GTF file of gene annotations)"
+      ],
+      "stages": "1. Read genomic annotations using gffToGRanges ;; 2. Build score matrices over windows using ScoreMatrix (equal width) or ScoreMatrixBin (unequal width) ;; 3. Combine multiple targets into a ScoreMatrixList ;; 4. Scale matrices using scaleScoreMatrix or scaleScoreMatrixList ;; 5. Visualize using heatMatrix, plotMeta, or multiHeatMatrix.",
+      "code": "data(cage)\ndata(promoters)\nsm = ScoreMatrix(target=cage, windows=promoters)\nsm\n\ngff.file = system.file('extdata/chr21.refseq.hg19.gtf', package=\"genomation\")\nexons = gffToGRanges(gff.file, filter='exon')\nsm = ScoreMatrixBin(target=cage, windows=exons, bin.num=50)\nsm\n\ntranscripts = split(exons, exons$transcript_id)\nsm = ScoreMatrixBin(target=cage, windows=transcripts, bin.num=10)\nsm\n\ncage$tpm = NULL\ntargets = list(cage=cage, cpgi=cpgi)\nsm = ScoreMatrixList(targets=targets, windows=promoters, bin.num=50)\nsm\n\nheatMatrix(sm, xcoords=c(-1000, 1000))\nplotMeta(sm, xcoords=c(-1000, 1000))\n\nsm = ScoreMatrix(target=cage, windows=promoters, strand.aware=TRUE)\ncpg.ind = which(countOverlaps(promoters, cpgi)>0)\nnocpg.ind = which(countOverlaps(promoters, cpgi)==0)\nheatMatrix(sm, xcoords=c(-1000, 1000), group=list(CpGi=cpg.ind, noCpGi=nocpg.ind))\n\nsm.scaled = scaleScoreMatrix(sm)\nheatMatrix(sm.scaled, xcoords=c(-1000, 1000), group=list(CpGi=cpg.ind, noCpGi=nocpg.ind))\n\nsml = ScoreMatrixList(targets=targets, windows=promoters, bin.num=50, strand.aware=TRUE)\nmultiHeatMatrix(sml, xcoords=c(-1000, 1000))\nmultiHeatMatrix(sml, xcoords=c(-1000, 1000), clustfun=function(x) kmeans(x, centers=2)$cluster)"
+    },
+    {
+      "name": "genomic_interval_annotation",
+      "intent": "Annotate genomic intervals (e.g., ChIP-seq peaks) with genomic features (e.g., CpG islands) or gene parts (promoters, exons, introns, TSS).",
+      "input": [
+        "peaks.broadPeak (ChIP-seq peak file)",
+        "transcript_features.bed (BED file of transcript models)"
+      ],
+      "stages": "1. Read peaks using readBroadPeak, readNarrowPeak, or readGeneric ;; 2. Read transcript features using readTranscriptFeatures ;; 3. Annotate intervals using annotateWithFeature or annotateWithGeneParts ;; 4. Plot annotation statistics using plotGeneAnnotation or plotTargetAnnotation.",
+      "code": "genomationDataPath = system.file('extdata',package='genomationData')\nsampleInfo = read.table(file.path(genomationDataPath, 'SamplesInfo.txt'), \n                        header=TRUE, sep='\\t', stringsAsFactors=FALSE)\n\npeak.files=list.files(genomationDataPath, full.names=TRUE, pattern='broadPeak')\nnames(peak.files) = sampleInfo$sampleName[match(basename(peak.files),sampleInfo$fileName)]\n\nctcf.peaks = readBroadPeak(peak.files['Ctcf'])\n\ndata(cpgi)\npeak.annot = annotateWithFeature(ctcf.peaks, cpgi, intersect.chr=TRUE)\npeak.annot\n\nbed.file=system.file(\"extdata/chr21.refseq.hg19.bed\", package = \"genomation\")\ngene.parts = readTranscriptFeatures(bed.file)\n\nctcf.annot=annotateWithGeneParts(ctcf.peaks, gene.parts, intersect.chr=TRUE)\nctcf.annot\n\npeaks = GRangesList(lapply(peak.files, readGeneric))\nnames(peaks) = names(peak.files)\nannot.list = annotateWithGeneParts(peaks, gene.parts, intersect.chr=TRUE)\n\nplotGeneAnnotation(annot.list)\nplotGeneAnnotation(annot.list, cluster=TRUE)"
+    },
+    {
+      "name": "feature_combination_analysis",
+      "intent": "Find combinations of overlapping genomic features (e.g., multiple transcription factor peaks) and visualize their signal.",
+      "input": [
+        "tf_peaks_1.broadPeak (Peak file for TF 1)",
+        "tf_peaks_2.broadPeak (Peak file for TF 2)",
+        "aligned_reads.bam (BAM file of aligned reads)"
+      ],
+      "stages": "1. Read multiple peak files into a GRangesList ;; 2. Find combinations of features using findFeatureComb ;; 3. Extract signal over these combinations using ScoreMatrixList ;; 4. Scale and plot using multiHeatMatrix.",
+      "code": "genomationDataPath = system.file('extdata',package='genomationData')\nsampleInfo = read.table(file.path(genomationDataPath, 'SamplesInfo.txt'), \n                        header=TRUE, sep='\\t', stringsAsFactors=FALSE)\n\npeak.files = list.files(genomationDataPath, full.names=TRUE, pattern='Peak.gz$')\npeaks = list()\nfor(i in 1:length(peak.files)){\n  file = peak.files[i]\n  name=sampleInfo$sampleName[match(basename(file),sampleInfo$fileName)]\n  message(name)\n  peaks[[name]] = readGeneric(file, meta.col=list(score=5))\n}\npeaks = GRangesList(peaks)\npeaks = peaks[seqnames(peaks) == 'chr21' & width(peaks) < 1000  & width(peaks) > 100]\n\ntf.comb = findFeatureComb(peaks, width=1000)\n\ntf.comb = tf.comb[order(tf.comb$class)]\nbam.files = list.files(genomationDataPath, full.names=TRUE, pattern='bam$')\nbam.files = bam.files[!grepl('Cage', bam.files)]\nsml = ScoreMatrixList(bam.files, tf.comb, bin.num=20, type='bam')\nnames(sml) = sampleInfo$sampleName[match(names(sml),sampleInfo$fileName)]\nsml.scaled = scaleScoreMatrixList(sml)\nmultiHeatMatrix(sml.scaled, xcoords=c(-500, 500), col=c('lightgray', 'blue'))"
+    }
+  ]
+}

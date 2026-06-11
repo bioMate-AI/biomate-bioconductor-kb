@@ -1,0 +1,17 @@
+{
+  "package": "evaluomer",
+  "requirements": [
+    "SummarizedExperiment",
+    "evaluomeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SummarizedExperiment",
+      "evaluomeR"
+    ],
+    "metric_distribution_analysis.nf": [
+      "SummarizedExperiment",
+      "evaluomeR"
+    ]
+  }
+}

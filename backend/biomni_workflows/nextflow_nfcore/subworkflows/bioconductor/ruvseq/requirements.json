@@ -1,0 +1,28 @@
+{
+  "package": "ruvseq",
+  "requirements": [
+    "DESeq2",
+    "EDASeq",
+    "RColorBrewer",
+    "RUVSeq",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DESeq2",
+      "RColorBrewer",
+      "RUVSeq",
+      "edgeR"
+    ],
+    "ruvr_residuals.nf": [
+      "EDASeq",
+      "RUVSeq",
+      "edgeR"
+    ],
+    "ruvs_replicate_samples.nf": [
+      "EDASeq",
+      "RColorBrewer",
+      "RUVSeq"
+    ]
+  }
+}

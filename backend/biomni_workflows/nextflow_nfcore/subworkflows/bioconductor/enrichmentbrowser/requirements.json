@@ -1,0 +1,11 @@
+{
+  "package": "enrichmentbrowser",
+  "requirements": [
+    "EnrichmentBrowser"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EnrichmentBrowser"
+    ]
+  }
+}

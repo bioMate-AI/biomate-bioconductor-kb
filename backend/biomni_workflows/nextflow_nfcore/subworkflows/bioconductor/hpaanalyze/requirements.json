@@ -1,0 +1,21 @@
+{
+  "package": "hpaanalyze",
+  "requirements": [
+    "HPAanalyze",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HPAanalyze"
+    ],
+    "retrieve_parse_xml.nf": [
+      "HPAanalyze"
+    ],
+    "visualize_hpa_expression.nf": [
+      "HPAanalyze",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

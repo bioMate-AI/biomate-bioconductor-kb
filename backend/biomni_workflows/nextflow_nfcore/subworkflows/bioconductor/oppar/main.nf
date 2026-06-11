@@ -1,128 +1,195 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: oppar
-// The R implementation of mCOPA package published by Wang et al. (2012). Oppar provides methods for Ca
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/oppar/inst/doc/oppar.R
-// Upstream  : Biobase, knitr, limma
-// Downstream: none
-//
-// Install: BiocManager::install("oppar")
+// Bioconductor workflow: oppar — cancer_outlier_profile_analysis
+// Identify up- and down-regulated outlier genes in disease samples compared to normal controls and extract outlier profiles.
+// Input: eset
+// Container: quay.io/biocontainers/bioconductor-oppar:1.38.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: Biobase, GO.db, limma, oppar, org.Hs.eg.db
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define group factor (normal vs case)
+//  * 2. [Core Analysis] Run opa() to generate the outlier profile matrix
+//  * 3. [Core Analysis] Access profile matrix and quantiles
+//  * 4. [Core Analysis] Extract outlier profiles for individual samples using getSampleOutlier()
+//  * 5. [Core Analysis] Extract outliers for all samples or subtypes using getSubtypeProbes()
 
 nextflow.enable.dsl = 2
 
-process BIOC_OPPAR {
+process BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-oppar"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-oppar:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-oppar:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_oppar_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_oppar_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_oppar_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(oppar)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(oppar)
+        library(Biobase)
+        
+        # Read the user-provided ExpressionSet from the working directory
+        if (file.exists("eset")) {
+          eset <- readRDS("eset")
+        } else if (file.exists("eset.rds")) {
+          eset <- readRDS("eset.rds")
+        } else {
+          stop("Error: ExpressionSet file 'eset' or 'eset.rds' not found in the working directory.")
+        }
+        
+        # Stage 1: Define group factor (normal vs case)
+        # Use 'group' from phenotype data if available, otherwise split samples in half
+        if ("group" %in% varLabels(eset)) {
+          g <- factor(eset\$group)
+        } else if ("Group" %in% varLabels(eset)) {
+          g <- factor(eset\$Group)
+        } else {
+          num_samples <- ncol(exprs(eset))
+          num_normal <- max(1, floor(num_samples / 2))
+          g <- factor(c(rep(0, num_normal), rep(1, num_samples - num_normal)))
+        }
+        
+        # Stage 2: Run opa() to generate the outlier profile matrix
+        tomlins.opa <- opa(eset, group = g, lower.quantile = 0.1)
+        
+        # Stage 3: Access profile matrix and quantiles
+        profile_matrix_subset <- tomlins.opa\$profileMatrix[seq_len(min(6, nrow(tomlins.opa\$profileMatrix))), seq_len(min(5, ncol(tomlins.opa\$profileMatrix))), drop = FALSE]
+        upper_q <- tomlins.opa\$upper.quantile
+        lower_q <- tomlins.opa\$lower.quantile
+        
+        # Stage 4: Extract outlier profiles for individual samples using getSampleOutlier()
+        sample_indices <- intersect(c(1, 5), seq_len(ncol(tomlins.opa\$profileMatrix)))
+        sample_outliers <- getSampleOutlier(tomlins.opa, sample_indices)
+        
+        # Stage 5: Extract outliers for all samples or subtypes using getSubtypeProbes()
+        outlier.list <- getSubtypeProbes(tomlins.opa, seq_len(ncol(tomlins.opa\$profileMatrix)))
+        
+        # Write meaningful results to output files
+        write.csv(tomlins.opa\$profileMatrix, "outlier_profile_matrix.csv", row.names = TRUE)
+        
+        quantiles_df <- data.frame(
+          upper_quantile = upper_q,
+          lower_quantile = lower_q
+        )
+        write.csv(quantiles_df, "quantiles.csv", row.names = FALSE)
+        
+        saveRDS(sample_outliers, "sample_outliers_1_5.rds")
+        saveRDS(outlier.list, "outlier_list.rds")
+        
+        if (!is.null(outlier.list\$up)) {
+          writeLines(outlier.list\$up, "up_regulated_outliers.txt")
+        }
+        if (!is.null(outlier.list\$down)) {
+          writeLines(outlier.list\$down, "down_regulated_outliers.txt")
+        }
+        
+        # Optional Downstream Gene Set Enrichment Analysis using limma::mroast
+        tryCatch({
+          library(org.Hs.eg.db)
+          library(limma)
+          library(GO.db)
+        
+          go2eg <- as.list(org.Hs.egGO2EG)
+        
+          # Check if required annotation columns exist in fData
+          if ("ID" %in% colnames(fData(eset)) && "Gene.ID" %in% colnames(fData(eset))) {
+            
+            # Up-regulated outliers analysis
+            up.mtrx <- exprs(eset)[fData(eset)\$ID %in% outlier.list[["up"]], ]
+            entrez.ids.up.mtrx <- fData(eset)\$Gene.ID[fData(eset)\$ID %in% rownames(up.mtrx)]
+        
+            gset.idx <- lapply(go2eg, function(x) {
+              match(x, entrez.ids.up.mtrx)
+            })
+            gset.idx <- lapply(gset.idx, function(x) {
+              x[!is.na(x)]
+            })
+            gset.ls <- unlist(lapply(gset.idx, length))
+            gset.idx <- gset.idx[which(gset.ls > 10)]
+        
+            design <- model.matrix(~ g)
+            up.mroast <- mroast(up.mtrx, index = gset.idx, design = design)
+            write.csv(up.mroast, "up_regulated_mroast.csv", row.names = TRUE)
+        
+            go.terms <- rownames(up.mroast[1:min(10, nrow(up.mroast)), ])
+            r2tab <- select(GO.db, keys = go.terms, columns = c("GOID", "TERM"), keytype = "GOID")
+            write.csv(r2tab, "up_regulated_go_terms.csv", row.names = FALSE)
+        
+            # Down-regulated outliers analysis
+            down_mtrx <- exprs(eset)[fData(eset)\$ID %in% outlier.list[["down"]], ]
+            entrez_ids_down_mtrx <- fData(eset)\$Gene.ID[fData(eset)\$ID %in% rownames(down_mtrx)]
+        
+            gset_idx_down <- lapply(go2eg, function(x) {
+              match(x, entrez_ids_down_mtrx)
+            })
+            gset_idx_down <- lapply(gset_idx_down, function(x) {
+              x[!is.na(x)]
+            })
+            gset_ls_down <- unlist(lapply(gset_idx_down, length))
+            gset_idx_down <- gset_idx_down[which(gset_ls_down > 10)]
+        
+            down_mroast <- mroast(down_mtrx, gset_idx_down, design)
+            write.csv(down_mroast, "down_regulated_mroast.csv", row.names = TRUE)
+        
+            go_terms_down <- rownames(down_mroast[1:min(10, nrow(down_mroast)), ])
+            dr2tab <- select(GO.db, keys = go_terms_down, columns = c("GOID", "TERM"), keytype = "GOID")
+            write.csv(dr2tab, "down_regulated_go_terms.csv", row.names = FALSE)
+          } else {
+            message("Skipping mroast analysis: 'ID' or 'Gene.ID' columns missing from fData(eset).")
+          }
+        }, error = function(e) {
+          warning("Downstream mroast analysis could not be completed: ", e\$message)
+        })
 
-    # --- Data [] ---
-    # Key functions: cases, factor, exprs, opa
-    ---------------------------------------------------------------------
-    data(Tomlins) # loads processed Tomlins data
-    # the first 21 samples are Normal samples, and the rest of
-    # the samples are our cases (metastatic). We, thus, generate a group
-    # variable for the samples based on this knowledge.
-    # --- Getsampleoutlier [] ---
-    # Key functions: getSampleOutlier
-    ---------------------------------------------------------------------
-    getSampleOutlier(tomlins.opa, c(1,5))
-    # --- Getsubtypeprobes [] ---
-    # Key functions: getSubtypeProbes
-    ---------------------------------------------------------------------
-    outlier.list <- getSubtypeProbes(tomlins.opa, 1:ncol(tomlins.opa$profileMatrix))
-    # --- Rownames [] ---
-    # Key functions: columns, keytypes, select
-    ---------------------------------------------------------------------
-    go.terms <- rownames(up.mroast[1:10,])
-    #BiocManager::install(GO.db)
-    library(GO.db)
-    columns(GO.db)
-    # --- List [] ---
-    # Key functions: exprs, fData
-    ---------------------------------------------------------------------
-    library(org.Hs.eg.db)
-    library(limma)
-    org.Hs.egGO2EG
-    go2eg <- as.list(org.Hs.egGO2EG)
-    # --- Rownames [] ---
-    # Key functions: select
-    ---------------------------------------------------------------------
-    go_terms_down <- rownames(down_mroast[1:10,])
-    dr2tab <- select(GO.db, keys=go_terms_down,
-                    columns=c("GOID","TERM"),
-                    keytype="GOID")
-    # --- Data [] ---
-    # Key functions: gsva
-    ---------------------------------------------------------------------
-    data("Maupin")
-    names(maupin)
-    head(maupin$data)
-    head(maupin$sig)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_oppar_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_oppar_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_oppar_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_OPPAR:", paste0("    oppar: ", packageVersion("oppar"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS":',
+        paste0('    oppar: ', as.character(packageVersion('oppar')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_oppar_results.csv
-    touch ${prefix}_oppar_output.rds
-    echo "BIOC_OPPAR:" > versions.yml
-    echo "    oppar: 0.0.0" >> versions.yml
+    touch ${prefix}_cancer_outlier_profile_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_OPPAR_WORKFLOW {
+workflow BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ eset ] ]
 
     main:
-    BIOC_OPPAR(ch_input)
+    BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_OPPAR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_OPPAR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_OPPAR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_OPPAR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS.out.tables
+    plots    = BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS.out.plots
+    objects  = BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS.out.objects
+    versions = BIOC_OPPAR_CANCER_OUTLIER_PROFILE_ANALYSIS.out.versions
 }

@@ -1,0 +1,41 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - dnaCounts=A matrix of unnormalized DNA counts where rows are enhancers and columns are observations. ;;\n    - rnaCounts=A matrix of unnormalized RNA counts where rows are enhancers and columns are observations. ;;\n    - dnaAnnot=A data frame containing annotations for the DNA columns (e.g., batch, condition, barcode). ;;\n    - rnaAnnot=A data frame containing annotations for the RNA columns. ;;\n    - controls=A logical vector indicating which enhancers are negative controls (e.g., scrambled sequences) to establish null behavior. ;;\n    - lib.factor=A character vector of annotation factors used to identify which columns belong to the same library for depth factor estimation. ;;\n    - which.lib=Specifies which library to estimate depth factors for (\"dna\", \"rna\", or \"both\"). ;;\n    - depth.estimator=The method used to estimate library depth factors (\"uq\" for upper quartile, total sum, or DESeq2-style harmonic mean). ;;\n    - dnaDesign=A formula specifying the design for the DNA model (estimating plasmid copy numbers). ;;\n    - rnaDesign=A formula specifying the design for the RNA model (estimating transcription rate). ;;\n    - reducedDesign=A formula specifying the null hypothesis model for comparative analysis. ;;\n    - by.factor=A character string specifying the factor by which to extract separate transcription rate (alpha) estimates. ;;\n    - statistic=The vector of estimated statistics (e.g., alpha values) to test against the null distribution in empirical testing. ;;\n    - mode=Set to \"scale\" in analyzeComparative to bypass the DNA model and use DNA counts directly as estimates for faster runtime.\n- alternatives:\n    - ratio_based_statistics=The documentation notes that MPRAnalyze avoids ratio-based summary statistics by directly modeling observed count data with a parametric graphical model.\n- when_to_use:\n    - Use when analyzing unnormalized count data from MPRA experiments to quantify enhancer transcription rates or to identify enhancers with differential activity across conditions, batches, or alleles.\n- pitfalls:\n    - Adding pseudocounts should be done with caution, and is only recommended when RNA counts are positive but DNA counts are 0. ;;\n    - Do not include factors in the DNA model that cannot or should not be carried over to the RNA model (e.g., independent DNA replicates). ;;\n    - Avoid modeling barcode effects in the RNA model, as this can lead to overfitting, inflated results, and overly complex comparisons. Barcodes should generally only be modeled in the DNA model during comparative analyses. ;;\n    - The scalable mode (mode=\"scale\") has reduced statistical power, does not support control-based correction, and requires matched DNA and RNA observations.",
+  "workflows": [
+    {
+      "name": "quantification_analysis",
+      "intent": "Estimate transcription rates for each enhancer and test for activity against negative controls.",
+      "input": [
+        "dna_counts.tsv (matrix of DNA counts)",
+        "rna_counts.tsv (matrix of RNA counts)",
+        "col_annotations.tsv (sample/column annotations)",
+        "controls.txt (logical vector identifying control enhancers)"
+      ],
+      "stages": "1. Initialize the MpraObject with count matrices, annotations, and control identifiers.\n2. Estimate library depth normalization factors.\n3. Fit the quantification model using DNA and RNA design formulas.\n4. Extract transcription rate estimates (alpha values).\n5. Test for enhancer activity against negative controls using empirical testing.",
+      "code": "obj <- MpraObject(dnaCounts = ce.dnaCounts, rnaCounts = ce.rnaCounts, \n                  dnaAnnot = ce.colAnnot, rnaAnnot = ce.colAnnot, \n                  controls = ce.control)\nobj <- estimateDepthFactors(obj, lib.factor = c(\"batch\", \"condition\"),\n                            which.lib = \"both\")\nobj <- analyzeQuantification(obj = obj, \n                              dnaDesign = ~ batch + condition,\n                              rnaDesign = ~ condition)\nalpha <- getAlpha(obj, by.factor = \"condition\")\nres.epi <- testEmpirical(obj = obj, \n                               statistic = alpha$MT)"
+    },
+    {
+      "name": "comparative_analysis",
+      "intent": "Identify enhancers that are differentially active between conditions or alleles using a nested GLM and likelihood ratio test.",
+      "input": [
+        "dna_counts.tsv (matrix of DNA counts)",
+        "rna_counts.tsv (matrix of RNA counts)",
+        "col_annotations.tsv (sample/column annotations)",
+        "controls.txt (logical vector identifying control enhancers)"
+      ],
+      "stages": "1. (Optional) Create interaction factors for barcode and condition if performing allelic/mutagenesis comparisons where barcodes are not shared.\n2. Initialize the MpraObject.\n3. Estimate library depth normalization factors.\n4. Fit the comparative models (full and reduced) using DNA, RNA, and reduced design formulas.\n5. Perform a Likelihood Ratio Test to identify differentially active enhancers.",
+      "code": "ce.colAnnot$barcode_allelic <- interaction(ce.colAnnot$barcode, ce.colAnnot$condition)\nobj <- MpraObject(dnaCounts = ce.dnaCounts, rnaCounts = ce.rnaCounts, \n                  dnaAnnot = ce.colAnnot, rnaAnnot = ce.colAnnot, \n                  controls = ce.control)\nobj <- estimateDepthFactors(obj, lib.factor = c(\"batch\", \"condition\"),\n                            which.lib = \"both\")\nobj <- analyzeComparative(obj = obj, \n                           dnaDesign = ~ barcode + batch + condition, \n                           rnaDesign = ~ condition, \n                           reducedDesign = ~ 1)\nres <- testLrt(obj)"
+    },
+    {
+      "name": "scalable_comparative_analysis",
+      "intent": "Run a fast comparative analysis on large datasets with matched DNA/RNA observations by using DNA counts directly instead of fitting a DNA model.",
+      "input": [
+        "dna_counts.tsv (matrix of DNA counts)",
+        "rna_counts.tsv (matrix of RNA counts)",
+        "col_annotations.tsv (sample/column annotations)"
+      ],
+      "stages": "1. Initialize the MpraObject.\n2. Estimate library depth normalization factors.\n3. Fit the comparative models in scalable mode (mode=\"scale\") without a DNA design.\n4. Perform a Likelihood Ratio Test to identify differentially active enhancers.",
+      "code": "obj <- MpraObject(dnaCounts = ce.dnaCounts, rnaCounts = ce.rnaCounts, \n                  dnaAnnot = ce.colAnnot, rnaAnnot = ce.colAnnot, \n                  controls = ce.control)\nobj <- estimateDepthFactors(obj, lib.factor = c(\"batch\", \"condition\"),\n                            which.lib = \"both\")\nobj <- analyzeComparative(obj = obj, \n                          rnaDesign = ~ condition, \n                          reducedDesign = ~ 1, \n                          mode=\"scale\")\nres.scale <- testLrt(obj)"
+    }
+  ]
+}

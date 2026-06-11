@@ -1,0 +1,28 @@
+{
+  "package": "spanorm",
+  "requirements": [
+    "Seurat",
+    "SpaNorm",
+    "SpatialExperiment",
+    "ggplot2",
+    "scater"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpaNorm",
+      "SpatialExperiment",
+      "ggplot2"
+    ],
+    "spanorm_seurat_workflow.nf": [
+      "Seurat",
+      "SpaNorm",
+      "SpatialExperiment"
+    ],
+    "svg_and_dimension_reduction.nf": [
+      "SpaNorm",
+      "SpatialExperiment",
+      "ggplot2",
+      "scater"
+    ]
+  }
+}

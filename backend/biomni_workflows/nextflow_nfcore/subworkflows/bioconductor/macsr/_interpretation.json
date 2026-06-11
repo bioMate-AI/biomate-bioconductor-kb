@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tfile=The first argument of callpeak, representing the treatment alignment file (e.g., BED, BAM) ;; cfile=The second argument of callpeak, representing the control/input alignment file ;; gsize=Effective genome size (e.g., 5.2e7) ;; store_bdg=Logical, whether to store bedGraph files for treatment pileup and control lambda ;; name=Prefix name for output files ;; outdir=Directory where output files will be written ;; cutoff_analysis=Logical, whether to perform cutoff vs peak number/length analysis ;; broad=Logical, whether to call broad peaks instead of narrow peaks\n- alternatives: None mentioned in the documentation\n- when_to_use: Use when analyzing ChIP-seq (or other DNA enrichment assays like ATAC-seq) data to identify significant regions of read enrichment (peaks) over a random background, using treatment and optionally control alignment files.\n- pitfalls: The package relies on basilisk to automatically install and manage a Python conda environment with macs3. Users must ensure their system supports Python/Conda environments via basilisk and have write permissions for the cache directory where the virtual environment is created.",
+  "workflows": [
+    {
+      "name": "narrow_and_broad_peak_calling",
+      "intent": "Call narrow and broad peaks from ChIP-seq treatment and control alignment files.",
+      "input": [
+        "CHIP (treatment alignment file in BED or BAM format)",
+        "CTRL (control alignment file in BED or BAM format)"
+      ],
+      "stages": "1. Load the MACSr package ;; 2. Retrieve test data from ExperimentHub ;; 3. Call narrow peaks using callpeak with cutoff analysis ;; 4. Call broad peaks using callpeak with broad=TRUE ;; 5. Inspect the resulting macsList objects, including arguments, outputs, and logs.",
+      "code": "library(MACSr)\neh <- ExperimentHub::ExperimentHub()\neh <- AnnotationHub::query(eh, \"MACSdata\")\nCHIP <- eh[[\"EH4558\"]]\nCTRL <- eh[[\"EH4563\"]]\ncp1 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,\n                name = \"run_callpeak_narrow0\", outdir = tempdir(),\n                cutoff_analysis = TRUE)\ncp2 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,\n                name = \"run_callpeak_broad\", outdir = tempdir(),\n                broad = TRUE)\ncp1\ncp2\ncp1$arguments\ncp1$outputs\ncat(paste(cp1$log, collapse=\"\\n\"))"
+    }
+  ]
+}

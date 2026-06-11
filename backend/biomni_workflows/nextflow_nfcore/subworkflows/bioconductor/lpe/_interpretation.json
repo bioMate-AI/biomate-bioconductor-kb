@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data.type=The type of preprocessing to apply in preprocess (e.g., \"MAS5\" for MAS5-format data) ;; q=The quantile interval (e.g., 0.01) used in baseOlig.error to determine the number of bins (1/q) for baseline error estimation ;; adjp=The FDR adjustment method in fdr.adjust, supporting \"BH\" (Benjamini-Hochberg), \"BY\" (Benjamini-Yekutieli), \"mix.all\" (SAM-like), \"resamp\" (Rank-invariant resampling), or \"Bonferroni\" ;; iterations=The number of resampling iterations to run when adjp=\"resamp\" (e.g., 2 for testing, higher for actual analysis)\n- alternatives: LPEP library=Use instead of LPE for paired microarray data ;; HEM library=Use instead of LPE for analyzing multiple conditions (more than two) ;; RMA or other normalization methods=Can be used to normalize gene expression data prior to LPE analysis instead of the preprocess function\n- when_to_use: Use when identifying differentially expressed genes between two conditions in oligonucleotide microarray experiments with a very small number of replicates (2 to 3 replicates per condition).\n- pitfalls: Resampling-based FDR adjustment (adjp=\"resamp\") is computationally intensive and can take a long time to run ;; The resampling-based FDR table may vary slightly between runs due to random generation of the null distribution, so setting a seed is critical for reproducibility ;; Affymetrix control spots (IDs starting with \"AFFX\") should be filtered out before baseline error estimation to prevent bias in variance estimation.",
+  "workflows": [
+    {
+      "name": "lpe_differential_expression",
+      "intent": "Identify differentially expressed genes between two microarray conditions with small replicate numbers using local pooled error and FDR adjustment.",
+      "input": [
+        "expression_matrix.csv (raw or MAS5 intensity matrix with columns for replicates of two conditions and a gene ID column)"
+      ],
+      "stages": "1. Preprocess and normalize the intensity data using preprocess ;; 2. Filter out control probes (e.g., AFFX) ;; 3. Estimate baseline error distribution for each condition using baseOlig.error ;; 4. Calculate local pooled error (LPE) z-statistics using lpe ;; 5. Perform FDR correction using fdr.adjust",
+      "code": "set.seed(0) \nlibrary(LPE) \ndata(Ley)\ndim(Ley)\nhead(Ley)\nLey.subset <- Ley[seq(1000),]\nLey.normalized <- Ley.subset\nLey.normalized[,2:7] <- preprocess(Ley.subset[,2:7], data.type = \"MAS5\")\nLey.final <- Ley.normalized[substring(Ley.normalized$ID,1,4) !=\"AFFX\",] \nvar.Naive <- baseOlig.error(Ley.final[,2:4],q=0.01)\nvar.Activated <- baseOlig.error(Ley.final[,5:7], q=0.01)\nlpe.val <- data.frame(lpe(Ley.final[,5:7], Ley.final[,2:4], \n                          var.Activated, var.Naive,\n                          probe.set.name=Ley.final$ID)\n                      )\nfdr.BH <- fdr.adjust(lpe.val, adjp=\"BH\")\nfdr.resamp <- fdr.adjust(lpe.val, adjp=\"resamp\", iterations=2)\nBonferroni.adjp <- fdr.adjust(lpe.val, adjp=\"Bonferroni\")"
+    }
+  ]
+}

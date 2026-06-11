@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=Data matrix containing expression levels (features as rows, subjects as columns) ;; class_label=Group label for each subject ;; id=Feature IDs (e.g., KEGG IDs, gene symbols) ;; method=Correlation method (e.g., \"spearman\") for non-partial correlation ;; error_curve=Set to \"YES\" or \"NO\" to plot the error curve for rho selection ;; rho_group1/rho_group2=Tuning parameter selection method (e.g., 'min') for graphical lasso ;; permutation=Number of permutations for p-value calculation ;; p_val=Pre-calculated differential expression p-values for the features ;; permutation_thres=Threshold for permutation test ;; nodesize/nodecolor/edgewidth/layout=Visualization parameters for network display\n- alternatives: None mentioned in the documentation.\n- when_to_use: When integrating differential expression (DE) and differential network (DN) analysis to identify key biomolecules (biomarkers) from omics data across two groups.\n- pitfalls: Ensure that the pre-calculated differential expression p-values (p_val) match the features in the data matrix. Choosing an incorrect rho parameter for partial correlation can lead to over- or under-connected networks.",
+  "workflows": [
+    {
+      "name": "non_partial_correlation_analysis",
+      "intent": "Perform differential network analysis using standard (non-partial) correlation.",
+      "input": [
+        "data (matrix of expression levels with features as rows and subjects as columns)",
+        "class_label (vector of group labels for each subject)",
+        "id (vector of feature IDs)"
+      ],
+      "stages": "1. Run non-partial correlation analysis using non_partial_cor.",
+      "code": "non_partial_cor(data = Met_GU, class_label = Met_Group_GU, id = Met_name_GU, method = \"spearman\")"
+    },
+    {
+      "name": "partial_correlation_analysis",
+      "intent": "Perform differential network analysis using partial correlation (graphical lasso) with permutation testing and visualize the resulting network.",
+      "input": [
+        "data (matrix of expression levels with features as rows and subjects as columns)",
+        "class_label (vector of group labels for each subject)",
+        "id (vector of feature IDs)",
+        "p_val (vector of pre-calculated differential expression p-values for the features)"
+      ],
+      "stages": "1. Select tuning parameter rho using select_rho_partial ;; 2. Perform partial correlation analysis using partial_cor ;; 3. Visualize the differential network using network_display.",
+      "code": "pre_data <- select_rho_partial(data = Met_GU, class_label = Met_Group_GU, id = Met_name_GU,\n                               error_curve = \"YES\")\nresult <- partial_cor(data_list = pre_data, rho_group1 = 'min', rho_group2 = \"min\",\n                      permutation = 1000, p_val = pvalue_M_GU, permutation_thres = 0.05)\nnetwork_display(results = result, nodesize= 'Node_Degree', nodecolor= 'Activity_Score',\n                edgewidth= 'NO', layout= 'nice')"
+    }
+  ]
+}

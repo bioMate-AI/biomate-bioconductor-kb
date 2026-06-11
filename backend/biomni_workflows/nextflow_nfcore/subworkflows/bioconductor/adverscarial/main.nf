@@ -1,134 +1,203 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: adverSCarial
-// adverSCarial is an R Package designed for generating and analyzing the vulnerability of scRNA-seq cl
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/adverSCarial/inst/doc/vign01_adverSCarial.R
-// Upstream  : BiocManager, DelayedArray, LoomExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("adverSCarial")
+// Bioconductor workflow: adverSCarial — single_gene_attack
+// Identify and apply a single-gene perturbation that alters the cell-type classification of a target cell cluster.
+// Input: counts_matrix.ext, cell_annotations.ext
+// Container: quay.io/biocontainers/bioconductor-adverscarial:1.8.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DelayedArray, adverSCarial
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run a dichotomic search for single-gene attacks using advSingleGene
+//  * 2. [Core Analysis] Apply the identified gene modification to the expression matrix using advModifications
+//  * 3. [Core Analysis] Verify the successful misclassification using the classifier function
 
 nextflow.enable.dsl = 2
 
-process BIOC_ADVERSCARIAL {
+process BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-adverscarial"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-adverscarial:1.4.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-adverscarial:1.4.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_adverscarial_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_adverscarial_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_adverscarial_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(adverSCarial)
-    library(MClassifier)
-    library(jsonlite)
-
-    # --- Baseline Classification [Baseline Classification] ---
-    # Key functions: MClassifier
-    pbmcPath <- system.file("extdata", "pbmc_short.loom", package="adverSCarial")
-    lfile <- LoomExperiment::import(pbmcPath, type="SingleCellLoomExperiment")
-    matPbmc <- BiocGenerics::counts(lfile)
-    cellTypes <- SummarizedExperiment::rowData(lfile)$cell_type
-    resClassif <- MClassifier(matPbmc, cellTypes, "DC")
-
-    # --- Minimum Change Attack [Adversarial Attack] ---
-    # Key functions: advSingleGene, advModifications, MClassifier
-    markers <- c("IL7R", "CCR7", "CD14", "LYZ", "S100A4", "MS4A1", "CD8A")
+    library(DelayedArray)
+    library(methods)
+    
+    # Helper function to find and read the counts matrix
+    find_and_read_matrix <- function() {
+      possible_files <- list.files(pattern = "^counts_matrix\\\\.")
+      if (length(possible_files) == 0) {
+        stop("Error: counts_matrix.ext not found in the working directory.")
+      }
+      file_path <- possible_files[1]
+      ext <- tools::file_ext(file_path)
+      
+      if (ext == "rds") {
+        mat <- readRDS(file_path)
+      } else if (ext %in% c("csv", "txt", "tsv")) {
+        sep <- ifelse(ext == "csv", ",", "\t")
+        mat <- as.matrix(read.table(file_path, header = TRUE, sep = sep, row.names = 1, check.names = FALSE))
+      } else {
+        stop(paste("Error: Unsupported format for counts matrix:", ext))
+      }
+      
+      return(DelayedArray::DelayedArray(mat))
+    }
+    
+    # Helper function to find and read the cell annotations
+    find_and_read_annotations <- function() {
+      possible_files <- list.files(pattern = "^cell_annotations\\\\.")
+      if (length(possible_files) == 0) {
+        stop("Error: cell_annotations.ext not found in the working directory.")
+      }
+      file_path <- possible_files[1]
+      ext <- tools::file_ext(file_path)
+      
+      if (ext == "rds") {
+        vec <- readRDS(file_path)
+      } else {
+        vec <- readLines(file_path)
+        if (grepl(",", vec[1]) || grepl("\t", vec[1])) {
+          sep <- ifelse(grepl(",", vec[1]), ",", "\t")
+          df <- read.table(file_path, header = TRUE, sep = sep, stringsAsFactors = FALSE)
+          vec <- df[[1]]
+        }
+      }
+      return(as.character(vec))
+    }
+    
+    # 1. Load User Input Files
+    matPbmc <- find_and_read_matrix()
+    cellTypes <- find_and_read_annotations()
+    
+    # Dynamically select the target cluster (e.g., the first unique cluster)
+    target_cluster <- unique(cellTypes)[1]
+    
+    # Define a generic centroid-based classifier to replace the dataset-specific MClassifier
+    ref_centroids <- sapply(unique(cellTypes), function(cl) {
+      rowMeans(matPbmc[, cellTypes == cl, drop = FALSE])
+    })
+    colnames(ref_centroids) <- unique(cellTypes)
+    
+    generic_classifier <- function(expr, clusters, target) {
+      target_cells <- expr[, clusters == target, drop = FALSE]
+      if (ncol(target_cells) == 0) {
+        return(list(prediction = "UNDETERMINED", odd = 0))
+      }
+      target_mean <- rowMeans(target_cells)
+      
+      dists <- colSums((ref_centroids - target_mean)^2)
+      predicted_class <- names(which.min(dists))
+      odd <- as.numeric(1 / (1 + min(dists)))
+      
+      list(prediction = predicted_class, odd = odd)
+    }
+    
+    # 2. Run a dichotomic search for single-gene attacks using advSingleGene
     genesMinChange <- advSingleGene(
-        matPbmc, cellTypes, "DC", MClassifier,
-        exclGenes = markers, advMethod = "perc99",
-        returnFirstFound = TRUE, changeType = "not_na",
-        firstDichot = 10
+      matPbmc, 
+      cellTypes, 
+      target_cluster, 
+      generic_classifier, 
+      exclGenes = character(0), 
+      advMethod = "perc99", 
+      returnFirstFound = TRUE, 
+      changeType = "not_na", 
+      firstDichot = 10
     )
-    matAdver <- advModifications(
-        matPbmc, names(genesMinChange@values)[1],
-        cellTypes, "DC"
-    )
-    resClassifMin <- MClassifier(matAdver, cellTypes, "DC")
-
-    # --- Maximum Change Attack [Adversarial Attack] ---
-    # Key functions: advMaxChange, advModifications, MClassifier
-    markers <- c("IL7R", "CCR7", "CD14", "LYZ", "S100A4", "MS4A1", "CD8A")
-    genesMaxChange <- advMaxChange(
-        matPbmc, cellTypes, "Memory CD4 T", MClassifier,
-        exclGenes = markers, advMethod = "perc99"
-    )
-    matMaxAdver <- advModifications(
-        matPbmc, genesMaxChange@values,
-        cellTypes, "Memory CD4 T"
-    )
-    resClassifMax <- MClassifier(matMaxAdver, cellTypes, "Memory CD4 T")
-
-    # --- Coordinate Gradient Descent Attack [Adversarial Attack] ---
-    # Key functions: advCGD, MClassifier
-    resCGD <- advCGD(
-        as.data.frame(matPbmc), cellTypes,
-        "Memory CD4 T", MClassifier, alpha = 1, epsilon = 1,
-        genes = colnames(matPbmc)[ncol(matPbmc):1]
-    )
-    modifiedMatrix <- resCGD$expr
-    resClassifCGD <- MClassifier(
-        modifiedMatrix, cellTypes, "Memory CD4 T"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_adverscarial_results.csv", row.names = TRUE)
+    
+    # Save the single-gene search results
+    saveRDS(genesMinChange, "genes_min_change.rds")
+    
+    # Write a summary table of the identified single-gene attack
+    if (length(genesMinChange@values) > 0) {
+      summary_df <- data.frame(
+        Gene = names(genesMinChange@values),
+        Target_Classification = as.character(genesMinChange@values),
+        stringsAsFactors = FALSE
+      )
+      write.csv(summary_df, "single_gene_attack_summary.csv", row.names = FALSE)
+      
+      # 3. Apply the identified gene modification to the expression matrix using advModifications
+      matAdver <- advModifications(matPbmc, names(genesMinChange@values)[1], cellTypes, target_cluster)
+      
+      # Save the modified adversarial expression matrix
+      saveRDS(matAdver, "adversarial_counts_matrix.rds")
+      
+      # 4. Verify the successful misclassification using the classifier function
+      resClassif <- generic_classifier(matAdver, cellTypes, target_cluster)
+      
+      # Save the verification classification results
+      saveRDS(resClassif, "classification_results.rds")
+      
+      # Write a text summary of the classification verification
+      sink("classification_summary.txt")
+      cat("=== SINGLE-GENE ATTACK VERIFICATION ===\n")
+      cat("Original Target Cluster:", target_cluster, "\n")
+      cat("Predicted Class after Attack:", resClassif\$prediction, "\n")
+      cat("Prediction Confidence (Odd Score):", resClassif\$odd, "\n")
+      sink()
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_adverscarial_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_adverscarial_output.rds")
+      sink("classification_summary.txt")
+      cat("=== SINGLE-GENE ATTACK VERIFICATION ===\n")
+      cat("Original Target Cluster:", target_cluster, "\n")
+      cat("No vulnerable genes found.\n")
+      sink()
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ADVERSCARIAL:", paste0("    adverscarial: ", packageVersion("adverSCarial"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK":',
+        paste0('    adverSCarial: ', as.character(packageVersion('adverSCarial')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_adverscarial_results.csv
-    touch ${prefix}_adverscarial_output.rds
-    echo "BIOC_ADVERSCARIAL:" > versions.yml
-    echo "    adverscarial: 0.0.0" >> versions.yml
+    touch ${prefix}_single_gene_attack.csv versions.yml
     """
 }
 
-
-workflow BIOC_ADVERSCARIAL_WORKFLOW {
+workflow BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ counts_matrix.ext, cell_annotations.ext ] ]
 
     main:
-    BIOC_ADVERSCARIAL(ch_input)
+    BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK(ch_input)
 
     emit:
-    results  = BIOC_ADVERSCARIAL.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ADVERSCARIAL.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ADVERSCARIAL.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ADVERSCARIAL.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK.out.tables
+    plots    = BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK.out.plots
+    objects  = BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK.out.objects
+    versions = BIOC_ADVERSCARIAL_SINGLE_GENE_ATTACK.out.versions
 }

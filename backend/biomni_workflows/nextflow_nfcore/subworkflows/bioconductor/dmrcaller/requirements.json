@@ -1,0 +1,30 @@
+{
+  "package": "dmrcaller",
+  "requirements": [
+    "BSgenome",
+    "Biostrings",
+    "DMRcaller",
+    "GenomicRanges",
+    "InteractionSet",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "bisulfite_seq_replicates_analysis.nf": [
+      "DMRcaller",
+      "GenomicRanges"
+    ],
+    "main.nf": [
+      "DMRcaller",
+      "GenomicRanges",
+      "rtracklayer"
+    ],
+    "ont_methylation_analysis.nf": [
+      "BSgenome",
+      "Biostrings",
+      "DMRcaller",
+      "GenomicRanges",
+      "InteractionSet",
+      "rtracklayer"
+    ]
+  }
+}

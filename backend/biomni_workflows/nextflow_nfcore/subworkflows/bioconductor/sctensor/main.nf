@@ -1,103 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scTensor
-// The algorithm is based on the non-negative tucker decomposition (NTD2) of nnTensor.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scTensor/inst/doc/scTensor.R
-// Upstream  : AnnotationHub, LRBaseDbi, RSQLite, Seurat, SingleCellExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("scTensor")
+// Bioconductor workflow: scTensor — cell_cell_interaction_analysis
+// Perform cell-cell interaction tensor construction, rank estimation, decomposition, and HTML report generation on single-cell RNA-Seq data.
+// Input: gene_expression_matrix.csv, cell_metadata.csv
+// Container: quay.io/biocontainers/bioconductor-sctensor:2.20.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AnnotationHub, LRBaseDbi, SingleCellExperiment, scTensor
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Retrieve the organism-specific LRBase database from AnnotationHub. 2. Create a SingleCellExperiment object and assign 2D coordinat
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCTENSOR {
+process BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-sctensor"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-sctensor:2.16.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-sctensor:2.16.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_sctensor_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_sctensor_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_sctensor_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(scTensor)
-    library(AnnotationHub)
-    library(SingleCellExperiment)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            library("AnnotationHub")
+            library("LRBaseDbi")
+            suppressPackageStartupMessages(library("scTensor"))
+            suppressPackageStartupMessages(library("SingleCellExperiment"))
+            
+            # 1. Retrieve the organism-specific LRBase database from AnnotationHub
+            ah <- AnnotationHub()
+            dbfile <- query(ah, c("LRBaseDb", "Homo sapiens"))[[1]]
+            LRBase.Hsa.eg.db <- LRBaseDbi::LRBaseDb(dbfile)
+            
+            # Read user input files
+            expr <- read.csv("gene_expression_matrix.csv", row.names = 1, check.names = FALSE)
+            expr_mat <- as.matrix(expr)
+            
+            meta <- read.csv("cell_metadata.csv", row.names = 1, check.names = FALSE)
+            
+            # Align cells between expression matrix and metadata
+            common_cells <- intersect(colnames(expr_mat), rownames(meta))
+            if (length(common_cells) == 0) {
+              stop("Error: No matching cell identifiers found between gene_expression_matrix.csv and cell_metadata.csv")
+            }
+            expr_mat <- expr_mat[, common_cells, drop = FALSE]
+            meta <- meta[common_cells, , drop = FALSE]
+            
+            # Extract cell types
+            cell_types <- NULL
+            if ("cell_type" %in% colnames(meta)) {
+              cell_types <- as.character(meta\$cell_type)
+            } else if ("celltype" %in% colnames(meta)) {
+              cell_types <- as.character(meta\$celltype)
+            } else {
+              # Fallback to the first non-numeric column, or first column
+              non_num_cols <- sapply(meta, function(x) !is.numeric(x))
+              if (any(non_num_cols)) {
+                cell_types <- as.character(meta[[which(non_num_cols)[1]]])
+              } else {
+                cell_types <- as.character(meta[[1]])
+              }
+            }
+            
+            # Extract 2D coordinates (t-SNE or UMAP)
+            coords <- NULL
+            coord_cols <- grep("tSNE|UMAP|Dim|X|Y", colnames(meta), ignore.case = TRUE, value = TRUE)
+            if (length(coord_cols) >= 2) {
+              coords <- as.matrix(meta[, coord_cols[1:2]])
+            } else {
+              numeric_cols <- sapply(meta, is.numeric)
+              if (sum(numeric_cols) >= 2) {
+                coords <- as.matrix(meta[, which(numeric_cols)[1:2]])
+              } else {
+                coords <- matrix(0, nrow = nrow(meta), ncol = 2)
+              }
+            }
+            colnames(coords) <- c("Dim1", "Dim2")
+            
+            # 2. Create a SingleCellExperiment object and assign 2D coordinates
+            sce <- SingleCellExperiment(assays=list(counts = expr_mat))
+            reducedDims(sce) <- SimpleList(TSNE=coords)
+            
+            # Save a PDF plot of the cell types in 2D space
+            pdf("cell_types_visualization.pdf")
+            plot(reducedDims(sce)[[1]], col=as.factor(cell_types), pch=16, xlab="Dim1", ylab="Dim2", main="Cell Types Visualization")
+            dev.off()
+            
+            # 3. Register cell types and the LRBase database using cellCellSetting
+            cellCellSetting(sce, LRBase.Hsa.eg.db, cell_types)
+            
+            # 4. Estimate optimal decomposition ranks using cellCellRanks
+            rks <- cellCellRanks(sce)
+            saveRDS(rks, "scTensor_estimated_ranks.rds")
+            
+            # 5. Perform non-negative Tucker decomposition using cellCellDecomp
+            set.seed(1234)
+            cellCellDecomp(sce, ranks=rks\$selected)
+            
+            # Save the final SingleCellExperiment object containing decomposition results
+            saveRDS(sce, "scTensor_sce_completed.rds")
+            
+            # 6. Generate an interactive HTML report using cellCellReport
+            cellCellReport(sce, out.dir = "./scTensor_report")
 
-    # --- Single-Cell Experiment Setup [] ---
-    # Key functions: cellCellSetting
-    sce <- SingleCellExperiment(assays=list(counts = GermMale))
-    reducedDims(sce) <- SimpleList(TSNE=tsneGermMale$Y)
-    sce <- cellCellSetting(
-        sce, 
-        LRBase.Hsa.eg.db, 
-        names(labelGermMale)
-    )
-
-
-    # --- Cell-Cell Interaction Decomposition [] ---
-    # Key functions: cellCellDecomp, cellCellRanks
-    sce <- cellCellDecomp(sce, ranks=c(2,3))
-    rks <- cellCellRanks(sce)
-    selected_ranks <- rks$selected
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_sctensor_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_sctensor_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_sctensor_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCTENSOR:", paste0("    sctensor: ", packageVersion("scTensor"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS":',
+        paste0('    scTensor: ', as.character(packageVersion('scTensor')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_sctensor_results.csv
-    touch ${prefix}_sctensor_output.rds
-    echo "BIOC_SCTENSOR:" > versions.yml
-    echo "    sctensor: 0.0.0" >> versions.yml
+    touch ${prefix}_cell_cell_interaction_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCTENSOR_WORKFLOW {
+workflow BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene_expression_matrix.csv, cell_metadata.csv ] ]
 
     main:
-    BIOC_SCTENSOR(ch_input)
+    BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCTENSOR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCTENSOR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCTENSOR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCTENSOR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS.out.tables
+    plots    = BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS.out.plots
+    objects  = BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS.out.objects
+    versions = BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS.out.versions
 }

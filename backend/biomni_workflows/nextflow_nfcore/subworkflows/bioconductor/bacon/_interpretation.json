@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: teststatistics=Vector or matrix of z-scores ;; effectsizes=Matrix of effect sizes (used when test-statistics are not directly provided) ;; standarderrors=Matrix of standard errors (used alongside effect sizes) ;; burnin=Logical value indicating whether to plot the burn-in period in traces (default is TRUE) ;; n=Number of Gibbs sampling iterations to plot in the fit function ;; index=Integer index specifying which study/set to plot when multiple sets are analyzed ;; type=Type of plot to generate, either \"hist\" (histogram of z-scores) or \"qq\" (quantile-quantile plot of -log10 p-values) ;; globalSeed=Seed for random number generation in the Gibbs sampler (set to NULL for parallel processes) ;; parallelSeed=Seed used by BiocParallel to control RNG across parallel processes (default is 42)\n- alternatives: None mentioned.\n- when_to_use: Use this package when analyzing association statistics (z-scores, effect sizes, and standard errors) from epigenome-wide (EWAS) or transcriptome-wide (TWAS) association studies that exhibit inflation and bias, or when performing fixed-effect meta-analysis across multiple such cohorts.\n- pitfalls: Forgetting to register a parallel backend using BiocParallel when analyzing multiple sets of test statistics, which will trigger a warning and fall back to serial execution. Using uncorrected p-values instead of the corrected ones extracted via the package's accessor functions. Not setting globalSeed to NULL when attempting to run parallelized RNG across multiple cores.",
+  "workflows": [
+    {
+      "name": "single_set_correction",
+      "intent": "Correct bias and inflation for a single vector of association test statistics.",
+      "input": [
+        "y (vector of z-scores)"
+      ],
+      "stages": "1. Run the Gibbs sampler to estimate the empirical null distribution using bacon ;; 2. Extract estimated parameters, inflation, and bias using estimates, inflation, and bias ;; 3. Diagnose the Gibbs sampler fit using traces, posteriors, and fit ;; 4. Plot diagnostic histogram and QQ-plots using plot.",
+      "code": "y <- rnormmix(5000, c(0.9, 0.2, 1.3, 1, 4, 1))\nbc <- bacon(y)\nbc\nestimates(bc)\ninflation(bc)\nbias(bc)\ntraces(bc, burnin=FALSE)\nposteriors(bc)\nfit(bc, n=100)\nplot(bc, type=\"hist\")\nplot(bc, type=\"qq\")"
+    },
+    {
+      "name": "multiple_sets_and_meta_analysis",
+      "intent": "Correct bias and inflation across multiple cohorts and perform a fixed-effect meta-analysis.",
+      "input": [
+        "es (matrix of effect sizes)",
+        "se (matrix of standard errors)"
+      ],
+      "stages": "1. Register a parallel backend using BiocParallel ;; 2. Run bacon on the effect sizes and standard errors ;; 3. Extract corrected statistics (t-statistics, p-values, standard errors, effect sizes) ;; 4. Diagnose individual cohort fits using traces, posteriors, and fit with the index parameter ;; 5. Perform fixed-effect meta-analysis using meta ;; 6. Extract top results using topTable and plot meta-analysis QQ-plots.",
+      "code": "set.seed(12345)\nbiases <- runif(6, -0.2, 0.2)\ninflations <- runif(6, 1, 1.3)\nes <- matrix(nrow=5000, ncol=6)\nfor(i in 1:6)\n    es[,i] <- rnormmix(5000, c(0.9, biases[i], inflations[i], 0, 4, 1), shuffle=FALSE)\nse <- replicate(6, 0.8*sqrt(4/rchisq(5000,df=4)))\ncolnames(es) <- colnames(se) <- LETTERS[1:ncol(se)]\nrownames(es) <- rownames(se) <- 1:5000\nhead(rownames(es))\nhead(colnames(es))\nlibrary(BiocParallel)\nregister(MulticoreParam(1, log=TRUE))\nbc <- bacon(NULL, es, se)\nbc\nestimates(bc)\ninflation(bc)\nbias(bc)\ntstat(bc)[1:5,]\npval(bc)[1:5,]\nse(bc)[1:5,]\nes(bc)[1:5,]\ntraces(bc, burnin=FALSE, index=3)\nposteriors(bc, index=3)\nfit(bc, n=100, index=3)\nplot(bc, type=\"hist\")\nplot(bc, type=\"qq\")\nbcm <- meta(bc)\nhead(pval(bcm))\nprint(topTable(bcm))\nplot(bcm, type=\"qq\")"
+    },
+    {
+      "name": "adjustment_with_95_ci",
+      "intent": "Calculate average inflation- and bias-adjusted statistics with a 95% confidence interval using replicated z-scores.",
+      "input": [
+        "zs (matrix of replicated z-scores)"
+      ],
+      "stages": "1. Replicate z-scores into a matrix ;; 2. Run bacon with parallel RNG enabled by setting globalSeed to NULL ;; 3. Calculate mean bias and inflation ;; 4. Calculate 95% confidence intervals using quantile ;; 5. Extract average corrected z-scores and p-values using rowMeans.",
+      "code": "zs <- rnormmix(5000, c(0.9, 0.2, 1.3, 1, 4, 1))\nzs <- cbind(zs, matrix(zs, nrow=5000, ncol=9))\ncolnames(zs) <- c(paste0(\"A\", 1:10))\nrownames(zs) <- 1:5000\nhead(rownames(zs))\nhead(colnames(zs))\nlibrary(BiocParallel)\nregister(MulticoreParam(1, log=TRUE))\nbc <- bacon(teststatistics = zs, \n            globalSeed = NULL,\n            parallelSeed = 42)\nbc\nhead(inflation(bc))\nhead(bias(bc))\nmean_bias <- mean(bias(bc))\nmean_bias\nmean_inflation <- mean(inflation(bc))\nmean_inflation\nCI_bias <- quantile(bias(bc), c(0.025, 0.975))\nCI_bias\nCI_inflation <- quantile(inflation(bc), c(0.025, 0.975))\nCI_inflation\navg_corrected_zs <- rowMeans(tstat(bc))\navg_corrected_zs[1:5]\navg_corrected_pvals <- rowMeans(bacon::pval(bc))\navg_corrected_pvals[1:5]"
+    }
+  ]
+}

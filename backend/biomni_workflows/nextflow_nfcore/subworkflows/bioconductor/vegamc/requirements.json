@@ -1,0 +1,11 @@
+{
+  "package": "vegamc",
+  "requirements": [
+    "VegaMC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "VegaMC"
+    ]
+  }
+}

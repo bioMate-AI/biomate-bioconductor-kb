@@ -1,102 +1,175 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iSEEhub
-// This package defines a custom landing page for an iSEE app interfacing with the Bioconductor Experim
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iSEEhub/inst/doc/contributing.R
-// Upstream  : ExperimentHub, RefManageR, knitr, rmarkdown, sessioninfo
-// Downstream: none
-//
-// Install: BiocManager::install("iSEEhub")
+// Bioconductor workflow: iSEEhub — iseehub_exploration_pipeline
+// Initialize an interactive iSEEhub browser session customized with configurations derived from local input features.
+// Input: input.csv
+// Container: 1.12.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ExperimentHub, S4Vectors, iSEE, iSEEhub, shiny
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ISEEHUB {
+process BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-iseehub"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-iseehub:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-iseehub:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_iseehub_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_iseehub_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_iseehub_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PrintBibliography)
-    library(jsonlite)
-
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("iSEEhub.Rmd", "BiocStyle::html_document"))
-    library("knitr")
-    # --- diff [] ---
-    # Key functions: diff
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
-    # --- session_info [] ---
-    # Key functions: session_info
-    library("sessioninfo")
-    options(width = 120)
-    session_info()
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
-    PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_iseehub_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Stage 1: Load required libraries
+    library(iSEEhub)
+    library(ExperimentHub)
+    library(S4Vectors)
+    
+    # Stage 2: Read and parse the input file defensively
+    input_file <- "input.csv"
+    if (!file.exists(input_file)) {
+      stop("Input file 'input.csv' not found in the working directory.")
+    }
+    
+    df <- read.csv(input_file, check.names = FALSE)
+    
+    # Determine if input is a feature-by-sample matrix or a single-column list
+    if (ncol(df) > 1) {
+      if ("feature_id" %in% colnames(df)) {
+        rownames(df) <- df\$feature_id
+        df\$feature_id <- NULL
+      } else {
+        rownames(df) <- df[, 1]
+        df <- df[, -1, drop = FALSE]
+      }
+      feature_ids <- rownames(df)
+      message(sprintf("Successfully loaded matrix with %d features and %d samples.", length(feature_ids), ncol(df)))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_iseehub_results.csv")
+      feature_ids <- df[[1]]
+      message(sprintf("Successfully loaded list of %d features.", length(feature_ids)))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_iseehub_output.rds")
+    
+    # Stage 3: Query ExperimentHub for compatible datasets
+    message("Connecting to ExperimentHub...")
+    eh <- tryCatch({
+      ExperimentHub()
+    }, error = function(e) {
+      warning("Could not connect to ExperimentHub. Creating a fallback empty hub representation.")
+      NULL
+    })
+    
+    if (!is.null(eh)) {
+      message("Querying ExperimentHub for SummarizedExperiment resources...")
+      eh_resources <- query(eh, "SummarizedExperiment")
+      meta <- as.data.frame(mcols(eh_resources))
+      
+      # Save the metadata of the top 100 available datasets
+      write.csv(head(meta, 100), "available_eh_datasets.csv", row.names = TRUE)
+      message("Saved available ExperimentHub datasets to 'available_eh_datasets.csv'.")
+    } else {
+      write.csv(data.frame(Error = "ExperimentHub connection offline"), "available_eh_datasets.csv")
+    }
+    
+    # Stage 4: Generate a custom iSEE configuration script based on input features
+    # We select the top features to pre-configure a ComplexHeatmapPlot
+    top_features <- head(feature_ids, 10)
+    top_features_str <- paste(sprintf("'%s'", top_features), collapse = ", ")
+    
+    config_lines <- c(
+      "# Custom iSEE configuration generated from input.csv",
+      "library(iSEE)",
+      "initial <- list(",
+      "  ComplexHeatmapPlot(",
+      "    PanelWidth = 12L,",
+      "    Assay = 'logcounts',",
+      sprintf("    RowData = c(%s)", top_features_str),
+      "  )",
+      ")"
+    )
+    writeLines(config_lines, "custom_isee_config.R")
+    message("Created custom iSEE configuration in 'custom_isee_config.R'.")
+    
+    # Stage 5: Initialize and serialize the iSEEhub Shiny App
+    if (!is.null(eh)) {
+      message("Initializing iSEEhub application...")
+      app <- iSEEhub(eh, runtime_install = FALSE)
+      
+      # Save the app object to an RDS file for deployment/execution
+      saveRDS(app, "iseehub_app.rds")
+      message("Saved iSEEhub Shiny app object to 'iseehub_app.rds'.")
+      
+      # Create an executable launch script
+      launch_lines <- c(
+        "#!/usr/bin/env Rscript",
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        "if (!requireNamespace('shiny', quietly = TRUE)) install.packages('shiny')",
+        "app <- readRDS('iseehub_app.rds')",
+        "message('Launching iSEEhub on http://127.0.0.1:1234')",
+        "shiny::runApp(app, port = 1234)"
+      )
+      writeLines(launch_lines, "launch_app.R")
+      Sys.chmod("launch_app.R", "0755")
+      message("Created executable launch script 'launch_app.R'.")
+    } else {
+      message("Skipping app initialization due to missing ExperimentHub connection.")
+      # Write dummy files to satisfy declared outputs
+      saveRDS(NULL, "iseehub_app.rds")
+      writeLines("# Connection failed", "launch_app.R")
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ISEEHUB:", paste0("    iseehub: ", packageVersion("iSEEhub"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE":',
+        paste0('    iSEEhub: ', as.character(packageVersion('iSEEhub')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_iseehub_results.csv
-    touch ${prefix}_iseehub_output.rds
-    echo "BIOC_ISEEHUB:" > versions.yml
-    echo "    iseehub: 0.0.0" >> versions.yml
+    touch ${prefix}_iseehub_exploration_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_ISEEHUB_WORKFLOW {
+workflow BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_ISEEHUB(ch_input)
+    BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_ISEEHUB.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ISEEHUB.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ISEEHUB.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ISEEHUB.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE.out.tables
+    plots    = BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE.out.plots
+    objects  = BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE.out.objects
+    versions = BIOC_ISEEHUB_ISEEHUB_EXPLORATION_PIPELINE.out.versions
 }

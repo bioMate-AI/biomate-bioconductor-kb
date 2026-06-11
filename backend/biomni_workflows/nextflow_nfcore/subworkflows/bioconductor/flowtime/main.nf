@@ -1,122 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: flowTime
-// This package facilitates analysis of both timecourse and steady state flow cytometry experiments. Th
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/flowTime/inst/doc/gating-vignette.R
-// Upstream  : BiocManager, dplyr, flowClust, flowCore, flowStats
-// Downstream: none
-//
-// Install: BiocManager::install("flowTime")
+// Bioconductor workflow: flowTime — steady_state_analysis
+// Analyze single time-point flow cytometry data by annotating, gating, and compiling individual events.
+// Input: .fcs files, .csv file
+// Container: quay.io/biocontainers/bioconductor-flowtime:1.34.0--r45hdfd78af_0
+// R packages: biocmanager, dplyr, flowClust, flowCore, flowStats, flowTime, ggplot2
+// Bioconductor: 3.20 | R: 4.4
+// Requires: flowCore, flowTime, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Import FCS files using read.flowSet
+//  * 2. [Input & Preparation] Load metadata annotation using read.csv
+//  * 3. [Core Analysis] Annotate the flowSet using annotateFlowSet
+//  * 4. [Input & Preparation] Load default gates using loadGates
+//  * 5. [Core Analysis] Gate and compile events using steadyState
+//  * 6. [Visualization & Output] Plot the compiled events using ggplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_FLOWTIME {
+process BIOC_FLOWTIME_STEADY_STATE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-flowtime"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-flowtime:1.30.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-flowtime:1.30.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-proteomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_flowtime_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_flowtime_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_flowtime_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("biocmanager", "dplyr", "flowClust", "flowCore", "flowStats", "flowTime", "ggplot2")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
+    library(flowCore)
     library(flowTime)
-    library(Subset)
-    library(jsonlite)
-
-    # --- Quantile Gating [] ---
-    # Key functions: gate_quantile
-    Debris <- gate_quantile(
-        fr = data[[3]],
-        channel = "FSC.A",
-        probs = 0.99,
-        filterId = "Debris"
-    )
-    filtered_data <- flowCore::filter(data[c(3, 21:24)], !Debris)
-
-
-    # --- Flow Clustering Gating [] ---
-    # Key functions: gate_flowClust_2d
-    data.1frame <- data[[1]]
-    flowCore::exprs(data.1frame) <- flowCore::fsApply(data, function(x) {
-        flowCore::exprs(x)
-    })
-    yeast <- gate_flowClust_2d(
-        data.1frame,
-        xChannel = "FSC.A",
-        yChannel = "SSC.A",
-        K = 1,
-        quantile = 0.95,
-        min = c(0, 0)
-    )
-
-
-    # --- Singlet Gating [] ---
-    # Key functions: gate_singlet
-    singlets <- gate_singlet(
-        x = flowCore::Subset(data.1frame, yeast),
-        area = "FSC.A",
-        height = "FSC.H",
-        prediction_level = 0.999,
-        maxit = 20
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_flowtime_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_flowtime_results.csv")
+    library(ggplot2)
+    
+    # 1. Import FCS files from the working directory
+    fcs_files <- list.files(pattern = "\\\\.fcs\$", ignore.case = TRUE)
+    if (length(fcs_files) == 0) {
+      stop("Error: No .fcs files found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_flowtime_output.rds")
+    
+    dat <- read.flowSet(path = ".", pattern = "\\\\.fcs\$", alter.names = TRUE)
+    
+    # 2. Load metadata annotation using read.csv
+    csv_files <- list.files(pattern = "\\\\.csv\$", ignore.case = TRUE)
+    if (length(csv_files) == 0) {
+      stop("Error: No .csv annotation file found in the working directory.")
     }
+    annotation <- read.csv(csv_files[1])
+    
+    # Find the column in annotation that matches the sample names
+    merge_col <- names(annotation)[sapply(annotation, function(x) all(sampleNames(dat) %in% x))][1]
+    if (is.na(merge_col)) {
+      stop("Error: No column in the annotation file matches the FCS file names.")
+    }
+    
+    # 3. Annotate the flowSet using annotateFlowSet
+    adat <- annotateFlowSet(yourFlowSet = dat, annotation_df = annotation, mergeBy = merge_col)
+    
+    # 4. Load default gates using loadGates
+    loadGates()
+    
+    # 5. Gate and compile events using steadyState
+    dat.SS <- steadyState(flowset = adat, ploidy = "diploid", only = "singlets")
+    
+    # 6. Plot the compiled events using ggplot
+    # Dynamically select columns for plotting to avoid hardcoding
+    meta_cols <- setdiff(colnames(annotation), merge_col)
+    x_col <- if (length(meta_cols) > 0) meta_cols[1] else merge_col
+    y_col <- colnames(dat)[1]
+    
+    p <- ggplot(dat.SS, aes(x = as.factor(.data[[x_col]]), y = .data[[y_col]])) +
+      geom_boxplot(outlier.shape = NA) +
+      theme_classic(base_family = "Arial", base_size = 16) +
+      xlab(x_col) +
+      ylab(y_col) +
+      theme(legend.position = "none")
+    
+    # Save meaningful results to files
+    write.csv(dat.SS, "steady_state_events.csv", row.names = FALSE)
+    ggsave("steady_state_plot.pdf", plot = p, width = 8, height = 6)
+    saveRDS(adat, "annotated_flowset.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FLOWTIME:", paste0("    flowtime: ", packageVersion("flowTime"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FLOWTIME_STEADY_STATE_ANALYSIS":',
+        paste0('    flowTime: ', as.character(packageVersion('flowTime')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_flowtime_results.csv
-    touch ${prefix}_flowtime_output.rds
-    echo "BIOC_FLOWTIME:" > versions.yml
-    echo "    flowtime: 0.0.0" >> versions.yml
+    touch ${prefix}_steady_state_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_FLOWTIME_WORKFLOW {
+workflow BIOC_FLOWTIME_STEADY_STATE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ .fcs files, .csv file ] ]
 
     main:
-    BIOC_FLOWTIME(ch_input)
+    BIOC_FLOWTIME_STEADY_STATE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_FLOWTIME.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FLOWTIME.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FLOWTIME.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FLOWTIME.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FLOWTIME_STEADY_STATE_ANALYSIS.out.tables
+    plots    = BIOC_FLOWTIME_STEADY_STATE_ANALYSIS.out.plots
+    objects  = BIOC_FLOWTIME_STEADY_STATE_ANALYSIS.out.objects
+    versions = BIOC_FLOWTIME_STEADY_STATE_ANALYSIS.out.versions
 }

@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: X=Spatial transcriptomics gene expression matrix of order G (genes) x S (spots) ;; L=Number of components/factors to decompose (default is 20) ;; iterations=Number of MCMC iterations (default is 4000; 10 is used for quick demonstration) ;; verbose=Logical value to print iteration progress ;; sc_ref=Single-cell reference matrix of order G (genes) x K (cell types) containing average gene expression values ;; K=Number of cell types ;; marker_ref=List containing marker genes for each of the K cell types\n- alternatives: Traditional reference-based deconvolution methods, which require external single-cell RNA-seq references during the deconvolution process itself. RETROFIT is preferred when high-quality matching single-cell references are unavailable or to avoid reference-bias during matrix factorization.\n- when_to_use: Use when you have spatial transcriptomics data (e.g., Visium, ST) and want to estimate the spatial proportions of different cell types in each spot, with or without a matching single-cell reference.\n- pitfalls: Running RETROFIT with a low number of iterations (e.g., 10) is only suitable for testing code execution; for actual biological analysis and reproducible results, iterations must be set to 4000, which can take over 10 minutes depending on dataset size.",
+  "workflows": [
+    {
+      "name": "two_step_deconvolution_and_annotation",
+      "intent": "Deconvolve spatial transcriptomics data into components and then annotate those components using either a single-cell reference or known marker genes.",
+      "input": [
+        "X (Spatial transcriptomics gene expression matrix of order G x S)",
+        "sc_ref (Single-cell reference matrix of average gene expression values of order G x K)",
+        "marker_ref (List of marker genes for K cell types)"
+      ],
+      "stages": "1. Initialize deconvolution parameters (iterations and number of components L).\n2. Run reference-free deconvolution using `retrofit::decompose`.\n3. Extract the estimated matrices W (gene-to-component) and H (component-to-spot).\n4. Annotate components using a single-cell reference via `annotateWithCorrelations` OR using known marker genes via `retrofit::annotateWithMarkers`.",
+      "code": "iterations = 10\nL = 20\nresult = retrofit::decompose(X, L=L, iterations=iterations, verbose=TRUE)\nH = result$h\nW = result$w\nTh = result$th\n\n# Option A: Cell-type Annotation via annotated single-cell reference\nK = ncol(sc_ref) # number of cell types\nresult = annotateWithCorrelations(sc_ref, K, W, H)\nH_sc = result$h\nW_sc = result$w\nH_sc_prop = result$h_prop\nW_sc_prop = result$w_prop\n\n# Option B: Cell-type Annotation via known marker genes\nK = length(marker_ref) # number of cell types\nresult = retrofit::annotateWithMarkers(marker_ref, K, W, H)\nH_mark = result$h\nW_mark = result$w\nH_mark_prop = result$h_prop\nW_mark_prop = result$w_prop\ngene_sums = result$gene_sums"
+    },
+    {
+      "name": "one_step_deconvolution_and_annotation",
+      "intent": "Deconvolve spatial transcriptomics data and annotate cell-type proportions simultaneously in a single step using a single-cell reference.",
+      "input": [
+        "x (Spatial transcriptomics gene expression matrix of order G x S)",
+        "sc_ref_w (Single-cell reference matrix of average gene expression values of order G x K)"
+      ],
+      "stages": "1. Initialize parameters (iterations, number of components L, and number of cell types K).\n2. Run joint deconvolution and annotation using `retrofit::retrofit`.",
+      "code": "iterations = 10\nL = 20\nK = 10 \nresult = retrofit::retrofit(x, \n                             sc_ref=sc_ref_w,\n                             iterations=iterations, \n                             L=L, \n                             K=K)"
+    }
+  ]
+}

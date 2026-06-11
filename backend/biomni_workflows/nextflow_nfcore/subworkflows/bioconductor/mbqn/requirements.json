@@ -1,0 +1,11 @@
+{
+  "package": "mbqn",
+  "requirements": [
+    "MBQN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MBQN"
+    ]
+  }
+}

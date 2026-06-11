@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: distributions=Character vector specifying the distribution for each view (e.g., \"quasi\" for quasi-likelihood fitting of sequence counts, \"gaussian\" for normal data) ;; compositional=Logical vector indicating whether each view is compositional (TRUE/FALSE) ;; logTransformGaussian=Logical, whether to log-transform Gaussian data ;; covariates=Data frame of sample variables for constrained ordination ;; initPower=Parameter to tweak starting values for Newton-Raphson optimization to resolve convergence issues ;; minFraction=Parameter to filter out sparse features to improve numerical stability ;; prevCutOff=Parameter to filter out sparse features to improve numerical stability ;; samDf=Data frame of sample variables for plotting ;; samCol=Variable name in samDf to color samples by ;; featurePlot=Type of feature plot (\"points\", \"density\", or default labeled) ;; returnCoords=Logical, if TRUE, plot() returns coordinates for further plotting\n- alternatives: None mentioned in the documentation.\n- when_to_use: When performing sample-wise integration of multiple omics views (e.g., microbiome and metabolomics) with overlapping samples, especially when dealing with compositional sequence count data and continuous data.\n- pitfalls: Newton-Raphson optimization can lead to numerical instability (e.g., \"infinite values returned by jacobian\" in nleqslv). This can be resolved by tweaking prevCutOff, minFraction, or initPower. In constrained ordination, using too few categorical variables can cause sample dots to overlap completely; it is recommended to include all measured sample variables.",
+  "workflows": [
+    {
+      "name": "unconstrained_integration",
+      "intent": "Integrate multiple omics views without constraints and visualize the shared variability.",
+      "input": [
+        "zhangMicrobio (microbiome count matrix or phyloseq/SummarizedExperiment/ExpressionSet object)",
+        "zhangMetabo (metabolomics data matrix or phyloseq/SummarizedExperiment/ExpressionSet object)",
+        "zhangMetavars (sample metadata data frame)"
+      ],
+      "stages": "1. Fit unconstrained combi model using combi() ;; 2. Print model summary ;; 3. Plot ordination with sample metadata ;; 4. Plot alternative feature representations (points or density) ;; 5. Add links/projections between features and samples using addLink() ;; 6. Extract coordinates using extractCoords() ;; 7. Run diagnostics using convPlot() and inflPlot()",
+      "code": "microMetaboInt = combi(\n list(\"microbiome\" = zhangMicrobio, \"metabolomics\" = zhangMetabo),\n distributions = c(\"quasi\", \"gaussian\"), compositional = c(TRUE, FALSE),\n logTransformGaussian = FALSE)\nmicroMetaboInt\nplot(microMetaboInt)\nplot(microMetaboInt, samDf = zhangMetavars, samCol = \"ABX\")\nplot(microMetaboInt, samDf = zhangMetavars, samCol = \"ABX\", \n     featurePlot = \"points\")\nplot(microMetaboInt, samDf = zhangMetavars, samCol = \"ABX\", \n     featurePlot = \"density\")\nmmPlot = plot(microMetaboInt, samDf = zhangMetavars, samCol = \"ABX\", returnCoords = TRUE, featNum = 10)\naddLink(mmPlot, links = cbind(\"Staphylococcus_819c11\",\"OTU929ffc\"), Views = 1, samples = c(0,1))\ncoords = extractCoords(microMetaboInt, Dim = c(1,2))\nconvPlot(microMetaboInt)\ninflPlot(microMetaboInt, samples = 1:20, plotType = \"boxplot\")"
+    },
+    {
+      "name": "constrained_integration",
+      "intent": "Integrate multiple omics views constrained by sample covariates.",
+      "input": [
+        "zhangMicrobio (microbiome count matrix or phyloseq/SummarizedExperiment/ExpressionSet object)",
+        "zhangMetabo (metabolomics data matrix or phyloseq/SummarizedExperiment/ExpressionSet object)",
+        "zhangMetavars (sample metadata data frame)"
+      ],
+      "stages": "1. Fit constrained combi model using combi() with covariates ;; 2. Print model summary ;; 3. Plot constrained ordination with sample metadata",
+      "code": "microMetaboIntConstr = combi(\n     list(\"microbiome\" = zhangMicrobio, \"metabolomics\" = zhangMetabo),\n     distributions = c(\"quasi\", \"gaussian\"), compositional = c(TRUE, FALSE),\n     logTransformGaussian = FALSE, covariates = zhangMetavars)\nmicroMetaboIntConstr\nplot(microMetaboIntConstr, samDf = zhangMetavars, samCol = \"ABX\")"
+    }
+  ]
+}

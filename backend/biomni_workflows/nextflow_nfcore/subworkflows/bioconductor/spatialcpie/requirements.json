@@ -1,0 +1,21 @@
+{
+  "package": "spatialcpie",
+  "requirements": [
+    "SpatialCPie",
+    "dplyr",
+    "ggplot2",
+    "jpeg",
+    "purrr",
+    "rlang"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SpatialCPie",
+      "dplyr",
+      "ggplot2",
+      "jpeg",
+      "purrr",
+      "rlang"
+    ]
+  }
+}

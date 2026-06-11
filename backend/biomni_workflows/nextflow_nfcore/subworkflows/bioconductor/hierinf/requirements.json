@@ -1,0 +1,14 @@
+{
+  "package": "hierinf",
+  "requirements": [
+    "hierinf"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "hierinf"
+    ],
+    "multiple_studies_meta_analysis.nf": [
+      "hierinf"
+    ]
+  }
+}

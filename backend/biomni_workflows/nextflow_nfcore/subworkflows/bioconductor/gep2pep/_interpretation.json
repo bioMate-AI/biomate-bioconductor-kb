@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: repoRoot=Path to the local directory where the repository is created or stored ;; db=A GeneSetCollection object containing pathway definitions ;; geps=A matrix of ranked gene expression profiles where rows are genes, columns are conditions, and values are ranks ;; pgset=A character vector of conditions/drugs of interest for CondSEA ;; collections=Character vector specifying which pathway collections to use in CondSEA/PathSEA\n- alternatives: GSEA (Gene Set Enrichment Analysis) is the gene-level counterpart to PathSEA. gene2drug is a specific tool/approach published for finding drugs mimicking gene dysregulation, which is implemented via PathSEA in this package.\n- when_to_use: Use when you have ranked gene expression profiles across multiple conditions (e.g., drug treatments, genetic perturbations) and want to perform pathway-level enrichment analysis across conditions (CondSEA) or find conditions that target specific pathways (PathSEA).\n- pitfalls: Input GEP matrix values must be ranks (from 1 to number of rows) for each condition, not raw expression values. Directly altering repository contents using repo commands (like put, set) can leave the repository in an inconsistent state; use checkRepository to verify. If a selected collection has no annotations for the input genes/pathways, warnings will be thrown (e.g., GO-CC category having no annotation for a specific gene).",
+  "workflows": [
+    {
+      "name": "gep_to_pep_conversion",
+      "intent": "Create a local pathway repository and convert ranked gene expression profiles (GEPs) into Pathway Expression Profiles (PEPs).",
+      "input": [
+        "msigdb_v6.1.xml (MSigDB database XML file)",
+        "geps_matrix (matrix of ranked gene expression profiles where rows are genes, columns are conditions, and values are ranks)"
+      ],
+      "stages": "1. Import MSigDB XML database and convert to CategorizedCollection ;; 2. Create a local repository using createRepository ;; 3. Load ranked GEP matrix ;; 4. Convert GEPs to PEPs using buildPEPs ;; 5. Load ES and PV matrices using loadESmatrix and loadPVmatrix",
+      "code": "library(gep2pep)\nsuppressMessages(library(GSEABase))\ndb <- loadSamplePWS()\ncolltypes <- sapply(db, collectionType)\ncats <- sapply(colltypes, attr, \"category\")\nsubcats <- sapply(colltypes, attr, \"subCategory\")\nmakeCollectionIDs(db)\nrepoRoot <- file.path(tempdir(), \"gep2pep_data\")\nrp <- createRepository(repoRoot, db)\ngeps <- loadSampleGEP()\nbuildPEPs(rp, geps)\nloadESmatrix(rp, \"c3_TFT\")[1:3, 1:3]\nloadPVmatrix(rp, \"c3_TFT\")[1:3, 1:3]"
+    },
+    {
+      "name": "condition_set_enrichment_analysis",
+      "intent": "Perform Condition-Set Enrichment Analysis (CondSEA/DSEA) to identify pathways consistently dysregulated by a specific set of conditions/drugs.",
+      "input": [
+        "rp (gep2pep repository containing PEPs)",
+        "pgset (character vector of conditions/drugs of interest)"
+      ],
+      "stages": "1. Define the set of conditions of interest ;; 2. Run CondSEA using CondSEA ;; 3. Retrieve results for a specific collection using getResults ;; 4. Export results to XLS format using exportSEA",
+      "code": "pgset <- c(\"(+)_chelidonine\", \"(+/_)_catechin\")\npsea <- CondSEA(rp, pgset)\ngetResults(psea, \"c3_TFT\")\nexportSEA(rp, psea)"
+    },
+    {
+      "name": "pathway_set_enrichment_analysis",
+      "intent": "Perform Pathway-Set Enrichment Analysis (PathSEA/gene2drug) to identify conditions/drugs that consistently dysregulate a set of pathways (e.g., pathways associated with a gene of interest).",
+      "input": [
+        "rp (gep2pep repository containing PEPs)",
+        "gene_symbol (character string of a gene of interest, e.g., \"FAM126A\" or \"TFEB\")"
+      ],
+      "stages": "1. Find pathways containing the gene of interest using gene2pathways ;; 2. Run PathSEA on the selected pathways using PathSEA ;; 3. Retrieve results for a specific collection using getResults ;; 4. Export results to XLS format using exportSEA",
+      "code": "pathways <- gene2pathways(rp, \"FAM126A\")\npsea <- PathSEA(rp, pathways)\ngetResults(psea, \"c3_TFT\")\nexportSEA(rp, psea)"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "package": "santa",
+  "requirements": [
+    "SANTA",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SANTA",
+      "igraph"
+    ]
+  }
+}

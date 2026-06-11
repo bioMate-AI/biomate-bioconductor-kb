@@ -1,0 +1,21 @@
+{
+  "package": "ctdata",
+  "requirements": [
+    "BiocGenerics",
+    "CTdata",
+    "GenomicRanges",
+    "IRanges",
+    "S4Vectors",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "CTdata",
+      "GenomicRanges",
+      "IRanges",
+      "S4Vectors",
+      "SummarizedExperiment"
+    ]
+  }
+}

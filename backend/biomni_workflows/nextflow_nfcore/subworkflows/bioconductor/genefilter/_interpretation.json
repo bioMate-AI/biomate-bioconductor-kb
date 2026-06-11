@@ -1,0 +1,33 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: scale=Controls row scaling in genefinder; options are \"none\", \"range\" (scales to 0-1 interval), or \"zscore\" (standardizes using mean and standard deviation) ;; method=Distance measure in genefinder; options include \"euclidean\", \"maximum\", \"manhattan\", \"canberra\", and \"binary\" ;; kOverA=Non-specific filter function where the first argument is the minimum number of samples and the second is the minimum expression threshold ;; ttest=Specific filter function wrapper around t.test where the first argument is the covariate factor and p is the p-value significance threshold ;; theta=A numeric vector of quantiles between 0 and 1 specifying the filtering fractions for independent filtering diagnostics in filtered_p and filtered_R\n- alternatives: geneplotter=Mentioned for visualizing gene expression data ;; annotate=Mentioned for downstream exploration of filtered gene lists, such as searching PubMed abstracts or downloading sequence information ;; class=The knn function from this package is used for k-nearest neighbor classification in cross-validation workflows\n- when_to_use: Use when you need to filter out uninformative genes (non-specific filtering) or non-differentially expressed genes (specific filtering) from high-throughput expression datasets to reduce dimensionality before downstream analysis. Also use when you want to find genes with similar expression profiles to a set of target genes, or when optimizing independent filtering thresholds to maximize statistical power.\n- pitfalls: Failing to scale rows (using scale=\"none\") in genefinder when genes have different baseline expression levels, which can lead to distance metrics being dominated by absolute expression magnitude rather than profile shape ;; Using Canberra distance (method=\"canberra\") when data contains zero values, as terms with zero numerator and denominator are omitted and treated as missing ;; Applying specific filters (e.g., t-test based on sample groups) before cross-validation, which can cause selection bias (the documentation demonstrates correct nested gene selection within a cross-validation loop to avoid this)",
+  "workflows": [
+    {
+      "name": "gene_filtering",
+      "intent": "Filter genes from an expression dataset using non-specific criteria, specific criteria, or a combination of both.",
+      "input": [
+        "sample.ExpressionSet (ExpressionSet containing expression data and sample covariates)"
+      ],
+      "stages": "1. Load the dataset and packages ;; 2. Define a non-specific filter using kOverA ;; 3. Define a specific filter using ttest ;; 4. Combine the filters using filterfun ;; 5. Apply the filters to the expression matrix using genefilter",
+      "code": "library(\"Biobase\")\nlibrary(\"genefilter\")\ndata(sample.ExpressionSet)\nf1 <- kOverA(5, 200)\nffun <- filterfun(f1)\nwh1 <- genefilter(exprs(sample.ExpressionSet), ffun)\nsum(wh1)\nf2 <- ttest(sample.ExpressionSet$type, p=0.1)\nwh2 <- genefilter(exprs(sample.ExpressionSet), filterfun(f2))\nsum(wh2)\nffun_combined <- filterfun(f1, f2)\nwh3 <- genefilter(exprs(sample.ExpressionSet), ffun_combined)\nsum(wh3)"
+    },
+    {
+      "name": "gene_finding",
+      "intent": "Find genes with expression profiles most similar to a set of target genes of interest.",
+      "input": [
+        "sample.ExpressionSet (ExpressionSet containing expression data)"
+      ],
+      "stages": "1. Define the indices of the target genes of interest ;; 2. Run genefinder to identify the nearest neighbor genes using a specified distance metric and scaling method ;; 3. Extract the indices and distances of the nearest genes ;; 4. Retrieve the feature names of the identified neighbor genes",
+      "code": "library(\"Biobase\")\nlibrary(\"genefilter\")\ndata(sample.ExpressionSet)\nigenes <- c(300,333,355,419)\ncloseg <- genefinder(sample.ExpressionSet, igenes, 10, method=\"euc\", scale=\"none\")\nnames(closeg)\ncloseg$\"31539_r_at\"\nNms1 <- featureNames(sample.ExpressionSet)[closeg$\"31539_r_at\"$indices]\nNms1"
+    },
+    {
+      "name": "independent_filtering_diagnostics",
+      "intent": "Optimize the independent filtering threshold to maximize the number of discoveries while controlling the false discovery rate.",
+      "input": [
+        "ALL (ExpressionSet containing gene expression data and phenotypic covariates)"
+      ],
+      "stages": "1. Subset the dataset to relevant samples ;; 2. Compute a filter statistic (row variances) and unadjusted p-values (row t-tests) ;; 3. Compute adjusted p-values across a range of filtering thresholds (theta) using filtered_p ;; 4. Visualize the number of rejections across thresholds using rejection_plot ;; 5. Calculate the exact number of rejections at a given alpha level across thresholds using filtered_R and plot the results",
+      "code": "library(\"genefilter\")\nlibrary(\"ALL\")\ndata(\"ALL\")\nbcell <- grep(\"^B\", as.character(ALL$BT))\nmoltyp <- which(as.character(ALL$mol.biol) %in% \n                c(\"NEG\", \"BCR/ABL\"))\nALL_bcrneg <- ALL[, intersect(bcell, moltyp)]\nALL_bcrneg$mol.biol <- factor(ALL_bcrneg$mol.biol)\nS2 <- rowVars(exprs(ALL_bcrneg))\np2 <- rowttests(ALL_bcrneg, \"mol.biol\")$p.value\ntheta <- seq(0, .5, .1)\np_bh <- filtered_p(S2, p2, theta, method=\"BH\")\nhead(p_bh)\nrejection_plot(p_bh, at=\"sample\",\n               xlim=c(0,.3), ylim=c(0,1000),\n               main=\"Benjamini & Hochberg adjustment\")\ntheta <- seq(0, .80, .01)\nR_BH <- filtered_R(alpha=.10, S2, p2, theta, method=\"BH\")\nhead(R_BH)\nplot(theta, R_BH, type=\"l\",\n     xlab=expression(theta), ylab=\"Rejections\",\n     main=\"BH cutoff = 0.1\")"
+    }
+  ]
+}

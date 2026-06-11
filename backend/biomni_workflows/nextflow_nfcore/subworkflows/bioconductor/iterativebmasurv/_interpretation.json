@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x / train.dat=matrix of training gene expression data (genes as columns, samples as rows) ;; surv.time / surv.time.train=vector of survival times for the training set ;; cens.vec / cens.vec.train=vector of censoring status for the training set (0 = censored, 1 = uncensored) ;; nbest=number of models to keep for each BMA iteration ;; p=number of top univariate sorted genes to be used in the iterative calls to the bic.surv algorithm ;; cutPoint=percentage cutoff for separating the high-risk group from the low-risk group ;; diseaseType=disease type string used for naming cross-validation output files ;; noRuns=number of cross-validation runs ;; noFolds=number of cross-validation folds\n- alternatives: Traditional BMA (via bic.surv in the BMA package) which is inefficient for datasets with more than 30 variables ;; Cox Proportional Hazards Model alone, which is used as a univariate pre-ranking step but ignores model uncertainty and gene-gene interactions\n- when_to_use: When performing survival analysis on high-dimensional transcriptomics (microarray) data to identify a small subset of predictive genes and classify patients into risk groups while accounting for model uncertainty\n- pitfalls: If all test samples are assigned to a single risk group or all samples are in the same censor category, the algorithm returns success = FALSE ;; The traditional BMA algorithm is inefficient for >30 variables, so the sliding window size (maxNvar) is typically limited to 25 or 30 ;; Using too small a value for p (number of top genes) or nbest might yield less significant results",
+  "workflows": [
+    {
+      "name": "step_by_step_survival_analysis",
+      "intent": "Train the iterative BMA model step-by-step, predict risk scores for test samples, assign them to risk categories, evaluate survival differences, and visualize the selected models.",
+      "input": [
+        "trainData (matrix of training gene expression data)",
+        "trainSurv (vector of training survival times)",
+        "trainCens (vector of training censoring status)",
+        "testData (matrix of test gene expression data)",
+        "testSurv (vector of test survival times)",
+        "testCens (vector of test censoring status)"
+      ],
+      "stages": "1. Load training data and run iterateBMAsurv.train.wrapper to select relevant genes ;; 2. Extract the bic.surv object and identify top genes with posterior probability > 0 ;; 3. Load test data and subset it to the selected top genes ;; 4. Predict risk scores for test and training samples using predictBicSurv ;; 5. Assign test samples to risk categories using predictiveAssessCategory ;; 6. Perform survival difference analysis using survdiff ;; 7. Visualize selected genes and models using imageplot.iterate.bma.surv",
+      "code": "library(BMA)\nlibrary(iterativeBMAsurv)\ndata(trainData)\ndata(trainSurv)\ndata(trainCens)\nret.list <- iterateBMAsurv.train.wrapper (x=trainData, surv.time=trainSurv, cens.vec=trainCens, nbest=5)\nret.bic.surv <- ret.list$obj\ngene.names <- ret.list$curr.names\ntop.gene.names <- gene.names[ret.bic.surv$probne0 > 0]\ntop.gene.names\nret.bic.surv$postprob\ndata(testData)\ndata(testSurv)\ndata(testCens)\ncurr.test.dat <- testData[, top.gene.names]\ny.pred.test <- apply (curr.test.dat, 1, predictBicSurv, postprob.vec=ret.bic.surv$postprob, mle.mat=ret.bic.surv$mle)\ny.pred.train <- apply (trainData[, top.gene.names], 1, predictBicSurv, postprob.vec=ret.bic.surv$postprob, mle.mat=ret.bic.surv$mle)\nret.table <- predictiveAssessCategory (y.pred.test, y.pred.train, testCens, cutPoint=50) \nrisk.vector <- ret.table$groups\nrisk.table <- ret.table$assign.risk\nrisk.table\nmySurv.obj <- Surv(testSurv, testCens)\nstats <- survdiff(mySurv.obj ~ unlist(risk.vector))\nstats\nimageplot.iterate.bma.surv (ret.bic.surv)"
+    },
+    {
+      "name": "automated_survival_analysis",
+      "intent": "Perform gene selection, model training, risk prediction, and risk group assessment in a single automated function call.",
+      "input": [
+        "trainData (matrix of training gene expression data)",
+        "trainSurv (vector of training survival times)",
+        "trainCens (vector of training censoring status)",
+        "testData (matrix of test gene expression data)",
+        "testSurv (vector of test survival times)",
+        "testCens (vector of test censoring status)"
+      ],
+      "stages": "1. Run iterateBMAsurv.train.predict.assess to perform the entire pipeline ;; 2. Extract statistics and evaluation metrics from the returned object",
+      "code": "library(BMA)\nlibrary(iterativeBMAsurv)\ndata(trainData)\ndata(trainSurv)\ndata(trainCens)\ndata(testData)\ndata(testSurv)\ndata(testCens)\nret.bma <- iterateBMAsurv.train.predict.assess (train.dat=trainData, test.dat=testData, surv.time.train=trainSurv, surv.time.test=testSurv, cens.vec.train=trainCens, cens.vec.test=testCens, p=10, nbest=5)\nnumber.genes <- ret.bma$nvar\nnumber.models <- ret.bma$nmodel\nevaluate.success <- ret.bma$statistics\nevaluate.success"
+    },
+    {
+      "name": "cross_validation",
+      "intent": "Perform k-run n-fold cross-validation on the training set to evaluate model performance and optimize parameters.",
+      "input": [
+        "trainData (matrix of training gene expression data)",
+        "trainSurv (vector of training survival times)",
+        "trainCens (vector of training censoring status)"
+      ],
+      "stages": "1. Run crossVal with specified folds, runs, and parameters to evaluate the model and write results to files",
+      "code": "library(BMA)\nlibrary(iterativeBMAsurv)\ndata(trainData)\ndata(trainSurv)\ndata(trainCens)\ncv <- crossVal (exset=trainData, survTime=trainSurv, censor=trainCens, diseaseType=\"DLBCL\", noRuns=1, noFolds=2, p=10, nbest=5)"
+    }
+  ]
+}

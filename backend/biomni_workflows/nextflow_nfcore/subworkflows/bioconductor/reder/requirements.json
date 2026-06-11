@@ -1,0 +1,19 @@
+{
+  "package": "reder",
+  "requirements": [
+    "RedeR",
+    "TreeAndLeaf",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RedeR",
+      "igraph"
+    ],
+    "tree_and_leaf_diagrams.nf": [
+      "RedeR",
+      "TreeAndLeaf",
+      "igraph"
+    ]
+  }
+}

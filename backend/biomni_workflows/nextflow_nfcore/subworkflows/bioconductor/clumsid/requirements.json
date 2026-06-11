@@ -1,0 +1,22 @@
+{
+  "package": "clumsid",
+  "requirements": [
+    "CluMSID",
+    "dplyr",
+    "magrittr",
+    "readr",
+    "stringr"
+  ],
+  "by_workflow": {
+    "lc_ms_ms_external_peaklist.nf": [
+      "CluMSID",
+      "dplyr",
+      "magrittr",
+      "readr",
+      "stringr"
+    ],
+    "main.nf": [
+      "CluMSID"
+    ]
+  }
+}

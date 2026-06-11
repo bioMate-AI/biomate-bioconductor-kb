@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ld.threshold=The threshold for linkage disequilibrium pruning (e.g., 0.2) ;; method=In snpgdsVCF2GDS, specifies whether to extract \"biallelic.only\" or all variant sites ;; num.thread=The number of CPU cores/threads to use for parallel computing in PCA, IBD, and IBS calculations ;; maf=Minor allele frequency threshold used to filter SNPs in relatedness analyses ;; missing.rate=Missing rate threshold used to filter SNPs in relatedness analyses ;; snpfirstdim=Logical parameter in snpgdsCreateGeno indicating if the first dimension of the genotype matrix represents SNPs\n- alternatives: SeqArray=Strongly suggested instead of SNPRelate for large-scale whole-exome and whole-genome sequencing variant data (using seqVCF2GDS and seqGetData) ;; GWASTools=An R/Bioconductor package that also uses the GDS format and provides extensive quality control and association testing functions\n- when_to_use: Use when analyzing large-scale GWAS SNP data to perform population structure identification (PCA), relatedness estimation (IBD/kinship), Fst estimation, or sample clustering on multi-core systems.\n- pitfalls: Strong linkage disequilibrium (LD) among SNPs can heavily bias PCA and relatedness analyses, making LD-based SNP pruning a critical prerequisite ;; The variables snp.position and snp.chromosome in the GDS file do not allow NA values ;; Offspring should be removed from the dataset when estimating Fst across multiple populations to avoid bias ;; SNPRelate is optimized for bi-allelic SNP data; for multi-allelic sequencing data, SeqArray should be used instead.",
+  "workflows": [
+    {
+      "name": "gds_format_conversion",
+      "intent": "Convert PLINK binary files or VCF files into the GDS format required for downstream SNPRelate analyses.",
+      "input": [
+        "bed.fn (PLINK BED file)",
+        "fam.fn (PLINK FAM file)",
+        "bim.fn (PLINK BIM file)",
+        "vcf.fn (VCF format variant call file)"
+      ],
+      "stages": "1. Convert PLINK BED/FAM/BIM files to GDS using snpgdsBED2GDS ;; 2. Convert VCF files to GDS using snpgdsVCF2GDS ;; 3. Summarize the converted GDS file using snpgdsSummary.",
+      "code": "# Convert PLINK\nsnpgdsBED2GDS(bed.fn, fam.fn, bim.fn, \"test.gds\")\n\n# Summary\nsnpgdsSummary(\"test.gds\")\n\n# Convert VCF\nsnpgdsVCF2GDS(vcf.fn, \"test.gds\", method=\"biallelic.only\")\n\n# Summary\nsnpgdsSummary(\"test.gds\")"
+    },
+    {
+      "name": "pca_and_population_structure",
+      "intent": "Perform LD-based SNP pruning and Principal Component Analysis (PCA) to identify population structure and calculate SNP-PC correlations.",
+      "input": [
+        "genofile (An opened GDS file object)"
+      ],
+      "stages": "1. Open GDS file using snpgdsOpen ;; 2. Perform LD-based SNP pruning using snpgdsLDpruning ;; 3. Extract pruned SNP IDs ;; 4. Run PCA using snpgdsPCA ;; 5. Calculate PC-correlated SNPs using snpgdsPCACorr ;; 6. Close GDS file using snpgdsClose.",
+      "code": "# Open the GDS file\ngenofile <- snpgdsOpen(snpgdsExampleFileName())\n\nset.seed(1000)\n\n# Try different LD thresholds for sensitivity analysis\nsnpset <- snpgdsLDpruning(genofile, ld.threshold=0.2)\n\n# Get all selected snp id\nsnpset.id <- unlist(unname(snpset))\n\n# Run PCA\npca <- snpgdsPCA(genofile, snp.id=snpset.id, num.thread=2)\n\n# variance proportion (%)\npc.percent <- pca$varprop*100\nhead(round(pc.percent, 2))\n\n# make a data.frame\ntab <- data.frame(sample.id = pca$sample.id,\n    EV1 = pca$eigenvect[,1],    # the first eigenvector\n    EV2 = pca$eigenvect[,2],    # the second eigenvector\n    stringsAsFactors = FALSE)\n\n# Draw\nplot(tab$EV2, tab$EV1, xlab=\"eigenvector 2\", ylab=\"eigenvector 1\")\n\n# Get chromosome index\nchr <- read.gdsn(index.gdsn(genofile, \"snp.chromosome\"))\nCORR <- snpgdsPCACorr(pca, genofile, eig.which=1:4)\n\n# Close the GDS file\nsnpgdsClose(genofile)"
+    },
+    {
+      "name": "relatedness_and_relationship_inference",
+      "intent": "Estimate identity-by-descent (IBD) coefficients and kinship using PLINK Method of Moments, Maximum Likelihood Estimation, or KING robust method.",
+      "input": [
+        "genofile (An opened GDS file object)"
+      ],
+      "stages": "1. Open GDS file using snpgdsOpen ;; 2. Perform IBD estimation via Method of Moments using snpgdsIBDMoM ;; 3. Perform IBD estimation via Maximum Likelihood Estimation using snpgdsIBDMLE ;; 4. Infer relationships using the KING robust method with snpgdsIBDKING ;; 5. Select and format IBD/kinship coefficients using snpgdsIBDSelection ;; 6. Close GDS file using snpgdsClose.",
+      "code": "# Open the GDS file\ngenofile <- snpgdsOpen(snpgdsExampleFileName())\n\n# Get population information\npop_code <- read.gdsn(index.gdsn(genofile, path=\"sample.annot/pop.group\"))\n\n# YRI samples\nsample.id <- read.gdsn(index.gdsn(genofile, \"sample.id\"))\nYRI.id <- sample.id[pop_code == \"YRI\"]\n\n# Estimate IBD coefficients using MoM\nibd <- snpgdsIBDMoM(genofile, sample.id=YRI.id, snp.id=snpset.id,\n    maf=0.05, missing.rate=0.05, num.thread=2)\n\n# Make a data.frame\nibd.coeff <- snpgdsIBDSelection(ibd)\n\n# Estimate IBD coefficients using MLE\nset.seed(100)\nsnp.id <- sample(snpset.id, 1500)  # random 1500 SNPs\nibd <- snpgdsIBDMLE(genofile, sample.id=YRI.id, snp.id=snp.id,\n    maf=0.05, missing.rate=0.05, num.thread=2)\n\n# Make a data.frame\nibd.coeff <- snpgdsIBDSelection(ibd)\n\n# Incorporate with pedigree information\nfamily.id <- read.gdsn(index.gdsn(genofile, \"sample.annot/family.id\"))\nfamily.id <- family.id[match(YRI.id, sample.id)]\n\nibd.robust <- snpgdsIBDKING(genofile, sample.id=YRI.id,\n    family.id=family.id, num.thread=2)\n\n# Pairs of individuals\ndat <- snpgdsIBDSelection(ibd.robust)\n\n# Close the GDS file\nsnpgdsClose(genofile)"
+    },
+    {
+      "name": "ibs_and_cluster_analysis",
+      "intent": "Perform Identity-By-State (IBS) analysis, multidimensional scaling (MDS), and hierarchical clustering to group individuals.",
+      "input": [
+        "genofile (An opened GDS file object)"
+      ],
+      "stages": "1. Open GDS file using snpgdsOpen ;; 2. Calculate average IBS pairwise identities using snpgdsIBS ;; 3. Perform multidimensional scaling using cmdscale ;; 4. Perform hierarchical clustering using snpgdsHCluster ;; 5. Determine clusters of individuals using snpgdsCutTree ;; 6. Close GDS file using snpgdsClose.",
+      "code": "# Open the GDS file\ngenofile <- snpgdsOpen(snpgdsExampleFileName())\n\n# Get population information\npop_code <- read.gdsn(index.gdsn(genofile, path=\"sample.annot/pop.group\"))\n\nibs <- snpgdsIBS(genofile, num.thread=2)\n\n# individuals in the same population are clustered together\npop.idx <- order(pop_code)\nimage(ibs$ibs[pop.idx, pop.idx], col=terrain.colors(16))\n\nloc <- cmdscale(1 - ibs$ibs, k = 2)\nx <- loc[, 1]; y <- loc[, 2]\nrace <- as.factor(pop_code)\n\nset.seed(100)\nibs.hc <- snpgdsHCluster(snpgdsIBS(genofile, num.thread=2))\n\n# Determine groups of individuals automatically\nrv <- snpgdsCutTree(ibs.hc)\n\n# Determine groups of individuals by population information\nrv2 <- snpgdsCutTree(ibs.hc, samp.group=as.factor(pop_code))\n\n# Close the GDS file\nsnpgdsClose(genofile)"
+    }
+  ]
+}

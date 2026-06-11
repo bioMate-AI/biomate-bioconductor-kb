@@ -1,0 +1,29 @@
+{
+  "package": "katdetectr",
+  "requirements": [
+    "BiocGenerics",
+    "GenomeInfoDb",
+    "GenomicRanges",
+    "VariantAnnotation",
+    "dplyr",
+    "ggplot2",
+    "katdetectr"
+  ],
+  "by_workflow": {
+    "custom_cutoff_kataegis_detection.nf": [
+      "dplyr",
+      "katdetectr"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "katdetectr"
+    ],
+    "non_standard_genome_kataegis_detection.nf": [
+      "BiocGenerics",
+      "GenomeInfoDb",
+      "GenomicRanges",
+      "VariantAnnotation",
+      "katdetectr"
+    ]
+  }
+}

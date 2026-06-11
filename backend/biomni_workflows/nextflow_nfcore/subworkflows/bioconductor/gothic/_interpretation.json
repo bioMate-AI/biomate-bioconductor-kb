@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: DUPLICATETHRESHOLD=threshold for PCR duplicate filtering (e.g., 1 to remove read-pairs with both ends mapping to identical coordinates) ;; res=resolution/bin size in base pairs (e.g., 1000000) ;; BSgenomeName=the character string name of the BSgenome package used for mapping ;; genome=the actual BSgenome object corresponding to the genome of interest ;; restrictionSite=the restriction site sequence with cleavage site marked by ^ (e.g., \"A^AGCTT\") ;; enzyme=the name of the restriction enzyme used (e.g., \"HindIII\") ;; cistrans=defines whether to detect \"all\", \"cis\", or \"trans\" interactions ;; filterdist=minimum distance in base pairs to filter out self-ligations and adjacent fragments (typically 10000) ;; restrictionFile=path to the restriction fragment file required for the HiCUP-specific workflow\n- alternatives: HiCUP can be used as an external preprocessing tool to filter invalid read-pairs and remove duplicates before running GOTHiChicup ;; Bowtie is used for initial alignment of raw reads before pairing with pairReads\n- when_to_use: Use when analyzing genome-wide Hi-C datasets to identify statistically significant long-range chromatin interactions while correcting for systematic biases (such as restriction site density, GC content, and mappability) using a cumulative binomial test.\n- pitfalls: Poor quality experiments can result in a uniform p-value distribution (0 to 1) rather than a sharp peak near 0 ;; Low coverage samples can show a bimodal p-value distribution and yield very few significant interactions ;; Self-ligations and adjacent fragments must be filtered out (typically using a 10kb threshold via filterdist) to avoid false positives.",
+  "workflows": [
+    {
+      "name": "standard_gothic_pipeline",
+      "intent": "Identify significant genomic interactions from raw aligned paired-end reads (Bowtie output) using the standard GOTHiC pipeline.",
+      "input": [
+        "fileName1 (aligned reads file 1)",
+        "fileName2 (aligned reads file 2)"
+      ],
+      "stages": "1. Pair aligned reads using pairReads ;; 2. Map paired reads to restriction sites using mapReadsToRestrictionSites ;; 3. Run the full binomial test pipeline using GOTHiC",
+      "code": "dirPath = system.file(\"extdata\", package=\"HiCDataLymphoblast\")\nfileName1 = list.files(dirPath, full.names=TRUE)[1]\nfileName2 = list.files(dirPath, full.names=TRUE)[2]\npaired = pairReads(fileName1, fileName2, sampleName=\"lymphoid_chr20\", \nDUPLICATETHRESHOLD = 1, fileType=\"Table\")\n\ndata(lymphoid_chr20_paired_filtered)\nmapped=mapReadsToRestrictionSites(filtered, sampleName=\"lymphoid_chr20\", \nBSgenomeName=\"BSgenome.Hsapiens.UCSC.hg18\", \ngenome=BSgenome.Hsapiens.UCSC.hg18, \nrestrictionSite=\"A^AGCTT\", enzyme=\"HindIII\", parallel=FALSE, cores=1)\n\nbinom=GOTHiC(fileName1,fileName2, sampleName=\"lymphoid_chr20\", \nres=1000000, BSgenomeName=\"BSgenome.Hsapiens.UCSC.hg18\",\ngenome=BSgenome.Hsapiens.UCSC.hg18, \nrestrictionSite=\"A^AGCTT\", enzyme=\"HindIII\" ,cistrans=\"all\", filterdist=10000,\nDUPLICATETHRESHOLD=1, fileType=\"Table\", parallel=FALSE, cores=NULL)"
+    },
+    {
+      "name": "hicup_gothic_pipeline",
+      "intent": "Identify significant genomic interactions from HiCUP preprocessed and filtered BAM/SAM files using GOTHiChicup.",
+      "input": [
+        "fileName (HiCUP output file)",
+        "restrictionFile (restriction fragment file)"
+      ],
+      "stages": "1. Run the binomial test on HiCUP output using GOTHiChicup",
+      "code": "dirPath <- system.file(\"extdata\", package=\"HiCDataLymphoblast\")\nfileName <- list.files(dirPath, full.names=TRUE)[4]\nrestrictionFile <- list.files(dirPath, full.names=TRUE)[3]\nbinom=GOTHiChicup(fileName, sampleName='lymphoid_chr20', res=1000000, \nrestrictionFile, cistrans='all', parallel=FALSE, cores=NULL)"
+    }
+  ]
+}

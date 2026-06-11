@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: subset.row=Specifies a subset of genes (e.g., highly variable genes) on which to perform the correction to mitigate noise ;; correct.all=Logical indicating whether corrected values should be returned for all genes by extrapolating from the subset used for correction ;; restrict=A list of cell indices specifying a restricted subset of cells in each batch (e.g., controls) to compute the correction, which is then extrapolated to all other cells ;; PARAM=A BatchelorParam subclass object (e.g., FastMnnParam(), ClassicMnnParam(), RescaleParam()) passed to batchCorrect() or correctExperiments() to dispatch to a specific correction method ;; batch=A vector specifying the batch of origin for each cell when a single combined object is supplied instead of multiple separate batch objects\n- alternatives: limma::removeBatchEffect=Designed for bulk genomics data and requires explicit knowledge of other factors of variation, whereas batchelor does not ;; fastMNN() vs mnnCorrect()=fastMNN() performs correction in a low-dimensional PCA space and is much faster and better suited for scRNA-seq, whereas mnnCorrect() operates in gene expression space and is slower but more robust to certain violations of orthogonality assumptions ;; clusterMNN() vs fastMNN()=clusterMNN() is a more conservative strategy that preserves separation between pre-defined clusters across batches but does not adjust for intra-cluster structure differences ;; rescaleBatches() vs regressBatches()=rescaleBatches() centers batches in log-expression space and preserves sparsity by downscaling counts, whereas regressBatches() performs linear regression using ResidualMatrix which does not preserve sparsity but avoids dense matrix creation\n- when_to_use: Use when combining single-cell RNA-seq datasets from different batches, times, or laboratories to remove batch effects for downstream exploratory analyses (like clustering and visualization) without requiring prior knowledge of cell-type composition.\n- pitfalls: Do not use corrected expression values directly for downstream differential expression (DE) analyses, as batch correction can introduce artifacts; instead, use a blocking factor in DE models ;; rescaleBatches() assumes that the population composition of each batch is identical, making it unsuitable for biological replicates with varying cell-type compositions (best reserved for technical replicates) ;; fastMNN() and multiBatchPCA() use stochastic PCA methods (IRLBA) by default, so set.seed() must be called beforehand to ensure reproducible results",
+  "workflows": [
+    {
+      "name": "fast_mnn_correction",
+      "intent": "Correct batch effects in single-cell RNA-seq datasets using the fast Mutual Nearest Neighbors (MNN) method in PCA space.",
+      "input": [
+        "sce1 (SingleCellExperiment of batch 1)",
+        "sce2 (SingleCellExperiment of batch 2)"
+      ],
+      "stages": "1. Perform quality control on cells ;; 2. Subset datasets to common genes ;; 3. Normalize sequencing depth across batches using multiBatchNorm ;; 4. Model gene variance and select highly variable genes (HVGs) ;; 5. Run fastMNN to obtain corrected low-dimensional coordinates",
+      "code": "library(scRNAseq)\nsce1 <- ZeiselBrainData()\nsce2 <- TasicBrainData()\n\nlibrary(scuttle)\nsce1 <- addPerCellQC(sce1, subsets=list(Mito=grep(\"mt-\", rownames(sce1))))\nqc1 <- quickPerCellQC(colData(sce1), sub.fields=\"subsets_Mito_percent\")\nsce1 <- sce1[,!qc1$discard]\n\nsce2 <- addPerCellQC(sce2, subsets=list(Mito=grep(\"mt_\", rownames(sce2))))\nqc2 <- quickPerCellQC(colData(sce2), sub.fields=\"subsets_Mito_percent\")\nsce2 <- sce2[,!qc2$discard]\n\nuniverse <- intersect(rownames(sce1), rownames(sce2))\nsce1 <- sce1[universe,]\nsce2 <- sce2[universe,]\n\nout <- multiBatchNorm(sce1, sce2)\nsce1 <- out[[1]]\nsce2 <- out[[2]]\n\nlibrary(scran)\ndec1 <- modelGeneVar(sce1)\ndec2 <- modelGeneVar(sce2)\ncombined.dec <- combineVar(dec1, dec2)\nchosen.hvgs <- getTopHVGs(combined.dec, n=5000)\n\nlibrary(batchelor)\nset.seed(101)\nf.out <- fastMNN(A=sce1, B=sce2, subset.row=chosen.hvgs)"
+    },
+    {
+      "name": "cluster_mnn_correction",
+      "intent": "Merge batches conservatively by matching pre-defined cluster labels across different datasets.",
+      "input": [
+        "sce1 (SingleCellExperiment of batch 1 with cluster annotations)",
+        "sce2 (SingleCellExperiment of batch 2 with cluster annotations)"
+      ],
+      "stages": "1. Filter out unclassified cells ;; 2. Run clusterMNN using pre-defined cluster labels to identify meta-clusters across batches",
+      "code": "not.unclass <- sce2$broad_type!=\"Unclassified\"\nclust.out <- clusterMNN(sce1, sce2[,not.unclass],\n    subset.row=chosen.hvgs,\n    clusters=list(sce1$level1class, sce2$broad_type[not.unclass])) \n\nclust.info <- metadata(clust.out)$cluster\nsplit(clust.info$cluster, clust.info$meta)"
+    },
+    {
+      "name": "batch_rescaling",
+      "intent": "Center batches in log-expression space on a per-gene basis while preserving sparsity (best for technical replicates).",
+      "input": [
+        "sce1 (SingleCellExperiment of batch 1)",
+        "sce2 (SingleCellExperiment of batch 2)"
+      ],
+      "stages": "1. Run rescaleBatches to obtain a corrected expression matrix wrapped in a SingleCellExperiment",
+      "code": "rescale.out <- rescaleBatches(sce1, sce2)"
+    }
+  ]
+}

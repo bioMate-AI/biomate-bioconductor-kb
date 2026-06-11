@@ -1,108 +1,148 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: IMMAN
-// Reconstructing Interlog Protein Network (IPN) integrated from several Protein protein Interaction Ne
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/IMMAN/inst/doc/IMMAN.html
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("IMMAN")
+// Bioconductor workflow: IMMAN — reconstruct_interlog_protein_network
+// Reconstruct an integrated Interlog Protein Network (IPN) from protein lists of different species using sequence alignment and STRING database interactions.
+// Input: ProteinLists, Species_IDs
+// Container: quay.io/biocontainers/bioconductor-imman:1.30.0--r45hdfd78af_0
+// R packages: IMMAN
+// Bioconductor: 3.20 | R: 4.4
+// Requires: IMMAN
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the IMMAN package and example datasets
+//  * 2. [Input & Preparation] Define the list of proteins and their corresponding taxonomy IDs
+//  * 3. [Core Analysis] Set alignment and network integration parameters
+//  * 4. [Input & Preparation] Run the IMMAN function to download sequences, perform alignment, query STRING, and build the IPN
+//  * 5. [Core Analysis] Extract and inspect the resulting IPN edges, nodes, species-specific networks, and UniProt-to-STRING mappings
 
 nextflow.enable.dsl = 2
 
-process BIOC_IMMAN {
+process BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-imman"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-imman:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-imman:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_imman_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_imman_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_imman_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("IMMAN")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load the IMMAN package
     library(IMMAN)
-    library(jsonlite)
-
-    # --- Interolog Mapping with Network Shrinkage [] ---
-    # Key functions: IMMAN
-    shrink_results <- IMMAN(
-        ProteinLists = protein_data,
-        Species_IDs = c("9606", "10090"),
-        identityU = 0.5,
-        substitutionMatrix = "BLOSUM62",
-        gapOpening = 12,
-        gapExtension = 2,
-        BestHit = FALSE,
-        coverage = 0.6,
-        NetworkShrinkage = TRUE,
-        score_threshold = 500,
-        STRINGversion = "10"
-    )
-
-
-    # --- Network Filtering and Edge Extraction [] ---
-    # Key functions: IMMAN
-    final_network <- shrink_results$MappedNetwork
-    edge_weights <- shrink_results$Scores
-    valid_indices <- which(edge_weights >= 600)
-    filtered_network <- final_network[valid_indices, ]
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_imman_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_imman_results.csv")
+    
+    # 2. Read the user input files from the working directory
+    if (!file.exists("ProteinLists.rds") || !file.exists("Species_IDs.rds")) {
+      stop("Required input files 'ProteinLists.rds' and/or 'Species_IDs.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_imman_output.rds")
+    
+    ProteinLists <- readRDS("ProteinLists.rds")
+    Species_IDs <- readRDS("Species_IDs.rds")
+    
+    # 3. Set alignment and network integration parameters
+    identityU = 30
+    substitutionMatrix = "BLOSUM62"
+    gapOpening = -8
+    gapExtension = -8
+    NetworkShrinkage = FALSE
+    coverage = 1
+    BestHit = TRUE
+    score_threshold = 400
+    STRINGversion="11"
+    
+    # 4. Run the IMMAN function to download sequences, perform alignment, query STRING, and build the IPN
+    output = IMMAN(ProteinLists, fileNames=NULL, Species_IDs,
+                  identityU, substitutionMatrix,
+                  gapOpening, gapExtension, BestHit,
+                  coverage, NetworkShrinkage,
+                  score_threshold, STRINGversion,
+                  InputDirectory = getwd())
+    
+    # 5. Extract and inspect the resulting IPN edges, nodes, species-specific networks, and UniProt-to-STRING mappings
+    output\$IPNEdges
+    output\$IPNNodes
+    output\$Networks
+    output\$Networks[[1]]
+    output\$maps
+    output\$maps[[2]]
+    
+    # 6. Save outputs to files
+    saveRDS(output, "IMMAN_output.rds")
+    
+    if (!is.null(output\$IPNEdges)) {
+      write.csv(output\$IPNEdges, "IPNEdges.csv", row.names = FALSE)
+    }
+    
+    if (!is.null(output\$IPNNodes)) {
+      write.csv(output\$IPNNodes, "IPNNodes.csv", row.names = FALSE)
+    }
+    
+    if (!is.null(output\$Networks)) {
+      for (i in seq_along(output\$Networks)) {
+        write.csv(output\$Networks[[i]], paste0("Network_species_", i, ".csv"), row.names = FALSE)
+      }
+    }
+    
+    if (!is.null(output\$maps)) {
+      for (i in seq_along(output\$maps)) {
+        write.csv(output\$maps[[i]], paste0("Map_species_", i, ".csv"), row.names = FALSE)
+      }
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IMMAN:", paste0("    imman: ", packageVersion("IMMAN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK":',
+        paste0('    IMMAN: ', as.character(packageVersion('IMMAN')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_imman_results.csv
-    touch ${prefix}_imman_output.rds
-    echo "BIOC_IMMAN:" > versions.yml
-    echo "    imman: 0.0.0" >> versions.yml
+    touch ${prefix}_reconstruct_interlog_protein_network.csv versions.yml
     """
 }
 
-
-workflow BIOC_IMMAN_WORKFLOW {
+workflow BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ ProteinLists, Species_IDs ] ]
 
     main:
-    BIOC_IMMAN(ch_input)
+    BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK(ch_input)
 
     emit:
-    results  = BIOC_IMMAN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IMMAN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IMMAN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IMMAN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK.out.tables
+    plots    = BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK.out.plots
+    objects  = BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK.out.objects
+    versions = BIOC_IMMAN_RECONSTRUCT_INTERLOG_PROTEIN_NETWORK.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "profilescoredist",
+  "requirements": [
+    "profileScoreDist"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "profileScoreDist"
+    ]
+  }
+}

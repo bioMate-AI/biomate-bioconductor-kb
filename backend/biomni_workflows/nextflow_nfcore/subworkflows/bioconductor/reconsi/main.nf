@@ -1,93 +1,165 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: reconsi
-// Improves simultaneous inference under dependence of tests by estimating a collapsed null distributio
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/reconsi/inst/doc/reconsiVignette.R
-// Upstream  : BiocManager, devtools
-// Downstream: none
-//
-// Install: BiocManager::install("reconsi")
+// Bioconductor workflow: reconsi — matrix_simultaneous_inference
+// Perform simultaneous hypothesis testing on a data matrix while accounting for test correlation using a collapsed null distribution.
+// Input: mat, x
+// Container: quay.io/biocontainers/bioconductor-reconsi:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: reconsi
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Run simultaneous inference using reconsi
+//  * 2. [Core Analysis] Extract estimated tail-area false discovery rates and proportion of true nulls
+//  * 3. [Visualization & Output] Plot the estimated null distribution
+//  * 4. [Visualization & Output] Plot the approximate covariance matrix of test statistics
 
 nextflow.enable.dsl = 2
 
-process BIOC_RECONSI {
+process BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-reconsi"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-reconsi:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-reconsi:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_reconsi_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_reconsi_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_reconsi_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(reconsi)
-    library(jsonlite)
-
-    # --- plot Approx Covar [] ---
-    # Key functions: plotApproxCovar
-    plotApproxCovar(fdrRes)
-    # --- plot Covar [] ---
-    # Key functions: plotCovar
-    matBlock[x==0,] = matBlock[x==0,] + rep(c(-1,2), each = n*p/4)
-    fdrResBlock = reconsi(matBlock, x)
-    plotCovar(fdrResBlock)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_reconsi_results.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 0: Read User Input Files
+    # -----------------------------------------------------------------------------
+    
+    # Read 'mat' (numeric matrix of features, samples in rows, features in columns)
+    if (file.exists("mat.rds")) {
+      mat <- readRDS("mat.rds")
+    } else if (file.exists("mat.csv")) {
+      mat <- as.matrix(read.csv("mat.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("mat.txt")) {
+      mat <- as.matrix(read.table("mat.txt", header = TRUE, row.names = 1, check.names = FALSE))
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_reconsi_results.csv")
+      stop("Error: Required input file 'mat' (mat.rds, mat.csv, or mat.txt) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_reconsi_output.rds")
+    
+    # Read 'x' (grouping factor vector)
+    if (file.exists("x.rds")) {
+      x <- readRDS("x.rds")
+    } else if (file.exists("x.csv")) {
+      x_df <- read.csv("x.csv", header = FALSE, stringsAsFactors = FALSE)
+      # If it's a single row/column, extract it as a vector
+      if (ncol(x_df) == 1) {
+        x <- x_df[[1]]
+      } else {
+        x <- as.vector(t(x_df))
+      }
+    } else if (file.exists("x.txt")) {
+      x <- readLines("x.txt")
+    } else {
+      stop("Error: Required input file 'x' (x.rds, x.csv, or x.txt) not found in the working directory.")
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RECONSI:", paste0("    reconsi: ", packageVersion("reconsi"))),
-        "versions.yml"
+    
+    # Ensure x is treated as a factor or vector as appropriate
+    if (is.list(x)) {
+      x <- unlist(x)
+    }
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Run simultaneous inference using reconsi
+    # -----------------------------------------------------------------------------
+    fdrRes = reconsi(mat, x)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Extract estimated tail-area false discovery rates and proportion of true nulls
+    # -----------------------------------------------------------------------------
+    estFdr = fdrRes\$Fdr
+    p0_val = fdrRes\$p0
+    
+    # Save the estimated FDR values to a CSV file
+    fdr_df <- data.frame(
+      Feature = colnames(mat),
+      Fdr = estFdr,
+      stringsAsFactors = FALSE
     )
+    write.csv(fdr_df, "estimated_fdr.csv", row.names = FALSE)
+    
+    # Save the proportion of true nulls to a text file
+    writeLines(as.character(p0_val), "p0_estimate.txt")
+    
+    # Save the full results object as an RDS file
+    saveRDS(fdrRes, "fdrRes.rds")
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Plot the estimated null distribution
+    # -----------------------------------------------------------------------------
+    pdf("null_distribution_plot.pdf", width = 7, height = 5)
+    tryCatch({
+      print(plotNull(fdrRes))
+    }, error = function(e) {
+      warning("Failed to plot null distribution: ", e\$message)
+    })
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Plot the approximate covariance matrix of test statistics
+    # -----------------------------------------------------------------------------
+    pdf("approx_covar_plot.pdf", width = 7, height = 6)
+    tryCatch({
+      print(plotApproxCovar(fdrRes))
+    }, error = function(e) {
+      warning("Failed to plot approximate covariance: ", e\$message)
+    })
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE":',
+        paste0('    reconsi: ', as.character(packageVersion('reconsi')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_reconsi_results.csv
-    touch ${prefix}_reconsi_output.rds
-    echo "BIOC_RECONSI:" > versions.yml
-    echo "    reconsi: 0.0.0" >> versions.yml
+    touch ${prefix}_matrix_simultaneous_inference.csv versions.yml
     """
 }
 
-
-workflow BIOC_RECONSI_WORKFLOW {
+workflow BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ mat, x ] ]
 
     main:
-    BIOC_RECONSI(ch_input)
+    BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE(ch_input)
 
     emit:
-    results  = BIOC_RECONSI.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RECONSI.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RECONSI.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RECONSI.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE.out.tables
+    plots    = BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE.out.plots
+    objects  = BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE.out.objects
+    versions = BIOC_RECONSI_MATRIX_SIMULTANEOUS_INFERENCE.out.versions
 }

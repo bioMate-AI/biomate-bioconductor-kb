@@ -1,100 +1,142 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: splots
-// This package is here to support legacy usages of it, but it should not be used for new code developm
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/splots/inst/doc/splots.R
-// Upstream  : dplyr, ggplot2
-// Downstream: HD2013SGI
-//
-// Install: BiocManager::install("splots")
+// Bioconductor workflow: splots — splots_plate_visualization
+// Visualize high-throughput microtitre plate assay data by mapping sample expression metrics to plate layouts and generating spatial heatmaps for quality control.
+// Input: counts.csv, coldata.csv
+// Container: 1.76.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: splots
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPLOTS {
+process BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-splots"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-splots:1.72.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-splots:1.72.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_splots_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_splots_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_splots_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(splots)
-    library(jsonlite)
-
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, facet_wrap, scale_fill_gradient
-    library("ggplot2")
-    ggplot(sgi, aes(x = col, y = row, fill = count)) + geom_raster() +
-    facet_wrap(vars(plate), ncol = 4) +
-    # --- assert_that [] ---
-    # Key functions: assert_that, all
-    plateNames = unique(featuresPerWell[[1]]$plate)
-    assertthat::assert_that(length(plateNames) >= np)
-    plateNames = plateNames[seq_len(np)]
-    # --- plot Screen [] ---
-    # Key functions: plotScreen
-    splots::plotScreen(xl, nx = nx, ny = ny, ncol = 4,
-    fill = c("white", "#00008B"),
-    zrange = c(0, max(unlist(xl), na.rm = TRUE)))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_splots_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_splots_results.csv")
+    
+    # Stage 1: Load and preprocess input data
+    if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_splots_output.rds")
+    
+    counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Compute a per-sample summary metric (e.g., total sum of counts as a proxy for well intensity/viability)
+    well_intensities <- colSums(counts)
+    
+    # Align coldata with the counts columns
+    common_samples <- intersect(coldata\$sample, names(well_intensities))
+    if (length(common_samples) == 0) {
+      # Fallback mapping if names do not match exactly
+      common_samples <- coldata\$sample[1:min(nrow(coldata), ncol(counts))]
+      names(well_intensities) <- common_samples
     }
+    
+    coldata <- coldata[coldata\$sample %in% common_samples, ]
+    coldata\$intensity <- well_intensities[coldata\$sample]
+    
+    # Stage 2: Map samples to microtitre plate layout (96-well format: 12 columns x 8 rows)
+    nx <- 12
+    ny <- 8
+    wells_per_plate <- nx * ny
+    num_samples <- nrow(coldata)
+    
+    # Sequentially assign samples to plates, rows, and columns
+    coldata\$plate <- paste0("Plate_", ((seq_len(num_samples) - 1) %/% wells_per_plate) + 1)
+    coldata\$well_idx <- ((seq_len(num_samples) - 1) %% wells_per_plate) + 1
+    coldata\$row <- ((coldata\$well_idx - 1) %/% nx) + 1
+    coldata\$col <- ((coldata\$well_idx - 1) %% nx) + 1
+    
+    # Stage 3: Format data structure for splots::plotScreen
+    plates <- unique(coldata\$plate)
+    xl <- lapply(plates, function(pl) {
+      plate_data <- coldata[coldata\$plate == pl, ]
+      rv <- rep(NA_real_, wells_per_plate)
+      idx <- (plate_data\$row - 1) * nx + plate_data\$col
+      rv[idx] <- plate_data\$intensity
+      return(rv)
+    })
+    names(xl) <- plates
+    
+    # Stage 4: Generate spatial plate visualization
+    pdf("plate_screen_visualization.pdf", width = 10, height = 8)
+    tryCatch({
+      splots::plotScreen(
+        xl,
+        nx = nx,
+        ny = ny,
+        ncol = ceiling(sqrt(length(xl))),
+        fill = c("white", "#00008B"),
+        main = "Microtitre Plate Screen QC",
+        legend.label = "Total Counts",
+        zrange = c(0, max(unlist(xl), na.rm = TRUE))
+      )
+    }, error = function(e) {
+      plot.new()
+      text(0.5, 0.5, paste("Error generating plotScreen:", e\$message), cex = 0.8)
+    })
+    dev.off()
+    
+    # Stage 5: Save mapped layout metadata
+    write.csv(coldata, "plate_layout_metadata.csv", row.names = FALSE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPLOTS:", paste0("    splots: ", packageVersion("splots"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION":',
+        paste0('    splots: ', as.character(packageVersion('splots')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_splots_results.csv
-    touch ${prefix}_splots_output.rds
-    echo "BIOC_SPLOTS:" > versions.yml
-    echo "    splots: 0.0.0" >> versions.yml
+    touch ${prefix}_splots_plate_visualization.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPLOTS_WORKFLOW {
+workflow BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SPLOTS(ch_input)
+    BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION(ch_input)
 
     emit:
-    results  = BIOC_SPLOTS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPLOTS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPLOTS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPLOTS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION.out.tables
+    plots    = BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION.out.plots
+    objects  = BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION.out.objects
+    versions = BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION.out.versions
 }

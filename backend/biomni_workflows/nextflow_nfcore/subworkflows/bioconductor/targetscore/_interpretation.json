@@ -1,0 +1,46 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: logFC=Logarithmic fold-changes of gene expression (treatment vs control) from miRNA overexpression experiments ;; seqScores=Matrix of sequence-based scores (e.g., TargetScan context+ score, PCT) where columns represent different features ;; tol=Tolerance threshold for VB-EM convergence (e.g., 1e-3) ;; maxiter=Maximum number of iterations for the VB-EM algorithm (e.g., 200)\n- alternatives: GenMiR++ and GroupMiR (correlation-based methods requiring large sets of expression profiles across various tissues/conditions, whereas TargetScore is condition-specific and unsupervised) ;; Regression-based methods (require training data, unlike TargetScore which is unsupervised)\n- when_to_use: When you have microRNA transfection/overexpression expression data (microarray or RNA-seq) and want to identify direct, condition-specific miRNA targets by combining expression changes with sequence-based target predictions (like TargetScan scores).\n- pitfalls: Off-target effects can cause positive fold-changes or unexpected up-regulation, which TargetScore models using a 3-component VB-GMM for logFC, but users should be aware of this biological noise ;; Using pre-filtered gene sets above arbitrary cutoffs can bias the overall likelihood; TargetScore should ideally be operated on the entire gene set.",
+  "workflows": [
+    {
+      "name": "target_score_direct_analysis",
+      "intent": "Calculate target scores directly from user-provided log fold-changes and sequence-based scores.",
+      "input": [
+        "logFC vector (log2 fold-changes from transfection vs control)",
+        "seqScores matrix (sequence-based scores like TargetScan context scores or PCT)."
+      ],
+      "stages": "1. Load TargetScore library ;; 2. Prepare logFC and sequence scores matrix ;; 3. Run targetScore function to compute posterior probabilities.",
+      "code": "library(TargetScore)\ntrmt <- c(rnorm(10,mean=0.01), rnorm(1000,mean=1), rnorm(90,mean=2)) + 1e3\nctrl <- c(rnorm(1100,mean=1)) + 1e3\nlogFC <- log2(trmt) - log2(ctrl)\nseqScoreA <- c(rnorm(8,mean=-2), rnorm(1092,mean=0))\nseqScoreB <- c(rnorm(20,mean=-2), rnorm(1080,mean=0))\nseqScores <- cbind(seqScoreA, seqScoreB)             \np.targetScore <- targetScore(logFC, seqScores, tol=1e-3)\npairs(cbind(p.targetScore, logFC, seqScoreA, seqScoreB))"
+    },
+    {
+      "name": "target_score_via_targetscoredata",
+      "intent": "Retrieve precomputed sequence scores and validated targets for a specific miRNA and compute target scores.",
+      "input": [
+        "miRNA ID (character string, e.g., \"hsa-miR-1\")",
+        "logFC.imputed matrix (optional, precomputed or user-supplied logFC)."
+      ],
+      "stages": "1. Load TargetScoreData and gplots libraries ;; 2. Run getTargetScores with miRNA ID ;; 3. (Optional) Retrieve precomputed logFC matrix for multiple miRNAs.",
+      "code": "library(TargetScoreData)\nlibrary(gplots)\nmyTargetScores <- getTargetScores(\"hsa-miR-1\", tol=1e-3, maxiter=200)\ntable((myTargetScores$targetScore > 0.1), myTargetScores$validated)\nlogFC.imputed <- get_precomputed_logFC()\nmirIDs <- unique(colnames(logFC.imputed))"
+    },
+    {
+      "name": "target_score_limma_pipeline",
+      "intent": "Perform differential expression analysis on microarray data using limma, then compute target scores using getTargetScores.",
+      "input": [
+        "ExpressionSet or GEO accession ID (e.g., \"GSE11701\")",
+        "Sample annotation/design matrix."
+      ],
+      "stages": "1. Download and normalize microarray data ;; 2. Define design matrix and fit linear model using limma ;; 3. Compute contrast and run eBayes ;; 4. Extract logFC and map to gene symbols ;; 5. Run getTargetScores using the computed logFC.",
+      "code": "library(limma)\nlibrary(Biobase)\nlibrary(GEOquery)\nlibrary(gplots)\ngset <- getGEO(\"GSE11701\", GSEMatrix =TRUE, AnnotGPL=TRUE)\nif (length(gset) > 1) idx <- grep(\"GPL6104\", attr(gset, \"names\")) else idx <- 1\ngset <- gset[[idx]]\ngeneInfo <- fData(gset)\nx <- normalizeVSN(exprs(gset))\npData(gset)$title\ndesign <- model.matrix(~0+factor(c(1,1,1,1,2,2,2,2)))\ncolnames(design) <- c(\"preNeg_control\", \"miR_205_transfect\")\nfit <- lmFit(x, design)\ncontrast.matrix <- makeContrasts(miR_205_transfect-preNeg_control,levels=design)\nfit2 <- contrasts.fit(fit, contrast.matrix)\nfit2 <- eBayes(fit2)\nlimma_stats <- topTable(fit2, coef=1, number=nrow(fit2))\nlimma_stats$gene_symbol <- geneInfo[match(limma_stats$ID, geneInfo$ID), \"Gene symbol\"]\nlogFC <- as.matrix(limma_stats$logFC)\nrownames(logFC) <- limma_stats$gene_symbol\nmyTargetScores <- getTargetScores(\"hsa-miR-205\", logFC, tol=1e-3, maxiter=200)"
+    },
+    {
+      "name": "target_score_deseq_pipeline",
+      "intent": "Perform differential expression analysis on RNA-seq count data using DESeq, then compute target scores using targetScore.",
+      "input": [
+        "CountDataSet (RNA-seq raw counts for treatment and control)",
+        "seqScores matrix (sequence-based scores)."
+      ],
+      "stages": "1. Estimate size factors and dispersions using DESeq ;; 2. Perform negative binomial test to get log2 fold changes ;; 3. Extract logFC and combine with sequence scores ;; 4. Run targetScore.",
+      "code": "library(DESeq)\ncds <- makeExampleCountDataSet()\ncds <- estimateSizeFactors( cds )\ncds <- estimateDispersions( cds )\ndeseq_stats <- nbinomTest( cds, \"A\", \"B\" )\nlogFC <- deseq_stats$log2FoldChange[1:100]\nseqScoreA <- rnorm(length(logFC))\nseqScoreB <- rnorm(length(logFC))\nseqScores <- cbind(seqScoreA, seqScoreB)\np.targetScore <- targetScore(logFC, seqScores, tol=1e-3)"
+    }
+  ]
+}

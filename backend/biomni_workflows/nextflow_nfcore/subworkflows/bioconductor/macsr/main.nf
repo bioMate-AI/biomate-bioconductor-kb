@@ -1,125 +1,145 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: MACSr
-// The Model-based Analysis of ChIP-Seq (MACS) is a widely used toolkit for identifying transcript fact
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/MACSr/inst/doc/MACSr.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("MACSr")
+// Bioconductor workflow: macsr — narrow_and_broad_peak_calling
+// Call narrow and broad peaks from ChIP-seq treatment and control alignment files.
+// Input: CHIP, CTRL
+// Container: quay.io/biocontainers/bioconductor-macsr:1.18.0--r45hdfd78af_0
+// R packages: MACSr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MACSR {
+process BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-macsr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-macsr:1.14.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-macsr:1.14.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-macsr:1.18.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_macsr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_macsr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_macsr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("MACSr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # 1. Load the MACSr package
     library(MACSr)
-    library(ExperimentHub)
-    library(jsonlite)
-
-    # --- Broad Peak Calling [] ---
-    # Key functions: callpeak
-    cp_broad <- MACSr::callpeak(
-        tfile = CHIP,
-        cfile = CTRL,
-        gsize = 5.2e7,
-        store_bdg = TRUE,
-        name = "broad_peaks",
-        outdir = tempdir(),
-        broad = TRUE
-    )
-    broad_files <- cp_broad$outputs
-    broad_args <- cp_broad$arguments
-
-
-    # --- Cutoff Analysis [] ---
-    # Key functions: callpeak
-    cp_cutoff <- MACSr::callpeak(
-        tfile = CHIP,
-        cfile = CTRL,
-        gsize = 5.2e7,
-        store_bdg = TRUE,
-        name = "cutoff_analysis",
-        outdir = tempdir(),
-        cutoff_analysis = TRUE
-    )
-    cutoff_log <- cp_cutoff$log
-
-
-    # --- Fragment Size Prediction [] ---
-    # Key functions: predictd
-    pred_d <- MACSr::predictd(
-        ifile = CHIP,
-        gsize = 5.2e7,
-        dmin = 80,
-        dmax = 250,
-        outdir = tempdir()
-    )
-    pred_log <- pred_d$log
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_macsr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_macsr_results.csv")
+    
+    # 2. Identify user input files from the working directory
+    CHIP <- "CHIP"
+    CTRL <- "CTRL"
+    
+    if (!file.exists(CHIP)) {
+      files <- list.files(pattern = "^CHIP")
+      if (length(files) > 0) {
+        CHIP <- files[1]
+      } else {
+        stop("Error: CHIP input file not found in the working directory.")
+      }
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_macsr_output.rds")
+    
+    if (!file.exists(CTRL)) {
+      files <- list.files(pattern = "^CTRL")
+      if (length(files) > 0) {
+        CTRL <- files[1]
+      } else {
+        stop("Error: CTRL input file not found in the working directory.")
+      }
     }
+    
+    # Create output directory for results
+    out_dir <- "macsr_results"
+    dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+    
+    # 3. Call narrow peaks using callpeak with cutoff analysis
+    message("Running narrow peak calling...")
+    cp1 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
+                    name = "run_callpeak_narrow0", outdir = out_dir,
+                    cutoff_analysis = TRUE)
+    
+    # 4. Call broad peaks using callpeak with broad=TRUE
+    message("Running broad peak calling...")
+    cp2 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
+                    name = "run_callpeak_broad", outdir = out_dir,
+                    broad = TRUE)
+    
+    # 5. Inspect the resulting macsList objects, including arguments, outputs, and logs
+    message("Inspecting results...")
+    print(cp1)
+    print(cp2)
+    
+    message("Inspecting cp1 arguments:")
+    print(cp1\$arguments)
+    
+    message("Inspecting cp1 outputs:")
+    print(cp1\$outputs)
+    
+    message("Printing cp1 log:")
+    cat(paste(cp1\$log, collapse="\n"))
+    cat("\n")
+    
+    # Write named output files for the meaningful results
+    saveRDS(cp1, file.path(out_dir, "cp1_narrow_peaks.rds"))
+    saveRDS(cp2, file.path(out_dir, "cp2_broad_peaks.rds"))
+    
+    writeLines(cp1\$log, file.path(out_dir, "cp1_narrow_log.txt"))
+    writeLines(cp2\$log, file.path(out_dir, "cp2_broad_log.txt"))
+    
+    message("Pipeline completed successfully. Outputs saved in: ", out_dir)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MACSR:", paste0("    macsr: ", packageVersion("MACSr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING":',
+        paste0('        macsr: ', as.character(packageVersion("macsr")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_macsr_results.csv
-    touch ${prefix}_macsr_output.rds
-    echo "BIOC_MACSR:" > versions.yml
-    echo "    macsr: 0.0.0" >> versions.yml
+    touch ${prefix}_narrow_and_broad_peak_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_MACSR_WORKFLOW {
+workflow BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ CHIP, CTRL ] ]
 
     main:
-    BIOC_MACSR(ch_input)
+    BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING(ch_input)
 
     emit:
-    results  = BIOC_MACSR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MACSR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MACSR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MACSR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING.out.tables
+    plots    = BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING.out.plots
+    objects  = BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING.out.objects
+    versions = BIOC_MACSR_NARROW_AND_BROAD_PEAK_CALLING.out.versions
 }

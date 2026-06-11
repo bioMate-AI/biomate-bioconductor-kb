@@ -1,0 +1,29 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: path=character string pointing to the combined CSV file containing raw counts and annotations ;; designs=data frame containing phenotype/experimental design information ;; header=logical indicating if the CSV file has a header ;; endogenous=matrix of raw counts for endogenous genes ;; positive=matrix of raw counts for positive control genes ;; negative=matrix of raw counts for negative control genes ;; housekeeping=matrix of raw counts for housekeeping control genes ;; design.full=design matrix representing the experimental conditions, typically created using model.matrix() ;; contrast=numeric vector specifying the comparison of interest between groups ;; Beta=integer or vector specifying which coefficient(s) in the design matrix to test as an alternative to contrast\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when performing differential expression analysis on raw count data from the NanoString nCounter platform, which includes positive controls, negative controls, and housekeeping genes.\n- pitfalls: Do not supply normalized counts because data normalization is directly incorporated into the model framework ;; There must be exactly six positive control genes ordered by concentration from high to low (128 fM, 32 fM, 8 fM, 2 fM, 0.5 fM, and 0.125 fM) ;; The first column of the CSV file must be named 'CodeClass' and must specify gene functions exactly as 'Positive', 'Negative', 'Housekeeping', or 'Endogenous' ;; Spike-in genes are not supported and should be deleted or ignored as the package only works with positive, negative, housekeeping, and endogenous classes.",
+  "workflows": [
+    {
+      "name": "csv_input_workflow",
+      "intent": "Perform differential expression analysis on NanoString nCounter data imported from a combined CSV file.",
+      "input": [
+        "Mori.csv (combined CSV file containing CodeClass, Name, Accession, and raw sample counts)",
+        "designs (data frame of phenotype/experimental design information)"
+      ],
+      "stages": "1. Specify the path to the combined CSV file and define the phenotype design data frame.\n2. Create a NanoStringSet object from the CSV file using createNanoStringSetFromCsv.\n3. Create the design matrix using model.matrix.\n4. Estimate normalization factors using estNormalizationFactors.\n5. Perform differential expression analysis using glm.LRT with a contrast vector.",
+      "code": "directory <- system.file(\"extdata\", package=\"NanoStringDiff\", mustWork=TRUE)\npath<-paste(directory,\"Mori.csv\",sep=\"/\")\ndesigns=data.frame(group=c(\"Normal\",\"Normal\",\"Tumor\",\"Tumor\"))\nlibrary(\"NanoStringDiff\")\nNanoStringData=createNanoStringSetFromCsv(path,header=TRUE,designs)\npheno=pData(NanoStringData)\ndesign.full=model.matrix(~0+pheno$group)\nNanoStringData=estNormalizationFactors(NanoStringData)\nresult=glm.LRT(NanoStringData,design.full,contrast=c(1,-1))"
+    },
+    {
+      "name": "matrix_input_workflow",
+      "intent": "Perform differential expression analysis on NanoString nCounter data imported from separate raw count matrices.",
+      "input": [
+        "endogenous (matrix of raw counts for endogenous genes)",
+        "positive (matrix of raw counts for positive controls)",
+        "negative (matrix of raw counts for negative controls)",
+        "housekeeping (matrix of raw counts for housekeeping genes)",
+        "designs (data frame of phenotype/experimental design information)"
+      ],
+      "stages": "1. Define or load matrices for endogenous, positive, negative, and housekeeping genes, and the design data frame.\n2. Create a NanoStringSet object using createNanoStringSet.\n3. Create the design matrix using model.matrix.\n4. Estimate normalization factors using estNormalizationFactors.\n5. Perform differential expression analysis using glm.LRT with a contrast vector.",
+      "code": "endogenous=matrix(rpois(100,50),25,4)\ncolnames(endogenous)=paste(\"Sample\",1:4)\npositive=matrix(rpois(24,c(128,32,8,2,0.5,0.125)*80),6,4)\ncolnames(positive)=paste(\"Sample\",1:4)\nnegative=matrix(rpois(32,10),8,4)\ncolnames(negative)=paste(\"Sample\",1:4)\nhousekeeping=matrix(rpois(12,100),3,4)\ncolnames(housekeeping)=paste(\"Sample\",1:4)\ndesigns=data.frame(group=c(\"Control\",\"Control\",\"Treatment\",\"Treatment\"),\n                   gender=c(\"Male\",\"Female\",\"Female\",\"Male\"),\n                   age=c(20,40,39,37))\nNanoStringData1=createNanoStringSet(endogenous,positive,\n                                 negative,housekeeping,designs)\npheno=pData(NanoStringData1)\ngroup=pheno$group\ndesign.full=model.matrix(~0+group)\ncontrast=c(-1,1)\nNanoStringData1=estNormalizationFactors(NanoStringData1)\nresult=glm.LRT(NanoStringData1,design.full,contrast=contrast)"
+    }
+  ]
+}

@@ -1,143 +1,137 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ANF
-// This package is used for complex patient clustering by integrating multi-omic data through affinity 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/https://bioconductor.org/packages/3.20/bioc/vignettes/ANF/inst/doc/ANF.html
-// Upstream  : ExperimentHub, MASS, igraph
-// Downstream: none
-//
-// Install: BiocManager::install("ANF")
+// Bioconductor workflow: ANF — single_view_spectral_clustering
+// Perform spectral clustering on a single feature matrix by constructing an affinity matrix from distances.
+// Input: feature1
+// Container: quay.io/biocontainers/bioconductor-anf:1.32.0--r45hdfd78af_0
+// R packages: ANF, ExperimentHub, igraph, MASS
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ANF
+// Visualizations: heatmap
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Compute the distance matrix using `dist` and convert it to a matrix. 2. Construct the affinity matrix using `affinity_matrix`. 3. 
 
 nextflow.enable.dsl = 2
 
-process BIOC_ANF {
+process BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-anf"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-anf:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-anf:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_anf_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_anf_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_anf_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ANF", "ExperimentHub", "igraph", "MASS")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(ANF)
-    library(ARI)
-    library(ExperimentHub)
-    library(Surv)
-    library(jsonlite)
-
-    # --- Code Block 1 [] ---
-    # Key functions: mvrnorm, diag, runif
-    library(MASS)
-    true.class = rep(c(1,2),each=100)
-    feature.mat1 = mvrnorm(100, rep(0, 20), diag(runif(20,0.2,2)))
-    feature.mat2 = mvrnorm(100, rep(0.5, 20), diag(runif(20,0.2,2)))
-    feature1 = rbind(feature.mat1, feature.mat2)
-    # --- Code Block 2 [] ---
-    # Key functions: kmeans, compare
-    library(igraph)
-    set.seed(1)
-    km = kmeans(feature1, 2)
-    compare(km$cluster, true.class, method='nmi')
-    # --- Code Block 3 [] ---
-    # Key functions: dist, affinity_matrix, spectral_clustering, compare
-    library(ANF)
+    
+    # 1. Read the user input file 'feature1' from the working directory.
+    # We check for common formats like CSV, TSV, or TXT.
+    if (file.exists("feature1.csv")) {
+      feature1 <- as.matrix(read.csv("feature1.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("feature1.tsv")) {
+      feature1 <- as.matrix(read.delim("feature1.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("feature1.txt")) {
+      feature1 <- as.matrix(read.table("feature1.txt", header = TRUE, row.names = 1, check.names = FALSE))
+    } else {
+      stop("Error: Input file 'feature1' (e.g., feature1.csv, feature1.tsv, or feature1.txt) not found in the working directory.")
+    }
+    
+    # 2. Compute the distance matrix and convert it to a matrix
     d = dist(feature1)
     d = as.matrix(d)
+    
+    # 3. Construct the affinity matrix using affinity_matrix
     A1 = affinity_matrix(d, 10)
+    
+    # 4. Perform spectral clustering using spectral_clustering
     labels = spectral_clustering(A1, 2)
-    # --- Code Block 4 [] ---
-    # Key functions: ExperimentHub, query
-    library(ExperimentHub)
-    eh <- ExperimentHub()
-    myfiles <- query(eh, "HarmonizedTCGAData")
-    Wall <- myfiles[[1]]
-    project_ids <- myfiles[[2]]
-    # --- Code Block 5 [] ---
-    # Key functions: spectral_clustering
-    affinity.mat <- Wall[["adrenal_gland"]][["log.sel"]][["fpkm"]]
-    labels <- spectral_clustering(affinity.mat, k = 2)
-    # --- Code Block 6 [] ---
-    # Key functions: factor
-    true.disease.types <- as.factor(project_ids[rownames(affinity.mat)])
-    table(labels, true.disease.types)
-    # --- Code Block 8 [] ---
-    # Key functions: compare, Surv, survdiff, pchisq
-    nmi <- igraph::compare(true.disease.types, labels, method = "nmi")
-    adjusted.rand = igraph::compare(true.disease.types, labels, method = "adjusted.rand")
-    # we can also calculate p-value using `surv.plot` data
-    surv.plot <- surv.plot[rownames(affinity.mat), ]
-    f <- survival::Surv(surv.plot$time, !surv.plot$censored)
-    # --- Code Block 9 [] ---
-    # Key functions: eval_clu
-    res <- eval_clu(project_ids, w = affinity.mat, surv = surv.plot)
-    # --- Code Block 11 [] ---
-    # Key functions: eval_clu
-    res <- eval_clu(project_ids, w = Wall$uterus$raw.all$fpkm)
-    # --- Code Block 13 [] ---
-    # Key functions: ANF, spectral_clustering, ARI, eval_clu
-    # fuse three matrices: "fpkm" (gene expression), "mirnas" (miRNA expression) and "methy450" (DNA methylation)
-    fused.mat <- ANF(Wall = Wall$uterus$raw.all)
-    # Spectral clustering on fused patient affinity matrix
-    labels <- spectral_clustering(A = fused.mat, k = 2)
-    # Or we can directly evaluate clustering results using function `eval_clu`, which calls `spectral_clustering` and calculate NMI and ARI (and p-value if patient survival data is available. `surv.plot` does not contain information for uterus cancer patients)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_anf_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_anf_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_anf_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ANF:", paste0("    anf: ", packageVersion("ANF"))),
-        "versions.yml"
+    
+    # 5. Write named output files for the meaningful results
+    # Save the cluster labels
+    output_labels <- data.frame(
+      ID = rownames(feature1),
+      Cluster = labels,
+      stringsAsFactors = FALSE
     )
+    if (is.null(rownames(feature1))) {
+      output_labels\$ID <- paste0("Object_", seq_len(nrow(feature1)))
+    }
+    write.csv(output_labels, "spectral_clustering_labels.csv", row.names = FALSE)
+    
+    # Save the affinity matrix
+    write.csv(A1, "affinity_matrix.csv", row.names = TRUE)
+    saveRDS(A1, "affinity_matrix.rds")
+    
+    # Generate and save a heatmap of the affinity matrix
+    pdf("affinity_heatmap.pdf", width = 8, height = 8)
+    heatmap(A1, 
+            Rowv = NA, 
+            Colv = NA, 
+            col = heat.colors(256), 
+            scale = "none",
+            main = "Affinity Matrix Heatmap")
+    dev.off()
+    
+    cat("Pipeline completed successfully. Outputs saved: 'spectral_clustering_labels.csv', 'affinity_matrix.csv', 'affinity_matrix.rds', and 'affinity_heatmap.pdf'.\n")
+
+    writeLines(c(
+        '"BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING":',
+        paste0('    ANF: ', as.character(packageVersion('ANF')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_anf_results.csv
-    touch ${prefix}_anf_output.rds
-    echo "BIOC_ANF:" > versions.yml
-    echo "    anf: 0.0.0" >> versions.yml
+    touch ${prefix}_single_view_spectral_clustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_ANF_WORKFLOW {
+workflow BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ feature1 ] ]
 
     main:
-    BIOC_ANF(ch_input)
+    BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_ANF.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ANF.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ANF.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ANF.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING.out.tables
+    plots    = BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING.out.plots
+    objects  = BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING.out.objects
+    versions = BIOC_ANF_SINGLE_VIEW_SPECTRAL_CLUSTERING.out.versions
 }

@@ -1,0 +1,35 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: mode=\"onDisk\"=Enables the memory-efficient on-disk data storage model in readMSData, which is faster for object creation and supports multiple MS levels ;; msLevel=Integer specifying the MS level of spectra to import in readMSData ;; copy=TRUE=Copies general metadata (instrument info, processing descriptions) from the originating file when exporting with writeMSData ;; t=Numeric threshold in removePeaks below which peak intensities are set to 0 ;; mzlim=Numeric vector of length 2 specifying the m/z range to retain in filterMz/trimMz ;; method=Character string specifying the quantification method (e.g., \"trap\", \"max\", \"sum\" for isobaric tags; \"count\", \"SIn\" for label-free) ;; reporters=A ReporterIons object defining the expected m/z and width of reporter peaks ;; strict=Logical defining whether data points outside the reporter m/z width are considered in quantify ;; pNA=Percentage of accepted missing values per feature in filterNA ;; groupBy=A factor defining how to aggregate features (e.g., spectra to proteins) in combineFeatures\n- alternatives: mode=\"inMemory\" vs mode=\"onDisk\" in readMSData (onDisk is highly preferred for large datasets to save RAM, though on-the-fly spectrum access is slightly slower) ;; openIDfile (from mzR) vs mzID (from mzID) for parsing identification data (MSnbase uses the faster openIDfile internally via readMzIdData) ;; ExpressionSet (from Biobase) vs MSnSet (MSnbase's proteomics-specific extension; objects can be coerced between these classes using as(object, \"ExpressionSet\") or as(object, \"MSnSet\"))\n- when_to_use: Use this package when analyzing raw mass spectrometry proteomics data, specifically for importing XML-based formats (mzML, mzXML, mzData) or peak lists (mgf), performing spectrum-level manipulations (cleaning, smoothing, peak picking), and quantifying features using isobaric tags (iTRAQ, TMT) or label-free methods.\n- pitfalls: On-disk OnDiskMSnExp objects cannot be directly saved and loaded using save() and load() (workaround: coerce to in-memory first using as(object, \"MSnExp\")) ;; removePeaks does not delete peaks from the spectrum; it only sets their intensities to 0 (you must call clean() afterward to physically remove them and reduce object size) ;; In socket-based parallel processing, connections can get stuck (workaround: disable parallel processing with register(SerialParam()) or explicitly initialize the parallel setup using doParallel at the start of the script) ;; When combining different MSnSet experiments along columns, you must update sample names and feature variable labels first (using updateSampleNames and updateFvarLabels) to avoid conflicts and overwriting of metadata.",
+  "workflows": [
+    {
+      "name": "isobaric_tagging_quantitation",
+      "intent": "Import raw MS data, integrate peptide identifications, clean spectra, quantify reporter ions, correct for isotopic impurities, normalize, and aggregate spectrum-level data to protein-level abundances.",
+      "input": [
+        "quantFile.mzXML (raw MS data)",
+        "identFile.mzid (tandem MS identification results)"
+      ],
+      "stages": "1. Import raw MS data ;; 2. Integrate peptide identification data ;; 3. Filter out unidentified spectra ;; 4. Clean low-intensity peaks and remove empty data points ;; 5. Focus on the reporter ion m/z range ;; 6. Quantify reporter ions ;; 7. Filter out features with missing values ;; 8. Correct for isotopic impurities ;; 9. Normalize reporter intensities ;; 10. Aggregate spectrum-level quantitation to protein-level abundances",
+      "code": "msexp <- readMSData(quantFile, verbose = FALSE)\nmsexp <- addIdentificationData(msexp, id = identFile)\nmsexp <- removeNoId(msexp)\nexperiment <- removePeaks(msexp, t = 400, verbose = FALSE)\nexperiment <- clean(experiment, verbose = FALSE)\nexperiment <- filterMz(experiment, mzlim = c(112,120))\nqnt <- quantify(experiment, method = \"trap\", reporters = iTRAQ4, strict = FALSE, verbose = FALSE)\nqnt <- filterNA(qnt, pNA = 0)\nqnt.crct <- purityCorrect(qnt, impurities)\nqnt.max <- normalise(qnt, \"max\")\ngb <- fData(qnt)$ProteinAccession\nqnt2 <- combineFeatures(qnt, groupBy = gb, method = \"median\")"
+    },
+    {
+      "name": "label_free_quantitation",
+      "intent": "Perform label-free MS2 quantitation using spectral counting or spectral index (SIn) methods.",
+      "input": [
+        "quantFile.mzXML (raw MS data)",
+        "identFile.mzid (tandem MS identification results)"
+      ],
+      "stages": "1. Import raw MS data ;; 2. Integrate peptide identification data ;; 3. Filter out unidentified spectra ;; 4. Quantify using spectral counting or SIn method ;; 5. Aggregate features to protein level",
+      "code": "msexp <- readMSData(quantFile, verbose = FALSE)\nmsexp <- addIdentificationData(msexp, id = identFile)\nmsexp <- removeNoId(msexp)\nsc <- quantify(msexp, method = \"count\")\nsc <- combineFeatures(sc, groupBy = fData(sc)$DatabaseAccess, method = \"sum\")\nsiquant <- quantify(msexp, method = \"SIn\")"
+    },
+    {
+      "name": "chromatographic_srm_import",
+      "intent": "Import and extract chromatographic data from SRM/MRM experiments.",
+      "input": [
+        "MRM_file.mzML (chromatographic MS data)"
+      ],
+      "stages": "1. Import SRM data ;; 2. Extract precursor and product m/z values",
+      "code": "srm <- readSRMData(fl)\nprecursorMz(srm)\nproductMz(srm)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "fenr",
+  "requirements": [
+    "fenr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "fenr"
+    ]
+  }
+}

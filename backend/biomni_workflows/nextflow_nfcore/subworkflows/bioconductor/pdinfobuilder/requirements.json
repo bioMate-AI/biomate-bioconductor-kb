@@ -1,0 +1,13 @@
+{
+  "package": "pdinfobuilder",
+  "requirements": [
+    "RSQLite",
+    "pdInfoBuilder"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RSQLite",
+      "pdInfoBuilder"
+    ]
+  }
+}

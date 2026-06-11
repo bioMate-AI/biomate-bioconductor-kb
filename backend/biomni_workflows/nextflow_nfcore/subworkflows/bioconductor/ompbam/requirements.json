@@ -1,0 +1,23 @@
+{
+  "package": "ompbam",
+  "requirements": [
+    "BiocGenerics",
+    "GenomicRanges",
+    "IRanges",
+    "Rsamtools",
+    "S4Vectors",
+    "devtools",
+    "ompBAM"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BiocGenerics",
+      "GenomicRanges",
+      "IRanges",
+      "Rsamtools",
+      "S4Vectors",
+      "devtools",
+      "ompBAM"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "package": "deqms",
+  "requirements": [
+    "DEqMS",
+    "limma",
+    "matrixStats"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DEqMS",
+      "limma",
+      "matrixStats"
+    ],
+    "maxquant_lfq.nf": [
+      "DEqMS",
+      "limma",
+      "matrixStats"
+    ],
+    "psm_table_isobaric.nf": [
+      "DEqMS",
+      "limma"
+    ]
+  }
+}

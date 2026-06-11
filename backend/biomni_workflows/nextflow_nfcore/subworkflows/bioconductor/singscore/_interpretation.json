@@ -1,0 +1,40 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tiesMethod=Method for dealing with ties in rankGenes(), recommended is 'min' ;; upSet=Gene-set representing up-regulated genes in simpleScore() ;; downSet=Gene-set representing down-regulated genes in simpleScore() ;; knownDirection=Logical flag in simpleScore(); set to FALSE if the direction of the gene set is unknown ;; dispersionFun=Function to calculate dispersion in simpleScore(), defaults to mad but can be substituted with IQR ;; stableGenes=Character vector of stably expressed genes passed to rankGenes() for rank estimation in reduced datasets ;; type=Type of stable genes to retrieve in getStableGenes(), either 'carcinoma' or 'blood' ;; id=Identifier type in getStableGenes(), such as 'ensembl' or default gene symbols ;; isInteractive=Logical flag in plotting functions; set to TRUE to generate interactive plotly plots ;; B=Number of permutations in generateNull() to build the null distribution ;; ncores=Number of CPU cores to use for parallel execution in generateNull() ;; centerScore=Logical flag in generateNull() that must match the value used in simpleScore()\n- alternatives: stingscore=A variant of singscore used when dealing with a reduced number of measurements (e.g., panel-based transcriptomic assays) instead of transcriptome-wide measurements, calibrated using stably expressed genes ;; msigdb=Bioconductor package to obtain gene-sets from MSigDB as GeneSetCollection objects compatible with singscore ;; vissE=Package to summarize and interpret lists of significant gene-sets identified by singscore\n- when_to_use: Use when you want to score individual samples against gene signatures (e.g., EMT, TGFb) independently without relying on other samples in the dataset, ensuring stable scores unaffected by sample size or batch effects.\n- pitfalls: singscore requires transcriptome-wide measurements; using it on panel-based assays without using the stable genes calibration (stingscore) will lead to inaccurate rank estimation. When generating the null distribution with generateNull(), you must pass the exact same values to upSet, downSet, centerScore, and knownDirection as those used in simpleScore().",
+  "workflows": [
+    {
+      "name": "standard_singscore_scoring",
+      "intent": "Score transcriptome-wide gene expression data against up- and down-regulated gene sets, visualize rank distributions, and evaluate statistical significance.",
+      "input": [
+        "tgfb_expr_10_se (SummarizedExperiment containing gene expression data)",
+        "tgfb_gs_up (GeneSet object of up-regulated genes)",
+        "tgfb_gs_dn (GeneSet object of down-regulated genes)"
+      ],
+      "stages": "1. Rank genes using rankGenes ;; 2. Score samples using simpleScore ;; 3. Plot rank densities using plotRankDensity ;; 4. Plot score dispersions using plotDispersion ;; 5. Generate null distribution using generateNull ;; 6. Calculate empirical p-values using getPvals ;; 7. Plot null distributions using plotNull",
+      "code": "rankData <- rankGenes(tgfb_expr_10_se)\nscoredf <- simpleScore(rankData, upSet = tgfb_gs_up, downSet = tgfb_gs_dn)\nplotRankDensity(rankData[,2,drop = FALSE], upSet = tgfb_gs_up, \n                downSet = tgfb_gs_dn, isInteractive = FALSE)\nplotDispersion(scoredf,annot = tgfbAnnot$Type,isInteractive = FALSE)\npermuteResult <-\n  generateNull(\n    upSet = tgfb_gs_up,\n    downSet = tgfb_gs_dn,\n    rankData = rankData,\n    subSamples = 1:5,\n    centerScore = TRUE,\n    knownDirection = TRUE,\n    B = 1000,\n    ncores = ncores,\n    seed = 1,\n    useBPPARAM = NULL\n  )\npvals <- getPvals(permuteResult, scoredf, subSamples = 1:5)\nplotNull(permuteResult, scoredf, pvals, sampleNames = names(pvals)[1])"
+    },
+    {
+      "name": "stingscore_reduced_measurements",
+      "intent": "Score panel-based or reduced gene expression data using stably expressed genes for rank calibration.",
+      "input": [
+        "small_tgfb_expr_10 (SummarizedExperiment with a reduced set of genes)",
+        "tgfb_gs_up (GeneSet object of up-regulated genes)",
+        "tgfb_gs_dn (GeneSet object of down-regulated genes)"
+      ],
+      "stages": "1. Retrieve stable genes using getStableGenes ;; 2. Rank genes with stable genes calibration using rankGenes ;; 3. Score samples using simpleScore",
+      "code": "getStableGenes(5, type = 'carcinoma')\nrankData_st <-  rankGenes(small_tgfb_expr_10, stableGenes = stable_genes)\nscoredf_st <- simpleScore(rankData_st, upSet = tgfb_gs_up, downSet = tgfb_gs_dn)"
+    },
+    {
+      "name": "score_landscape_projection",
+      "intent": "Plot scores of samples against two different gene signatures in a landscape and project new data points onto it.",
+      "input": [
+        "scoredf_ccle_epi (Data frame of pre-computed scores against an epithelial signature)",
+        "scoredf_ccle_mes (Data frame of pre-computed scores against a mesenchymal signature)",
+        "scoredf_tcga_epi (Data frame of pre-computed scores for TCGA samples against an epithelial signature)",
+        "scoredf_tcga_mes (Data frame of pre-computed scores for TCGA samples against a mesenchymal signature)"
+      ],
+      "stages": "1. Plot score landscape using plotScoreLandscape ;; 2. Project new samples onto the landscape using projectScoreLandscape",
+      "code": "plotScoreLandscape(scoredf_ccle_epi, scoredf_ccle_mes, \n                   scorenames = c('ccle-EPI','ccle-MES'),hexMin = 10)\ntcgaLandscape <- plotScoreLandscape(scoredf_tcga_epi, scoredf_tcga_mes, \n                   scorenames = c('tcga_EPI','tcga_MES'), isInteractive = FALSE)\nprojectScoreLandscape(plotObj = tcgaLandscape, scoredf_ccle_epi, \n                      scoredf_ccle_mes,\n                      subSamples = rownames(scoredf_ccle_epi)[c(1,4,5)],\n                      annot = rownames(scoredf_ccle_epi)[c(1,4,5)], \n                      sampleLabels = NULL,\n                      isInteractive = FALSE)"
+    }
+  ]
+}

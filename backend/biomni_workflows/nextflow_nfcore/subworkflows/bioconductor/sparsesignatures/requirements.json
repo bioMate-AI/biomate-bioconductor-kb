@@ -1,0 +1,13 @@
+{
+  "package": "sparsesignatures",
+  "requirements": [
+    "BSgenome.Hsapiens.1000genomes.hs37d5",
+    "SparseSignatures"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.1000genomes.hs37d5",
+      "SparseSignatures"
+    ]
+  }
+}

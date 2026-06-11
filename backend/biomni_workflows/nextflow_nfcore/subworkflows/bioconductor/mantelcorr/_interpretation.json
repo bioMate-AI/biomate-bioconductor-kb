@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <k=The number of clusters to over-partition the gene space into (typically chosen such that k is between 5 and p/2, where p is the number of genes) ;; iter.max=The maximum number of iterations allowed for the k-means clustering step ;; num.perm=The number of permutations to run in the permutation test (at least 1000 is recommended for thorough analysis) ;; alpha=The significance level threshold (e.g., 0.05) used to determine if a cluster is significant>\n- alternatives: <None mentioned in the documentation>\n- when_to_use: <When analyzing transcriptomic/microarray gene expression data to identify distinct, statistically significant clusters of genes that share similar expression profiles and correlate well with the overall distance structure of the dataset>\n- pitfalls: <Using too few permutations in the PermutationTest function (the documentation warns that while 100 permutations are used in the example to conserve CPU time, at least 1000 permutations are recommended for a thorough analysis) ;; Input data must be interval-scale (numeric) with gene and sample labels properly assigned using the dimnames() function>",
+  "workflows": [
+    {
+      "name": "mantel_cluster_correlation_analysis",
+      "intent": "Perform k-means over-partitioning, compute Mantel correlation coefficients, and run permutation testing to identify statistically significant gene clusters from microarray expression data.",
+      "input": [
+        "expression_matrix.csv (A numeric p x n matrix of gene expression values, where rows represent genes and columns represent samples, with gene and sample labels assigned via dimnames)"
+      ],
+      "stages": "1. Over-partition the gene space into non-overlapping clusters using GetClusters ;; 2. Compute full and cluster-specific dissimilarity matrices using DistMatrices ;; 3. Calculate Mantel correlation coefficients for each cluster using MantelCorrs ;; 4. Perform a permutation test to determine cluster significance using PermutationTest ;; 5. Generate lists of significant and non-significant clusters using ClusterList ;; 6. Extract the specific genes belonging to the significant clusters using ClusterGeneList",
+      "code": "library(MantelCorr)\ndata(GolubTrain)\ndim(GolubTrain)\ndata <- GolubTrain\nkmeans.result <- GetClusters(data, 500, 100)\nDistMatrices.result <- DistMatrices(data, kmeans.result$clusters)\nMantelCorrs.result <- MantelCorrs(DistMatrices.result$Dfull, DistMatrices.result$Dsubsets)\npermuted.pval <- PermutationTest(DistMatrices.result$Dfull, DistMatrices.result$Dsubsets, 100, 38, 0.05)\nClusterLists <- ClusterList(permuted.pval, kmeans.result$cluster.sizes, MantelCorrs.result)\nClusterGenes <- ClusterGeneList(kmeans.result$clusters, ClusterLists$SignificantClusters, data)"
+    }
+  ]
+}

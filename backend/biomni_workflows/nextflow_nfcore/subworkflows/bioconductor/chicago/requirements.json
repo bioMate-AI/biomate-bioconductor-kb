@@ -1,0 +1,23 @@
+{
+  "package": "chicago",
+  "requirements": [
+    "Chicago",
+    "GenomeInfoDb",
+    "GenomicInteractions",
+    "GenomicRanges"
+  ],
+  "by_workflow": {
+    "genomic_interactions_downstream.nf": [
+      "Chicago",
+      "GenomeInfoDb",
+      "GenomicInteractions",
+      "GenomicRanges"
+    ],
+    "main.nf": [
+      "Chicago"
+    ],
+    "peak_enrichment_analysis.nf": [
+      "Chicago"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "package": "scbn",
+  "requirements": [
+    "SCBN"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SCBN"
+    ]
+  }
+}

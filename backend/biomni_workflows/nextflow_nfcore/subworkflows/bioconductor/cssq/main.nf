@@ -1,90 +1,108 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CSSQ
-// This package is desgined to perform statistical analysis to identify statistically significant diffe
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CSSQ/inst/doc/CSSQ.R
-// Upstream  : BiocStyle, knitr
-// Downstream: none
-//
-// Install: BiocManager::install("CSSQ")
+// Bioconductor workflow: CSSQ — differential_binding_from_bams
+// Identify differentially bound regions step-by-step starting from raw BAM files and a BED file of regions of interest.
+// Input: chr19_regions.bed, sample_info.txt, BAM files
+// Container: quay.io/biocontainers/bioconductor-cssq:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CSSQ, GenomicRanges
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Quantify reads in regions of interest and perform background correction using getRegionCounts
+//  * 2. [Core Analysis] Apply Anscombe transformation using ansTransform
+//  * 3. [Core Analysis] Normalize transformed counts across samples using normalizeData
+//  * 4. [Core Analysis] Perform non-parametric statistical testing for differential binding using DBAnalyze
 
 nextflow.enable.dsl = 2
 
-process BIOC_CSSQ {
+process BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cssq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cssq:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cssq:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cssq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cssq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cssq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+    # Load required libraries
     library(CSSQ)
-    library(jsonlite)
+    library(GenomicRanges)
+    
+    # 1. Read user input files from the working directory
+    sampleInfo <- read.table("sample_info.txt", sep="\t", header=TRUE)
+    
+    # 2. Quantify reads in regions of interest and perform background correction
+    countData <- getRegionCounts("chr19_regions.bed", sampleInfo, sampleDir = ".")
+    
+    # 3. Apply Anscombe transformation
+    ansCountData <- ansTransform(countData)
+    
+    # 4. Normalize transformed counts across samples
+    normInfo <- normalizeData(ansCountData, numClusters=4)
+    
+    # 5. Perform non-parametric statistical testing for differential binding
+    comp_groups <- unique(as.character(sampleInfo\$Group))
+    result <- DBAnalyze(normInfo, comparison=comp_groups)
+    
+    # 6. Write outputs
+    # Save the final GRanges result as an RDS object
+    saveRDS(result, "differential_binding_results.rds")
+    
+    # Save the final results as a CSV table
+    result_df <- as.data.frame(result)
+    write.csv(result_df, "differential_binding_results.csv", row.names=FALSE)
+    
+    # Save intermediate normalized data
+    saveRDS(normInfo, "normalized_info.rds")
 
-    # --- get Region Counts [] ---
-    # Key functions: getRegionCounts, colData, rowRanges, loadCountData, ansTransform
-    library(BiocStyle)
-    Decide whether to display parts for BioC (TRUE) or F1000 (FALSE)
-    library(knitr)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cssq_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cssq_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cssq_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CSSQ:", paste0("    cssq: ", packageVersion("CSSQ"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS":',
+        paste0('    CSSQ: ', as.character(packageVersion('CSSQ')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cssq_results.csv
-    touch ${prefix}_cssq_output.rds
-    echo "BIOC_CSSQ:" > versions.yml
-    echo "    cssq: 0.0.0" >> versions.yml
+    touch ${prefix}_differential_binding_from_bams.csv versions.yml
     """
 }
 
-
-workflow BIOC_CSSQ_WORKFLOW {
+workflow BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ chr19_regions.bed, sample_info.txt, BAM files ] ]
 
     main:
-    BIOC_CSSQ(ch_input)
+    BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS(ch_input)
 
     emit:
-    results  = BIOC_CSSQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CSSQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CSSQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CSSQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS.out.tables
+    plots    = BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS.out.plots
+    objects  = BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS.out.objects
+    versions = BIOC_CSSQ_DIFFERENTIAL_BINDING_FROM_BAMS.out.versions
 }

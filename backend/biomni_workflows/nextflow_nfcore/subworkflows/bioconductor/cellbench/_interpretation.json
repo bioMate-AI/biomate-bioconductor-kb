@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <threads=Set via set_cellbench_threads() to control parallel execution of methods ;; cache_path=Set via set_cellbench_cache_path() to specify the disk directory for caching memoized function results>\n- alternatives: <memoise=The CRAN package memoise is used internally, but CellBench's cache_method() is preferred because standard in-memory memoization fails with CellBench's list-based function calls>\n- when_to_use: <When comparing multiple single-cell analysis methods (e.g., normalization, transformation, clustering) across one or more datasets in a combinatorial design>\n- pitfalls: <Vectorized operations do not work directly on the result list-column of a benchmark_tbl; use lapply() or purrr::map() instead ;; Multi-threading uses significantly more memory because each thread can copy the entire environment ;; Caching pseudo-random methods will retrieve the same cached result, negating randomness ;; Do not use multi-threading and caching simultaneously if multiple threads run the same arguments, as they may corrupt the cache ;; If the underlying function body is altered, CellBench may retrieve outdated cached results because only the call signature and input are checked>",
+  "workflows": [
+    {
+      "name": "combinatorial_method_benchmarking",
+      "intent": "Apply a sequence of analysis methods combinatorially to a list of datasets and collapse the pipeline names for downstream analysis or plotting.",
+      "input": [
+        "datasets.rds (A list containing one or more SingleCellExperiment objects or matrices)"
+      ],
+      "stages": "1. Load datasets into a list ;; 2. Define pipeline steps as lists of functions ;; 3. Apply the first set of methods using apply_methods() ;; 4. Apply subsequent methods using apply_methods() ;; 5. Collapse pipeline steps using pipeline_collapse()",
+      "code": "datasets <- list(\n  sample_10x = readRDS(cellbench_file(\"10x_sce_sample.rds\"))\n)\nnorm_method <- list(\n  none = counts,\n  cpm = function(x) t(t(1e6 * counts(x)) / colSums(counts(x)))\n)\ntransform <- list(\n  none = identity,\n  log2 = function(x) log2(x+1)\n)\nres1 <- datasets %>% apply_methods(norm_method)\nres2 <- res1 %>% apply_methods(transform)\ncollapsed_res <- res2 %>% pipeline_collapse()"
+    },
+    {
+      "name": "method_timing_benchmarking",
+      "intent": "Measure and compare the execution times of different analysis methods across datasets.",
+      "input": [
+        "datasets.rds (A list containing one or more data objects to be processed)"
+      ],
+      "stages": "1. Load datasets into a list ;; 2. Define methods as a list of functions ;; 3. Measure execution times sequentially using time_methods() ;; 4. Unpack timing results into a flat tibble using unpack_timing() or strip timings using strip_timing()",
+      "code": "datasets <- list(\n  data1 = c(1, 2, 3)\n)\ntransform <- list(\n  log = function(x) { Sys.sleep(0.1); log(x) },\n  sqrt = function(x) { Sys.sleep(0.1); sqrt(x) }\n)\ntransform2 <- list(\n  plus = function(x) { Sys.sleep(0.1); x + 1 },\n  minus = function(x) { Sys.sleep(0.1); x - 1 }\n)\nres2 <- datasets %>% time_methods(transform) %>% time_methods(transform2)\nres2 %>% unpack_timing()\nres2 %>% strip_timing()"
+    }
+  ]
+}

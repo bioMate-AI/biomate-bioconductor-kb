@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <pwm1=First position weight matrix (matrix or data.frame) ;; pwm2=Second position weight matrix (matrix or data.frame) ;; align_pwms=Logical indicating whether to align PWMs of different lengths before comparison ;; stackHeight=Function to compute stack height in custom sequence logos (e.g., sumProbabilities) ;; alphabet=Alphabet used for the motifs (e.g., FULL_ALPHABET for amino acids) ;; sampleSizes=Vector of sequence counts/sample sizes for each PWM, used to calculate and display significant differences with asterisks ;; n1=Sample size (sequence count) for pwm1 ;; n2=Sample size (sequence count) for pwm2>\n- alternatives: <seqLogo::seqLogo=Used for plotting classic sequence logos, but DiffLogo::seqLogo should be preferred when custom stack height or base distribution functions are needed>\n- when_to_use: <When comparing transcription factor binding sites (TFBS) or protein motifs across different conditions, species, or variants, especially when motifs have different lengths or require statistical significance testing of position-wise differences>\n- pitfalls: <Input PWMs must be of class matrix or data.frame; if not, the package will attempt to convert them and print a warning. When comparing motifs of different lengths, failing to set align_pwms=TRUE or manually aligning them first will lead to errors or incorrect comparisons.>",
+  "workflows": [
+    {
+      "name": "pairwise_motif_comparison",
+      "intent": "Compare two PWMs (of the same or different lengths), optionally align them, calculate statistical significance of differences, and plot the pairwise difference logo.",
+      "input": [
+        "pwm1.pwm (First position weight matrix file)",
+        "pwm2.pwm (Second position weight matrix file)"
+      ],
+      "stages": "1. Load PWMs from files ;; 2. Create a difference logo object ;; 3. Enrich the difference logo object with p-values using sample sizes ;; 4. Plot the difference logo (or directly plot using diffLogoFromPwm with alignment if lengths differ)",
+      "code": "diffLogoFromPwm(pwm1 = pwm1, pwm2 = pwm2)\n\n## diffLogoFromPwm is a convenience function for\ndiffLogoObj = createDiffLogoObject(pwm1 = pwm1, pwm2 = pwm2)\ndiffLogo(diffLogoObj)\n\n## mark symbol stacks with significant changes\ndiffLogoObj = enrichDiffLogoObjectWithPvalues(diffLogoObj, n1, n2)\ndiffLogo(diffLogoObj)\n\n## plot DiffLogo for PWMs of different length\ndiffLogoFromPwm(pwm1 = pwm_long, pwm2 = pwm_short, align_pwms=TRUE)"
+    },
+    {
+      "name": "multiple_motif_comparison_table",
+      "intent": "Compare multiple motifs simultaneously by generating a grid/table of pairwise difference logos, optionally indicating significant differences.",
+      "input": [
+        "motifs_dna.txt (Multiple DNA alignment files)",
+        "motifs_asn.fa (Multiple protein FASTA files)"
+      ],
+      "stages": "1. Load multiple PWMs into a list ;; 2. Generate and plot a table of difference logos, optionally specifying the alphabet or sample sizes for significance asterisks",
+      "code": "## plot table of difference logos for CTFC motifs (DNA)\ndiffLogoTable(PWMs = motifs_dna)\n## plot table of difference logos for E-Box motifs (DNA)\ndiffLogoTable(PWMs = motifs_dna2)\n## plot table of difference logos for F-Box motifs (ASN)\ndiffLogoTable(PWMs = motifs_asn, alphabet = FULL_ALPHABET)\n## CTFC motifs (DNA) with asterisks to indicate significant differences\ndiffLogoTable(PWMs = motifs_dna, sampleSizes = sampleSizes_dna)"
+    },
+    {
+      "name": "multiple_pwm_alignment",
+      "intent": "Align multiple PWMs of different lengths and visualize the unaligned vs. aligned sequence logos.",
+      "input": [
+        "pwm_long.pwm (Longer position weight matrix file)",
+        "pwm_short.pwm (Shorter position weight matrix file)"
+      ],
+      "stages": "1. Perform multiple local alignment of PWMs ;; 2. Extend the PWMs based on the alignment vector ;; 3. Plot the unaligned and aligned sequence logos",
+      "code": "## align pwms and than plot seqLogo of them\npwms = list(pwm_long, pwm_short)\nmultiple_pwms_alignment = multipleLocalPwmsAlignment(pwms)\naligned_pwms = extendPwmsFromAlignmentVector(pwms, multiple_pwms_alignment$alignment$vector)\n\n## seqLogo of aligned pwms\nlayout(mat = matrix(data = 1:4, nrow = 2, ncol = 2))\nDiffLogo::seqLogo(pwms[[1]], main = \"Unaligned\")\nDiffLogo::seqLogo(pwms[[2]])\nDiffLogo::seqLogo(aligned_pwms[[1]], main = \"Aligned\")\nDiffLogo::seqLogo(aligned_pwms[[2]])"
+    }
+  ]
+}

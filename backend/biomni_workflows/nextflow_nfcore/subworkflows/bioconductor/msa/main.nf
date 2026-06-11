@@ -1,137 +1,111 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: msa
-// The 'msa' package provides a unified R/Bioconductor interface to the multiple sequence alignment alg
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/msa/inst/doc/msa.R
-// Upstream  : seqinr, pwalign, ape
-// Downstream: none
-//
-// Install: BiocManager::install("msa")
+// Bioconductor workflow: msa — sequence_alignment_and_pretty_printing
+// Align amino acid or nucleotide sequences and generate a highly customizable PDF visualization of the alignment.
+// Input: exampleAA.fasta
+// Container: quay.io/biocontainers/bioconductor-msa:1.42.0--r45he8cd136_0
+// R packages: Biostrings, ape, msa, pwalign, seqinr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MSA {
+process BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-msa"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-msa:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-msa:1.38.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-msa:1.42.0--r45he8cd136_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_msa_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_msa_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_msa_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Biostrings", "ape", "msa", "pwalign", "seqinr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(msa)
-    library(DNAMultipleAlignment)
-    library(IRanges)
-    library(jsonlite)
-
-    # --- Alignment Masking [] ---
-    # Key functions: colmask, unmasked
-    masked_aln <- aln_default
-    col_mask <- IRanges::IRanges(start=1, end=100)
-    BiocGenerics::colmask(masked_aln) <- col_mask
-    unmasked_seqs <- Biostrings::unmasked(masked_aln)
-
-
-    # --- Consensus Sequence Generation [] ---
-    # Key functions: consensusMatrix, msaConsensusSequence
-    con_mat <- Biostrings::consensusMatrix(aln_default)
-    con_seq_default <- msaConsensusSequence(aln_default)
-    con_seq_custom <- msaConsensusSequence(
-        aln_default,
-        type="upperlower",
-        thresh=c(40, 20)
-    )
-
-
-    # --- Conservation Scoring [] ---
-    # Key functions: msaConservationScore
-    data(BLOSUM62, package="pwalign")
-    scores_default <- msaConservationScore(aln_default, BLOSUM62)
-    scores_custom <- msaConservationScore(
-        aln_default,
-        BLOSUM62,
-        gapVsGap=0,
-        type="upperlower",
-        thresh=c(40, 20)
-    )
-
-
-    # --- Format Conversion for Phylogeny [] ---
-    # Key functions: msaConvert
-    seqinr_aln <- msaConvert(aln_default, type="seqinr::alignment")
-    dist_mat <- seqinr::dist.alignment(seqinr_aln, "identity")
-    tree <- ape::nj(dist_mat)
-    bios_aln <- msaConvert(aln_default, type="bios2mds::align")
-
-
-    # --- Alignment Visualization [] ---
-    # Key functions: msaPrettyPrint
-    msaPrettyPrint(
-        aln_default,
-        y=c(164, 213),
-        output="pdf",
-        showNames="none",
-        showLogo="none",
-        askForOverwrite=FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_msa_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_msa_results.csv")
+    library(Biostrings)
+    
+    # 1. Read sequences using Biostrings from the working directory
+    mySequenceFile <- "exampleAA.fasta"
+    if (!file.exists(mySequenceFile)) {
+      stop(paste("Required input file", mySequenceFile, "not found in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_msa_output.rds")
-    }
+    
+    mySequences <- readAAStringSet(mySequenceFile)
+    mySequences
+    
+    # 2. Perform multiple sequence alignment using msa
+    myFirstAlignment <- msa(mySequences)
+    myFirstAlignment
+    
+    # Save the alignment object as an RDS file for downstream analysis
+    saveRDS(myFirstAlignment, file = "myFirstAlignment.rds")
+    
+    # 3. Print the complete alignment to the console
+    print(myFirstAlignment, show="complete")
+    
+    # 4. Generate a pretty-printed PDF visualization using msaPrettyPrint
+    # Wrapped in tryCatch because msaPrettyPrint requires a local LaTeX installation with texshade.sty
+    tryCatch({
+      msaPrettyPrint(myFirstAlignment, output="pdf", showNames="none", showLogo="none", askForOverwrite=FALSE, verbose=FALSE)
+    }, error = function(e) {
+      warning("msaPrettyPrint failed (this function requires a working system installation of LaTeX and texshade.sty): ", e\$message)
+    })
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MSA:", paste0("    msa: ", packageVersion("msa"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING":',
+        paste0('        msa: ', as.character(packageVersion("msa")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_msa_results.csv
-    touch ${prefix}_msa_output.rds
-    echo "BIOC_MSA:" > versions.yml
-    echo "    msa: 0.0.0" >> versions.yml
+    touch ${prefix}_sequence_alignment_and_pretty_printing.csv versions.yml
     """
 }
 
-
-workflow BIOC_MSA_WORKFLOW {
+workflow BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ exampleAA.fasta ] ]
 
     main:
-    BIOC_MSA(ch_input)
+    BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING(ch_input)
 
     emit:
-    results  = BIOC_MSA.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MSA.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MSA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MSA.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING.out.tables
+    plots    = BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING.out.plots
+    objects  = BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING.out.objects
+    versions = BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING.out.versions
 }

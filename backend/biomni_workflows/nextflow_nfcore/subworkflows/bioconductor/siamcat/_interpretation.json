@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filter.method=Method for unsupervised feature selection ('abundance' or 'prevalence') ;; cutoff=Threshold for feature filtering (e.g., 0.001 for abundance, 0.05 for prevalence) ;; norm.method=Normalization method (e.g., 'log.unit', 'log.std') ;; norm.param=List of parameters for normalization (e.g., log.n0, n.p, norm.margin, sd.min.q) ;; num.folds=Number of cross-validation folds ;; num.resample=Number of cross-validation repetitions ;; method=Machine learning method to train (e.g., 'lasso') ;; siamcat.holdout=External SIAMCAT object for holdout predictions ;; normalize.holdout=Logical indicating whether to normalize the holdout dataset automatically\n- alternatives: LEfSe=A tool for identifying associations between microbial features and metadata using LDA, supported via read.lefse ;; metagenomeSeq=An R package for differential abundance testing, supported via count file ingestion ;; phyloseq=An R package for microbiome data analysis, which SIAMCAT extends and can ingest directly\n- when_to_use: Use when analyzing metagenomic datasets (relative abundances of species, gene families, or pathways) across multiple samples to identify robust biomarkers, build predictive machine learning models, control for confounding factors, or test models on independent holdout cohorts.\n- pitfalls: Using raw counts instead of relative abundances (SIAMCAT is designed for relative abundances; counts may lead to meaningless outputs) ;; Failing to remove repeated samples per subject, which violates sample independence in machine learning ;; Confounding factors (e.g., country of origin, technical differences) that can lead to spurious associations and exaggerated/biased machine learning performance estimates ;; Applying models to holdout datasets without consistent normalization (frozen normalization must be applied using norm_params from the training set, or normalize.holdout = TRUE must be set)",
+  "workflows": [
+    {
+      "name": "standard_association_and_ml_pipeline",
+      "intent": "Perform feature filtering, association testing, confounder checking, and build/evaluate a machine learning model on a single metagenomic dataset.",
+      "input": [
+        "feat_crc_zeller (matrix or data.frame of relative abundances)",
+        "meta_crc_zeller (data.frame of sample metadata)"
+      ],
+      "stages": "1. Create label object ;; 2. Initialize SIAMCAT object ;; 3. Filter features ;; 4. Check associations and plot ;; 5. Check confounders ;; 6. Normalize features ;; 7. Prepare cross-validation ;; 8. Train model ;; 9. Make predictions ;; 10. Evaluate predictions ;; 11. Plot evaluation and interpretation",
+      "code": "label.crc.zeller <- create.label(meta=meta.crc.zeller, label='Group', case='CRC')\nsc.obj <- siamcat(feat=feat.crc.zeller, label=label.crc.zeller, meta=meta.crc.zeller)\nsc.obj <- filter.features(sc.obj, filter.method = 'abundance', cutoff = 0.001)\nsc.obj <- check.associations(sc.obj, log.n0 = 1e-06, alpha = 0.05)\nassociation.plot(sc.obj, sort.by = 'fc', panels = c('fc', 'prevalence', 'auroc'))\ncheck.confounders(sc.obj, fn.plot = 'confounder_plots.pdf', meta.in = NULL, feature.type = 'filtered')\nsc.obj <- normalize.features(sc.obj, norm.method = \"log.unit\", norm.param = list(log.n0 = 1e-06, n.p = 2,norm.margin = 1))\nsc.obj <- create.data.split(sc.obj, num.folds = 5, num.resample = 2)\nsc.obj <- train.model(sc.obj, method = \"lasso\")\nsc.obj <- make.predictions(sc.obj)\nsc.obj <- evaluate.predictions(sc.obj)\nmodel.evaluation.plot(sc.obj)\nmodel.interpretation.plot(sc.obj, fn.plot = 'interpretation.pdf', consens.thres = 0.5, limits = c(-3, 3), heatmap.type = 'zscore')"
+    },
+    {
+      "name": "holdout_testing",
+      "intent": "Train a machine learning model on a discovery dataset and apply it to an independent external holdout dataset using frozen normalization.",
+      "input": [
+        "fn.feat.fr (TSV of discovery relative abundances)",
+        "fn.meta.fr (TSV of discovery metadata)",
+        "fn.feat.cn (TSV of holdout relative abundances)",
+        "fn.meta.cn (TSV of holdout metadata)"
+      ],
+      "stages": "1. Initialize discovery and holdout SIAMCAT objects ;; 2. Filter discovery features ;; 3. Normalize discovery features ;; 4. Prepare cross-validation on discovery data ;; 5. Train model on discovery data ;; 6. Make discovery predictions and evaluate ;; 7. Normalize holdout features using frozen discovery parameters ;; 8. Make holdout predictions ;; 9. Evaluate holdout predictions ;; 10. Compare model performances",
+      "code": "siamcat.fr <- siamcat(feat=feat.fr.rel, meta=meta.fr, label='Group', case='CRC')\nsiamcat.cn <- siamcat(feat=feat.cn.rel, meta=meta.cn, label='Group', case='CRC')\nsiamcat.fr <- filter.features( siamcat.fr, filter.method = 'abundance', cutoff = 0.001, rm.unmapped = TRUE, verbose=2 )\nsiamcat.fr <- normalize.features( siamcat.fr, norm.method = \"log.std\", norm.param = list(log.n0 = 1e-06, sd.min.q = 0.1), verbose = 2 )\nsiamcat.fr <- create.data.split( siamcat.fr, num.folds = 5, num.resample = 2 )\nsiamcat.fr <- train.model( siamcat.fr, method = \"lasso\" )\nsiamcat.fr <- make.predictions(siamcat.fr)\nsiamcat.fr <- evaluate.predictions(siamcat.fr)\nsiamcat.cn <- normalize.features(siamcat.cn, norm.param=norm_params(siamcat.fr), feature.type='original', verbose = 2)\nsiamcat.cn <- make.predictions( siamcat = siamcat.fr, siamcat.holdout = siamcat.cn, normalize.holdout = FALSE)\nsiamcat.cn <- evaluate.predictions(siamcat.cn)\nmodel.evaluation.plot('FR-CRC'=siamcat.fr, 'CN-CRC'=siamcat.cn, colours=c('dimgrey', 'orange'))"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: crowded_cells=Set to TRUE in auto_crop_fast to separate close or overlapping cells using watershed and distmap algorithms ;; max_cell_area/min_cell_area=Pixel area thresholds in auto_crop_fast to filter viable cell candidates ;; ecc_thresh/area_thresh=Thresholds in get_pachytene used to classify cells in the pachytene phase ;; crowded_foci=Set to TRUE in count_foci for high-density foci (e.g., DMC1, >100 foci/cell) or FALSE for lower density (e.g., MLH3) ;; C1=Crispness criteria threshold in count_foci to filter out low signal/high background images ;; file_ext=Specifies the image file extension (e.g., \"tif\", \"jpeg\") ;; test_amount=Parameter in auto_crop_fast to run the function on a small subset of images for testing\n- alternatives: EBImage, colocr, ColocalizR, and CellProfiler (code-free tool) for somatic cell immunofluorescence analysis. synapsis is preferred specifically for meiotic immunofluorescence data (synaptonemal complex and foci).\n- when_to_use: When analyzing meiotic immunofluorescence data to quantify double-strand break repair proteins (like RAD51, DMC1, MSH4, MLH1, MLH3) or chromosomal structures (centromeres, telomeres) on the synaptonemal complex.\n- pitfalls: Using low-resolution images (less than 4MB or 1000x1000 pixels) can cause underlying smoothing operations to erase small foci ;; Failing to specify file_ext when images are not .jpeg (e.g., .tif) ;; Cells on the edge of the image cannot be cropped and will be neglected ;; Not adjusting default parameters (like WT_str and KO_str for genotype detection) when file naming conventions differ from \"++\" or \"--\".",
+  "workflows": [
+    {
+      "name": "meiotic_foci_quantification",
+      "intent": "Crop raw meiotic immunofluorescence images, filter for pachytene-stage cells, and count coincident foci on the synaptonemal complex.",
+      "input": [
+        "foci_channel.tif (Immunofluorescence image of foci, e.g., MLH3)",
+        "sc_channel.tif (Immunofluorescence image of the synaptonemal complex, e.g., SYCP3)"
+      ],
+      "stages": "1. Crop individual cells from raw images using auto_crop_fast ;; 2. Identify pachytene-stage cells using get_pachytene ;; 3. Count coincident foci on the synaptonemal complex using count_foci",
+      "code": "library(synapsis)\npath = paste0(system.file(\"extdata\",package = \"synapsis\"))\nauto_crop_fast(path, annotation = \"on\", max_cell_area = 30000, min_cell_area = 7000, file_ext = \"tif\",crowded_cells = TRUE)\nSYCP3_stats <- get_pachytene(path,ecc_thresh = 0.8, area_thresh = 0.04, annotation = \"on\",file_ext = \"tif\")\nfoci_counts <- count_foci(path,offset_factor = 8, brush_size = 3, offset_px = 0.6, brush_sigma = 3, annotation = \"on\", stage = \"pachytene\",file_ext = \"tif\", watershed_stop= \"on\",  crowded_foci = FALSE, C1 = 0.03, disc_size_foci = 9)\nprint(foci_counts)"
+    }
+  ]
+}

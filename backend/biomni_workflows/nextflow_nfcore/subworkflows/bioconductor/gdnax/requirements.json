@@ -1,0 +1,13 @@
+{
+  "package": "gdnax",
+  "requirements": [
+    "GenomicFeatures",
+    "gDNAx"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicFeatures",
+      "gDNAx"
+    ]
+  }
+}

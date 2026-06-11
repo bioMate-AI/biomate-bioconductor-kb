@@ -1,0 +1,13 @@
+{
+  "package": "motifcounter",
+  "requirements": [
+    "Biostrings",
+    "motifcounter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "motifcounter"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package": "ggmanh",
+  "requirements": [
+    "Polychrome",
+    "SeqArray",
+    "ggmanh",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "binned_manhattan_plot.nf": [
+      "Polychrome",
+      "ggmanh",
+      "ggplot2"
+    ],
+    "gds_variant_annotation_plotting.nf": [
+      "SeqArray",
+      "ggmanh",
+      "ggplot2"
+    ],
+    "main.nf": [
+      "ggmanh",
+      "ggplot2"
+    ]
+  }
+}

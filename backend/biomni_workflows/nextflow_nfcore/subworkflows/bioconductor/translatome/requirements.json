@@ -1,0 +1,11 @@
+{
+  "package": "translatome",
+  "requirements": [
+    "tRanslatome"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "tRanslatome"
+    ]
+  }
+}

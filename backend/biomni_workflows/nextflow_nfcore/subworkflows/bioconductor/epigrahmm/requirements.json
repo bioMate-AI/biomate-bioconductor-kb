@@ -1,0 +1,28 @@
+{
+  "package": "epigrahmm",
+  "requirements": [
+    "GenomicRanges",
+    "Rsamtools",
+    "Seqinfo",
+    "SummarizedExperiment",
+    "epigraHMM",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "differential_peak_calling.nf": [
+      "GenomicRanges",
+      "Seqinfo",
+      "SummarizedExperiment",
+      "epigraHMM",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "Rsamtools",
+      "Seqinfo",
+      "SummarizedExperiment",
+      "epigraHMM",
+      "rtracklayer"
+    ]
+  }
+}

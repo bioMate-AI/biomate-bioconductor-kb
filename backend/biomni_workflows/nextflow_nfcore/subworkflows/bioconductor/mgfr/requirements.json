@@ -1,0 +1,11 @@
+{
+  "package": "mgfr",
+  "requirements": [
+    "MGFR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MGFR"
+    ]
+  }
+}

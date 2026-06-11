@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: file=Path to the input genomic data file (e.g., .h5, .bed, .links, .bw) ;; chr=The chromosome name of the genomic region to plot ;; start=The start coordinate of the genomic region to plot ;; end=The end coordinate of the genomic region to plot ;; overlay_previous=Controls track overlay behavior (e.g., \"share-y\", \"no\") ;; dir=Directory to save the plot in plot_gtracks() (cannot be used with custom R layouts)\n- alternatives: pyGenomeTracks (Python command-line tool/library) which is the underlying engine but lacks native R session integration.\n- when_to_use: When you need to visualize and align multiple types of epigenetic and genomic data tracks (TADs, loops/arcs, BigWig, Hi-C matrices) for a specific genomic region within an R session.\n- pitfalls: Failing to install the correct version of pyGenomeTracks in the R environment (use install_pyGenomeTracks() to avoid dependency clashes) ;; Using the dir argument in plot_gtracks() when creating complex layouts with R's layout() or split.screen() (instead, capture R's graphic device and save it manually).",
+  "workflows": [
+    {
+      "name": "visualize_genomic_tracks",
+      "intent": "Combine and plot multiple genomic data tracks (such as TADs, arcs, and BigWig) for a specific genomic region.",
+      "input": [
+        "tad_classification.bed (TAD domains file)",
+        "links2.links (genomic interactions/arcs file)",
+        "bigwig2_X_2.5e6_3.5e6.bw (BigWig signal file)",
+        "h5_dir (Hi-C matrix file in HDF5 format)"
+      ],
+      "stages": "1. Install pyGenomeTracks dependency ;; 2. Create individual track objects using track_domains(), track_links(), track_bigwig(), and track_hic_matrix() ;; 3. Combine track objects using the + operator ;; 4. Plot the combined tracks for a specific genomic region using plot_gtracks()",
+      "code": "# install_pyGenomeTracks()\n\n# Create HiC track from HiC matrix\nh5 <- track_hic_matrix(\n  file = h5_dir, depth = 250000, min_value = 5, max_value = 200,\n  transform = \"log1p\", show_masked_bins = FALSE\n)\n\n# Create TADS track\ntads <- track_domains(\n  file = tads_dir, border_color = \"black\",\n  color = \"none\", height = 5,\n  line_width = 5,\n  show_data_range = FALSE,\n  overlay_previous = \"share-y\"\n)\n\n# Create arcs track\narcs <- track_links(\n  file = arcs_dir, links_type = \"triangles\",\n  line_style = \"dashed\",\n  overlay_previous = \"share-y\",\n  color = \"darkred\",\n  line_width = 3,\n  show_data_range = FALSE\n)\n\n# Create bigwig track\nbw <- track_bigwig(\n  file = bw_dir, color = \"red\",\n  max_value = 50,\n  min_value = 0,\n  height = 4,\n  overlay_previous = \"no\",\n  show_data_range = FALSE\n)\n\n# Create one object from HiC, arcs and bigwid\ntracks <- tads + arcs + bw\n\nlayout(matrix(c(1,1,2,3,4,4), nrow = 3, ncol = 2, byrow = TRUE))\nplot_gtracks(tracks, chr = \"X\", start = 25 * 10^5, end = 31 * 10^5)\n\n# Plot HiC, TADS and bigwig tracks\nplot_gtracks(h5 + tads + bw, chr = \"X\", start = 25 * 10^5, end = 31 * 10^5)"
+    }
+  ]
+}

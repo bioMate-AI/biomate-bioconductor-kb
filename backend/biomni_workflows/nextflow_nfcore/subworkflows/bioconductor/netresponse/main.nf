@@ -1,92 +1,179 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: netresponse
-// Algorithms for functional network analysis. Includes an implementation of a variational Dirichlet pr
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/netresponse/inst/doc/NetResponse.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("netresponse")
+// Bioconductor workflow: netresponse — network_functional_response_analysis
+// Detect and visualize subnetworks with context-specific activation patterns using functional data and a network.
+// Input: D, network
+// Container: quay.io/biocontainers/bioconductor-netresponse:1.70.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ggplot2, netresponse
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Fit NetResponse model using detect.responses
+//  * 2. [Core Analysis] Extract subnetworks using get.subnets
+//  * 3. [Visualization & Output] Visualize responses using plot_responses (PCA, network, heatmap, boxplot)
+//  * 4. [Visualization & Output] Plot color scale using plot_scale
+//  * 5. [Core Analysis] Retrieve soft and hard cluster assignments using sample2response and response2sample
+//  * 6. [Core Analysis] Retrieve model parameters using get.model.parameters
 
 nextflow.enable.dsl = 2
 
-process BIOC_NETRESPONSE {
+process BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-netresponse"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-netresponse:1.66.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-netresponse:1.66.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_netresponse_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_netresponse_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_netresponse_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(netresponse)
-    library(jsonlite)
-
-    # --- plot_responses [] ---
-    # Key functions: plot_responses
     library(ggplot2)
-    vis <- plot_responses(res, subnet.id, plot_mode = "pca")
-    # --- plot_scale [] ---
-    # Key functions: plot_scale
-    plot_scale(vis$breaks, vis$palette, two.sided = TRUE)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_netresponse_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 1. Read User Input Files
+    # ==========================================
+    
+    # Read functional measurements matrix D
+    if (file.exists("D.csv")) {
+      D <- as.matrix(read.csv("D.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("D.tsv")) {
+      D <- as.matrix(read.delim("D.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("D.rds")) {
+      D <- readRDS("D.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_netresponse_results.csv")
+      stop("Error: Input file 'D' (D.csv, D.tsv, or D.rds) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_netresponse_output.rds")
+    
+    # Read network topology matrix
+    if (file.exists("network.csv")) {
+      network <- as.matrix(read.csv("network.csv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("network.tsv")) {
+      network <- as.matrix(read.delim("network.tsv", row.names = 1, check.names = FALSE))
+    } else if (file.exists("network.rds")) {
+      network <- readRDS("network.rds")
+    } else {
+      stop("Error: Input file 'network' (network.csv, network.tsv, or network.rds) not found in the working directory.")
     }
+    
+    # ==========================================
+    # 2. Fit NetResponse Model
+    # ==========================================
+    
+    set.seed(4243)
+    res <- detect.responses(D, network, mixture.method = "vdp", pca.basis = TRUE)
+    
+    # Save the fitted model object
+    saveRDS(res, "netresponse_model.rds")
+    
+    # List subnets (each is a list of nodes)
+    subnets_list <- get.subnets(res)
+    saveRDS(subnets_list, "detected_subnets.rds")
+    
+    subnet.id <- names(subnets_list)[[1]]
+    
+    # ==========================================
+    # 3. Visualize Responses
+    # ==========================================
+    
+    # Open PDF device to capture all plots
+    pdf("netresponse_plots.pdf", width = 10, height = 8)
+    
+    # PCA visualization
+    vis <- plot_responses(res, subnet.id, plot_mode = "pca")
+    
+    # Modify the resulting ggplot2 object to enhance visualization
+    p <- vis\$p # Pick the ggplot2 object from results
+    p <- p + geom_point(size = 3) # Modify point size
+    print(p)
+    
+    # Network visualization
+    vis <- plot_responses(res, subnet.id, plot_mode = "network")
+    
+    # Heatmap visualization
+    vis <- plot_responses(res, subnet.id, plot_mode = "heatmap")
+    
+    # Boxplot visualization
+    vis <- plot_responses(res, subnet.id, plot_mode = "boxplot_data")
+    
+    # Color scale plotting
+    plot_scale(vis\$breaks, vis\$palette, two.sided = TRUE)
+    
+    dev.off()
+    
+    # ==========================================
+    # 4. Retrieve Cluster Assignments & Parameters
+    # ==========================================
+    
+    # The vignette hardcodes 'Subnet-1'. To ensure compatibility with custom user data,
+    # we define 'Subnet-1' but fall back to the first detected subnet if it is not present.
+    subnet.id <- 'Subnet-1'
+    if (!(subnet.id %in% names(subnets_list))) {
+      warning("Subnet-1 not found in results. Using the first available subnet instead.")
+      subnet.id <- names(subnets_list)[[1]]
+    }
+    
+    # Sample - response probabilities (soft cluster assignment)
+    response.probs <- sample2response(res, subnet.id)
+    write.csv(as.data.frame(round(response.probs, 6)), "response_probabilities.csv", row.names = TRUE)
+    
+    # Sample - response hard assignments
+    hard.clusters <- response2sample(res, subnet.id)
+    write.csv(as.data.frame(hard.clusters), "hard_clusters.csv", row.names = TRUE)
+    
+    # Retrieve model parameters
+    params <- get.model.parameters(res, subnet.id)
+    saveRDS(params, "model_parameters.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_NETRESPONSE:", paste0("    netresponse: ", packageVersion("netresponse"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS":',
+        paste0('    netresponse: ', as.character(packageVersion('netresponse')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_netresponse_results.csv
-    touch ${prefix}_netresponse_output.rds
-    echo "BIOC_NETRESPONSE:" > versions.yml
-    echo "    netresponse: 0.0.0" >> versions.yml
+    touch ${prefix}_network_functional_response_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_NETRESPONSE_WORKFLOW {
+workflow BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ D, network ] ]
 
     main:
-    BIOC_NETRESPONSE(ch_input)
+    BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_NETRESPONSE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_NETRESPONSE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_NETRESPONSE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_NETRESPONSE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS.out.tables
+    plots    = BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS.out.plots
+    objects  = BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS.out.objects
+    versions = BIOC_NETRESPONSE_NETWORK_FUNCTIONAL_RESPONSE_ANALYSIS.out.versions
 }

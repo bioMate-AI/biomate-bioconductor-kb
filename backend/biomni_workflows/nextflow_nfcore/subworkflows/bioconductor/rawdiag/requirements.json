@@ -1,0 +1,16 @@
+{
+  "package": "rawdiag",
+  "requirements": [
+    "rawDiag",
+    "shiny"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "rawDiag"
+    ],
+    "shiny_application.nf": [
+      "rawDiag",
+      "shiny"
+    ]
+  }
+}

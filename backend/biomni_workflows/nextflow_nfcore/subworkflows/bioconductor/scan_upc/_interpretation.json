@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: object=The input file path to a CEL file, a directory of CEL files, or an ExpressionSet object ;; outFilePath=Optional file path where output is written directly to disk to conserve system memory ;; probeSummary=The method used to summarize probe-level data to gene-level data, such as 'median' or 'average' ;; modelType=The mixture model formulation used by UPC to model active and inactive expression states, typically 'normal' or 'lognormal'\n- alternatives: RMA (Robust Multi-array Average) or MAS5 from the affy package, which require multi-sample normalization and are susceptible to batch effects when new samples are added, whereas SCAN normalizes samples individually.\n- when_to_use: Use when you need to normalize Affymetrix microarray CEL files individually to prevent batch-effect contamination, or when you need to compare expression levels across different platforms (e.g., microarrays and RNA-Seq) using a standardized probability scale from 0 to 1.\n- pitfalls: Processing large batches of CEL files without specifying outFilePath can cause out-of-memory errors. UPC model fitting requires sufficient biological variation in the input sample; highly homogeneous or low-quality samples may fail to converge during mixture model estimation.",
+  "workflows": [
+    {
+      "name": "microarray_scan_upc",
+      "intent": "Normalize raw Affymetrix CEL files and estimate universal gene expression probabilities.",
+      "input": [
+        "sample.CEL (Raw Affymetrix microarray intensity file)"
+      ],
+      "stages": "1. Normalize raw CEL files individually using the SCAN function ;; 2. Calculate universal expression probabilities using the UPC function.",
+      "code": "normalized = SCAN(\"sample.CEL\")\nupc_values = UPC(\"sample.CEL\")"
+    },
+    {
+      "name": "rnaseq_upc",
+      "intent": "Estimate universal gene expression probabilities from RNA-Seq expression values.",
+      "input": [
+        "expression_matrix.txt (Tab-delimited file containing RNA-Seq expression values such as FPKM, RPKM, or TPM)"
+      ],
+      "stages": "1. Estimate universal gene expression probabilities using the UPC_Generic function.",
+      "code": "upc_values = UPC_Generic(\"expression_matrix.txt\")"
+    }
+  ]
+}

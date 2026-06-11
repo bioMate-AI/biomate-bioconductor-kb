@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: filterGene=logical indicating whether to filter out variants without a Hugo Symbol in vcfToMAF ;; multiVCF=logical indicating whether to load multi-caller or multi-sample VCF files from a directory path ;; panel=sequencing quality panel preset ('Customized', 'WES', or 'MSKCC') ;; VAF=variant allele frequency threshold ;; VAFratio=variant allele frequency ratio threshold ;; SBscore=strand bias score cutoff (default uses SOR algorithm with cutoff 3) ;; maxIndelLen=maximum indel length to consider for adjacent indel filtering ;; minInterval=minimum interval distance in bp between SNV and indel ;; dbsnpCutoff=normal depth cutoff for dbSNP variants ;; nonCutoff=normal depth cutoff for non-dbSNP variants ;; PONfile=path to the Panel of Normals file ;; PONformat=format of the PON file ('txt' or 'vcf') ;; dbSNP=logical indicating whether to filter dbSNP database variants ;; dbVAF=allele frequency threshold in germline databases ;; keepType=variant classification filter ('exonic' or 'nonsynonymous') ;; bedFile=path to BED file (or .rds file containing a bed variable) for target regions ;; bedFilter=logical indicating whether to clean the BED file to keep only Chr1-22, X, and Y ;; cancerType=cancer type for customized filtering (e.g., 'LAML', 'BRCA', 'COADREAD') ;; reference=published study name for reference-based filtering (e.g., 'Zhu_et_al-Nat_Commun-2020-KIRP') ;; assay=assay type for TMB calculation ('MSK-IMPACT', 'FoundationOne', 'WES', or 'Customized') ;; processMethod=method to combine multi-caller MAFs ('union' or 'intersection')\n- alternatives: The documentation mentions standard tools like GATK (for PON and strand bias SOR), Samtools (for Fisher's exact test strand bias), and Ensembl VEP (for initial VCF annotation). CaMutQC is preferred when an integrated, R-based workflow is needed to combine these filters, convert VCF to MAF, and calculate TMB in one pipeline.\n- when_to_use: Use when you have somatic mutation calls in VCF format (annotated with VEP) and want to perform comprehensive quality control, filter out false positives/germline variants, select candidate driver mutations, calculate TMB, or merge calls from multiple variant callers (MuTect2, VarScan2, MuSE).\n- pitfalls: VCF files must be annotated by VEP first before running CaMutQC because the package relies on VEP annotations (like Existing_variation, Hugo Symbol, etc.). PON (Panel of Normals) files are NOT included in the package due to copyright/size issues; users must provide their own or download public GATK PON files. BED files used for TMB calculation in the package are generated only from CDS regions, not the exact target regions, so the calculated TMB results serve only as a reference. When taking the union of multi-caller MAFs using processMut, only 7 core columns are kept because different callers generate different depths, VAFs, and metadata.",
+  "workflows": [
+    {
+      "name": "single_vcf_filtering_and_tmb",
+      "intent": "Convert a single VEP-annotated VCF to MAF, apply comprehensive quality control and candidate selection filters, and calculate Tumor Mutational Burden (TMB).",
+      "input": [
+        "WES_EA_T_1_mutect2.vep.vcf (VEP-annotated somatic mutation VCF file)",
+        "PON_test.txt (Panel of Normals file)",
+        "Pan-cancer-hg38.rds (BED file containing target genomic regions)"
+      ],
+      "stages": "1. Convert VEP-annotated VCF to MAF format using vcfToMAF.\n2. Apply combined technical and candidate selection filters, and calculate TMB using mutFilterCom.",
+      "code": "library(CaMutQC)\nMAFdat <- vcfToMAF(system.file(\"extdata\", \"WES_EA_T_1_mutect2.vep.vcf\", package=\"CaMutQC\"))\nMAFCom_tmb <- mutFilterCom(MAFdat, panel=\"WES\", assay=\"Customized\", report=FALSE, TMB=TRUE, \n                           bedFile=system.file(\"extdata/bed/panel_hg38\", \n                                               \"Pan-cancer-hg38.rds\", package=\"CaMutQC\"), \n                           PONfile=system.file(\"extdata\", \"PON_test.txt\", package=\"CaMutQC\"), \n                           PONformat=\"txt\", progressbar=FALSE, verbose=FALSE)"
+    },
+    {
+      "name": "cancer_or_reference_specific_filtering",
+      "intent": "Filter somatic mutations using cancer-type-specific or published reference-specific filtering strategies.",
+      "input": [
+        "WES_EA_T_1_mutect2.vep.vcf (VEP-annotated somatic mutation VCF file)",
+        "PON_test.txt (Panel of Normals file)"
+      ],
+      "stages": "1. Convert VEP-annotated VCF to MAF format using vcfToMAF.\n2. Apply cancer-type-specific filtering (e.g., LAML) using mutFilterCan.\n3. Apply reference-study-specific filtering (e.g., Zhu et al. 2020 KIRP) using mutFilterRef.",
+      "code": "library(CaMutQC)\nMAFdat <- vcfToMAF(system.file(\"extdata\", \"WES_EA_T_1_mutect2.vep.vcf\", package=\"CaMutQC\"))\nMAFCan <- mutFilterCan(MAFdat, cancerType='LAML', report=FALSE, TMB=FALSE, \n                       progressbar=FALSE, \n                       PONfile=system.file(\"extdata\", \"PON_test.txt\", \n                                           package=\"CaMutQC\"), PONformat=\"txt\")\nMAFRef <- mutFilterRef(MAFdat, reference=\"Zhu_et_al-Nat_Commun-2020-KIRP\", \n                       report=FALSE, TMB=FALSE, progressbar=FALSE,\n                       PONfile=system.file(\"extdata\", \"PON_test.txt\", \n                                           package=\"CaMutQC\"), PONformat=\"txt\")"
+    },
+    {
+      "name": "multi_caller_integration",
+      "intent": "Integrate somatic mutation calls from multiple variant callers (e.g., MuSE, VarScan2, MuTect2) by filtering each individually and taking their union.",
+      "input": [
+        "WES_EA_T_1.MuSE.vep.vcf (MuSE VEP-annotated VCF)",
+        "WES_EA_T_1_varscan_filter_snp.vep.vcf (VarScan2 VEP-annotated VCF)",
+        "WES_EA_T_1_mutect2.vep.vcf (MuTect2 VEP-annotated VCF)",
+        "PON_test.txt (Panel of Normals file)"
+      ],
+      "stages": "1. Convert each caller's VEP-annotated VCF to MAF format using vcfToMAF.\n2. Filter each MAF dataset individually using mutFilterCom.\n3. Combine the filtered MAF datasets into a list and merge them using the union strategy with processMut.",
+      "code": "library(CaMutQC)\nmaf_MuSE <- vcfToMAF(system.file(\"extdata/Multi-caller\", \n                                 \"WES_EA_T_1.MuSE.vep.vcf\", package=\"CaMutQC\")) \nmaf_MuSE_f <- mutFilterCom(maf_MuSE, report=FALSE, TMB=FALSE, \n                           PONfile=system.file(\"extdata\", \n                                               \"PON_test.txt\", package=\"CaMutQC\"), \n                           PONformat = \"txt\", progressbar=FALSE)\nmaf_VarScan2 <- vcfToMAF(system.file(\"extdata/Multi-caller\", \n                                     \"WES_EA_T_1_varscan_filter_snp.vep.vcf\", package=\"CaMutQC\"))\nmaf_VarScan2_f <- mutFilterCom(maf_VarScan2, report=FALSE, TMB=FALSE, \n                               PONfile=system.file(\"extdata\", \n                                                   \"PON_test.txt\", package=\"CaMutQC\"), \n                               PONformat=\"txt\", progressbar=FALSE)\nMAFdat <- vcfToMAF(system.file(\"extdata\", \"WES_EA_T_1_mutect2.vep.vcf\", package=\"CaMutQC\"))\nMAFdat_f <- mutFilterCom(MAFdat, report=FALSE, TMB=FALSE, \n                         PONfile=system.file(\"extdata\", \"PON_test.txt\", package= \"CaMutQC\"), \n                         PONformat=\"txt\", progressbar=FALSE)\nmafs <- list(maf_MuSE_f, maf_VarScan2_f, MAFdat_f)\nmaf_union <- processMut(mafs, processMethod = \"union\")"
+    }
+  ]
+}

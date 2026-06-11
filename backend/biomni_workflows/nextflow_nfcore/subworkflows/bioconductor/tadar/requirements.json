@@ -1,0 +1,15 @@
+{
+  "package": "tadar",
+  "requirements": [
+    "limma",
+    "tadar",
+    "tidyverse"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "limma",
+      "tadar",
+      "tidyverse"
+    ]
+  }
+}

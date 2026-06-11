@@ -1,0 +1,45 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: regions=Genomic regions of interest, provided as BED/narrowPeak/broadPeak/GTF file paths, GRanges, or GRangesList ;; bam_files=Vector of paths to indexed BAM files (with matching .bai files) ;; assay=Shorthand ('chipseq' or 'rnaseq') to set sensible defaults for analysis parameters ;; region_mode=Set to 'stitch' (default for 'rnaseq') to stitch exons/ranges together, or 'separate' (default for 'chipseq') for contiguous regions ;; design=Data frame mapping BAM files to design groups (1 for input, 2 for control, 0 to ignore) ;; normalization=Normalization method: \"RPM\", \"log2_ratio\", \"NCIS\", or NULL ;; bin_count=Number of bins to divide regions into (cannot be smaller than the smallest region) ;; alpha=Alpha parameter for confidence interval calculations (default 0.05) ;; sample_count=Number of resamplings for bootstrap analysis ;; resampling_strategy=Resampling strategy ('profile' or 'bin') for bootstrap ;; split_by=Vector of column names from region metadata to group regions ;; facet_by=Faceting formula for ggplot2 plotting ;; group_by=Metadata column determining the color scale in plotting ;; extend_reads=Length to extend reads (useful for single-end ChIP-seq) ;; invert_strand=Set to TRUE to invert strands (useful for stranded single-end RNA-seq) ;; strand_specific=Set to TRUE to discard reads on the opposite strand\n- alternatives: metagene=The predecessor package; metagene2 is a thorough overhaul with explicit intermediary steps, better parameter management, and true RNA-seq support ;; TxDb packages and GenomicFeatures=Used to generate common ranges like TSS or gene bodies instead of using built-in ones (which were removed in metagene2)\n- when_to_use: Use when comparing average coverage profiles of DNA-interacting proteins (ChIP-seq) or transcript abundance (RNA-seq) across multiple groups of genomic regions (e.g., TSS, gene bodies, enhancers) and multiple experimental conditions/replicates.\n- pitfalls: BAM files must be indexed (matching .bai or .bam.bai files must exist in the same directory) ;; Large datasets can cause memory issues; the docs recommend analyzing datasets separately and merging results using rbind before plotting ;; bin_count cannot be smaller than the size of the smallest region ;; Cloning a metagene object requires deep=TRUE to avoid sharing environments ;; Control samples are ignored unless \"NCIS\" or \"log2_ratio\" normalization is selected",
+  "workflows": [
+    {
+      "name": "chipseq_metagene_analysis",
+      "intent": "Perform a standard ChIP-seq metagene analysis using contiguous regions, an experimental design, and region metadata.",
+      "input": [
+        "bam_files (indexed BAM files of ChIP-seq alignments)",
+        "regions (BED files or GRanges/GRangesList of genomic regions)"
+      ],
+      "stages": "1. Initialize metagene2 object; 2. Define experimental design; 3. Define region metadata; 4. Produce metagene plot.",
+      "code": "mg <- metagene2$new(regions = get_demo_regions(), \n                   bam_files = get_demo_bam_files(), \n                   assay='chipseq')\nmg$produce_metagene(title = \"Demo metagene plot\")\n\nexample_design <- data.frame(Samples = bam_files,\n                             align1 = c(1,1,0,0,2),\n                             align2 = c(0,0,1,1,2))\nmg$produce_metagene(design=example_design)\n\nregions_gr <- unlist(get_demo_regions())\ndemo_metadata = data.frame(BedName=names(regions_gr),\n                           EvenStart=ifelse((start(regions_gr) %% 2) == 0, \"Even\", \"Odd\"),\n                           Strand=strand(regions_gr))\nmg <- metagene2$new(regions = get_demo_regions(),\n                   region_metadata=demo_metadata,\n                   bam_files = get_demo_bam_files(),\n                   assay='chipseq')\nmg$produce_metagene(split_by=c(\"EvenStart\", \"Strand\"), facet_by=EvenStart~Strand, group_by=\"design\")"
+    },
+    {
+      "name": "rnaseq_metagene_analysis",
+      "intent": "Perform RNA-seq metagene analysis by stitching exons together and using strand-specific coverage.",
+      "input": [
+        "bam_files (indexed BAM files of RNA-seq alignments)",
+        "regions (GRangesList of exons grouped by gene/transcript)"
+      ],
+      "stages": "1. Initialize metagene2 object with region_mode=\"stitch\"; 2. Produce metagene plot.",
+      "code": "regions <- get_demo_rna_regions()\nmg <- metagene2$new(regions = regions,\n                   bam_files = get_demo_rna_bam_files(),\n                   region_mode=\"stitch\")\nmg$get_regions()"
+    },
+    {
+      "name": "large_dataset_analysis",
+      "intent": "Manage large datasets by processing regions separately and merging results before plotting to avoid memory limits.",
+      "input": [
+        "bam_files (indexed BAM files)",
+        "regions (multiple sets of genomic regions)"
+      ],
+      "stages": "1. Initialize separate metagene2 objects; 2. Extract and add metadata; 3. Combine data frames with rbind; 4. Plot combined data.",
+      "code": "mg1 <- metagene2$new(bam_files = get_demo_bam_files(), \n                     regions = get_demo_regions()[1])\nmg2 <- metagene2$new(bam_files = get_demo_bam_files(),\n                     regions = get_demo_regions()[2])\nplot_metagene(rbind(mg1$add_metadata(), mg2$add_metadata()),\n              facet_by=.~region_name)"
+    },
+    {
+      "name": "metagene_heatmap",
+      "intent": "Plot individual genomic regions as a heatmap, optionally ordered by signal intensity.",
+      "input": [
+        "mg (pre-calculated metagene2 object)"
+      ],
+      "stages": "1. Generate heatmap; 2. Generate heatmap with custom coverage ordering.",
+      "code": "mg <- get_demo_metagene()\nmetagene2_heatmap(mg)\nmetagene2_heatmap(mg, coverage_order(mg, \"align1_rep1\"))"
+    }
+  ]
+}

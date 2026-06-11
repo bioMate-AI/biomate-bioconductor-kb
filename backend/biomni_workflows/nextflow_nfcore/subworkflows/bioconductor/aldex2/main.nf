@@ -1,158 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ALDEx2
-// A differential abundance analysis for the comparison of two or more conditions. Useful for analyzing
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ALDEx2/inst/doc/ALDEx2_vignette.R
-// Upstream  : cowplot, ggpattern, ggplot2, tidyverse
-// Downstream: omicplotR
-//
-// Install: BiocManager::install("ALDEx2")
+// Bioconductor workflow: ALDEx2 — two_group_comparison
+// Perform differential abundance testing between two groups using Welch's t-test, Wilcoxon rank test, and effect size estimation.
+// Input: selex.sub, conds
+// Container: quay.io/biocontainers/bioconductor-aldex2:1.42.0--r45hdfd78af_0
+// R packages: ALDEx2, cowplot, ggpattern, ggplot2, tidyverse
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ALDEx2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Generate Dirichlet Monte Carlo instances using `aldex.clr`
+//  * 2. [Core Analysis] Perform t-tests using `aldex.ttest`
+//  * 3. [Core Analysis] Calculate effect sizes using `aldex.effect`
+//  * 4. [Visualization & Output] Merge and plot results using `aldex.plot` and `aldex.plotFeature`
 
 nextflow.enable.dsl = 2
 
-process BIOC_ALDEX2 {
+process BIOC_ALDEX2_TWO_GROUP_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-aldex2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-aldex2:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-aldex2:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_aldex2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_aldex2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_aldex2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("ALDEx2", "cowplot", "ggpattern", "ggplot2", "tidyverse")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(ALDEx2)
-    library(jsonlite)
-
-
-    # --- Basecode [] ---
-    # Key functions: load_all, rep, aldex
-    # this is all the data generated once
-    # all other data will be displayed but not evaluated
-
-    ##### RECODE THE SOURCE PRIOR TO PUSHING TO BIOCONDUCTOR
-    # devtools::load_all('~/Documents/0_git/ALDEx_bioc')
-    library(ALDEx2)
-    set.seed(11)
-
-    #### BASIC ALDEx2
-    #subset only the last 400 features for efficiency
-    data(selex)
-    selex.sub <- selex[1200:1600,]
-    conds <- c(rep("NS", 7), rep("S", 7))
-    x.aldex <- aldex(selex.sub, conds, mc.samples=16, test="t", effect=TRUE, 
-      include.sample.summary=FALSE, denom="all", verbose=FALSE, paired.test=FALSE, gamma=NULL)
-
-    # --- Ci [] ---
-    # Key functions: sign, par, abline, grey, red, blue
-    sgn <- sign(x.effect$effect.low) == sign(x.effect$effect.high)
+    
+    # -----------------------------------------------------------------------------
+    # 1. Read User Input Files
+    # -----------------------------------------------------------------------------
+    if (!file.exists("selex.sub")) {
+      stop("Error: Required input file 'selex.sub' not found in the working directory.")
+    }
+    
+    if (!file.exists("conds")) {
+      stop("Error: Required input file 'conds' not found in the working directory.")
+    }
+    
+    # Read count matrix (features by samples)
+    selex.sub <- tryCatch({
+      read.csv("selex.sub", row.names = 1, check.names = FALSE)
+    }, error = function(e) {
+      read.table("selex.sub", header = TRUE, row.names = 1, sep = "", check.names = FALSE)
+    })
+    
+    # Read conditions vector
+    conds <- scan("conds", what = character(), quiet = TRUE)
+    conds <- conds[conds != ""]
+    
+    # -----------------------------------------------------------------------------
+    # 2. Run ALDEx2 Pipeline
+    # -----------------------------------------------------------------------------
+    # Generate Dirichlet Monte Carlo instances
+    x <- aldex.clr(selex.sub, conds, mc.samples=16, denom="all", verbose=F, gamma=1e-3)
+    
+    # Perform Welch's t-test and Wilcoxon rank test
+    x.tt <- aldex.ttest(x, hist.plot=F, paired.test=FALSE, verbose=FALSE)
+    
+    # Calculate effect sizes
+    x.effect <- aldex.effect(x, CI=T, verbose=F, include.sample.summary=F,
+      paired.test=FALSE, glm.conds=NULL, useMC=F)
+    
+    # Merge results
+    x.all <- data.frame(x.tt, x.effect)
+    
+    # -----------------------------------------------------------------------------
+    # 3. Save Outputs and Generate Plots
+    # -----------------------------------------------------------------------------
+    # Save tabular results
+    write.csv(x.all, "aldex_results.csv", row.names = TRUE)
+    saveRDS(x, "aldex_clr_object.rds")
+    
+    # Generate MA and MW plots
+    pdf("aldex_plots.pdf", width = 10, height = 5)
     par(mfrow=c(1,2))
-    plot(x.effect$rab.all, x.effect$diff.btw, pch=19, cex=0.3, col="grey", xlab="Abundance", ylab="Difference", main="Bland-Altman")
-    points(x.effect$rab.all[abs(x.effect$effect) >=2], x.effect$diff.btw[abs(x.effect$effect) >=2], pch=19, cex=0.5, col="red")
-    points(x.effect$rab.all[sgn], x.effect$diff.btw[sgn], cex=0.7, col="blue")
+    aldex.plot(x.all, type="MA", test="welch")
+    aldex.plot(x.all, type="MW", test="welch")
+    dev.off()
+    
+    # Generate feature plot
+    pdf("aldex_feature_plot.pdf", width = 7, height = 7)
+    tryCatch({
+      # Attempt to plot the documented feature 'S:E:G:D'
+      aldex.plotFeature(x, 'S:E:G:D')
+    }, error = function(e) {
+      # Fallback to the first available feature if 'S:E:G:D' is not in the user's dataset
+      if (nrow(selex.sub) > 0) {
+        fallback_feature <- rownames(selex.sub)[1]
+        aldex.plotFeature(x, fallback_feature)
+      }
+    })
+    dev.off()
 
-    plot(x.effect$diff.win, x.effect$diff.btw, pch=19, cex=0.3, col="grey",xlab="Dispersion", ylab="Difference", main="Effect")
-    points(x.effect$diff.win[abs(x.effect$effect) >=2], x.effect$diff.btw[abs(x.effect$effect) >=2], pch=19, cex=0.5, col="red")
-    points(x.effect$diff.win[sgn], x.effect$diff.btw[sgn], cex=0.7, col="blue")
-    abline(0,2, lty=2, col="grey")
-    abline(0,-2, lty=2, col="grey")
-
-    # --- Glm [] ---
-    # Key functions: aldex.glm.plot
-    # NEW plot the glm.test and glm.eff data for particular contrasts
-    aldex.glm.plot(glm.test, eff=glm.eff, contrast='B', type='MW', test='fdr')
-
-    # --- Fig=true [] ---
-    # Key functions: rgb, abline
-    # identify which values are significant in both the t-test and glm tests
-    found.by.all <- which(x.all$we.eBH < 0.05 & x.all$wi.eBH < 0.05)
-
-    # identify which values are significant in fewer than all tests
-    found.by.one <- which(x.all$we.eBH < 0.05 | x.all$wi.eBH < 0.05)
-
-    # plot the within and between variation of the data
-    plot(x.all$diff.win, x.all$diff.btw, pch=19, cex=0.3, col=rgb(0,0,0,0.3),
-     xlab="Dispersion", ylab="Difference")
-    points(x.all$diff.win[found.by.one], x.all$diff.btw[found.by.one], pch=19,
-     cex=0.7, col=rgb(0,0,1,0.5))
-    points(x.all$diff.win[found.by.all], x.all$diff.btw[found.by.all], pch=19,
-     cex=0.7, col=rgb(1,0,0,1))
-    abline(0,1,lty=2)
-    abline(0,-1,lty=2)
-
-    # --- Scale [] ---
-    # Key functions: rep, aldex.clr, aldex.effect, aldex.makeScaleMatrix
-    set.seed(11)
-    data(synth2)
-    # basic ALDEx2
-    blocks <- c(rep("N", 10),rep("S", 10))
-    x <- aldex.clr(synth2, blocks, gamma=NULL)
-    x.e <- aldex.effect(x)
-
-    # Add in asymmetry and scale variance
-    # gamma can be smaller for the same output dispersion
-    # in the full scale model built here
-    # make a base scale for group 1 and 2
-    mu.vec = c(log2(rep(1,10)), log2(rep(1.02,10)))
-    scale_samples <- aldex.makeScaleMatrix(gamma=0.25, mu=mu.vec, 
-      conditions=blocks) 
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_aldex2_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_aldex2_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_aldex2_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ALDEX2:", paste0("    aldex2: ", packageVersion("ALDEx2"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ALDEX2_TWO_GROUP_COMPARISON":',
+        paste0('    ALDEx2: ', as.character(packageVersion('ALDEx2')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_aldex2_results.csv
-    touch ${prefix}_aldex2_output.rds
-    echo "BIOC_ALDEX2:" > versions.yml
-    echo "    aldex2: 0.0.0" >> versions.yml
+    touch ${prefix}_two_group_comparison.csv versions.yml
     """
 }
 
-
-workflow BIOC_ALDEX2_WORKFLOW {
+workflow BIOC_ALDEX2_TWO_GROUP_COMPARISON_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ selex.sub, conds ] ]
 
     main:
-    BIOC_ALDEX2(ch_input)
+    BIOC_ALDEX2_TWO_GROUP_COMPARISON(ch_input)
 
     emit:
-    results  = BIOC_ALDEX2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ALDEX2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ALDEX2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ALDEX2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ALDEX2_TWO_GROUP_COMPARISON.out.tables
+    plots    = BIOC_ALDEX2_TWO_GROUP_COMPARISON.out.plots
+    objects  = BIOC_ALDEX2_TWO_GROUP_COMPARISON.out.objects
+    versions = BIOC_ALDEX2_TWO_GROUP_COMPARISON.out.versions
 }

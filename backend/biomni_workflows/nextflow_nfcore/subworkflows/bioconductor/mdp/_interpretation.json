@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A data.frame of omic expression data with gene names in the rows ;; pdata=A phenotype data.frame containing at least \"Sample\" and \"Class\" columns ;; control_lab=A character string specifying the control class label in the Class column ;; pathways=An optional list of pathways/genesets (e.g., loaded via fgsea::gmtPathways) to calculate pathway-specific sample scores ;; fraction_genes=An option in the mdp function to control the top fraction of ranked genes that count as perturbed_genes ;; measure=Statistic used for normalization in z-score calculation; defaults to \"median\" (using MAD), can be set to \"mean\" ;; std=Threshold for z-score zeroing (default is 2) in compute_zscore\n- alternatives: None mentioned, but the package expands on the Molecular Distance to Health algorithm implemented in Pankla et al. 2009 by adding modified z-scores, adjustable thresholds, and test-versus-control ranking.\n- when_to_use: Use when you want to quantify the degree of molecular perturbation and heterogeneity of individual samples (e.g., clinical test samples) compared to a baseline control group, and identify which genes or pathways drive this perturbation.\n- pitfalls: The phenotype data.frame (pdata) must contain columns named exactly \"Sample\" and \"Class\". The expression data.frame (data) must have gene names in the rows.",
+  "workflows": [
+    {
+      "name": "standard_mdp_analysis",
+      "intent": "Quantify sample and gene perturbation scores relative to a control group using omic expression data.",
+      "input": [
+        "expression_data.csv (omic data matrix with genes in rows)",
+        "phenotype_data.csv (sample metadata with 'Sample' and 'Class' columns)"
+      ],
+      "stages": "1. Load the mdp package and input datasets ;; 2. Run the main mdp function to calculate perturbation scores ;; 3. Extract and plot sample scores for the perturbed genes ;; 4. Extract thresholded z-scores, gene scores, gene frequencies, and the list of perturbed genes.",
+      "code": "library(mdp)\ndata(example_data) # expression data has gene names in the rows\ndata(example_pheno) # pheno data needs a Sample and Class column\nmdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = \"baseline\")\nsample_scores_list <- mdp.results$sample_scores\nsample_scores <- sample_scores_list[[\"perturbedgenes\"]]\nhead(sample_scores)\nsample_plot(sample_scores,control_lab = \"baseline\", title=\"perturbed\")\nzscore <- mdp.results$zscore\ngene_scores <- mdp.results$gene_scores\ngene_freq <- mdp.results$gene_freq\nhead(gene_scores)\nperturbed_genes <- mdp.results$perturbed_genes"
+    },
+    {
+      "name": "pathway_mdp_analysis",
+      "intent": "Quantify sample perturbation scores within specific biological pathways using gene sets.",
+      "input": [
+        "expression_data.csv (omic data matrix with genes in rows)",
+        "phenotype_data.csv (sample metadata with 'Sample' and 'Class' columns)",
+        "pathways.gmt (GMT file containing gene sets)"
+      ],
+      "stages": "1. Load the mdp package and input datasets ;; 2. Read the pathway GMT file using fgsea::gmtPathways ;; 3. Run the mdp function with the pathways argument ;; 4. Extract pathway signal-to-noise ratios and pathway-specific sample scores ;; 5. Plot sample scores for a specific pathway.",
+      "code": "library(mdp)\ndata(example_data) # expression data has gene names in the rows\ndata(example_pheno) # pheno data needs a Sample and Class column\nfile_address <- system.file(\"extdata\", \"ReactomePathways.gmt\", package = \"mdp\")\npathways <- fgsea::gmtPathways(file_address)\nmdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = \"baseline\",pathways=pathways)\nhead(mdp.results$pathways)\nsample_scores <- mdp.results$sample_scores[[\"Interferon alpha/beta signaling\"]]\nsample_plot(sample_scores,control_lab = \"baseline\", title=\"Interferon a/b\")"
+    }
+  ]
+}

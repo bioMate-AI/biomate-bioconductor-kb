@@ -1,0 +1,20 @@
+{
+  "package": "mosaics",
+  "requirements": [
+    "mosaics"
+  ],
+  "by_workflow": {
+    "convenient_two_sample_run_all.nf": [
+      "mosaics"
+    ],
+    "main.nf": [
+      "mosaics"
+    ],
+    "one_sample_with_genomic_features.nf": [
+      "mosaics"
+    ],
+    "two_sample_with_genomic_features.nf": [
+      "mosaics"
+    ]
+  }
+}

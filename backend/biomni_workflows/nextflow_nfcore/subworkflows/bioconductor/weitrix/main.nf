@@ -1,118 +1,177 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: weitrix
-// Data type and tools for working with matrices having precision weights and missing data. This packag
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/weitrix/inst/doc/V2_tail_length.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("weitrix")
+// Bioconductor workflow: weitrix — weighted_continuous_matrix_analysis
+// Analyze continuous measurements with associated precision weights (e.g., average tail lengths weighted by read counts) to calibrate weights, find components of 
+// Input: tail.csv.gz, tail_count.csv.gz, samples
+// Container: quay.io/biocontainers/bioconductor-weitrix:1.22.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, dplyr, ggplot2, limma, topconfects, weitrix
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Construct weitrix using as_weitrix
+//  * 2. [Core Analysis] Annotate row and column metadata
+//  * 3. [Core Analysis] Fit initial components with weitrix_components
+//  * 4. [Core Analysis] Calibrate weights using weitrix_calibrate_all with well_knotted_spline
+//  * 5. [Visualization & Output] Diagnostic plotting with weitrix_calplot
+//  * 6. [Core Analysis] Test for top confident effects using weitrix_confects or limma (via weitrix_elist)
+//  * 7. [Visualization & Output] Discover components of variation using weitrix_components_seq and plot with components_seq_screeplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_WEITRIX {
+process BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-weitrix"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-weitrix:1.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-weitrix:1.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(marraylm)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_weitrix_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_weitrix_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_weitrix_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(weitrix)
-    library(jsonlite)
-
-    # --- Calibration and Weight Adjustment [] ---
-    # Key functions: weitrix_components, weitrix_calibrate_all, well_knotted_spline
-    design <- model.matrix(~ 1, data = colData(wei))
-    fit <- weitrix_components(wei, design = design)
-    cal <- weitrix_calibrate_all(
-        wei,
-        design = fit,
-        trend_formula = ~ well_knotted_spline(mu, 3)
-    )
-
-
-    # --- Differential Expression Analysis [] ---
-    # Key functions: weitrix_confects, weitrix_elist
-    design_de <- model.matrix(~ factor(rep(c("A", "B"), each = 5)))
-    colnames(design_de) <- c("Intercept", "GroupB")
-    confects <- weitrix_confects(
-        cal,
-        design_de,
-        coef = "GroupB",
-        fdr = 0.05
-    )
-    elist <- weitrix_elist(cal)
-
-
-    # --- Component Analysis and Visualization [] ---
-    # Key functions: weitrix_components_seq, components_seq_screeplot, matrix_long
-    comp_seq <- weitrix_components_seq(cal, p = 2)
-    scree_p <- components_seq_screeplot(comp_seq)
-    comp <- comp_seq[[1]]
-    long_df <- matrix_long(
-        comp$col,
-        varnames = c("sample", "component")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_weitrix_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_weitrix_results.csv")
+    library(limma)
+    library(topconfects)
+    library(dplyr)
+    library(ggplot2)
+    library(BiocParallel)
+    
+    # Set parallel processing to serial for reliability
+    BiocParallel::register(BiocParallel::SerialParam())
+    
+    # Set seed for reproducibility
+    set.seed(12345)
+    
+    # 1. Read input files from the working directory
+    tail <- read.csv("tail.csv.gz", row.names = 1, check.names = FALSE) %>% as.matrix()
+    tail_count <- read.csv("tail_count.csv.gz", row.names = 1, check.names = FALSE) %>% as.matrix()
+    samples <- read.csv("samples", row.names = 1, check.names = FALSE)
+    
+    # Ensure factor levels are correct and match the design dynamically
+    for (col in colnames(samples)) {
+      samples[[col]] <- factor(samples[[col]], levels = unique(samples[[col]]))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_weitrix_output.rds")
-    }
+    
+    # Filter genes with sufficient read counts
+    good <- rowMeans(tail_count) >= 10
+    
+    # 2. Construct weitrix object
+    wei <- as_weitrix( tail[good,,drop=FALSE], weights=tail_count[good,,drop=FALSE])
+    
+    # Annotate row metadata safely (generic fallback)
+    rowData(wei)\$gene <- rownames(wei)
+    
+    rowData(wei)\$total_reads <- rowSums(weitrix_weights(wei))
+    colData(wei) <- cbind(colData(wei), samples)
+    
+    # 3. Fit initial components
+    design <- model.matrix(~ ., data=samples)
+    fit <- weitrix_components(wei, design=design)
+    
+    # 4. Calibrate weights
+    cal <- weitrix_calibrate_all( wei, design = fit, trend_formula = ~well_knotted_spline(mu,3)+well_knotted_spline(log(weight),3))
+    
+    # 5. Diagnostic plotting
+    unwei <- wei
+    weitrix_weights(unwei) <- weitrix_weights(unwei) > 0
+    
+    pdf("weitrix_calplot.pdf", width = 7, height = 5)
+    p1 <- weitrix_calplot(unwei, fit, covar=mu, guides=FALSE)
+    print(p1)
+    dev.off()
+    
+    # 6. Test for top confident effects
+    coef_name <- colnames(design)[2]
+    
+    confects_strain <- weitrix_confects(cal, design, coef=coef_name, fdr=0.05)
+    write.csv(confects_strain\$table, "confects_strain.csv", row.names = FALSE)
+    
+    confects_strain_cohen <- weitrix_confects(cal, design, coef=coef_name, effect="cohen_f", fdr=0.05)
+    write.csv(confects_strain_cohen\$table, "confects_strain_cohen.csv", row.names = FALSE)
+    
+    # Limma analysis
+    fit_cal_design <- cal %>% weitrix_elist() %>% lmFit(design)
+    ebayes_fit <- eBayes(fit_cal_design)
+    top_table_strain <- topTable(ebayes_fit, coef=coef_name, n=10)
+    write.csv(top_table_strain, "top_table_strain.csv")
+    
+    # Multiple contrasts
+    multiple_contrasts <- diag(ncol(design))[, -1, drop=FALSE]
+    rownames(multiple_contrasts) <- colnames(design)
+    colnames(multiple_contrasts) <- colnames(design)[-1]
+    
+    confects_multi <- weitrix_confects(cal, design, contrasts=multiple_contrasts, fdr=0.05)
+    write.csv(confects_multi\$table, "confects_multi.csv", row.names = FALSE)
+    
+    # Overdispersion
+    confects <- weitrix_sd_confects(cal, ~1)
+    write.csv(confects\$table, "confects_sd.csv", row.names = FALSE)
+    
+    # 7. Discover components of variation
+    comp_seq <- weitrix_components_seq(cal, p=6)
+    
+    pdf("components_screeplot.pdf", width = 7, height = 5)
+    p2 <- components_seq_screeplot(comp_seq)
+    print(p2)
+    dev.off()
+    
+    comp <- comp_seq[[3]]
+    saveRDS(comp, "components_3.rds")
+    
+    long_comp <- matrix_long(comp\$col[,-1], row_info=samples, varnames=c("sample","component"))
+    write.csv(long_comp, "components_long.csv", row.names = FALSE)
+    
+    result_C1 <- weitrix_confects(cal, comp\$col, coef="C1")
+    write.csv(result_C1\$table, "result_C1.csv", row.names = FALSE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_WEITRIX:", paste0("    weitrix: ", packageVersion("weitrix"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS":',
+        paste0('    weitrix: ', as.character(packageVersion('weitrix')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_weitrix_results.csv
-    touch ${prefix}_weitrix_output.rds
-    echo "BIOC_WEITRIX:" > versions.yml
-    echo "    weitrix: 0.0.0" >> versions.yml
+    touch ${prefix}_weighted_continuous_matrix_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_WEITRIX_WORKFLOW {
+workflow BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(marraylm) ]
+    ch_input  // channel: [ val(meta), [ tail.csv.gz, tail_count.csv.gz, samples ] ]
 
     main:
-    BIOC_WEITRIX(ch_input)
+    BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_WEITRIX.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_WEITRIX.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_WEITRIX.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_WEITRIX.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS.out.tables
+    plots    = BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS.out.plots
+    objects  = BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS.out.objects
+    versions = BIOC_WEITRIX_WEIGHTED_CONTINUOUS_MATRIX_ANALYSIS.out.versions
 }

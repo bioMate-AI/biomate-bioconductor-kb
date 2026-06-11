@@ -1,0 +1,14 @@
+{
+  "package": "iseq",
+  "requirements": [
+    "iSeq"
+  ],
+  "by_workflow": {
+    "iseq2_high_order_ising.nf": [
+      "iSeq"
+    ],
+    "main.nf": [
+      "iSeq"
+    ]
+  }
+}

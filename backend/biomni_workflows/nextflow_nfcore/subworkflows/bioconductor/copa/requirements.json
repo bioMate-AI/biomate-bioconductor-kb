@@ -1,0 +1,11 @@
+{
+  "package": "copa",
+  "requirements": [
+    "copa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "copa"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "ribor",
+  "requirements": [
+    "ribor"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ribor"
+    ],
+    "translational_efficiency.nf": [
+      "ribor"
+    ]
+  }
+}

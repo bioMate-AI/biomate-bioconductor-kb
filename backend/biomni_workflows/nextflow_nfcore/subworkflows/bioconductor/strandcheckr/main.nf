@@ -1,147 +1,191 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: strandCheckR
-// This package aims to quantify and remove putative double strand DNA from a strand-specific RNA sampl
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/strandCheckR/inst/doc/strandCheckR.R
-// Upstream  : ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("strandCheckR")
+// Bioconductor workflow: strandcheckr — dna_contamination_analysis_and_filtering
+// Quantify strand-specificity across sliding windows, intersect with transcript annotations, plot diagnostics, and filter out double-stranded DNA contamination fr
+// Input: file.bam, file.bam.bai, annotation.gr
+// Container: quay.io/biocontainers/bioconductor-strandcheckr:1.28.0--r45hdfd78af_0
+// R packages: Rsamtools, ggplot2, strandCheckR
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_STRANDCHECKR {
+process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-strandcheckr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-strandcheckr:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-strandcheckr:1.24.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-strandcheckr:1.28.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_strandcheckr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_strandcheckr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_strandcheckr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "ggplot2", "strandCheckR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
     library(strandCheckR)
-    library(jsonlite)
-
-    # --- Read Strand Information from BAM ---
-    # Key functions: getStrandFromBamFile
-    files <- system.file(
-        "extdata", c("s1.sorted.bam", "s2.sorted.bam"),
-        package = "strandCheckR"
-    )
-    win <- getStrandFromBamFile(files, sequences = "10")
-    win$File <- basename(as.character(win$File))
-    sorted_win <- win[order((win$NbPos + win$NbNeg), decreasing = TRUE), ]
-
-    # --- Annotate Windows with Genomic Features ---
-    # Key functions: intersectWithFeature
-    annot <- GenomicRanges::GRanges(
-        seqnames = "chr10",
-        ranges = IRanges::IRanges(start = 1, end = 100000)
-    )
-    win$Seq <- paste0("chr", win$Seq)
-    win_annot <- intersectWithFeature(
-        windows = win,
-        annotation = annot,
-        overlapCol = "OverlapTranscript"
-    )
-
-    # --- Visualize Strand Proportion Histograms ---
-    # Key functions: plotHist, plotWin
-    win$OverlapTranscript <- "Transcript"
-    plotHist(
-        windows = win,
-        groupBy = c("File", "OverlapTranscript"),
-        normalizeBy = "File",
-        scales = "free_y"
-    )
-    plotWin(win, groupBy = "File")
-
-    # --- Filter Double-Stranded DNA Contamination ---
-    # Key functions: filterDNA
-    files <- system.file(
-        "extdata", c("s1.sorted.bam", "s2.sorted.bam"),
-        package = "strandCheckR"
-    )
+    library(Rsamtools)
+    library(ggplot2)
+    
+    # Define input files
+    bam_file <- "file.bam"
+    annot_file <- "annotation.gr"
+    
+    # Verify input files exist
+    if (!file.exists(bam_file)) {
+        stop("Error: Input BAM file 'file.bam' not found.")
+    }
+    if (!file.exists(annot_file)) {
+        stop("Error: Input annotation file 'annotation.gr' not found.")
+    }
+    
+    # Read the GRanges annotation object
+    annot <- readRDS(annot_file)
+    
+    # Extract sequence names from the BAM file header to scan
+    bam_header <- scanBamHeader(bam_file)
+    seq_names <- names(bam_header[[1]]\$targets)
+    # Clean sequence names (remove 'chr' prefix if present, as getStrandFromBamFile expects)
+    seq_names_clean <- gsub("^chr", "", seq_names)
+    
+    # 1. Calculate strand-specific read counts and coverage across sliding windows
+    # We duplicate the bam_file in the vector so that files[2] is valid and points to our BAM,
+    # matching the vignette's indexing style.
+    files <- c(bam_file, bam_file)
+    
+    win <- getStrandFromBamFile(files, sequences = seq_names_clean)
+    # shorten the file name
+    win\$File <- basename(as.character(win\$File))
+    
+    # Write raw window stats
+    write.csv(as.data.frame(win), "windows_raw.csv", row.names = FALSE)
+    
+    # Display windows with highest read counts
+    high_cov <- head(win[order((win\$NbPos+win\$NbNeg),decreasing=TRUE),])
+    write.csv(as.data.frame(high_cov), "highest_coverage_windows.csv", row.names = FALSE)
+    
+    # For the paired-end demonstration, we use the same input BAM file
+    fileP <- bam_file
+    winP <- getStrandFromBamFile(fileP, sequences = seq_names_clean)
+    winP\$File <- basename(as.character(winP\$File)) #shorten file name
+    
+    # 2. Intersect sliding windows with genomic annotations
+    # Ensure sequence names are consistent (add 'chr' prefix)
+    win\$Seq <- gsub("^chr", "", win\$Seq)
+    win\$Seq <- paste0("chr",win\$Seq) 
+    
+    win <- intersectWithFeature(
+        windows = win, annotation = annot, overlapCol = "OverlapTranscript"
+        )
+    
+    # Save intersected windows
+    write.csv(as.data.frame(win), "windows_intersected.csv", row.names = FALSE)
+    saveRDS(win, "windows_intersected.rds")
+    
+    # 3. Plot diagnostic plots
+    pdf("diagnostic_plots.pdf", width = 10, height = 8)
+    
+    # Plot histogram of positive proportion
+    p1 <- plotHist(
+        windows = win, groupBy = c("File","OverlapTranscript"), 
+        normalizeBy = "File", scales = "free_y"
+        )
+    print(p1)
+    
+    # Plot histogram for paired-end representation
+    p2 <- plotHist(
+        windows = winP, groupBy = "Type", normalizeBy = "Type", scales = "free_y"
+        )
+    print(p2)
+    
+    # Heatmap representation
+    p3 <- plotHist(
+        windows = win, groupBy = c("File","OverlapTranscript"), 
+        normalizeBy = "File", heatmap = TRUE
+        )
+    print(p3)
+    
+    # Plot win (read count vs positive proportion)
+    p4 <- plotWin(win, groupBy = "File")
+    print(p4)
+    
+    dev.off()
+    
+    # 4. Filter out double-stranded DNA contamination from the BAM file
+    filtered_bam <- "filtered.bam"
     win2 <- filterDNA(
-        file = files[2],
-        sequences = "10",
-        destination = tempfile(fileext = ".bam"),
-        threshold = 0.7,
-        getWin = TRUE
-    )
-    win2$File <- basename(as.character(win2$File))
+        file = files[2], sequences = seq_names_clean, destination = filtered_bam, 
+        threshold = 0.7, getWin = TRUE
+        )
+    
+    win2\$File <- basename(as.character(win2\$File))
+    
+    # 5. Compare window distributions before and after filtering
+    original_name <- basename(files[2])
+    win2\$File <- factor(win2\$File, levels = c(original_name, filtered_bam))
+    
+    pdf("filtering_comparison.pdf", width = 10, height = 8)
+    p_comp <- plotHist(win2, groupBy = "File", normalizeBy = "File", scales = "free_y") +
+        ggtitle("Histogram of positive proportions over all sliding windows before \nand after filtering reads coming from double strand DNA")
+    print(p_comp)
+    dev.off()
+    
+    # Save final window comparison data
+    write.csv(as.data.frame(win2), "filtering_comparison_windows.csv", row.names = FALSE)
 
-    # --- Compare Before and After Filtering ---
-    # Key functions: plotHist
-    win2$File <- factor(
-        win2$File,
-        levels = c("s2.sorted.bam", "s2.filter.bam")
-    )
-    plotHist(
-        win2,
-        groupBy = "File",
-        normalizeBy = "File",
-        scales = "free_y"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_strandcheckr_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_strandcheckr_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_strandcheckr_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_STRANDCHECKR:", paste0("    strandcheckr: ", packageVersion("strandCheckR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING":',
+        paste0('        strandcheckr: ', as.character(packageVersion("strandcheckr")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_strandcheckr_results.csv
-    touch ${prefix}_strandcheckr_output.rds
-    echo "BIOC_STRANDCHECKR:" > versions.yml
-    echo "    strandcheckr: 0.0.0" >> versions.yml
+    touch ${prefix}_dna_contamination_analysis_and_filtering.csv versions.yml
     """
 }
 
-
-workflow BIOC_STRANDCHECKR_WORKFLOW {
+workflow BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ file.bam, file.bam.bai, annotation.gr ] ]
 
     main:
-    BIOC_STRANDCHECKR(ch_input)
+    BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING(ch_input)
 
     emit:
-    results  = BIOC_STRANDCHECKR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_STRANDCHECKR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_STRANDCHECKR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_STRANDCHECKR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING.out.tables
+    plots    = BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING.out.plots
+    objects  = BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING.out.objects
+    versions = BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING.out.versions
 }

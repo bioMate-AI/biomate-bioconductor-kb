@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: None documented in the provided text.\n- alternatives: None documented in the provided text.\n- when_to_use: Use when analyzing temporal metagenomics or microbiome datasets with paired samples from the same individuals to assess microbiota stability over time.\n- pitfalls: The package is deprecated in Bioconductor 3.23 and is scheduled for removal, so users should refer to the package end-of-life guidelines or use the last stable release version.",
+  "workflows": [
+    {
+      "name": "microbiota_stability_analysis",
+      "intent": "Analyze and visualize the temporal stability of individual microbiotas using iterative clustering on paired samples.",
+      "input": [
+        "paired_microbiome_data.rds (TreeSummarizedExperiment or SummarizedExperiment containing temporal microbiota abundance profiles for paired individual samples)"
+      ],
+      "stages": "1. Subset samples from paired time points ;; 2. Run iterative clustering using the Hartigan-Wong k-means algorithm to stress-test paired samples ;; 3. Validate the stability results ;; 4. Visualize the stability output",
+      "code": ""
+    }
+  ]
+}

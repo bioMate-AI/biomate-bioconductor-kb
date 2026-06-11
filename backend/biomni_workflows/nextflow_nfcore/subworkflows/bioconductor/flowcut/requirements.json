@@ -1,0 +1,13 @@
+{
+  "package": "flowcut",
+  "requirements": [
+    "flowCore",
+    "flowCut"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "flowCore",
+      "flowCut"
+    ]
+  }
+}

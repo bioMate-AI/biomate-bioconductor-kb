@@ -1,0 +1,14 @@
+{
+  "package": "cellity",
+  "requirements": [
+    "cellity"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "cellity"
+    ],
+    "svm_based_quality_classification.nf": [
+      "cellity"
+    ]
+  }
+}

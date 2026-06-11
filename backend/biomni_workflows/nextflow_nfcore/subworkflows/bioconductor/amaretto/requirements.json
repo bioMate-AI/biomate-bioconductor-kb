@@ -1,0 +1,11 @@
+{
+  "package": "amaretto",
+  "requirements": [
+    "AMARETTO"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AMARETTO"
+    ]
+  }
+}

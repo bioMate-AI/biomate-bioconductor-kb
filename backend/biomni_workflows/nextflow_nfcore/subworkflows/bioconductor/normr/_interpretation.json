@@ -1,0 +1,57 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: treatment=Path to a coordinate-sorted and indexed BAM file for the ChIP-seq treatment, or an integer vector of read counts ;; control=Path to a coordinate-sorted and indexed BAM file for the control/input, or an integer vector of read counts ;; genome=A character specifying a UCSC genome identifier (e.g., \"hg19\"), a 2-dimensional data.frame with columns seqnames and length, or a GenomicRanges object specifying predefined regions ;; models=Integer specifying the number of mixture model components (regimes) to fit in regimeR() ;; countConfig=A configuration object (NormRCountConfig-class) created by countConfigSingleEnd() or countConfigPairedEnd() to customize read counting (binsize, mapq, duplicates, shift, midpoint, fragment size) ;; fdr=False Discovery Rate threshold used in getClasses(), getRanges(), and exportR() to filter significant regions ;; type=Format for exporting results in exportR() (e.g., \"bed\", \"bedGraph\", \"bigWig\")\n- alternatives: bamsignals=Used for counting reads beforehand when analyzing predefined regions of interest\n- when_to_use: Use when calling genomic regions significantly enriched in a ChIP-seq experiment compared to an input control, comparing two ChIP-seq tracks directly to find differential enrichment, or identifying multiple enrichment regimes (e.g., separating broad domains from sharp peaks) in ChIP-seq data.\n- pitfalls: BAM files must be sorted by read coordinates and indexed before analysis ;; Predefined regions passed to the genome argument must be of identical size for the binomial mixture model fit to work correctly ;; Differential enrichment calling with diffR() is sensitive to Copy Number Variations (CNVs) in cancer/tumor samples; users should control for CNVs by running diffR() on input controls first and filtering out overlapping regions ;; Regions with low read counts (below the T-Filter threshold) are filtered out during multiple testing correction to maintain statistical power, which might result in many filtered-out regions if analyzing a small subset of the genome with a whole-genome specification.",
+  "workflows": [
+    {
+      "name": "chip_seq_enrichment_calling",
+      "intent": "Call genomic regions significantly enriched in a ChIP-seq experiment compared to an input control.",
+      "input": [
+        "ChIP.bam (coordinate-sorted and indexed ChIP-seq alignment file)",
+        "Control.bam (coordinate-sorted and indexed control/input alignment file)"
+      ],
+      "stages": "1. Load the package and define paths to BAM files.\n2. Retrieve or define the genome chromosome information.\n3. Call enrichment using enrichR().\n4. Inspect fit statistics and summary.\n5. Extract normalized enrichment, classes, or genomic ranges using getEnrichment(), getClasses(), and getRanges().\n6. Export results to BED or bigWig format using exportR().",
+      "code": "library(\"normr\")\n\ninputBamfile <- system.file(\"extdata\", \"K562_Input.bam\", package=\"normr\")\nk4me3Bamfile <- system.file(\"extdata\", \"K562_H3K4me3.bam\", package=\"normr\")\nk36me3Bamfile <- system.file(\"extdata\", \"K562_H3K36me3.bam\", package=\"normr\")\n\n#Fetch chromosome information\ngenome <- GenomeInfoDb::getChromInfoFromUCSC(\"hg19\", assembled.molecules.only = TRUE)\n\n#Delete unnecessary columns\ngenome <- genome[,1:2]\ngenome\n\n#Toy data has only \"chr1\"\ngenome <- genome[genome[,1] == \"chr1\",]\ngenome\n\n#Enrichment Calling for H3K4me3 and H3K36me3\nk4me3Fit <- enrichR(treatment = k4me3Bamfile, control = inputBamfile,\n                    genome = genome, verbose = FALSE)\nk36me3Fit <- enrichR(treatment = k36me3Bamfile, control = inputBamfile,\n                     genome = genome, verbose = FALSE)\n\nk4me3Fit\nk36me3Fit\n\nsummary(k4me3Fit)\nsummary(k36me3Fit)\n\n#background normalized enrichment\nk4me3Enr <- getEnrichment(k4me3Fit)\n\n#restrict to regions with non-zero counts\nidx <- which(rowSums(do.call(cbind, getCounts(k4me3Fit))) != 0)\nsummary(k4me3Enr[idx])\n\n#integer vector with <NA> set to non-significant regions\nk4me3Classes <- getClasses(k4me3Fit, fdr = 0.05)\nk36me3Classes <- getClasses(k36me3Fit, fdr = 0.05)\n\nk4me3Ranges <- getRanges(k4me3Fit)[!is.na(k4me3Classes)]\n#Alternatively you can extract ranges without storing the class vector\nk4me3Ranges <- getRanges(k4me3Fit, fdr = 0.05)\n\n#as expected we get 587 regions\nlength(k4me3Ranges)\n\n#export coordinates of significantly (FDR <= 0.05) enriched regions\nexportR(k4me3Fit, filename = \"k4me3Fit.bed\", type = \"bed\", fdr = 0.05)\nexportR(k36me3Fit, filename = \"k36me3Fit.bed\", type = \"bed\", fdr = 0.05)\n\n#export background-normalized enrichment\nexportR(k4me3Fit, filename = \"k4me3Fit.bw\", type = \"bigWig\")\nexportR(k36me3Fit, filename = \"k36me3Fit.bw\", type = \"bigWig\")"
+    },
+    {
+      "name": "differential_enrichment_calling",
+      "intent": "Call differential enrichment directly between two ChIP-seq conditions without a control experiment.",
+      "input": [
+        "ChIP1.bam (coordinate-sorted and indexed ChIP-seq alignment file for condition 1)",
+        "ChIP2.bam (coordinate-sorted and indexed ChIP-seq alignment file for condition 2)"
+      ],
+      "stages": "1. Call differential enrichment using diffR() with BAM files or pre-calculated counts.\n2. Inspect summary statistics.\n3. Export differential regions and normalized differences using exportR().",
+      "code": "#We could use read counts from above NormRFit objects\nk4k36Dif <- diffR(treatment = getCounts(k4me3Fit)$treatment,\n                  control   = getCounts(k36me3Fit)$treatment,\n                  genome    = getRanges(k4me3Fit),\n                  verbose   = FALSE)\n#<or> (unnecessarily) count again\n#k4k36Dif <- diffR(treatment = k4me3Bamfile, control = k36me3Bamfile,\n#                  genome = genome, verbose = FALSE)\n\n#summary statistics\nsummary(k4k36Dif)\n\nexportR(k4k36Dif, filename = \"k4k36Dif.bed\", type = \"bed\", fdr = 0.05)\nexportR(k4k36Dif, filename = \"k4k36Dif.bw\", type = \"bigWig\")"
+    },
+    {
+      "name": "enrichment_regime_stratification",
+      "intent": "Identify and classify multiple enrichment regimes (e.g., broad domains vs. sharp peaks) in a ChIP-seq experiment.",
+      "input": [
+        "ChIP.bam (coordinate-sorted and indexed ChIP-seq alignment file)",
+        "Control.bam (coordinate-sorted and indexed control/input alignment file)"
+      ],
+      "stages": "1. Call regime enrichment using regimeR(), specifying the number of models/components.\n2. Inspect summary statistics.\n3. Export called regimes to BED files using exportR().",
+      "code": "k4me3Regimes <- regimeR(treatment = getCounts(k4me3Fit)$treatment,\n                         control   = getCounts(k4me3Fit)$control,\n                         genome    = getRanges(k4me3Fit),\n                         models    = 3,\n                         verbose   = FALSE)\nsummary(k4me3Regimes)\n\nk36me3Regimes <- regimeR(treatment = getCounts(k36me3Fit)$treatment,\n                         control   = getCounts(k36me3Fit)$control,\n                         genome    = getRanges(k36me3Fit),\n                         models    = 3,\n                         verbose   = FALSE)\nsummary(k36me3Regimes)\n\nexportR(k4me3Regimes, filename = \"k4me3Regimes.bed\", type = \"bed\", fdr=0.05)\nexportR(k36me3Regimes, filename = \"k36me3Regimes.bed\", type = \"bed\", fdr=0.05)"
+    },
+    {
+      "name": "custom_counting_and_predefined_regions",
+      "intent": "Configure custom read counting strategies (single-end or paired-end) and perform enrichment calling on predefined genomic regions of identical size.",
+      "input": [
+        "ChIP.bam (coordinate-sorted and indexed ChIP-seq alignment file)",
+        "Control.bam (coordinate-sorted and indexed control/input alignment file)"
+      ],
+      "stages": "1. Define custom single-end or paired-end counting configurations using countConfigSingleEnd() or countConfigPairedEnd().\n2. Define predefined genomic regions (e.g., promoters) and ensure they are of identical size.\n3. Run enrichR() using the custom count configuration or on the predefined regions.\n4. Inspect summary statistics.",
+      "code": "#Single End:\n# Count in 500bp bins.\n# Consider only reads with Mapping Quality >= 20.\n# Filter reads for marked duplicates (e.g. with picard mark-duplicates)\n# Shift the counting position for a read 100 bp downstream.\ncountConfigSE <- countConfigSingleEnd(binsize = 500, mapq = 20,\n                                      filteredFlag = 1024, shift = 100)\n\n#Paired End:\n# Count in 500bp bins.\n# Consider only reads with Mapping Quality >= 30.\n# Count the midpoint of the aligned fragment instead of 5' ends.\n# Consider only reads corresponding to fragments with size from 100 to 300bp\ncountConfigPE <- countConfigPairedEnd(binsize = 500, mapq = 30, midpoint=TRUE,\n                                      tlenFilter = c(100, 300))\n\n#Plug in the counting configuration into normR, e.g. in enrichR()\nfit <- enrichR(treatment   = k4me3Bamfile,\n               control     = inputBamfile,\n               genome      = genome,\n               countConfig = countConfigPE)\n\npromoters <- promoters(genes, 1500, 1500)\n#regions have identical size?\nall(width(promoters) == 3000)\n\n#Fit only on promoters\npromotersFit <- enrichR(treatment = k4me3Bamfile, control = inputBamfile,\n                        genome = promoters, verbose = FALSE)\nsummary(promotersFit)"
+    },
+    {
+      "name": "cnv_detection_and_filtering",
+      "intent": "Detect Copy Number Variations (CNVs) using input control tracks and filter differential ChIP-seq calls to remove CNV-driven false positives.",
+      "input": [
+        "treatmentInput.bam (input control BAM for treatment condition)",
+        "controlInput.bam (input control BAM for control condition)",
+        "diffFit (pre-calculated differential ChIP-seq fit object)"
+      ],
+      "stages": "1. Call differences between the two input control tracks using diffR() with a large binsize (e.g., 25kb) to detect CNVs.\n2. Export CNV calls using exportR().\n3. Find overlaps between ChIP-seq difference calls and CNV calls.\n4. Filter out ChIP-seq difference calls that overlap with CNVs.",
+      "code": "cnvs <- diffR(treatment   = treatmentInputBamfile,\n              control     = controlInputBamfile,\n              genome      = genome,\n              countConfig = countConfigSingleEnd(binsize = 2.5e4))\n\n#export the CNV calls\nexportR(cnvs, \"CNVs.bed\")\n\n#Filter previous ChIP-seq difference calls for CNVs\nov <- countOverlaps(getRanges(diffFit, fdr = .05), getRanges(cnvs, fdr = .05))\nidx <- which(ov == 0)\ncnvCleanedGR <- getRanges(diffFit, fdr = .05)[idx]"
+    }
+  ]
+}

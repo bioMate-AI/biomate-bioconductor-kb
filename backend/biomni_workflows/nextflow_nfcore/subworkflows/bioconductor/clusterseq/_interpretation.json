@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: matrixFile=Character string specifying the file path to write the full diszipped dissimilarity matrix ;; B=Integer specifying the number of bootstrap iterations for the gap statistic in kCluster ;; replicates=Vector defining the replicate structure of the samples to force members of the same replicate groups to cluster together ;; threshold=Numeric value specifying the dissimilarity threshold below which genes are clustered during singleton agglomeration ;; method=Character string specifying the agglomeration method (e.g., \"complete\") for hierarchical clustering in makeClustersFF ;; cut.height=Numeric value specifying the height at which to cut the dendrogram in makeClustersFF\n- alternatives: baySeq=Used for estimating empirical Bayesian likelihoods of expression models, which clusterSeq integrates with for its posterior likelihood workflow ;; hclust=Standard R hierarchical clustering, which is utilized internally by makeClustersFF on the full dissimilarity matrix\n- when_to_use: Use when analyzing transcriptomics (RNA-Seq) count data across multiple biological conditions, time points, or tissues to identify co-expressed gene clusters, especially when biological replicates are available and need to be accounted for.\n- pitfalls: Non-differentially expressed genes across all samples can be falsely assigned to differential expression clusters if k > 1 is used without bootstrapping. To avoid this, ensure the bootstrapping stage (gap statistic) is enabled in kCluster by setting an appropriate B parameter. Additionally, K-means clustering assumes an approximately log-normal distribution, requiring zero-count replacement and log2-transformation of normalized counts prior to analysis.",
+  "workflows": [
+    {
+      "name": "kmeans_coexpression_clustering",
+      "intent": "Cluster genes based on K-means dissimilarity scores, optionally incorporating replicate structures and using either singleton agglomeration or full-matrix hierarchical clustering.",
+      "input": [
+        "ratThymus (matrix or data frame of raw count data)",
+        "libsizes (numeric vector of library scaling factors)",
+        "replicates (character vector defining replicate groups)"
+      ],
+      "stages": "1. Replace zero counts with 1 and log2-transform normalized counts ;; 2. Calculate dissimilarity scores using kCluster (optionally specifying replicates and saving the full matrix to a file) ;; 3. Build clusters using makeClusters (for singleton agglomeration) or makeClustersFF (for other hierarchical clustering methods on the saved matrix file)",
+      "code": "ratThymus[ratThymus == 0] <- 1\nnormRT <- log2(ratThymus %*% diag(1/libsizes) * mean(libsizes))\nnormRT <- normRT[1:1000,]\nkClust <- kCluster(normRT, matrixFile = \"kclust_matrix.txt.gz\", B = 1000)\nhead(kClust)\nmkClust <- makeClusters(kClust, normRT, threshold = 1)\nkClustR <- kCluster(normRT, replicates = replicates, matrixFile = \"kclust_matrix_newForceReps.txt.gz\", B = 1000)\nmkClustR <- makeClusters(kClustR, normRT, threshold = 1)\nmkClustRC <- makeClustersFF(\"kclust_matrix_newForceReps.txt.gz\", method = \"complete\", cut.height = 5)"
+    },
+    {
+      "name": "posterior_likelihood_clustering",
+      "intent": "Cluster genes by estimating the empirical Bayesian likelihood that they share the same expression structure across samples using baySeq.",
+      "input": [
+        "ratThymus (matrix or data frame of raw count data)",
+        "cD.ratThymus (pre-calculated countData object with posteriors, or raw countData to be processed with baySeq)"
+      ],
+      "stages": "1. Create a countData object, define the density function, library sizes, and all possible models ;; 2. Estimate priors and likelihoods using baySeq (or load pre-calculated data) ;; 3. Estimate the likelihood of identical models and monotonic ordering between genes using associatePosteriors ;; 4. Construct clusters using makeClusters with a specified threshold ;; 5. Optionally compare clusterings using wallace and plot profiles using plotCluster",
+      "code": "library(baySeq)\ncD.ratThymus <- new(\"countData\", data = ratThymus, replicates = c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4))\ndensityFunction(cD.ratThymus) <- nbinomDensity\nlibsizes(cD.ratThymus) <- getLibsizes(cD.ratThymus)\ncD.ratThymus <- allModels(cD.ratThymus)\ndata(cD.ratThymus, package = \"clusterSeq\")\ncD.ratThymus <- cD.ratThymus[1:1000,]\naM <- associatePosteriors(cD.ratThymus)\nsX <- makeClusters(aM, cD.ratThymus, threshold = 0.5)\nwallace(sX, mkClustRC)\npar(mfrow = c(2,3))\nplotCluster(sX[1:6], cD.ratThymus)"
+    }
+  ]
+}

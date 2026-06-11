@@ -1,0 +1,53 @@
+{
+  "package": "monalisa",
+  "requirements": [
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "BiocParallel",
+    "Biostrings",
+    "ComplexHeatmap",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "SummarizedExperiment",
+    "TFBSTools",
+    "TxDb.Mmusculus.UCSC.mm10.knownGene",
+    "circlize",
+    "monaLisa"
+  ],
+  "by_workflow": {
+    "binned_kmer_enrichment.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "ComplexHeatmap",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "TFBSTools",
+      "circlize",
+      "monaLisa"
+    ],
+    "main.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "ComplexHeatmap",
+      "GenomicRanges",
+      "SummarizedExperiment",
+      "TFBSTools",
+      "circlize",
+      "monaLisa"
+    ],
+    "motif_scanning_and_annotation.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "BiocParallel",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "TFBSTools",
+      "TxDb.Mmusculus.UCSC.mm10.knownGene",
+      "monaLisa"
+    ],
+    "randomized_lasso_stability_selection.nf": [
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "BiocParallel",
+      "Biostrings",
+      "SummarizedExperiment",
+      "TFBSTools",
+      "monaLisa"
+    ]
+  }
+}

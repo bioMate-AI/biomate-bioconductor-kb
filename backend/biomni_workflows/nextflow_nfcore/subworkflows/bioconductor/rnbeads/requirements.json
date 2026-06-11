@@ -1,0 +1,17 @@
+{
+  "package": "rnbeads",
+  "requirements": [
+    "RnBeads"
+  ],
+  "by_workflow": {
+    "bisulfite_sequencing_vanilla_analysis.nf": [
+      "RnBeads"
+    ],
+    "main.nf": [
+      "RnBeads"
+    ],
+    "tailored_step_by_step_analysis.nf": [
+      "RnBeads"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "rain",
+  "requirements": [
+    "lattice",
+    "rain"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "lattice",
+      "rain"
+    ]
+  }
+}

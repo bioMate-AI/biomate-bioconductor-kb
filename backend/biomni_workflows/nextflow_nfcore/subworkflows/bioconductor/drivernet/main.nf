@@ -1,111 +1,147 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DriverNet
-// DriverNet is a package to predict functional important driver genes in cancer by integrating genome 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DriverNet/inst/doc/DriverNet-Overview.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("DriverNet")
+// Bioconductor workflow: DriverNet — driver_gene_prediction
+// Identify and rank candidate cancer driver genes by integrating patient mutation data, expression outlier data, and a gene-gene influence graph, followed by sign
+// Input: samplePatientMutationMatrix.ext, samplePatientOutlierMatrix.ext, sampleInfluenceGraph.ext, sampleGeneNames.ext
+// Container: quay.io/biocontainers/bioconductor-drivernet:1.50.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DriverNet
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute driver genes using a greedy algorithm with computeDrivers
+//  * 2. [Core Analysis] Assess statistical significance of driver genes using a randomization framework with computeRandomizedResult
+//  * 3. [Visualization & Output] Summarize the results using resultSummary
 
 nextflow.enable.dsl = 2
 
-process BIOC_DRIVERNET {
+process BIOC_DRIVERNET_DRIVER_GENE_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-drivernet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-drivernet:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-drivernet:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_drivernet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_drivernet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_drivernet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(DriverNet)
-    library(jsonlite)
-
-    # --- Significance Testing [] ---
-    # Key functions: computeRandomizedResult
-    randomDriversResult <- computeRandomizedResult(
-        patMutMatrix = samplePatientMutationMatrix,
-        patOutMatrix = samplePatientOutlierMatrix,
-        influenceGraph = sampleInfluenceGraph,
-        geneNameList = sampleGeneNames,
-        outputFolder = NULL,
-        printToConsole = FALSE,
-        numberOfRandomTests = 20,
-        weight = FALSE,
-        purturbGraph = FALSE,
-        purturbData = TRUE
-    )
-
-
-    # --- Result Summarization [] ---
-    # Key functions: resultSummary
-    res <- resultSummary(
-        driversList,
-        randomDriversResult,
-        samplePatientMutationMatrix,
-        sampleInfluenceGraph,
-        outputFolder = NULL,
-        printToConsole = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_drivernet_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_drivernet_results.csv")
+    
+    # Helper function to read input files robustly
+    read_input <- function(filename) {
+      if (!file.exists(filename)) {
+        stop(paste("Required input file not found:", filename))
+      }
+    
+      # Try reading as RDS first
+      res <- tryCatch(readRDS(filename), error = function(e) NULL)
+      if (!is.null(res)) return(res)
+    
+      # If it's the gene names file, read as character vector
+      if (grepl("GeneNames", filename, ignore.case = TRUE)) {
+        return(as.character(readLines(filename)))
+      }
+    
+      # Otherwise, read as matrix
+      mat <- tryCatch({
+        d <- read.table(filename, header = TRUE, row.names = 1, sep = "\t", check.names = FALSE)
+        as.matrix(d)
+      }, error = function(e) {
+        tryCatch({
+          d <- read.csv(filename, header = TRUE, row.names = 1, check.names = FALSE)
+          as.matrix(d)
+        }, error = function(e2) {
+          as.matrix(read.table(filename, header = FALSE))
+        })
+      })
+      return(mat)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_drivernet_output.rds")
-    }
+    
+    # Read user input files from the working directory
+    samplePatientMutationMatrix <- read_input("samplePatientMutationMatrix.ext")
+    samplePatientOutlierMatrix <- read_input("samplePatientOutlierMatrix.ext")
+    sampleInfluenceGraph <- read_input("sampleInfluenceGraph.ext")
+    sampleGeneNames <- read_input("sampleGeneNames.ext")
+    
+    # 1. Compute driver genes using a greedy algorithm
+    driversList = computeDrivers(samplePatientMutationMatrix, 
+                  samplePatientOutlierMatrix,sampleInfluenceGraph,
+                  outputFolder=NULL, printToConsole=FALSE)
+    
+    drivers(driversList)[1:10]
+    
+    # 2. Assess statistical significance of driver genes using a randomization framework
+    randomDriversResult = computeRandomizedResult(
+      patMutMatrix=samplePatientMutationMatrix,
+      patOutMatrix=samplePatientOutlierMatrix, 
+      influenceGraph=sampleInfluenceGraph,
+      geneNameList= sampleGeneNames, outputFolder=NULL, 
+      printToConsole=FALSE,numberOfRandomTests=20, weight=FALSE, 
+      purturbGraph=FALSE, purturbData=TRUE)
+    
+    # 3. Summarize the results
+    res = resultSummary(driversList, randomDriversResult, 
+          samplePatientMutationMatrix,sampleInfluenceGraph,
+          outputFolder=NULL, printToConsole=FALSE)
+    res[1:2,]
+    
+    # Write output files
+    saveRDS(driversList, file = "driversList.rds")
+    saveRDS(randomDriversResult, file = "randomDriversResult.rds")
+    write.csv(res, file = "drivernet_results_summary.csv", row.names = FALSE)
+    
+    # Extract and write the ranked list of predicted driver genes
+    predicted_drivers <- drivers(driversList)
+    write.table(predicted_drivers, file = "predicted_drivers.txt", 
+                row.names = FALSE, col.names = FALSE, quote = FALSE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DRIVERNET:", paste0("    drivernet: ", packageVersion("DriverNet"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DRIVERNET_DRIVER_GENE_PREDICTION":',
+        paste0('    DriverNet: ', as.character(packageVersion('DriverNet')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_drivernet_results.csv
-    touch ${prefix}_drivernet_output.rds
-    echo "BIOC_DRIVERNET:" > versions.yml
-    echo "    drivernet: 0.0.0" >> versions.yml
+    touch ${prefix}_driver_gene_prediction.csv versions.yml
     """
 }
 
-
-workflow BIOC_DRIVERNET_WORKFLOW {
+workflow BIOC_DRIVERNET_DRIVER_GENE_PREDICTION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ samplePatientMutationMatrix.ext, samplePatientOutlierMatrix.ext, sampleInfluenceGraph.ext, sampleGeneNames.ext ] ]
 
     main:
-    BIOC_DRIVERNET(ch_input)
+    BIOC_DRIVERNET_DRIVER_GENE_PREDICTION(ch_input)
 
     emit:
-    results  = BIOC_DRIVERNET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DRIVERNET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DRIVERNET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DRIVERNET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DRIVERNET_DRIVER_GENE_PREDICTION.out.tables
+    plots    = BIOC_DRIVERNET_DRIVER_GENE_PREDICTION.out.plots
+    objects  = BIOC_DRIVERNET_DRIVER_GENE_PREDICTION.out.objects
+    versions = BIOC_DRIVERNET_DRIVER_GENE_PREDICTION.out.versions
 }

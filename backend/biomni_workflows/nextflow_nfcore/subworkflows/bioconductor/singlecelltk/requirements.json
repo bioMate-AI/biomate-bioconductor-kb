@@ -1,0 +1,15 @@
+{
+  "package": "singlecelltk",
+  "requirements": [
+    "SingleCellExperiment",
+    "SummarizedExperiment",
+    "singleCellTK"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "SummarizedExperiment",
+      "singleCellTK"
+    ]
+  }
+}

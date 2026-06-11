@@ -1,0 +1,13 @@
+{
+  "package": "proda",
+  "requirements": [
+    "pheatmap",
+    "proDA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "pheatmap",
+      "proDA"
+    ]
+  }
+}

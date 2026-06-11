@@ -1,0 +1,21 @@
+{
+  "package": "crisprbwa",
+  "requirements": [
+    "Biostrings",
+    "Rbwa",
+    "crisprBase",
+    "crisprBwa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "Rbwa",
+      "crisprBase",
+      "crisprBwa"
+    ],
+    "rnai_seed_alignment.nf": [
+      "Rbwa",
+      "crisprBwa"
+    ]
+  }
+}

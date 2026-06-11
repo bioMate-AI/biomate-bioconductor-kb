@@ -1,0 +1,28 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: geneexpres=Expression matrix with genes/probes as rows and samples as columns (no NAs allowed) ;; pathways=A named list of character vectors representing gene sets ;; phenotypes/phenoVect=A binary factor vector representing sample phenotypes ;; Nperm=Number of permutations for DIRAC (default is 0, which uses normal approximation) ;; minGeneNum=Minimum number of genes required in a pathway to keep it in the analysis\n- alternatives: DIRAC with permutation tests is computationally intensive and slow; EVA (using U-statistics) is highly correlated with DIRAC but runs in a fraction of the time, making it a preferred alternative for large datasets or multiple testing corrections.\n- when_to_use: Use when analyzing pathways based on expression variability (e.g., identifying dysregulated pathways in cancer where disease phenotypes exhibit higher variability) or when detecting alternative splicing events from junction expression data.\n- pitfalls: The input expression matrix must not contain any NA or NaN values (imputation or filtering must be performed beforehand). Pathways with too few genes represented in the expression matrix will be ignored or may cause errors if minGeneNum is not set appropriately.",
+  "workflows": [
+    {
+      "name": "pathway_variability_analysis",
+      "intent": "Identify dysregulated pathways between two phenotypes based on gene expression variability using DIRAC and EVA.",
+      "input": [
+        "exprsdata.csv (Gene expression matrix with named rows and no NAs)",
+        "diracpathways.rds (Named list of pathway character vectors)",
+        "phenotypes.csv (Binary phenotype factor vector)"
+      ],
+      "stages": "1. Run DIRAC analysis with permutation testing or normal approximation using GSReg.GeneSets.DIRAC ;; 2. Run EVA analysis using U-statistics theory approximation via GSReg.GeneSets.EVA",
+      "code": "DIRACperm =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,phenotypes,Nperm=Nperm)\nDIRACAn =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,phenotypes)\nVarAnKendallV = GSReg.GeneSets.EVA(geneexpres=exprsdata, pathways=diracpathways, phenotypes=as.factor(phenotypes))"
+    },
+    {
+      "name": "splice_eva_analysis",
+      "intent": "Detect alternative splicing events (SEVA) using junction expression and gene expression data.",
+      "input": [
+        "junc.RPM.Simulated.csv (Junction expression matrix)",
+        "geneExrsGSReg.csv (Gene expression matrix)",
+        "phenotypes.csv (Binary phenotype factor vector)"
+      ],
+      "stages": "1. Compute junction overlap matrices using GSReg.overlapJunction ;; 2. Run Splice-EVA analysis using GSReg.SEVA to calculate splicing dysregulation p-values",
+      "code": "overlapMat <- GSReg.overlapJunction(juncExprs =  junc.RPM.Simulated, geneexpr = geneExrsGSReg)\nSEVAjunc <- GSReg.SEVA(juncExprs = junc.RPM.Simulated, phenoVect = phenotypes, geneexpr = geneExrsGSReg)"
+    }
+  ]
+}

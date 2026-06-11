@@ -1,127 +1,122 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: TargetScore
-// Infer the posterior distributions of microRNA targets by probabilistically modelling the likelihood 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TargetScore/inst/doc/TargetScore.R
-// Upstream  : Biobase, DESeq, GEOquery, ROCR, TargetScoreData
-// Downstream: none
-//
-// Install: BiocManager::install("TargetScore")
+// Bioconductor workflow: TargetScore — target_score_direct_analysis
+// Calculate target scores directly from user-provided log fold-changes and sequence-based scores.
+// Input: logFC vector, seqScores matrix
+// Container: quay.io/biocontainers/bioconductor-targetscore:1.48.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: TargetScore
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load TargetScore library
+//  * 2. [Input & Preparation] Prepare logFC and sequence scores matrix
+//  * 3. [Core Analysis] Run targetScore function to compute posterior probabilities
 
 nextflow.enable.dsl = 2
 
-process BIOC_TARGETSCORE {
+process BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-targetscore"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-targetscore:1.44.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-targetscore:1.44.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_targetscore_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_targetscore_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_targetscore_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # 1. Load TargetScore library
     library(TargetScore)
-    library(jsonlite)
-
-    # --- Toy [] ---
-    # Key functions: rnorm, targetScore, pairs
-    trmt <- c(rnorm(10,mean=0.01), rnorm(1000,mean=1), rnorm(90,mean=2)) + 1e3
-    ctrl <- c(rnorm(1100,mean=1)) + 1e3
-    logFC <- log2(trmt) - log2(ctrl)
-    # 8 out of the 10 down-reg genes have prominent seq score A
-    seqScoreA <- c(rnorm(8,mean=-2), rnorm(1092,mean=0))
-    # --- Realtest [] ---
-    # Key functions: files, targetScore
-    extdata.dir <- system.file("extdata", package="TargetScore")
-    # load test data
-    load(list.files(extdata.dir, "\\.RData$", full.names=TRUE))
-    myTargetScores <- lapply(mytestdata, function(x) targetScore(logFC=x$logFC, seqScores=x[,c(3,4)], tol=1e3, maxiter=200))
-    names(myTargetScores) <- names(mytestdata)
-    # --- Gettargetscores Demo [] ---
-    # Key functions: getTargetScores, miRNA, get_precomputed_logFC, mclapply
-    ## library(TargetScoreData)
-    ## library(gplots)
-    ##
-    ## myTargetScores <- getTargetScores("hsa-miR-1", tol=1e-3, maxiter=200)
-    ##
-    # --- Gettargetscores Limma Demo [] ---
-    # Key functions: getGEO, attr, fData, normalizeVSN
-    ## # Demo using limma
-    ## # download GEO data for hsa-miR-205
-    ## library(limma)
-    ## library(Biobase)
-    ## library(GEOquery)
-    # --- Roc [] ---
-    # Key functions: prediction, performance, unlist, slot, frame
-    ## library(ggplot2)
-    ## library(scales)
-    ## library(ROCR)
-    ##
-    ## # ROC
-    # --- Gettargetscores Deseq Demo [] ---
-    # Key functions: makeExampleCountDataSet, estimateSizeFactors, estimateDispersions, nbinomTest, rnorm
-    ## library(DESeq)
-    ##
-    ## cds <- makeExampleCountDataSet()
-    ##
-    ## cds <- estimateSizeFactors( cds )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_targetscore_results.csv", row.names = TRUE)
+    
+    # 2. Prepare logFC and sequence scores matrix from user-provided files
+    if (!file.exists("logFC.csv") || !file.exists("seqScores.csv")) {
+      stop("Error: Required input files 'logFC.csv' and 'seqScores.csv' must be present in the working directory.")
+    }
+    
+    # Read logFC vector
+    logFC_data <- read.csv("logFC.csv", header = TRUE)
+    if ("logFC" %in% colnames(logFC_data)) {
+      logFC <- as.numeric(logFC_data\$logFC)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_targetscore_results.csv")
+      logFC <- as.numeric(logFC_data[[1]])
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_targetscore_output.rds")
+    
+    # Read seqScores matrix
+    seqScores_data <- read.csv("seqScores.csv", header = TRUE)
+    seqScores <- as.matrix(seqScores_data)
+    
+    # Validate dimensions
+    if (length(logFC) != nrow(seqScores)) {
+      stop(sprintf("Dimension mismatch: logFC has length %d, but seqScores has %d rows.", length(logFC), nrow(seqScores)))
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_TARGETSCORE:", paste0("    targetscore: ", packageVersion("TargetScore"))),
-        "versions.yml"
+    
+    # 3. Run targetScore function to compute posterior probabilities
+    p.targetScore <- targetScore(logFC, seqScores, tol=1e-3)
+    
+    # 4. Write meaningful results to output files
+    # Save numerical results as CSV
+    results_df <- data.frame(
+      logFC = logFC,
+      seqScores,
+      targetScore = p.targetScore
     )
+    write.csv(results_df, "targetScore_results.csv", row.names = FALSE)
+    
+    # Save RDS object for downstream R analysis
+    saveRDS(p.targetScore, "targetScore_results.rds")
+    
+    # Save pairs plot as PDF
+    pdf("targetScore_pairs_plot.pdf", width = 8, height = 8)
+    pairs(cbind(p.targetScore, logFC, seqScores))
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS":',
+        paste0('    TargetScore: ', as.character(packageVersion('TargetScore')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_targetscore_results.csv
-    touch ${prefix}_targetscore_output.rds
-    echo "BIOC_TARGETSCORE:" > versions.yml
-    echo "    targetscore: 0.0.0" >> versions.yml
+    touch ${prefix}_target_score_direct_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_TARGETSCORE_WORKFLOW {
+workflow BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ logFC vector, seqScores matrix ] ]
 
     main:
-    BIOC_TARGETSCORE(ch_input)
+    BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_TARGETSCORE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_TARGETSCORE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_TARGETSCORE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_TARGETSCORE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS.out.tables
+    plots    = BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS.out.plots
+    objects  = BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS.out.objects
+    versions = BIOC_TARGETSCORE_TARGET_SCORE_DIRECT_ANALYSIS.out.versions
 }

@@ -1,0 +1,11 @@
+{
+  "package": "sbmlr",
+  "requirements": [
+    "SBMLR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SBMLR"
+    ]
+  }
+}

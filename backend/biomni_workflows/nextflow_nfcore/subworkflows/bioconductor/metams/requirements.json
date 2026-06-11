@@ -1,0 +1,11 @@
+{
+  "package": "metams",
+  "requirements": [
+    "metaMS"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "metaMS"
+    ]
+  }
+}

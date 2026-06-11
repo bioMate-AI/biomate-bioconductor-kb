@@ -1,0 +1,17 @@
+{
+  "package": "discorhythm",
+  "requirements": [
+    "DiscoRhythm",
+    "SummarizedExperiment"
+  ],
+  "by_workflow": {
+    "batch_rhythm_analysis.nf": [
+      "DiscoRhythm",
+      "SummarizedExperiment"
+    ],
+    "main.nf": [
+      "DiscoRhythm",
+      "SummarizedExperiment"
+    ]
+  }
+}

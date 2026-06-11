@@ -1,0 +1,11 @@
+{
+  "package": "mpfe",
+  "requirements": [
+    "MPFE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MPFE"
+    ]
+  }
+}

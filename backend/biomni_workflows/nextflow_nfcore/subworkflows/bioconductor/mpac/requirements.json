@@ -1,0 +1,15 @@
+{
+  "package": "mpac",
+  "requirements": [
+    "MPAC",
+    "SummarizedExperiment",
+    "data.table"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MPAC",
+      "SummarizedExperiment",
+      "data.table"
+    ]
+  }
+}

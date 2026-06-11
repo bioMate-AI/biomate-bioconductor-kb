@@ -1,0 +1,58 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: coef=In varFit, explicitly specifies the columns of the design matrix corresponding to the groups of interest to test for differential variability. If an intercept is present, both the intercept and group columns must be specified (e.g., coef=c(1,4)) ;; method=In RUVfit, specifies the RUV method to use (default is \"rinv\" for RUV-inverse; \"ruv2\" or \"ruv4\" can also be specified) ;; k=In RUVfit (when method is \"ruv2\" or \"ruv4\"), specifies the number of components of unwanted variation to remove ;; array.type=In gometh and goregion, specifies the array platform used (\"450K\", \"EPIC\", or \"EPIC_V2\") ;; genomic.features=In gometh, limits input CpGs to specific genomic features (e.g., \"TSS200\", \"TSS1500\", \"Body\", \"1stExon\", \"3'UTR\", \"5'UTR\", \"ExonBnd\") ;; sig.genes=In gometh, if TRUE, appends a column containing the significant genes overlapping with each gene set ;; plot.bias=In gometh and goregion, if TRUE, plots the relationship between the probability of selection and the number of probes per gene\n- alternatives: minfi=Used for reading raw IDAT files and extracting beta/M-values ;; DMRcate=Recommended for filtering replicate probes in EPIC v2 datasets and for identifying differentially methylated regions (DMRs) prior to region-level gene set testing ;; limma=Used for standard differential methylation analysis and as an alternative Stage 1 for RUVm when sample size exceeds negative control count ;; edgeR/voom=Used to process RNA-Seq count data before applying varFit for differential variability\n- when_to_use: Use SWAN when normalizing Infinium I and II probe intensities on the same array. Use RUVm when significant batch effects or unknown technical variations are present in methylation data. Use DiffVar when interested in identifying CpG sites or genes with different variances between groups (e.g., cancer vs. normal). Use gometh/goregion/gsameth/gsaregion when performing gene set enrichment analysis on methylation data to correct for probe-number and multi-gene biases.\n- pitfalls: EPIC v2 replicate probes=EPIC v2 contains replicate probes mapping to the same CpG; these must be filtered out (e.g., using DMRcate) before analysis ;; RUVm Stage 1 sample size limit=If the number of samples is greater than the number of Illumina negative controls (613 for 450k, 411 for EPIC), Stage 1 of RUVm using negative controls will fail. Use a standard limma analysis for Stage 1 instead ;; Adjusted values from getAdj=The adjusted values returned by getAdj are only for visualization (e.g., MDS plots) and must NOT be used for downstream statistical analysis ;; Default coef in varFit=The default includes all columns of the design matrix when calculating Levene residuals, which removes interesting variation if nuisance variables are present. Always explicitly specify coef ;; Sample size for DiffVar=At least 10 samples per group are recommended for accurate variance estimation in varFit ;; Gene set testing format=For gsameth and gsaregion, the input gene sets must use Entrez Gene IDs",
+  "workflows": [
+    {
+      "name": "standard_diff_meth_and_gsa",
+      "intent": "Perform SWAN normalization, quality filtering, differential methylation analysis using limma, and bias-corrected gene set testing.",
+      "input": [
+        "targets (sample sheet CSV)",
+        "idat files (raw intensity data)"
+      ],
+      "stages": "1. Read IDAT files into an RGChannelSet.\n2. Preprocess raw data and apply SWAN normalization.\n3. Filter out poor quality probes based on detection p-values.\n4. Extract M-values and Beta values.\n5. Set up design matrix and fit linear model using limma.\n6. Perform gene set testing (GO/KEGG) using gometh or gsameth.",
+      "code": "library(missMethyl)\nlibrary(limma)\nlibrary(minfi)\nlibrary(minfiData)\nbaseDir <- system.file(\"extdata\", package = \"minfiData\")\ntargets <- read.metharray.sheet(baseDir)\nrgSet <- read.metharray.exp(targets = targets)\nmSet <- preprocessRaw(rgSet)\nmSetSw <- SWAN(mSet,verbose=TRUE)\ndetP <- detectionP(rgSet)\nkeep <- rowSums(detP < 0.01) == ncol(rgSet)\nmSetSw <- mSetSw[keep,]\nset.seed(10)\nmset_reduced <- mSetSw[sample(1:nrow(mSetSw), 20000),]\nmeth <- getMeth(mset_reduced)\nunmeth <- getUnmeth(mset_reduced)\nMval <- log2((meth + 100)/(unmeth + 100))\nbeta <- getBeta(mset_reduced)\ngroup <- factor(targets$status,levels=c(\"normal\",\"cancer\"))\nid <- factor(targets$person)\ndesign <- model.matrix(~id + group)\nfit.reduced <- lmFit(Mval,design)\nfit.reduced <- eBayes(fit.reduced, robust=TRUE)\ntop<-topTable(fit.reduced,coef=4)\ntopCpGs<-topRUV(rfit4,number=10000)\nsigCpGs <- rownames(topCpGs)\ncheck <- getMappedEntrezIDs(sig.cpg = sigCpGs)\nlibrary(IlluminaHumanMethylation450kanno.ilmn12.hg19)\ngst <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection=\"GO\", plot.bias=TRUE)\ngst.kegg <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection=\"KEGG\")\ngst.kegg.prom <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection=\"KEGG\", genomic.features = c(\"TSS200\", \"TSS1500\", \"1stExon\"))\ngst.kegg.body <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection=\"KEGG\", genomic.features = c(\"Body\"), sig.genes = TRUE)\nhallmark <- readRDS(url(\"http://bioinf.wehi.edu.au/MSigDB/v7.1/Hs.h.all.v7.1.entrez.rds\"))\ngsa <- gsameth(sig.cpg=sigCpGs, all.cpg=rownames(top), collection=hallmark)"
+    },
+    {
+      "name": "diff_meth_with_ruvm",
+      "intent": "Remove unwanted variation (batch effects, technical artifacts) using negative control probes or empirical control probes (ECPs) in a 2-stage RUVm analysis.",
+      "input": [
+        "targets (sample sheet CSV)",
+        "rgSet (RGChannelSet object)",
+        "mSet (MethylSet object)"
+      ],
+      "stages": "1. Extract M-values and Illumina negative controls (INCs).\n2. Perform Stage 1 RUVfit and RUVadj using INCs to rank probes.\n3. Define empirical control probes (ECPs) from the least associated probes.\n4. Perform Stage 2 RUVfit and RUVadj using ECPs.\n5. (Alternative) Use standard limma for Stage 1 if sample size exceeds INC count.\n6. Extract adjusted values for visualization.",
+      "code": "meth <- getMeth(mSet)\nunmeth <- getUnmeth(mSet)\nM <- log2((meth + 100)/(unmeth + 100))\ngrp <- factor(targets$status, labels=c(0,1))\nINCs <- getINCs(rgSet)\nMc <- rbind(M,INCs)\nctl1 <- rownames(Mc) %in% rownames(INCs)\nrfit1 <- RUVfit(Y = Mc, X = grp, ctl = ctl1)\nrfit2 <- RUVadj(Y = Mc, fit = rfit1)\ntop1 <- topRUV(rfit2, num=Inf, p.BH = 1)\nctl2 <- rownames(M) %in% rownames(top1[top1$p.BH_X1.1 > 0.5,])\nrfit3 <- RUVfit(Y = M, X = grp, ctl = ctl2)\nrfit4 <- RUVadj(Y = M, fit = rfit3)\ntopRUV(rfit4)\ndes <- model.matrix(~grp)\nlfit1 <- lmFit(M, design=des)\nlfit2 <- eBayes(lfit1)\ntopl1 <- topTable(lfit2, num=Inf)\nctl3 <- rownames(M) %in% rownames(topl1[topl1$adj.P.Val > 0.5,])\nrfit5 <- RUVfit(Y = M, X = grp, ctl = ctl3)\nrfit6 <- RUVadj(Y = M, fit = rfit5)\nMadj <- getAdj(M, rfit5)\nrfit7 <- RUVfit(Y = M, X = grp, ctl = ctl3, method = \"ruv4\", k=1)\nrfit9 <- RUVfit(Y = M, X = grp, ctl = ctl3, method = \"ruv4\", k=2)\nMadj1 <- getAdj(M, rfit7)\nMadj2 <- getAdj(M, rfit9)"
+    },
+    {
+      "name": "diff_var_methylation",
+      "intent": "Test for differences in methylation variance between groups.",
+      "input": [
+        "Mval (matrix of M-values or Beta values)",
+        "design (design matrix)"
+      ],
+      "stages": "1. Fit the variability model using varFit, specifying the design and coef of interest.\n2. Extract top differentially variable CpGs using topVar.\n3. (Alternative) Use a cell-means model and test specific contrasts using contrasts.varFit.",
+      "code": "fitvar <- varFit(Mval, design = design, coef = c(1,4))\ntopDV <- topVar(fitvar, coef=4)\ndesign2 <- model.matrix(~0+group+id)\nfitvar.contr <- varFit(Mval, design=design2, coef=c(1,2))\ncontr <- makeContrasts(groupcancer-groupnormal,levels=colnames(design2))\nfitvar.contr <- contrasts.varFit(fitvar.contr,contrasts=contr)\ntopVar(fitvar.contr,coef=1)"
+    },
+    {
+      "name": "diff_var_rnaseq",
+      "intent": "Test for differences in gene expression variance between groups in RNA-Seq data, accounting for the mean-variance relationship.",
+      "input": [
+        "counts (RNA-Seq count matrix)",
+        "annot (gene annotation data frame)",
+        "gender (sample covariates vector)"
+      ],
+      "stages": "1. Create a DGEList object.\n2. Filter lowly expressed genes and normalize library sizes.\n3. Fit the variability model using varFit (which automatically applies voom transformation).\n4. Extract top differentially variable genes using topVar.",
+      "code": "library(tweeDEseqCountData)\ndata(pickrell1)\ncounts<-exprs(pickrell1.eset)\ngender <- pickrell1.eset$gender\ndata(annotEnsembl63)\nannot <- annotEnsembl63[,c(\"Symbol\",\"Chr\")]\nlibrary(edgeR)\ny <- DGEList(counts=counts, genes=annot[rownames(counts),])\nisexpr <- rowSums(cpm(y)>1) >= 20\nhasannot <- rowSums(is.na(y$genes))==0\ny <- y[isexpr & hasannot,,keep.lib.sizes=FALSE]\ny <- calcNormFactors(y)\ndesign.hapmap <- model.matrix(~gender)\nfitvar.hapmap <- varFit(y, design = design.hapmap, coef=c(1,2))\nfitvar.hapmap$genes <- y$genes\ntopDV.hapmap <- topVar(fitvar.hapmap,coef=ncol(design.hapmap))"
+    },
+    {
+      "name": "region_level_gsa",
+      "intent": "Perform gene set enrichment analysis on differentially methylated regions (DMRs) while correcting for probe-number bias.",
+      "input": [
+        "M (matrix of M-values)",
+        "design (design matrix)"
+      ],
+      "stages": "1. Annotate CpGs and find DMRs using DMRcate.\n2. Extract genomic ranges of DMRs.\n3. Perform region-level gene set testing using goregion or gsaregion.",
+      "code": "library(DMRcate)\nmyAnnotation <- cpg.annotate(object = M, datatype = \"array\", what = \"M\", arraytype = c(\"450K\"), analysis.type = \"differential\", design = design, coef = 4)\nDMRs <- dmrcate(myAnnotation, lambda=1000, C=2)\nresults.ranges <- extractRanges(DMRs)\ngst.region <- goregion(results.ranges, all.cpg=rownames(M), collection=\"GO\", array.type=\"450K\", plot.bias=TRUE)\ngst.region.kegg <- goregion(results.ranges, all.cpg=rownames(M), collection=\"KEGG\", array.type=\"450K\")\ngsa.region <- gsaregion(results.ranges, all.cpg=rownames(M), collection=hallmark)"
+    }
+  ]
+}

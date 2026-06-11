@@ -1,0 +1,17 @@
+{
+  "package": "nucleosim",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "nucleoSim",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "nucleoSim",
+      "rtracklayer"
+    ]
+  }
+}

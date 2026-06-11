@@ -1,0 +1,19 @@
+{
+  "package": "rcsl",
+  "requirements": [
+    "RCSL",
+    "SingleCellExperiment",
+    "ggplot2",
+    "igraph",
+    "umap"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RCSL",
+      "SingleCellExperiment",
+      "ggplot2",
+      "igraph",
+      "umap"
+    ]
+  }
+}

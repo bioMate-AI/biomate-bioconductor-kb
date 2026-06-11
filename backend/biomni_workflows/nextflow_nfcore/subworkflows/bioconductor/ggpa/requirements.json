@@ -1,0 +1,14 @@
+{
+  "package": "ggpa",
+  "requirements": [
+    "GGPA"
+  ],
+  "by_workflow": {
+    "graph_gpa_with_prior.nf": [
+      "GGPA"
+    ],
+    "main.nf": [
+      "GGPA"
+    ]
+  }
+}

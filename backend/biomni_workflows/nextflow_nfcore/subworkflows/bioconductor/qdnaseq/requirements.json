@@ -1,0 +1,21 @@
+{
+  "package": "qdnaseq",
+  "requirements": [
+    "BSgenome.Hsapiens.UCSC.hg19",
+    "Biobase",
+    "QDNAseq",
+    "digest"
+  ],
+  "by_workflow": {
+    "generate_custom_bin_annotations.nf": [
+      "BSgenome.Hsapiens.UCSC.hg19",
+      "Biobase",
+      "QDNAseq",
+      "digest"
+    ],
+    "main.nf": [
+      "Biobase",
+      "QDNAseq"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package": "compepitools",
+  "requirements": [
+    "GenomicRanges",
+    "TxDb.Mmusculus.UCSC.mm9.knownGene",
+    "compEpiTools",
+    "org.Mm.eg.db"
+  ],
+  "by_workflow": {
+    "epigenomic_heatmap_visualization.nf": [
+      "GenomicRanges",
+      "TxDb.Mmusculus.UCSC.mm9.knownGene",
+      "compEpiTools"
+    ],
+    "genomic_region_annotation.nf": [
+      "TxDb.Mmusculus.UCSC.mm9.knownGene",
+      "compEpiTools",
+      "org.Mm.eg.db"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "compEpiTools"
+    ]
+  }
+}

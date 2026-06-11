@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: <method=The method used to combine pathway or gene similarities (e.g., \"avg\", \"max\", \"rcmax\", \"rcmax.avg\", \"BMA\", \"reciprocal\"). Default is \"max\" for pathways and \"BMA\" for genes/clusters ;; scores=A matrix of similarity scores to be combined using combineScores ;; w=A numeric vector of weights used in weighted.sum, weighted.prod, or similarities to merge multiple similarity matrices ;; power=The soft-thresholding power used in adjacency.fromSimilarity for WGCNA integration>\n- alternatives: <GeneOverlap=Uses Jaccard index instead of Dice, only compares pathways (not genes or clusters), but provides p-values and plotting ;; GOSemSim=Calculates semantic similarities based on Gene Ontology (GO) terms rather than metabolic pathways/gene sets>\n- when_to_use: <When you want to calculate functional similarities between genes, pathways, or gene clusters based on pathway databases (KEGG, Reactome) or custom GMT gene sets. Also useful for integrating functional pathway information into co-expression network clustering (WGCNA) or evaluating the functional relatedness of differentially expressed genes (DEGs).>\n- pitfalls: <KEGG database is no longer free for large retrievals and is not updated in Bioconductor; users should ensure they have unbiased, updated pathway lists or use GMT files. ;; Computing whole-genome gene similarities is memory-intensive and slow; use AintoB to fit computed pieces into a larger matrix. ;; Namespace conflicts occur with GOSemSim because both packages export functions like geneSim, mgeneSim, clusterSim, and mclusterSim; use explicit namespacing (BioCor::) to avoid errors. ;; When combining functional similarities with expression data for WGCNA, using inappropriate weights can bias the clustering; weights between 0.5 and 1 for expression are recommended.>",
+  "workflows": [
+    {
+      "name": "gene_and_cluster_similarity",
+      "intent": "Calculate functional similarities between genes and gene clusters using pathway annotations, and perform hierarchical clustering.",
+      "input": [
+        "genes.id (character vector of gene identifiers)",
+        "genesReact (list of pathway-to-gene annotations, e.g., from Reactome or a GMT file)"
+      ],
+      "stages": "1. Prepare pathway annotations ;; 2. Calculate gene-to-gene similarity matrix using mgeneSim ;; 3. Cluster genes using hclust ;; 4. Define gene clusters using cutree ;; 5. Calculate similarities between clusters using mclusterSim (by pathways) or mclusterGeneSim (by genes)",
+      "code": "library(\"BioCor\")\n## Load libraries with the data of the pathways\nlibrary(\"org.Hs.eg.db\")\nlibrary(\"reactome.db\")\ngenesKegg <- as.list(org.Hs.egPATH)\ngenesReact <- as.list(reactomeEXTID2PATHID)\n# Remove genes and pathways which are not from human pathways \ngenesReact <- lapply(genesReact, function(x){\n    unique(grep(\"R-HSA-\", x, value = TRUE))\n    })\ngenesReact <- genesReact[lengths(genesReact) >= 1] \n\ngenes.id <- c(\"10\", \"15\", \"16\", \"18\", \"2\", \"9\", \"52\", \"3855\", \"3880\", \"644\", \n              \"81327\", \"9128\", \"2073\", \"2893\", \"5142\", \"60\", \"210\", \"81\", \n              \"1352\", \"88\", \"672\", \"675\")\ngenes.id <- mapIds(org.Hs.eg.db, keys = genes.id, keytype = \"ENTREZID\", \n                   column = \"SYMBOL\")\ngenes <- names(genes.id)\nnames(genes) <- genes.id\nreact <- mgeneSim(genes, genesReact)\n## We remove genes which are not in list (hence the warning):\nnan <- genes %in% names(genesReact)\nreact <- react[nan, nan]\nhc <- hclust(as.dist(1 - react))\nplot(hc, main = \"Similarities between genes\")\n\nmycl <- cutree(hc, h = 0.2)\nclusters <- split(genes[nan], as.factor(mycl))\n# Removing clusters of just one gene\n(clusters <- clusters[lengths(clusters) >= 2])\nnames(clusters) <- paste0(\"cluster\", names(clusters))\n## Remember we can use two methods to compare clusters\nsim_clus1 <- mclusterSim(clusters, genesReact)\nplot(hclust(as.dist(1 - sim_clus1)), \n     main = \"Similarities between clusters by pathways\")\n\nsim_clus2 <- mclusterGeneSim(clusters, genesReact)\nplot(hclust(as.dist(1 - sim_clus2)), \n     main =\"Similarities between clusters by genes\")"
+    },
+    {
+      "name": "wgcna_integration",
+      "intent": "Combine gene expression correlation with functional pathway similarity to identify functionally-guided co-expression modules.",
+      "input": [
+        "expr (matrix of normalized gene expression data with samples in rows and genes in columns)",
+        "sim (list of functional similarity matrices between genes)"
+      ],
+      "stages": "1. Calculate expression correlation matrix using WGCNA::cor ;; 2. Combine expression correlation and functional similarity matrices using similarities ;; 3. Estimate soft threshold using pickSoftThreshold.fromSimilarity ;; 4. Calculate adjacency matrix using adjacency.fromSimilarity ;; 5. Calculate TOM similarity and dissimilarity ;; 6. Perform hierarchical clustering and identify modules using cutreeHybrid",
+      "code": "expr.sim <- WGCNA::cor(expr) # or bicor\n\n## Combine the similarities\nsimilarity <- similarities(c(list(exp = expr.sim), sim), mean, na.rm = TRUE)\n\n## Choose the softThreshold\npSFT <- pickSoftThreshold.fromSimilarity(similarity)\n\n## Or any other function we want\nadjacency <- adjacency.fromSimilarity(similarity, power = pSFT$powerEstimate)\n\n## Once we have the similarities we can calculate the TOM with TOM\nTOM <- TOMsimilarity(adjacency) ## Requires adjacencies despite its name\ndissTOM <- 1 - TOM\ngeneTree <- hclust(as.dist(dissTOM), method = \"average\")\n## We can use a clustering tool to group the genes\ndynamicMods <- cutreeHybrid(dendro = geneTree, distM = dissTOM,\n                            deepSplit = 2, pamRespectsDendro = FALSE,\n                            minClusterSize = 30)\nmoduleColors <- labels2colors(dynamicMods$labels)"
+    },
+    {
+      "name": "merge_similarity_sources",
+      "intent": "Combine similarity matrices calculated from different databases (e.g., KEGG and Reactome) using weighted functions.",
+      "input": [
+        "genesKegg (list of KEGG pathway-to-gene annotations)",
+        "genesReact (list of Reactome pathway-to-gene annotations)"
+      ],
+      "stages": "1. Calculate similarity matrices for each database using mgeneSim ;; 2. Combine the matrices into a list ;; 3. Merge them using similarities with a combining function like weighted.sum or weighted.prod and specified weights",
+      "code": "kegg <- mgeneSim(c(\"672\", \"675\", \"10\"), genesKegg)\nreact <- mgeneSim(c(\"672\", \"675\", \"10\"), genesReact)\n## We can sum it adding a weight to each origin\nweighted.sum(c(kegg[\"672\", \"675\"], react[\"672\", \"675\"]), w = c(0.3, 0.7))\n\n## Or if we want to perform for all the matrix\n## A list of matrices to merge\nsim <- list(\"kegg\" = kegg, \"react\" = react)\nsimilarities(sim, weighted.sum, w = c(0.3, 0.7))\nsimilarities(sim, weighted.prod, w = c(0.3, 0.7))\nsimilarities(sim, prod)\nsimilarities(sim, mean)"
+    }
+  ]
+}

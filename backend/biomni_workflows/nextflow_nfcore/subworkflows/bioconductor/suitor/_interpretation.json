@@ -1,0 +1,15 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: op=A list of tuning parameters for suitor() including min.value (default 1e-4), min.rank (default 1), max.rank (default 10), k.fold (default 10), em.eps (default 1e-5), max.iter (default 2000), n.starts (default 30), get.summary (default 1), plot (default 1), and print (default 1) ;; rank=A non-negative integer representing the number of mutational signatures to extract in suitorExtractWH()\n- alternatives: The documentation mentions MutationalPatterns for downstream visualization and cosine similarity comparison with COSMIC signatures, but does not list alternative signature selection packages.\n- when_to_use: Use this package when performing de novo mutational signature analysis on a mutational catalog matrix and needing to select the optimal number of signatures (rank) using an objective, unsupervised cross-validation approach.\n- pitfalls: The ECM algorithm may converge to a local saddle point, so multiple starting points (n.starts) are recommended. The algorithm might reach the maximum number of iterations (max.iter), producing a warning message; users should consider a two-stage approach (running with defaults first, then narrowing down the rank range with more starts and a larger max.iter). The order of mutation types should ideally follow the COSMIC database format for proper downstream extraction and comparison.",
+  "workflows": [
+    {
+      "name": "signature_selection_and_extraction",
+      "intent": "Select the optimal number of mutational signatures using cross-validation and extract their profiles and activities.",
+      "input": [
+        "mutational_catalog.csv (A matrix or data frame of mutational counts where columns are tumors/samples and rows are mutation types, e.g., 96 trinucleotide categories)"
+      ],
+      "stages": "1. Load the mutational catalog data ;; 2. Run suitor() with specified options to perform cross-validation and determine the optimal rank ;; 3. Extract signature profiles (W) and activities (H) using suitorExtractWH() with the selected rank ;; 4. Compare the extracted signatures with COSMIC signatures using MutationalPatterns functions",
+      "code": "library(SUITOR)\ndata(SimData, package=\"SUITOR\")\nOP  <- list(max.rank=3, k.fold=5, n.starts=4)\nset.seed(123)\nre <- suitor(SimData, op=OP)\nre$rank\nset.seed(123)\nExtract <- suitorExtractWH(SimData, re$rank)\nhead(Extract$W)\nExtract$H[,1:3]\nsuppressPackageStartupMessages(library(MutationalPatterns))\nCOSMIC <- get_known_signatures(source = \"COSMIC_v3.2\")\nplot_96_profile(Extract$W, condensed=TRUE, ymax=0.3)\nCS <- cos_sim_matrix(Extract$W, COSMIC)\nCS[, 1:3]"
+    }
+  ]
+}

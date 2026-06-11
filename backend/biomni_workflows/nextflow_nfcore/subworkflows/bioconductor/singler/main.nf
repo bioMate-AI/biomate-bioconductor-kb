@@ -1,141 +1,114 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SingleR
-// Performs unbiased cell type recognition from single-cell RNA sequencing data, by leveraging referenc
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SingleR/inst/doc/SingleR.R
-// Upstream  : BiocStyle, celldex, scRNAseq, scuttle
-// Downstream: OSCA.advanced, OSCA.basic, OSCA.multisample, OSCA.workflows, SingleRBook
-//
-// Install: BiocManager::install("SingleR")
+// Bioconductor workflow: SingleR — annotation_with_builtin_reference
+// Annotate single-cell RNA-seq test data using a built-in reference dataset from the celldex package.
+// Input: test_dataset.rds, reference_dataset.rds
+// Container: quay.io/biocontainers/bioconductor-singler:2.12.0--r45ha27e39d_0
+// R packages: SummarizedExperiment, BiocStyle, celldex, scRNAseq, scuttle, SingleR
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleR, SummarizedExperiment
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the built-in reference dataset
+//  * 2. [Input & Preparation] Load the test dataset
+//  * 3. [Core Analysis] Run SingleR annotation using the reference labels
+//  * 4. [Visualization & Output] Summarize the predicted labels
 
 nextflow.enable.dsl = 2
 
-process BIOC_SINGLER {
+process BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-singler"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-singler:2.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-singler:2.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_singler_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_singler_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_singler_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GrunPancreasData)
-    library(HumanPrimaryCellAtlasData)
-    library(LaMannoBrainData)
-    library(MuraroPancreasData)
-    library(SingleR)
-    library(jsonlite)
-
-    # --- Humanprimarycellatlasdata [] ---
-    # Key functions: HumanPrimaryCellAtlasData
-    ---------------------------------------------------------------------
-    library(celldex)
-    hpca.se <- HumanPrimaryCellAtlasData()
-    hpca.se
-    # --- Lamannobraindata [] ---
-    # Key functions: LaMannoBrainData
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    hESCs <- LaMannoBrainData('human-es')
-    hESCs <- hESCs[,1:100]
-    # --- Singler [] ---
-    # Key functions: SingleR
-    ---------------------------------------------------------------------
-    library(SingleR)
-    pred.hesc <- SingleR(test = hESCs, ref = hpca.se, assay.type.test=1,
-        labels = hpca.se$label.main)
-    # --- Muraropancreasdata [] ---
-    # Key functions: MuraroPancreasData, na, SingleR, logNormCounts
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sceM <- MuraroPancreasData()
-    # One should normally do cell-based quality control at this point, but for
-    # brevity's sake, we will just remove the unlabelled libraries here.
-    # --- Grunpancreasdata [] ---
-    # Key functions: GrunPancreasData, colSums, counts, logNormCounts
-    ---------------------------------------------------------------------
-    sceG <- GrunPancreasData()
-    sceG <- sceG[,colSums(counts(sceG)) > 0] # Remove libraries with no counts.
-    sceG <- logNormCounts(sceG)
-    # --- Singler [] ---
-    # Key functions: SingleR
-    ---------------------------------------------------------------------
-    pred.grun <- SingleR(test=sceG, ref=sceM, labels=sceM$label, de.method="wilcox")
-    table(pred.grun$labels)
-    # --- Plotscoreheatmap [] ---
-    # Key functions: plotScoreHeatmap
-    ---------------------------------------------------------------------
-    plotScoreHeatmap(pred.grun)
-    # --- Plotdeltadistribution [] ---
-    # Key functions: plotDeltaDistribution
-    ---------------------------------------------------------------------
-    plotDeltaDistribution(pred.grun, ncol = 3)
-    # --- Summary [] ---
-    # Key functions: na
-    ---------------------------------------------------------------------
-    summary(is.na(pred.grun$pruned.labels))
-    # --- Plotmarkerheatmap [] ---
-    # Key functions: plotMarkerHeatmap
-    ---------------------------------------------------------------------
-    plotMarkerHeatmap(pred.grun, sceG, label="beta")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_singler_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_singler_results.csv")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SummarizedExperiment", "BiocStyle", "celldex", "scRNAseq", "scuttle", "SingleR")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_singler_output.rds")
-    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(SingleR)
+    
+    # 1. Load the built-in reference dataset from user input
+    hpca.se <- readRDS("reference_dataset.rds")
+    
+    # 2. Load the test dataset from user input
+    hESCs <- readRDS("test_dataset.rds")
+    
+    # 3. Run SingleR annotation using the reference labels
+    pred.hesc <- SingleR(test = hESCs, ref = hpca.se, assay.type.test=1, labels = hpca.se\$label.main)
+    
+    # 4. Summarize the predicted labels
+    label_summary <- table(pred.hesc\$labels)
+    print(label_summary)
+    
+    # Write outputs to files
+    saveRDS(pred.hesc, "predicted_labels.rds")
+    
+    # Save summary table as CSV
+    summary_df <- as.data.frame(label_summary)
+    colnames(summary_df) <- c("Cell_Type", "Count")
+    write.csv(summary_df, "predicted_labels_summary.csv", row.names = FALSE)
+    
+    # Save detailed predictions as CSV
+    pred_df <- as.data.frame(pred.hesc)
+    write.csv(pred_df, "predictions_detailed.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SINGLER:", paste0("    singler: ", packageVersion("SingleR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE":',
+        paste0('    SingleR: ', as.character(packageVersion('SingleR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_singler_results.csv
-    touch ${prefix}_singler_output.rds
-    echo "BIOC_SINGLER:" > versions.yml
-    echo "    singler: 0.0.0" >> versions.yml
+    touch ${prefix}_annotation_with_builtin_reference.csv versions.yml
     """
 }
 
-
-workflow BIOC_SINGLER_WORKFLOW {
+workflow BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ test_dataset.rds, reference_dataset.rds ] ]
 
     main:
-    BIOC_SINGLER(ch_input)
+    BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE(ch_input)
 
     emit:
-    results  = BIOC_SINGLER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SINGLER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SINGLER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SINGLER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE.out.tables
+    plots    = BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE.out.plots
+    objects  = BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE.out.objects
+    versions = BIOC_SINGLER_ANNOTATION_WITH_BUILTIN_REFERENCE.out.versions
 }

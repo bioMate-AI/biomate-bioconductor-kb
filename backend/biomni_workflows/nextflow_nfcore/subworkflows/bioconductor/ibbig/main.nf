@@ -1,155 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: iBBiG
-// iBBiG is a bi-clustering algorithm which is optimizes for binary data analysis. We apply it to meta-
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iBBiG/inst/doc/tutorial.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("iBBiG")
+// Bioconductor workflow: iBBiG — binary_biclustering
+// Perform iterative binary bi-clustering on a binary matrix, visualize the resulting modules, extract sub-matrices, and save the results.
+// Input: binMat@Seeddata
+// Container: quay.io/biocontainers/bioconductor-ibbig:1.54.0--r45h01b2380_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: iBBiG
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the package and prepare the binary matrix
+//  * 2. [Core Analysis] Run the iBBiG algorithm to extract a specified number of modules
+//  * 3. [Visualization & Output] Plot the biclustering results and generate diagnostic plots
+//  * 4. [Core Analysis] Extract the sub-matrices of the clusters
+//  * 5. [Visualization & Output] Write the bicluster results to a text file
 
 nextflow.enable.dsl = 2
 
-process BIOC_IBBIG {
+process BIOC_IBBIG_BINARY_BICLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ibbig"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ibbig:1.50.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ibbig:1.50.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ibbig_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ibbig_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ibbig_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Clusterscores)
-    library(JIdist)
-    library(Number)
-    library(NumberxCol)
-    library(RowScorexNumber)
-    library(RowxNumber)
-    library(Seeddata)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(iBBiG)
+        
+        # 1. Load the package and prepare the binary matrix
+        input_file <- "binMat@Seeddata"
+        if (!file.exists(input_file)) {
+          stop(paste("Required input file", input_file, "does not exist in the working directory."))
+        }
+        
+        # Read the binary matrix robustly (supporting RDS, TSV, or CSV formats)
+        binMat_data <- tryCatch({
+          readRDS(input_file)
+        }, error = function(e) {
+          tryCatch({
+            as.matrix(read.table(input_file, header=TRUE, row.names=1, check.names=FALSE))
+          }, error = function(e2) {
+            as.matrix(read.csv(input_file, header=TRUE, row.names=1, check.names=FALSE))
+          })
+        })
+        
+        if (!is.matrix(binMat_data)) {
+          binMat_data <- as.matrix(binMat_data)
+        }
+        
+        # 2. Run the iBBiG algorithm to extract a specified number of modules
+        res <- iBBiG(binMat_data, nModules=10)
+        
+        # Save the main result object
+        saveRDS(res, "iBBiG_results.rds")
+        
+        # 3. Plot the biclustering results and generate diagnostic plots
+        pdf("biclustering_plots.pdf", width=10, height=8)
+        plot(res)
+        drawHeatmap2(res@Seeddata, res, number=4)
+        biclustmember(res,res@Seeddata)
+        biclustbarchart(res@Seeddata, Bicres=res)
+        plotclust(res, res@Seeddata)
+        dev.off()
+        
+        # 4. Extract the sub-matrices of the clusters
+        Modules <- bicluster(res@Seeddata, res, 1:3)
+        
+        # Save extracted modules
+        saveRDS(Modules, "extracted_modules.rds")
+        for (i in seq_along(Modules)) {
+          write.csv(Modules[[i]], file=paste0("Bicluster_", i, ".csv"), row.names=TRUE)
+        }
+        
+        # 5. Write the bicluster results to a text file
+        writeBiclusterResults("Modules.txt", res, bicName="Output from iBBiG with default parameters", geneNames=rownames(res@Seeddata), arrayNames=colnames(res@Seeddata))
 
-    # --- Arti [] ---
-    # Key functions: makeArtificial
-    library(iBBiG)
-    binMat<-makeArtificial()
-    binMat
-    plot(binMat)
-    # --- Obj [] ---
-    # Key functions: Number, RowxNumber, NumberxCol
-    str(binMat)
-    Number(binMat)
-    RowxNumber(binMat)[1:2,]
-    NumberxCol(binMat)[,1:2]
-    # --- Ibbig [] ---
-    # Key functions: iBBiG
-    res<- iBBiG(binMat@Seeddata, nModules=10)
-    plot(res)
-    # --- Ji [] ---
-    # Key functions: JIdist
-    JIdist(res,binMat)
-    JIdist(res,binMat, margin="col", best=FALSE)
-    JIdist(res,binMat, margin="col")
-    JIdist(res,binMat, margin="row")
-    JIdist(res,binMat, margin="both")
-    # --- Jicode [] ---
-    # Key functions: showMethods, getMethod, signature
-    ## showMethods(JIdist)
-    ## getMethod(iBBiG:::JIdist, signature(clustObj = "iBBiG", GS = "iBBiG"))
-    ## getMethod("JIdist",  signature(clustObj="iBBiG", GS="iBBiG"))
-    # --- Ac [] ---
-    # Key functions: analyzeClust
-    analyzeClust(res,binMat)
-    analyzeClust(res,binMat, margin="col")
-    # --- Accode [] ---
-    # Key functions: showMethods, getMethod, signature
-    ## showMethods(analyzeClust)
-    ## getMethod("analyzeClust",  signature(clustObj="iBBiG", GS="iBBiG"))
-    # --- Strclass [] ---
-    # Key functions: RowScorexNumber, Clusterscores, Seeddata
-    str(binMat)
-    RowScorexNumber(res)[1:2,]
-    Clusterscores(res)
-    Seeddata(res)[1:2,1:2]
-    # --- Biclustplots [] ---
-    # Key functions: drawHeatmap2, biclustmember, biclustbarchart, plotclust
-    ## class(res)
-    ##
-    ## par(mfrow=c(2,1))
-    ## drawHeatmap2(res@Seeddata, res, number=4)
-    ## biclustmember(res,res@Seeddata)
-    # --- Biclustbasic [] ---
-    # Key functions: binarize, discretize
-    ## data(BicatYeast)
-    ## BicatYeast[1:5,1:5]
-    ## binarize(BicatYeast[1:5,1:5], threshold=0.2)
-    ## discretize(BicatYeast[1:5,1:5])
-    # --- Bicluser [] ---
-    # Key functions: bicluster
-    Modules<-bicluster(res@Seeddata, res, 1:3)
-    str(Modules)
-    Modules[[1]][1:3,1:4]
-    # --- Writebiclust [] ---
-    # Key functions: writeBiclusterResults
-    ## writeBiclusterResults("Modules.txt", res, bicName="Output from iBBiG with default parameters", geneNames=rownames(res@Seeddata), arrayNames=colnames(res@Seeddata))
-    ##
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ibbig_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ibbig_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ibbig_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_IBBIG:", paste0("    ibbig: ", packageVersion("iBBiG"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_IBBIG_BINARY_BICLUSTERING":',
+        paste0('    iBBiG: ', as.character(packageVersion('iBBiG')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ibbig_results.csv
-    touch ${prefix}_ibbig_output.rds
-    echo "BIOC_IBBIG:" > versions.yml
-    echo "    ibbig: 0.0.0" >> versions.yml
+    touch ${prefix}_binary_biclustering.csv versions.yml
     """
 }
 
-
-workflow BIOC_IBBIG_WORKFLOW {
+workflow BIOC_IBBIG_BINARY_BICLUSTERING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ binMat@Seeddata ] ]
 
     main:
-    BIOC_IBBIG(ch_input)
+    BIOC_IBBIG_BINARY_BICLUSTERING(ch_input)
 
     emit:
-    results  = BIOC_IBBIG.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_IBBIG.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_IBBIG.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_IBBIG.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_IBBIG_BINARY_BICLUSTERING.out.tables
+    plots    = BIOC_IBBIG_BINARY_BICLUSTERING.out.plots
+    objects  = BIOC_IBBIG_BINARY_BICLUSTERING.out.objects
+    versions = BIOC_IBBIG_BINARY_BICLUSTERING.out.versions
 }

@@ -1,113 +1,156 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: alevinQC
-// Generate QC reports summarizing the output from an alevin, alevin-fry, or simpleaf run. Reports can 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/alevinQC/inst/doc/alevinqc.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("alevinQC")
+// Bioconductor workflow: alevinqc — static_qc_report
+// Validate alevin output files and generate a static HTML or PDF quality control report.
+// Input: baseDir
+// Container: quay.io/biocontainers/bioconductor-alevinqc:1.26.0--r45ha27e39d_0
+// R packages: alevinQC
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_ALEVINQC {
+process BIOC_ALEVINQC_STATIC_QC_REPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-alevinqc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-alevinqc:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-alevinqc:1.22.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-alevinqc:1.26.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_alevinqc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_alevinqc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_alevinqc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("alevinQC")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
     library(alevinQC)
-    library(jsonlite)
-
-    # --- Quality Control Report Generation [] ---
-    # Key functions: alevinQCReport
-    baseDir <- system.file("extdata/alevin_example_v0.14", package = "alevinQC")
-    outputDir <- tempdir()
-    alevinQCReport(
-        baseDir = baseDir,
-        sampleId = "testSample",
-        outputFile = "alevinReport.html",
-        outputFormat = "html_document",
-        outputDir = outputDir,
-        forceOverwrite = TRUE
-    )
-
-
-    # --- Data Import [] ---
-    # Key functions: readAlevinQC
-    baseDir <- system.file("extdata/alevin_example_v0.14", package = "alevinQC")
-    alevin <- readAlevinQC(baseDir = baseDir)
-
-
-    # --- Quality Control Visualization [] ---
-    # Key functions: plotAlevinKneeRaw, plotAlevinBarcodeCollapse, plotAlevinQuant, plotAlevinKneeNbrGenes
-    baseDir <- system.file("extdata/alevin_example_v0.14", package = "alevinQC")
-    alevin <- readAlevinQC(baseDir = baseDir)
-    plotAlevinKneeRaw(alevin$cbTable)
-    plotAlevinBarcodeCollapse(alevin$cbTable)
-    plotAlevinQuant(alevin$cbTable)
-    plotAlevinKneeNbrGenes(alevin$cbTable)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_alevinqc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_alevinqc_results.csv")
+    
+    # Define user input directory (must exist in the working directory)
+    baseDir <- "baseDir"
+    
+    # Verify input directory exists
+    if (!dir.exists(baseDir)) {
+      stop(paste("Error: Input directory 'baseDir' not found in the working directory.",
+                 "Please ensure the 'baseDir' directory containing 'alevin/', 'aux_info/',",
+                 "and 'cmd_info.json' is present."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_alevinqc_output.rds")
+    
+    # Stage 1: Check that all required alevin files are available
+    message("Checking Alevin input files...")
+    checkAlevinInputFiles(baseDir = baseDir)
+    
+    # Define output directory
+    outputDir <- "output"
+    if (!dir.exists(outputDir)) {
+      dir.create(outputDir, recursive = TRUE)
     }
+    
+    # Stage 2: Generate the QC report
+    message("Generating static QC report...")
+    alevinQCReport(baseDir = baseDir, sampleId = "testSample", 
+                   outputFile = "alevinReport.html", 
+                   outputFormat = "html_document",
+                   outputDir = outputDir, forceOverwrite = TRUE)
+    
+    # Stage 3: Extract and save additional meaningful results (tables and plots)
+    message("Reading Alevin QC data for exporting tables and plots...")
+    alevin <- readAlevinQC(baseDir = baseDir)
+    
+    # Save tables
+    write.csv(alevin\$cbTable, file = file.path(outputDir, "cbTable.csv"), row.names = FALSE)
+    
+    # Summary tables
+    if (!is.null(alevin\$summaryTables\$fullDataset)) {
+      write.csv(as.data.frame(alevin\$summaryTables\$fullDataset), 
+                file = file.path(outputDir, "summaryTable_fullDataset.csv"))
+    }
+    if (!is.null(alevin\$summaryTables\$initialWhitelist)) {
+      write.csv(as.data.frame(alevin\$summaryTables\$initialWhitelist), 
+                file = file.path(outputDir, "summaryTable_initialWhitelist.csv"))
+    }
+    if (!is.null(alevin\$summaryTables\$finalWhitelist)) {
+      write.csv(as.data.frame(alevin\$summaryTables\$finalWhitelist), 
+                file = file.path(outputDir, "summaryTable_finalWhitelist.csv"))
+    }
+    if (!is.null(alevin\$versionTable)) {
+      write.csv(as.data.frame(alevin\$versionTable), 
+                file = file.path(outputDir, "versionTable.csv"))
+    }
+    
+    # Save plots to PDF
+    pdf(file.path(outputDir, "alevin_qc_plots.pdf"), width = 8, height = 6)
+    tryCatch({
+      print(plotAlevinKneeRaw(alevin\$cbTable))
+    }, error = function(e) message("Could not plot KneeRaw: ", e\$message))
+    
+    tryCatch({
+      print(plotAlevinBarcodeCollapse(alevin\$cbTable))
+    }, error = function(e) message("Could not plot BarcodeCollapse: ", e\$message))
+    
+    tryCatch({
+      print(plotAlevinQuant(alevin\$cbTable))
+    }, error = function(e) message("Could not plot Quant: ", e\$message))
+    
+    tryCatch({
+      print(plotAlevinKneeNbrGenes(alevin\$cbTable))
+    }, error = function(e) message("Could not plot KneeNbrGenes: ", e\$message))
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs saved to 'output/' directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ALEVINQC:", paste0("    alevinqc: ", packageVersion("alevinQC"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ALEVINQC_STATIC_QC_REPORT":',
+        paste0('        alevinqc: ', as.character(packageVersion("alevinqc")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_alevinqc_results.csv
-    touch ${prefix}_alevinqc_output.rds
-    echo "BIOC_ALEVINQC:" > versions.yml
-    echo "    alevinqc: 0.0.0" >> versions.yml
+    touch ${prefix}_static_qc_report.csv versions.yml
     """
 }
 
-
-workflow BIOC_ALEVINQC_WORKFLOW {
+workflow BIOC_ALEVINQC_STATIC_QC_REPORT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ baseDir ] ]
 
     main:
-    BIOC_ALEVINQC(ch_input)
+    BIOC_ALEVINQC_STATIC_QC_REPORT(ch_input)
 
     emit:
-    results  = BIOC_ALEVINQC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ALEVINQC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ALEVINQC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ALEVINQC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ALEVINQC_STATIC_QC_REPORT.out.tables
+    plots    = BIOC_ALEVINQC_STATIC_QC_REPORT.out.plots
+    objects  = BIOC_ALEVINQC_STATIC_QC_REPORT.out.objects
+    versions = BIOC_ALEVINQC_STATIC_QC_REPORT.out.versions
 }

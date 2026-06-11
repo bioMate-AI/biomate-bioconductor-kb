@@ -1,0 +1,16 @@
+{
+  "package": "gewist",
+  "requirements": [
+    "GEWIST",
+    "car"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GEWIST",
+      "car"
+    ],
+    "snp_prioritization_unknown_effect.nf": [
+      "GEWIST"
+    ]
+  }
+}

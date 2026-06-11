@@ -1,0 +1,13 @@
+{
+  "package": "rsweep",
+  "requirements": [
+    "ape",
+    "rSWeeP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ape",
+      "rSWeeP"
+    ]
+  }
+}

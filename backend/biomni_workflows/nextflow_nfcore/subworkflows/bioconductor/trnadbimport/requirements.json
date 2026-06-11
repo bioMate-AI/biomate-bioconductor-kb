@@ -1,0 +1,19 @@
+{
+  "package": "trnadbimport",
+  "requirements": [
+    "Biostrings",
+    "GenomicRanges",
+    "S4Vectors",
+    "rtracklayer",
+    "tRNAdbImport"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biostrings",
+      "GenomicRanges",
+      "S4Vectors",
+      "rtracklayer",
+      "tRNAdbImport"
+    ]
+  }
+}

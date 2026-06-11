@@ -1,0 +1,18 @@
+{
+  "package": "pigengene",
+  "requirements": [
+    "Pigengene",
+    "bnlearn",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Pigengene"
+    ],
+    "step_by_step_pipeline.nf": [
+      "Pigengene",
+      "bnlearn",
+      "org.Hs.eg.db"
+    ]
+  }
+}

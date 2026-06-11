@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: pseudoc=Pseudo count (hyperparameter) in a beta distribution for theta (default = 50; lower values increase reliance on observed data) ;; theta_init=Initial values of theta matrix representing P(E|FR) conditional probabilities (default = matrix(c(.99, .01, .3, .7), nrow=2)) ;; costs=List of candidate lambda values for finding the best L2 penalty hyperparameter via 10-fold cross-validation (default = c(100, 10, 1, .1, .01, 1e-3, 1e-4)) ;; verbose=Logical value to print parameter convergence updates at each EM iteration (default = FALSE)\n- alternatives: GAM (Genomic Annotation Model)=A genomic-only model that uses genomic annotations alone (L2-regularized logistic regression) to predict variant effects. Prefer GAM when transcriptome/RNA-seq data is unavailable, but prefer RIVER when both WGS and RNA-seq data are available as it significantly improves predictive accuracy.\n- when_to_use: Use this package when you have paired personal genome (WGS) and transcriptome (RNA-seq) data and want to estimate the probability that rare genomic variants have a functional regulatory impact on nearby gene expression.\n- pitfalls: Input file format requirements=The input compressed file must follow a strict column structure (Subject ID, Gene name, genomic features, Z-scores of gene expression, and N2pair column with integer IDs or NA) ;; N2 pairs assignment=If a subject has a unique set of rare variants, NA must be assigned in the N2pair column; otherwise, pairs sharing the same rare variants must have matching unique integer identifiers ;; EM convergence=The EM algorithm might terminate early or fail to converge if the tolerance threshold (1e-3) is not met, which can be monitored using verbose=TRUE.",
+  "workflows": [
+    {
+      "name": "river_evaluation",
+      "intent": "Evaluate the predictive accuracy of the RIVER model compared to a genomic-only model (GAM) using held-out N2 pairs.",
+      "input": [
+        "simulation_RIVER.gz (a gzipped text file containing subject ID, gene name, genomic features, expression Z-scores, and N2 pair identifiers)"
+      ],
+      "stages": "1. Import experimental data using getData ;; 2. Run evaluation using evaRIVER with optional hyperparameters ;; 3. Extract and compare AUC values for GAM and RIVER",
+      "code": "filename <- system.file(\"extdata\", \"simulation_RIVER.gz\", package=\"RIVER\")\ndataInput <- getData(filename)\nevaROC <- evaRIVER(dataInput, pseudoc=50, theta_init=matrix(c(.99, .01, .3, .7), nrow=2), costs=c(100, 10, 1, .1, .01, 1e-3, 1e-4), verbose=TRUE)\ncat('AUC (GAM-genomic annotation model) = ', round(evaROC$GAM_auc,3), '\\n')\ncat('AUC (RIVER) = ', round(evaROC$RIVER_auc,3), '\\n')\ncat('P-value ', format.pval(evaROC$pvalue, digits=2, eps=0.001), '***\\n')"
+    },
+    {
+      "name": "river_application",
+      "intent": "Train the RIVER model on all instances and compute posterior probabilities of rare variants being functional for downstream prioritization.",
+      "input": [
+        "simulation_RIVER.gz (a gzipped text file containing subject ID, gene name, genomic features, expression Z-scores, and N2 pair identifiers)"
+      ],
+      "stages": "1. Import experimental data using getData ;; 2. Train and predict posterior probabilities using appRIVER ;; 3. Extract posterior probabilities for downstream analysis ;; 4. Plot the posterior probabilities using plotPosteriors",
+      "code": "filename <- system.file(\"extdata\", \"simulation_RIVER.gz\", package=\"RIVER\")\ndataInput <- getData(filename)\npostprobs <- appRIVER(dataInput, pseudoc=50, theta_init=matrix(c(.99, .01, .3, .7), nrow=2), costs=c(100, 10, 1, .1, .01, 1e-3, 1e-4), verbose=TRUE)\nexample_probs <- data.frame(Subject=postprobs$indiv_name, Gene=postprobs$gene_name, RIVERpp=postprobs$RIVER_posterior, GAMpp=postprobs$GAM_posterior)\nhead(example_probs)\nplotPosteriors(postprobs, outliers=as.numeric(unlist(dataInput$Outlier))-1)\nprint(postprobs$fitRIVER$beta)\nprint(postprobs$fitRIVER$theta)"
+    }
+  ]
+}

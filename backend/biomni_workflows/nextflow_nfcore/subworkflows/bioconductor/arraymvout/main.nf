@@ -1,100 +1,128 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: arrayMvout
-// This package supports the application of diverse quality metrics to AffyBatch instances, summarizing
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/arrayMvout/inst/doc/arrayMvout.R
-// Upstream  : MAQCsubset, affyPLM, mdqc, mvoutData
-// Downstream: none
-//
-// Install: BiocManager::install("arrayMvout")
+// Bioconductor workflow: arrayMvout — outlier_detection_from_qc_matrix
+// Detect outlying microarrays using a pre-computed matrix of quality control metrics.
+// Input: qc_matrix.csv
+// Container: quay.io/biocontainers/bioconductor-arraymvout:1.68.0--r45hdfd78af_0
+// R packages: affyPLM, arrayMvout, maqcsubset, mdqc, mvoutdata
+// Bioconductor: 3.20 | R: 4.4
+// Requires: arrayMvout
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the pre-computed QC feature data
+//  * 2. [Core Analysis] Run outlier detection using ArrayOutliers
+//  * 3. [Visualization & Output] Plot the outlier detection results
 
 nextflow.enable.dsl = 2
 
-process BIOC_ARRAYMVOUT {
+process BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-arraymvout"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-arraymvout:1.64.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-arraymvout:1.64.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_arraymvout_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_arraymvout_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_arraymvout_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("affyPLM", "arrayMvout", "maqcsubset", "mdqc", "mvoutdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(arrayMvout)
-    library(AffyRNAdeg)
-    library(ArrayOutliers)
-    library(NUSE)
-    library(RLE)
-    library(jsonlite)
-
-    # --- Outlier Detection on QA Data [] ---
-    # Key functions: ArrayOutliers
-    res_itn <- arrayMvout::ArrayOutliers(
-        itnQA,
-        alpha = 0.05
-    )
-
-
-    # --- Outlier Visualization [] ---
-    # Key functions: plot
-    plot(res_itn, choices = c(1, 3))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_arraymvout_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_arraymvout_results.csv")
+    
+    # 1. Load the pre-computed QC feature data
+    input_file <- "qc_matrix.csv"
+    if (!file.exists(input_file)) {
+      stop(paste("Error: Input file", input_file, "not found in the working directory."))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_arraymvout_output.rds")
-    }
+    
+    # Read the QC matrix (rows = arrays, columns = metrics)
+    qc_data <- read.csv(input_file, row.names = 1, check.names = FALSE)
+    qc_matrix <- as.matrix(qc_data)
+    
+    # 2. Run outlier detection using ArrayOutliers
+    # Keeping the exact function call and argument names from the documented code
+    ii <- ArrayOutliers(qc_matrix, alpha = 0.01)
+    
+    # Print the result summary to standard output
+    print(ii)
+    
+    # Save the complete outlier detection object
+    saveRDS(ii, file = "outliers_result.rds")
+    
+    # Safely extract and save the outliers table to a CSV file
+    tryCatch({
+      if ("outl" %in% names(ii)) {
+        write.csv(ii[["outl"]], file = "detected_outliers.csv", row.names = TRUE)
+      } else if (is.list(ii) && length(ii) >= 1) {
+        write.csv(ii[[1]], file = "detected_outliers.csv", row.names = TRUE)
+      } else if (is.object(ii) && .hasSlot(ii, "outl")) {
+        write.csv(slot(ii, "outl"), file = "detected_outliers.csv", row.names = TRUE)
+      }
+    }, error = function(e) {
+      warning("Could not write outliers table to CSV: ", e\$message)
+    })
+    
+    # 3. Plot the outlier detection results
+    # Keeping the exact plot call and arguments from the documented code
+    pdf("outliers_plot.pdf", width = 7, height = 7)
+    plot(ii, choices = c(1, 3))
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ARRAYMVOUT:", paste0("    arraymvout: ", packageVersion("arrayMvout"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX":',
+        paste0('    arrayMvout: ', as.character(packageVersion('arrayMvout')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_arraymvout_results.csv
-    touch ${prefix}_arraymvout_output.rds
-    echo "BIOC_ARRAYMVOUT:" > versions.yml
-    echo "    arraymvout: 0.0.0" >> versions.yml
+    touch ${prefix}_outlier_detection_from_qc_matrix.csv versions.yml
     """
 }
 
-
-workflow BIOC_ARRAYMVOUT_WORKFLOW {
+workflow BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ qc_matrix.csv ] ]
 
     main:
-    BIOC_ARRAYMVOUT(ch_input)
+    BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX(ch_input)
 
     emit:
-    results  = BIOC_ARRAYMVOUT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ARRAYMVOUT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ARRAYMVOUT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ARRAYMVOUT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX.out.tables
+    plots    = BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX.out.plots
+    objects  = BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX.out.objects
+    versions = BIOC_ARRAYMVOUT_OUTLIER_DETECTION_FROM_QC_MATRIX.out.versions
 }

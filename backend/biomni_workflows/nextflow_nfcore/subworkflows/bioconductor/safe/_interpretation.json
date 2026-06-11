@@ -1,0 +1,51 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: platform=Character string of the Bioconductor annotation package (e.g., \"hgu133a.db\") ;; annotate=Character string specifying the category source (e.g., \"REACTOME\", \"GO.ALL\", \"PFAM\") ;; local=Local statistic to assess feature-by-feature association (e.g., \"t.Student\", \"t.Welch\", \"f.ANOVA\", \"t.LM\", \"t.paired\") ;; global=Global statistic to measure category-level association (e.g., \"Wilcoxon\", \"AveDiff\", \"Fisher\", \"Pearson\", \"Kolmogorov\") ;; method=Resampling method to use (e.g., \"permutation\", \"bootstrap.t\", \"bootstrap.q\", \"express\") ;; Pi.mat=Number of resamples (default 1000) or a pre-computed resampling matrix; set to 1 to bypass resampling ;; error=Multiple testing correction method (e.g., \"FDR.BH\", \"FDR.YB\", \"FWER.Bonf\", \"FWER.Holm\", \"FWER.WY\") ;; Z.mat=An optional matrix of covariates for adjustment ;; parallel=Logical indicating whether to run resampling in parallel\n- alternatives: safeExpress=An external package (called via method = \"express\") that provides analytical approximations of permutation-based tests to greatly reduce computational requirements ;; globaltest=An alternative pathway-analysis tool for survival data, though safe's getCOXresiduals provides a computationally efficient resampling-based alternative ;; GSEA=Uses Kolmogorov-Smirnov-type tests of enrichment; safe can run this via global = \"Kolmogorov\" but it is computationally intensive\n- when_to_use: Use when performing pathway or gene-set enrichment analysis on gene expression data where you want to account for gene-gene correlation using robust resampling-based methods (permutation or bootstrapping) across diverse experimental designs.\n- pitfalls: Missing values are not allowed in the expression matrix and must be imputed prior to analysis ;; When passing a character vector as the response, the first unique element becomes Group 1, which defines the direction of differential expression ;; Permutation-based error controls (FDR.YB, FWER.WY) are superior but highly memory and computationally intensive ;; User-defined local statistics can be very slow if they rely on apply loops instead of matrix operations ;; The Kolmogorov-Smirnov global statistic (global = \"Kolmogorov\") is computationally intensive and may not be feasible for general use",
+  "workflows": [
+    {
+      "name": "standard_safe_analysis",
+      "intent": "Perform resampling-based pathway analysis on two-sample gene expression data using built-in annotations.",
+      "input": [
+        "e3.upp (gene expression matrix)",
+        "p3.upp$p53 (binary phenotype vector)"
+      ],
+      "stages": "1. Run safe with platform annotation ;; 2. Tabulate top results using safe.toptable ;; 3. Extract gene-specific results using gene.results ;; 4. Plot pathway results using safeplot",
+      "code": "results <- safe(e3.upp, p3.upp$p53, platform = \"hgu133a.db\",\n                annotate = \"REACTOME\", print.it = FALSE)\nsafe.toptable(results, number = 10)\ngene.results(results, cat.name = \"REACTOME:R-HSA-69183\", gene.names = genes)\nsafeplot(results, cat.name = \"REACTOME:R-HSA-69183\", gene.names = genes)"
+    },
+    {
+      "name": "custom_cmatrix_safe_analysis",
+      "intent": "Build a custom category matrix and run SAFE analysis.",
+      "input": [
+        "e3.upp (gene expression matrix)",
+        "p3.upp$p53 (phenotype vector)",
+        "genes (named character vector of gene symbols)"
+      ],
+      "stages": "1. Map gene identifiers to Entrez IDs ;; 2. Build category matrix using getCmatrix ;; 3. Run safe using the custom category matrix",
+      "code": "entrez <- unlist(mget(names(genes),hgu133aENTREZID))\nC.mat <- getCmatrix(gene.list = as.list(reactomeEXTID2PATHID),\n                    present.genes = entrez,prefix = \"REACTOME:\",\n                    min.size = 10, max.size = 500)\nresults <- safe(e3.upp, p3.upp$p53, C.mat, print.it = FALSE)"
+    },
+    {
+      "name": "survival_safe_analysis",
+      "intent": "Perform pathway analysis for right-censored survival data using martingale residuals.",
+      "input": [
+        "e3.upp (gene expression matrix)",
+        "p3.upp$t.rfs (survival times)",
+        "p3.upp$e.rfs (event indicators)",
+        "C.mat (category matrix)"
+      ],
+      "stages": "1. Compute Cox residuals using getCOXresiduals ;; 2. Run safe on the residuals",
+      "code": "drop <- is.na(p3.upp$t.rfs)\nXy <- getCOXresiduals(e3.upp[,!drop], p3.upp$t.rfs[!drop], \n                      p3.upp$e.rfs[!drop])\nresults2 <- safe(Xy$X.star, Xy$y.star, C.mat, \n                 Pi.mat = 1, print.it = FALSE)"
+    },
+    {
+      "name": "covariate_adjusted_safe_analysis",
+      "intent": "Perform pathway analysis adjusting for confounding covariates.",
+      "input": [
+        "e3.upp (gene expression matrix)",
+        "p3.upp$p53 (phenotype vector)",
+        "p3.upp$er (covariate vector/matrix)",
+        "C.mat (category matrix)"
+      ],
+      "stages": "1. Compute residuals adjusting for covariates using getXYresiduals ;; 2. Run safe on the residuals",
+      "code": "Xy <- getXYresiduals(e3.upp, p3.upp$p53, Z.mat = p3.upp$er)\nresults2 <- safe(Xy$X.star, Xy$y.star, C.mat, \n                 Pi.mat = 1, print.it = FALSE)"
+    }
+  ]
+}

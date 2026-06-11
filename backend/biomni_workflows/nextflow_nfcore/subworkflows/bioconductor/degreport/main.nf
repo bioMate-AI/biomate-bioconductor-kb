@@ -1,146 +1,140 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: DEGreport
-// Creation of ready-to-share figures of differential expression analyses of count data. It integrates 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DEGreport/inst/doc/DEGreport.R
-// Upstream  : ComplexHeatmap, DESeq2, pheatmap, shiny
-// Downstream: none
-//
-// Install: BiocManager::install("DEGreport")
+// Bioconductor workflow: DEGreport — qc_and_covariate_analysis
+// Perform quality control on normalized counts, check size factors, evaluate mean-variance relationships, and analyze covariate effects and correlations.
+// Input: counts_matrix.tsv, metadata.csv
+// Container: quay.io/biocontainers/bioconductor-degreport:1.46.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DEGreport, DESeq2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Check size factors using degCheckFactors. 2. Run comprehensive QC (p-value distribution, mean-variance) using degQC. 3. Analyze co
 
 nextflow.enable.dsl = 2
 
-process BIOC_DEGREPORT {
+process BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-degreport"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-degreport:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-degreport:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(deseqdataset)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_degreport_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_degreport_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_degreport_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+    # Load required libraries
+    library(DESeq2)
     library(DEGreport)
-    library(DESeq)
-    library(DESeqDataSetFromMatrix)
-    library(Heatmap)
-    library(HeatmapAnnotation)
-    library(jsonlite)
-
-    # --- Differential Expression Summarization [] ---
-    # Key functions: degFilter, degComps, deg, significants
-    filter_count <- degFilter(
-        counts,
-        design,
-        "group",
-        min = 1,
-        minreads = 50
-    )
-    degs <- degComps(
-        dds,
-        combs = "group",
-        contrast = list(
-            "group_Male_vs_Female",
-            c("group", "Female", "Male")
-        )
-    )
-    deg_table <- deg(degs[[1]], "raw", "tibble")
-    sig_genes <- significants(degs[[1]], fc = 0, fdr = 0.05)
-
-
-    # --- Diagnostic Visualizations [] ---
-    # Key functions: degMA, degVolcano, degPlot, degPlotWide
-    ma_plot <- degMA(degs[[1]], diff = 2, limit = 3)
-    volcano_plot <- degVolcano(
-        res[, c("log2FoldChange", "padj")],
-        plot_text = res[1:10, c("log2FoldChange", "padj", "id")]
-    )
-    gene_plots <- degPlot(
-        dds = dds,
-        res = res,
-        n = 6,
-        xs = "group"
-    )
-    wide_plot <- degPlotWide(
-        dds,
-        rownames(dds)[1:5],
-        group = "group"
-    )
-
-
-    # --- Expression Pattern Clustering [] ---
-    # Key functions: degPatterns
-    ma_matrix <- counts[1:100, ]
-    patterns <- degPatterns(
-        ma_matrix,
-        design,
-        time = "group"
-    )
-
-
-    # --- Annotation Coloring [] ---
-    # Key functions: degColors
-    color_list <- degColors(
-        design[, 1:4],
-        con_values = c("white", "red")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_degreport_results.csv", row.names = TRUE)
+    
+    # Read user input files from the working directory
+    counts_data <- read.table("counts_matrix.tsv", header = TRUE, sep = "\t", row.names = 1, check.names = FALSE)
+    metadata <- read.csv("metadata.csv", row.names = 1, check.names = FALSE)
+    
+    # Align counts and metadata
+    common_samples <- intersect(colnames(counts_data), rownames(metadata))
+    if (length(common_samples) == 0) {
+      stop("Error: No common samples found between counts_matrix.tsv and metadata.csv")
+    }
+    counts_data <- counts_data[, common_samples, drop = FALSE]
+    metadata <- metadata[common_samples, , drop = FALSE]
+    
+    # Ensure 'group' column exists in metadata (fallback to first column if missing)
+    if (!"group" %in% colnames(metadata)) {
+      metadata\$group <- as.factor(metadata[[1]])
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_degreport_results.csv")
+      metadata\$group <- as.factor(metadata\$group)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_degreport_output.rds")
-    }
+    
+    # Convert counts to integer for DESeq2 processing
+    count_matrix_int <- round(as.matrix(counts_data))
+    
+    # Create DESeqDataSet and run DESeq2 pipeline
+    dds <- DESeqDataSetFromMatrix(countData = count_matrix_int,
+                                  colData = metadata,
+                                  design = ~ group)
+    dds <- DESeq(dds)
+    res <- results(dds)
+    
+    # Extract normalized counts and design data frame
+    counts <- counts(dds, normalized = TRUE)
+    design <- as.data.frame(colData(dds))
+    
+    # 1. Check size factors using degCheckFactors
+    pdf("deg_check_factors.pdf", width = 8, height = 6)
+    print(degCheckFactors(counts[, 1:min(6, ncol(counts)), drop = FALSE]))
+    dev.off()
+    
+    # 2. Run comprehensive QC (p-value distribution, mean-variance) using degQC
+    pdf("deg_qc.pdf", width = 10, height = 8)
+    print(degQC(counts, design[["group"]], pvalue = res[["pvalue"]]))
+    dev.off()
+    
+    # 3. Analyze covariate effects on principal components using degCovariates
+    pdf("deg_covariates.pdf", width = 10, height = 8)
+    resCov <- degCovariates(log2(counts(dds)+0.5),
+                            colData(dds))
+    print(resCov\$plot)
+    dev.off()
+    saveRDS(resCov, "resCov.rds")
+    
+    # 4. Test correlation among covariates and metrics using degCorCov
+    pdf("deg_cor_cov.pdf", width = 8, height = 8)
+    cor <- degCorCov(colData(dds))
+    print(cor\$plot)
+    dev.off()
+    saveRDS(cor, "cor_results.rds")
+    
+    # Print the names of the correlation list object
+    print(names(cor))
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_DEGREPORT:", paste0("    degreport: ", packageVersion("DEGreport"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS":',
+        paste0('    DEGreport: ', as.character(packageVersion('DEGreport')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_degreport_results.csv
-    touch ${prefix}_degreport_output.rds
-    echo "BIOC_DEGREPORT:" > versions.yml
-    echo "    degreport: 0.0.0" >> versions.yml
+    touch ${prefix}_qc_and_covariate_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_DEGREPORT_WORKFLOW {
+workflow BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(deseqdataset) ]
+    ch_input  // channel: [ val(meta), [ counts_matrix.tsv, metadata.csv ] ]
 
     main:
-    BIOC_DEGREPORT(ch_input)
+    BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_DEGREPORT.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_DEGREPORT.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_DEGREPORT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_DEGREPORT.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS.out.tables
+    plots    = BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS.out.plots
+    objects  = BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS.out.objects
+    versions = BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS.out.versions
 }

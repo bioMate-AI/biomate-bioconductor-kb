@@ -1,0 +1,17 @@
+{
+  "package": "gcatest",
+  "requirements": [
+    "gcatest",
+    "genio",
+    "ggplot2",
+    "lfa"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "gcatest",
+      "genio",
+      "ggplot2",
+      "lfa"
+    ]
+  }
+}

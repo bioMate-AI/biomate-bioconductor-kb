@@ -1,0 +1,34 @@
+{
+  "package": "derfinder",
+  "requirements": [
+    "DESeq2",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "Rsamtools",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "derfinder",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "feature_level_analysis.nf": [
+      "GenomicRanges",
+      "derfinder"
+    ],
+    "main.nf": [
+      "DESeq2",
+      "GenomicRanges",
+      "Rsamtools",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "derfinder",
+      "rtracklayer"
+    ],
+    "single_base_level_f_statistics.nf": [
+      "GenomicFeatures",
+      "GenomicRanges",
+      "Rsamtools",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "derfinder",
+      "rtracklayer"
+    ]
+  }
+}

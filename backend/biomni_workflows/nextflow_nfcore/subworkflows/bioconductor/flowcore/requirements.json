@@ -1,0 +1,18 @@
+{
+  "package": "flowcore",
+  "requirements": [
+    "flowCore",
+    "flowStats",
+    "flowWorkspace"
+  ],
+  "by_workflow": {
+    "gatingset_hierarchical_analysis.nf": [
+      "flowCore",
+      "flowWorkspace"
+    ],
+    "main.nf": [
+      "flowCore",
+      "flowStats"
+    ]
+  }
+}

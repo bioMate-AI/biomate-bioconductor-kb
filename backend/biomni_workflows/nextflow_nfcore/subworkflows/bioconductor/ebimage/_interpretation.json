@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: method=Use \"browser\" for interactive JavaScript viewing in a web browser, or \"raster\" to draw on R's built-in plotting device ;; all=Set to TRUE in display() to render all frames of a multi-frame image in a grid arrangement ;; colorMode=Set to Grayscale (higher dimensions are treated as separate frames) or Color (third dimension is treated as RGB channels) ;; type=In numberOfFrames() or getFrame(), use \"render\" for rendered frames or \"total\" for total xy-planes ;; bg.col=Sets the background color for empty pixels in spatial transformations like translate() and rotate() ;; shape=In makeBrush(), specifies the kernel shape ('box', 'disc', 'diamond', 'gaussian', or 'line') ;; lambda=In propagate(), controls the relative weight between sideways and vertical movement (larger values ignore elevation/z-axis) ;; reenumerate=In rmObjects(), logical indicating whether to sequentially relabel remaining objects ;; thick=In paintObjects(), set to TRUE for a 2-pixel contour width (inner and outer boundary) or FALSE for a 1-pixel inner boundary\n- alternatives: RBioFormats package=Use instead of readImage() to support a wider range of proprietary microscopy image formats and metadata ;; transpose()=Use instead of R's base t() for transposing color and multi-frame images ;; thresh()=Use instead of filter2() for faster adaptive thresholding using a rectangular box\n- when_to_use: Appropriate for automated image processing, filtering, thresholding, and cell/nuclei segmentation in high-throughput microscopy-based cellular assays.\n- pitfalls: Using R's base t() instead of transpose() on multi-frame or color images ;; Changing colorMode only alters rendering behavior, whereas channel() actually modifies pixel intensity values ;; Failing to convert a grayscale target image to RGB using toRGB() before calling paintObjects() with color specifications, which results in a grayscale output ;; Relying on bwlabel() for touching objects, which incorrectly merges them into a single object (use watershed or propagate instead)",
+  "workflows": [
+    {
+      "name": "cell_segmentation",
+      "intent": "Segment nuclei and cell bodies from fluorescent microscopy images and visualize the segmented boundaries.",
+      "input": [
+        "nuclei.tif (fluorescent microscopy image of nuclei)",
+        "cells.tif (fluorescent microscopy image of cell bodies)"
+      ],
+      "stages": "1. Load nuclei and cell body images using readImage ;; 2. Combine images into a false-color RGB image using rgbImage and display ;; 3. Segment nuclei by applying adaptive thresholding with thresh, morphological opening with opening and makeBrush, filling holes with fillHull, and labeling connected components with bwlabel ;; 4. Define cell body mask by thresholding and opening, then segment cytoplasm using Voronoi tessellation with propagate using nuclei as seeds ;; 5. Highlight and visualize segmented nuclei and cell boundaries on the original image using paintObjects",
+      "code": "nuc = readImage(system.file('images', 'nuclei.tif', package='EBImage'))\ncel = readImage(system.file('images', 'cells.tif', package='EBImage'))\ncells = rgbImage(green=1.5*cel, blue=nuc)\ndisplay(cells, all = TRUE)\nnmask = thresh(nuc, w=10, h=10, offset=0.05)\nnmask = opening(nmask, makeBrush(5, shape='disc'))\nnmask = fillHull(nmask)\nnmask = bwlabel(nmask)\ndisplay(nmask, all=TRUE)\nctmask = opening(cel>0.1, makeBrush(5, shape='disc'))\ncmask = propagate(cel, seeds=nmask, mask=ctmask)\ndisplay(ctmask, all=TRUE)\nsegmented = paintObjects(cmask, cells, col='#ff00ff')\nsegmented = paintObjects(nmask, segmented, col='#ffff00')\ndisplay(segmented, all=TRUE)"
+    },
+    {
+      "name": "image_thresholding_and_object_manipulation",
+      "intent": "Perform global thresholding, connected component labeling, watershed segmentation, and object removal/manipulation on images.",
+      "input": [
+        "shapes.png (binary or grayscale image with shapes)",
+        "nuclei.tif (multi-frame fluorescent microscopy image)"
+      ],
+      "stages": "1. Load images using readImage ;; 2. Calculate optimal global threshold using Otsu's method with otsu ;; 3. Apply threshold to split frames using getFrames and combine back with combine ;; 4. Label connected components using bwlabel and visualize with colorLabels ;; 5. Separate touching objects using distance transform distmap and watershed ;; 6. Remove specific objects from the mask using rmObjects and optionally reenumerate",
+      "code": "nuc = readImage(system.file(\"images\", \"nuclei.tif\", package=\"EBImage\"))\nthreshold = otsu(nuc)\nnuc_th = combine( mapply(function(frame, th) frame > th, getFrames(nuc), threshold, SIMPLIFY=FALSE) )\ndisplay(nuc_th, all=TRUE)\nshapes = readImage(system.file('images', 'shapes.png', package='EBImage'))\nlogo = shapes[110:512,1:130]\nlogo_label = bwlabel(logo)\ndisplay( colorLabels(logo_label) )\nnmask = watershed( distmap(nuc_th), 2 )\ndisplay(colorLabels(nmask), all=TRUE)\nobjects = list(\n    seq.int(from = 2, to = max(logo_label), by = 2),\n    seq.int(from = 1, to = max(logo_label), by = 2)\n    )\nlogos = combine(logo_label, logo_label)\nz = rmObjects(logos, objects, reenumerate=FALSE)\ndisplay(z, all=TRUE)"
+    }
+  ]
+}

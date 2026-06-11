@@ -1,0 +1,11 @@
+{
+  "package": "drivernet",
+  "requirements": [
+    "DriverNet"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DriverNet"
+    ]
+  }
+}

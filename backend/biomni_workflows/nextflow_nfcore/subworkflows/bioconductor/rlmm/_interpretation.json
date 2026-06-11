@@ -1,0 +1,18 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: cqvfile=Path to the internal CQV file (e.g., \"Xba.CQV\") used for normalization ;; probefiledir=Directory containing the .raw files (defaults to working directory if not specified) ;; start=In create_Thetafile, specifies the index of the first SNP to process ;; end=In create_Thetafile, specifies the index of the last SNP to process (default is -1, which processes all SNPs) ;; thetafile=Output/input ASCII text file storing theta A and theta B estimates ;; regionsfile=Path to the internal regions file (e.g., \"Xba.regions\") containing genotype group centers and covariance matrices ;; genotypefile=Output file path for classification results ;; callrate=Cut-off value to make accurate calls (eligible values: 80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100; default is 100; ineligible values default to 80) ;; plotfile=File path to save the plot (e.g., \"plots.ps\"); if empty string \"\", displays onscreen ;; snpsfile=Text file containing a list of SNPs to plot (one per line)\n- alternatives: None mentioned in the documentation.\n- when_to_use: Appropriate for performing supervised genotype calling on Affymetrix Mapping 100K array (Xba set) data when raw probe intensity files and reference training files are available.\n- pitfalls: Currently only works for the 100K-Xba dataset and does not support Hind, 500K, or 10K datasets in this version ;; Requires specific internal files (Xba.CQV and Xba.regions) downloaded from the author's website to function ;; Requires converting binary .CEL files to ASCII .raw files first using an external Affymetrix tool (gtype_cel_to_pq) ;; In plot_theta, Pick.Obj must always be set to FALSE for RLMM version 0.7 ;; Specifying an ineligible call rate (e.g., 91) will automatically reset it to the minimum of 80%.",
+  "workflows": [
+    {
+      "name": "affymetrix_xba_genotyping",
+      "intent": "Normalize raw probe intensities, estimate theta values, classify genotypes, and plot allele summaries for Affymetrix 100K-Xba SNP arrays.",
+      "input": [
+        "Xba.CQV (internal normalization file)",
+        "Xba.regions (internal classification regions file)",
+        "snps.lst (text file listing SNPs to plot)",
+        ".raw files (ASCII converted CEL files in the working directory)"
+      ],
+      "stages": "1. Load the RLMM library ;; 2. Normalize raw probe intensity files using normalize_Rawfiles ;; 3. Estimate theta A and theta B values using create_Thetafile ;; 4. Classify genotypes using Classify with Mahalanobis distance ;; 5. Plot allele summaries for specific SNPs using plot_theta",
+      "code": "library(RLMM)\nnormalize_Rawfiles(cqvfile=\"Xba.CQV\")\ncreate_Thetafile(start=1,end=100,thetafile=\"Xba.theta\")\nClassify(genotypefile=\"Xba.rlmm\",regionsfile=\"Xba.regions\",thetafile=\"Xba.theta\")\nx<-read.table(\"Xba.rlmm\")\nx[1:2,1:5]\nplot_theta(genotypefile=\"Xba.rlmm\",thetafile=\"Xba.theta\",plotfile=\"\",snpsfile=\"snps.lst\")"
+    }
+  ]
+}

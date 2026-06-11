@@ -1,0 +1,11 @@
+{
+  "package": "dta",
+  "requirements": [
+    "DTA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "DTA"
+    ]
+  }
+}

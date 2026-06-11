@@ -1,0 +1,36 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: ks=A range of numeric values representing the number of clusters to evaluate (e.g., 2:4) ;; biology=Logical indicating whether to calculate biological features (DE genes, marker genes, cell outliers) ;; n_cores=Number of threads/cores to use for parallel processing ;; svm_num_cells=Number of training cells to use for the hybrid SVM approach ;; svm_train_inds=Numeric vector of manual cell indices to use as training data for the SVM ;; show_pdata=Character vector of colData column names to annotate columns in plotting functions\n- alternatives: scater=Used for quality control, normalization, and PCA visualization prior to running SC3 ;; mclust=Used (specifically adjustedRandIndex) to compare different clustering solutions\n- when_to_use: Appropriate for unsupervised clustering of single-cell RNA-seq expression data to identify cell subpopulations, marker genes, differentially expressed genes, and outlier cells.\n- pitfalls: SC3 requires both 'counts' and 'logcounts' assays to exist in the input SingleCellExperiment object ;; The rowData slot of the input object must contain a 'feature_symbol' column with unique gene/transcript names ;; For datasets with > 5,000 cells, SC3 automatically uses a hybrid SVM approach which initially sets biological characteristics to NA for non-training cells; users must clear 'svm_train_inds' and rerun 'sc3_calc_biology' to calculate these for all cells ;; Post-clustering differential expression p-values are biased and should only be used for ranking genes.",
+  "workflows": [
+    {
+      "name": "standard_sc3_clustering",
+      "intent": "Run the standard SC3 clustering and biological analysis pipeline using the high-level wrapper function and visualize the results.",
+      "input": [
+        "expression_matrix.csv (QCed and normalized single-cell expression matrix)",
+        "cell_metadata.csv (Cell annotations/phenotypes)"
+      ],
+      "stages": "1. Create a SingleCellExperiment object with counts and logcounts assays ;; 2. Define unique feature symbols in rowData ;; 3. Run the main sc3 wrapper function ;; 4. Visualize results using interactive Shiny app or static plotting functions",
+      "code": "sce <- SingleCellExperiment(\n    assays = list(\n        counts = as.matrix(yan),\n        logcounts = log2(as.matrix(yan) + 1)\n    ), \n    colData = ann\n)\n\n# define feature names in feature_symbol column\nrowData(sce)$feature_symbol <- rownames(sce)\n# remove features with duplicated names\nsce <- sce[!duplicated(rowData(sce)$feature_symbol), ]\n\nsce <- sc3(sce, ks = 2:4, biology = TRUE)\n\n# sc3_interactive(sce)\n\n# sc3_export_results_xls(sce)\n\nsc3_plot_consensus(sce, k = 3)\n\nsc3_plot_consensus(\n    sce, k = 3, \n    show_pdata = c(\n        \"cell_type1\", \n        \"log10_total_features\",\n        \"sc3_3_clusters\", \n        \"sc3_3_log2_outlier_score\"\n    )\n)\n\nsc3_plot_silhouette(sce, k = 3)\n\nsc3_plot_expression(sce, k = 3)\n\nsc3_plot_cluster_stability(sce, k = 3)\n\nsc3_plot_de_genes(sce, k = 3)\n\nsc3_plot_markers(sce, k = 3)"
+    },
+    {
+      "name": "step_by_step_sc3_pipeline",
+      "intent": "Run the SC3 clustering pipeline step-by-step to inspect intermediate results and customize parameters at each stage.",
+      "input": [
+        "expression_matrix.csv (QCed and normalized single-cell expression matrix)",
+        "cell_metadata.csv (Cell annotations/phenotypes)"
+      ],
+      "stages": "1. Prepare the SingleCellExperiment object ;; 2. Estimate the optimal number of clusters k ;; 3. Calculate distance matrices ;; 4. Perform transformations on distance matrices ;; 5. Run k-means clustering ;; 6. Calculate consensus matrix and clustering solutions ;; 7. Calculate biological features (DE, markers, outliers)",
+      "code": "sce <- sc3_prepare(sce)\n\nsce <- sc3_estimate_k(sce)\n\nsce <- sc3_calc_dists(sce)\n\nsce <- sc3_calc_transfs(sce)\n\nsce <- sc3_kmeans(sce, ks = 2:4)\n\nsce <- sc3_calc_consens(sce)\n\nsce <- sc3_calc_biology(sce, ks = 2:4)"
+    },
+    {
+      "name": "hybrid_svm_clustering",
+      "intent": "Cluster large datasets (>5,000 cells) using a hybrid approach combining unsupervised clustering on a subset of cells and SVM label projection for the remaining cells.",
+      "input": [
+        "expression_matrix.csv (QCed and normalized single-cell expression matrix)",
+        "cell_metadata.csv (Cell annotations/phenotypes)"
+      ],
+      "stages": "1. Run SC3 with SVM parameters to cluster training cells ;; 2. Run SVM to predict labels for the remaining cells ;; 3. Clear training indices and recalculate biological features for all cells",
+      "code": "sce <- sc3(sce, ks = 2:4, biology = TRUE, svm_num_cells = 50)\n\nsce <- sc3_run_svm(sce, ks = 2:4)\n\nmetadata(sce)$sc3$svm_train_inds <- NULL\nsce <- sc3_calc_biology(sce, ks = 2:4)"
+    }
+  ]
+}

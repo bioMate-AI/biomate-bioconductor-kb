@@ -1,0 +1,11 @@
+{
+  "package": "minfi",
+  "requirements": [
+    "minfi"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "minfi"
+    ]
+  }
+}

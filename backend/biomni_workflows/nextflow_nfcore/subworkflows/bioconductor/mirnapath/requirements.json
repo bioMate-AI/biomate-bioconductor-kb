@@ -1,0 +1,11 @@
+{
+  "package": "mirnapath",
+  "requirements": [
+    "miRNApath"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "miRNApath"
+    ]
+  }
+}

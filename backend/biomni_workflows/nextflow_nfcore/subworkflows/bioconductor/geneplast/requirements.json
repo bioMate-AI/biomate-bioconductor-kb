@@ -1,0 +1,25 @@
+{
+  "package": "geneplast",
+  "requirements": [
+    "RColorBrewer",
+    "RedeR",
+    "ape",
+    "geneplast",
+    "igraph"
+  ],
+  "by_workflow": {
+    "evolutionary_rooting_analysis.nf": [
+      "ape",
+      "geneplast"
+    ],
+    "main.nf": [
+      "geneplast"
+    ],
+    "network_rooting_mapping.nf": [
+      "RColorBrewer",
+      "RedeR",
+      "geneplast",
+      "igraph"
+    ]
+  }
+}

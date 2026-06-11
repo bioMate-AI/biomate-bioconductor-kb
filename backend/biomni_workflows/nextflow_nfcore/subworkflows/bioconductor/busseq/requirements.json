@@ -1,0 +1,13 @@
+{
+  "package": "busseq",
+  "requirements": [
+    "BUSseq",
+    "SingleCellExperiment"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BUSseq",
+      "SingleCellExperiment"
+    ]
+  }
+}

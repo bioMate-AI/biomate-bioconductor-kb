@@ -1,129 +1,138 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: flowMatch
-// Matching cell populations and building meta-clusters and templates from a collection of FC samples.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/flowMatch/inst/doc/flowMatch.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("flowMatch")
+// Bioconductor workflow: flowMatch — pairwise_cluster_matching
+// Match cell populations (clusters) across a pair of flow cytometry samples using the Mixed Edge Cover (MEC) algorithm.
+// Input: sample1.csv, sample2.csv
+// Container: quay.io/biocontainers/bioconductor-flowmatch:1.46.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: flowMatch
+// Visualizations: cluster plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Cluster both samples using a clustering algorithm (e.g., kmeans). 2. Create ClusteredSample S4 objects for both samples to encapsu
 
 nextflow.enable.dsl = 2
 
-process BIOC_FLOWMATCH {
+process BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-flowmatch"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-flowmatch:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-flowmatch:1.42.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_flowmatch_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_flowmatch_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_flowmatch_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ClusteredSample)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(flowMatch)
+    
+    # Set seed for reproducible clustering
+    set.seed(1234)
+    
+    # Read user input files
+    sample1 <- as.matrix(read.csv("sample1.csv"))
+    sample2 <- as.matrix(read.csv("sample2.csv"))
+    
+    # 1. Cluster both samples using a clustering algorithm (kmeans)
+    clust1 = kmeans(sample1, centers=4, nstart=20)
+    clust2 = kmeans(sample2, centers=4, nstart=20)
+    cluster.labels1 = clust1\$cluster
+    cluster.labels2 = clust2\$cluster
+    
+    # 2. Create ClusteredSample S4 objects for both samples
+    clustSample1 = ClusteredSample(labels=cluster.labels1, sample=sample1)
+    clustSample2 = ClusteredSample(labels=cluster.labels2, sample=sample2)
+    
+    # 3. Match clusters across the sample pair using match.clusters
+    mec = match.clusters(clustSample1, clustSample2, dist.type="Mahalanobis", unmatch.penalty=99999)
+    
+    # 4. Retrieve and summarize the matching results
+    class_info <- class(mec)
+    print(class_info)
+    
+    # Capture summary output
+    sink("matching_summary.txt")
+    cat("Class of matching object:\n")
+    print(class_info)
+    cat("\nSummary of matching:\n")
+    summary(mec)
+    sink()
+    
+    # Write meaningful output files
+    # Save the S4 ClusterMatch object
+    saveRDS(mec, file = "mec_result.rds")
+    
+    # Save cluster assignments for both samples
+    write.csv(data.frame(Cell = seq_along(cluster.labels1), Cluster = cluster.labels1), 
+              "sample1_clusters.csv", row.names = FALSE)
+    write.csv(data.frame(Cell = seq_along(cluster.labels2), Cluster = cluster.labels2), 
+              "sample2_clusters.csv", row.names = FALSE)
+    
+    # Generate diagnostic plots of the clustered samples
+    pdf("clustered_samples.pdf", width = 12, height = 6)
+    par(mfrow = c(1, 2))
+    tryCatch({
+      plot(sample1, clustSample1)
+      title(main = "Sample 1 Clusters")
+    }, error = function(e) {
+      message("Could not plot Sample 1: ", e\$message)
+    })
+    
+    tryCatch({
+      plot(sample2, clustSample2)
+      title(main = "Sample 2 Clusters")
+    }, error = function(e) {
+      message("Could not plot Sample 2: ", e\$message)
+    })
+    dev.off()
 
-    # --- Companionpkg [] ---
-    # Key functions: requireNamespace, packages
-    ##
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("healthyFlowData")
-    # --- Clustering [] ---
-    # Key functions: exprs, kmeans, object, ClusteredSample
-    ## ------------------------------------------------
-    ## load data and retrieve a sample
-    ## ------------------------------------------------
-    data(hd)
-    sample = exprs(hd.flowSet[[1]])
-    # --- Stage2 [] ---
-    # Key functions: exprs, kmeans, clusters, ClusteredSample, cluster
-    ## ------------------------------------------------
-    ## load data and retrieve a sample
-    ## ------------------------------------------------
-    data(hd)
-    sample = exprs(hd.flowSet[[1]])
-    # --- Stage3 [] ---
-    # Key functions: exprs, kmeans, ClusteredSample, clusters
-    ## ------------------------------------------------
-    ## load data and retrieve two samples
-    ## ------------------------------------------------
-    data(hd)
-    sample1 = exprs(hd.flowSet[[1]])
-    # --- Stage4 [] ---
-    # Key functions: exprs, kmeans
-    ## load data (20 samples in total)
-    ## ------------------------------------------------
-    data(hd)
-    ## ------------------------------------------------
-    ## Retrieve each sample, clsuter it and store the
-    # --- Template Tree [] ---
-    # Key functions: tree
-    template.tree(template)
-    # --- Mc Plot [] ---
-    # Key functions: metaClusters
-    # retrieve a metacluster from a template
-    mc = get.metaClusters(template)[[1]]
-    summary(mc)
-    # plot all participating cluster in this meta-cluster
-    plot(mc)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_flowmatch_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_flowmatch_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_flowmatch_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_FLOWMATCH:", paste0("    flowmatch: ", packageVersion("flowMatch"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING":',
+        paste0('    flowMatch: ', as.character(packageVersion('flowMatch')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_flowmatch_results.csv
-    touch ${prefix}_flowmatch_output.rds
-    echo "BIOC_FLOWMATCH:" > versions.yml
-    echo "    flowmatch: 0.0.0" >> versions.yml
+    touch ${prefix}_pairwise_cluster_matching.csv versions.yml
     """
 }
 
-
-workflow BIOC_FLOWMATCH_WORKFLOW {
+workflow BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ sample1.csv, sample2.csv ] ]
 
     main:
-    BIOC_FLOWMATCH(ch_input)
+    BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING(ch_input)
 
     emit:
-    results  = BIOC_FLOWMATCH.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_FLOWMATCH.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_FLOWMATCH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_FLOWMATCH.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING.out.tables
+    plots    = BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING.out.plots
+    objects  = BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING.out.objects
+    versions = BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING.out.versions
 }

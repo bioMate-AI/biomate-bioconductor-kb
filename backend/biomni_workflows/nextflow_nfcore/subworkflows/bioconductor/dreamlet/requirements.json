@@ -1,0 +1,19 @@
+{
+  "package": "dreamlet",
+  "requirements": [
+    "GSEABase",
+    "SingleCellExperiment",
+    "dreamlet",
+    "ggplot2",
+    "zenith"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GSEABase",
+      "SingleCellExperiment",
+      "dreamlet",
+      "ggplot2",
+      "zenith"
+    ]
+  }
+}

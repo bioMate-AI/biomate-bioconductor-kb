@@ -1,0 +1,20 @@
+{
+  "package": "epigenomix",
+  "requirements": [
+    "Biobase",
+    "GenomicRanges",
+    "epigenomix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "epigenomix"
+    ],
+    "rnaseq_chipseq_integration.nf": [
+      "Biobase",
+      "GenomicRanges",
+      "epigenomix"
+    ]
+  }
+}

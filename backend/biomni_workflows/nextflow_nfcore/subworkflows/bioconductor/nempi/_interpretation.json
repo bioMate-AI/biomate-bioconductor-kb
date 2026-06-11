@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: data=A matrix of gene expression log odds where rows represent E-genes (effect genes) and columns represent samples (labeled with perturbed P-genes or empty \"\" for unobserved) ;; Gamma=A prior probabilistic perturbation matrix of dimensions P-genes x samples, where entries are between 0 and 1 and columns sum to 1 ;; method=Character string in classpi specifying the classifier (\"svm\", \"nnet\", or \"randomForest\") ;; propagate=Logical parameter in pifit indicating whether to propagate perturbation effects through the network\n- alternatives: classpi(method=\"svm\")=Support Vector Machines classifier ;; classpi(method=\"nnet\")=Neural network classifier ;; classpi(method=\"randomForest\")=Random Forest classifier ;; mnem/epiNEM=Packages used for simulating data or plotting matrices. Prefer nempi over standard classifiers when P-genes are connected in a denser network; prefer standard classifiers (classpi) when the network is sparse, disconnected, or when there are combinatorial perturbations.\n- when_to_use: Use when analyzing transcriptomic screens (such as single-cell or bulk RNA-seq differential expression log odds) where some samples have unknown, unrecorded, or incomplete perturbation labels, and you want to simultaneously infer these missing perturbations and reconstruct the causal signaling network of the perturbed genes.\n- pitfalls: Input data must be in log odds of differential expression (not raw counts or standard normalized expression) ;; If the underlying causal network of perturbed genes is highly sparse or disconnected, nempi's network-based inference may underperform compared to standard supervised classifiers like SVM or Random Forest ;; Prior matrix Gamma must be properly normalized so that each column sums to 1, with NA values handled (e.g., set to 0).",
+  "workflows": [
+    {
+      "name": "unsupervised_perturbation_inference",
+      "intent": "Infer unobserved perturbations and reconstruct causal networks from gene expression data with partially missing perturbation labels.",
+      "input": [
+        "data (matrix of gene expression log odds with some unlabeled columns)"
+      ],
+      "stages": "1. Run network-based perturbation inference using nempi ;; 2. Evaluate inference accuracy using pifit ;; 3. Plot the inferred perturbation profiles and network ;; 4. Compute the final transitive-closed perturbation matrix Omega",
+      "code": "res <- nempi(data)\nfit <- pifit(res, simmini, data)\nprint(fit$auc)\ncol <- rgb(seq(0,1,length.out=10),seq(1,0,length.out=10),\n           seq(1,0,length.out=10))\nplot(res,heatlist=list(col=\"RdBu\"),barlist=list(col=col))\nOmega <- t(mnem::transitive.closure(res$res$adj))%*%res$Gamma"
+    },
+    {
+      "name": "prior_guided_perturbation_inference",
+      "intent": "Infer unobserved perturbations using a probabilistic prior matrix of potential perturbations.",
+      "input": [
+        "data (matrix of gene expression log odds)",
+        "Gamma (prior probability matrix of perturbations)"
+      ],
+      "stages": "1. Construct and normalize the prior matrix Gamma ;; 2. Run nempi guided by the prior matrix Gamma ;; 3. Evaluate the inference accuracy using pifit",
+      "code": "Gamma <- matrix(0, Pgenes, ncol(data))\nrownames(Gamma) <- seq_len(Pgenes)\ncolnames(Gamma) <- colnames(data)\nfor (i in seq_len(Pgenes)) {\n    Gamma[i, grep(paste0(\"^\", i, \"_|_\", i,\n                        \"$|_\", i, \"_|^\", i, \"$\"),\n                 colnames(data))] <- 1\n}\nGamma <- apply(Gamma, 2, function(x) return(x/sum(x)))\nGamma[is.na(Gamma)] <- 0\ncolnames(data) <- sample(seq_len(Pgenes), ncol(data), replace = TRUE)\nres <- nempi(data, Gamma = Gamma)\nfit <- pifit(res, simmini, data)\nprint(fit$auc)"
+    },
+    {
+      "name": "supervised_classification_inference",
+      "intent": "Infer missing perturbations using standard supervised machine learning classifiers as an alternative to network-based inference.",
+      "input": [
+        "data (matrix of gene expression log odds with some labeled and some unlabeled columns)"
+      ],
+      "stages": "1. Run SVM-based perturbation inference using classpi ;; 2. Run Neural Network-based perturbation inference using classpi ;; 3. Run Random Forest-based perturbation inference using classpi ;; 4. Evaluate classifier performance using pifit with effect propagation disabled",
+      "code": "ressvm <- classpi(data)\nfit <- pifit(ressvm, simmini, data, propagate = FALSE)\nprint(fit$auc)\n\nresnn <- classpi(data, method = \"nnet\")\nfit <- pifit(resnn, simmini, data, propagate = FALSE)\nprint(fit$auc)\n\nresrf <- classpi(data, method = \"randomForest\")\nfit <- pifit(resrf, simmini, data, propagate = FALSE)\nprint(fit$auc)"
+    }
+  ]
+}

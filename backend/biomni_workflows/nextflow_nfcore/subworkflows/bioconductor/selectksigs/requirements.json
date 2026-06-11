@@ -1,0 +1,19 @@
+{
+  "package": "selectksigs",
+  "requirements": [
+    "HiLDA",
+    "dplyr",
+    "ggplot2",
+    "selectKSigs",
+    "tidyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HiLDA",
+      "dplyr",
+      "ggplot2",
+      "selectKSigs",
+      "tidyr"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package": "flowcybar",
+  "requirements": [
+    "flowCyBar"
+  ],
+  "by_workflow": {
+    "correlation_analysis.nf": [
+      "flowCyBar"
+    ],
+    "main.nf": [
+      "flowCyBar"
+    ],
+    "nmds_analysis.nf": [
+      "flowCyBar"
+    ]
+  }
+}

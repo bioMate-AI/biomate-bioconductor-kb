@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: tr=Character string giving the name of the file with transcripts of interest (fasta/fa or gtf/gff formats) ;; genome=Name of pre-installed BSgenome data package with full genome sequences (default is \"BSgenome.Hsapiens.UCSC.hg38\") ;; codStart=Start codon to scan for in findORFs (e.g., \"ATG\") ;; pLearn=Fraction of ORFs randomly selected for the training set in classifyORFsCandidates (default is 0.75) ;; nTrees=Number of trees to grow in the random forest classifier (default is 500) ;; modelRF=Name of RDS-file to store the classification model (default is NULL) ;; prThr=Probability threshold for the \"winning\" class of ORFs in predictORF (default is 0) ;; aaSymbol=Argument in translateORFs to switch amino acid symbols from one-letter to three-letter\n- alternatives: None mentioned in the documentation\n- when_to_use: Appropriate when analyzing transcriptomic data (normal or cancerous human cells) to identify, classify, and annotate true open reading frames (ORFs) and distinguish them from non-coding pseudo-ORFs.\n- pitfalls: If using gtf or gff formats for transcripts, the genome argument must be specified with a pre-installed BSgenome package, otherwise it may fail or use the default human genome ;; Setting nTrees to too small a number in classifyORFsCandidates may prevent input rows from being predicted at least a few times ;; The input file for getSeqORFs and annotateORFs must include the exact transcripts for which the ORFs were identified and listed in the coordinates file",
+  "workflows": [
+    {
+      "name": "train_orf_classifier",
+      "intent": "Train a custom Random Forest classifier to distinguish true ORFs from pseudo-ORFs using known lncRNA and mRNA sequences.",
+      "input": [
+        "fileORFLncRNAs.fasta.gz (pseudo-ORFs from lncRNAs)",
+        "fileORFmRNAs.fasta.gz (true ORFs from mRNAs)"
+      ],
+      "stages": "1. Load transcript/ORF sequences using loadTrExper ;; 2. Train the Random Forest classifier using classifyORFsCandidates.",
+      "code": "fileORFLncRNAs <- \"http://www.sstcenter.com/download/ORFhunteR/NCBI_RefSeq_release_109_GRCh38.p12_ORF_candidates_sequences_lncRNAs.fasta.gz\"\nORFLncRNAs <- loadTrExper(tr = fileORFLncRNAs)\nfileORFmRNAs <- \"http://www.sstcenter.com/download/ORFhunteR/NCBI_RefSeq_release_109_GRCh38.p12_ORFs_true_sequences_mRNAs.fasta.gz\"\nORFmRNAs <- loadTrExper(tr = fileORFmRNAs)\nN <- 1000\nORFLncRNAs <- ORFLncRNAs[1:N]\nORFmRNAs <- ORFmRNAs[1:N]\nclt <- classifyORFsCandidates(ORFLncRNAs = ORFLncRNAs, ORFmRNAs = ORFmRNAs, pLearn = 0.75, nTrees = 500, modelRF = NULL, workDir = NULL, showAccuracy = TRUE)"
+    },
+    {
+      "name": "predict_and_annotate_orfs",
+      "intent": "Predict true ORFs in transcripts of interest, extract their sequences, detect premature termination codons, translate them, and perform basic annotation.",
+      "input": [
+        "trans_sequences.fasta (transcripts of interest)",
+        "classRFmodel_1.rds (trained Random Forest model)",
+        "trans_sequences.gtf (transcript structures)"
+      ],
+      "stages": "1. Predict true ORFs using predictORF ;; 2. Extract ORF sequences using getSeqORFs ;; 3. Detect premature termination codons (PTCs) using findPTCs ;; 4. Translate ORFs in silico using translateORFs ;; 5. Annotate identified ORFs using annotateORFs.",
+      "code": "trans  <- system.file(\"extdata\", \"Set.trans_sequences.fasta\", package = \"ORFhunteR\")\nmodel <- \"http://www.sstcenter.com/download/ORFhunteR/classRFmodel_1.rds\"\nORFs <- predictORF(tr = trans, model= model, prThr = 0)\norfs_path <- system.file(\"extdata\", \"Set.trans_ORFs.coordinates.txt\", package=\"ORFhunteR\")\ntr_path <- system.file(\"extdata\", \"Set.trans_sequences.fasta\", package=\"ORFhunteR\")\nseq_orfs <- getSeqORFs(orfs = orfs_path, tr = tr_path, genome=\"BSgenome.Hsapiens.UCSC.hg38\", workDir=NULL)\ngtf_path <- system.file(\"extdata\", \"Set.trans_sequences.gtf\", package=\"ORFhunteR\")\nptcs <- findPTCs(orfs = orfs_path, gtf = gtf_path, workDir = NULL)\nseq_orf_path <- system.file(\"extdata\", \"Set.trans_ORFs.sequences.fasta\", package=\"ORFhunteR\")\nprot_seqs <- translateORFs(seqORFs=seq_orf_path)\nprts_path <- system.file(\"extdata\", \"Set.trans_proteins.sequences.fasta\", package=\"ORFhunteR\")\nanno_orfs <- annotateORFs(orfs = orfs_path, tr = tr_path, gtf = gtf_path, prts = prts_path, workDir = NULL)"
+    }
+  ]
+}

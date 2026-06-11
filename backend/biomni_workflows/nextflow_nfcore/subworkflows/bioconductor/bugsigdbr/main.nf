@@ -1,131 +1,263 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bugsigdbr
-// The bugsigdbr package implements convenient access to bugsigdb.org from within R/Bioconductor. The g
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bugsigdbr/inst/doc/bugsigdbr.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("bugsigdbr")
+// Bioconductor workflow: bugsigdbr — bugsigdb_enrichment
+// Perform differential abundance analysis on user metagenomic data and test for enrichment against ontology-filtered BugSigDB microbial signatures.
+// Input: abundance.csv, coldata.csv
+// Container: 1.16.2--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: bugsigdbr
+// Visualizations: bar plot, enrichment plot
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_BUGSIGDBR {
+process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bugsigdbr"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bugsigdbr:1.12.3--r44_0' :
-        'quay.io/biocontainers/bioconductor-bugsigdbr:1.12.3--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metagenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bugsigdbr_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bugsigdbr_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bugsigdbr_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(bugsigdbr)
-    library(jsonlite)
-
-    # --- Extract Microbial Signatures [] ---
-    # Key functions: getSignatures
-    sigs_default <- getSignatures(bsdb)
-    sigs_metaphlan <- getSignatures(bsdb, tax.id.type = "metaphlan")
-    sigs_genus <- getSignatures(
-        bsdb,
-        tax.id.type = "taxname",
-        tax.level = "genus",
-        exact.tax.level = FALSE
+    
+    # ==========================================
+    # Stage 1: Read and Align Input Datasets
+    # ==========================================
+    message("Reading input datasets...")
+    abundance <- read.csv("abundance.csv", row.names = 1, check.names = FALSE)
+    coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
+    
+    # Align samples between abundance matrix and coldata
+    common_samples <- intersect(colnames(abundance), coldata\$sample)
+    if (length(common_samples) == 0) {
+      stop("Error: No common samples found between abundance.csv and coldata.csv")
+    }
+    abundance <- abundance[, common_samples, drop = FALSE]
+    coldata <- coldata[match(common_samples, coldata\$sample), ]
+    
+    # ==========================================
+    # Stage 2: Identify User's Microbial Signature
+    # ==========================================
+    message("Performing differential abundance analysis...")
+    groups <- as.factor(coldata\$group)
+    group_levels <- levels(groups)
+    if (length(group_levels) < 2) {
+      stop("Error: 'group' column in coldata must contain at least 2 distinct groups.")
+    }
+    
+    # Perform Wilcoxon rank-sum test for each taxon
+    p_values <- apply(abundance, 1, function(x) {
+      tryCatch({
+        wilcox.test(x ~ groups)\$p.value
+      }, error = function(e) NA)
+    })
+    
+    # Calculate log2 fold change (Group 2 vs Group 1)
+    mean_g1 <- rowMeans(abundance[, groups == group_levels[1], drop = FALSE])
+    mean_g2 <- rowMeans(abundance[, groups == group_levels[2], drop = FALSE])
+    log_fc <- log2((mean_g2 + 1) / (mean_g1 + 1))
+    
+    stats_df <- data.frame(
+      taxon = rownames(abundance),
+      p_value = p_values,
+      log_fc = log_fc,
+      stringsAsFactors = FALSE
     )
-
-
-    # --- Ontology-based Subsetting [] ---
-    # Key functions: getOntology, subsetByOntology
-    efo_ontology <- getOntology("efo")
-    uberon_ontology <- getOntology("uberon")
-    cancer_subset <- subsetByOntology(
-        bsdb,
-        column = "Condition",
-        term = "cancer",
-        ontology = efo_ontology
+    stats_df <- stats_df[!is.na(stats_df\$p_value), ]
+    
+    # Define user signature (significant taxa)
+    # Fallback to top 50 taxa by p-value if too few are strictly significant
+    sig_taxa_df <- stats_df[stats_df\$p_value < 0.05, ]
+    if (nrow(sig_taxa_df) < 5) {
+      message("Fewer than 5 taxa met the p-value threshold. Selecting top 50 taxa instead.")
+      sig_taxa_df <- stats_df[order(stats_df\$p_value), ][1:min(50, nrow(stats_df)), ]
+    }
+    user_sig <- sig_taxa_df\$taxon
+    
+    # ==========================================
+    # Stage 3: Import and Filter BugSigDB
+    # ==========================================
+    message("Importing BugSigDB database...")
+    bsdb <- importBugSigDB()
+    
+    message("Loading UBERON ontology...")
+    uberon <- getOntology("uberon")
+    
+    message("Filtering BugSigDB signatures by UBERON body site ontology...")
+    # Subset to signatures associated with the digestive system
+    bsdb_filtered <- subsetByOntology(
+      bsdb, 
+      column = "Body site", 
+      term = "digestive system", 
+      ontology = uberon
     )
-    digestive_subset <- subsetByOntology(
-        bsdb,
-        column = "Body site",
-        term = "digestive system",
-        ontology = uberon_ontology
-    )
-
-
-    # --- Export Signatures [] ---
-    # Key functions: writeGMT, getSignatures
-    sigs <- getSignatures(bsdb)
-    writeGMT(
-        sigs,
-        gmt.file = "bugsigdb_signatures.gmt"
-    )
-
-
-    # --- Browse Signatures and Taxa [] ---
-    # Key functions: browseSignature, browseTaxon, getSignatures
-    sigs <- getSignatures(bsdb)
-    first_sig_name <- names(sigs)[1]
-    first_taxon <- sigs[[1]][1]
-    browseSignature(first_sig_name)
-    browseTaxon(first_taxon)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bugsigdbr_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # Stage 4: Extract Signatures
+    # ==========================================
+    # Determine if user taxa are NCBI IDs (numeric) or Taxon Names (character)
+    is_numeric_id <- all(!is.na(suppressWarnings(as.numeric(user_sig))))
+    
+    if (is_numeric_id) {
+      message("Detected NCBI Taxon IDs. Extracting NCBI signatures...")
+      bsdb_sigs <- getSignatures(bsdb_filtered, tax.id.type = "ncbi")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bugsigdbr_results.csv")
+      message("Detected Taxon Names. Extracting Taxon Name signatures...")
+      bsdb_sigs <- getSignatures(bsdb_filtered, tax.id.type = "taxname")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bugsigdbr_output.rds")
+    
+    # ==========================================
+    # Stage 5: Hypergeometric Enrichment Analysis
+    # ==========================================
+    message("Performing hypergeometric enrichment analysis...")
+    background_taxa <- rownames(abundance)
+    N <- length(background_taxa) # Background size
+    
+    enrichment_results <- lapply(names(bsdb_sigs), function(sig_name) {
+      sig_taxa <- bsdb_sigs[[sig_name]]
+      
+      # Intersect signature with our background
+      sig_in_bg <- intersect(sig_taxa, background_taxa)
+      M <- length(sig_in_bg) # Number of signature taxa in background
+      
+      if (M == 0) return(NULL)
+      
+      # Intersect user signature with the signature in background
+      overlap_taxa <- intersect(user_sig, sig_in_bg)
+      k <- length(overlap_taxa) # Overlap size
+      n <- length(intersect(user_sig, background_taxa)) # User signature size in background
+      
+      # Hypergeometric test (one-tailed over-representation)
+      p_val <- phyper(k - 1, M, N - M, n, lower.tail = FALSE)
+      
+      data.frame(
+        Signature = sig_name,
+        Overlap_Size = k,
+        Signature_Size_In_BG = M,
+        User_Sig_Size_In_BG = n,
+        P_Value = p_val,
+        Overlapping_Taxa = paste(overlap_taxa, collapse = "; "),
+        stringsAsFactors = FALSE
+      )
+    })
+    
+    enrichment_df <- do.call(rbind, enrichment_results)
+    
+    if (!is.null(enrichment_df) && nrow(enrichment_df) > 0) {
+      enrichment_df\$Adjusted_P_Value <- p.adjust(enrichment_df\$P_Value, method = "BH")
+      enrichment_df <- enrichment_df[order(enrichment_df\$P_Value), ]
+    } else {
+      # Fallback empty dataframe if no overlaps exist
+      enrichment_df <- data.frame(
+        Signature = character(),
+        Overlap_Size = numeric(),
+        Signature_Size_In_BG = numeric(),
+        User_Sig_Size_In_BG = numeric(),
+        P_Value = numeric(),
+        Adjusted_P_Value = numeric(),
+        Overlapping_Taxa = character(),
+        stringsAsFactors = FALSE
+      )
     }
+    
+    # Write enrichment results to CSV
+    write.csv(enrichment_df, "enrichment_results.csv", row.names = FALSE)
+    
+    # ==========================================
+    # Stage 6: Export Filtered Signatures to GMT
+    # ==========================================
+    message("Writing filtered BugSigDB signatures to GMT file...")
+    writeGMT(bsdb_sigs, gmt.file = "bugsigdb_filtered.gmt")
+    
+    # ==========================================
+    # Stage 7: Visualization
+    # ==========================================
+    message("Generating enrichment plot...")
+    pdf("enrichment_plot.pdf", width = 10, height = 6)
+    
+    if (nrow(enrichment_df) > 0) {
+      # Plot top 15 enriched signatures
+      top_df <- head(enrichment_df, 15)
+      top_df\$log10_p <- -log10(top_df\$P_Value)
+      
+      # Order by significance for horizontal barplot
+      top_df <- top_df[order(top_df\$log10_p), ]
+      
+      # Truncate long signature names for plotting
+      clean_names <- sapply(top_df\$Signature, function(x) {
+        if (nchar(x) > 50) paste0(substr(x, 1, 47), "...") else x
+      })
+      
+      par(mar = c(5, 22, 4, 2))
+      barplot(
+        top_df\$log10_p,
+        names.arg = clean_names,
+        las = 1,
+        horiz = TRUE,
+        col = "skyblue",
+        xlab = "-log10(P-value)",
+        main = "Top Enriched BugSigDB Signatures (Digestive System)"
+      )
+      abline(v = -log10(0.05), col = "red", lty = 2)
+    } else {
+      plot.new()
+      text(0.5, 0.5, "No overlapping signatures found to plot.", cex = 1.2)
+    }
+    
+    dev.off()
+    
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BUGSIGDBR:", paste0("    bugsigdbr: ", packageVersion("bugsigdbr"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT":',
+        paste0('    bugsigdbr: ', as.character(packageVersion('bugsigdbr')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bugsigdbr_results.csv
-    touch ${prefix}_bugsigdbr_output.rds
-    echo "BIOC_BUGSIGDBR:" > versions.yml
-    echo "    bugsigdbr: 0.0.0" >> versions.yml
+    touch ${prefix}_bugsigdb_enrichment.csv versions.yml
     """
 }
 
-
-workflow BIOC_BUGSIGDBR_WORKFLOW {
+workflow BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_BUGSIGDBR(ch_input)
+    BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT(ch_input)
 
     emit:
-    results  = BIOC_BUGSIGDBR.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BUGSIGDBR.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BUGSIGDBR.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BUGSIGDBR.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT.out.tables
+    plots    = BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT.out.plots
+    objects  = BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT.out.objects
+    versions = BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT.out.versions
 }

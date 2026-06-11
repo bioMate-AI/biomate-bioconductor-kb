@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: elementLength=A vector of length 2 specifying the minimum and maximum length of the transposon (e.g. c(300, 3500)) ;; tsdLength=The length of the Target Site Duplication (TSD) sequence (e.g. 3) ;; saveFolder=The directory path where VSEARCH clustering or alignment outputs will be saved ;; tirLength=The length of the TIR sequence to consider for consensus clustering (e.g. 25) ;; strand=The strand to search for TIR matches (\"+\" or \"-\")\n- alternatives: None mentioned, though downstream annotation requires external tools like NCBI BLASTX/BLASTN to distinguish autonomous elements from true pack-TYPE elements.\n- when_to_use: When searching a genome for DNA transposons (specifically Pack-TYPE or autonomous elements) characterized by TIRs and TSDs of known lengths.\n- pitfalls: Requires the command-line tool VSEARCH to be installed for clustering (packClust) and alignment (packAlign) functions ;; On Windows, the absolute path to the VSEARCH executable must be specified, whereas on macOS/Linux it is automatically detected if in the system PATH ;; packSearch does not discriminate between autonomous (transposase-containing) and pack-TYPE elements, requiring downstream BLAST analysis ;; By default, filterWildcards removes sequences with a proportion of wildcards (\"N\") above 5% to prevent low-quality sequences from clustering.",
+  "workflows": [
+    {
+      "name": "pack_type_transposon_discovery_and_analysis",
+      "intent": "Search a genome for potential pack-TYPE transposable elements, cluster them, and prepare them for alignment and BLAST analysis.",
+      "input": [
+        "genome_sequence.fasta (The genomic DNA sequence to search)",
+        "tir_query.txt (The Terminal Inverted Repeat sequence of interest)"
+      ],
+      "stages": "1. Load genome sequence and define TIR query ;; 2. Run packSearch to identify potential transposable elements ;; 3. Cluster predicted transposons using packClust ;; 4. Read VSEARCH clustering outputs using readUc and readBlast ;; 5. Analyze TIR similarities using tirClust ;; 6. Align clustered elements using packAlign ;; 7. Export candidates to FASTA, CSV, or GRanges formats.",
+      "code": "Biostrings::DNAString(\"CATG\")\n\nBiostrings::DNAStringSet(c(\n    \"CATG\",\n    \"GTAC\"\n))\n\nBiostrings::readDNAStringSet(\n    system.file(\"extdata\", \"packMatches.fasta\", package = \"packFinder\"),\n    format = \"fasta\"\n)\n\ndata(\"arabidopsisThalianaRefseq\")\n\npackMatches <- packSearch(\n    Biostrings::DNAString(\"CACTACAA\"),\n    arabidopsisThalianaRefseq,\n    elementLength = c(300, 3500),\n    tsdLength = 3\n)\n\nhead(packMatches)\n\ndata(packMatches)\n\n# packMatches <- packClust(\n#     packMatches,\n#     arabidopsisThalianaRefseq,\n#     saveFolder = \"tempOutput\"\n# )\n\nreadUc(system.file(\n    \"extdata\",\n    \"packMatches.uc\",\n    package = \"packFinder\"\n))\n\nreadBlast(system.file(\n    \"extdata\",\n    \"packMatches.blast6out\",\n    package = \"packFinder\"\n))\n\nconsensusSeqs <- tirClust(packMatches,\n    arabidopsisThalianaRefseq,\n    tirLength = 25\n)\n\nhead(consensusSeqs)\n\n# packMatches <- packAlign(\n#     packMatches,\n#     arabidopsisThalianaRefseq,\n#     saveFolder = \"tempOutput\"\n# )\n\npacksToFasta(\n    packMatches,\n    \"tempOutput/packMatches.fasta\",\n    arabidopsisThalianaRefseq\n)\n\npacksToCsv(packMatches, \"tempOutput/packMatches.csv\")\nprint(getPacksFromCsv(\"tempOutput/packMatches.csv\"))\n\npacksGRanges <- packsToGRanges(packMatches)\nprint(packsGRanges)\n\nprint(getPacksFromGRanges(packsGRanges))\n\npacksToFasta(\n    packMatches,\n    \"tempOutput/packMatches.fasta\",\n    arabidopsisThalianaRefseq\n)\n\nprint(getPacksFromFasta(\"tempOutput/packMatches.fasta\"))"
+    },
+    {
+      "name": "step_wise_transposon_search",
+      "intent": "Run the individual step-wise functions of the packSearch pipeline to identify TIRs, obtain TSDs, and filter potential elements.",
+      "input": [
+        "genome_sequence.fasta (The genomic DNA sequence to search)",
+        "tir_query.txt (The Terminal Inverted Repeat sequence of interest)"
+      ],
+      "stages": "1. Identify potential forward and reverse TIR matches using identifyTirMatches ;; 2. Obtain TSD sequences using getTsds ;; 3. Filter and identify potential pack elements using identifyPotentialPackElements ;; 4. Retrieve transposon sequences using getPackSeqs.",
+      "code": "forwardMatches <- identifyTirMatches(\n    Biostrings::DNAString(\"CACTACAA\"),\n    arabidopsisThalianaRefseq,\n    strand = \"+\",\n    tsdLength = 3\n)\nnrow(forwardMatches)\n\nreverseMatches <- identifyTirMatches(\n    Biostrings::reverseComplement(Biostrings::DNAString(\"CACTACAA\")),\n    arabidopsisThalianaRefseq,\n    strand = \"-\",\n    tsdLength = 3\n)\nnrow(reverseMatches)\n\nforwardMatches$TSD <- getTsds(\n    forwardMatches,\n    arabidopsisThalianaRefseq,\n    3,\n    strand = \"+\"\n)\n\nhead(forwardMatches)\n\nreverseMatches$TSD <- getTsds(\n    reverseMatches,\n    arabidopsisThalianaRefseq,\n    3,\n    strand = \"-\"\n)\n\nhead(reverseMatches)\n\nidentifyPotentialPackElements(\n    forwardMatches,\n    reverseMatches,\n    arabidopsisThalianaRefseq,\n    c(300, 3500)\n)\n\ngetPackSeqs(packMatches, arabidopsisThalianaRefseq)"
+    }
+  ]
+}

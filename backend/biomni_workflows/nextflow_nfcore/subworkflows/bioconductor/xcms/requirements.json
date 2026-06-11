@@ -1,0 +1,47 @@
+{
+  "package": "xcms",
+  "requirements": [
+    "MSnbase",
+    "MassSpecWavelet",
+    "MsExperiment",
+    "MsFeatures",
+    "RColorBrewer",
+    "SummarizedExperiment",
+    "faahKO",
+    "pander",
+    "pheatmap",
+    "xcms"
+  ],
+  "by_workflow": {
+    "alignment_to_external_reference.nf": [
+      "MsExperiment",
+      "MsFeatures",
+      "xcms"
+    ],
+    "compounding_feature_grouping.nf": [
+      "MSnbase",
+      "MsFeatures",
+      "faahKO",
+      "xcms"
+    ],
+    "lc_ms_preprocessing.nf": [
+      "MsExperiment",
+      "RColorBrewer",
+      "SummarizedExperiment",
+      "faahKO",
+      "pander",
+      "pheatmap",
+      "xcms"
+    ],
+    "main.nf": [
+      "MSnbase",
+      "MassSpecWavelet",
+      "xcms"
+    ],
+    "quality_based_feature_filtering.nf": [
+      "MsExperiment",
+      "MsFeatures",
+      "xcms"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: rSets=A list of RadioSet objects used for plotting or analysis ;; cellline=The specific cell line identifier to select from a RadioSet ;; D=A vector of radiation doses (in Gy) ;; SF=A vector of survival fractions corresponding to the doses ;; pars=The fit parameters (alpha and beta coefficients) returned by linearQuadraticModel ;; lower=The lower bound of integration for computing AUC ;; upper=The upper bound of integration for computing AUC ;; plot.type=The type of plot to generate in doseResponseCurve (e.g., \"Both\" to plot raw data and fit LQ model) ;; mDataType=The type of molecular data to retrieve or summarize (e.g., 'rna', 'rnaseq', 'cnv', 'mutation') ;; summary.stat=The statistic used to summarize replicates (e.g., 'mean', 'median', 'first', 'last') ;; fill.missing=A boolean indicating whether to fill missing cell lines with empty columns in summarizeMolecularProfiles ;; features=A character vector of feature names (e.g., gene IDs) to use in radSensitivitySig ;; nthread=The number of threads to use for parallel computation in radSensitivitySig\n- alternatives: PharmacoGx=A sister package providing a similar data structure (PharmacoSet) and API for pharmacogenomic experiments, which can be combined with RadioGx to find drugs targeting radio-resistance ;; Xeva=Another package with a similar interface for downloading curated datasets ;; SummarizedExperiment accessors=While SummarizedExperiment has its own accessors, RadioGx accessor methods (like molecularProfiles, phenoInfo, featureInfo) are preferred for robustness to future changes in RadioSet structure\n- when_to_use: Use this package when analyzing the relationship between cancer cell line molecular profiles (RNA, RNA-seq, CNV, mutations) and their response to different doses/types of ionizing radiation, fitting linear-quadratic models to survival fraction data, and identifying biomarkers of radio-sensitivity or radio-resistance.\n- pitfalls: Lack of replicates in some datasets (like clevelandSmall) means summarizing molecular profiles might return the same dimensions, but for other datasets, replicates will be summarized ;; Ensure fill.missing is set correctly (e.g., FALSE to avoid adding empty columns or TRUE to align dimensions with sensitivity experiments) ;; Direct slot access (e.g., @molecularProfiles) is discouraged; use robust accessor functions like molecularProfilesSlot() instead.",
+  "workflows": [
+    {
+      "name": "dose_response_modeling_and_metrics",
+      "intent": "Fit linear-quadratic models to radiation dose-response data, compute radio-sensitivity metrics (SF2, D10, AUC), and plot dose-response curves.",
+      "input": [
+        "radiation_doses.csv (radiation dose values in Gy)",
+        "survival_fractions.csv (corresponding cell viability/survival fraction measurements)"
+      ],
+      "stages": "1. Fit a linear-quadratic model to dose and survival fraction data using linearQuadraticModel ;; 2. Compute surviving fraction at 2 Gy using computeSF2 ;; 3. Compute dose at 10% survival using computeD10 ;; 4. Compute area under the dose-response curve using computeAUC ;; 5. Plot the dose-response curve using doseResponseCurve",
+      "code": "LQmodel <- linearQuadraticModel(D=radiationDoses,\n                                SF=survivalFractions)\nLQmodel\n\nsurvFracAfter2Units <- computeSF2(pars=LQmodel)\nprint(survFracAfter2Units)\n\ndose10PercentSurv <- computeD10(pars=LQmodel)\nprint(dose10PercentSurv)\n\nareaUnderDoseRespCurve <- RadioGx::computeAUC(D=radiationDoses, pars=LQmodel, lower=0,\n                                     upper=1)\nprint(areaUnderDoseRespCurve)\n\ndoseResponseCurve(\n  Ds=list(\"Experiment 1\" = c(0, 2, 4, 6)),\n  SFs=list(\"Experiment 1\" = c(1,.6,.4,.2)),\n  plot.type=\"Both\"\n)\n\ndoseResponseCurve(\n  rSets=list(clevelandSmall),\n  cellline=cellInfo(clevelandSmall)$sampleid[5]\n)"
+    },
+    {
+      "name": "biomarker_discovery_signatures",
+      "intent": "Correlate molecular features with radiation sensitivity profiles to identify biomarkers of radio-sensitivity or radio-resistance.",
+      "input": [
+        "radio_set.RData (a curated RadioSet object containing both molecular profiles and radiation sensitivity data)"
+      ],
+      "stages": "1. Summarize sensitivity profiles across cell lines using summarizeSensitivityProfiles ;; 2. Summarize molecular profiles using summarizeMolecularProfiles ;; 3. Compute radiation sensitivity signatures for specific features using radSensitivitySig",
+      "code": "sensSummary <- summarizeSensitivityProfiles(clevelandSmall)\n\nmprofSummary <- summarizeMolecularProfiles(clevelandSmall, mDataType='rna', summary.stat='median', fill.missing=FALSE)\n\nradSensSig <- radSensitivitySig(clevelandSmall, mDataType='rna', features=fNames(clevelandSmall, 'rna')[2:5], nthread=1)\n\nradSensSig@.Data"
+    }
+  ]
+}

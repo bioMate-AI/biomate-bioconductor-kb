@@ -1,0 +1,11 @@
+{
+  "package": "bugsigdbr",
+  "requirements": [
+    "bugsigdbr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "bugsigdbr"
+    ]
+  }
+}

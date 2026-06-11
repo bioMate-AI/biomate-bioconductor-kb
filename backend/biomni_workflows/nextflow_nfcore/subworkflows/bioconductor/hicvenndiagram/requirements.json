@@ -1,0 +1,13 @@
+{
+  "package": "hicvenndiagram",
+  "requirements": [
+    "ggplot2",
+    "hicVennDiagram"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "hicVennDiagram"
+    ]
+  }
+}

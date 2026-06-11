@@ -1,0 +1,20 @@
+{
+  "package": "msa",
+  "requirements": [
+    "ape",
+    "msa",
+    "pwalign",
+    "seqinr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ape",
+      "msa",
+      "pwalign",
+      "seqinr"
+    ],
+    "pretty_print_alignment.nf": [
+      "msa"
+    ]
+  }
+}

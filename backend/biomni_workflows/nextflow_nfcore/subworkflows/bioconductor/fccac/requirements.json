@@ -1,0 +1,11 @@
+{
+  "package": "fccac",
+  "requirements": [
+    "fCCAC"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "fCCAC"
+    ]
+  }
+}

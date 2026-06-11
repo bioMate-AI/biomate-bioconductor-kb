@@ -1,99 +1,119 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CluMSID
-// CluMSID is a tool that aids the identification of features in untargeted LC-MS/MS analysis by the us
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CluMSID/inst/doc/CluMSID_DI-MSMS.R
-// Upstream  : CluMSIDdata, magrittr, metaMS, metaMSdata
-// Downstream: none
-//
-// Install: BiocManager::install("CluMSID")
+// Bioconductor workflow: clumsid — di_ms2_highres
+// Extract, merge, and cluster MS2 spectra from high-resolution Direct Infusion (DI-MS/MS) data.
+// Input: PA14_maxis_DI.mzXML
+// Container: quay.io/biocontainers/bioconductor-clumsid:1.26.0--r45hdfd78af_0
+// R packages: CluMSID, clumsiddata, magrittr, metaMS, metaMSdata
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CLUMSID {
+process BIOC_CLUMSID_DI_MS2_HIGHRES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-clumsid"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-clumsid:1.22.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-clumsid:1.22.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-clumsid:1.26.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_clumsid_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_clumsid_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_clumsid_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HCplot)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("CluMSID", "clumsiddata", "magrittr", "metaMS", "metaMSdata")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- extract M S2spectra [] ---
-    # Key functions: extractMS2spectra
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required library
+    library(CluMSID)
+    
+    # Define the input file from the working directory
+    DIfile <- "PA14_maxis_DI.mzXML"
+    
+    # Check if the input file exists
+    if (!file.exists(DIfile)) {
+      stop(paste("Required input file missing:", DIfile))
+    }
+    
+    # 1. Extract MS2 spectra
+    message("Extracting MS2 spectra...")
     ms2list <- extractMS2spectra(DIfile)
-    length(ms2list)
-    # --- merge M S2spectra [] ---
-    # Key functions: mergeMS2spectra
+    
+    # 2. Merge redundant spectra with a tight retention time tolerance
+    message("Merging MS2 spectra...")
     featlist <- mergeMS2spectra(ms2list, rt_tolerance = 1)
-    length(featlist)
-    # --- distance Matrix [] ---
-    # Key functions: distanceMatrix
+    
+    # 3. Generate a spectral similarity distance matrix
+    message("Generating distance matrix...")
     distmat <- distanceMatrix(featlist)
-    # --- H Cplot [] ---
-    # Key functions: HCplot
+    
+    # Save the distance matrix and feature list to disk
+    message("Saving results to disk...")
+    saveRDS(featlist, "merged_features.rds")
+    saveRDS(distmat, "distance_matrix.rds")
+    
+    # Export distance matrix as a CSV table
+    write.csv(as.matrix(distmat), "distance_matrix.csv", row.names = TRUE)
+    
+    # 4. Visualize similarities with a circularized dendrogram
+    message("Generating circularized dendrogram plot...")
+    pdf("HCplot_dendrogram.pdf", width = 10, height = 10)
     HCplot(distmat, cex = 0.5)
+    dev.off()
+    
+    message("Pipeline completed successfully. Outputs saved: 'merged_features.rds', 'distance_matrix.rds', 'distance_matrix.csv', and 'HCplot_dendrogram.pdf'.")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_clumsid_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_clumsid_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_clumsid_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CLUMSID:", paste0("    clumsid: ", packageVersion("CluMSID"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CLUMSID_DI_MS2_HIGHRES":',
+        paste0('        clumsid: ', as.character(packageVersion("clumsid")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_clumsid_results.csv
-    touch ${prefix}_clumsid_output.rds
-    echo "BIOC_CLUMSID:" > versions.yml
-    echo "    clumsid: 0.0.0" >> versions.yml
+    touch ${prefix}_di_ms2_highres.csv versions.yml
     """
 }
 
-
-workflow BIOC_CLUMSID_WORKFLOW {
+workflow BIOC_CLUMSID_DI_MS2_HIGHRES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ PA14_maxis_DI.mzXML ] ]
 
     main:
-    BIOC_CLUMSID(ch_input)
+    BIOC_CLUMSID_DI_MS2_HIGHRES(ch_input)
 
     emit:
-    results  = BIOC_CLUMSID.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CLUMSID.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CLUMSID.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CLUMSID.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CLUMSID_DI_MS2_HIGHRES.out.tables
+    plots    = BIOC_CLUMSID_DI_MS2_HIGHRES.out.plots
+    objects  = BIOC_CLUMSID_DI_MS2_HIGHRES.out.objects
+    versions = BIOC_CLUMSID_DI_MS2_HIGHRES.out.versions
 }

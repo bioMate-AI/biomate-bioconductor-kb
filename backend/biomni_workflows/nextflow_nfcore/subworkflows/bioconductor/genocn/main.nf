@@ -1,105 +1,143 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: genoCN
-// Simultaneous identification of copy number states and genotype calls for regions of either copy numb
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/genoCN/inst/doc/genoCN.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("genoCN")
+// Bioconductor workflow: genoCN — germline_cnv_calling
+// Identify germline copy number variations (CNVs) and genotype calls from SNP array data.
+// Input: snp_data.txt, cnv_parameter.txt
+// Container: quay.io/biocontainers/bioconductor-genocn:1.58.0--r44h3df3fcb_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: genoCN
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read the HMM parameter specifications using read.parameter
+//  * 2. [Core Analysis] Initialize the HMM parameters using init.para
+//  * 3. [Core Analysis] Run the HMM estimation and state calling using genoCNV
 
 nextflow.enable.dsl = 2
 
-process BIOC_GENOCN {
+process BIOC_GENOCN_GERMLINE_CNV_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-genocn"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-genocn:1.58.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-genocn:1.58.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_genocn_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_genocn_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_genocn_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(genoCN)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+            
+            # Load required library
+            library(genoCN)
+            
+            # Define input file paths
+            snp_data_path <- "snp_data.txt"
+            parameter_path <- "cnv_parameter.txt"
+            
+            # Check if input files exist
+            if (!file.exists(snp_data_path)) {
+              stop(paste("Required input file missing:", snp_data_path))
+            }
+            if (!file.exists(parameter_path)) {
+              stop(paste("Required input file missing:", parameter_path))
+            }
+            
+            # 1. Read the germline HMM parameter specifications using read.parameter with CNA=FALSE
+            pInfo <- read.parameter(parameter_path, CNA=FALSE)
+            
+            # Read the SNP data
+            df <- read.delim(snp_data_path, header=TRUE, sep="\t", stringsAsFactors=FALSE)
+            
+            # Identify columns robustly (handling variations in casing and naming)
+            chr_col <- grep("^(chr|chromosome)\$", colnames(df), ignore.case=TRUE, value=TRUE)[1]
+            pos_col <- grep("^(pos|position)\$", colnames(df), ignore.case=TRUE, value=TRUE)[1]
+            lrr_col <- grep("^lrr\$", colnames(df), ignore.case=TRUE, value=TRUE)[1]
+            baf_col <- grep("^baf\$", colnames(df), ignore.case=TRUE, value=TRUE)[1]
+            snp_col <- grep("^(snp|name|marker|rsid)\$", colnames(df), ignore.case=TRUE, value=TRUE)[1]
+            
+            if (is.na(chr_col) || is.na(pos_col) || is.na(lrr_col) || is.na(baf_col)) {
+              stop("Could not find all required columns (chromosome/chr, position/pos, LRR, BAF) in snp_data.txt")
+            }
+            
+            # Extract or generate SNP names
+            if (!is.na(snp_col)) {
+              snpNames <- df[[snp_col]]
+            } else {
+              snpNames <- paste0("SNP", seq_len(nrow(df)))
+            }
+            
+            # Construct snp_info and snp_data to match documented code variables exactly
+            snp_info <- list(
+              name = snpNames,
+              chr = df[[chr_col]],
+              pos = df[[pos_col]]
+            )
+            snp_data <- list(
+              LRR = df[[lrr_col]],
+              BAF = df[[baf_col]]
+            )
+            
+            # 2. Initialize the germline HMM parameters using init.para
+            ip <- init.para(pInfo, sampleid="sample1", LRR=snp_data\$LRR, BAF=snp_data\$BAF, pos=snp_info\$pos, chr=snp_info\$chr, CNA=FALSE)
+            
+            # Create output directory for results
+            output_dir <- "genoCN_output"
+            if (!dir.exists(output_dir)) {
+              dir.create(output_dir, recursive=TRUE)
+            }
+            
+            # 3. Run the germline HMM estimation and state calling using genoCNV
+            genoCNV(snp_info\$name, snp_info\$chr, snp_info\$pos, snp_data\$LRR, snp_data\$BAF, pInfo, sampleid="sample1", output.dir=output_dir)
+            
+            # Save the initialized parameter object as an RDS file for downstream analysis
+            saveRDS(ip, file=file.path(output_dir, "initialized_parameters.rds"))
+            
+            message("genoCN germline CNV calling pipeline completed successfully. Outputs written to: ", output_dir)
 
-    # --- Data [] ---
-    # Key functions: data
-    data(snpData)
-    data(snpInfo)
-    dim(snpData)
-    dim(snpInfo)
-    snpData[1:2,]
-    # --- Plotcn [] ---
-    # Key functions: plotCN
-    plotCN(pos=snpInfo$Position, LRR=snpData$LRR, BAF=snpData$BAF,
-    main = "simulated data on Chr22")
-    # --- Genocnv [] ---
-    # Key functions: genoCNV
-    Theta = genoCNV(snpInfo$Name, snpInfo$Chr, snpInfo$Position, snpData$LRR, snpData$BAF,
-      snpInfo$PFB, sampleID="simu1", cnv.only=(snpInfo$PFB>1), outputSeg = TRUE,
-      outputSNP = 1, outputTag = "simu1")
-    # --- Plotcn [] ---
-    # Key functions: plotCN
-    plotCN(pos=snpInfo$Position, LRR=snpData$LRR, BAF=snpData$BAF,
-    main = "simulated data on Chr22", fileNames="simu1_segment.txt")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_genocn_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_genocn_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_genocn_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GENOCN:", paste0("    genocn: ", packageVersion("genoCN"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GENOCN_GERMLINE_CNV_CALLING":',
+        paste0('    genoCN: ', as.character(packageVersion('genoCN')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_genocn_results.csv
-    touch ${prefix}_genocn_output.rds
-    echo "BIOC_GENOCN:" > versions.yml
-    echo "    genocn: 0.0.0" >> versions.yml
+    touch ${prefix}_germline_cnv_calling.csv versions.yml
     """
 }
 
-
-workflow BIOC_GENOCN_WORKFLOW {
+workflow BIOC_GENOCN_GERMLINE_CNV_CALLING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ snp_data.txt, cnv_parameter.txt ] ]
 
     main:
-    BIOC_GENOCN(ch_input)
+    BIOC_GENOCN_GERMLINE_CNV_CALLING(ch_input)
 
     emit:
-    results  = BIOC_GENOCN.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GENOCN.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GENOCN.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GENOCN.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GENOCN_GERMLINE_CNV_CALLING.out.tables
+    plots    = BIOC_GENOCN_GERMLINE_CNV_CALLING.out.plots
+    objects  = BIOC_GENOCN_GERMLINE_CNV_CALLING.out.objects
+    versions = BIOC_GENOCN_GERMLINE_CNV_CALLING.out.versions
 }

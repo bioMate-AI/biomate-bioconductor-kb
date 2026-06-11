@@ -1,0 +1,16 @@
+{
+  "package": "indeed",
+  "requirements": [
+    "INDEED",
+    "htmlwidgets"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "INDEED"
+    ],
+    "partial_correlation_analysis.nf": [
+      "INDEED",
+      "htmlwidgets"
+    ]
+  }
+}

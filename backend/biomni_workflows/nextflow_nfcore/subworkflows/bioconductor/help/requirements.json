@@ -1,0 +1,11 @@
+{
+  "package": "help",
+  "requirements": [
+    "HELP"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "HELP"
+    ]
+  }
+}

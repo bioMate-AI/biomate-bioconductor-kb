@@ -1,110 +1,231 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: PCAtools
-// Principal Component Analysis (PCA) is a very powerful technique that has wide applicability in data 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/PCAtools/inst/doc/PCAtools.R
-// Upstream  : Biobase, DESeq2, GEOquery, airway, cowplot
-// Downstream: OSCA.advanced
-//
-// Install: BiocManager::install("PCAtools")
+// Bioconductor workflow: PCAtools — pca_transcriptomics_pipeline
+// Perform comprehensive Principal Component Analysis (PCA) on transcriptomic count data, including normalization, dimensionality selection, sample clustering visu
+// Input: counts.csv, coldata.csv
+// Container: 2.22.4--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: DESeq2, PCAtools, ggplot2
+// Visualizations: PCA plot
+// QC: count normalization
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_PCATOOLS {
+process BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-pcatools"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-pcatools:2.18.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-pcatools:2.18.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_pcatools_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_pcatools_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_pcatools_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(PCAtools)
-    library(jsonlite)
-
-    # --- Dimensionality Reduction Visualization [] ---
-    # Key functions: screeplot, biplot, pairsplot
-    screeplot(
-        p,
-        components = getComponents(p, 1:20),
-        vline = c(horn$n, elbow)
-    )
-    biplot(
-        p,
-        showLoadings = TRUE,
-        lab = NULL
-    )
-    pairsplot(p)
-
-
-    # --- Loadings and Metadata Association [] ---
-    # Key functions: plotloadings, eigencorplot
-    plotloadings(
-        p,
-        labSize = 3
-    )
-    eigencorplot(
-        p,
-        metavars = c("Study", "Age", "ER", "Grade")
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_pcatools_results.csv", row.names = TRUE)
+    library(ggplot2)
+    
+    # ==========================================
+    # STAGE 1: Data Loading and Preprocessing
+    # ==========================================
+    
+    # Read counts matrix
+    counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if ("gene_id" %in% colnames(counts_df)) {
+        rownames(counts_df) <- counts_df\$gene_id
+        counts_df\$gene_id <- NULL
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_pcatools_results.csv")
+        rownames(counts_df) <- counts_df[, 1]
+        counts_df <- counts_df[, -1, drop = FALSE]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_pcatools_output.rds")
+    
+    # Ensure all columns are numeric
+    numeric_cols <- sapply(counts_df, is.numeric)
+    counts_mat <- as.matrix(counts_df[, numeric_cols, drop = FALSE])
+    
+    # Read sample metadata
+    coldata <- read.csv("coldata.csv", check.names = FALSE, stringsAsFactors = FALSE)
+    if ("sample" %in% colnames(coldata)) {
+        rownames(coldata) <- coldata\$sample
+    } else {
+        rownames(coldata) <- coldata[, 1]
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_PCATOOLS:", paste0("    pcatools: ", packageVersion("PCAtools"))),
-        "versions.yml"
+    
+    # Align counts and metadata
+    common_samples <- intersect(colnames(counts_mat), rownames(coldata))
+    if (length(common_samples) == 0) {
+        stop("Error: No matching sample names found between counts.csv and coldata.csv.")
+    }
+    counts_mat <- counts_mat[, common_samples, drop = FALSE]
+    coldata <- coldata[common_samples, , drop = FALSE]
+    
+    # Perform normalization (DESeq2 VST if available, fallback to log2-CPM)
+    if (requireNamespace("DESeq2", quietly = TRUE)) {
+        message("Using DESeq2 Variance Stabilizing Transformation (VST) for normalization...")
+        dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts_mat,
+                                              colData = coldata,
+                                              design = ~ 1)
+        vst_mat <- DESeq2::assay(DESeq2::vst(dds, blind = TRUE))
+    } else {
+        message("DESeq2 not detected. Falling back to log2(CPM + 1) normalization...")
+        libsizes <- colSums(counts_mat)
+        cpm <- t(t(counts_mat) / libsizes) * 1e6
+        vst_mat <- log2(cpm + 1)
+    }
+    
+    # ==========================================
+    # STAGE 2: Principal Component Analysis
+    # ==========================================
+    
+    # Run PCA with variance-based filtering
+    removeVar_param <- as.numeric(Sys.getenv("removeVar", unset = "0.1"))
+    p <- pca(vst_mat, metadata = coldata, removeVar = removeVar_param)
+    
+    # Save PCA outputs to CSV
+    summary_df <- data.frame(
+        PC = names(p\$variance),
+        Variance = p\$variance,
+        CumulativeVariance = cumsum(p\$variance)
     )
+    write.csv(summary_df, "pca_summary.csv", row.names = FALSE)
+    write.csv(as.data.frame(p\$rotated), "pca_rotated.csv", row.names = TRUE)
+    write.csv(as.data.frame(p\$loadings), "pca_loadings.csv", row.names = TRUE)
+    
+    # ==========================================
+    # STAGE 3: Determine Optimum Number of PCs
+    # ==========================================
+    
+    # Find elbow point
+    elbow <- findElbowPoint(p\$variance)
+    
+    # Run Horn's parallel analysis (wrapped in tryCatch for robustness)
+    horn_n <- tryCatch({
+        horn <- parallelPCA(vst_mat)
+        horn\$n
+    }, error = function(e) {
+        warning("Horn's parallel PCA failed: ", e\$message)
+        return(NULL)
+    })
+    
+    # Determine vertical lines to plot on the scree plot
+    vlines <- c(elbow)
+    if (!is.null(horn_n)) vlines <- c(vlines, horn_n)
+    vlines <- vlines[vlines <= length(p\$variance)]
+    
+    # ==========================================
+    # STAGE 4: Generate Diagnostic & Exploratory Plots
+    # ==========================================
+    
+    # 1. Scree Plot
+    p_scree <- screeplot(p, components = getComponents(p, 1:min(20, length(p\$variance))), vline = vlines) +
+        labs(title = "Scree Plot", subtitle = "Identifying optimal number of PCs to retain")
+    
+    # 2. Biplot
+    colby_var <- if ("condition" %in% colnames(coldata)) "condition" else NULL
+    p_biplot <- biplot(p, 
+                       colby = colby_var, 
+                       legendPosition = "right",
+                       title = "PCA Biplot",
+                       subtitle = "PC1 vs PC2 sample distribution")
+    
+    # 3. Pairs Plot (First 4 PCs)
+    pcs_to_plot <- getComponents(p, 1:min(4, length(p\$variance)))
+    p_pairs <- pairsplot(p, 
+                         components = pcs_to_plot, 
+                         colby = colby_var,
+                         title = "Pairs Plot of Top PCs")
+    
+    # 4. Loadings Plot (Top driving genes for PC1 and PC2)
+    pcs_loadings <- getComponents(p, 1:min(2, length(p\$variance)))
+    p_loadings <- plotloadings(p, 
+                               components = pcs_loadings, 
+                               rangeRetain = 0.05, 
+                               drawConnectors = TRUE,
+                               title = "Gene Loadings Plot",
+                               subtitle = "Top 5% driving variables for PC1 & PC2")
+    
+    # 5. Eigencor Plot (Correlation with metadata)
+    # Filter metadata to find columns with sufficient variation for correlation
+    valid_meta <- colnames(coldata)[sapply(coldata, function(x) {
+        lu <- length(unique(x))
+        lu > 1 && lu < length(x)
+    })]
+    
+    # ==========================================
+    # STAGE 5: Export Multi-page PDF Report
+    # ==========================================
+    
+    pdf("pca_report.pdf", width = 10, height = 8)
+    
+    print(p_scree)
+    print(p_biplot)
+    print(p_pairs)
+    print(p_loadings)
+    
+    if (length(valid_meta) > 0) {
+        tryCatch({
+            eigencorplot(p, 
+                         components = getComponents(p, 1:min(10, length(p\$variance))), 
+                         metavars = valid_meta,
+                         main = "PC Clinical & Metadata Correlations",
+                         signifSymbols = c('****', '***', '**', '*', ''),
+                         signifCutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1))
+        }, error = function(e) {
+            warning("Eigencorplot generation failed: ", e\$message)
+        })
+    }
+    
+    dev.off()
+    
+    message("PCA analysis completed successfully. Outputs written to working directory.")
+
+    writeLines(c(
+        '"BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE":',
+        paste0('    PCAtools: ', as.character(packageVersion('PCAtools')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_pcatools_results.csv
-    touch ${prefix}_pcatools_output.rds
-    echo "BIOC_PCATOOLS:" > versions.yml
-    echo "    pcatools: 0.0.0" >> versions.yml
+    touch ${prefix}_pca_transcriptomics_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_PCATOOLS_WORKFLOW {
+workflow BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_PCATOOLS(ch_input)
+    BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_PCATOOLS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_PCATOOLS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_PCATOOLS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_PCATOOLS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE.out.tables
+    plots    = BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE.out.plots
+    objects  = BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE.out.objects
+    versions = BIOC_PCATOOLS_PCA_TRANSCRIPTOMICS_PIPELINE.out.versions
 }

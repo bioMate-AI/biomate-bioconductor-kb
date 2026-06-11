@@ -1,0 +1,11 @@
+{
+  "package": "motifdb",
+  "requirements": [
+    "MotifDb"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MotifDb"
+    ]
+  }
+}

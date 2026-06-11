@@ -1,0 +1,39 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: numClusters=The number of clusters to use in the underlying k-means algorithm during normalization (advised to choose by analyzing the data distribution) ;; comparison=A character vector of length 2 specifying the groups to compare in the differential analysis (e.g., c(\"HSMM\", \"HESC\")) ;; sampleDir=The directory path where the raw BAM files specified in the sample info file are located ;; inputCountData=The file path to a tab-separated raw count data file if bypassing read counting ;; noNeg=Logical indicating whether to prevent negative values during preprocessing ;; plotData=Logical indicating whether to plot the data distribution before and after transformation\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use this package when performing differential binding analysis on ChIP-seq datasets, especially when dealing with varying signal-to-noise ratios, paired control (input) experiments, and a small number of replicates (e.g., 2 or fewer replicates per group).\n- pitfalls: Bypassing background correction when using pre-calculated counts via loadCountData, which directly proceeds to transformation and normalization ;; Choosing an inappropriate numClusters parameter without first inspecting the data distribution.",
+  "workflows": [
+    {
+      "name": "differential_binding_from_bams",
+      "intent": "Identify differentially bound regions step-by-step starting from raw BAM files and a BED file of regions of interest.",
+      "input": [
+        "chr19_regions.bed (BED file containing the genomic regions of interest)",
+        "sample_info.txt (Tab-separated text file containing sample metadata, group assignments, and BAM file names)",
+        "BAM files (ChIP-seq IP and Input control BAM files located in the sample directory)"
+      ],
+      "stages": "1. Quantify reads in regions of interest and perform background correction using getRegionCounts ;; 2. Apply Anscombe transformation using ansTransform ;; 3. Normalize transformed counts across samples using normalizeData ;; 4. Perform non-parametric statistical testing for differential binding using DBAnalyze",
+      "code": "regionBed <- read.table(system.file(\"extdata\", \"chr19_regions.bed\", package=\"CSSQ\",mustWork = TRUE))\nsampleInfo <- read.table(system.file(\"extdata\", \"sample_info.txt\", package=\"CSSQ\",mustWork = TRUE),sep=\"\\t\",header=TRUE)\ncountData <- getRegionCounts(system.file(\"extdata\", \"chr19_regions.bed\", package=\"CSSQ\"),sampleInfo,sampleDir = system.file(\"extdata\", package=\"CSSQ\"))\nansCountData <- ansTransform(countData)\nnormInfo <- normalizeData(ansCountData,numClusters=4)\nresult <- DBAnalyze(normInfo,comparison=c(\"HSMM\",\"HESC\"))"
+    },
+    {
+      "name": "differential_binding_from_precalculated_counts",
+      "intent": "Identify differentially bound regions step-by-step starting from a pre-calculated tab-separated count matrix.",
+      "input": [
+        "sample_count_data.txt (Tab-separated text file containing pre-calculated raw count data)",
+        "chr19_regions.bed (BED file containing the genomic regions of interest)",
+        "sample_info.txt (Tab-separated text file containing sample metadata and group assignments)"
+      ],
+      "stages": "1. Load pre-calculated count data into a SummarizedExperiment object using loadCountData ;; 2. Apply Anscombe transformation using ansTransform ;; 3. Normalize transformed counts across samples using normalizeData ;; 4. Perform non-parametric statistical testing for differential binding using DBAnalyze",
+      "code": "sampleInfo <- read.table(system.file(\"extdata\", \"sample_info.txt\", package=\"CSSQ\",mustWork = TRUE),sep=\"\\t\",header=TRUE)\ncountData <- loadCountData(system.file(\"extdata\", \"sample_count_data.txt\", package=\"CSSQ\",mustWork = TRUE),system.file(\"extdata\", \"chr19_regions.bed\", package=\"CSSQ\"),sampleInfo)\nansCountData <- ansTransform(countData)\nnormInfo <- normalizeData(ansCountData,numClusters=4)\nresult <- DBAnalyze(normInfo,comparison=c(\"HSMM\",\"HESC\"))"
+    },
+    {
+      "name": "differential_binding_pipeline_wrapper",
+      "intent": "Run the complete preprocessing (counting/loading, transformation, and normalization) and differential binding analysis using the all-in-one wrapper function.",
+      "input": [
+        "chr19_regions.bed (BED file containing the genomic regions of interest)",
+        "sample_info.txt (Tab-separated text file containing sample metadata and group assignments)",
+        "BAM files (ChIP-seq IP and Input control BAM files in the sample directory) OR sample_count_data.txt (Tab-separated text file containing pre-calculated raw count data)"
+      ],
+      "stages": "1. Preprocess data in a single step using preprocessData ;; 2. Perform non-parametric statistical testing for differential binding using DBAnalyze",
+      "code": "processedData <- preprocessData(system.file(\"extdata\", \"chr19_regions.bed\", package=\"CSSQ\"),system.file(\"extdata\", \"sample_info.txt\", package=\"CSSQ\"),sampleDir = system.file(\"extdata\", package=\"CSSQ\"),numClusters=4,noNeg=TRUE,plotData=FALSE)\nprocessedData <- preprocessData(system.file(\"extdata\", \"chr19_regions.bed\", package=\"CSSQ\"),system.file(\"extdata\", \"sample_info.txt\", package=\"CSSQ\"),inputCountData = system.file(\"extdata\", \"sample_count_data.txt\", package=\"CSSQ\",mustWork = TRUE),numClusters=4,noNeg=TRUE,plotData=FALSE)\nresult <- DBAnalyze(processedData,comparison=c(\"HSMM\",\"HESC\"))"
+    }
+  ]
+}

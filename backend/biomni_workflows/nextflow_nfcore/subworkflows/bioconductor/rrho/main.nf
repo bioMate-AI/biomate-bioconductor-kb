@@ -1,125 +1,133 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: RRHO
-// The package is aimed at inference on the amount of agreement in two sorted lists using the Rank-Rank
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/RRHO/inst/doc/RRHO.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("RRHO")
+// Bioconductor workflow: RRHO — compare_two_lists
+// Compare two ranked lists of genes to identify and visualize statistically significant overlap patterns with FDR and FWER corrections.
+// Input: gene.list1, gene.list2
+// Container: quay.io/biocontainers/bioconductor-rrho:1.50.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: RRHO, lattice
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Compute overlap and significance using RRHO
+//  * 2. [Visualization & Output] Visualize nominal p-values using lattice::levelplot
+//  * 3. [Core Analysis] Compute FWER-corrected p-values using pvalRRHO
+//  * 4. [Visualization & Output] Plot the empirical cumulative distribution function (ECDF) of the minimum p-values
+//  * 5. [Visualization & Output] Visualize B-Y corrected p-values using lattice::levelplot
 
 nextflow.enable.dsl = 2
 
-process BIOC_RRHO {
+process BIOC_RRHO_COMPARE_TWO_LISTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rrho"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rrho:1.46.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rrho:1.46.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rrho_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rrho_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rrho_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(RRHO)
-    library(Nominal)
-    library(RRHOComparison)
-    library(Vectorize)
-    library(jsonlite)
-
-    # --- Significance Testing and FWER Correction [] ---
-    # Key functions: RRHO, pvalRRHO
-    list.length <- 100
-    list.names <- paste('Gene', 1:list.length, sep='')
-    gene.list1 <- data.frame(list.names, sample(100))
-    gene.list2 <- data.frame(list.names, sample(100))
-    RRHO.example <- RRHO(
-        gene.list1, gene.list2,
-        BY=TRUE, alternative='enrichment'
-    )
+    library(lattice)
+    
+    # 1. Read User Input Files
+    # The pipeline reads exactly these files from the working directory:
+    # - gene.list1 (data frame with gene identifiers and ranking values)
+    # - gene.list2 (data frame with gene identifiers and ranking values)
+    gene.list1 <- read.table("gene.list1", header=TRUE, stringsAsFactors=FALSE)
+    gene.list2 <- read.table("gene.list2", header=TRUE, stringsAsFactors=FALSE)
+    
+    # 2. Compute overlap and significance using RRHO
+    RRHO.example <- RRHO(gene.list1, gene.list2, 
+                         BY=TRUE, alternative='enrichment')
+    
+    # 3. Compute FWER corrected p-values using 50 random permutations
     pval.testing <- pvalRRHO(RRHO.example, 50)
+    fwer_pval <- pval.testing\$pval
+    
+    # 4. Generate and save plots to PDF
+    pdf("rrho_plots.pdf", width=7, height=7)
+    
+    # Stage 2: Visualize Nominal (-log) p-values
+    # Note: levelplot is a lattice function, so we use print() to ensure it renders in the PDF device
+    print(lattice::levelplot(RRHO.example\$hypermat, main="Nominal (-log) P-values"))
+    
+    # Stage 4: Plot the empirical cumulative distribution function (ECDF) of the minimum p-values
     xs <- seq(0, 10, length=100)
-    ecdf_vals <- Vectorize(pval.testing$FUN.ecdf)(xs)
+    plot(Vectorize(pval.testing\$FUN.ecdf)(xs)~xs, 
+         xlab='-log(pvalue)', ylab='ECDF', type='S',
+         main="ECDF of Minimum Nominal P-values")
+    
+    # Stage 5: Visualize B-Y corrected p-values
+    print(lattice::levelplot(RRHO.example\$hypermat.by, main="B-Y Corrected P-values"))
+    
+    dev.off()
+    
+    # 5. Write output files
+    # Save the main RRHO and permutation testing objects
+    saveRDS(RRHO.example, "rrho_results.rds")
+    saveRDS(pval.testing, "rrho_pval_testing.rds")
+    
+    # Save the matrices as CSV files
+    write.csv(as.data.frame(RRHO.example\$hypermat), "rrho_hypermat_nominal.csv", row.names=TRUE)
+    write.csv(as.data.frame(RRHO.example\$hypermat.by), "rrho_hypermat_by_corrected.csv", row.names=TRUE)
+    
+    # Save a summary text file with the FWER p-value
+    summary_df <- data.frame(
+      Metric = "FWER_corrected_pvalue",
+      Value = fwer_pval,
+      stringsAsFactors = FALSE
+    )
+    write.csv(summary_df, "rrho_summary.csv", row.names=FALSE)
 
-
-    # --- Multi-List Comparison [] ---
-    # Key functions: RRHOComparison
-    size <- 500
-    list1 <- data.frame(
-        GeneIdentifier=paste('gen', 1:size, sep=''),
-        RankingVal=-log(runif(size))
-    )
-    list2 <- data.frame(
-        GeneIdentifier=paste('gen', 1:size, sep=''),
-        RankingVal=-log(runif(size))
-    )
-    list3 <- data.frame(
-        GeneIdentifier=paste('gen', 1:size, sep=''),
-        RankingVal=-log(runif(size))
-    )
-    rrho.comparison <- RRHOComparison(
-        list1, list2, list3,
-        stepsize=10,
-        labels=c("list1", "list2", "list3"),
-        plots=FALSE,
-        outputdir=tempdir()
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rrho_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rrho_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rrho_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RRHO:", paste0("    rrho: ", packageVersion("RRHO"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RRHO_COMPARE_TWO_LISTS":',
+        paste0('    RRHO: ', as.character(packageVersion('RRHO')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rrho_results.csv
-    touch ${prefix}_rrho_output.rds
-    echo "BIOC_RRHO:" > versions.yml
-    echo "    rrho: 0.0.0" >> versions.yml
+    touch ${prefix}_compare_two_lists.csv versions.yml
     """
 }
 
-
-workflow BIOC_RRHO_WORKFLOW {
+workflow BIOC_RRHO_COMPARE_TWO_LISTS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ gene.list1, gene.list2 ] ]
 
     main:
-    BIOC_RRHO(ch_input)
+    BIOC_RRHO_COMPARE_TWO_LISTS(ch_input)
 
     emit:
-    results  = BIOC_RRHO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RRHO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RRHO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RRHO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RRHO_COMPARE_TWO_LISTS.out.tables
+    plots    = BIOC_RRHO_COMPARE_TWO_LISTS.out.plots
+    objects  = BIOC_RRHO_COMPARE_TWO_LISTS.out.objects
+    versions = BIOC_RRHO_COMPARE_TWO_LISTS.out.versions
 }

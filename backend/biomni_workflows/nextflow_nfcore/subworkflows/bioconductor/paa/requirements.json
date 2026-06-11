@@ -1,0 +1,13 @@
+{
+  "package": "paa",
+  "requirements": [
+    "PAA",
+    "limma"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "PAA",
+      "limma"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "package": "viper",
+  "requirements": [
+    "Biobase",
+    "viper"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "viper"
+    ],
+    "single_sample_viper.nf": [
+      "Biobase",
+      "viper"
+    ]
+  }
+}

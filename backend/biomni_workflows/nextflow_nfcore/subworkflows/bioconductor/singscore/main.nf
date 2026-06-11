@@ -1,179 +1,172 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: singscore
-// A simple single-sample gene signature scoring method that uses rank-based statistics to analyze the 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/singscore/inst/doc/singscore.R
-// Upstream  : GSEABase
-// Downstream: none
-//
-// Install: BiocManager::install("singscore")
+// Bioconductor workflow: singscore — standard_singscore_scoring
+// Score transcriptome-wide gene expression data against up- and down-regulated gene sets, visualize rank distributions, and evaluate statistical significance.
+// Input: tgfb_expr_10_se, tgfb_gs_up, tgfb_gs_dn
+// Container: quay.io/biocontainers/bioconductor-singscore:1.30.0--r45hdfd78af_0
+// R packages: SummarizedExperiment, GSEABase, singscore
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GSEABase, SummarizedExperiment, singscore
+// Visualizations: density plot, dispersion plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Rank genes using rankGenes
+//  * 2. [Core Analysis] Score samples using simpleScore
+//  * 3. [Visualization & Output] Plot rank densities using plotRankDensity
+//  * 4. [Visualization & Output] Plot score dispersions using plotDispersion
+//  * 5. [Core Analysis] Generate null distribution using generateNull
+//  * 6. [Core Analysis] Calculate empirical p-values using getPvals
+//  * 7. [Visualization & Output] Plot null distributions using plotNull
 
 nextflow.enable.dsl = 2
 
-process BIOC_SINGSCORE {
+process BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-singscore"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-singscore:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-singscore:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_singscore_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_singscore_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_singscore_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SnowParam)
-    library(jsonlite)
-
-
-    # --- Load Dataset [] ---
-    # Key functions: geneIds, rankGenes, simpleScore, getStableGenes, genes, abline
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("SummarizedExperiment", "GSEABase", "singscore")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(singscore)
     library(GSEABase)
-    # The example expression dataset and gene signatures are included in the package
-    # distribution, one can directly access them using the variable names
-
-    # To see the description of 'tgfb_expr_10_se','tgfb_gs_up','tgfb_gs_dn', look at 
-    # their help pages using:
-
-    # ?tgfb_expr_10_se
-    # ?tgfb_gs_up
-    # The recommended method for dealing with ties in ranking is 'min', you can
-    # change by specifying 'tiesMethod' parameter for rankGenes function.
+    
+    # -----------------------------------------------------------------------------
+    # Stage 0: Read User Input Files
+    # -----------------------------------------------------------------------------
+    # Read the declared user input files from the working directory
+    tgfb_expr_10_se <- readRDS("tgfb_expr_10_se.rds")
+    tgfb_gs_up <- readRDS("tgfb_gs_up.rds")
+    tgfb_gs_dn <- readRDS("tgfb_gs_dn.rds")
+    
+    # -----------------------------------------------------------------------------
+    # Stage 1: Rank genes using rankGenes
+    # -----------------------------------------------------------------------------
     rankData <- rankGenes(tgfb_expr_10_se)
-
-    # Given the ranked data and gene signature, simpleScore returns the scores and 
-    # dispersions for each sample
+    
+    # -----------------------------------------------------------------------------
+    # Stage 2: Score samples using simpleScore
+    # -----------------------------------------------------------------------------
     scoredf <- simpleScore(rankData, upSet = tgfb_gs_up, downSet = tgfb_gs_dn)
-    scoredf
-
-    # To view more details of the simpleScore, use ?simpleScore
-
-    # --- Plotdt [] ---
-    # Key functions: plotRankDensity, plotDispersion
-    #  You can provide the upSet alone when working with unpaired gene-sets 
-    # We plot the second sample in rankData, view it by 
-    head(rankData[,2,drop = FALSE])
-
+    
+    # Save the scoring results
+    write.csv(scoredf, "singscore_results.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 3: Plot rank densities using plotRankDensity
+    # -----------------------------------------------------------------------------
+    pdf("rank_density_plot.pdf", width = 8, height = 6)
     plotRankDensity(rankData[,2,drop = FALSE], upSet = tgfb_gs_up, 
                     downSet = tgfb_gs_dn, isInteractive = FALSE)
-    #  Get the annotations of samples by their sample names
-    tgfbAnnot <- data.frame(SampleID = colnames(tgfb_expr_10_se),
-                           Type = NA)
-    tgfbAnnot$Type[grepl("Ctrl", tgfbAnnot$SampleID)] = "Control"
-    tgfbAnnot$Type[grepl("TGFb", tgfbAnnot$SampleID)] = "TGFb"
-
-    # Sample annotations
-    tgfbAnnot$Type
-
-    plotDispersion(scoredf,annot = tgfbAnnot$Type,isInteractive = FALSE)
-
-    # --- Load Ccle [] ---
-    # Key functions: plotScoreLandscape
-    plotScoreLandscape(scoredf_ccle_epi, scoredf_ccle_mes, 
-                       scorenames = c('ccle-EPI','ccle-MES'),hexMin = 10)
-    tcgaLandscape <- plotScoreLandscape(scoredf_tcga_epi, scoredf_tcga_mes, 
-                       scorenames = c('tcga_EPI','tcga_MES'), isInteractive = FALSE)
-
-    tcgaLandscape
-
-    # To get an interactive version of plot, set isInteractive = TRUE
-
-    # --- Project Score [] ---
-    # Key functions: projectScoreLandscape
-    # Project on the above generated 'tcgaLandscape' plot
-    projectScoreLandscape(plotObj = tcgaLandscape, scoredf_ccle_epi, 
-                          scoredf_ccle_mes,
-                          subSamples = rownames(scoredf_ccle_epi)[c(1,4,5)],
-                          annot = rownames(scoredf_ccle_epi)[c(1,4,5)], 
-                          sampleLabels = NULL,
-                          isInteractive = FALSE)
-    projectScoreLandscape(plotObj = tcgaLandscape, scoredf_ccle_epi, scoredf_ccle_mes,
-                          subSamples = rownames(scoredf_ccle_epi)[c(1,4,5,8,9)],
-                          sampleLabels = c('l1','l2','l3','l4','l5'),
-                          annot = rownames(scoredf_ccle_epi)[c(1,4,5,8,9)], 
-                          isInteractive = FALSE)
-
-    # --- Pvalue [] ---
-    # Key functions: bplapply, detectCores, generateNull, SnowParam, simpleScore, getPvals
-    # tgfb_gs_up : up regulated gene set in the tgfb gene signature
-    # tgfb_gs_dn : down regulated gene set in the tgfb gene signature
-
-    # This permutation function uses BiocParallel::bplapply() parallel function, by 
-    # supplying the first 5 columns of rankData, we generate Null distribution for 
-    # the first 5 samples.
-
-    # detect how many CPU cores are available for your machine
-    # parallel::detectCores()
-
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 4: Plot score dispersions using plotDispersion
+    # -----------------------------------------------------------------------------
+    # Construct annotation data frame from sample names
+    tgfbAnnot <- data.frame(SampleID = colnames(tgfb_expr_10_se), Type = NA)
+    tgfbAnnot\$Type[grepl("Ctrl", tgfbAnnot\$SampleID)] = "Control"
+    tgfbAnnot\$Type[grepl("TGFb", tgfbAnnot\$SampleID)] = "TGFb"
+    
+    pdf("dispersion_plot.pdf", width = 8, height = 6)
+    plotDispersion(scoredf, annot = tgfbAnnot\$Type, isInteractive = FALSE)
+    dev.off()
+    
+    # -----------------------------------------------------------------------------
+    # Stage 5: Generate null distribution using generateNull
+    # -----------------------------------------------------------------------------
+    ncores <- 1
+    
+    permuteResult <-
+      generateNull(
+        upSet = tgfb_gs_up,
+        downSet = tgfb_gs_dn,
+        rankData = rankData,
+        subSamples = 1:5,
+        centerScore = TRUE,
+        knownDirection = TRUE,
+        B = 1000,
+        ncores = ncores,
+        seed = 1,
+        useBPPARAM = NULL
+      )
+    
+    # Save permutation results
+    saveRDS(permuteResult, "permutation_results.rds")
+    
+    # -----------------------------------------------------------------------------
+    # Stage 6: Calculate empirical p-values using getPvals
+    # -----------------------------------------------------------------------------
     pvals <- getPvals(permuteResult, scoredf, subSamples = 1:5)
-
-    # getPval returns p-values for each individual sample.
-    # show the p-values for first 5 samples
-    pvals
-
-    # --- Plot Null1 [] ---
-    # Key functions: plotNull
+    
+    # Save p-values
+    write.csv(as.data.frame(pvals), "pvalues_results.csv", row.names = TRUE)
+    
+    # -----------------------------------------------------------------------------
+    # Stage 7: Plot null distributions using plotNull
+    # -----------------------------------------------------------------------------
+    pdf("null_distribution_plot.pdf", width = 8, height = 6)
     plotNull(permuteResult, scoredf, pvals, sampleNames = names(pvals)[1])
-    # plot the null distributions for the first 2 samples and the p-values
-    # We can see from the plot, the control samples are not significant and TGFb 
-    # samples are very significant with very low p-values
-    plotNull(permuteResult, scoredf, pvals, sampleNames = names(pvals)[1:2])
+    dev.off()
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_singscore_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_singscore_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_singscore_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SINGSCORE:", paste0("    singscore: ", packageVersion("singscore"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING":',
+        paste0('    singscore: ', as.character(packageVersion('singscore')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_singscore_results.csv
-    touch ${prefix}_singscore_output.rds
-    echo "BIOC_SINGSCORE:" > versions.yml
-    echo "    singscore: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_singscore_scoring.csv versions.yml
     """
 }
 
-
-workflow BIOC_SINGSCORE_WORKFLOW {
+workflow BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ tgfb_expr_10_se, tgfb_gs_up, tgfb_gs_dn ] ]
 
     main:
-    BIOC_SINGSCORE(ch_input)
+    BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING(ch_input)
 
     emit:
-    results  = BIOC_SINGSCORE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SINGSCORE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SINGSCORE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SINGSCORE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING.out.tables
+    plots    = BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING.out.plots
+    objects  = BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING.out.objects
+    versions = BIOC_SINGSCORE_STANDARD_SINGSCORE_SCORING.out.versions
 }

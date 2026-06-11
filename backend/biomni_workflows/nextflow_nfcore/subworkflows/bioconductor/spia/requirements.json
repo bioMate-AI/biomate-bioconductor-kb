@@ -1,0 +1,14 @@
+{
+  "package": "spia",
+  "requirements": [
+    "SPIA"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SPIA"
+    ],
+    "spia_with_custom_kegg_data.nf": [
+      "SPIA"
+    ]
+  }
+}

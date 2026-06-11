@@ -1,0 +1,23 @@
+{
+  "package": "organism_dplyr",
+  "requirements": [
+    "GenomicRanges",
+    "Organism.dplyr",
+    "TxDb.Hsapiens.UCSC.hg38.knownGene",
+    "dplyr",
+    "ggplot2",
+    "org.Hs.eg.db",
+    "organism_dplyr"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "Organism.dplyr",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "dplyr",
+      "ggplot2",
+      "org.Hs.eg.db",
+      "organism_dplyr"
+    ]
+  }
+}

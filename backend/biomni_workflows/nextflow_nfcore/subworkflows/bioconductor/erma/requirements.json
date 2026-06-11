@@ -1,0 +1,23 @@
+{
+  "package": "erma",
+  "requirements": [
+    "AnnotationDbi",
+    "GenomicFeatures",
+    "GenomicRanges",
+    "Gviz",
+    "TxDb.Hsapiens.UCSC.hg19.knownGene",
+    "erma",
+    "org.Hs.eg.db"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "AnnotationDbi",
+      "GenomicFeatures",
+      "GenomicRanges",
+      "Gviz",
+      "TxDb.Hsapiens.UCSC.hg19.knownGene",
+      "erma",
+      "org.Hs.eg.db"
+    ]
+  }
+}

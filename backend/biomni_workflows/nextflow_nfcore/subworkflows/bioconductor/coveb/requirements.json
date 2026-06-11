@@ -1,0 +1,18 @@
+{
+  "package": "coveb",
+  "requirements": [
+    "covEB",
+    "igraph",
+    "jsonlite"
+  ],
+  "by_workflow": {
+    "cov_estimation_known_blocks.nf": [
+      "covEB",
+      "jsonlite"
+    ],
+    "main.nf": [
+      "covEB",
+      "igraph"
+    ]
+  }
+}

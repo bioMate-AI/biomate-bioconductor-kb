@@ -1,0 +1,17 @@
+{
+  "package": "titancna",
+  "requirements": [
+    "GenomicRanges",
+    "IRanges",
+    "TitanCNA",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "IRanges",
+      "TitanCNA",
+      "rtracklayer"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "package": "htsfilter",
+  "requirements": [
+    "Biobase",
+    "DESeq2",
+    "EDASeq",
+    "HTSFilter",
+    "edgeR"
+  ],
+  "by_workflow": {
+    "deseq2_pipeline.nf": [
+      "DESeq2",
+      "HTSFilter"
+    ],
+    "edger_pipeline.nf": [
+      "HTSFilter",
+      "edgeR"
+    ],
+    "external_normalization.nf": [
+      "Biobase",
+      "EDASeq",
+      "HTSFilter"
+    ],
+    "main.nf": [
+      "HTSFilter"
+    ]
+  }
+}

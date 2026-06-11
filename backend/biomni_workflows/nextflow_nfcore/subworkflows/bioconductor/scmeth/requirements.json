@@ -1,0 +1,25 @@
+{
+  "package": "scmeth",
+  "requirements": [
+    "BSgenome.Hsapiens.NCBI.GRCh38",
+    "BSgenome.Hsapiens.UCSC.hg38",
+    "BSgenome.Mmusculus.UCSC.mm10",
+    "HDF5Array",
+    "ggplot2",
+    "scmeth"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "BSgenome.Hsapiens.UCSC.hg38",
+      "HDF5Array",
+      "scmeth"
+    ],
+    "step_by_step_qc_analysis.nf": [
+      "BSgenome.Hsapiens.NCBI.GRCh38",
+      "BSgenome.Mmusculus.UCSC.mm10",
+      "HDF5Array",
+      "ggplot2",
+      "scmeth"
+    ]
+  }
+}

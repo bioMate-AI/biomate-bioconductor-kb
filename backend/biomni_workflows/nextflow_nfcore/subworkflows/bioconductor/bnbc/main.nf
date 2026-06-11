@@ -1,109 +1,154 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: bnbc
-// Tools to normalize (several) Hi-C data from replicates.
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/bnbc/inst/doc/bnbc.R
-// Upstream  : HiCBricks
-// Downstream: none
-//
-// Install: BiocManager::install("bnbc")
+// Bioconductor workflow: bnbc — hic_normalization_from_matrices
+// Normalize and batch-correct Hi-C replicates starting from a list of contact matrices.
+// Input: upper.mats.list, LociData, SampleData
+// Container: quay.io/biocontainers/bioconductor-bnbc:1.32.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GenomicRanges, S4Vectors, bnbc
+// QC: count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert upper triangular matrices to symmetric matrices
+//  * 2. [Input & Preparation] Create a ContactGroup object using ContactGroup()
+//  * 3. [Core Analysis] Apply logCPM transformation using logCPM()
+//  * 4. [Core Analysis] Smooth contact matrices using boxSmoother()
+//  * 5. [Core Analysis] Perform cross-sample normalization and batch correction using bnbc()
 
 nextflow.enable.dsl = 2
 
-process BIOC_BNBC {
+process BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-bnbc"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-bnbc:1.28.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-bnbc:1.28.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_bnbc_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_bnbc_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_bnbc_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(bnbc)
-    library(ContactGroup)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(bnbc)
+        library(GenomicRanges)
+        library(S4Vectors)
+        
+        # 1. Read User Inputs from the working directory
+        message("Reading input files...")
+        
+        if (file.exists("upper.mats.list")) {
+            upper.mats.list <- readRDS("upper.mats.list")
+        } else if (file.exists("upper.mats.list.rds")) {
+            upper.mats.list <- readRDS("upper.mats.list.rds")
+        } else {
+            stop("Error: 'upper.mats.list' file not found in the working directory.")
+        }
+        
+        if (file.exists("LociData")) {
+            LociData <- readRDS("LociData")
+        } else if (file.exists("LociData.rds")) {
+            LociData <- readRDS("LociData.rds")
+        } else {
+            stop("Error: 'LociData' file not found in the working directory.")
+        }
+        
+        if (file.exists("SampleData")) {
+            SampleData <- readRDS("SampleData")
+        } else if (file.exists("SampleData.rds")) {
+            SampleData <- readRDS("SampleData.rds")
+        } else {
+            stop("Error: 'SampleData' file not found in the working directory.")
+        }
+        
+        # 2. Convert upper triangular matrices to symmetric matrices
+        message("Converting upper triangular matrices to symmetric matrices...")
+        MatsList <- lapply(upper.mats.list, function(M) {
+            M[lower.tri(M)] <- t(M)[lower.tri(M)]
+            M
+        })
+        
+        # 3. Create a ContactGroup object using ContactGroup()
+        message("Creating ContactGroup object...")
+        cg <- ContactGroup(rowData = LociData, contacts = MatsList, colData = SampleData)
+        cgEx <- cg # Ensure compatibility with subsequent documented code variable names
+        
+        # 4. Apply logCPM transformation using logCPM()
+        message("Applying logCPM transformation...")
+        cgEx.cpm <- logCPM(cgEx)
+        
+        # 5. Smooth contact matrices using boxSmoother()
+        message("Smoothing contact matrices using boxSmoother...")
+        cgEx.smooth <- boxSmoother(cgEx.cpm, h=5)
+        
+        # 6. Perform cross-sample normalization and batch correction using bnbc()
+        message("Performing cross-sample normalization and batch correction...")
+        if (!"Batch" %in% colnames(colData(cgEx.smooth))) {
+            stop("Error: 'SampleData' must contain a 'Batch' column for bnbc batch correction.")
+        }
+        
+        cgEx.bnbc <- bnbc(cgEx.smooth, batch=colData(cgEx.smooth)\$Batch,
+                          threshold=1e7, step=width(LociData)[1], nbands=11, verbose=FALSE)
+        
+        # 7. Save meaningful results to output files
+        message("Saving outputs...")
+        saveRDS(cgEx.bnbc, file = "cgEx.bnbc.rds")
+        saveRDS(contacts(cgEx.bnbc), file = "normalized_matrices.rds")
+        
+        # Write a summary CSV of the pipeline run
+        summary_df <- data.frame(
+            Metric = c("Number of Bins", "Number of Samples", "Smoothing Parameter (h)", "BNBC Bands"),
+            Value = c(length(rowData(cgEx.bnbc)), ncol(cgEx.bnbc), 5, 11)
+        )
+        write.csv(summary_df, file = "pipeline_summary.csv", row.names = FALSE)
+        
+        message("Pipeline completed successfully!")
 
-    # --- Log CPM Transformation [] ---
-    # Key functions: logCPM
-    cgEx.cpm <- logCPM(cgEx)
-
-
-    # --- Smoothing [] ---
-    # Key functions: boxSmoother
-    cgEx.smooth <- boxSmoother(
-        cgEx.cpm,
-        h = 5
-    )
-
-
-    # --- Normalisation [] ---
-    # Key functions: bnbc
-    cgEx.bnbc <- bnbc(
-        cgEx.smooth,
-        batch = colData(cgEx.smooth)$Batch,
-        threshold = 1e7,
-        step = 4e4,
-        nbands = 11,
-        verbose = FALSE
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_bnbc_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_bnbc_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_bnbc_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_BNBC:", paste0("    bnbc: ", packageVersion("bnbc"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES":',
+        paste0('    bnbc: ', as.character(packageVersion('bnbc')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_bnbc_results.csv
-    touch ${prefix}_bnbc_output.rds
-    echo "BIOC_BNBC:" > versions.yml
-    echo "    bnbc: 0.0.0" >> versions.yml
+    touch ${prefix}_hic_normalization_from_matrices.csv versions.yml
     """
 }
 
-
-workflow BIOC_BNBC_WORKFLOW {
+workflow BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ upper.mats.list, LociData, SampleData ] ]
 
     main:
-    BIOC_BNBC(ch_input)
+    BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES(ch_input)
 
     emit:
-    results  = BIOC_BNBC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_BNBC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_BNBC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_BNBC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES.out.tables
+    plots    = BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES.out.plots
+    objects  = BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES.out.objects
+    versions = BIOC_BNBC_HIC_NORMALIZATION_FROM_MATRICES.out.versions
 }

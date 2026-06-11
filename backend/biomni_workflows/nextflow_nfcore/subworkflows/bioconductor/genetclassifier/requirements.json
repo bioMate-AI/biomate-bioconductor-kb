@@ -1,0 +1,21 @@
+{
+  "package": "genetclassifier",
+  "requirements": [
+    "Biobase",
+    "geNetClassifier"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "geNetClassifier"
+    ],
+    "query_new_samples.nf": [
+      "Biobase",
+      "geNetClassifier"
+    ],
+    "visualize_classifier_results.nf": [
+      "Biobase",
+      "geNetClassifier"
+    ]
+  }
+}

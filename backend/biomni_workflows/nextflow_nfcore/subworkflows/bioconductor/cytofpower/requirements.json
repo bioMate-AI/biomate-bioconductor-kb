@@ -1,0 +1,11 @@
+{
+  "package": "cytofpower",
+  "requirements": [
+    "CyTOFpower"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CyTOFpower"
+    ]
+  }
+}

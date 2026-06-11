@@ -1,0 +1,11 @@
+{
+  "package": "les",
+  "requirements": [
+    "les"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "les"
+    ]
+  }
+}

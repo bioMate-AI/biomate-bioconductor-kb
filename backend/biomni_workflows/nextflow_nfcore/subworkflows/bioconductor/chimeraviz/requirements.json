@@ -1,0 +1,18 @@
+{
+  "package": "chimeraviz",
+  "requirements": [
+    "Rsamtools",
+    "chimeraviz",
+    "ensembldb"
+  ],
+  "by_workflow": {
+    "fusion_reads_alignment_and_plotting.nf": [
+      "chimeraviz"
+    ],
+    "main.nf": [
+      "Rsamtools",
+      "chimeraviz",
+      "ensembldb"
+    ]
+  }
+}

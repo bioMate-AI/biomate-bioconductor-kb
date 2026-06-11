@@ -1,0 +1,17 @@
+{
+  "package": "hybridmtest",
+  "requirements": [
+    "Biobase",
+    "HybridMTest"
+  ],
+  "by_workflow": {
+    "k_group_comparison.nf": [
+      "Biobase",
+      "HybridMTest"
+    ],
+    "main.nf": [
+      "Biobase",
+      "HybridMTest"
+    ]
+  }
+}

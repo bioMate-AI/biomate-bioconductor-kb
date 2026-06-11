@@ -1,0 +1,22 @@
+{
+  "package": "delocal",
+  "requirements": [
+    "DELocal",
+    "SummarizedExperiment",
+    "dplyr",
+    "ggplot2"
+  ],
+  "by_workflow": {
+    "delocal_dynamic_neighborhood.nf": [
+      "DELocal",
+      "SummarizedExperiment",
+      "dplyr"
+    ],
+    "main.nf": [
+      "DELocal",
+      "SummarizedExperiment",
+      "dplyr",
+      "ggplot2"
+    ]
+  }
+}

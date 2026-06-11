@@ -1,0 +1,38 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: bgcorrect.method=Method for background correction (e.g., 'rma', 'normexp', 'none') ;; normalize.method=Normalization method to apply ('spikein', 'quantile', 'mean', 'median', 'none') ;; normalize.param=List of fine-tuning parameters for spike-in normalization (e.g., loess.span, force.zero, figures.show) ;; pmcorrect.method=PM correction method (e.g., 'pmonly') ;; summary.method=Probe summarization method (e.g., 'medianpolish', 'mas', 'liwong') ;; probeset.list=User-defined list of spike-in probe set IDs to use for normalization ;; min.corr=Minimum Pearson correlation threshold for spike-in coherence (default 0.5) ;; max.log2span=Maximum log2 span for probe set intensity specificity (default 1) ;; cover.int=Max intensity interval between consecutive spikes (default 1/3) ;; cover.ext=Min ratio between spike-in intensity range and all probe intensity range (default 1/2)\n- alternatives: Standard quantile normalization via affy::expresso or NormiR(normalize.method='quantile') can be used when spike-in assumptions are violated. Standard limma normalization workflows (e.g., normalizeWithinArrays, normalizeBetweenArrays) can be used and then summarized using summarize.miR.\n- when_to_use: Use when analyzing miRNA expression data from Affymetrix or Exiqon microarrays, particularly when spike-in control probes are available and satisfy the required assumptions of coherence, specificity, and intensity range coverage.\n- pitfalls: Applying spike-in normalization when assumptions are not met (e.g., low correlation between spike-ins or insufficient intensity range coverage). In these cases, NormiR automatically defaults to median normalization unless thresholds are forced. Another pitfall is incompatibility between GAL and TXT files, which ReadExi handles by auto-generating a default environment.",
+  "workflows": [
+    {
+      "name": "affymetrix_mirna_normalization",
+      "intent": "Read, annotate, and normalize Affymetrix miRNA CEL files using spike-in or quantile normalization.",
+      "input": [
+        "CEL files (Affymetrix raw data)",
+        "miRNA-1_0.CDF (Affymetrix CDF annotation file)"
+      ],
+      "stages": "1. Load or create the CDF annotation environment using make.cdf.env ;; 2. Read raw CEL files into an AffyBatch object using ReadAffy ;; 3. Normalize and summarize the data using NormiR (for spike-in) or expresso (for quantile) to produce an ExpressionSet.",
+      "code": "library(mirna10cdf)\nlibrary(makecdfenv)\ncdfenv <- make.cdf.env(cdf.path='Affymetrix', filename='miRNA-1_0.CDF')\nlibrary(affy)\nabatch <- ReadAffy(cdfname='cdfenv', celfile.path='Affymetrix')\nlibrary(ExiMiR)\neset.spike <- NormiR(abatch, bgcorrect.method='rma',\n                                normalize.method='spikein',\n                                pmcorrect.method='pmonly',\n                                summary.method='medianpolish')"
+    },
+    {
+      "name": "exiqon_mirna_normalization",
+      "intent": "Read, annotate, and normalize Exiqon dual-channel raw TXT files using spike-in or quantile normalization.",
+      "input": [
+        "TXT files (ImaGene raw data)",
+        "GAL file (Exiqon array annotation)",
+        "samplesinfo.txt (TAB-separated file matching Hy3 and Hy5 channels)"
+      ],
+      "stages": "1. Create the GAL annotation environment using make.gal.env ;; 2. Read raw TXT files into an AffyBatch object using ReadExi ;; 3. Normalize and summarize the data using NormiR to produce an ExpressionSet.",
+      "code": "library(ExiMiR)\nmake.gal.env(galname='galenv', gal.path='Exiqon')\nebatch <- ReadExi(galname='galenv', txtfile.path='Exiqon')\neset.spike <- NormiR(ebatch, bg.correct=FALSE,\n                                normalize.method='spikein',\n                                summary.method='medianpolish')"
+    },
+    {
+      "name": "limma_integrated_normalization",
+      "intent": "Read raw data using limma, convert to an AffyBatch object, and normalize with ExiMiR using a custom spike-in probe list.",
+      "input": [
+        "Raw data files (supported by limma)",
+        "GAL file (array annotation)",
+        "Targets.txt (limma targets file)"
+      ],
+      "stages": "1. Read targets and raw images using limma's readTargets and read.maimages ;; 2. Read GAL annotation and layout using readGAL and getLayout ;; 3. Convert the RGList to an AffyBatch object using createAB ;; 4. Define custom spike-in probes and run NormiR normalization.",
+      "code": "library(limma)\ntargets <- readTargets(path='Exiqon')\nRGList <- read.maimages(targets[,c('Cy3','Cy5')], source='imagene', path='Exiqon')\nRGList$genes <- readGAL(path='Exiqon')\nRGList$printer <- getLayout(RGList$genes)\nlibrary(ExiMiR)\nobatch <- createAB(RGList)\nspikein.all <- grep('^spike', featureNames(obatch), value=TRUE)\nspikein.subset <- setdiff(spikein.all, 'spike_control_f')\neset.spike <- NormiR(obatch, bg.correct=FALSE,\n                                normalize.method='spikein',\n                                normalize.param=list(probeset.list=spikein.subset),\n                                summary.method='medianpolish')"
+    }
+  ]
+}

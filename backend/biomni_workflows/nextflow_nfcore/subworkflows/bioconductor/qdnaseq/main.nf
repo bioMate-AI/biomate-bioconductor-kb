@@ -1,147 +1,185 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: QDNAseq
-// Quantitative DNA sequencing for chromosomal aberrations. The genome is divided into non-overlapping 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/QDNAseq/inst/doc/QDNAseq.R
-// Upstream  : Biobase
-// Downstream: GeneBreak, QDNAseq.hg19, QDNAseq.mm10
-//
-// Install: BiocManager::install("QDNAseq")
+// Bioconductor workflow: qdnaseq — standard_cnv_profiling
+// Perform copy number profiling, normalization, segmentation, and calling from raw BAM files.
+// Input: tumor.bam, bins
+// Container: quay.io/biocontainers/bioconductor-qdnaseq:1.46.0--r45hdfd78af_0
+// R packages: Rsamtools, Biobase, QDNAseq
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_QDNASEQ {
+process BIOC_QDNASEQ_STANDARD_CNV_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-qdnaseq"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-qdnaseq:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-qdnaseq:1.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-qdnaseq:1.46.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(input_file)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_qdnaseq_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_qdnaseq_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_qdnaseq_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AnnotatedDataFrame)
-    library(Genomes)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("Rsamtools", "Biobase", "QDNAseq")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Binreadcounts [] ---
-    # Key functions: binReadCounts
-    ## readCounts <- binReadCounts(bins)
-    ## # all files ending in .bam from the current working directory
-    ##
-    ## # or
-    ##
-    # --- Data [] ---
-    # Key functions: data
-    data(LGG150)
-    readCounts <- LGG150
-    readCounts
-    # --- Rawprofile [] ---
-    # Key functions: highlightFilters
-    plot(readCounts, logTransform=FALSE, ylim=c(-50, 200))
-    highlightFilters(readCounts, logTransform=FALSE,
-      residual=TRUE, blacklist=TRUE)
-    # --- Applyfilters [] ---
-    # Key functions: applyFilters
-    readCountsFiltered <- applyFilters(readCounts, residual=TRUE, blacklist=TRUE)
-    # --- Isobar [] ---
-    # Key functions: isobarPlot
-    isobarPlot(readCountsFiltered)
-    # --- Estimatecorrection [] ---
-    # Key functions: estimateCorrection
-    readCountsFiltered <- estimateCorrection(readCountsFiltered)
-    # --- Noise [] ---
-    # Key functions: noisePlot
-    noisePlot(readCountsFiltered)
-    # --- Correctbins [] ---
-    # Key functions: correctBins, normalizeBins, smoothOutlierBins
-    copyNumbers <- correctBins(readCountsFiltered)
-    copyNumbers
-    copyNumbersNormalized <- normalizeBins(copyNumbers)
-    copyNumbersSmooth <- smoothOutlierBins(copyNumbersNormalized)
-    # --- Exportbins [] ---
-    # Key functions: exportBins
-    ## exportBins(copyNumbersSmooth, file="LGG150.txt")
-    ## exportBins(copyNumbersSmooth, file="LGG150.igv", format="igv")
-    ## exportBins(copyNumbersSmooth, file="LGG150.bed", format="bed")
-    # --- Segmentbins [] ---
-    # Key functions: segmentBins, normalizeSegmentedBins
-    copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="sqrt")
-    copyNumbersSegmented <- normalizeSegmentedBins(copyNumbersSegmented)
-    # --- Callbins [] ---
-    # Key functions: callBins
-    copyNumbersCalled <- callBins(copyNumbersSegmented)
-    # --- Exportbins [] ---
-    # Key functions: exportBins
-    ## exportBins(copyNumbersCalled, format="vcf")
-    ## exportBins(copyNumbersCalled, format="seg")
-    # --- Makecgh [] ---
-    # Key functions: makeCgh
-    cgh <- makeCgh(copyNumbersCalled)
-    cgh
-    # --- Callbins [] ---
-    # Key functions: callBins
-    ## copyNumbers <- callBins(..., ncpus=4)
-    # --- Plan [] ---
-    # Key functions: plan
-    ## future::plan("sequential")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_qdnaseq_results.csv", row.names = TRUE)
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load required libraries
+    library(QDNAseq)
+    library(Rsamtools)
+    
+    # 1. Load bin annotations
+    # Read from the user-provided 'bins' file if it exists, otherwise retrieve default annotations
+    if (file.exists("bins")) {
+      bins <- tryCatch({
+        readRDS("bins")
+      }, error = function(e) {
+        message("Could not read 'bins' as RDS, falling back to getBinAnnotations.")
+        getBinAnnotations(binSize=15)
+      })
+    } else if (file.exists("bins.rds")) {
+      bins <- readRDS("bins.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_qdnaseq_results.csv")
+      bins <- getBinAnnotations(binSize=15)
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_qdnaseq_output.rds")
+    
+    # Ensure the BAM file is indexed
+    if (file.exists("tumor.bam") && !file.exists("tumor.bam.bai")) {
+      message("Indexing tumor.bam...")
+      indexBam("tumor.bam")
     }
+    
+    # 2. Bin read counts from BAM files
+    readCounts <- binReadCounts(bins, bamfiles="tumor.bam")
+    
+    # Plot raw copy number profile
+    pdf("raw_profile.pdf")
+    plot(readCounts, logTransform=FALSE, ylim=c(-50, 200))
+    highlightFilters(readCounts, logTransform=FALSE, residual=TRUE, blacklist=TRUE)
+    dev.off()
+    
+    # 3. Filter bins
+    readCountsFiltered <- applyFilters(readCounts, residual=TRUE, blacklist=TRUE)
+    
+    # Plot isobar
+    pdf("isobar_plot.pdf")
+    isobarPlot(readCountsFiltered)
+    dev.off()
+    
+    # 4. Estimate GC and mappability correction
+    readCountsFiltered <- estimateCorrection(readCountsFiltered)
+    
+    # Plot noise
+    pdf("noise_plot.pdf")
+    noisePlot(readCountsFiltered)
+    dev.off()
+    
+    # 5. Apply correction
+    copyNumbers <- correctBins(readCountsFiltered)
+    
+    # 6. Normalize copy numbers
+    copyNumbersNormalized <- normalizeBins(copyNumbers)
+    
+    # 7. Smooth outliers
+    copyNumbersSmooth <- smoothOutlierBins(copyNumbersNormalized)
+    
+    # Plot smoothed profile
+    pdf("smoothed_profile.pdf")
+    plot(copyNumbersSmooth)
+    dev.off()
+    
+    # Export smoothed bins
+    exportBins(copyNumbersSmooth, file="LGG150.txt")
+    exportBins(copyNumbersSmooth, file="LGG150.igv", format="igv")
+    exportBins(copyNumbersSmooth, file="LGG150.bed", format="bed")
+    
+    # 8. Segment bins
+    copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="sqrt")
+    
+    # 9. Normalize segmented bins
+    copyNumbersSegmented <- normalizeSegmentedBins(copyNumbersSegmented)
+    
+    # Plot segmented profile
+    pdf("segmented_profile.pdf")
+    plot(copyNumbersSegmented)
+    dev.off()
+    
+    # 10. Call copy number aberrations
+    # Fallback to cutoff method if default CGHcall fails (common for single samples)
+    copyNumbersCalled <- tryCatch({
+      callBins(copyNumbersSegmented)
+    }, error = function(e) {
+      message("Default CGHcall failed, falling back to cutoff method: ", e\$message)
+      callBins(copyNumbersSegmented, method="cutoff")
+    })
+    
+    # Plot called profile
+    pdf("called_profile.pdf")
+    plot(copyNumbersCalled)
+    dev.off()
+    
+    # Export called bins
+    exportBins(copyNumbersCalled, format="vcf")
+    exportBins(copyNumbersCalled, format="seg")
+    
+    # 11. Convert to CGH object
+    cgh <- makeCgh(copyNumbersCalled)
+    
+    # Save final R objects for downstream analysis
+    saveRDS(copyNumbersCalled, "copyNumbersCalled.rds")
+    saveRDS(cgh, "cgh.rds")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_QDNASEQ:", paste0("    qdnaseq: ", packageVersion("QDNAseq"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_QDNASEQ_STANDARD_CNV_PROFILING":',
+        paste0('        qdnaseq: ', as.character(packageVersion("qdnaseq")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_qdnaseq_results.csv
-    touch ${prefix}_qdnaseq_output.rds
-    echo "BIOC_QDNASEQ:" > versions.yml
-    echo "    qdnaseq: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_cnv_profiling.csv versions.yml
     """
 }
 
-
-workflow BIOC_QDNASEQ_WORKFLOW {
+workflow BIOC_QDNASEQ_STANDARD_CNV_PROFILING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(input_file) ]
+    ch_input  // channel: [ val(meta), [ tumor.bam, bins ] ]
 
     main:
-    BIOC_QDNASEQ(ch_input)
+    BIOC_QDNASEQ_STANDARD_CNV_PROFILING(ch_input)
 
     emit:
-    results  = BIOC_QDNASEQ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_QDNASEQ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_QDNASEQ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_QDNASEQ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_QDNASEQ_STANDARD_CNV_PROFILING.out.tables
+    plots    = BIOC_QDNASEQ_STANDARD_CNV_PROFILING.out.plots
+    objects  = BIOC_QDNASEQ_STANDARD_CNV_PROFILING.out.objects
+    versions = BIOC_QDNASEQ_STANDARD_CNV_PROFILING.out.versions
 }

@@ -1,0 +1,18 @@
+{
+  "package": "cytomapper",
+  "requirements": [
+    "HDF5Array",
+    "SingleCellExperiment",
+    "cytomapper"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "SingleCellExperiment",
+      "cytomapper"
+    ],
+    "on_disk_image_handling.nf": [
+      "HDF5Array",
+      "cytomapper"
+    ]
+  }
+}

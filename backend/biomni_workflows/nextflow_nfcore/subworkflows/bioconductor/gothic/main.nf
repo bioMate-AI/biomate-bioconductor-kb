@@ -1,104 +1,119 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GOTHiC
-// This is a Hi-C analysis package using a cumulative binomial test to detect interactions between dist
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GOTHiC/inst/doc/package_vignettes.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("GOTHiC")
+// Bioconductor workflow: gothic — standard_gothic_pipeline
+// Identify significant genomic interactions from raw aligned paired-end reads (Bowtie output) using the standard GOTHiC pipeline.
+// Input: fileName1, fileName2
+// Container: quay.io/biocontainers/bioconductor-gothic:1.46.0--r45hdfd78af_0
+// R packages: BSgenome.Hsapiens.UCSC.hg18, GOTHiC
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GOTHIC {
+process BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gothic"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gothic:1.42.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gothic:1.42.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-gothic:1.46.0--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gothic_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gothic_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gothic_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("BSgenome.Hsapiens.UCSC.hg18", "GOTHiC")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
     library(GOTHiC)
-    library(GOTHiChicup)
-    library(jsonlite)
-
-    # --- Hi-C Interaction Detection [] ---
-    # Key functions: gothic
-    interactions <- gothic(
-        sample = "sample_mapped.bam",
-        res = 1000000,
-        organism = "hg19",
-        chromosomes = c("chr21", "chr22")
-    )
-
-    # --- High Resolution Interaction Detection [] ---
-    # Key functions: gothic
-    high_res_interactions <- gothic(
-        sample = "sample_mapped.bam",
-        res = 100000,
-        organism = "hg19",
-        chromosomes = "chr22"
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gothic_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gothic_results.csv")
+    library(BSgenome.Hsapiens.UCSC.hg18)
+    
+    fileName1 <- "fileName1"
+    fileName2 <- "fileName2"
+    
+    if (!file.exists(fileName1) || !file.exists(fileName2)) {
+      stop("Required input files 'fileName1' and/or 'fileName2' are missing from the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gothic_output.rds")
+    
+    paired = pairReads(fileName1, fileName2, sampleName="lymphoid_chr20", 
+    DUPLICATETHRESHOLD = 1, fileType="Table")
+    
+    mapped=mapReadsToRestrictionSites(paired, sampleName="lymphoid_chr20", 
+    BSgenomeName="BSgenome.Hsapiens.UCSC.hg18", 
+    genome=BSgenome.Hsapiens.UCSC.hg18, 
+    restrictionSite="A^AGCTT", enzyme="HindIII", parallel=FALSE, cores=1)
+    
+    binom=GOTHiC(fileName1,fileName2, sampleName="lymphoid_chr20", 
+    res=1000000, BSgenomeName="BSgenome.Hsapiens.UCSC.hg18",
+    genome=BSgenome.Hsapiens.UCSC.hg18, 
+    restrictionSite="A^AGCTT", enzyme="HindIII" ,cistrans="all", filterdist=10000,
+    DUPLICATETHRESHOLD=1, fileType="Table", parallel=FALSE, cores=NULL)
+    
+    saveRDS(paired, "paired_reads.rds")
+    saveRDS(mapped, "mapped_reads.rds")
+    saveRDS(binom, "gothic_interactions.rds")
+    write.csv(binom, "gothic_interactions.csv", row.names=FALSE)
+    
+    pdf("gothic_pvalue_density.pdf")
+    if (!is.null(binom)) {
+      if ("pvalue" %in% colnames(binom)) {
+        plot(density(binom\$pvalue), main="P-value distribution", xlab="p-value", col="blue", lwd=2)
+      } else if ("p-value" %in% colnames(binom)) {
+        plot(density(binom\$`p-value`), main="P-value distribution", xlab="p-value", col="blue", lwd=2)
+      }
     }
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GOTHIC:", paste0("    gothic: ", packageVersion("GOTHiC"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE":',
+        paste0('        gothic: ', as.character(packageVersion("gothic")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gothic_results.csv
-    touch ${prefix}_gothic_output.rds
-    echo "BIOC_GOTHIC:" > versions.yml
-    echo "    gothic: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_gothic_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_GOTHIC_WORKFLOW {
+workflow BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ fileName1, fileName2 ] ]
 
     main:
-    BIOC_GOTHIC(ch_input)
+    BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_GOTHIC.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GOTHIC.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GOTHIC.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GOTHIC.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE.out.tables
+    plots    = BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE.out.plots
+    objects  = BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE.out.objects
+    versions = BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE.out.versions
 }

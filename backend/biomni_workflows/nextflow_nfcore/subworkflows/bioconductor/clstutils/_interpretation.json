@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: distfile=Path to the distance matrix file generated from a pplacer placefile using placeutil ;; placefile=Path to the pplacer JSON output file ;; refpkg=Path to the reference package directory ;; seqnames=Sequence names to order the taxonomy, typically matching the rownames of the tree distance matrix ;; lowest_rank=The most specific taxonomic rank to consider (e.g., 'species') ;; cutoff=Distance threshold from the centermost sequence to define outliers ;; quant=Quantile of all pairwise distances to define the outlier threshold ;; idx=Indices of sequences that must be included in maxDists (e.g., type strains) ;; N=Number of sequences to select for the diverse subset in maxDists ;; exclude=Logical vector indicating sequences to exclude (e.g., outliers) in maxDists ;; include.center=Logical indicating whether to include the centermost sequence in maxDists\n- alternatives: clst::classifyIter=classifyPlacements is a wrapper around clst::classifyIter ;; ape::plot.tree=clstutils::prettyTree extends ape::plot.tree to facilitate annotation of outliers and selected subsets on phylogenetic trees\n- when_to_use: Use when performing taxonomic classification of query sequences placed on a phylogenetic tree using pplacer outputs, or when curating reference sequence sets by identifying taxonomic outliers (mislabeled sequences) and selecting representative diverse subsets.\n- pitfalls: Failing to identify and exclude outliers before selecting a diverse subset using maxDists can result in primarily selecting outlier (mislabeled) sequences ;; The distance matrix file (distfile) must be generated from the placefile using placeutil (distributed with pplacer) before running treeDists.",
+  "workflows": [
+    {
+      "name": "taxonomic_classification",
+      "intent": "Classify query sequences placed on a phylogenetic tree using pplacer outputs and a reference package.",
+      "input": [
+        "refpkg (reference package directory or archive)",
+        "placefile (pplacer JSON output file)",
+        "distfile (distance matrix file generated from placefile using placeutil)"
+      ],
+      "stages": "1. Calculate tree distances using treeDists ;; 2. Retrieve taxonomic information from the reference package using taxonomyFromRefpkg ;; 3. Define query placement data ;; 4. Classify placements using classifyPlacements",
+      "code": "treedists <- treeDists(distfile=distfile, placefile=placefile)\ntaxdata <- taxonomyFromRefpkg(refpkg, seqnames=rownames(treedists$dmat), lowest_rank='species')\nplacetab <- data.frame(at=49, edge=5.14909e-07, branch=5.14909e-07)\ncdata <- classifyPlacements(taxdata, treedists, placetab)"
+    },
+    {
+      "name": "reference_set_curation",
+      "intent": "Identify taxonomic outliers and select a maximally diverse subset of reference sequences.",
+      "input": [
+        "seqs (DNAbin object representing a multiple sequence alignment)",
+        "seqdat (data.frame containing taxonomic assignments of the sequences)"
+      ],
+      "stages": "1. Calculate pairwise DNA distances using ape::dist.dna ;; 2. Identify outlier sequences using findOutliers ;; 3. Visualize outliers on a phylogenetic tree using prettyTree ;; 4. Select a diverse subset of sequences using maxDists while excluding outliers ;; 5. Visualize the selected subset on the tree using prettyTree",
+      "code": "dmat <- ape::dist.dna(seqs[Efaecium,], pairwise.deletion=TRUE, as.matrix=TRUE, model='raw')\noutliers <- clstutils::findOutliers(dmat, cutoff=0.015)\nprettyTree(nj(dmat), groups=ifelse(outliers,'outlier','non-outlier'),\n           X=outliers, labels=ifelse(isType,gettextf('type strain (%s)', accession),NA))\nselected <- clstutils::maxDists(dmat, idx=which(isType),\n                                N=10, exclude=outlier, include.center=TRUE)\nprettyTree(nj(dmat), groups=ifelse(outlier,'outlier','non-outlier'),\n           X=outlier,\n           O=selected, fill=selected,\n           labels=ifelse(isType,gettextf('type strain (%s)', accession),NA))"
+    }
+  ]
+}

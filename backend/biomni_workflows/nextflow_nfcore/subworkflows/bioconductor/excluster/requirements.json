@@ -1,0 +1,11 @@
+{
+  "package": "excluster",
+  "requirements": [
+    "ExCluster"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ExCluster"
+    ]
+  }
+}

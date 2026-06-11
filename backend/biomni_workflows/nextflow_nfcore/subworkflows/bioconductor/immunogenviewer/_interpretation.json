@@ -1,0 +1,16 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: uniprot_id=The UniProt accession number of the target protein used in getProteinFeatures() ;; taxonomy_id=The taxonomy ID for the protein's species in getProteinFeatures() (defaults to human, ID: 9606) ;; start/end=The start and end residue positions of the immunogen in addImmunogen() ;; seq=The amino acid sequence of the immunogen in addImmunogen() (alternative to start/end) ;; name=The character string identifier for the immunogen used across adding, renaming, removing, plotting, and evaluating functions\n- alternatives: None mentioned for the R workflow, but the documentation references the Antibodypedia database for identifying antibodies with known immunogen peptides, and external literature for comprehensive antibody validation.\n- when_to_use: Use as a pre-selection step to exclude unsuitable antibodies early on when the immunogen sequence or position is known, particularly when evaluating whether an antibody raised against a peptide immunogen can successfully detect a natively folded protein.\n- pitfalls: The length of an immunogen must be strictly between 10 and 50 amino acids ;; The default taxonomy ID in getProteinFeatures() is human (9606), so the correct taxonomy ID must be explicitly set for other species ;; The package is a pre-selection tool and does not replace comprehensive experimental antibody validation ;; In secondary structure predictions, \"Other\" usually stands for coil structures.",
+  "workflows": [
+    {
+      "name": "immunogen_evaluation_and_visualization",
+      "intent": "Retrieve protein features, add candidate immunogens, visualize their positions, and evaluate their structural/functional properties to select the best antibody.",
+      "input": [
+        "UniProt ID (string)",
+        "Immunogen coordinates (start and end integers) or peptide sequences (string)"
+      ],
+      "stages": "1. Retrieve protein features from UniProt and PredictProtein using getProteinFeatures() ;; 2. Add candidate immunogens using addImmunogen() ;; 3. Rename or remove immunogens if necessary using renameImmunogen() or removeImmunogen() ;; 4. Plot the full protein sequence with annotated features and immunogens using plotProtein() ;; 5. Plot a detailed view of a specific immunogen using plotImmunogen() ;; 6. Generate a summary evaluation table of all immunogens using evaluateImmunogen()",
+      "code": "protein <- getProteinFeatures(\"Q9NZC2\")\nprotein <- addImmunogen(protein, start = 142, end = 192, name = \"ABIN2783734_\")\nprotein <- addImmunogen(protein, start = 196, end = 230, name = \"HPA010917\")\nprotein <- addImmunogen(protein, seq = \"HGQKPGTHPPSELD\", name = \"EB07921\")\nprotein <- renameImmunogen(protein, oldName = \"ABIN2783734_\", newName = \"ABIN2783734\")\nprotein <- removeImmunogen(protein, name = \"HPA010917\")\nplotProtein(protein)\nplotImmunogen(protein, \"ABIN2783734\")\nimmunogens <- evaluateImmunogen(protein)"
+    }
+  ]
+}

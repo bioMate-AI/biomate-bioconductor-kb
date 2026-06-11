@@ -1,0 +1,15 @@
+{
+  "package": "clusterstab",
+  "requirements": [
+    "Biobase",
+    "clusterStab",
+    "genefilter"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "Biobase",
+      "clusterStab",
+      "genefilter"
+    ]
+  }
+}

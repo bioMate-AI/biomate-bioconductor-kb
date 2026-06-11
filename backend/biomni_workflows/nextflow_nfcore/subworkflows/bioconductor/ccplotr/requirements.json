@@ -1,0 +1,17 @@
+{
+  "package": "ccplotr",
+  "requirements": [
+    "CCPlotR",
+    "circlize",
+    "ggplot2",
+    "patchwork"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "CCPlotR",
+      "circlize",
+      "ggplot2",
+      "patchwork"
+    ]
+  }
+}

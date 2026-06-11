@@ -1,0 +1,14 @@
+{
+  "package": "survival",
+  "requirements": [
+    "survival"
+  ],
+  "by_workflow": {
+    "cox_proportional_hazards_regression.nf": [
+      "survival"
+    ],
+    "main.nf": [
+      "survival"
+    ]
+  }
+}

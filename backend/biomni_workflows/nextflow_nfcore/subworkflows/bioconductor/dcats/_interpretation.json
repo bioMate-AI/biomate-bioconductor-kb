@@ -1,0 +1,19 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: K=The number of cell types ;; confuse_rate=The proportion of cells from one cell type being assigned to other cell types in create_simMat ;; similarity_mat=A matrix indicating the misclassification rate between different cell types ;; base_model=Set to 'FULL' to compare the full model and a model without the tested factor (controlling for other factors) ;; fix_phi=A global over-dispersion parameter estimated using getPhi to apply to all cell types and avoid overfitting ;; reference=A vector of cell types to use as reference/normalization terms\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when comparing cell type proportions/compositions across multiple samples/conditions or continuous covariates in scRNA-seq data, especially when there are small numbers of replicates and high uncertainty in cell clustering.\n- pitfalls: Low number of replicates can cause a warning \"Possible convergence problem. Optimization process code: 10 (see ?optim)\", which does not affect final results. Fitting phi (over-dispersion) for each cell type individually might lead to over-fitting; use getPhi and fix_phi to apply a global phi instead. Using only one cell type as a reference is not recommended; it is recommended to use more than one cell type and more than 20% of total cells as the reference group. Automatic reference cell selection via detect_reference is challenging and should be performed with caution.",
+  "workflows": [
+    {
+      "name": "differential_composition_analysis",
+      "intent": "Detect differential cell type composition abundances between conditions in scRNA-seq data while correcting for cell misclassification.",
+      "input": [
+        "sim_count (matrix of cell counts per sample and cell type)",
+        "sim_design (data frame of sample covariates/conditions)",
+        "knnGraphs (Seurat KNN graph for similarity estimation)",
+        "labels (cell type labels)",
+        "svmDF (data frame of features and labels for SVM estimation)"
+      ],
+      "stages": "1. Estimate the similarity/confusion matrix using one of three methods (create_simMat, knn_simMat, or svm_simMat) ;; 2. (Optional) Estimate a global over-dispersion parameter phi using getPhi to prevent overfitting ;; 3. (Optional) Detect or define reference cell types for normalization using detect_reference ;; 4. Perform differential abundance analysis using dcats_GLM with the count matrix, design matrix, similarity matrix, and optional reference or dispersion parameters.",
+      "code": "simil_mat = create_simMat(K = 3, confuse_rate = 0.2)\n\nknn_mat = knn_simMat(simulation$knnGraphs, simulation$labels)\n\nsvm_mat = svm_simMat(Kang2017$svmDF)\n\ndcats_GLM(sim_count, sim_design, similarity_mat = simil_mat)\n\ndcats_GLM(sim_count, sim_design, similarity_mat = simil_mat, base_model='FULL')\n\nphi = DCATS::getPhi(sim_count, sim_design)\ndcats_GLM(sim_count, sim_design, similarity_mat = simil_mat, fix_phi = phi)\n\ndcats_GLM(sim_count, sim_design, similarity_mat = simil_mat, reference = c(\"A\", \"B\"))\n\nreference_cell = detect_reference(sim_count, sim_design, similarity_mat = simil_mat)\ndcats_GLM(sim_count, sim_design, similarity_mat = simil_mat, reference = reference_cell$ordered_celltype[1:2])"
+    }
+  ]
+}

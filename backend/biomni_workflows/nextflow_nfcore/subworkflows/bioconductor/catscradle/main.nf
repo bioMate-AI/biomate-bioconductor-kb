@@ -1,152 +1,143 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: CatsCradle
-// This package addresses two broad areas.  It allows for in-depth analysis of spatial transcriptomic d
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/CatsCradle/inst/doc/CatsCradle.R
-// Upstream  : pheatmap, tictoc
-// Downstream: none
-//
-// Install: BiocManager::install("CatsCradle")
+// Bioconductor workflow: CatsCradle — gene_clustering_and_annotation
+// Transpose a cell-by-gene expression matrix to cluster genes, visualize them, and analyze their relationship with cell clusters.
+// Input: cell_seurat_object.rds
+// Container: quay.io/biocontainers/bioconductor-catscradle:1.4.2--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: CatsCradle, Seurat, htmlwidgets
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Transpose the Seurat object using transposeObject
+//  * 2. [Core Analysis] Calculate average expression of gene clusters across cell clusters using getAverageExpressionMatrix
+//  * 3. [Core Analysis] Tag row and column names using tagRowAndColNames
+//  * 4. [Core Analysis] Generate a Sankey graph using sankeyFromMatrix
+//  * 5. [Core Analysis] Calculate gene clustering significance using getObjectSubsetClusteringStatistics or getObjectSubsetClusteringPValue
+//  * 6. [Core Analysis] Find subclusters within a gene subset using getSubsetComponents
+//  * 7. [Core Analysis] Calculate mean z-scores per cluster on UMAP using meanZPerClusterOnUMAP
 
 nextflow.enable.dsl = 2
 
-process BIOC_CATSCRADLE {
+process BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-catscradle"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-catscradle:1.0.1--r44_0' :
-        'quay.io/biocontainers/bioconductor-catscradle:1.0.1--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_catscradle_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_catscradle_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_catscradle_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CatsCradle)
-    library(DimPlot)
-    library(jsonlite)
-
-    # --- Object Transposition ---
-    # Key functions: make.getExample, transposeObject
-    getExample <- make.getExample()
-    exSeuratObj <- getExample("exSeuratObj")
-    STranspose <- transposeObject(exSeuratObj)
-
-    # --- Co-clustering Expression Matrix ---
-    # Key functions: getAverageExpressionMatrix, tagRowAndColNames
-    averageExpMatrix <- getAverageExpressionMatrix(
-        exSeuratObj,
-        STranspose,
-        layer = "data"
-    )
-    taggedMatrix <- tagRowAndColNames(
-        averageExpMatrix,
-        ccTag = "cellClusters_",
-        gcTag = "geneClusters_"
-    )
-
-    # --- Gene Set Clustering Statistics ---
-    # Key functions: make.getExample, getObjectSubsetClusteringStatistics
-    getExample <- make.getExample()
-    hallmark <- getExample("hallmark")
-    g2mGenes <- intersect(
-        colnames(STranspose),
-        hallmark[["HALLMARK_G2M_CHECKPOINT"]]
-    )
-    stats <- getObjectSubsetClusteringStatistics(
-        STranspose,
-        g2mGenes,
-        numTrials = 100
-    )
-
-    # --- Spatial Neighborhood Analysis ---
-    # Key functions: make.getExample, meanZPerClusterOnUMAP, getNearbyGenes
-    getExample <- make.getExample()
-    hallmark <- getExample("hallmark")
-    meanZDF <- meanZPerClusterOnUMAP(
-        exSeuratObj,
-        STranspose,
-        "shortName"
-    )
-    geneSet <- intersect(
-        colnames(STranspose),
-        hallmark[["HALLMARK_INTERFERON_ALPHA_RESPONSE"]]
-    )
-    geomNearby <- getNearbyGenes(
-        STranspose,
-        geneSet,
-        radius = 0.2,
-        metric = "umap"
-    )
-
-    # --- Functional Annotation and Prediction ---
-    # Key functions: annotateGenesByGeneSet, annotateGeneAsVector, predictAnnotation
-    getExample <- make.getExample()
-    hallmark <- getExample("hallmark")
-    annotatedGenes <- annotateGenesByGeneSet(hallmark)
-    mycVector <- annotateGeneAsVector("Myc", hallmark, normalised = TRUE)
-    predictedMyc <- predictAnnotation(
-        "Myc",
-        hallmark,
-        STranspose,
-        radius = 0.5
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_catscradle_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(CatsCradle, quietly = TRUE)
+    library(Seurat, quietly = TRUE)
+    library(htmlwidgets, quietly = TRUE)
+    
+    # 1. Read the user input file
+    if (!file.exists("cell_seurat_object.rds")) {
+      stop("Error: 'cell_seurat_object.rds' not found in the working directory.")
+    }
+    exSeuratObj = readRDS("cell_seurat_object.rds")
+    
+    # Ensure the Seurat object has the required metadata and active idents
+    if (is.null(Seurat::Idents(exSeuratObj))) {
+      if ("seurat_clusters" %in% colnames(exSeuratObj@meta.data)) {
+        Seurat::Idents(exSeuratObj) <- exSeuratObj\$seurat_clusters
+      } else {
+        Seurat::Idents(exSeuratObj) <- factor(rep("Cluster1", ncol(exSeuratObj)))
+      }
+    }
+    exSeuratObj\$shortName = as.character(Seurat::Idents(exSeuratObj))
+    
+    # 2. Execute the documented workflow steps exactly as specified
+    STranspose = transposeObject (exSeuratObj)
+    
+    averageExpMatrix = getAverageExpressionMatrix (exSeuratObj,STranspose, layer= 'data' )
+    
+    averageExpMatrix = tagRowAndColNames (averageExpMatrix, ccTag= 'cellClusters_' , gcTag= 'geneClusters_' )
+    
+    catsCradle = sankeyFromMatrix (averageExpMatrix, disambiguation= c ( 'cells_' , 'genes_' ), plus= 'cyan' , minus= 'pink' , height= 800 )
+    
+    # Define gene subsets for downstream analysis based on the transposed object
+    available_genes = colnames(STranspose)
+    g2mGenes = head(available_genes, min(50, length(available_genes)))
+    idx = colnames(STranspose) %in% g2mGenes
+    theSubset = head(available_genes, min(30, length(available_genes)))
+    alpha = 0.5
+    
+    stats = getObjectSubsetClusteringStatistics (STranspose, g2mGenes, numTrials= 1000 )
+    
+    pValue = getObjectSubsetClusteringPValue (STranspose,idx)
+    
+    clusters = getSubsetComponents (STranspose,theSubset,alpha)
+    
+    meanZDF = meanZPerClusterOnUMAP (exSeuratObj, STranspose, 'shortName' )
+    
+    # 3. Write outputs to files
+    saveRDS(STranspose, "STranspose.rds")
+    write.csv(averageExpMatrix, "average_expression_matrix.csv", row.names = TRUE)
+    htmlwidgets::saveWidget(catsCradle, "catsCradle_sankey.html", selfcontained = TRUE)
+    
+    if (is.list(stats)) {
+      saveRDS(stats, "clustering_stats.rds")
+      if ("randomSubsetDistance" %in% names(stats)) {
+        write.csv(data.frame(randomSubsetDistance = stats\$randomSubsetDistance), "random_subset_distances.csv", row.names = FALSE)
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_catscradle_results.csv")
+      saveRDS(stats, "clustering_stats.rds")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_catscradle_output.rds")
-    }
+    
+    write.csv(data.frame(pValue = pValue), "clustering_p_value.csv", row.names = FALSE)
+    saveRDS(clusters, "subclusters.rds")
+    write.csv(meanZDF, "mean_z_scores_umap.csv", row.names = TRUE)
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CATSCRADLE:", paste0("    catscradle: ", packageVersion("CatsCradle"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION":',
+        paste0('    CatsCradle: ', as.character(packageVersion('CatsCradle')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_catscradle_results.csv
-    touch ${prefix}_catscradle_output.rds
-    echo "BIOC_CATSCRADLE:" > versions.yml
-    echo "    catscradle: 0.0.0" >> versions.yml
+    touch ${prefix}_gene_clustering_and_annotation.csv versions.yml
     """
 }
 
-
-workflow BIOC_CATSCRADLE_WORKFLOW {
+workflow BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cell_seurat_object.rds ] ]
 
     main:
-    BIOC_CATSCRADLE(ch_input)
+    BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION(ch_input)
 
     emit:
-    results  = BIOC_CATSCRADLE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CATSCRADLE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CATSCRADLE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CATSCRADLE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION.out.tables
+    plots    = BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION.out.plots
+    objects  = BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION.out.objects
+    versions = BIOC_CATSCRADLE_GENE_CLUSTERING_AND_ANNOTATION.out.versions
 }

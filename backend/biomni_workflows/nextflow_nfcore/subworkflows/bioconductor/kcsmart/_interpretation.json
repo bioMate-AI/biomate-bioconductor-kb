@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: sigma=Kernel width in base pairs (e.g., 1000000 for 1Mb, 4000000 for 4Mb) where smaller values detect smaller aberrations ;; chromosomes=Vector of chromosomes to plot (e.g., c(1, 12, \"X\")) ;; type=Plot type (\"g\" for gains, \"l\" for losses, 1 for both in a single frame) ;; n=Number of permutations for finding significance levels (recommend 1000 for definitive analysis) ;; p=Significance level threshold (e.g., 0.05) ;; fdrTarget=Target False Discovery Rate for FDR-based thresholding ;; cl=Class vector of ones and zeros defining the two groups in comparative analysis ;; nperms=Number of permutations for comparative analysis ;; method=Method to determine significance in comparative analysis (\"siggenes\" or \"perm\")\n- alternatives: findSigLevelFdr=An alternative to findSigLevelTrad that calculates False Discovery Rate (FDR) instead of Bonferroni-corrected significance levels ;; method=\"siggenes\"=An alternative to method=\"perm\" in compareSpmCollection that is faster and uses less memory\n- when_to_use: Use when you want to detect recurrent copy number gains and losses across multiple aCGH samples using continuous raw log2 values, or when you want to identify genomic regions with significant copy number differences between two distinct sample groups.\n- pitfalls: missing_values=The input data must not contain any missing values; users must impute them (e.g., using the mean of neighboring probes) or discard those probes ;; signal_decay=Signal decay can occur at chromosome ends and near centromeres; mirroring locations (mirrorLocs) must be provided to prevent this ;; fdr_caution=FDR is less conservative than Bonferroni correction, so caution must be taken when using findSigLevelFdr ;; computational_time=Comparative analysis (calcSpmCollection) can take a long time for large datasets and should be run only once per dataset",
+  "workflows": [
+    {
+      "name": "recurrent_aberration_detection",
+      "intent": "Identify recurrent genomic gains and losses across a set of tumor samples using single-scale or multi-scale kernel convolution.",
+      "input": [
+        "hsSampleData (aCGH data frame or DNAcopy/CGHbase object containing 'chrom', 'maploc', and sample log2 ratio columns)",
+        "hsMirrorLocs (list containing start, centromere, and end coordinates for each chromosome)"
+      ],
+      "stages": "1. Load the aCGH data and chromosome mirror locations ;; 2. Calculate the sample point matrix (SPM) at one or more kernel widths using calcSpm ;; 3. Plot the chromosome-wide convolution results using plot ;; 4. Calculate permutation-based significance thresholds using findSigLevelTrad ;; 5. Plot the convolution results with the significance thresholds ;; 6. Extract significant genomic segments and their corresponding probes using getSigSegments ;; 7. (Optional) Visualize multi-scale analysis results using plotScaleSpace",
+      "code": "library(KCsmart)\ndata(hsSampleData)\ndata(hsMirrorLocs)\nspm1mb <- calcSpm(hsSampleData, hsMirrorLocs)\nspm4mb <- calcSpm(hsSampleData, hsMirrorLocs, sigma=4000000)\nplot(spm1mb)\nplot(spm1mb, chromosomes=c(1, 12, \"X\"), type=\"g\")\nsigLevel4mb <- findSigLevelTrad(hsSampleData, spm4mb, n=10, p=0.05)\nplot(spm4mb, sigLevels=sigLevel4mb, type=1)\nplot(spm4mb, chromosomes=c(1, 12, \"X\"), type=\"g\", sigLevels=sigLevel4mb)\nsigRegions4mb <- getSigSegments(spm4mb,sigLevel4mb)\nsigRegions4mb@gains[[1]]$probes\nsigLevel1mb <- findSigLevelTrad(hsSampleData, spm1mb, n=10)\nplotScaleSpace(list(spm1mb, spm4mb), list(sigLevel1mb, sigLevel4mb), type='g')"
+    },
+    {
+      "name": "comparative_kc_smart",
+      "intent": "Identify genomic regions with significant copy number differences between two distinct groups of samples.",
+      "input": [
+        "hsSampleData (aCGH data frame or DNAcopy/CGHbase object containing 'chrom', 'maploc', and sample log2 ratio columns)",
+        "hsMirrorLocs (list containing start, centromere, and end coordinates for each chromosome)"
+      ],
+      "stages": "1. Calculate a sample point matrix collection using calcSpmCollection with a class vector defining the groups ;; 2. Determine significance of the differences between groups using compareSpmCollection ;; 3. Extract the significantly different genomic regions using getSigRegionsCompKC ;; 4. Plot the comparative analysis results using plot",
+      "code": "library(KCsmart)\ndata(hsSampleData)\ndata(hsMirrorLocs)\nspmc1mb <- calcSpmCollection(hsSampleData, hsMirrorLocs, cl=c(rep(0,10),rep(1,10)), sigma=1000000)\nspmc1mb.sig <- compareSpmCollection(spmc1mb, nperms=3, method=c(\"siggenes\"))\nspmc1mb.sig.regions <- getSigRegionsCompKC(spmc1mb.sig)\nplot(spmc1mb.sig, sigRegions=spmc1mb.sig.regions)"
+    }
+  ]
+}

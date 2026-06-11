@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: test.specs=A data frame specifying the tests to run, containing columns 'label', 'func.name' (e.g., row.pearson, row.spearman, row.slr.shapiro, row.oneway.anova, row.kruskal.wallis, row.kgrp.shapiro), 'x' (the phenotype variable name), and 'opts' (additional options) ;; ebp.def=A data frame defining the EBP weighting scheme, containing columns 'wght' (the weight formula, e.g., \"shapiro.ebp\") and 'mthd' (the method EBPs to be weighted, e.g., \"pearson.ebp\") ;; express.set=An ExpressionSet object containing both the expression data and phenotype data\n- alternatives: Standard multiple testing procedures (e.g., standard Benjamini-Hochberg FDR or local FDR via fdrtool) that do not incorporate assumption testing or model averaging\n- when_to_use: When performing high-dimensional hypothesis testing (e.g., microarray or transcriptomic gene expression data) where statistical assumptions (like normality) may be violated for some features but met for others, and you want to dynamically weight parametric and non-parametric test results\n- pitfalls: For regression analysis, the procedure requires complete data, meaning preprocessing is needed to handle any missing data before running the tests. Users must also clearly specify the different groups to compare in k-group comparisons.",
+  "workflows": [
+    {
+      "name": "regression_analysis",
+      "intent": "Perform hybrid correlation testing using Pearson and Spearman tests weighted by Shapiro-Wilk normality test EBPs.",
+      "input": [
+        "correlation.data (ExpressionSet containing gene expression data and a continuous phenotype covariate 'x')"
+      ],
+      "stages": "1. Load the package and the correlation dataset ;; 2. Extract expression and phenotype data for inspection ;; 3. Define the test specifications mapping to row-wise test functions ;; 4. Define the EBP weighting rules using the Shapiro-Wilk EBP ;; 5. Run the hybrid test using hybrid.test and view results",
+      "code": "library(HybridMTest) \ndata(correlation.data)\nY<-exprs(correlation.data)\nx<-pData(correlation.data)\n\ntest.specs<-cbind.data.frame(label=c(\"pearson\",\"spearman\",\"shapiro\"),\n                             func.name=c(\"row.pearson\",\"row.spearman\",\"row.slr.shapiro\"),\n                             x=rep(\"x\",3),\n                             opts=rep(\"\",3))\n\nebp.def<-cbind.data.frame(wght=c(\"shapiro.ebp\",\"(1-shapiro.ebp)\"),\n                          mthd=c(\"pearson.ebp\",\"spearman.ebp\"))\ncorr.res<-hybrid.test(correlation.data,test.specs,ebp.def)\nhead(corr.res)"
+    },
+    {
+      "name": "k_group_comparison",
+      "intent": "Perform hybrid multi-group comparison using ANOVA and Kruskal-Wallis tests weighted by Shapiro-Wilk normality test EBPs.",
+      "input": [
+        "GroupComp.data (ExpressionSet containing gene expression data and a categorical group phenotype covariate 'grp')"
+      ],
+      "stages": "1. Load the package and the group comparison dataset ;; 2. Extract expression and phenotype data for inspection ;; 3. Define the test specifications mapping to row-wise test functions ;; 4. Define the EBP weighting rules using the Shapiro-Wilk EBP ;; 5. Run the hybrid test using hybrid.test and view results",
+      "code": "library(HybridMTest) \ndata(GroupComp.data)\nbrain.express.set <- exprs(GroupComp.data)\nbrain.pheno.data  <- pData(GroupComp.data)\n brain.express.set[1:5, 1:8]\n  head(brain.pheno.data) \n\ntest.specs<-cbind.data.frame(label=c(\"anova\",\"kw\",\"shapiro\"),\n                             func.name=c(\"row.oneway.anova\",\"row.kruskal.wallis\",\"row.kgrp.shapiro\"),\n                             x=rep(\"grp\",3),\n                             opts=rep(\"\",3))\n\nebp.def<-cbind.data.frame(wght=c(\"shapiro.ebp\",\"(1-shapiro.ebp)\"),\n                          mthd=c(\"anova.ebp\",\"kw.ebp\"))\n\nKgrp.res<-hybrid.test(GroupComp.data,test.specs,ebp.def)\n\nhead(Kgrp.res)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "package": "pathifier",
+  "requirements": [
+    "pathifier"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "pathifier"
+    ]
+  }
+}

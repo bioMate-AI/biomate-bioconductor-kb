@@ -1,97 +1,185 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: rnaseqcomp
-// Several quantitative and visualized benchmarks for RNA-seq quantification pipelines. Two-condition q
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/rnaseqcomp/inst/doc/rnaseqcomp.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("rnaseqcomp")
+// Bioconductor workflow: rnaseqcomp — benchmark_quantification_pipelines
+// Compare and benchmark multiple RNA-seq quantification pipelines on specificity and sensitivity metrics using a two-condition dataset.
+// Input: simdata$quant, simdata$samp, simdata$meta
+// Container: quay.io/biocontainers/bioconductor-rnaseqcomp:1.40.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: rnaseqcomp
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Prepare condition and replicate factors, and logical vectors for evaluation and calibration features. 2. Calibrate quantification 
 
 nextflow.enable.dsl = 2
 
-process BIOC_RNASEQCOMP {
+process BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-rnaseqcomp"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-rnaseqcomp:1.36.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-rnaseqcomp:1.36.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_rnaseqcomp_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_rnaseqcomp_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_rnaseqcomp_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required library
     library(rnaseqcomp)
-    library(jsonlite)
-
-    # --- Quality Control and Dispersion Plotting [] ---
-    # Key functions: plotSD, plotNE, plot2TX
-    plotSD(dat, ylim = c(0, 1.4))
-    plotNE(dat, xlim = c(0.5, 1))
-    plot2TX(dat, genes = simdata$meta$gene, ylim = c(0, 0.6))
-
-
-    # --- Differential Expression Evaluation [] ---
-    # Key functions: plotROC, plotFC
-    simdata$meta$fcsign[simdata$meta$fcstatus == "off.on"] <- NA
-    plotROC(dat, simdata$meta$positive, simdata$meta$fcsign, ylim = c(0, 0.8))
-    plotFC(dat, simdata$meta$positive, simdata$meta$fcsign, ylim = c(0, 1.2))
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_rnaseqcomp_results.csv", row.names = TRUE)
+    
+    # ==========================================
+    # 1. Read User Input Files
+    # ==========================================
+    
+    simdata <- list()
+    
+    # Read quantification list
+    if (file.exists("simdata_quant.rds")) {
+      simdata\$quant <- readRDS("simdata_quant.rds")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_rnaseqcomp_results.csv")
+      stop("Error: Required input file 'simdata_quant.rds' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_rnaseqcomp_output.rds")
+    
+    # Read sample metadata
+    if (file.exists("simdata_samp.rds")) {
+      simdata\$samp <- readRDS("simdata_samp.rds")
+    } else if (file.exists("simdata_samp.csv")) {
+      simdata\$samp <- read.csv("simdata_samp.csv", stringsAsFactors = FALSE)
+    } else {
+      stop("Error: Required input file 'simdata_samp.rds' or 'simdata_samp.csv' not found.")
+    }
+    
+    # Read feature metadata
+    if (file.exists("simdata_meta.rds")) {
+      simdata\$meta <- readRDS("simdata_meta.rds")
+    } else if (file.exists("simdata_meta.csv")) {
+      simdata\$meta <- read.csv("simdata_meta.csv", stringsAsFactors = FALSE)
+    } else {
+      stop("Error: Required input file 'simdata_meta.rds' or 'simdata_meta.csv' not found.")
+    }
+    
+    # ==========================================
+    # 2. Prepare Factors and Logical Vectors
+    # ==========================================
+    
+    condInfo <- factor(simdata\$samp\$condition)
+    repInfo <- factor(simdata\$samp\$replicate)
+    evaluationFeature <- rep(TRUE, nrow(simdata\$meta))
+    calibrationFeature <- simdata\$meta\$house & simdata\$meta\$chr == 'chr1'
+    unitReference <- 1
+    
+    # ==========================================
+    # 3. Calibrate Quantification Signals
+    # ==========================================
+    
+    dat <- signalCalibrate(simdata\$quant, condInfo, repInfo, evaluationFeature,
+         calibrationFeature, unitReference, 
+         calibrationFeature2 = calibrationFeature)
+    
+    # Save calibrated S4 object
+    saveRDS(dat, "calibrated_data.rds")
+    
+    # ==========================================
+    # 4. Evaluate and Plot Specificity & Sensitivity
+    # ==========================================
+    
+    # Open PDF device to save all benchmark plots
+    pdf("rnaseqcomp_benchmark_plots.pdf", width = 8, height = 10)
+    par(mfrow = c(3, 2))
+    
+    # 4.1 Specificity on expressed features
+    sd_metrics <- plotSD(dat, ylim = c(0, 1.4))
+    
+    # 4.2 Specificity on non-expressed features
+    ne_metrics <- plotNE(dat, xlim = c(0.5, 1))
+    
+    # 4.3 Specificity for genes with only two annotated transcripts
+    tx2_metrics <- plot2TX(dat, genes = simdata\$meta\$gene, ylim = c(0, 0.6))
+    
+    # 4.4 Sensitivity in differential analysis (ROC)
+    roc_metrics <- plotROC(dat, simdata\$meta\$positive, simdata\$meta\$fcsign, ylim = c(0, 0.8))
+    
+    # 4.5 Sensitivity via estimated fold change distributions (filtering out "off.on" transcripts)
+    simdata\$meta\$fcsign[simdata\$meta\$fcstatus == "off.on"] <- NA
+    fc_metrics <- plotFC(dat, simdata\$meta\$positive, simdata\$meta\$fcsign, ylim = c(0, 1.2))
+    
+    # Close PDF device
+    dev.off()
+    
+    # ==========================================
+    # 5. Export Numerical Metrics to CSV
+    # ==========================================
+    
+    if (!is.null(sd_metrics)) {
+      write.csv(sd_metrics\$med, "sd_median_metrics.csv", row.names = TRUE)
+      write.csv(sd_metrics\$se, "sd_se_metrics.csv", row.names = TRUE)
+    }
+    
+    if (!is.null(ne_metrics)) {
+      write.csv(ne_metrics\$NE, "ne_proportions.csv", row.names = TRUE)
+      write.csv(ne_metrics\$NN, "nn_proportions.csv", row.names = TRUE)
+    }
+    
+    if (!is.null(tx2_metrics)) {
+      write.csv(tx2_metrics\$mean, "tx2_mean_metrics.csv", row.names = TRUE)
+      write.csv(tx2_metrics\$se, "tx2_se_metrics.csv", row.names = TRUE)
+    }
+    
+    if (!is.null(roc_metrics)) {
+      write.csv(as.data.frame(t(roc_metrics)), "roc_pauc_metrics.csv", row.names = TRUE)
+    }
+    
+    if (!is.null(fc_metrics)) {
+      write.csv(fc_metrics\$med, "fc_median_metrics.csv", row.names = TRUE)
+      write.csv(fc_metrics\$se, "fc_se_metrics.csv", row.names = TRUE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_RNASEQCOMP:", paste0("    rnaseqcomp: ", packageVersion("rnaseqcomp"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES":',
+        paste0('    rnaseqcomp: ', as.character(packageVersion('rnaseqcomp')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_rnaseqcomp_results.csv
-    touch ${prefix}_rnaseqcomp_output.rds
-    echo "BIOC_RNASEQCOMP:" > versions.yml
-    echo "    rnaseqcomp: 0.0.0" >> versions.yml
+    touch ${prefix}_benchmark_quantification_pipelines.csv versions.yml
     """
 }
 
-
-workflow BIOC_RNASEQCOMP_WORKFLOW {
+workflow BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ simdata$quant, simdata$samp, simdata$meta ] ]
 
     main:
-    BIOC_RNASEQCOMP(ch_input)
+    BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES(ch_input)
 
     emit:
-    results  = BIOC_RNASEQCOMP.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_RNASEQCOMP.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_RNASEQCOMP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_RNASEQCOMP.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES.out.tables
+    plots    = BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES.out.plots
+    objects  = BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES.out.objects
+    versions = BIOC_RNASEQCOMP_BENCHMARK_QUANTIFICATION_PIPELINES.out.versions
 }

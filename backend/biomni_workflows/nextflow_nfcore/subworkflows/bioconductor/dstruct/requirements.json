@@ -1,0 +1,18 @@
+{
+  "package": "dstruct",
+  "requirements": [
+    "IRanges",
+    "S4Vectors",
+    "dStruct"
+  ],
+  "by_workflow": {
+    "dstruct_guided.nf": [
+      "dStruct"
+    ],
+    "main.nf": [
+      "IRanges",
+      "S4Vectors",
+      "dStruct"
+    ]
+  }
+}

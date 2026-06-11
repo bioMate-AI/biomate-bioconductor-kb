@@ -1,0 +1,13 @@
+{
+  "package": "target",
+  "requirements": [
+    "GenomicRanges",
+    "target"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GenomicRanges",
+      "target"
+    ]
+  }
+}

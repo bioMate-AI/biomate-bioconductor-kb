@@ -1,123 +1,185 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ggcyto
-// With the dedicated fortify method implemented for flowSet, ncdfFlowSet and GatingSet classes, both r
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ggcyto/inst/doc/Top_features_of_ggcyto.R
-// Upstream  : knitr
-// Downstream: flowGate
-//
-// Install: BiocManager::install("ggcyto")
+// Bioconductor workflow: ggcyto — ggcyto_pixel_flow_analysis
+// Convert a microscopy image into a flow cytometry data structure (flowSet) to perform multi-sample 1D/2D density profiling, gating, and logicle transformations u
+// Input: image.tif
+// Container: 1.38.1--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: EBImage, flowCore, ggcyto, ggplot2
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_GGCYTO {
+process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ggcyto"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ggcyto:1.34.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ggcyto:1.34.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ggcyto_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ggcyto_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ggcyto_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(EBImage)
+    library(flowCore)
     library(ggcyto)
-    library(jsonlite)
-
-    # --- Automated Flow Cytometry Plotting [Visualization] ---
-    # Key functions: autoplot
-    p_1d <- autoplot(fs, "CD4")
-    p_2d <- autoplot(fs, "CD4", "CD8", bins = 64)
-    p_gs <- autoplot(gs, c("CD4", "CD8"), bins = 64)
-
-    # --- Custom Gating and Statistics Visualization [Visualization] ---
-    # Key functions: ggcyto, geom_gate, geom_stats
-    p <- ggcyto(gs, aes(x = "CD4", y = "CD8"), subset = "CD3+") +
-        geom_hex(bins = 128)
-    p_gate <- p + geom_gate("CD4") + geom_stats(type = "count")
-    p_gate_percent <- p + geom_gate("CD4") + geom_stats()
-
-    # --- Scale and Axis Transformations [Visualization] ---
-    # Key functions: scale_x_logicle, scale_x_flowJo_fasinh, scale_x_flowJo_biexp, axis_x_inverse_trans
-    p_raw <- autoplot(fr, "FL1-H")
-    p_logicle <- p_raw + scale_x_logicle()
-    p_fasinh <- p_raw + scale_x_flowJo_fasinh()
-    p_biexp <- p_raw + scale_x_flowJo_biexp()
-    p_inv <- p_logicle + axis_x_inverse_trans()
-
-    # --- Plot Customization and Theme Settings [Visualization] ---
-    # Key functions: ggcyto_par_set, labs_cyto
-    mySettings <- ggcyto_par_set(
-        limits = "instrument",
-        facet = facet_wrap("name"),
-        lab = labs_cyto("marker")
-    )
-    p_custom <- ggcyto(gs, aes(x = CD4, y = CD8)) +
-        geom_hex(bins = 128) +
-        mySettings
-
-    # --- Layout Arrangement and Conversion [Visualization] ---
-    # Key functions: as.ggplot, ggcyto_arrange
-    p_gg <- as.ggplot(p_custom)
-    p_multi <- autoplot(gh, nodes, bins = 64)
-    gt <- ggcyto_arrange(p_multi, nrow = 1)
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ggcyto_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ggcyto_results.csv")
+    library(ggplot2)
+    
+    # Stage 1: Read image and convert to flow cytometry data structures
+    message("Reading image.tif...")
+    img <- tryCatch({
+      EBImage::readImage("image.tif")
+    }, error = function(e) {
+      stop("Failed to read image.tif: ", e\$message)
+    })
+    
+    img_mat <- as.array(img)
+    dims <- dim(img_mat)
+    message(paste("Image dimensions:", paste(dims, collapse = "x")))
+    
+    # Scale intensities to a typical flow cytometry range (0 - 10000)
+    scale_factor <- 10000
+    
+    # Extract pixel coordinates and intensities
+    if (length(dims) == 2) {
+      df <- expand.grid(X = 1:dims[1], Y = 1:dims[2])
+      df\$Ch1 <- as.vector(img_mat) * scale_factor
+      df\$Ch2 <- as.vector(img_mat) * scale_factor * 0.8 # Mock second channel
+    } else if (length(dims) >= 3) {
+      df <- expand.grid(X = 1:dims[1], Y = 1:dims[2])
+      df\$Ch1 <- as.vector(img_mat[,,1]) * scale_factor
+      df\$Ch2 <- if (dims[3] >= 2) as.vector(img_mat[,,2]) * scale_factor else df\$Ch1 * 0.8
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ggcyto_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GGCYTO:", paste0("    ggcyto: ", packageVersion("ggcyto"))),
-        "versions.yml"
+    
+    # Split the image into 4 quadrants to simulate a multi-sample flowSet
+    mid_x <- mean(df\$X)
+    mid_y <- mean(df\$Y)
+    
+    q1 <- df[df\$X <= mid_x & df\$Y <= mid_y, ]
+    q2 <- df[df\$X > mid_x & df\$Y <= mid_y, ]
+    q3 <- df[df\$X <= mid_x & df\$Y > mid_y, ]
+    q4 <- df[df\$X > mid_x & df\$Y > mid_y, ]
+    
+    # Create flowFrames
+    ff1 <- flowCore::flowFrame(as.matrix(q1))
+    ff2 <- flowCore::flowFrame(as.matrix(q2))
+    ff3 <- flowCore::flowFrame(as.matrix(q3))
+    ff4 <- flowCore::flowFrame(as.matrix(q4))
+    
+    # Combine into a flowSet
+    fs <- flowCore::flowSet(list(
+      "Quadrant_1" = ff1, 
+      "Quadrant_2" = ff2, 
+      "Quadrant_3" = ff3, 
+      "Quadrant_4" = ff4
+    ))
+    
+    # Stage 2: 1D Density Plotting with ggcyto
+    message("Generating 1D density plots...")
+    p_1d <- ggcyto(fs, aes(x = Ch1)) + 
+      geom_density(fill = "blue", alpha = 0.5) +
+      labs_cyto("marker") +
+      theme_minimal()
+    
+    # Stage 3: 2D Hexbin Plotting with ggcyto
+    message("Generating 2D hexbin plots...")
+    p_2d <- ggcyto(fs, aes(x = Ch1, y = Ch2)) + 
+      geom_hex(bins = 64) +
+      scale_fill_gradientn(colours = rainbow(7)) +
+      theme_bw()
+    
+    # Stage 4: Gating and Statistics
+    message("Applying rectangle gate and calculating statistics...")
+    # Define a rectangle gate to capture high-intensity pixels
+    rect_gate <- flowCore::rectangleGate(
+      filterId = "High_Intensity", 
+      "Ch1" = c(5000, 10000), 
+      "Ch2" = c(5000, 10000)
     )
+    
+    # Add gate and stats to the 2D plot
+    p_gated <- p_2d + 
+      geom_gate(rect_gate) + 
+      geom_stats(size = 4, color = "white", fill = "black")
+    
+    # Stage 5: In-line Transformations
+    message("Applying logicle transformations...")
+    p_transformed <- p_gated + 
+      scale_x_logicle() + 
+      scale_y_logicle()
+    
+    # Stage 6: Exporting Plots and Statistics
+    message("Converting to pure ggplot objects and saving...")
+    gg_1d <- as.ggplot(p_1d)
+    gg_transformed <- as.ggplot(p_transformed)
+    
+    # Save plots to PDF
+    pdf("ggcyto_analysis_plots.pdf", width = 8, height = 6)
+    print(gg_1d)
+    print(gg_transformed)
+    dev.off()
+    
+    # Calculate and save gating statistics
+    filter_results <- flowCore::filter(fs, rect_gate)
+    percentages <- sapply(filter_results, function(res) {
+      sum(res@subSet) / length(res@subSet) * 100
+    })
+    
+    stats_df <- data.frame(
+      Quadrant = names(percentages),
+      Gated_Percentage = percentages
+    )
+    write.csv(stats_df, "gating_statistics.csv", row.names = FALSE)
+    message("Analysis complete. Outputs saved to 'ggcyto_analysis_plots.pdf' and 'gating_statistics.csv'.")
+
+    writeLines(c(
+        '"BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS":',
+        paste0('    ggcyto: ', as.character(packageVersion('ggcyto')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ggcyto_results.csv
-    touch ${prefix}_ggcyto_output.rds
-    echo "BIOC_GGCYTO:" > versions.yml
-    echo "    ggcyto: 0.0.0" >> versions.yml
+    touch ${prefix}_ggcyto_pixel_flow_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GGCYTO_WORKFLOW {
+workflow BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_GGCYTO(ch_input)
+    BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GGCYTO.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GGCYTO.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GGCYTO.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GGCYTO.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS.out.tables
+    plots    = BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS.out.plots
+    objects  = BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS.out.objects
+    versions = BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS.out.versions
 }

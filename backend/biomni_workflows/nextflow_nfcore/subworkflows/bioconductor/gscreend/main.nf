@@ -1,109 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: gscreend
-// Package for the analysis of pooled genetic screens (e.g. CRISPR-KO). The analysis of such screens is
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/gscreend/inst/doc/gscreend_simulated_data.R
-// Upstream  : SummarizedExperiment
-// Downstream: none
-//
-// Install: BiocManager::install("gscreend")
+// Bioconductor workflow: gscreend — pooled_screen_analysis
+// Identify essential genes from pooled CRISPR screen raw count data by comparing gRNA abundances before and after selection.
+// Input: raw_counts.txt
+// Container: quay.io/biocontainers/bioconductor-gscreend:1.24.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, gscreend
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load raw count data and construct a SummarizedExperiment object with correct row and column metadata
+//  * 2. [Input & Preparation] Create a PoolScreenExp object using createPoolScreenExp()
+//  * 3. [Core Analysis] Run the main analysis pipeline using RunGscreend()
+//  * 4. [Visualization & Output] Perform quality control using plotReplicateCorrelation() and plotModelParameters()
+//  * 5. [Core Analysis] Extract gene-level results using ResultsTable()
 
 nextflow.enable.dsl = 2
 
-process BIOC_GSCREEND {
+process BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gscreend"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gscreend:1.20.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gscreend:1.20.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gscreend_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gscreend_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gscreend_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ResultsTable)
-    library(RunGscreend)
-    library(jsonlite)
-
-    # --- Table [] ---
-    # Key functions: file
-    ---------------------------------------------------------------------
-    raw_counts <- read.table(
-        system.file("extdata", "simulated_counts.txt", package = "gscreend"),
-        header=TRUE)
-    # --- Createpoolscreenexp [] ---
-    # Key functions: createPoolScreenExp
-    ---------------------------------------------------------------------
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(gscreend)
+    
+    # 1. Load raw count data from the user-specified file
+    # The file is expected to be a tab-separated text file in the working directory
+    raw_counts <- read.table("raw_counts.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Construct the counts matrix using the expected columns
+    # Assuming column 1 is gRNA ID, column 2 is Gene, column 3 is library (T0), and columns 4+ are replicates (T1)
+    counts_matrix <- as.matrix(raw_counts[, 3:ncol(raw_counts), drop = FALSE])
+    
+    # Construct row metadata (rowData)
+    rowData <- data.frame(sgRNA_id = raw_counts[, 1],
+                          gene = raw_counts[, 2])
+    
+    # Construct column metadata (colData)
+    # T0 represents reference/library, T1 represents after proliferation
+    colData <- data.frame(samplename = colnames(counts_matrix),
+                          timepoint = c("T0", rep("T1", ncol(counts_matrix) - 1)))
+    
+    # Create the SummarizedExperiment object
+    se <- SummarizedExperiment(assays = list(counts = counts_matrix),
+                               rowData = rowData, 
+                               colData = colData)
+    
+    # 2. Create a PoolScreenExp object
     pse <- createPoolScreenExp(se)
-    # --- Rungscreend [] ---
-    # Key functions: RunGscreend
-    ---------------------------------------------------------------------
+    
+    # 3. Run the main analysis pipeline
     pse_an <- RunGscreend(pse)
-    # --- Plotmodelparameters [] ---
-    # Key functions: plotModelParameters
-    ---------------------------------------------------------------------
-    plotModelParameters(pse_an)
-    # --- Resultstable [] ---
-    # Key functions: ResultsTable
-    ---------------------------------------------------------------------
+    
+    # 4. Perform quality control and save plots to PDF
+    pdf("replicate_correlation.pdf", width = 6, height = 6)
+    tryCatch({
+        plotReplicateCorrelation(pse_an)
+    }, error = function(e) {
+        warning("Could not plot replicate correlation: ", e\$message)
+    })
+    dev.off()
+    
+    pdf("model_parameters.pdf", width = 6, height = 6)
+    tryCatch({
+        plotModelParameters(pse_an)
+    }, error = function(e) {
+        warning("Could not plot model parameters: ", e\$message)
+    })
+    dev.off()
+    
+    # 5. Extract gene-level results for negative selection (essential genes)
     res <- ResultsTable(pse_an, direction = "negative")
-    head(res)
+    
+    # Write results to a CSV file
+    write.csv(res, "essential_genes_results.csv", row.names = FALSE)
+    
+    # Save the analyzed PoolScreenExp object for downstream use
+    saveRDS(pse_an, "gscreend_analysis_results.rds")
 
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gscreend_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gscreend_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gscreend_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GSCREEND:", paste0("    gscreend: ", packageVersion("gscreend"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS":',
+        paste0('    gscreend: ', as.character(packageVersion('gscreend')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gscreend_results.csv
-    touch ${prefix}_gscreend_output.rds
-    echo "BIOC_GSCREEND:" > versions.yml
-    echo "    gscreend: 0.0.0" >> versions.yml
+    touch ${prefix}_pooled_screen_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_GSCREEND_WORKFLOW {
+workflow BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ raw_counts.txt ] ]
 
     main:
-    BIOC_GSCREEND(ch_input)
+    BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_GSCREEND.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GSCREEND.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GSCREEND.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GSCREEND.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS.out.tables
+    plots    = BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS.out.plots
+    objects  = BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS.out.objects
+    versions = BIOC_GSCREEND_POOLED_SCREEN_ANALYSIS.out.versions
 }

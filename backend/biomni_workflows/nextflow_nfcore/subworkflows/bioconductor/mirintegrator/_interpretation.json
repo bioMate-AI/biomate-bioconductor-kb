@@ -1,0 +1,27 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: kegg_pathways=A list of pathway graphs (graphNEL objects) to be augmented ;; mirTarBase=A data frame of miRNA-target interactions containing \"miRNA\" and \"Target.ID\" columns ;; sizeT=An integer parameter in plot_change to adjust text/label size ;; nboot=Number of bootstrap iterations in ROntoTools::pe; should be >= 2000 for real-world analysis\n- alternatives: TargetScan is mentioned as an alternative miRNA-target interaction database to mirTarBase, and Reactome is mentioned as an alternative pathway database to KEGG. ROntoTools is recommended for downstream pathway analysis because it accounts for pathway topology.\n- when_to_use: Use when you have matched or related miRNA and mRNA expression datasets (e.g., from disease vs. control) and want to perform pathway analysis that incorporates both types of molecules and their regulatory interactions.\n- pitfalls: The identifier type (e.g., Entrez ID) used in the \"Target.ID\" column of the miRNA-target database must match the node identifiers in the pathway graphs exactly. For real-world pathway analysis using ROntoTools::pe, the bootstrap parameter nboot must be set to at least 2000 (the vignette uses 200 only for speed).",
+  "workflows": [
+    {
+      "name": "augment_and_visualize_pathways",
+      "intent": "Integrate miRNA-target interactions into signaling pathways and visualize the augmented pathways.",
+      "input": [
+        "kegg_pathways (list of graphNEL objects representing signaling pathways)",
+        "mirTarBase (data.frame of miRNA-target interactions with columns \"miRNA\" and \"Target.ID\")"
+      ],
+      "stages": "1. Load pathway and miRNA-target data ;; 2. Integrate miRNAs into pathways using integrate_mir ;; 3. Plot a single augmented pathway using plot_augmented_pathway ;; 4. Plot overall pathway changes using plot_change ;; 5. Export augmented pathways to PDF using pathways2pdf.",
+      "code": "require(\"mirIntegrator\")\n data(kegg_pathways)\n data(mirTarBase)\n kegg_pathways <- kegg_pathways[18:20] #delete this for augmenting all pathways.\n augmented_pathways <- integrate_mir(kegg_pathways, mirTarBase)\n head(augmented_pathways)\n augmented_pathways$\"path:hsa04122\"\n data(names_pathways)\nplot_augmented_pathway(kegg_pathways$\"path:hsa04122\", \n                       augmented_pathways$\"path:hsa04122\",\n                       names_pathways[\"path:hsa04122\"] )\n  plot_change(kegg_pathways,augmented_pathways, names_pathways)\n  plot_change(kegg_pathways,augmented_pathways, names_pathways, sizeT = 10)\n  pathways2pdf(kegg_pathways[18:20],augmented_pathways[18:20],\n               names_pathways[18:20], \"three_pathways.pdf\")"
+    },
+    {
+      "name": "joint_mirna_mrna_pathway_analysis",
+      "intent": "Perform topological pathway analysis using both miRNA and mRNA expression data on augmented pathways.",
+      "input": [
+        "GSE43592_mRNA (mRNA expression data.frame with logFC and entrez columns)",
+        "GSE43592_miRNA (miRNA expression data.frame with logFC and entrez columns)",
+        "augmented_pathways (list of augmented graphNEL objects)"
+      ],
+      "stages": "1. Extract log fold changes and map to Entrez IDs for both mRNA and miRNA ;; 2. Combine fold changes and run pathway analysis using ROntoTools::pe ;; 3. Summarize and rank pathways by significance.",
+      "code": "require(graph)\n  require(ROntoTools)\n  data(GSE43592_mRNA)\n  data(GSE43592_miRNA)\n  data(augmented_pathways)\n  data(names_pathways)\n  lfoldChangeMRNA <- GSE43592_mRNA$logFC\n  names(lfoldChangeMRNA) <- GSE43592_mRNA$entrez\n  \n  lfoldChangeMiRNA <- GSE43592_miRNA$logFC\n  names(lfoldChangeMiRNA) <- GSE43592_miRNA$entrez\n  \n  keggGenes <- unique(unlist( lapply(augmented_pathways,nodes) ) )\n  interGMi <- intersect(keggGenes, GSE43592_miRNA$entrez)\n  interGM <- intersect(keggGenes, GSE43592_mRNA$entrez)\n  ## For real-world analysis, nboot should be >= 2000\n  peRes <- pe(x= c(lfoldChangeMRNA, lfoldChangeMiRNA ),\n              graphs=augmented_pathways, nboot = 200, verbose = FALSE)\n  message(paste(\"There are \", length(unique(GSE43592_miRNA$entrez)),\n                \"miRNAs memeasured and\",length(interGMi), \n                \"of them were included in the analysis.\"))\n  message(paste(\"There are \", length(unique(GSE43592_mRNA$entrez)),\n                \"mRNAs memeasured and\", length(interGM),\n                \"of them were included in the analysis.\"))\n  \n  summ <- Summary(peRes)\n  rankList <- data.frame(summ,path.id = row.names(summ))\n  tableKnames <- data.frame(path.id = names(names_pathways),names_pathways)\n  rankList <- merge(tableKnames, rankList, by.x = \"path.id\", by.y = \"path.id\")\n  rankList <- rankList[with(rankList, order(pAcc.fdr)), ] \n  head(rankList)"
+    }
+  ]
+}

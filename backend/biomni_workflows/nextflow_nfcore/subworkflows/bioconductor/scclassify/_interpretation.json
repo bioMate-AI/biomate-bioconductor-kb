@@ -1,0 +1,37 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: exprsMat_train=Log-transformed, size-factor normalized matrix of the reference dataset where rows are genes and columns are cells ;; cellTypes_train=Vector of cell type annotations for the training dataset ;; exprsMat_test=Log-transformed, size-factor normalized matrix or list of matrices for the query dataset(s) ;; cellTypes_test=Optional vector or list of vectors of cell type annotations for the query dataset(s) to calculate accuracy (set to NULL if unknown) ;; tree=Method to construct the cell type hierarchy (e.g., \"HOPACH\") ;; algorithm=Classification algorithm to use (e.g., \"WKNN\") ;; selectFeatures/features=Gene selection method(s) (e.g., \"limma\", \"BI\") ;; similarity=Similarity calculation metrics (e.g., \"pearson\", \"spearman\", \"cosine\") ;; weighted_ensemble=Logical indicating whether to weight base classifiers by their training accuracy (default is TRUE) ;; prob_threshold=Probability threshold for cell type assignment (default is 0.7) ;; returnList=Logical indicating whether to return results as a list\n- alternatives: None mentioned in the documentation.\n- when_to_use: Use when you have a well-annotated reference single-cell RNA-seq dataset and want to classify cell types in a query single-cell RNA-seq dataset, leveraging ensemble learning and hierarchical relationships.\n- pitfalls: Input matrices must be log-transformed and size-factor normalized. If cellTypes_test is unknown, it must be set to NULL to avoid errors.",
+  "workflows": [
+    {
+      "name": "joint_scclassify",
+      "intent": "Perform joint training and cell type prediction on a query dataset using a reference dataset in a single step.",
+      "input": [
+        "reference_expression.csv (log-normalized expression matrix of reference cells)",
+        "reference_labels.csv (cell type annotations for reference cells)",
+        "query_expression.csv (log-normalized expression matrix of query cells)"
+      ],
+      "stages": "1. Load and format reference and query expression matrices as sparse matrices (dgCMatrix) ;; 2. Run joint classification using scClassify() ;; 3. Inspect the trained cell type tree and prediction results.",
+      "code": "library(\"scClassify\")\ndata(\"scClassify_example\")\nxin_cellTypes <- scClassify_example$xin_cellTypes\nexprsMat_xin_subset <- scClassify_example$exprsMat_xin_subset\nwang_cellTypes <- scClassify_example$wang_cellTypes\nexprsMat_wang_subset <- scClassify_example$exprsMat_wang_subset\nexprsMat_xin_subset <- as(exprsMat_xin_subset, \"dgCMatrix\")\nexprsMat_wang_subset <- as(exprsMat_wang_subset, \"dgCMatrix\")\nscClassify_res <- scClassify(exprsMat_train = exprsMat_xin_subset,\n                             cellTypes_train = xin_cellTypes,\n                             exprsMat_test = list(wang = exprsMat_wang_subset),\n                             cellTypes_test = list(wang = wang_cellTypes),\n                             tree = \"HOPACH\",\n                             algorithm = \"WKNN\",\n                             selectFeatures = c(\"limma\"),\n                             similarity = c(\"pearson\"),\n                             returnList = FALSE,\n                             verbose = FALSE)\nscClassify_res$trainRes\nplotCellTypeTree(cellTypeTree(scClassify_res$trainRes))\ntable(scClassify_res$testRes$wang$pearson_WKNN_limma$predRes, wang_cellTypes)"
+    },
+    {
+      "name": "predict_pretrained",
+      "intent": "Predict cell types in a query dataset using an existing pretrained scClassify model.",
+      "input": [
+        "pretrained_model.RData (a saved scClassifyTrainModel object)",
+        "query_expression.csv (log-normalized expression matrix of query cells)"
+      ],
+      "stages": "1. Load the pretrained model and query expression matrix ;; 2. Format the query matrix as a sparse matrix (dgCMatrix) ;; 3. Run prediction using predict_scClassify() ;; 4. Inspect prediction results.",
+      "code": "library(scClassify)\ndata(\"scClassify_example\")\nwang_cellTypes <- scClassify_example$wang_cellTypes\nexprsMat_wang_subset <- scClassify_example$exprsMat_wang_subset\nexprsMat_wang_subset <- as(exprsMat_wang_subset, \"dgCMatrix\")\ndata(\"trainClassExample_xin\")\nfeatures(trainClassExample_xin)\nplotCellTypeTree(cellTypeTree(trainClassExample_xin))\npred_res <- predict_scClassify(exprsMat_test = exprsMat_wang_subset,\n                               trainRes = trainClassExample_xin,\n                               cellTypes_test = wang_cellTypes,\n                               algorithm = \"WKNN\",\n                               features = c(\"limma\"),\n                               similarity = c(\"pearson\", \"spearman\"),\n                               prob_threshold = 0.7,\n                               verbose = TRUE)\ntable(pred_res$pearson_WKNN_limma$predRes, wang_cellTypes)"
+    },
+    {
+      "name": "train_custom_model",
+      "intent": "Train and save a custom scClassifyTrainModel on a reference dataset for future predictions.",
+      "input": [
+        "reference_expression.csv (log-normalized expression matrix of reference cells)",
+        "reference_labels.csv (cell type annotations for reference cells)"
+      ],
+      "stages": "1. Load and format reference expression matrix as a sparse matrix (dgCMatrix) ;; 2. Train the model using train_scClassify() with selected feature selection methods.",
+      "code": "library(\"scClassify\")\ndata(\"scClassify_example\")\nxin_cellTypes <- scClassify_example$xin_cellTypes\nexprsMat_xin_subset <- scClassify_example$exprsMat_xin_subset\nexprsMat_xin_subset <- as(exprsMat_xin_subset, \"dgCMatrix\")\ntrainClass <- train_scClassify(exprsMat_train = exprsMat_xin_subset,\n                               cellTypes_train = xin_cellTypes,\n                               selectFeatures = c(\"limma\", \"BI\"),\n                               returnList = FALSE\n)\ntrainClass"
+    }
+  ]
+}

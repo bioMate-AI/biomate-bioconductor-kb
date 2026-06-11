@@ -1,0 +1,18 @@
+{
+  "package": "spatialde",
+  "requirements": [
+    "SpatialExperiment",
+    "ggplot2",
+    "spatialDE"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "spatialDE"
+    ],
+    "spatial_experiment_workflow.nf": [
+      "SpatialExperiment",
+      "spatialDE"
+    ]
+  }
+}

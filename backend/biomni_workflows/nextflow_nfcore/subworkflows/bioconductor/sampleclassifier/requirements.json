@@ -1,0 +1,14 @@
+{
+  "package": "sampleclassifier",
+  "requirements": [
+    "sampleClassifier"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "sampleClassifier"
+    ],
+    "rnaseq_classification.nf": [
+      "sampleClassifier"
+    ]
+  }
+}

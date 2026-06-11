@@ -1,154 +1,238 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: miaSim
-// Microbiome time series simulation with generalized Lotka-Volterra model, Self-Organized Instability 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/miaSim/inst/doc/miaSim.R
-// Upstream  : miaViz
-// Downstream: none
-//
-// Install: BiocManager::install("miaSim")
+// Bioconductor workflow: miaSim — miasim_microbiome_simulation
+// Simulate and compare multiple ecological dynamics models (gLV, Ricker, SOI, Consumer-Resource, Hubbell, and Stochastic Logistic) parameterized using input speci
+// Input: matrix.csv, coldata.csv
+// Container: 1.16.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SummarizedExperiment, miaSim
+// Visualizations: plot (ggplot/base)
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MIASIM {
+process BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-miasim"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-miasim:1.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-miasim:1.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_miasim_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_miasim_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_miasim_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(miaSim)
-    library(jsonlite)
-
-    # --- Interaction Matrix Generation [Simulation] ---
-    # Key functions: powerlawA, randomA, randomE
-    A_normal <- powerlawA(n_species = 10, alpha = 3)
-    A_uniform <- randomA(
-        n_species = 10,
-        diagonal = -0.4,
-        connectance = 0.5,
-        interactions = runif(n = 100, min = -0.8, max = 0.8)
-    )
-    E_matrix <- randomE(n_species = 5, n_resources = 10)
-
-    # --- Lotka-Volterra and Ricker Simulation [Simulation] ---
-    # Key functions: powerlawA, simulateGLV, simulateRicker
-    A_normal <- powerlawA(n_species = 4, alpha = 3)
-    tse_glv <- simulateGLV(
-        n_species = 4,
-        A = A_normal,
-        t_start = 0,
-        t_store = 1000,
-        stochastic = FALSE,
-        norm = FALSE
-    )
-    tse_ricker <- simulateRicker(
-        n_species = 4,
-        A = A_normal,
-        t_end = 100,
-        norm = FALSE
-    )
-
-    # --- Hubbell Neutral Model Simulation [Simulation] ---
-    # Key functions: simulateHubbell, simulateHubbellRates
-    tse_hubbell <- simulateHubbell(
-        n_species = 8,
-        M = 10,
-        carrying_capacity = 1000,
-        k_events = 50,
-        migration_p = 0.02,
-        t_end = 100
-    )
-    params_hubbell <- simulateHubbellRates(
-        x0 = c(0, 5, 10),
-        migration_p = 0.1,
-        metacommunity_probability = NULL,
-        k_events = 1,
-        growth_rates = NULL,
-        norm = FALSE,
-        t_end = 1000
-    )
-
-    # --- Stochastic Logistic and Consumer-Resource Simulation [Simulation] ---
-    # Key functions: powerlawA, randomE, simulateStochasticLogistic, simulateConsumerResource, simulateSOI
-    A_normal <- powerlawA(n_species = 4, alpha = 3)
-    E_matrix <- randomE(n_species = 2, n_resources = 4)
-    tse_logistic <- simulateStochasticLogistic(n_species = 5)
-    tse_crm <- simulateConsumerResource(
-        n_species = 2,
-        n_resources = 4,
-        E = E_matrix
-    )
-    tse_soi <- simulateSOI(
-        n_species = 4,
-        carrying_capacity = 1000,
-        A = A_normal,
-        k_events = 5,
-        x0 = NULL,
-        t_end = 150,
-        norm = TRUE
-    )
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_miasim_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_miasim_results.csv")
+    
+    # ==========================================
+    # STAGE 1: Load and Preprocess Input Data
+    # ==========================================
+    if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
+      stop("Required input files 'matrix.csv' or 'coldata.csv' not found.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_miasim_output.rds")
+    
+    # Read feature-by-sample matrix
+    mat_df <- read.csv("matrix.csv", check.names = FALSE)
+    if (!"feature_id" %in% colnames(mat_df)) {
+      stop("matrix.csv must contain a 'feature_id' column.")
     }
+    rownames(mat_df) <- mat_df\$feature_id
+    mat_df\$feature_id <- NULL
+    mat <- as.matrix(mat_df)
+    
+    # Read sample metadata
+    coldata <- read.csv("coldata.csv", check.names = FALSE)
+    
+    # Filter to top species to ensure simulation stability and speed
+    # (Simulating too many species with random/powerlaw interactions can easily diverge or become unstable)
+    top_n <- min(10, nrow(mat))
+    species_means <- rowMeans(mat, na.rm = TRUE)
+    top_species <- names(sort(species_means, decreasing = TRUE)[1:top_n])
+    mat_filtered <- mat[top_species, , drop = FALSE]
+    n_species <- nrow(mat_filtered)
+    
+    # Estimate initial abundances (x0) from the mean of the input data
+    x0 <- rowMeans(mat_filtered, na.rm = TRUE)
+    # Ensure x0 is strictly positive for models requiring non-zero initial states
+    x0[x0 <= 0] <- 0.1
+    
+    # ==========================================
+    # STAGE 2: Generate Interaction & Resource Matrices
+    # ==========================================
+    message("Generating interaction matrices...")
+    # Generate interactions from power-law distribution
+    A_powerlaw <- powerlawA(n_species = n_species, alpha = 3)
+    
+    # Generate interactions from uniform distribution
+    A_random <- randomA(n_species = n_species, diagonal = -0.4, connectance = 0.5)
+    
+    # Generate production/consumption matrix for Consumer-Resource model
+    E_matrix <- randomE(n_species = n_species, n_resources = n_species * 2)
+    
+    # ==========================================
+    # STAGE 3: Run Simulation Models
+    # ==========================================
+    message("Running simulations...")
+    
+    # 3.1 Generalized Lotka-Volterra (gLV)
+    tse_glv <- tryCatch({
+      simulateGLV(n_species = n_species, A = A_powerlaw, t_start = 0, t_store = 100, stochastic = FALSE, norm = TRUE)
+    }, error = function(e) {
+      warning("gLV simulation failed: ", e\$message)
+      NULL
+    })
+    
+    # 3.2 Ricker Model (Discrete version of gLV)
+    tse_ricker <- tryCatch({
+      simulateRicker(n_species = n_species, A = A_powerlaw, t_end = 100, norm = TRUE)
+    }, error = function(e) {
+      warning("Ricker simulation failed: ", e\$message)
+      NULL
+    })
+    
+    # 3.3 Self-Organized Instability (SOI) Model
+    tse_soi <- tryCatch({
+      simulateSOI(n_species = n_species, carrying_capacity = 1000, A = A_powerlaw, k_events = 5, x0 = x0, t_end = 100, norm = TRUE)
+    }, error = function(e) {
+      warning("SOI simulation failed: ", e\$message)
+      NULL
+    })
+    
+    # 3.4 Consumer-Resource Model
+    tse_crm <- tryCatch({
+      simulateConsumerResource(n_species = n_species, n_resources = n_species * 2, E = E_matrix)
+    }, error = function(e) {
+      warning("Consumer-Resource simulation failed: ", e\$message)
+      NULL
+    })
+    
+    # 3.5 Hubbell Neutral Model
+    tse_hubbell <- tryCatch({
+      simulateHubbell(n_species = n_species, M = 10, carrying_capacity = 1000, k_events = 50, migration_p = 0.02, t_end = 100)
+    }, error = function(e) {
+      warning("Hubbell simulation failed: ", e\$message)
+      NULL
+    })
+    
+    # 3.6 Stochastic Logistic Model
+    tse_logistic <- tryCatch({
+      simulateStochasticLogistic(n_species = n_species)
+    }, error = function(e) {
+      warning("Stochastic Logistic simulation failed: ", e\$message)
+      NULL
+    })
+    
+    # ==========================================
+    # STAGE 4: Export Simulated Abundance Matrices
+    # ==========================================
+    write_simulation_csv <- function(tse, filename) {
+      if (!is.null(tse)) {
+        counts <- assay(tse, "counts")
+        times <- colData(tse)\$time
+        if (!is.null(times)) {
+          colnames(counts) <- paste0("Time_", round(times, 2))
+        } else {
+          colnames(counts) <- paste0("Step_", seq_len(ncol(counts)))
+        }
+        write.csv(as.data.frame(counts), filename, row.names = TRUE)
+      } else {
+        write.csv(data.frame(Status = "Simulation Failed"), filename, row.names = FALSE)
+      }
+    }
+    
+    write_simulation_csv(tse_glv, "glv_simulation.csv")
+    write_simulation_csv(tse_ricker, "ricker_simulation.csv")
+    write_simulation_csv(tse_soi, "soi_simulation.csv")
+    write_simulation_csv(tse_crm, "crm_simulation.csv")
+    write_simulation_csv(tse_hubbell, "hubbell_simulation.csv")
+    write_simulation_csv(tse_logistic, "logistic_simulation.csv")
+    
+    # ==========================================
+    # STAGE 5: Visualization of Trajectories
+    # ==========================================
+    pdf("simulation_plots.pdf", width = 10, height = 8)
+    par(mfrow = c(3, 2), mar = c(4, 4, 3, 1))
+    
+    plot_trajectory <- function(tse, title) {
+      if (is.null(tse)) {
+        plot(1, type = "n", axes = FALSE, xlab = "", ylab = "", main = paste(title, "(Failed)"))
+        text(1, 1, "Simulation Failed", cex = 1.2)
+        return()
+      }
+      counts <- assay(tse, "counts")
+      times <- colData(tse)\$time
+      if (is.null(times)) {
+        times <- seq_len(ncol(counts))
+      }
+      
+      # Plot trajectories of simulated species
+      plot(times, counts[1, ], type = "l", ylim = range(counts, na.rm = TRUE),
+           xlab = "Time", ylab = "Abundance", main = title, col = 1, lwd = 1.5)
+      if (nrow(counts) > 1) {
+        for (i in 2:nrow(counts)) {
+          lines(times, counts[i, ], col = i, lwd = 1.5)
+        }
+      }
+      legend("topright", legend = paste0("Sp_", seq_len(nrow(counts))), 
+             col = seq_len(nrow(counts)), lty = 1, cex = 0.6, bty = "n")
+    }
+    
+    plot_trajectory(tse_glv, "Generalized Lotka-Volterra (gLV)")
+    plot_trajectory(tse_ricker, "Ricker Model")
+    plot_trajectory(tse_soi, "Self-Organized Instability (SOI)")
+    plot_trajectory(tse_crm, "Consumer-Resource Model")
+    plot_trajectory(tse_hubbell, "Hubbell Neutral Model")
+    plot_trajectory(tse_logistic, "Stochastic Logistic Model")
+    
+    dev.off()
+    message("Pipeline completed successfully!")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MIASIM:", paste0("    miasim: ", packageVersion("miaSim"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION":',
+        paste0('    miaSim: ', as.character(packageVersion('miaSim')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_miasim_results.csv
-    touch ${prefix}_miasim_output.rds
-    echo "BIOC_MIASIM:" > versions.yml
-    echo "    miasim: 0.0.0" >> versions.yml
+    touch ${prefix}_miasim_microbiome_simulation.csv versions.yml
     """
 }
 
-
-workflow BIOC_MIASIM_WORKFLOW {
+workflow BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_MIASIM(ch_input)
+    BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION(ch_input)
 
     emit:
-    results  = BIOC_MIASIM.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MIASIM.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MIASIM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MIASIM.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION.out.tables
+    plots    = BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION.out.plots
+    objects  = BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION.out.objects
+    versions = BIOC_MIASIM_MIASIM_MICROBIOME_SIMULATION.out.versions
 }

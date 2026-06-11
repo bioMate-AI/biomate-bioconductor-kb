@@ -1,0 +1,14 @@
+{
+  "package": "fci",
+  "requirements": [
+    "fCI"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "fCI"
+    ],
+    "proteogenomics_deg_analysis.nf": [
+      "fCI"
+    ]
+  }
+}

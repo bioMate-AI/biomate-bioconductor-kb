@@ -1,0 +1,26 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: colData=A named vector or data frame giving the stratum for each individual ;; assayNames=A character vector specifying the names for each data table ;; ncomp=The number of components to include in MFA (or maximum components if estimeNC=TRUE) ;; M=The number of imputations in MI ;; estimeNC=A boolean indicating whether to estimate the number of components for data imputation ;; confAreas=Approach to visualize uncertainty in plotInd (\"ellipse\" or \"convex.hull\") ;; confLevel=The confidence level for ellipses (e.g., 0.95) ;; radIn=The inner circle radius for the correlation circle plot ;; cutoff=A threshold to filter out weaker variable associations in the correlation circle plot ;; Mmax=The maximum number of imputations to evaluate in tuneM ;; inc=The increment step for the number of imputations in tuneM ;; N=The number of replicate sets to generate for each imputation size in tuneM\n- alternatives: Standard MFA (which cannot handle incomplete datasets directly) and single imputation methods (which fail to reflect the uncertainty of estimating missing values).\n- when_to_use: When integrating multiple omics datasets (e.g., transcriptomics and proteomics) where some individuals (biological units) are missing from one or more data tables (missing rows).\n- pitfalls: The number of imputed datasets is limited by the size of the donor pools in multiple hot-deck imputation. Large areas of confidence ellipses or convex hulls indicate high uncertainty, meaning scientists should be cautious when interpreting those individuals' exact locations. Input data tables must be arranged as samples x variables, with matching sample order and row names.",
+  "workflows": [
+    {
+      "name": "mi_mfa_analysis_and_visualization",
+      "intent": "Perform multiple imputation multiple factor analysis (MI-MFA) on multi-omics datasets with missing rows, inspect missingness, and visualize the results.",
+      "input": [
+        "table1.csv (transcriptomic expression matrix with missing rows)",
+        "table2.csv (proteomic expression matrix with missing rows)",
+        "cell_line_strata.csv (data frame containing the stratum/cancer type for each individual)"
+      ],
+      "stages": "1. Prepare the MIDTList object from separate tables or a MultiAssayExperiment.\n2. Inspect the missingness pattern using missPattern.\n3. Perform MI-MFA using MIMFA.\n4. Extract configurations and metadata from the MIDTList object.\n5. Plot individuals and visualize uncertainty using plotInd.\n6. Plot variables using plotVar.",
+      "code": "tableList <- NCI60$dataTables[1:2]\ncell.line <- NCI60$dataTables$cell.line\n\nmidt <- MIDTList(tableList, colData=cell.line, \n                    assayNames=c(\"trans\", \"prote\"))\n\ntable1 <- NCI60$dataTables$trans\ntable2 <- NCI60$dataTables$prote\ncell.line <- NCI60$dataTables$cell.line\n\nmidt <- MIDTList(table1, table2, colData=cell.line,\n                    assayNames=c(\"trans\", \"prote\"))\n\nmidt <- MIDTList(\"trans\" = table1, \"prote\" = table2,\n                colData=cell.line)\n\nmidt <- MIDTList(NCI60$mae)\n\nset.seed(123)\nmidt <- MIMFA(midt, ncomp=50, M=30, estimeNC=TRUE)\n\nnames(midt)\n\ncell.line <- colData(midt)\n\nconf <- configurations(midt, M=5)\n\npatt <- missPattern(midt, colMissing=\"grey70\")\n\nplotInd(midt, colMissing=\"white\")\n\nplotInd(midt, confAreas=\"ellipse\", confLevel=0.95)\n\nplotInd(midt, confAreas=\"convex.hull\")\n\nplotVar(midt, radIn=0.5)\n\nplotVar(midt, radIn=0.55, varNames=TRUE, cutoff=0.55)"
+    },
+    {
+      "name": "tune_imputations",
+      "intent": "Determine the appropriate number of imputations (M) needed to stabilize the estimated compromise configurations.",
+      "input": [
+        "midt.RData (a prepared MIDTList object containing the multi-omics data and strata)"
+      ],
+      "stages": "1. Run tuneM to evaluate the stability of configurations across different numbers of imputations.\n2. Inspect the stability statistics and plot the RV coefficients.",
+      "code": "set.seed(1)\ntune <- tuneM(midt, ncomp=2, Mmax=100, inc=10, N=20, showPlot=FALSE)\n\ntune <- tuneM(midt, ncomp=2, Mmax=100, inc=10, N=20)\ntune\n\ntune$stats\n\ntune$ggp"
+    }
+  ]
+}

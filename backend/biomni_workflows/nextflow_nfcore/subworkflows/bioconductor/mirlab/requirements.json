@@ -1,0 +1,17 @@
+{
+  "package": "mirlab",
+  "requirements": [
+    "miRLAB"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "miRLAB"
+    ],
+    "mirna_target_prediction_methods.nf": [
+      "miRLAB"
+    ],
+    "top_interactions_validation.nf": [
+      "miRLAB"
+    ]
+  }
+}

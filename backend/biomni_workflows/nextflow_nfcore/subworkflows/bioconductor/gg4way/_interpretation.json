@@ -1,0 +1,34 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: x=Character string specifying the name of the contrast to plot on the x-axis ;; y=Character string specifying the name of the contrast to plot on the y-axis ;; label=Logical or character vector; if TRUE, labels all shared significant genes; if a character vector, labels only the specified gene symbols ;; sep=Character string specifying the separator between groups in the names of the list when using custom data frames ;; ID=Character string specifying the column name for unique feature identifiers in custom data frames ;; logFC=Character string specifying the column name for log fold change values in custom data frames ;; FDR=Character string specifying the column name for false discovery rate values in custom data frames ;; symbol=Character string specifying the column name for gene symbols in custom data frames (optional; defaults to the ID column if not present)\n- alternatives: None mentioned\n- when_to_use: Use when you want to visually and statistically compare the log fold changes and significance of genes across two different experimental contrasts (e.g., comparing different treatments against a common control) to identify shared, unique, or opposite-direction differentially expressed genes.\n- pitfalls: When using custom data frames, if a symbol column is not present, the symbol argument must be explicitly set to the ID column to avoid errors. Ensure that the names of the list elements or contrasts exactly match the strings passed to the x and y arguments.",
+  "workflows": [
+    {
+      "name": "gg4way_with_limma",
+      "intent": "Compare two contrasts from a limma-voom analysis using a 4-way plot and extract shared significant genes.",
+      "input": [
+        "efit (an MArrayLM object from limma containing differential expression results for multiple contrasts)"
+      ],
+      "stages": "1. Generate the 4-way plot using gg4way() ;; 2. Extract shared significant genes using getShared() ;; 3. Extract the Pearson correlation coefficient using getCor() ;; 4. Plot with specific gene labels.",
+      "code": "p1 <- efit |>\n    gg4way(x = \"N61311 vs N052611\",\n           y = \"N061011 vs N052611\")\n\np1\n\np1 |>\n    getShared() |>\n    head()\n\nefit |>\n    gg4way(x = \"N61311 vs N052611\",\n           y = \"N061011 vs N052611\",\n           label = c(\"PSG5\", \"ERAP2\"))\n\np1 |>\n    getCor()"
+    },
+    {
+      "name": "gg4way_with_edger",
+      "intent": "Compare two contrasts from an edgeR analysis using a 4-way plot.",
+      "input": [
+        "rfit (a DGEGLM object from edgeR)",
+        "contr.matrix (a contrast matrix)"
+      ],
+      "stages": "1. Run edgeR differential expression for each contrast and combine results into a named list ;; 2. Generate the 4-way plot using gg4way().",
+      "code": "rfit <- contr.matrix |> \n    colnames() |>\n    set_names() |>\n    map(~ rfit |>\n            glmQLFTest(contrast = contr.matrix[,.x]))\n\nrfit |>\n    gg4way(x = \"N61311 vs N052611\",\n           y = \"N061011 vs N052611\")"
+    },
+    {
+      "name": "gg4way_with_deseq2",
+      "intent": "Compare two contrasts from a DESeq2 analysis using a 4-way plot (supporting results names, custom contrasts, or lfcShrink).",
+      "input": [
+        "dds (a DESeqDataSet object after running DESeq())"
+      ],
+      "stages": "1. Generate 4-way plot directly from DESeqDataSet using results names ;; 2. Alternatively, generate 4-way plot from a named list of DESeqResults objects using results() ;; 3. Alternatively, generate 4-way plot from a named list of shrunken log fold changes using lfcShrink().",
+      "code": "dds |>\n    gg4way(x = \"N61311 vs N052611\",\n           y = \"N061011 vs N052611\")\n\nlist(\"N61311 vs N052611\" = c(\"cell\", \"N61311\", \"N052611\"),\n     \"N061011 vs N052611\" = c(\"cell\", \"N061011\", \"N052611\")) |>\n    map(~ results(dds, contrast = .x)) |>\n    gg4way(x = \"N61311 vs N052611\",\n           y = \"N061011 vs N052611\")\n\nlist(\"N61311 vs N052611\" = c(\"cell\", \"N61311\", \"N052611\"),\n     \"N061011 vs N052611\" = c(\"cell\", \"N061011\", \"N052611\")) |>\n    map(~ dds |>\n        results(contrast = .x) |>\n        lfcShrink(dds, contrast = .x, res = _, type = \"normal\")) |>\n    gg4way(x = \"N61311 vs N052611\",\n           y = \"N061011 vs N052611\")"
+    }
+  ]
+}

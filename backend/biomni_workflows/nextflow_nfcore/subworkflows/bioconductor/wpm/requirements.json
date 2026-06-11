@@ -1,0 +1,25 @@
+{
+  "package": "wpm",
+  "requirements": [
+    "Biobase",
+    "SummarizedExperiment",
+    "ggplot2",
+    "wpm"
+  ],
+  "by_workflow": {
+    "eset_msnset_to_plate_map.nf": [
+      "Biobase",
+      "ggplot2",
+      "wpm"
+    ],
+    "main.nf": [
+      "ggplot2",
+      "wpm"
+    ],
+    "summarized_experiment_to_plate_map.nf": [
+      "SummarizedExperiment",
+      "ggplot2",
+      "wpm"
+    ]
+  }
+}

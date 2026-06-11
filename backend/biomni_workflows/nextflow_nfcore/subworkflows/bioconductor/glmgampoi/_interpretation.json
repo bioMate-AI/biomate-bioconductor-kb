@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: design=A formula or model matrix specifying the experimental design ;; on_disk=Logical indicating whether to perform calculations on-disk (TRUE) to handle large datasets or in-memory (FALSE) for speed ;; reference_level=The factor level to use as the reference intercept in the model ;; size_factor=Method for calculating size factors (e.g., \"ratio\" for DESeq2's method) or a numeric vector of pre-calculated size factors ;; group_by=Used inside pseudobulk() with vars() to specify metadata columns for cell aggregation ;; contrast=An algebraic expression of model coefficients or cond() helper specifying the comparison for test_de()\n- alternatives: DESeq2=A classical RNA-seq method; prefer glmGamPoi for much faster execution on large single-cell datasets and more reliable overdispersion estimates ;; edgeR=A classical RNA-seq method; prefer glmGamPoi for faster execution and exact overdispersion calculations instead of approximations\n- when_to_use: Use when analyzing overdispersed count data (such as RNA-seq or single-cell RNA-seq) to fit linear models, identify marker genes, or perform differential expression testing across conditions.\n- pitfalls: cell_level_de_testing=Applying test_de() directly to single-cell data without pseudobulk aggregation leads to underestimation of variance and overly optimistic (false positive) p-values because cells from the same individual are not independent replicates ;; legacy_pseudobulk=Performing pseudobulk aggregation inside test_de() (using the pseudobulk_by argument) is deprecated and computationally wasteful; use the pseudobulk() function first, then fit the model ;; empty_factor_levels=glm_gp() will fail if design variables contain empty factor levels; use droplevels() on metadata before fitting",
+  "workflows": [
+    {
+      "name": "pseudobulk_differential_expression",
+      "intent": "Aggregate single-cell expression data into pseudobulk samples by individual and condition, fit a Gamma-Poisson GLM, and test for differential expression.",
+      "input": [
+        "sce (SingleCellExperiment object containing raw single-cell counts and cell-level metadata)"
+      ],
+      "stages": "1. Aggregate single-cell counts to pseudobulk using pseudobulk() ;; 2. Filter out missing cell types ;; 3. Fit the Gamma-Poisson GLM using glm_gp() ;; 4. Test for differential expression using test_de()",
+      "code": "reduced_sce <- pseudobulk(sce, group_by = vars(ind, condition = stim, cell), \n                          fraction_singlet = mean(multiplets == \"singlet\"), n_cells = n())\nreduced_sce <- reduced_sce[,!is.na(reduced_sce$cell)]\nfit <- glm_gp(reduced_sce, design = ~ condition*cell + ind, size_factor = \"ratio\", verbose = TRUE)\nres <- test_de(fit, contrast = cond(cell = \"B cells\", condition = \"stim\") - cond(cell = \"B cells\", condition = \"ctrl\"))"
+    },
+    {
+      "name": "cell_level_marker_gene_identification",
+      "intent": "Fit a Gamma-Poisson GLM directly on cell-level single-cell data to identify marker genes between cell types.",
+      "input": [
+        "sce_subset (SingleCellExperiment object containing cell-level counts and cell-type annotations)"
+      ],
+      "stages": "1. Fit the Gamma-Poisson GLM on cell-level data using glm_gp() ;; 2. Identify marker genes in the control condition using test_de() ;; 3. Identify marker genes in the stimulated condition using test_de() with combined coefficients",
+      "code": "fit <- glm_gp(sce_subset, design = ~ cell + stim +  stim:cell - 1,\n              reference_level = \"NK cells\")\nmarker_genes <- test_de(fit, `cellCD4 T cells` - `cellB cells`, sort_by = pval)\nmarker_genes2 <- test_de(fit, (`cellCD4 T cells` + `cellCD4 T cells:stimstim`) - \n                               (`cellB cells` + `cellB cells:stimstim`), \n                        sort_by = pval)"
+    }
+  ]
+}

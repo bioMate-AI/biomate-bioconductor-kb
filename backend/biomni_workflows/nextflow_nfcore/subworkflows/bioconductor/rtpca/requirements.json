@@ -1,0 +1,16 @@
+{
+  "package": "rtpca",
+  "requirements": [
+    "Rtpca",
+    "dplyr"
+  ],
+  "by_workflow": {
+    "differential_tpca.nf": [
+      "Rtpca",
+      "dplyr"
+    ],
+    "main.nf": [
+      "Rtpca"
+    ]
+  }
+}

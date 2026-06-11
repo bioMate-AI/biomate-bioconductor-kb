@@ -1,0 +1,14 @@
+{
+  "package": "oncosimulr",
+  "requirements": [
+    "OncoSimulR"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "OncoSimulR"
+    ],
+    "random_landscape_predictability.nf": [
+      "OncoSimulR"
+    ]
+  }
+}

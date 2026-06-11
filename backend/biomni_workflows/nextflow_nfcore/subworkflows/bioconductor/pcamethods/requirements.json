@@ -1,0 +1,24 @@
+{
+  "package": "pcamethods",
+  "requirements": [
+    "Biobase",
+    "lattice",
+    "pcaMethods"
+  ],
+  "by_workflow": {
+    "expressionset_pca_imputation.nf": [
+      "Biobase",
+      "pcaMethods"
+    ],
+    "main.nf": [
+      "pcaMethods"
+    ],
+    "pca_diagnostics_validation.nf": [
+      "lattice",
+      "pcaMethods"
+    ],
+    "robust_pca_outliers.nf": [
+      "pcaMethods"
+    ]
+  }
+}

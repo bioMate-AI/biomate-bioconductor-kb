@@ -1,117 +1,132 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: erccdashboard
-// Technical performance metrics for differential gene expression experiments using External RNA Contro
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/erccdashboard/inst/doc/erccdashboard.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("erccdashboard")
+// Bioconductor workflow: erccdashboard — rnaseq_count_analysis
+// Analyze unnormalized RNA-Seq count data with ERCC spike-ins to evaluate technical performance.
+// Input: MET.CTL.countDat, MET.CTL.totalReads
+// Container: quay.io/biocontainers/bioconductor-erccdashboard:1.44.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: erccdashboard, ggplot2, gridExtra
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Load the input count data and optional normalization factors. 2. Run the complete analysis pipeline using runDashboard with datTyp
 
 nextflow.enable.dsl = 2
 
-process BIOC_ERCCDASHBOARD {
+process BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-erccdashboard"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-erccdashboard:1.40.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-erccdashboard:1.40.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_erccdashboard_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_erccdashboard_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_erccdashboard_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(erccdashboard)
-    library(jsonlite)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+        
+        # Load required libraries
+        library(erccdashboard)
+        library(gridExtra)
+        library(ggplot2)
+        
+        # 1. Load the input count data and optional normalization factors
+        if (file.exists("MET.CTL.countDat")) {
+          # Read the RNA-Seq count table
+          MET.CTL.countDat <- read.csv("MET.CTL.countDat", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+          # If it was tab-separated instead of comma-separated
+          if (ncol(MET.CTL.countDat) <= 1) {
+            MET.CTL.countDat <- read.delim("MET.CTL.countDat", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+          }
+        } else {
+          stop("Required input file 'MET.CTL.countDat' not found in the working directory.")
+        }
+        
+        # Read the optional total reads vector if it exists
+        if (file.exists("MET.CTL.totalReads")) {
+          MET.CTL.totalReads <- scan("MET.CTL.totalReads", quiet = TRUE)
+        } else {
+          MET.CTL.totalReads <- NULL
+        }
+        
+        # 2. Run the complete analysis pipeline using runDashboard with datType="count"
+        exDat <- runDashboard(datType="count", isNorm = FALSE,
+                               exTable=MET.CTL.countDat,
+                               repNormFactor=MET.CTL.totalReads,
+                               filenameRoot="RatTox", sample1Name="MET",
+                               sample2Name="CTL", erccmix="RatioPair",
+                               erccdilution=1/100, spikeVol=1,
+                               totalRNAmass=0.500, choseFDR=0.1)
+        
+        # 3. Summarize the results and visualize diagnostic plots
+        summary(exDat)
+        
+        # Open PDF device to save the diagnostic plots
+        pdf("RatTox_diagnostic_plots.pdf", width = 8, height = 8)
+        
+        # Render and save the plots exactly as documented
+        print(exDat\$Figures\$dynRangePlot)
+        grid.arrange(exDat\$Figures\$rocPlot)
+        grid.arrange(exDat\$Figures\$lodrERCCPlot)
+        grid.arrange(exDat\$Figures\$maPlot)
+        
+        dev.off()
+        
+        # 4. Write named output files for the meaningful results
+        saveRDS(exDat, file = "RatTox_analysis_results.rds")
+        
+        if (!is.null(exDat\$Transcripts)) {
+          # Write the data frame to CSV
+          write.csv(exDat\$Transcripts, file = "RatTox_transcripts_summary.csv", row.names = FALSE)
+        }
+        
+        cat("Pipeline completed successfully. Outputs saved to 'RatTox_diagnostic_plots.pdf', 'RatTox_analysis_results.rds', and 'RatTox_transcripts_summary.csv'.\n")
 
-    # --- Load and Prepare Input Data [Data Preparation] ---
-    # Key functions: data
-    data(SEQC.Example)
-    exTable <- MET.CTL.countDat
-    filenameRoot <- "RatTox"
-    sample1Name <- "MET"
-    sample2Name <- "CTL"
-
-    # --- Run ERCC Analysis Dashboard [Analysis] ---
-    # Key functions: runDashboard
-    exDat <- runDashboard(
-        datType = "count",
-        isNorm = FALSE,
-        exTable = exTable,
-        filenameRoot = filenameRoot,
-        sample1Name = sample1Name,
-        sample2Name = sample2Name,
-        erccmix = "RatioPair",
-        erccdilution = 1/100,
-        spikeVol = 1,
-        totalRNAmass = 0.500,
-        choseFDR = 0.1
-    )
-
-    # --- Evaluate and Visualise Results [Validation] ---
-    # Key functions: summary
-    summary(exDat)
-    dynRange <- exDat$Figures$dynRangePlot
-    rocCurve <- exDat$Figures$rocPlot
-    lodrPlot <- exDat$Figures$lodrERCCPlot
-    maPlot <- exDat$Figures$maPlot
-
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_erccdashboard_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_erccdashboard_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_erccdashboard_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ERCCDASHBOARD:", paste0("    erccdashboard: ", packageVersion("erccdashboard"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS":',
+        paste0('    erccdashboard: ', as.character(packageVersion('erccdashboard')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_erccdashboard_results.csv
-    touch ${prefix}_erccdashboard_output.rds
-    echo "BIOC_ERCCDASHBOARD:" > versions.yml
-    echo "    erccdashboard: 0.0.0" >> versions.yml
+    touch ${prefix}_rnaseq_count_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_ERCCDASHBOARD_WORKFLOW {
+workflow BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ MET.CTL.countDat, MET.CTL.totalReads ] ]
 
     main:
-    BIOC_ERCCDASHBOARD(ch_input)
+    BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_ERCCDASHBOARD.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ERCCDASHBOARD.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ERCCDASHBOARD.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ERCCDASHBOARD.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS.out.tables
+    plots    = BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS.out.plots
+    objects  = BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS.out.objects
+    versions = BIOC_ERCCDASHBOARD_RNASEQ_COUNT_ANALYSIS.out.versions
 }

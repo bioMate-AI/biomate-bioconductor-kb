@@ -1,146 +1,138 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: mariner
-// Tools for manipulating paired ranges and working with Hi-C data in R. Functionality includes manipul
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/mariner/inst/doc/introduction_to_mariner.R
-// Upstream  : InteractionSet, marinerData, strawr
-// Downstream: none
-//
-// Install: BiocManager::install("mariner")
+// Bioconductor workflow: mariner — loop_merging_and_replicate_comparison
+// Merge chromatin loops from multiple replicates, resolve duplicates within a specified radius, and identify shared or unique loops.
+// Input: FS_5kbLoops.txt, WT_5kbLoops.txt
+// Container: quay.io/biocontainers/bioconductor-mariner:1.10.2--r45hdfd78af_0
+// R packages: InteractionSet, mariner, marinerdata, strawr
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_MARINER {
+process BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-mariner"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-mariner:1.6.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-mariner:1.6.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-mariner:1.10.2--r45hdfd78af_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_mariner_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_mariner_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_mariner_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(mariner)
-    library(GInteractions)
-    library(GRanges)
-    library(jsonlite)
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("InteractionSet", "mariner", "marinerdata", "strawr")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
 
-    # --- Merging and Clustering Pairs [] ---
-    # Key functions: mergePairs, getPairClusters, subsetBySource, sources
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    library(mariner)
+    
+    ## BEDPE-formatted files (read from working directory as requested)
     bedpeFiles <- c(
-        marinerData::FS_5kbLoops.txt(),
-        marinerData::WT_5kbLoops.txt()
+        "FS_5kbLoops.txt",
+        "WT_5kbLoops.txt"
     )
     names(bedpeFiles) <- c("FS", "WT")
-    giList <- lapply(
-        lapply(bedpeFiles, read.table, header = TRUE),
-        as_ginteractions
-    )
+    
+    ## Read as list of GInteractions
+    giList <-
+        lapply(bedpeFiles, read.table, header=TRUE) |>
+        lapply(as_ginteractions)
+    
+    lapply(giList, summary)
+    
     mgi <- mergePairs(
-        x = giList,
-        radius = 10e3,
-        column = "APScoreAvg",
-        selectMax = TRUE
+        x=giList,
+        radius=10e3,
+        column="APScoreAvg",
+        selectMax=TRUE
     )
-    clusters <- getPairClusters(mgi[12772])
-    unique_sources <- subsetBySource(mgi)
-
-
-    # --- Hi-C Pixel and Matrix Extraction [] ---
-    # Key functions: pullHicPixels, pullHicMatrices, pixelsToMatrices
-    hicFiles <- c(
-        marinerData::LEUK_HEK_PJA27_inter_30.hic(),
-        marinerData::LEUK_HEK_PJA30_inter_30.hic()
-    )
-    names(hicFiles) <- c("FS", "WT")
-    GenomeInfoDb::seqlevelsStyle(mgi) <- "ENSEMBL"
-    binned_100k <- binPairs(x = mgi, binSize = 100e3)
-    imat <- pullHicPixels(
-        x = binned_100k[1:1000],
-        files = hicFiles,
-        binSize = 100e3
-    )
-    regions <- pixelsToMatrices(x = binned_100k[1:1000], buffer = 1)
-    iarr <- pullHicMatrices(x = regions, files = hicFiles, binSize = 100e3)
-
-
-    # --- Matrix Aggregation and Visualisation [] ---
-    # Key functions: aggHicMatrices, plotMatrix
-    agg_interact <- aggHicMatrices(x = iarr, by = "interactions")
-    agg_files <- aggHicMatrices(x = iarr, by = "files")
-    agg_total <- aggHicMatrices(x = iarr)
-    plotMatrix(data = agg_total)
-
-
-    # --- Loop Enrichment Analysis [] ---
-    # Key functions: selectCenterPixel, selectTopLeft, selectBottomRight, calcLoopEnrichment
-    buffer <- 10
-    fg <- selectCenterPixel(mhDist = 0:1, buffer = buffer)
-    bg <- selectTopLeft(n = 2, buffer = buffer) +
-        selectBottomRight(n = 2, buffer = buffer)
-    enrich <- calcLoopEnrichment(
-        x = binned_100k[1:1000],
-        files = hicFiles,
-        fg = fg,
-        bg = bg
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_mariner_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_mariner_results.csv")
+    mgi
+    
+    # Inspect specific clustered interaction
+    if (length(mgi) >= 12772) {
+        mgi[12772]
+        clusters(mgi[12772])
+    } else if (length(mgi) > 0) {
+        mgi[1]
+        clusters(mgi[1])
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_mariner_output.rds")
+    
+    ## List the input sources
+    sources(mgi)
+    
+    ## Interactions unique to each source
+    sets(mgi) |> lapply(summary)
+    
+    ## Interactions shared by both sources
+    shared_interactions <- sets(x=mgi, include=sources(mgi))
+    shared_interactions
+    
+    ## Write meaningful output files
+    # 1. Save the complete MergedGInteractions object as RDS
+    saveRDS(mgi, file = "merged_interactions.rds")
+    
+    # 2. Save shared interactions as a CSV table
+    shared_df <- as.data.frame(shared_interactions)
+    write.csv(shared_df, file = "shared_interactions.csv", row.names = FALSE)
+    
+    # 3. Save unique interactions for each source set as CSV tables
+    unique_sets <- sets(mgi)
+    for (set_name in names(unique_sets)) {
+        unique_df <- as.data.frame(unique_sets[[set_name]])
+        write.csv(unique_df, file = paste0("unique_interactions_", set_name, ".csv"), row.names = FALSE)
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_MARINER:", paste0("    mariner: ", packageVersion("mariner"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON":',
+        paste0('        mariner: ', as.character(packageVersion("mariner")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_mariner_results.csv
-    touch ${prefix}_mariner_output.rds
-    echo "BIOC_MARINER:" > versions.yml
-    echo "    mariner: 0.0.0" >> versions.yml
+    touch ${prefix}_loop_merging_and_replicate_comparison.csv versions.yml
     """
 }
 
-
-workflow BIOC_MARINER_WORKFLOW {
+workflow BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ FS_5kbLoops.txt, WT_5kbLoops.txt ] ]
 
     main:
-    BIOC_MARINER(ch_input)
+    BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON(ch_input)
 
     emit:
-    results  = BIOC_MARINER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_MARINER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_MARINER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_MARINER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON.out.tables
+    plots    = BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON.out.plots
+    objects  = BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON.out.objects
+    versions = BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON.out.versions
 }

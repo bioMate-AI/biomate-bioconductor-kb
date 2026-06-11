@@ -1,0 +1,13 @@
+{
+  "package": "grafgen",
+  "requirements": [
+    "GrafGen",
+    "shiny"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "GrafGen",
+      "shiny"
+    ]
+  }
+}

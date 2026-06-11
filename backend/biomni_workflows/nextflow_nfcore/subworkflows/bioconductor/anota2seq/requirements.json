@@ -1,0 +1,16 @@
+{
+  "package": "anota2seq",
+  "requirements": [
+    "SummarizedExperiment",
+    "anota2seq"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "anota2seq"
+    ],
+    "summarized_experiment_analysis.nf": [
+      "SummarizedExperiment",
+      "anota2seq"
+    ]
+  }
+}

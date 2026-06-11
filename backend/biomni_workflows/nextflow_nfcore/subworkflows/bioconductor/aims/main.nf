@@ -1,118 +1,150 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: AIMS
-// This package contains the AIMS implementation. It contains necessary functions to assign the five in
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/AIMS/inst/doc/AIMS.R
-// Upstream  : breastCancerVDX
-// Downstream: none
-//
-// Install: BiocManager::install("AIMS")
+// Bioconductor workflow: AIMS — absolute_breast_cancer_subtyping
+// Assign absolute breast cancer intrinsic molecular subtypes to a gene expression dataset or a single sample using Entrez IDs.
+// Input: expression_matrix.csv, gene_annotations.csv
+// Container: quay.io/biocontainers/bioconductor-aims:1.42.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: AIMS, Biobase
+// Visualizations: bar plot
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the AIMS package and the expression dataset
+//  * 2. [Core Analysis] Convert the expression matrix to an ExpressionSet if necessary
+//  * 3. [Core Analysis] Run applyAIMS using the expression data and Entrez IDs
+//  * 4. [Core Analysis] Retrieve the assigned subtypes and posterior probabilities
 
 nextflow.enable.dsl = 2
 
-process BIOC_AIMS {
+process BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-aims"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-aims:1.38.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-aims:1.38.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_aims_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_aims_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_aims_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(AIMS)
-    library(ExpressionSet)
-    library(jsonlite)
-
-    # --- Subtype Assignment [] ---
-    # Key functions: applyAIMS
-    mcgill_subtypes <- applyAIMS(
-        eset_data,
-        entrez_ids
-    )
-    subtype_classes <- mcgill_subtypes$cl
-    subtype_probs <- mcgill_subtypes$prob
-
-
-    # --- Single Sample Classification [] ---
-    # Key functions: applyAIMS
-    single_sample_eset <- eset_data[, 1, drop = FALSE]
-    single_subtype <- applyAIMS(
-        single_sample_eset,
-        entrez_ids
-    )
-    single_class <- single_subtype$cl
-    single_prob <- single_subtype$prob
-
-
-    # --- Cross Platform Subtyping [] ---
-    # Key functions: applyAIMS
-    data(vdx)
-    vdx_entrez <- as.character(
-        as.list(hgu133aENTREZID)[featureNames(vdx)]
-    )
-    vdx_subtypes <- applyAIMS(
-        vdx,
-        vdx_entrez
-    )
-    vdx_classes <- vdx_subtypes$cl
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_aims_results.csv", row.names = TRUE)
+    library(Biobase)
+    
+    # 1. Load the expression dataset and gene annotations from user input files
+    expr_df <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)
+    expr_mat <- as.matrix(expr_df)
+    
+    gene_ann <- read.csv("gene_annotations.csv", stringsAsFactors = FALSE)
+    
+    # Identify the Entrez ID column and Feature ID column in the annotations
+    entrez_col <- grep("entrez", colnames(gene_ann), ignore.case = TRUE, value = TRUE)
+    if (length(entrez_col) == 0) {
+      entrez_col <- colnames(gene_ann)[2]
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_aims_results.csv")
+      entrez_col <- entrez_col[1]
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_aims_output.rds")
+    
+    feature_col <- grep("feature|probe|symbol|id", colnames(gene_ann), ignore.case = TRUE, value = TRUE)
+    if (length(feature_col) == 0) {
+      feature_col <- colnames(gene_ann)[1]
+    } else {
+      feature_col <- feature_col[1]
     }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_AIMS:", paste0("    aims: ", packageVersion("AIMS"))),
-        "versions.yml"
+    
+    # Map the row names of the expression matrix to Entrez IDs
+    mapping <- gene_ann[[entrez_col]]
+    names(mapping) <- gene_ann[[feature_col]]
+    
+    entrez_ids <- as.character(mapping[rownames(expr_mat)])
+    entrez_ids[is.na(entrez_ids)] <- ""
+    
+    # Construct the mcgillExample list structure to match the documented code
+    mcgillExample <- list(
+      D = expr_mat,
+      EntrezID = entrez_ids
     )
+    
+    # 2. Convert the expression matrix to an ExpressionSet
+    mcgillExample\$D <- ExpressionSet(assayData=mcgillExample\$D)
+    
+    # 3. Run applyAIMS using the expression data and Entrez IDs
+    mcgill.subtypes <- applyAIMS(mcgillExample\$D,
+                                 mcgillExample\$EntrezID)
+    
+    # 4. Retrieve and display the assigned subtypes and posterior probabilities
+    names(mcgill.subtypes)
+    head(mcgill.subtypes\$cl)
+    head(mcgill.subtypes\$prob)
+    table(mcgill.subtypes\$cl)
+    
+    # Save the meaningful results to output files
+    results_df <- data.frame(
+      Sample = names(mcgill.subtypes\$cl),
+      Subtype = as.character(mcgill.subtypes\$cl),
+      Probability = as.numeric(mcgill.subtypes\$prob),
+      stringsAsFactors = FALSE
+    )
+    write.csv(results_df, "aims_subtypes.csv", row.names = FALSE)
+    
+    saveRDS(mcgill.subtypes, "aims_results.rds")
+    
+    # Generate and save a frequency plot of the assigned subtypes
+    pdf("subtype_frequencies.pdf", width = 7, height = 5)
+    barplot(table(mcgill.subtypes\$cl),
+            main = "AIMS Breast Cancer Subtype Frequencies",
+            xlab = "Subtype",
+            ylab = "Frequency",
+            col = "skyblue",
+            las = 1)
+    dev.off()
+
+    writeLines(c(
+        '"BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING":',
+        paste0('    AIMS: ', as.character(packageVersion('AIMS')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_aims_results.csv
-    touch ${prefix}_aims_output.rds
-    echo "BIOC_AIMS:" > versions.yml
-    echo "    aims: 0.0.0" >> versions.yml
+    touch ${prefix}_absolute_breast_cancer_subtyping.csv versions.yml
     """
 }
 
-
-workflow BIOC_AIMS_WORKFLOW {
+workflow BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ expression_matrix.csv, gene_annotations.csv ] ]
 
     main:
-    BIOC_AIMS(ch_input)
+    BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING(ch_input)
 
     emit:
-    results  = BIOC_AIMS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_AIMS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_AIMS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_AIMS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING.out.tables
+    plots    = BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING.out.plots
+    objects  = BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING.out.objects
+    versions = BIOC_AIMS_ABSOLUTE_BREAST_CANCER_SUBTYPING.out.versions
 }

@@ -1,152 +1,178 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: scMET
-// High-throughput single-cell measurements of DNA methylomes can quantify methylation heterogeneity an
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/scMET/inst/doc/scMET_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("scMET")
+// Bioconductor workflow: scMET — single_population_hvf_analysis
+// Fit the scMET model on a single cell population to estimate methylation parameters and identify highly variable features (HVFs).
+// Input: single_cell_methylation.csv, covariates.csv
+// Container: quay.io/biocontainers/bioconductor-scmet:1.12.0--r45ha27e39d_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: SingleCellExperiment, cowplot, data.table, ggplot2, scMET
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Convert SingleCellExperiment to scMET format (optional)
+//  * 2. [Core Analysis] Run Bayesian inference using scmet to estimate mean and overdispersion parameters
+//  * 3. [Core Analysis] Identify highly variable features (HVFs) using scmet_hvf
+//  * 4. [Visualization & Output] Plot diagnostic and results figures using scmet_plot_mean_var, scmet_plot_efdr_efnr_grid, and scmet_plot_vf_tail_prob
 
 nextflow.enable.dsl = 2
 
-process BIOC_SCMET {
+process BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-scmet"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-scmet:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-scmet:1.8.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_scmet_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_scmet_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_scmet_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(scMET)
-    library(jsonlite)
-
-    # --- Maximum Likelihood Estimation [] ---
-    # Key functions: bb_mle
-    bbmle_fit <- scmet_dt$Y[, bb_mle(cbind(total_reads, met_reads)),
-                            by = c("Feature")]
-    bbmle_fit <- bbmle_fit[, c("Feature", "mu", "gamma")]
-
-
-    # --- Highly Variable Features Analysis [] ---
-    # Key functions: scmet_hvf
-    fit_obj <- scmet_hvf(
-        scmet_obj = fit_obj,
-        delta_e = 0.75,
-        evidence_thresh = 0.8,
-        efdr = 0.1
-    )
-    hvf_summary <- fit_obj$hvf$summary
-
-
-    # --- Differential Analysis [] ---
-    # Key functions: scmet, scmet_differential
-    fit_A <- scmet(
-        Y = scmet_diff_dt$scmet_dt_A$Y,
-        X = scmet_diff_dt$scmet_dt_A$X,
-        L = 4,
-        iter = 300,
-        seed = 12
-    )
-    fit_B <- scmet(
-        Y = scmet_diff_dt$scmet_dt_B$Y,
-        X = scmet_diff_dt$scmet_dt_B$X,
-        L = 4,
-        iter = 300,
-        seed = 12
-    )
-    diff_obj <- scmet_differential(
-        obj_A = fit_A,
-        obj_B = fit_B,
-        evidence_thresh_m = 0.65,
-        evidence_thresh_e = 0.65,
-        group_label_A = "A",
-        group_label_B = "B"
-    )
-
-
-    # --- Visualisation [] ---
-    # Key functions: scmet_plot_mean_var, scmet_plot_estimated_vs_true, scmet_plot_efdr_efnr_grid, scmet_plot_vf_tail_prob
-    gg_mean_var <- scmet_plot_mean_var(
-        obj = fit_obj,
-        y = "gamma",
-        task = "hvf",
-        show_fit = TRUE
-    )
-    gg_est_vs_true <- scmet_plot_estimated_vs_true(
-        obj = fit_obj,
-        sim_dt = scmet_dt,
-        param = "gamma",
-        mle_fit = bbmle_fit
-    )
-    gg_grid <- scmet_plot_efdr_efnr_grid(
-        obj = fit_obj,
-        task = "hvf"
-    )
-    gg_tail <- scmet_plot_vf_tail_prob(
-        obj = fit_obj,
-        x = "mu",
-        task = "hvf"
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_scmet_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    suppressPackageStartupMessages({
+      library(scMET)
+      library(data.table)
+      library(ggplot2)
+      library(cowplot)
+    })
+    
+    # Set seed for reproducibility
+    set.seed(12)
+    
+    # 1. Read User Input Files
+    if (!file.exists("single_cell_methylation.csv")) {
+      stop("Error: 'single_cell_methylation.csv' not found in the working directory.")
+    }
+    
+    # Read single-cell methylation data
+    Y_scmet <- data.table::fread("single_cell_methylation.csv")
+    
+    # Ensure correct column types and names
+    Y_scmet[, total_reads := as.integer(total_reads)]
+    Y_scmet[, met_reads := as.numeric(met_reads)]
+    
+    # Identify unique features
+    unique_features <- unique(Y_scmet\$Feature)
+    
+    # Read covariates if available, otherwise construct intercept-only matrix
+    if (file.exists("covariates.csv")) {
+      cov_df <- read.csv("covariates.csv", row.names = 1, check.names = FALSE)
+      
+      # Align covariates with the features present in the methylation data
+      common_features <- intersect(unique_features, rownames(cov_df))
+      if (length(common_features) > 0) {
+        # Reorder and subset to match unique_features
+        cov_df <- cov_df[unique_features, , drop = FALSE]
+        # Handle any missing values by replacing with column mean
+        for (col in seq_len(ncol(cov_df))) {
+          if (any(is.na(cov_df[, col]))) {
+            cov_df[is.na(cov_df[, col]), col] <- mean(cov_df[, col], na.rm = TRUE)
+          }
+        }
+      } else {
+        cov_df <- data.frame(row.names = unique_features)
+      }
+      
+      X <- as.matrix(cov_df)
+      # Ensure the first column is the intercept (vector of 1s)
+      if (ncol(X) == 0 || !all(X[, 1] == 1)) {
+        X <- cbind(intercept = 1, X)
+      }
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_scmet_results.csv")
+      # Fallback to intercept-only matrix
+      X <- matrix(1, nrow = length(unique_features), ncol = 1,
+                  dimnames = list(unique_features, "intercept"))
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_scmet_output.rds")
+    
+    # 2. Execute Documented Workflow Steps
+    
+    # Convert to SingleCellExperiment and back to scMET format
+    Y_sce <- scmet_to_sce(Y = Y_scmet, X = X)
+    scmet_obj <- sce_to_scmet(sce = Y_sce)
+    
+    # Prepare the scmet_dt list to match the exact documented function call
+    scmet_dt <- list(Y = scmet_obj\$Y, X = scmet_obj\$X)
+    if (is.null(scmet_dt\$X)) {
+      scmet_dt\$X <- X
     }
+    
+    # Run Bayesian inference using scmet
+    fit_obj <- scmet(Y = scmet_dt\$Y, X = scmet_dt\$X, L = 4, iter = 1000, seed = 12)
+    
+    # Plot mean-overdispersion relationships
+    pdf("mean_var_plots.pdf", width = 10, height = 5)
+    gg1 <- scmet_plot_mean_var(obj = fit_obj, y = "gamma", task = NULL, show_fit = TRUE)
+    gg2 <- scmet_plot_mean_var(obj = fit_obj, y = "epsilon", task = NULL, show_fit = TRUE)
+    print(cowplot::plot_grid(gg1, gg2, ncol = 2))
+    dev.off()
+    
+    # Identify highly variable features (HVFs)
+    fit_obj <- scmet_hvf(scmet_obj = fit_obj, delta_e = 0.75, evidence_thresh = 0.8, efdr = 0.1)
+    
+    # Plot diagnostic and results figures
+    pdf("hvf_plots.pdf", width = 10, height = 8)
+    print(scmet_plot_efdr_efnr_grid(obj = fit_obj, task = "hvf"))
+    gg1 <- scmet_plot_vf_tail_prob(obj = fit_obj, x = "mu", task = "hvf")
+    gg2 <- scmet_plot_mean_var(obj = fit_obj, y = "gamma", task = "hvf")
+    print(cowplot::plot_grid(gg1, gg2, ncol = 2))
+    dev.off()
+    
+    # 3. Save Outputs
+    # Save the final fit object
+    saveRDS(fit_obj, "scmet_fit_obj.rds")
+    
+    # Save the HVF summary table
+    if (!is.null(fit_obj\$hvf\$summary)) {
+      write.csv(fit_obj\$hvf\$summary, "hvf_summary.csv", row.names = FALSE)
+    }
+    
+    message("Pipeline completed successfully. Outputs saved to 'scmet_fit_obj.rds', 'hvf_summary.csv', 'mean_var_plots.pdf', and 'hvf_plots.pdf'.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SCMET:", paste0("    scmet: ", packageVersion("scMET"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS":',
+        paste0('    scMET: ', as.character(packageVersion('scMET')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_scmet_results.csv
-    touch ${prefix}_scmet_output.rds
-    echo "BIOC_SCMET:" > versions.yml
-    echo "    scmet: 0.0.0" >> versions.yml
+    touch ${prefix}_single_population_hvf_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SCMET_WORKFLOW {
+workflow BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ single_cell_methylation.csv, covariates.csv ] ]
 
     main:
-    BIOC_SCMET(ch_input)
+    BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SCMET.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SCMET.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SCMET.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SCMET.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS.out.tables
+    plots    = BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS.out.plots
+    objects  = BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS.out.objects
+    versions = BIOC_SCMET_SINGLE_POPULATION_HVF_ANALYSIS.out.versions
 }

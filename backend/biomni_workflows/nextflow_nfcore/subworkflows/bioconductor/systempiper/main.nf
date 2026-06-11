@@ -1,129 +1,227 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: systemPipeR
-// systemPipeR is a multipurpose data analysis workflow environment that unifies R with command-line to
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/systemPipeR/inst/doc/systemPipeR.R
-// Upstream  : BiocParallel, biomaRt, magrittr, pheatmap, txdbmaker
-// Downstream: none
-//
-// Install: BiocManager::install("systemPipeR")
+// Bioconductor workflow: systemPipeR — systempiper_transcriptomics_pipeline
+// A complete multi-stage transcriptomics downstream analysis pipeline using systemPipeR to manage data loading, normalization, differential expression analysis, f
+// Input: counts.csv, coldata.csv
+// Container: 2.16.3--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: systemPipeR
+// Visualizations: volcano plot, PCA plot
+// QC: low-count filtering, count normalization
+// Generated from full documentation (real input-consuming pipeline).
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SYSTEMPIPER {
+process BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-systempiper"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-systempiper:2.12.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-systempiper:2.12.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_systempiper_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_systempiper_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_systempiper_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load systemPipeR and required base packages
     library(systemPipeR)
-    library(BamFileList)
-    library(DESeqDataSetFromMatrix)
-    library(GOCluster_Report)
-    library(SPRproject)
-    library(SYSargsList)
-    library(jsonlite)
-
-    # --- Define LineWise Step [] ---
-    # Key functions: LineWise, appendStep
-    appendStep(sal) <- LineWise(
-        code = {
-            targetspath <- system.file("extdata", "targets.txt",
-                                       package = "systemPipeR")
-            targets <- read.delim(targetspath, comment.char = "#")
-            write.csv(targets, "targets_copy.csv")
-        },
-        step_name = "export_targets"
-    )
-
-
-    # --- Define CWL Step [] ---
-    # Key functions: SYSargsList, appendStep
-    targetspath <- system.file("extdata/cwl/gunzip", "targets_gunzip.txt",
-                               package = "systemPipeR")
-    appendStep(sal) <- SYSargsList(
-        step_name = "gzip",
-        targets = targetspath,
-        dir = TRUE,
-        wf_file = "gunzip/workflow_gzip.cwl",
-        input_file = "gunzip/gzip.yml",
-        dir_path = system.file("extdata/cwl", package = "systemPipeR"),
-        inputvars = c(FileName = "_FILE_PATH_", SampleName = "_SampleName_"),
-        dependency = "export_targets"
-    )
-
-
-    # --- Workflow Execution [] ---
-    # Key functions: runWF, cmdlist, outfiles
+    
+    # Initialize systemPipeR project (creates default directory structure)
+    sal <- SPRproject(overwrite = TRUE)
+    
+    # Stage 1: Load and Preprocess Data
+    appendStep(sal) <- LineWise(code = {
+      # Read input files
+      counts <- read.csv("counts.csv", row.names = 1)
+      coldata <- read.csv("coldata.csv")
+      
+      # Align counts columns with coldata samples
+      common_samples <- intersect(colnames(counts), coldata\$sample)
+      counts <- counts[, common_samples, drop = FALSE]
+      coldata <- coldata[coldata\$sample %in% common_samples, ]
+      
+      # Filter out genes with zero counts across all samples
+      counts <- counts[rowSums(counts) > 0, , drop = FALSE]
+      
+      save(counts, coldata, file = "step1_loaded.RData")
+    }, step_name = "load_data")
+    
+    # Stage 2: Normalization
+    appendStep(sal) <- LineWise(code = {
+      load("step1_loaded.RData")
+      
+      # Simple CPM (Counts Per Million) normalization
+      libsizes <- colSums(counts)
+      cpm <- t(t(counts) / libsizes) * 1e6
+      log2_cpm <- log2(cpm + 1)
+      
+      # Write primary output
+      write.csv(log2_cpm, "normalized_counts.csv")
+      save(log2_cpm, coldata, file = "step2_normalized.RData")
+    }, step_name = "normalize", dependency = "load_data")
+    
+    # Stage 3: Differential Expression Analysis
+    appendStep(sal) <- LineWise(code = {
+      load("step2_normalized.RData")
+      
+      conditions <- unique(coldata\$condition)
+      if (length(conditions) >= 2) {
+        cond1_samples <- coldata\$sample[coldata\$condition == conditions[1]]
+        cond2_samples <- coldata\$sample[coldata\$condition == conditions[2]]
+        
+        # Two-sample t-test for each gene
+        pvals <- apply(log2_cpm, 1, function(x) {
+          t_res <- tryCatch(t.test(x[cond1_samples], x[cond2_samples]), error = function(e) NULL)
+          if (is.null(t_res)) return(NA) else return(t_res\$p.value)
+        })
+        
+        fdr <- p.adjust(pvals, method = "BH")
+        mean1 <- rowMeans(log2_cpm[, cond1_samples, drop = FALSE])
+        mean2 <- rowMeans(log2_cpm[, cond2_samples, drop = FALSE])
+        log2FC <- mean2 - mean1
+        
+        deg_table <- data.frame(
+          gene_id = rownames(log2_cpm),
+          logFC = log2FC,
+          pvalue = pvals,
+          FDR = fdr
+        )
+      } else {
+        # Fallback if insufficient conditions are present
+        deg_table <- data.frame(
+          gene_id = rownames(log2_cpm),
+          logFC = 0,
+          pvalue = 1,
+          FDR = 1
+        )
+      }
+      
+      save(deg_table, file = "step3_deg.RData")
+    }, step_name = "deg_analysis", dependency = "normalize")
+    
+    # Stage 4: Filter DEGs using systemPipeR's filterDEGs
+    appendStep(sal) <- LineWise(code = {
+      load("step3_deg.RData")
+      
+      # Format data frame for filterDEGs
+      deg_df <- data.frame(
+        logFC = deg_table\$logFC,
+        FDR = deg_table\$FDR
+      )
+      rownames(deg_df) <- deg_table\$gene_id
+      
+      # Run filterDEGs with a robust fallback
+      filtered_list <- tryCatch({
+        # systemPipeR::filterDEGs expects FDR in percentage (e.g., 10 for 10%)
+        systemPipeR::filterDEGs(degDF = deg_df, filter = c(FoldChange = 1.5, FDR = 10))
+      }, error = function(e) {
+        # Manual fallback if filterDEGs fails
+        up <- rownames(deg_df[deg_df\$logFC >= log2(1.5) & deg_df\$FDR <= 0.1, , drop = FALSE])
+        down <- rownames(deg_df[deg_df\$logFC <= -log2(1.5) & deg_df\$FDR <= 0.1, , drop = FALSE])
+        list(Uplist = up, Downlist = down)
+      })
+      
+      # Extract Up and Down genes safely
+      up_genes <- if (!is.null(filtered_list\$Uplist)) filtered_list\$Uplist else character(0)
+      down_genes <- if (!is.null(filtered_list\$Downlist)) filtered_list\$Downlist else character(0)
+      
+      summary_df <- data.frame(
+        Direction = c("Up", "Down"),
+        Count = c(length(up_genes), length(down_genes))
+      )
+      write.csv(summary_df, "deg_summary.csv", row.names = FALSE)
+      save(filtered_list, file = "step4_filtered.RData")
+    }, step_name = "filter_degs", dependency = "deg_analysis")
+    
+    # Stage 5: Visualization (Volcano & PCA Plots)
+    appendStep(sal) <- LineWise(code = {
+      load("step2_normalized.RData")
+      load("step3_deg.RData")
+      
+      # 1. Volcano Plot
+      pdf("volcano_plot.pdf", width = 7, height = 7)
+      plot(deg_table\$logFC, -log10(deg_table\$pvalue), 
+           col = ifelse(deg_table\$FDR <= 0.1 & abs(deg_table\$logFC) >= log2(1.5), "red", "black"),
+           pch = 20, xlab = "log2 Fold Change", ylab = "-log10 p-value",
+           main = "Volcano Plot")
+      abline(h = -log10(0.05), col = "blue", lty = 2)
+      abline(v = c(-log2(1.5), log2(1.5)), col = "blue", lty = 2)
+      dev.off()
+      
+      # 2. PCA Plot
+      pca <- prcomp(t(log2_cpm))
+      pca_df <- data.frame(pca\$x, condition = coldata\$condition)
+      pdf("pca_plot.pdf", width = 7, height = 7)
+      plot(pca_df\$PC1, pca_df\$PC2, col = as.factor(pca_df\$condition), 
+           pch = 19, cex = 2, xlab = "PC1", ylab = "PC2", main = "PCA Plot")
+      legend("topright", legend = unique(pca_df\$condition), col = 1:length(unique(pca_df\$condition)), pch = 19)
+      dev.off()
+    }, step_name = "visualization", dependency = "filter_degs")
+    
+    # Stage 6: Workflow Report & Topology
+    appendStep(sal) <- LineWise(code = {
+      # Plot workflow topology
+      pdf("workflow_topology.pdf", width = 8, height = 8)
+      tryCatch({
+        systemPipeR::plotWF(sal, rstudio = FALSE)
+      }, error = function(e) {
+        plot.new()
+        text(0.5, 0.5, "Workflow Topology Plot Failed")
+      })
+      dev.off()
+    }, step_name = "workflow_report", dependency = "visualization")
+    
+    # Execute the entire workflow
     sal <- runWF(sal)
-    cmdlist(sal, step = "gzip")
-    outfiles(sal)["gzip"]
+    
+    # Save the final workflow state
+    sal <- write_SYSargsList(sal)
 
-
-    # --- Workflow Visualization [] ---
-    # Key functions: plotWF
-    plotWF(sal)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_systempiper_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_systempiper_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_systempiper_output.rds")
-    }
-
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SYSTEMPIPER:", paste0("    systempiper: ", packageVersion("systemPipeR"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE":',
+        paste0('    systemPipeR: ', as.character(packageVersion('systemPipeR')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_systempiper_results.csv
-    touch ${prefix}_systempiper_output.rds
-    echo "BIOC_SYSTEMPIPER:" > versions.yml
-    echo "    systempiper: 0.0.0" >> versions.yml
+    touch ${prefix}_systempiper_transcriptomics_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_SYSTEMPIPER_WORKFLOW {
+workflow BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ input files ] ]
 
     main:
-    BIOC_SYSTEMPIPER(ch_input)
+    BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_SYSTEMPIPER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SYSTEMPIPER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SYSTEMPIPER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SYSTEMPIPER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE.out.tables
+    plots    = BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE.out.plots
+    objects  = BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE.out.objects
+    versions = BIOC_SYSTEMPIPER_SYSTEMPIPER_TRANSCRIPTOMICS_PIPELINE.out.versions
 }

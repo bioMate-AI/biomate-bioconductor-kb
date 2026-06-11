@@ -1,149 +1,136 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: ACE
-// Uses segmented copy number data to estimate tumor cell percentage and produce copy number plots disp
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ACE/inst/doc/ACE_vignette.R
-// Upstream  : Biobase, QDNAseq, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("ACE")
+// Bioconductor workflow: ACE — run_ace_pipeline
+// Run the full absolute copy number estimation pipeline on a directory of BAM or RDS files to generate diagnostic plots and fitpicker tables.
+// Input: Aligned BAM files in a directory OR segmented QDNAseq RDS files.
+// Container: quay.io/biocontainers/bioconductor-ace:1.28.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: ACE, Biobase, QDNAseq, ggplot2
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Visualization & Output] Run runACE to process files, perform segmentation (if BAM), and calculate fits across specified ploidies and bin sizes. 2. Inspect
 
 nextflow.enable.dsl = 2
 
-process BIOC_ACE {
+process BIOC_ACE_RUN_ACE_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-ace"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-ace:1.24.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-ace:1.24.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_ace_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_ace_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_ace_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ACEcall)
-    library(jsonlite)
-
-    # --- Data [] ---
-    # Key functions: singlemodel, singleplot, ggtitle, theme
-    ---------------------------------------------------------------------
-    data("copyNumbersSegmented")
-    object <- copyNumbersSegmented
-    model1 <- singlemodel(object, QDNAseqobjectsample = 1)
-    bestfit1 <- model1$minima[tail(which(model1$rerror==min(model1$rerror)), 1)]
-    # --- Data [] ---
-    # Key functions: singlemodel, singleplot
-    ---------------------------------------------------------------------
-    data("copyNumbersSegmented")
-    object <- copyNumbersSegmented
-    # Since you're convinced the mode is 3N, you can run the singlemodel function to
-    # fit at ploidy = 3
-    # --- Objectsampletotemplate [] ---
-    # Key functions: objectsampletotemplate, exclude, rle
-    ---------------------------------------------------------------------
-    # To use data from QDNAseq-objects, ACE parses it into data frames referred to
-    # as "templates". Because we will look at sample2 several times, we can just
-    # create a variable with this data frame.
-    template <- objectsampletotemplate(object, index = 2)
-    # --- Squaremodel [] ---
-    # Key functions: squaremodel, ggtitle, singleplot
-    ---------------------------------------------------------------------
-    # Let's continue with the template we made for sample 2, and just see what happens...
-    # Since the output of this one is pretty big, I'm saving it to a variable
-    sqmodel <- squaremodel(template)
-    ls(sqmodel)
-    # --- Getadjustedsegments [] ---
-    # Key functions: getadjustedsegments
-    ---------------------------------------------------------------------
-    # Let's use the template dataframe we already created in the previous section
-    # for sample2. For cellularity and ploidy I'll use the original 2N fit
-    segmentdf <- getadjustedsegments(template, cellularity = 0.38)
-    head(segmentdf)
-    # --- Analyzegenomiclocations [] ---
-    # Key functions: analyzegenomiclocations
-    ---------------------------------------------------------------------
-    analyzegenomiclocations(segmentdf, Chromosome = 1, Position = 26365569)
-    # --- Acecall [] ---
-    # Key functions: ACEcall
-    ---------------------------------------------------------------------
-    ACEcall(object, 2, cellularity = 0.39)$calledplot
-    # --- Twosamplecompare [] ---
-    # Key functions: twosamplecompare
-    ---------------------------------------------------------------------
-    # I don't think these two samples are very much related
-    tsc <- twosamplecompare(object, index1 = 1, index2 = 2,
-                            cellularity1 = 0.79, cellularity2 = 0.39)
-    tsc$compareplot
-    # --- Squaremodelsummary [] ---
-    # Key functions: squaremodelsummary, squaremodel
-    ---------------------------------------------------------------------
-    # Let's see some more fits for sample1!
-    sms <- squaremodelsummary(object, QDNAseqobjectsample = 1,
-                              squaremodel(object, 1, penalty = 0.5, penploidy = 0.5),
-                              printplots = FALSE)
-    # --- Loopsquaremodel [] ---
-    # Key functions: loopsquaremodel
-    ---------------------------------------------------------------------
-    # I like squaremodels
-    lsm <- loopsquaremodel(object, printplots = FALSE, printobjectsummary = FALSE,
-                           penalty = 0.5, penploidy = 0.5, returnmodels = TRUE)
-    class(lsm)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_ace_results.csv", row.names = TRUE)
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
+    library(ACE)
+    library(Biobase)
+    library(QDNAseq)
+    library(ggplot2)
+    
+    # Define the userpath as the current working directory containing the input files
+    userpath <- getwd()
+    
+    # Detect input files in the working directory
+    bam_files <- list.files(userpath, pattern = "\\\\.bam\$", ignore.case = TRUE)
+    rds_files <- list.files(userpath, pattern = "\\\\.rds\$", ignore.case = TRUE)
+    
+    # Stage 1: Run runACE to process files, perform segmentation, and calculate fits
+    if (length(bam_files) > 0) {
+      message("Found BAM files in the working directory. Running runACE for BAM workflow...")
+      runACE(userpath, filetype='bam', binsizes = c(100, 1000),
+             ploidies = c(2,4), imagetype='png')
+    } else if (length(rds_files) > 0) {
+      message("Found RDS files in the working directory. Running runACE for RDS workflow...")
+      runACE(userpath, filetype='rds', ploidies = c(2,4), imagetype='png')
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_ace_results.csv")
+      stop("Error: No BAM or RDS files found in the working directory. Please provide aligned BAM files or segmented QDNAseq RDS files.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_ace_output.rds")
+    
+    # Stage 2: Inspect output directories, likelyfits, and fitpicker tables
+    message("Searching for generated fitpicker tables and diagnostic plots...")
+    
+    fitpicker_files <- list.files(userpath, pattern = "fitpicker", recursive = TRUE, full.names = TRUE)
+    if (length(fitpicker_files) > 0) {
+      message("Processing fitpicker tables:")
+      for (f in fitpicker_files) {
+        message("Reading: ", f)
+        tryCatch({
+          tbl <- read.delim(f, header = TRUE, sep = "\t")
+          print(head(tbl))
+          # Write a clean CSV copy of the fitpicker table to the working directory
+          out_name <- paste0("summary_", gsub("\\\\.tsv\$|\\\\.txt\$", "", basename(f)), ".csv")
+          write.csv(tbl, file = out_name, row.names = FALSE)
+          message("Saved CSV summary to: ", out_name)
+        }, error = function(e) {
+          warning("Could not process fitpicker file: ", f, " - ", e\$message)
+        })
+      }
+    } else {
+      message("No fitpicker tables found. Please check if runACE completed successfully.")
     }
+    
+    # List generated diagnostic plots
+    plots <- list.files(userpath, pattern = "\\\\.png\$", recursive = TRUE, full.names = TRUE)
+    if (length(plots) > 0) {
+      message("Generated diagnostic plots:")
+      for (p in plots) {
+        message("- ", p)
+      }
+    } else {
+      message("No diagnostic plots found.")
+    }
+    
+    message("ACE pipeline execution completed.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_ACE:", paste0("    ace: ", packageVersion("ACE"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_ACE_RUN_ACE_PIPELINE":',
+        paste0('    ACE: ', as.character(packageVersion('ACE')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_ace_results.csv
-    touch ${prefix}_ace_output.rds
-    echo "BIOC_ACE:" > versions.yml
-    echo "    ace: 0.0.0" >> versions.yml
+    touch ${prefix}_run_ace_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_ACE_WORKFLOW {
+workflow BIOC_ACE_RUN_ACE_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ Aligned BAM files in a directory OR segmented QDNAseq RDS files. ] ]
 
     main:
-    BIOC_ACE(ch_input)
+    BIOC_ACE_RUN_ACE_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_ACE.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_ACE.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_ACE.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_ACE.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_ACE_RUN_ACE_PIPELINE.out.tables
+    plots    = BIOC_ACE_RUN_ACE_PIPELINE.out.plots
+    objects  = BIOC_ACE_RUN_ACE_PIPELINE.out.objects
+    versions = BIOC_ACE_RUN_ACE_PIPELINE.out.versions
 }

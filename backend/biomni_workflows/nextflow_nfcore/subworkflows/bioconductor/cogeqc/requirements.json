@@ -1,0 +1,22 @@
+{
+  "package": "cogeqc",
+  "requirements": [
+    "GenomicRanges",
+    "ape",
+    "cogeqc",
+    "rtracklayer"
+  ],
+  "by_workflow": {
+    "comparative_genomics_qc.nf": [
+      "GenomicRanges",
+      "ape",
+      "cogeqc",
+      "rtracklayer"
+    ],
+    "main.nf": [
+      "GenomicRanges",
+      "cogeqc",
+      "rtracklayer"
+    ]
+  }
+}

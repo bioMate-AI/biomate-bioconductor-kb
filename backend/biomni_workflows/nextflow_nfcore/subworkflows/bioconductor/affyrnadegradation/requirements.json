@@ -1,0 +1,21 @@
+{
+  "package": "affyrnadegradation",
+  "requirements": [
+    "AffyRNADegradation",
+    "Biobase",
+    "affy",
+    "vsn"
+  ],
+  "by_workflow": {
+    "integrated_calibration_pipeline.nf": [
+      "AffyRNADegradation",
+      "Biobase",
+      "affy",
+      "vsn"
+    ],
+    "main.nf": [
+      "AffyRNADegradation",
+      "affy"
+    ]
+  }
+}

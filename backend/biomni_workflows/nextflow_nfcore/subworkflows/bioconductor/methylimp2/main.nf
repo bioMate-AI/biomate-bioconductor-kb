@@ -1,103 +1,109 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: methyLImp2
-// This package allows to estimate missing values in DNA methylation data. methyLImp method is based on
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/methyLImp2/inst/doc/methyLImp2_vignette.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("methyLImp2")
+// Bioconductor workflow: methyLImp2 — methylation_imputation
+// Impute missing values in DNA methylation data using parallelized linear regression and optional mini-batching.
+// Input: beta_SE
+// Container: quay.io/biocontainers/bioconductor-methylimp2:1.6.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: BiocParallel, SummarizedExperiment, methyLImp2
+// QC: missing-value handling
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the DNA methylation data and metadata. 2. Run the methyLImp2 imputation algorithm, specifying the array type, parallelization
 
 nextflow.enable.dsl = 2
 
-process BIOC_METHYLIMP2 {
+process BIOC_METHYLIMP2_METHYLATION_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-methylimp2"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-methylimp2:1.2.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-methylimp2:1.2.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_methylimp2_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_methylimp2_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_methylimp2_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
+    # Load required libraries
     library(methyLImp2)
-    library(SummarizedExperiment)
-    library(jsonlite)
-
-    # --- Methylation Imputation [] ---
-    # Key functions: methyLImp2
-    beta_SE_imputed <- methyLImp2::methyLImp2(
-        input = beta_SE,
-        type = "EPIC",
-        BPPARAM = BiocParallel::SnowParam(exportglobals = FALSE),
-        minibatch_frac = 0.5
-    )
-
-
-    # --- Performance Evaluation [] ---
-    # Key functions: evaluatePerformance
-    performance <- methyLImp2::evaluatePerformance(
-        beta,
-        t(SummarizedExperiment::assays(beta_SE_imputed)[[1]]),
-        na_positions
-    )
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_methylimp2_results.csv", row.names = TRUE)
+    library(BiocParallel)
+    
+    # Step 1: Load the DNA methylation data and metadata
+    # The pipeline reads the user-provided SummarizedExperiment object from the working directory.
+    if (file.exists("beta_SE.rds")) {
+      beta_SE <- readRDS("beta_SE.rds")
+    } else if (file.exists("beta_SE")) {
+      beta_SE <- readRDS("beta_SE")
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_methylimp2_results.csv")
+      stop("Error: Input file 'beta_SE.rds' or 'beta_SE' not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_methylimp2_output.rds")
-    }
+    
+    # Step 2: Run the methyLImp2 imputation algorithm
+    # Specifying the array type, parallelization settings, and mini-batch fraction exactly as documented.
+    time <- system.time(beta_SE_imputed <- methyLImp2(input = beta_SE, 
+                                                   type = "EPIC", 
+                                                   BPPARAM = SnowParam(exportglobals = FALSE),
+                                                   minibatch_frac = 0.5))
+    
+    # Step 3: Write named output files for the meaningful results
+    # Save the complete imputed SummarizedExperiment object
+    saveRDS(beta_SE_imputed, "beta_SE_imputed.rds")
+    
+    # Extract and save the imputed beta values matrix as a CSV file
+    imputed_matrix <- assay(beta_SE_imputed)
+    write.csv(imputed_matrix, "imputed_beta_values.csv", row.names = TRUE)
+    
+    # Save runtime performance metrics
+    runtime_message <- paste0("Runtime was ", round(time[3], digits = 2), " seconds.")
+    writeLines(runtime_message, "runtime.txt")
+    cat(runtime_message, "\n")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_METHYLIMP2:", paste0("    methylimp2: ", packageVersion("methyLImp2"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_METHYLIMP2_METHYLATION_IMPUTATION":',
+        paste0('    methyLImp2: ', as.character(packageVersion('methyLImp2')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_methylimp2_results.csv
-    touch ${prefix}_methylimp2_output.rds
-    echo "BIOC_METHYLIMP2:" > versions.yml
-    echo "    methylimp2: 0.0.0" >> versions.yml
+    touch ${prefix}_methylation_imputation.csv versions.yml
     """
 }
 
-
-workflow BIOC_METHYLIMP2_WORKFLOW {
+workflow BIOC_METHYLIMP2_METHYLATION_IMPUTATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ beta_SE ] ]
 
     main:
-    BIOC_METHYLIMP2(ch_input)
+    BIOC_METHYLIMP2_METHYLATION_IMPUTATION(ch_input)
 
     emit:
-    results  = BIOC_METHYLIMP2.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_METHYLIMP2.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_METHYLIMP2.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_METHYLIMP2.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_METHYLIMP2_METHYLATION_IMPUTATION.out.tables
+    plots    = BIOC_METHYLIMP2_METHYLATION_IMPUTATION.out.plots
+    objects  = BIOC_METHYLIMP2_METHYLATION_IMPUTATION.out.objects
+    versions = BIOC_METHYLIMP2_METHYLATION_IMPUTATION.out.versions
 }

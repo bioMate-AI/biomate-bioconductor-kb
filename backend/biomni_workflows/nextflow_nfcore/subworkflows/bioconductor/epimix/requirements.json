@@ -1,0 +1,11 @@
+{
+  "package": "epimix",
+  "requirements": [
+    "EpiMix"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "EpiMix"
+    ]
+  }
+}

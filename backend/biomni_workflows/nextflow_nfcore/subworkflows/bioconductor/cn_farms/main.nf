@@ -1,132 +1,130 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: cn.farms
-// This package implements the cn.FARMS algorithm for copy number variation (CNV) analysis. cn.FARMS al
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/cn.farms/inst/doc/cn.farms.R
-// Upstream  : none
-// Downstream: none
-//
-// Install: BiocManager::install("cn.farms")
+// Bioconductor workflow: cn_farms — cn_farms_pipeline
+// Estimate copy numbers from raw Affymetrix CEL files using the FARMS algorithm.
+// Input: cel_files.CEL
+// Container: quay.io/biocontainers/r-base:4.3.1
+// R packages: cn.farms, cn_farms
+// Bioconductor: 3.20 | R: 4.4
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_CN_FARMS {
+process BIOC_CN_FARMS_CN_FARMS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-cn_farms"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-cn.farms:1.54.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-cn.farms:1.54.0--r44_0'}"
+    container "quay.io/biocontainers/r-base:4.3.1"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_cn_farms_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_cn_farms_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_cn_farms_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("cn.farms", "cn_farms")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
+    }
+
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    # Load the required Bioconductor package
     library(cn.farms)
-    library(jsonlite)
-
-    # --- Single-locus Summarization [] ---
-    # Key functions: slSummarization, assayData
-    summaryParam <- list(cyc = 10)
-    callParam <- list(cores = 1, runtype = "ff")
-    slData <- slSummarization(
-        normData, 
-        summaryMethod = "Variational", 
-        summaryParam = summaryParam,
-        callParam = callParam,
-        summaryWindow = "std"
-    )
-    sl_intensity <- assayData(slData)$intensity[1:6, 1:5]
-    sl_lz <- assayData(slData)$L_z[1:6, 1:5]
-
-
-    # --- Data Combination [] ---
-    # Key functions: combineData
-    combData <- combineData(slData, npData, runtype = "ff")
-
-
-    # --- Multi-locus Summarization [] ---
-    # Key functions: mlSummarization, assayData
-    windowParam <- list(windowSize = 5, overlap = TRUE)
-    summaryParam <- list(cyc = 20)
-    callParam <- list(cores = 1, runtype = "ff")
-    mlData <- mlSummarization(
-        slData, 
-        windowMethod = "std", 
-        windowParam = windowParam, 
-        summaryMethod = "Variational", 
-        summaryParam = summaryParam, 
-        callParam = callParam
-    )
-    ml_intensity <- assayData(mlData)$intensity[1:6, 1:5]
-
-
-    # --- Copy Number Segmentation [] ---
-    # Key functions: dnaCopySf, fData
-    colnames(assayData(mlData)$L_z) <- sampleNames(mlData)
-    segments <- dnaCopySf(
-        x = assayData(mlData)$L_z[, 1:10], 
-        chrom = fData(mlData)$chrom, 
-        maploc = fData(mlData)$start, 
-        cores = 1, 
-        smoothing = FALSE
-    )
-    seg_info <- fData(segments)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_cn_farms_results.csv", row.names = TRUE)
+    
+    # 1. Locate CEL files
+    # The pipeline reads the declared user input 'cel_files.CEL' from the working directory.
+    # If not found under that exact name, it falls back to any CEL files in the directory.
+    filenames <- "cel_files.CEL"
+    if (!file.exists(filenames)) {
+      filenames <- list.files(pattern = "cel_files\\\\.CEL\$", ignore.case = TRUE, full.names = TRUE)
+    }
+    if (length(filenames) == 0 || !file.exists(filenames[1])) {
+      filenames <- list.files(pattern = "\\\\.CEL\$", ignore.case = TRUE, full.names = TRUE)
+    }
+    
+    if (length(filenames) == 0) {
+      stop("Error: No CEL files found. Please ensure 'cel_files.CEL' is in the working directory.")
+    }
+    
+    # 2. Run the cn.farms pipeline to normalize, correct for fragment length, and summarize probe intensities
+    # Keeping the exact function call and argument names from the documented code
+    cn.data <- cn.farms(filenames)
+    
+    # 3. Extract copy number estimates and save outputs
+    # Save the complete ExpressionSet object as an RDS file
+    saveRDS(cn.data, file = "cn_farms_output.rds")
+    
+    # Extract copy number estimates and write to a CSV table
+    if (inherits(cn.data, "ExpressionSet")) {
+      cn_estimates <- exprs(cn.data)
+      write.csv(cn_estimates, file = "copy_number_estimates.csv", row.names = TRUE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_cn_farms_results.csv")
+      tryCatch({
+        cn_estimates <- assayDataElement(cn.data, "exprs")
+        write.csv(cn_estimates, file = "copy_number_estimates.csv", row.names = TRUE)
+      }, error = function(e) {
+        warning("Could not extract copy number estimates using standard ExpressionSet methods.")
+      })
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_cn_farms_output.rds")
-    }
+    
+    # Generate a diagnostic PDF plot of the copy number distribution
+    pdf("copy_number_distribution.pdf")
+    tryCatch({
+      boxplot(exprs(cn.data), main = "Distribution of Copy Number Estimates", 
+              xlab = "Samples", ylab = "Intensity (log2 scale)", col = "lightblue")
+    }, error = function(e) {
+      plot(1, type = "n", main = "Plotting failed", xlab = "", ylab = "")
+      text(1, 1, "Could not generate boxplot of estimates")
+    })
+    dev.off()
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_CN_FARMS:", paste0("    cn_farms: ", packageVersion("cn.farms"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_CN_FARMS_CN_FARMS_PIPELINE":',
+        paste0('        cn_farms: ', as.character(packageVersion("cn_farms")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_cn_farms_results.csv
-    touch ${prefix}_cn_farms_output.rds
-    echo "BIOC_CN_FARMS:" > versions.yml
-    echo "    cn_farms: 0.0.0" >> versions.yml
+    touch ${prefix}_cn_farms_pipeline.csv versions.yml
     """
 }
 
-
-workflow BIOC_CN_FARMS_WORKFLOW {
+workflow BIOC_CN_FARMS_CN_FARMS_PIPELINE_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ cel_files.CEL ] ]
 
     main:
-    BIOC_CN_FARMS(ch_input)
+    BIOC_CN_FARMS_CN_FARMS_PIPELINE(ch_input)
 
     emit:
-    results  = BIOC_CN_FARMS.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_CN_FARMS.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_CN_FARMS.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_CN_FARMS.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_CN_FARMS_CN_FARMS_PIPELINE.out.tables
+    plots    = BIOC_CN_FARMS_CN_FARMS_PIPELINE.out.plots
+    objects  = BIOC_CN_FARMS_CN_FARMS_PIPELINE.out.objects
+    versions = BIOC_CN_FARMS_CN_FARMS_PIPELINE.out.versions
 }

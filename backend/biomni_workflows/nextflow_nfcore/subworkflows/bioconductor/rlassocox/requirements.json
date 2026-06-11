@@ -1,0 +1,13 @@
+{
+  "package": "rlassocox",
+  "requirements": [
+    "RLassoCox",
+    "igraph"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "RLassoCox",
+      "igraph"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "package": "immunotation",
+  "requirements": [
+    "ggplot2",
+    "immunotation"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "ggplot2",
+      "immunotation"
+    ]
+  }
+}

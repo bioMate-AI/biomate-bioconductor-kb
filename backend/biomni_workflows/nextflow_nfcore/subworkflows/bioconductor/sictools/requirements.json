@@ -1,0 +1,17 @@
+{
+  "package": "sictools",
+  "requirements": [
+    "Rsamtools",
+    "SICtools"
+  ],
+  "by_workflow": {
+    "indel_difference_detection.nf": [
+      "Rsamtools",
+      "SICtools"
+    ],
+    "main.nf": [
+      "Rsamtools",
+      "SICtools"
+    ]
+  }
+}

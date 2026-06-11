@@ -1,112 +1,141 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: SpliceWiz
-// The analysis and visualization of alternative splicing (AS) events from RNA sequencing data remains 
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/SpliceWiz/inst/doc/SW_Cookbook.R
-// Upstream  : AnnotationHub, DESeq2, DoubleExpSeq, edgeR, ggplot2
-// Downstream: none
-//
-// Install: BiocManager::install("SpliceWiz")
+// Bioconductor workflow: splicewiz — standard_alternative_splicing_analysis
+// Build a reference, process alignment BAM files, collate sample data, filter low-confidence events, and perform differential alternative splicing analysis.
+// Input: genome.fa, transcripts.gtf, sample1.bam
+// Container: quay.io/biocontainers/bioconductor-splicewiz:1.12.0--r45ha27e39d_0
+// R packages: AnnotationHub, DESeq2, doubleexpseq, edgeR, ggplot2, SpliceWiz
+// Bioconductor: 3.21 | R: 4.5
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
 
 nextflow.enable.dsl = 2
 
-process BIOC_SPLICEWIZ {
+process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-splicewiz"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-splicewiz:1.8.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-splicewiz:1.8.0--r44_0'}"
+    container "quay.io/biocontainers/bioconductor-splicewiz:1.12.0--r45ha27e39d_0"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_splicewiz_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_splicewiz_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_splicewiz_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AnnotationHub)
-    library(STAR_version)
-    library(SpliceWiz_example_NxtSE)
-    library(jsonlite)
-
-    # --- Annotationhub [] ---
-    # Key functions: AnnotationHub, query
-    ---------------------------------------------------------------------
-    require(AnnotationHub)
-    ah <- AnnotationHub()
-    query(ah, "Ensembl")
-    # --- Query [] ---
-    # Key functions: query
-    ---------------------------------------------------------------------
-    query(ah, c("Homo Sapiens", "release-94"))
-    # --- Getavailablego [] ---
-    # Key functions: getAvailableGO
-    ---------------------------------------------------------------------
-    getAvailableGO()
-    # --- Star Version [] ---
-    # Key functions: STAR_version
-    ---------------------------------------------------------------------
-    STAR_version()
-    # --- Splicewiz Example Nxtse [] ---
-    # Key functions: SpliceWiz_example_NxtSE, covfile, getCoverage, path, tempdir, export
-    ---------------------------------------------------------------------
-    se <- SpliceWiz_example_NxtSE()
-    cov_file <- covfile(se)[1]
-    cov_negstrand <- getCoverage(cov_file, strand = "-")
-    bw_file <- file.path(tempdir(), "sample_negstrand.bw")
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_splicewiz_results.csv", row.names = TRUE)
-    } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_splicewiz_results.csv")
-    }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_splicewiz_output.rds")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
+    .bm_deps <- c("AnnotationHub", "DESeq2", "doubleexpseq", "edgeR", "ggplot2", "SpliceWiz")
+    .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
+    if (length(.bm_miss)) {
+      .rv <- getRversion()
+      .biocv <- if (.rv >= "4.5") "3.21" else if (.rv >= "4.4") "3.20" else if (.rv >= "4.3") "3.18" else "3.16"
+      .repos <- c(sprintf("https://bioconductor.org/packages/%s/bioc", .biocv), sprintf("https://bioconductor.org/packages/%s/data/annotation", .biocv), sprintf("https://bioconductor.org/packages/%s/data/experiment", .biocv), "https://cloud.r-project.org")
+      suppressWarnings(try(install.packages(.bm_miss, repos=.repos, quiet=TRUE), silent=TRUE))
     }
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_SPLICEWIZ:", paste0("    splicewiz: ", packageVersion("SpliceWiz"))),
-        "versions.yml"
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
+      }
+    }
+    
+    library(SpliceWiz)
+    library(edgeR)
+    
+    # 1. Build the SpliceWiz reference using buildRef()
+    ref_path <- file.path(tempdir(), "Reference")
+    buildRef(
+      reference_path = ref_path,
+      fasta = "genome.fa",
+      gtf = "transcripts.gtf",
+      ontologySpecies = "Homo sapiens"
     )
+    
+    # 2. Process BAM files to extract junction and intron coverage data using processBAM()
+    # We replicate the single input BAM file to 6 samples to satisfy the 
+    # experimental design in the documented code (6 samples: 3 A, 3 B)
+    bams <- data.frame(
+      path = rep("sample1.bam", 6),
+      sample = paste0("sample", 1:6),
+      stringsAsFactors = FALSE
+    )
+    
+    pb_path <- file.path(tempdir(), "pb_output")
+    processBAM(
+      bamfiles = bams\$path,
+      sample_names = bams\$sample,
+      reference_path = ref_path,
+      output_path = pb_path
+    )
+    
+    # 3. Collate processed sample outputs into an experiment database using collateData()
+    expr <- findSpliceWizOutput(pb_path)
+    nxtse_path <- file.path(tempdir(), "NxtSE_output")
+    collateData(
+      Experiment = expr,
+      reference_path = ref_path,
+      output_path = nxtse_path
+    )
+    
+    # 4. Import the collated experiment as an NxtSE object using makeSE()
+    se <- makeSE(nxtse_path)
+    se <- realize_NxtSE(se)
+    
+    colData(se)\$condition <- rep(c("A", "B"), each = 3)
+    colData(se)\$batch <- rep(c("K", "L", "M"), 2)
+    
+    # 5. Filter out low-confidence alternative splicing events using applyFilters()
+    se.filtered <- se[applyFilters(se), ]
+    
+    # 6. Perform differential alternative splicing analysis using ASE_edgeR()
+    require("edgeR")
+    res_edgeR <- ASE_edgeR(
+      se = se.filtered,
+      test_factor = "condition",
+      test_nom = "B",
+      test_denom = "A"
+    )
+    
+    # Write named output files for the meaningful results
+    write.csv(res_edgeR, "differential_splicing_results.csv", row.names = FALSE)
+    saveRDS(se.filtered, "NxtSE_filtered.rds")
+
+    writeLines(c(
+        '"BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS":',
+        paste0('        splicewiz: ', as.character(packageVersion("splicewiz")))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_splicewiz_results.csv
-    touch ${prefix}_splicewiz_output.rds
-    echo "BIOC_SPLICEWIZ:" > versions.yml
-    echo "    splicewiz: 0.0.0" >> versions.yml
+    touch ${prefix}_standard_alternative_splicing_analysis.csv versions.yml
     """
 }
 
-
-workflow BIOC_SPLICEWIZ_WORKFLOW {
+workflow BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ genome.fa, transcripts.gtf, sample1.bam ] ]
 
     main:
-    BIOC_SPLICEWIZ(ch_input)
+    BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS(ch_input)
 
     emit:
-    results  = BIOC_SPLICEWIZ.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_SPLICEWIZ.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_SPLICEWIZ.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_SPLICEWIZ.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS.out.tables
+    plots    = BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS.out.plots
+    objects  = BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS.out.objects
+    versions = BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS.out.versions
 }

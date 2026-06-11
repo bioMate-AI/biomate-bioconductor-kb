@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters:\n    - sequence=The input gene sequence as a character string.\n    - popSize=The population size for the genetic algorithm; larger values are recommended for longer sequences.\n    - iters=The number of iterations/generations to run; larger values are recommended for longer sequences.\n    - crossoverRate=The probability of crossover between sequences (e.g., 0.3); higher rates speed up convergence.\n    - mutationChance=The probability of codon mutation (e.g., 0.05); higher rates speed up convergence.\n    - region=A numeric vector of length 2 specifying the start and end positions of the sequence region to optimize. Must be a multiple of three and align with the open reading frame (ORF).\n    - organism=The organism code (e.g., \"ec\" for Escherichia coli) to determine codon bias.\n    - showGeneration=Logical indicating whether to print progress for each generation.\n    - frontSeq=An optional character string representing a regulatory segment to prepend before the start codon.\n    - ramp=An optional parameter to specify a \"ramp\" region (typically the first 30-50 codons) to maintain low translation efficiency and reduce ribosomal traffic jams.\n- alternatives:\n    - GeneFoldGA=Use when only mRNA secondary structure (maximizing minimum free energy) should be optimized, ignoring codon bias.\n    - GeneCodon=Use when only codon bias should be optimized, ignoring mRNA secondary structure.\n    - OPTIMIZER / GeneDesign / Gene Designer=External non-R tools mentioned that optimize genes but typically only consider codon bias.\n- when_to_use: Use when designing heterologous gene sequences for expression in a host organism, specifically when you need to optimize translation efficiency by balancing codon bias (CAI) and mRNA secondary structure (MFE) near the translation initiation region.\n- pitfalls:\n    - The designated optimization region must be a multiple of three and in accordance with the open reading frame (ORF) of the gene.\n    - The package requires the external Vienna RNA Package (specifically the 'fold' function) to be installed on the operating system to calculate minimum free energy.",
+  "workflows": [
+    {
+      "name": "joint_codon_and_structure_optimization",
+      "intent": "Optimize a gene sequence considering both codon usage bias and mRNA secondary structure using a genetic algorithm.",
+      "input": [
+        "EGFP.fasta (FASTA file containing the gene sequence to optimize)"
+      ],
+      "stages": "1. Read the sequence from the FASTA file ;; 2. Run the genetic algorithm optimization using GeneGA ;; 3. Display the optimized sequences and their evaluation metrics ;; 4. Plot the optimization progress (CAI, Free Energy, and joint distribution)",
+      "code": "seqfile=system.file(\"sequence\", \"EGFP.fasta\", package=\"GeneGA\")\nseq=unlist(getSequence(read.fasta(seqfile), as.string=TRUE))\nGeneGA.result=GeneGA(sequence=seq, popSize=40, iters=150, crossoverRate=0.3, mutationChance=0.05, region=c(1,60), organism=\"ec\", showGeneration=FALSE)\nshow(GeneGA.result)\nplotGeneGA(GeneGA.result, type=1)\nplotGeneGA(GeneGA.result, type=2)\nplotGeneGA(GeneGA.result, type=3)"
+    },
+    {
+      "name": "custom_w_table_computation",
+      "intent": "Compute a custom codon relative adaptiveness (w) table from highly expressed genes of a specific species or tissue.",
+      "input": [
+        "EGFP.fasta (FASTA file containing highly expressed gene sequences)"
+      ],
+      "stages": "1. Read the highly expressed gene sequences ;; 2. Calculate the Relative Synonymous Codon Usage (RSCU) ;; 3. Compute the relative adaptiveness (w) values by normalizing RSCU against the maximum RSCU for each amino acid",
+      "code": "library(GeneGA)\nseqfile=system.file(\"sequence\", \"EGFP.fasta\", package=\"GeneGA\")\naa=read.fasta(seqfile)\nrscu=uco(unlist(aa), index=\"rscu\")\nw_value=rscu # w_value is the w table we need computing\nnames(w_value)=names(rscu)\nnames=sapply(names(rscu), function(x) translate(s2c(x)))\namino=hash()\nfor(i in unique(names)){\n\tamino[[i]]=max(rscu[which(names==i)])\n}\nfor(i in 1:length(names)){\n\tw_value[i]=rscu[[names(rscu)[i]]]/amino[[translate(s2c(names(rscu)[i]))]]\n}"
+    }
+  ]
+}

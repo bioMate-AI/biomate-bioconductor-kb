@@ -1,0 +1,24 @@
+{
+  "package_type": "analysis_workflow",
+  "knowledge": "- key_parameters: memSubjects=A vector of length equal to the number of subjects, where 1 indicates case and 0 indicates control ;; transformFlag=Logical flag indicating whether to apply data transformation (e.g., Box-Cox) ;; transformMethod=Character string specifying the transformation method, typically 'boxcox' ;; scaleFlag=Logical flag indicating whether to scale the gene expression levels ;; quiet=Logical flag to suppress progress messages during EM optimization ;; iniGeneMethod=Method to initialize gene clustering ('Ttest' or 'Wilcox') in gsMMD/gsMMD.default ;; memIni=A vector of initial gene cluster memberships (1=over-expressed, 2=non-differentially expressed, 3=under-expressed) for gsMMD2/gsMMD2.default\n- alternatives: eLNN and eGG (Lo and Gottardo, 2007)=Empirical Bayes models for differential gene expression ;; standard two-sample t-test or Wilcoxon rank-sum test=Simple non-model-based alternatives, though they do not directly estimate FDR, FNDR, FPR, and FNR for the specific dataset\n- when_to_use: Use when analyzing transcriptomics/microarray data with exactly two tissue types (case vs. control) and where tissue samples within a tissue type are conditionally independent given the gene (marginal correlations are close to zero). It is especially useful when you need direct estimates of dataset-specific error rates (FDR, FNDR, FPR, FNR).\n- pitfalls: The EM optimization can be computationally slow for very large datasets, though v2.0.7+ utilizes Fortran code to improve speed ;; Visualizing goodness of fit via plotHistDensity assumes that marginal correlations among tissue samples are ignorable/close to zero ;; memSubjects must be strictly coded as 0 (control) and 1 (case)",
+  "workflows": [
+    {
+      "name": "expression_set_workflow",
+      "intent": "Select differentially expressed genes, estimate error rates, and plot model fit from an ExpressionSet object.",
+      "input": [
+        "eSet1 (ExpressionSet object containing gene expression data and phenotypic metadata)"
+      ],
+      "stages": "1. Prepare sample membership vector ;; 2. Run gene selection using gsMMD ;; 3. Estimate error rates using errRates ;; 4. Plot density fit using plotHistDensity",
+      "code": "library(GeneSelectMMD)\n  library(ALL)\n  data(ALL)\n  eSet1 <- ALL[1:100, ALL$BT == \"B3\" | ALL$BT == \"T2\"]\n  \n  mem.str <- as.character(eSet1$BT)\n  nSubjects <- length(mem.str)\n  memSubjects <- rep(0,nSubjects)\n  # B3 coded as 0, T2 coded as 1\n  memSubjects[mem.str == \"T2\"] <- 1\n  \n  obj.gsMMD <- gsMMD(eSet1, memSubjects, transformFlag = TRUE, \n    transformMethod = \"boxcox\", scaleFlag = TRUE, quiet = TRUE)\n  para <- obj.gsMMD$para\n  print(round(para, 3))\n  print(round(errRates(obj.gsMMD), 3))\n  plotHistDensity(obj.gsMMD, plotFlag = \"case\", \n      mytitle = \"Histogram of gene expression levels for T2\\nimposed with estimated density (case)\", \n      plotComponent = TRUE, \n      x.legend = c(0.8, 3), \n      y.legend = c(0.3, 0.4), \n      numPoints = 500,\n      cex.main = 1,\n      cex = 1)"
+    },
+    {
+      "name": "data_matrix_workflow",
+      "intent": "Select differentially expressed genes and estimate error rates from a raw expression matrix.",
+      "input": [
+        "mat (matrix of gene expression values where rows are genes and columns are samples)"
+      ],
+      "stages": "1. Prepare sample membership vector ;; 2. Run gene selection using gsMMD.default ;; 3. Estimate error rates using errRates",
+      "code": "library(GeneSelectMMD)\n  library(ALL)\n  data(ALL)\n  eSet1 <- ALL[1:100, ALL$BT == \"B3\" | ALL$BT == \"T2\"]\n  mat <- exprs(eSet1)\n  \n  mem.str <- as.character(eSet1$BT)\n  nSubjects <- length(mem.str)\n  memSubjects <- rep(0,nSubjects)\n  # B3 coded as 0, T2 coded as 1\n  memSubjects[mem.str == \"T2\"] <- 1\n \n  obj.gsMMD <- gsMMD.default(mat, memSubjects, iniGeneMethod = \"Ttest\",\n          transformFlag = TRUE, transformMethod = \"boxcox\", scaleFlag = TRUE,\n          quiet=TRUE)\n  para <- obj.gsMMD$para\n  print(round(para, 3))\n  print(round(errRates(obj.gsMMD), 3))"
+    }
+  ]
+}

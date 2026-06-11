@@ -1,104 +1,185 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor module: GateFinder
-// Given a vector of cluster memberships for a cell population, identifies a sequence of gates (polygon
-//
-// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/GateFinder/inst/doc/GateFinder.R
-// Upstream  : flowCore
-// Downstream: none
-//
-// Install: BiocManager::install("GateFinder")
+// Bioconductor workflow: GateFinder — gate_finder_optimization
+// Identify and visualize an optimal sequence of 2D polygon gates to isolate a target cell population from high-dimensional cytometry data.
+// Input: rawdata, targetpop
+// Container: quay.io/biocontainers/bioconductor-gatefinder:1.30.0--r45hdfd78af_0
+// R packages: (see script)
+// Bioconductor: 3.20 | R: 4.4
+// Requires: GateFinder, flowCore
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
 // ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Define the target cell population based on marker expression thresholding
+//  * 2. [Core Analysis] Subset the expression matrix to markers of interest
+//  * 3. [Core Analysis] Run GateFinder to optimize the gating strategy
+//  * 4. [Visualization & Output] Plot the sequential 2D gating steps
+//  * 5. [Visualization & Output] Plot the F-measure, purity, and yield metrics across gating steps
+//  * 6. [Core Analysis] Refine the gating strategy by adjusting outlier.percentile or beta parameters
 
 nextflow.enable.dsl = 2
 
-process BIOC_GATEFINDER {
+process BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    conda "bioconductor-gatefinder"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-gatefinder:1.26.0--r44_0' :
-        'quay.io/biocontainers/bioconductor-gatefinder:1.26.0--r44_0'}"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20"
 
     input:
-    tuple val(meta), path(count_data)
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
-    tuple val(meta), path("${meta.id}_gatefinder_results.csv"),  emit: results
-    tuple val(meta), path("${meta.id}_gatefinder_output.rds"),   emit: rds
-    tuple val(meta), path("${meta.id}_gatefinder_plots.pdf"),    emit: plots, optional: true
-    path "versions.yml",                                            emit: versions
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    def args   = task.ext.args   ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_d in list.files(".", full.names = TRUE)) {
+          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+            }
+          }
+        }
+    
     library(GateFinder)
-    library(jsonlite)
-
-    # --- Gating Optimization [] ---
-    # Key functions: GateFinder
-    results <- GateFinder(
-        x = x,
-        target = targetpop,
-        outlier.percentile = 0.5,
-        beta = 0.5
-    )
-
-
-    # --- Gating Visualization [] ---
-    # Key functions: plot
-    plot(
-        x,
-        results,
-        c(2, 3),
-        targetpop
-    )
-    plot(results)
-
-    # --- Save outputs ---
-    if (exists("results_df") && is.data.frame(results_df)) {
-        write.csv(results_df, "${prefix}_gatefinder_results.csv", row.names = TRUE)
+    library(flowCore)
+    
+    # Helper function to safely save results summary to CSV
+    save_results_csv <- function(res, filename) {
+      tryCatch({
+        # Try S4 slots first
+        df <- data.frame(
+          Step = seq_along(res@f.measure),
+          F_measure = res@f.measure,
+          Precision = res@precision,
+          Recall = res@recall
+        )
+        write.csv(df, filename, row.names = FALSE)
+      }, error = function(e) {
+        tryCatch({
+          # Try list-like access
+          df <- data.frame(
+            Step = seq_along(res\$f.measure),
+            F_measure = res\$f.measure,
+            Precision = res\$precision,
+            Recall = res\$recall
+          )
+          write.csv(df, filename, row.names = FALSE)
+        }, error = function(e2) {
+          message("Could not save CSV: ", e2\$message)
+        })
+      })
+    }
+    
+    # 1. Read User Inputs from the working directory
+    if (file.exists("rawdata.rds")) {
+      rawdata <- readRDS("rawdata.rds")
+    } else if (file.exists("rawdata.fcs")) {
+      rawdata <- read.FCS("rawdata.fcs", transformation = FALSE)
     } else {
-        write.csv(data.frame(status = "completed"), "${prefix}_gatefinder_results.csv")
+      stop("Error: rawdata file (rawdata.rds or rawdata.fcs) not found in the working directory.")
     }
-    if (exists("result_obj")) {
-        saveRDS(result_obj, "${prefix}_gatefinder_output.rds")
+    
+    if (file.exists("targetpop.rds")) {
+      targetpop <- readRDS("targetpop.rds")
+    } else if (file.exists("targetpop.csv")) {
+      targetpop <- as.logical(read.csv("targetpop.csv")[, 1])
+    } else {
+      stop("Error: targetpop file (targetpop.rds or targetpop.csv) not found in the working directory.")
     }
+    
+    # Set up marker names and indices dynamically based on the input rawdata
+    marker.names <- colnames(rawdata)
+    if (is.null(marker.names)) {
+      marker.names <- paste0("Marker_", seq_len(ncol(rawdata)))
+      colnames(rawdata) <- marker.names
+    }
+    prop.markers <- seq_along(marker.names)
+    
+    # Open PDF device to capture all diagnostic and optimization plots
+    pdf("gate_finder_plots.pdf", width = 11, height = 8.5)
+    
+    # 2. Define and visualize the target cell population based on marker expression thresholding
+    tryCatch({
+      # Attempt the exact vignette plot using columns 2 and 34
+      plot(exprs(rawdata)[ , c(2,34)], pch='.', col=targetpop+1, 
+           xlab='Cell Length', ylab='p-p38')
+      abline(h=3.5, col=3, lwd=2, lty=2)
+    }, error = function(e) {
+      message("Could not plot columns 2 and 34. Plotting first two available columns instead.")
+      cols_to_plot <- seq_len(min(2, ncol(rawdata)))
+      if (length(cols_to_plot) == 2) {
+        plot(exprs(rawdata)[ , cols_to_plot], pch='.', col=targetpop+1,
+             xlab=colnames(rawdata)[cols_to_plot[1]], ylab=colnames(rawdata)[cols_to_plot[2]])
+      }
+    })
+    
+    # 3. Subset the expression matrix to markers of interest
+    x=exprs(rawdata)[ , prop.markers]
+    colnames(x)=marker.names[prop.markers]
+    
+    # 4. Run GateFinder to optimize the gating strategy (Default Run)
+    results=GateFinder(x, targetpop)
+    saveRDS(results, "gate_finder_results_default.rds")
+    save_results_csv(results, "gate_finder_metrics_default.csv")
+    
+    # 5. Plot the sequential 2D gating steps and metrics
+    plot (x, results, c(2,3), targetpop)
+    plot(results)
+    
+    # 6. Refine the gating strategy by adjusting outlier.percentile
+    results=GateFinder(x, targetpop, outlier.percentile=0.5)     
+    saveRDS(results, "gate_finder_results_outlier_0.5.rds")
+    save_results_csv(results, "gate_finder_metrics_outlier_0.5.csv")
+    plot (x, results, c(2,3), targetpop)
+    plot(results)
+    
+    # 7. Refine the gating strategy by adjusting beta parameter
+    results=GateFinder(x, targetpop, beta=0.5)     
+    saveRDS(results, "gate_finder_results_beta_0.5.rds")
+    save_results_csv(results, "gate_finder_metrics_beta_0.5.csv")
+    plot (x, results, c(2,3), targetpop)
+    plot(results)
+    
+    # Close the graphics device
+    dev.off()
+    
+    message("GateFinder pipeline completed successfully. Outputs saved to working directory.")
 
-    # --- versions.yml ---
-    writeLines(
-        c("BIOC_GATEFINDER:", paste0("    gatefinder: ", packageVersion("GateFinder"))),
-        "versions.yml"
-    )
+    writeLines(c(
+        '"BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION":',
+        paste0('    GateFinder: ', as.character(packageVersion('GateFinder')))
+    ), "versions.yml")
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_gatefinder_results.csv
-    touch ${prefix}_gatefinder_output.rds
-    echo "BIOC_GATEFINDER:" > versions.yml
-    echo "    gatefinder: 0.0.0" >> versions.yml
+    touch ${prefix}_gate_finder_optimization.csv versions.yml
     """
 }
 
-
-workflow BIOC_GATEFINDER_WORKFLOW {
+workflow BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(count_data) ]
+    ch_input  // channel: [ val(meta), [ rawdata, targetpop ] ]
 
     main:
-    BIOC_GATEFINDER(ch_input)
+    BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION(ch_input)
 
     emit:
-    results  = BIOC_GATEFINDER.out.results   // channel: [ val(meta), path(csv) ]
-    rds      = BIOC_GATEFINDER.out.rds       // channel: [ val(meta), path(rds) ]
-    plots    = BIOC_GATEFINDER.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
-    versions = BIOC_GATEFINDER.out.versions  // channel: path(versions.yml)
+    tables   = BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION.out.tables
+    plots    = BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION.out.plots
+    objects  = BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION.out.objects
+    versions = BIOC_GATEFINDER_GATE_FINDER_OPTIMIZATION.out.versions
 }

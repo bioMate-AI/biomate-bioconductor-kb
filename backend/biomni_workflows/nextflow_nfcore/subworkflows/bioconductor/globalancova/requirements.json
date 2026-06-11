@@ -1,0 +1,26 @@
+{
+  "package": "globalancova",
+  "requirements": [
+    "Biobase",
+    "GO.db",
+    "GSEABase",
+    "GlobalAncova"
+  ],
+  "by_workflow": {
+    "generalized_and_hierarchical_testing.nf": [
+      "GlobalAncova"
+    ],
+    "main.nf": [
+      "Biobase",
+      "GlobalAncova"
+    ],
+    "public_gene_set_testing.nf": [
+      "GO.db",
+      "GSEABase",
+      "GlobalAncova"
+    ],
+    "sum_of_squares_decomposition.nf": [
+      "GlobalAncova"
+    ]
+  }
+}
