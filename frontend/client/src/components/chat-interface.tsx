@@ -665,9 +665,22 @@ export function ChatInterface({
   const chatMutation = useMutation({
     mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
       const session = chatHistoryService.getSession(sessionId)
-      const previousMessages = (session?.messages || [])
+      // Build the history payload. Two-stage selection — see
+      // docs/20260610_REAL_USER_FULL_CHAT_LOGS.md (wjunlin@HKU): the
+      // previous `.slice(-4)` dropped early `[Galaxy dataset: ...]`
+      // attachment messages after 2 chat turns, so the LLM kept asking for
+      // files the user had already attached. Fix:
+      //   (a) keep a wider recency window (last 20 turns)
+      //   (b) ALWAYS retain any earlier message that carries a dataset
+      //       attachment block — those are the load-bearing context lines.
+      const _DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:/i
+      const _allMsgs = (session?.messages || [])
         .filter((m) => (m.role === "user" || m.role === "assistant") && !!m.content?.trim())
-        .slice(-4)
+      const _recent = _allMsgs.slice(-20)
+      const _earlierAttachments = _allMsgs
+        .slice(0, Math.max(0, _allMsgs.length - 20))
+        .filter((m) => _DATASET_BLOCK_RE.test(m.content || ""))
+      const previousMessages = [..._earlierAttachments, ..._recent]
         .map((m) => ({ role: m.role, content: m.content }))
       abortControllerRef.current = new AbortController()
       const response = await fetch('/api/chat/stream', {

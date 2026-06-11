@@ -5184,17 +5184,69 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // -----------------------------------------------------------------
+      // History + dataset rehydration from chat_sessions (regression fix —
+      // see docs/20260610_REAL_USER_FULL_CHAT_LOGS.md, wjunlin@HKU). The
+      // chat-stream endpoint previously trusted the client to send
+      // context.previousMessages + sessionDatasets every turn. When the
+      // client sent an empty context (page refresh, session-restore mid
+      // SSE, cross-device chat), the LLM ran with zero memory and asked
+      // for files the user had already attached two turns earlier. We
+      // now backfill from the persisted chat_sessions row when the
+      // client doesn't supply them.
+      // -----------------------------------------------------------------
+      const _resolvedSessionId = (context?.sessionId || context?.memorySessionId) || undefined;
+      let _historyMessages: Array<{ role: 'user' | 'assistant'; content: string }> | undefined =
+        Array.isArray(context?.previousMessages) && context.previousMessages.length > 0
+          ? context.previousMessages
+          : undefined;
+      let _historyDatasets: Array<{ id: string; name: string; type?: string; file_path?: string | null; param_name?: string | null }> | undefined;
+
+      if (_resolvedSessionId && (!_historyMessages || !req.session?.uploadedDatasets?.length)) {
+        try {
+          const _row = await pool.query(
+            'SELECT messages, datasets FROM chat_sessions WHERE session_id = $1 LIMIT 1',
+            [_resolvedSessionId]
+          );
+          const _r = _row.rows?.[0];
+          if (_r) {
+            if (!_historyMessages && Array.isArray(_r.messages)) {
+              _historyMessages = _r.messages
+                .slice(-40)  // last 40 messages — keeps token budget bounded
+                .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+                .map((m: any) => ({ role: m.role, content: m.content }));
+              if (_historyMessages && _historyMessages.length === 0) _historyMessages = undefined;
+            }
+            if (Array.isArray(_r.datasets) && _r.datasets.length > 0) {
+              _historyDatasets = _r.datasets.map((d: any) => ({
+                id: d.id || d.galaxy_dataset_id || d.dataset_id,
+                name: d.name || d.filename || 'unknown',
+                type: d.type || d.file_type || 'unknown',
+                file_path: d.file_path || null,
+                param_name: d.param_name || null,
+              })).filter((d: any) => d.id);
+              if (_historyDatasets && _historyDatasets.length === 0) _historyDatasets = undefined;
+            }
+          }
+        } catch (e: any) {
+          console.warn('[chat-stream] history rehydration failed:', e?.message ?? e);
+        }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
         // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
-        sessionId: (context?.sessionId || context?.memorySessionId) || undefined,
+        sessionId: _resolvedSessionId,
+        previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
         // Inject integer userId so memory-integration can load user preferences/corrections
         userId: req.user ? Number((req.user as any).id) : (context?.userId),
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
-        // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input)
+        // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input).
+        // When the in-memory Express session has none (e.g. cross-device, post-refresh), fall back to
+        // the persisted chat_sessions.datasets jsonb we just hydrated.
         sessionDatasets: req.session?.uploadedDatasets?.length
           ? req.session.uploadedDatasets.map((d: any) => ({
               id: d.galaxy_dataset_id || d.dataset_id,
@@ -5203,7 +5255,7 @@ ${paramLines || '(none recorded)'}`;
               file_path: d.file_path || null,
               param_name: d.param_name || null,  // explicit param mapping from register-path
             }))
-          : undefined,
+          : _historyDatasets,
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
         credentialMap: credentialMap || undefined,
         // Per-request Galaxy proxy scoped to the authenticated user's own
@@ -6469,8 +6521,24 @@ ${paramLines || '(none recorded)'}`;
 
   // Record interaction (message + episode)
   app.post("/api/memory/interactions", authenticateToken, async (req, res) => {
+    const { sessionId, projectId, userMessage, assistantResponse, userIntent, toolsUsed, workflowGenerated, workflowId } = req.body ?? {};
+
+    // Bug #58 fix — validate required fields + UUID shape BEFORE hitting the DB.
+    // Previously this endpoint returned 500 for both malformed payloads and
+    // missing-session FK violations; now it 400s with a precise diagnostic.
+    const missing: string[] = [];
+    if (!sessionId)         missing.push("sessionId");
+    if (!userMessage)       missing.push("userMessage");
+    if (!assistantResponse) missing.push("assistantResponse");
+    if (missing.length) {
+      return res.status(400).json({ error: "missing_required_fields", missing });
+    }
+    // UUID v4-ish guard — matches drizzle's `uuid()` column type
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(sessionId))) {
+      return res.status(400).json({ error: "invalid_session_id", message: "sessionId must be a UUID" });
+    }
+
     try {
-      const { sessionId, projectId, userMessage, assistantResponse, userIntent, toolsUsed, workflowGenerated, workflowId } = req.body;
       const result = await memoryService.recordInteraction({
         sessionId,
         projectId,
@@ -6484,6 +6552,11 @@ ${paramLines || '(none recorded)'}`;
       res.json(result);
     } catch (error: any) {
       console.error('[API] Record interaction failed:', error);
+      // Foreign-key violation = session row doesn't exist yet → 404 is more honest than 500
+      const msg = String(error?.message ?? "");
+      if (msg.includes("violates foreign key constraint") && msg.includes("session_id")) {
+        return res.status(404).json({ error: "session_not_found", sessionId });
+      }
       res.status(500).json({ error: 'Failed to record interaction', message: error.message });
     }
   });
