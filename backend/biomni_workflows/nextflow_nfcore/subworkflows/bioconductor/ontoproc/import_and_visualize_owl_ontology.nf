@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Cache the OWL file locally using owl2cache. 2. Read and clean the OWL file to remove known problematic lines. 3. Parse the OWL fil
+//  * 1. [Visualization & Output] Cache the OWL file locally using owl2cache
+//  * 2. [Visualization & Output] Read and clean the OWL file to remove known problematic
+//  * 3. [Visualization & Output] Parse the OWL file into an ontology index using
+//  * 4. [Visualization & Output] Visualize selected terms using onto_plot2
 
 nextflow.enable.dsl = 2
 
@@ -66,10 +69,10 @@ process BIOC_ONTOPROC_IMPORT_AND_VISUALIZE_OWL_ONTOLOGY {
         
         url_str <- trimws(readLines("url", warn = FALSE)[1])
         
-        # 1. Cache the OWL file locally using owl2cache
+        # --- Cache the OWL file locally using owl2cache ---
         clont_path = owl2cache(url=url_str)
         
-        # 2. Read and clean the OWL file to remove known problematic lines
+        # --- Read and clean the OWL file to remove known problematic ---
         tmp = readLines(clont_path)
         
         bad = grep("STATO_0000416", tmp)[1:2]
@@ -87,13 +90,13 @@ process BIOC_ONTOPROC_IMPORT_AND_VISUALIZE_OWL_ONTOLOGY {
         tf = tempfile()
         writeLines(tmp, tf)
         
-        # 3. Parse the OWL file into an ontology index using setup_entities2
+        # --- Parse the OWL file into an ontology index using ---
         cle = setup_entities2(tf)
         
         # Save the parsed ontology index as an RDS object
         saveRDS(cle, "parsed_ontology.rds")
         
-        # 4. Visualize selected terms using onto_plot2
+        # --- Visualize selected terms using onto_plot2 ---
         # Documented selection of terms
         sel = c("CL_0000492", "CL_0001054", "CL_0000236", "CL_0000625", "CL_0000576", "CL_0000623", "CL_0000451", "CL_0000556")
         

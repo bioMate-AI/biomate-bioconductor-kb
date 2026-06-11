@@ -47,7 +47,7 @@ process BIOC_REBET_REBET_SUBREGION_BURDEN_TEST {
     library(REBET)
     
     # ==========================================
-    # Stage 1: Read and Parse Input Files
+    # --- Read and Parse Input Files ---
     # ==========================================
     message("Stage 1: Reading input VCF and metadata...")
     
@@ -123,7 +123,7 @@ process BIOC_REBET_REBET_SUBREGION_BURDEN_TEST {
     G <- t(dosage_matrix)
     
     # ==========================================
-    # Stage 2: Align Genotype and Phenotype Data
+    # --- Align Genotype and Phenotype Data ---
     # ==========================================
     message("Stage 2: Aligning genotype and phenotype data...")
     
@@ -161,7 +161,7 @@ process BIOC_REBET_REBET_SUBREGION_BURDEN_TEST {
     }
     
     # ==========================================
-    # Stage 3: Define Sub-regions
+    # --- Define Sub-regions ---
     # ==========================================
     message("Stage 3: Defining sub-regions for variants...")
     
@@ -185,7 +185,7 @@ process BIOC_REBET_REBET_SUBREGION_BURDEN_TEST {
     E[E == ""] <- "SR1" # Fallback assignment
     
     # ==========================================
-    # Stage 4: Run REBET Analysis
+    # --- Run REBET Analysis ---
     # ==========================================
     message("Stage 4: Running REBET subregion-based burden test...")
     
@@ -197,7 +197,7 @@ process BIOC_REBET_REBET_SUBREGION_BURDEN_TEST {
     })
     
     # ==========================================
-    # Stage 5: Summarize and Export Results
+    # --- Summarize and Export Results ---
     # ==========================================
     message("Stage 5: Exporting results...")
     

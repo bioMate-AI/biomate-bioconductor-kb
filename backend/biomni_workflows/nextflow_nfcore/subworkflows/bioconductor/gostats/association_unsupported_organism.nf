@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load custom GO/KEGG mappings into a data frame. 2. Create a GOFrame or KEGGFrame object. 3. Convert GOFrame to GOAllFrame to autom
+//  * 1. [Visualization & Output] GO Enrichment Analysis
+//  * 2. [Visualization & Output] KEGG Enrichment Analysis
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +55,7 @@ process BIOC_GOSTATS_ASSOCIATION_UNSUPPORTED_ORGANISM {
         library(AnnotationForge)
         
         # ==========================================
-        # 1. GO Enrichment Analysis
+        # --- GO Enrichment Analysis ---
         # ==========================================
         
         # Read custom GO mappings from the working directory
@@ -94,7 +95,7 @@ process BIOC_GOSTATS_ASSOCIATION_UNSUPPORTED_ORGANISM {
         
         
         # ==========================================
-        # 2. KEGG Enrichment Analysis
+        # --- KEGG Enrichment Analysis ---
         # ==========================================
         
         # Read custom KEGG mappings from the working directory

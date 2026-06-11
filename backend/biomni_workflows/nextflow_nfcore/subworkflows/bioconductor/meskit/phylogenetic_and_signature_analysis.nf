@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Reconstruct phylogenetic trees using getPhyloTree. 2. Compare trees constructed with different methods using compareTree. 3. Extra
+//  * 1. [Visualization & Output] Reconstruct phylogenetic trees using getPhyloTree
+//  * 2. [Visualization & Output] Compare trees constructed with different methods using
+//  * 3. [Visualization & Output] Extract branch-specific mutations using getMutBranches
+//  * 4. [Visualization & Output] Analyze trunk vs. branch mutation spectrum using
+//  * 5. [Visualization & Output] Generate a 96-trinucleotide mutation matrix using
+//  * 6. [Visualization & Output] Fit mutational signatures and estimate contributions
+//  * 7. [Visualization & Output] Plot original and reconstructed mutational signature
+//  * 8. [Visualization & Output] Visualize the phylogenetic tree annotated with mutation
 
 nextflow.enable.dsl = 2
 
@@ -91,7 +98,7 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
       stop("Error: Could not determine patient ID from the maf object.")
     }
     
-    # 1. Reconstruct phylogenetic trees using getPhyloTree
+    # --- Reconstruct phylogenetic trees using getPhyloTree ---
     phyloTree <- getPhyloTree(maf, patient.id = patient_id, method = "NJ", min.vaf = 0.06)
     tree.NJ <- getPhyloTree(maf, patient.id = patient_id, method = "NJ")
     tree.MP <- getPhyloTree(maf, patient.id = patient_id, method = "MP")
@@ -101,7 +108,7 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
     saveRDS(tree.NJ, "tree_NJ.rds")
     saveRDS(tree.MP, "tree_MP.rds")
     
-    # 2. Compare trees constructed with different methods using compareTree
+    # --- Compare trees constructed with different methods using ---
     comp_tree_res <- compareTree(tree.NJ, tree.MP, plot = TRUE, use.tumorSampleLabel = TRUE)
     
     # Save comparison results
@@ -110,7 +117,7 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
     print(comp_tree_res\$compare.plot)
     dev.off()
     
-    # 3. Extract branch-specific mutations using getMutBranches for downstream pathway enrichment
+    # --- Extract branch-specific mutations using getMutBranches ---
     branches_res <- getMutBranches(phyloTree)
     write.csv(branches_res, "branches.csv", row.names = FALSE)
     
@@ -152,7 +159,7 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
       message("KEGG enrichment analysis failed: ", e\$message)
     })
     
-    # 4. Analyze trunk vs. branch mutation spectrum using mutTrunkBranch
+    # --- Analyze trunk vs. branch mutation spectrum using ---
     mutClass <- mutTrunkBranch(phyloTree, CT = TRUE, plot = TRUE)
     
     # Save trunk/branch mutation spectrum results
@@ -161,7 +168,7 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
     print(mutClass\$mutTrunkBranch.plot)
     dev.off()
     
-    # 5. Generate a 96-trinucleotide mutation matrix using triMatrix
+    # --- Generate a 96-trinucleotide mutation matrix using ---
     trimatrix_res <- triMatrix(phyloTree, level = 5)
     saveRDS(trimatrix_res, "trimatrix_res.rds")
     
@@ -170,11 +177,11 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
     print(plotMutSigProfile(trimatrix_res)[[1]])
     dev.off()
     
-    # 6. Fit mutational signatures and estimate contributions using fitSignatures
+    # --- Fit mutational signatures and estimate contributions ---
     fit_res <- fitSignatures(trimatrix_res, signaturesRef = "cosmic_v2")
     saveRDS(fit_res, "fit_res.rds")
     
-    # 7. Plot original and reconstructed mutational signature profiles using plotMutSigProfile
+    # --- Plot original and reconstructed mutational signature ---
     pdf("reconstructed_mut_sig_profile.pdf", width = 10, height = 6)
     print(plotMutSigProfile(fit_res)[[1]])
     dev.off()
@@ -184,7 +191,7 @@ process BIOC_MESKIT_PHYLOGENETIC_AND_SIGNATURE_ANALYSIS {
     draw(ComplexHeatmap::Heatmap(fit_res[[patient_id]]\$cosine.similarity, name = "Cosine similarity"))
     dev.off()
     
-    # 8. Visualize the phylogenetic tree annotated with mutation heatmaps using plotPhyloTree and mutHeatmap
+    # --- Visualize the phylogenetic tree annotated with mutation ---
     phylotree_plot <- plotPhyloTree(phyloTree, use.tumorSampleLabel = TRUE)
     binary_heatmap <- mutHeatmap(maf, min.ccf = 0.04, use.ccf = FALSE, patient.id = patient_id, use.tumorSampleLabel = TRUE)
     CCF_heatmap <- mutHeatmap(maf, use.ccf = TRUE, patient.id = patient_id, 

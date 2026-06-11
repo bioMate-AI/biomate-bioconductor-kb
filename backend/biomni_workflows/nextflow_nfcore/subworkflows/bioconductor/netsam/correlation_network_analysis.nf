@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Test and standardize input file formats using testFileFormat. 2. Construct a correlation network using MatNet or a robust consensu
+//  * 1. [Input & Preparation] Test and standardize input file formats
+//  * 2. [Input & Preparation] Construct a correlation network using MatNet
+//  * 3. [Input & Preparation] Construct a consensus network using consensusNet
+//  * 4. [Input & Preparation] Identify hierarchical correlation modules using MatSAM
+//  * 5. [Input & Preparation] Calculate associations between sample features and
+//  * 6. [Input & Preparation] Identify associated GO terms for the modules using
 
 nextflow.enable.dsl = 2
 
@@ -70,11 +75,11 @@ process BIOC_NETSAM_CORRELATION_NETWORK_ANALYSIS {
       stop(paste("Required input file missing:", sampleAnnDir))
     }
     
-    # 1. Test and standardize input file formats
+    # --- Test and standardize input file formats ---
     message("Testing and standardizing input file formats...")
     formatedData <- testFileFormat(inputMat=inputMatDir, sampleAnn=sampleAnnDir, collapse_mode="maxSD")
     
-    # 2. Construct a correlation network using MatNet
+    # --- Construct a correlation network using MatNet ---
     message("Constructing correlation network using MatNet...")
     matNetwork <- MatNet(inputMat=inputMatDir, collapse_mode="maxSD", naPer=0.7, meanPer=0.8, varPer=0.8,
                          corrType="spearman", matNetMethod="rank", valueThr=0.6, rankBest=0.003, networkType="signed",
@@ -83,7 +88,7 @@ process BIOC_NETSAM_CORRELATION_NETWORK_ANALYSIS {
     # Save MatNet output
     write.table(matNetwork, file="matNetwork_output.txt", sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
     
-    # 3. Construct a consensus network using consensusNet
+    # --- Construct a consensus network using consensusNet ---
     message("Constructing consensus network using consensusNet...")
     data <- read.table(inputMatDir, header=TRUE, row.names=1, stringsAsFactors=FALSE)
     net <- consensusNet(data=data, organism="hsapiens", bootstrapNum=10, naPer=0.5, meanPer=0.8, varPer=0.8,
@@ -92,7 +97,7 @@ process BIOC_NETSAM_CORRELATION_NETWORK_ANALYSIS {
     # Save consensusNet output
     write.table(net, file="consensusNet_output.txt", sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
     
-    # 4. Identify hierarchical correlation modules using MatSAM
+    # --- Identify hierarchical correlation modules using MatSAM ---
     message("Identifying hierarchical correlation modules using MatSAM...")
     outputFileName <- paste(getwd(), "/MatSAM", sep="")
     matModule <- MatSAM(inputMat=inputMatDir, sampleAnn=sampleAnnDir,
@@ -106,7 +111,7 @@ process BIOC_NETSAM_CORRELATION_NETWORK_ANALYSIS {
     # Save MatSAM output object
     saveRDS(matModule, file="matModule_output.rds")
     
-    # 5. Calculate associations between sample features and modules using featureAssociation
+    # --- Calculate associations between sample features and ---
     message("Calculating associations between sample features and modules...")
     outputHtmlFile <- paste(getwd(), "/featureAsso_HTML", sep="")
     featureAsso <- featureAssociation(inputMat=inputMatDir, sampleAnn=sampleAnnDir, NetSAMOutput=matModule, 
@@ -116,7 +121,7 @@ process BIOC_NETSAM_CORRELATION_NETWORK_ANALYSIS {
     # Save feature association results
     write.csv(featureAsso, file="featureAssociation_results.csv", row.names=TRUE)
     
-    # 6. Identify associated GO terms for the modules using GOAssociation
+    # --- Identify associated GO terms for the modules using ---
     message("Identifying associated GO terms for the modules...")
     outputHtmlFile <- paste(getwd(), "/GOAsso_HTML", sep="")
     GOAsso <- GOAssociation(NetSAMOutput=matModule, outputHtmlFile=outputHtmlFile, 

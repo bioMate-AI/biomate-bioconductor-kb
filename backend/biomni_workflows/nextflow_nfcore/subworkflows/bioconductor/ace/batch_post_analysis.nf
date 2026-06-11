@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create a models file and mutation files. 2. Run postanalysisloop to batch-process all samples
+//  * 1. [Input & Preparation] Read the user-provided segmented QDNAseq object
+//  * 2. [Input & Preparation] Run postanalysisloop to batch-process all samples
 
 nextflow.enable.dsl = 2
 
@@ -56,7 +57,7 @@ process BIOC_ACE_BATCH_POST_ANALYSIS {
     # Define input directory (current working directory where user files are located)
     inputdir <- "."
     
-    # 1. Read the user-provided segmented QDNAseq object
+    # --- Read the user-provided segmented QDNAseq object ---
     # The pipeline expects the segmented QDNAseq object to be saved as "segmented_object.rds"
     object <- readRDS("segmented_object.rds")
     
@@ -69,7 +70,7 @@ process BIOC_ACE_BATCH_POST_ANALYSIS {
       dir.create(outputdir, recursive = TRUE)
     }
     
-    # 2. Run postanalysisloop to batch-process all samples
+    # --- Run postanalysisloop to batch-process all samples ---
     # This function automatically reads models.tsv and the sample-specific mutation files
     # (e.g., sample1_mutations.tsv, sample2_mutations.tsv) from the inputdir.
     results <- postanalysisloop(

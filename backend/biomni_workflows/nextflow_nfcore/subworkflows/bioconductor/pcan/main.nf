@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map candidate gene to its associated HPO terms. 2. Compute Information Content (IC) for all HPO terms using computeHpIC. 3. Comput
+//  * 1. [Visualization & Output] READ USER INPUT FILES
+//  * 2. [Visualization & Output] RUN WORKFLOW (DIRECT PHENOTYPE COMPARISON)
+//  * 3. [Visualization & Output] WRITE OUTPUTS
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +60,7 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     hp_ancestors <- PCAN::hp_ancestors
     
     # ==========================================
-    # 1. READ USER INPUT FILES
+    # --- READ USER INPUT FILES ---
     # ==========================================
     
     # Read hpOfInterest
@@ -113,7 +115,7 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     }
     
     # ==========================================
-    # 2. RUN WORKFLOW (DIRECT PHENOTYPE COMPARISON)
+    # --- RUN WORKFLOW (DIRECT PHENOTYPE COMPARISON) ---
     # ==========================================
     
     # Filter out the known association to simulate discovery
@@ -190,7 +192,7 @@ process BIOC_PCAN_DIRECT_PHENOTYPE_COMPARISON {
     candRelRank <- candRank/length(resnSss)
     
     # ==========================================
-    # 3. WRITE OUTPUTS
+    # --- WRITE OUTPUTS ---
     # ==========================================
     
     # Save similarity matrix

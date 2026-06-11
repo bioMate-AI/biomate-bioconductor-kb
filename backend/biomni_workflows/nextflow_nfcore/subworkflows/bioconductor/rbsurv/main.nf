@@ -44,7 +44,7 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
           }
         }
     
-    # Stage 1: Load libraries and read input data defensively
+    # --- Load libraries and read input data defensively ---
     library(rbsurv)
     
     input_file <- "input.csv"
@@ -110,7 +110,7 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
       x <- log2(x + 1)
     }
     
-    # Stage 2: Run Robust Likelihood-Based Survival Modeling
+    # --- Run Robust Likelihood-Based Survival Modeling ---
     message("Running rbsurv gene selection...")
     gene_ids <- rownames(x)
     if (is.null(gene_ids)) {
@@ -140,7 +140,7 @@ process BIOC_RBSURV_RBSURV_SURVIVAL_GENE_SELECTION {
       NULL
     })
     
-    # Stage 3: Export Results and Generate Diagnostics
+    # --- Export Results and Generate Diagnostics ---
     if (!is.null(fit) && !is.null(fit\$model)) {
       model_results <- fit\$model
       write.csv(model_results, "selected_genes_model.csv", row.names = FALSE)

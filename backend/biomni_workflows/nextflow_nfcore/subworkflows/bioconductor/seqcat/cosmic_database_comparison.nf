@@ -67,23 +67,23 @@ process BIOC_SEQCAT_COSMIC_DATABASE_COMPARISON {
       stop(paste("Required input COSMIC file not found in working directory:", file))
     }
     
-    # 1. Create the SNV profile for HCT116
+    # --- Create the SNV profile for HCT116 ---
     hct116 <- create_profile(vcf, "HCT116")
     
-    # 2. List available cell lines in the COSMIC file
+    # --- List available cell lines in the COSMIC file ---
     cell_lines <- list_cosmic(file)
     
-    # 3. Read the specific COSMIC profile for HCT116
+    # --- Read the specific COSMIC profile for HCT116 ---
     cosmic <- read_cosmic(file, "HCT116")
     
-    # 4. Compare the sample profile to the COSMIC profile
+    # --- Compare the sample profile to the COSMIC profile ---
     hct116_cosmic <- compare_profiles(hct116, cosmic)
     
-    # 5. Create additional profiles for comparison
+    # --- Create additional profiles for comparison ---
     hke3 <- create_profile(vcf, "HKE3")
     rko <- create_profile(vcf, "RKO", min_depth = 15, filter_gd = FALSE)
     
-    # 6. Perform one-to-many comparisons against COSMIC
+    # --- Perform one-to-many comparisons against COSMIC ---
     profiles <- list(hct116, hke3, rko)
     many_cosmic <- compare_many(profiles, one = cosmic)
     

@@ -54,7 +54,7 @@ process BIOC_KEGGREST_KEGG_GENOMIC_FUNCTIONAL_PROFILING {
     # Define parameters
     organism_code <- "hsa"
     
-    # Stage 1: Import Genomic Regions and Metadata
+    # --- Import Genomic Regions and Metadata ---
     message("Stage 1: Importing genomic regions and metadata...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
@@ -78,7 +78,7 @@ process BIOC_KEGGREST_KEGG_GENOMIC_FUNCTIONAL_PROFILING {
       stop("No valid gene identifiers found in the 'name' column of regions.bed.")
     }
     
-    # Stage 2: Map Identifiers to KEGG Genes
+    # --- Map Identifiers to KEGG Genes ---
     message("Stage 2: Mapping NCBI Gene IDs to KEGG Gene IDs...")
     ncbi_query <- paste0("ncbi-geneid:", gene_ids)
     
@@ -92,7 +92,7 @@ process BIOC_KEGGREST_KEGG_GENOMIC_FUNCTIONAL_PROFILING {
       fallback_vals
     })
     
-    # Stage 3: Link KEGG Genes to Pathways
+    # --- Link KEGG Genes to Pathways ---
     message("Stage 3: Linking KEGG Genes to Pathways...")
     pathway_links <- tryCatch({
       keggLink("pathway", as.character(kegg_genes))
@@ -101,7 +101,7 @@ process BIOC_KEGGREST_KEGG_GENOMIC_FUNCTIONAL_PROFILING {
       NULL
     })
     
-    # Stage 4: Build Comprehensive Mapping Table
+    # --- Build Comprehensive Mapping Table ---
     message("Stage 4: Building mapping table and retrieving pathway names...")
     
     # Convert GRanges to a standard data frame
@@ -181,7 +181,7 @@ process BIOC_KEGGREST_KEGG_GENOMIC_FUNCTIONAL_PROFILING {
     write.csv(merged_df, "kegg_mappings.csv", row.names = FALSE)
     message("Saved mapping table to 'kegg_mappings.csv'.")
     
-    # Stage 5: Retrieve Gene Sequences
+    # --- Retrieve Gene Sequences ---
     message("Stage 5: Retrieving amino acid sequences...")
     unique_kegg_genes <- unique(na.omit(merged_df\$kegg_gene_id))
     # Limit to top 10 genes to respect API limits and performance
@@ -200,7 +200,7 @@ process BIOC_KEGGREST_KEGG_GENOMIC_FUNCTIONAL_PROFILING {
       writeLines(">no_sequences\n", "gene_sequences.fasta")
     }
     
-    # Stage 6: Download Pathway Diagram
+    # --- Download Pathway Diagram ---
     message("Stage 6: Downloading top pathway diagram...")
     if (length(unique_pathways) > 0) {
       # Identify the most frequently occurring pathway in our dataset

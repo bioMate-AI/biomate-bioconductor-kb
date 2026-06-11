@@ -43,7 +43,7 @@ process BIOC_GENENETWORKBUILDER_GENENETWORKBUILDER_TF_REGULATORY_NETWORK {
           }
         }
     
-    # Stage 1: Load libraries and read user input files
+    # --- Load libraries and read user input files ---
     library(GeneNetworkBuilder)
     
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
@@ -61,7 +61,7 @@ process BIOC_GENENETWORKBUILDER_GENENETWORKBUILDER_TF_REGULATORY_NETWORK {
     counts <- counts[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # Stage 2: Perform Differential Expression Analysis (Robust Base R Implementation)
+    # --- Perform Differential Expression Analysis (Robust Base R ---
     group <- as.factor(coldata\$condition)
     levels_group <- levels(group)
     if (length(levels_group) < 2) {
@@ -97,7 +97,7 @@ process BIOC_GENENETWORKBUILDER_GENENETWORKBUILDER_TF_REGULATORY_NETWORK {
     # Sort by significance to identify top candidate TFs
     expr_data <- expr_data[order(expr_data\$P.Value), ]
     
-    # Stage 3: Construct TF Binding Table and Interaction Map dynamically from input genes
+    # --- Construct TF Binding Table and Interaction Map ---
     all_genes <- expr_data\$gene
     n_genes <- length(all_genes)
     if (n_genes < 10) {
@@ -127,7 +127,7 @@ process BIOC_GENENETWORKBUILDER_GENENETWORKBUILDER_TF_REGULATORY_NETWORK {
       stringsAsFactors = FALSE
     )
     
-    # Stage 4: Build and Filter the Network
+    # --- Build and Filter the Network ---
     message("Building network structure...")
     sifNetwork <- buildNetwork(
       TFbindingTable = as.matrix(TFbindingTable),
@@ -173,7 +173,7 @@ process BIOC_GENENETWORKBUILDER_GENENETWORKBUILDER_TF_REGULATORY_NETWORK {
     # Save filtered network edges to CSV
     write.csv(cifNetwork, "network_edges.csv", row.names = FALSE)
     
-    # Stage 5: Polish, Visualize, and Export Network
+    # --- Polish, Visualize, and Export Network ---
     message("Polishing and exporting network visualizations...")
     gR <- polishNetwork(cifNetwork, nodecolor = colorRampPalette(c("green", "yellow", "red"))(10))
     
@@ -188,7 +188,7 @@ process BIOC_GENENETWORKBUILDER_GENENETWORKBUILDER_TF_REGULATORY_NETWORK {
       message("XGMML export skipped or failed: ", e\$message)
     })
     
-    # Stage 6: Subset Network by Top Significant Genes
+    # --- Subset Network by Top Significant Genes ---
     message("Subsetting network for top significant genes...")
     sub_genes <- expr_data\$gene[1:min(10, nrow(expr_data))]
     gRs <- subsetNetwork(gR, sub_genes)

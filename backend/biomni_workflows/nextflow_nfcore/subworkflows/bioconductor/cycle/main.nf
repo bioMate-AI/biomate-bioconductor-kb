@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Filter out genes with excessive missing values using filter.NA. 2. Impute remaining missing values using fill.NA. 3. Standardize t
+//  * 1. [Input & Preparation] Filter out genes with excessive missing values
+//  * 2. [Input & Preparation] Impute remaining missing values
+//  * 3. [Input & Preparation] Standardize the expression values
+//  * 4. [Input & Preparation] Extract measurement times and define the cycle period
+//  * 5. [Input & Preparation] Calculate false discovery rates (FDR) using fdrfourier
+//  * 6. [Input & Preparation] Identify significantly periodic genes by filtering on the
 
 nextflow.enable.dsl = 2
 
@@ -62,13 +67,13 @@ process BIOC_CYCLE_PERIODIC_EXPRESSION_ANALYSIS {
     
     yeast <- readRDS(input_file)
     
-    # 1. Filter out genes with excessive missing values
+    # --- Filter out genes with excessive missing values ---
     yeast <- filter.NA(yeast, thres=0.25)
     
-    # 2. Impute remaining missing values
+    # --- Impute remaining missing values ---
     yeast <- fill.NA(yeast, mode="mean")
     
-    # 3. Standardize the expression values
+    # --- Standardize the expression values ---
     yeast <- standardise(yeast)
     
     # Calculate autocorrelation
@@ -84,7 +89,7 @@ process BIOC_CYCLE_PERIODIC_EXPRESSION_ANALYSIS {
     )
     write.csv(auto_corr_df, "autocorrelation_results.csv", row.names = FALSE)
     
-    # 4. Extract measurement times and define the cycle period
+    # --- Extract measurement times and define the cycle period ---
     if ("period" %in% colnames(pData(yeast))) {
       T.yeast <- as.numeric(pData(yeast)\$period[1])
     } else if ("cycle_period" %in% colnames(pData(yeast))) {
@@ -96,12 +101,12 @@ process BIOC_CYCLE_PERIODIC_EXPRESSION_ANALYSIS {
     }
     times.yeast <- pData(yeast)\$time 
     
-    # 5. Calculate false discovery rates (FDR) using fdrfourier
+    # --- Calculate false discovery rates (FDR) using fdrfourier ---
     NN <- 100 
     fdr.rr <- fdrfourier(eset=yeast, T=T.yeast, times=times.yeast, background.model="rr", N=NN, progress=FALSE)
     fdr.ar1 <- fdrfourier(eset=yeast, T=T.yeast, times=times.yeast, background.model="ar1", N=NN, progress=FALSE)
     
-    # 6. Identify significantly periodic genes by filtering on the calculated FDR
+    # --- Identify significantly periodic genes by filtering on the ---
     # Create a summary data frame of the results
     results_df <- data.frame(
       Gene = rownames(exprs(yeast)),

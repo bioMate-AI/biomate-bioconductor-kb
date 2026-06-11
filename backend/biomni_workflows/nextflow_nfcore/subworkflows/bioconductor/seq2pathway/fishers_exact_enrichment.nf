@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run Fisher's exact test against MSigDB defined gene-sets using FisherTest_MsigDB. 2. Run Fisher's exact test against GO defined ge
+//  * 1. [Core Analysis] Read User Input Files from Working Directory
+//  * 2. [Core Analysis] Run Fisher's Exact Test against MSigDB defined gene-sets
+//  * 3. [Core Analysis] Run Fisher's Exact Test against GO defined gene-sets (BP)
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     library(GSA)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Input Files from Working Directory
+    # --- Read User Input Files from Working Directory ---
     # -----------------------------------------------------------------------------
     
     # Read dat_chip (gene-level measurements to extract gene symbols)
@@ -71,7 +73,7 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Run Fisher's Exact Test against MSigDB defined gene-sets
+    # --- Run Fisher's Exact Test against MSigDB defined gene-sets ---
     # -----------------------------------------------------------------------------
     message("Running Fisher's exact test against MSigDB gene-sets...")
     
@@ -82,7 +84,7 @@ process BIOC_SEQ2PATHWAY_FISHERS_EXACT_ENRICHMENT {
     saveRDS(FS_test, file = "FisherTest_MsigDB_results.rds")
     
     # -----------------------------------------------------------------------------
-    # 3. Run Fisher's Exact Test against GO defined gene-sets (BP)
+    # --- Run Fisher's Exact Test against GO defined gene-sets (BP) ---
     # -----------------------------------------------------------------------------
     message("Running Fisher's exact test against GO BP gene-sets...")
     

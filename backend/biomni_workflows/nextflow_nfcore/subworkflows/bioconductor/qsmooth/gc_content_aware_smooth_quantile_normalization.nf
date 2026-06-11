@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Align the GC-content vector with the expression matrix rows and filter out missing values. 2. Run qsmoothGC to perform GC-content-
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Align and Filter GC-Content
+//  * 3. [Core Analysis] Run GC-Content-Aware Smooth Quantile Normalization
+//  * 4. [Core Analysis] Save Outputs and Generate Diagnostic Plots
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +55,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     library(quantro)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read counts1 (matrix or data frame of raw expression counts)
@@ -93,7 +96,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     }
     
     # ==========================================
-    # 2. Align and Filter GC-Content
+    # --- Align and Filter GC-Content ---
     # ==========================================
     
     # Ensure gcContent is named and aligned with counts1 rows
@@ -112,7 +115,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     keep <- names(gcContent)[!is.na(gcContent)]
     
     # ==========================================
-    # 3. Run GC-Content-Aware Smooth Quantile Normalization
+    # --- Run GC-Content-Aware Smooth Quantile Normalization ---
     # ==========================================
     
     # Perform smooth quantile normalization accounting for GC-content
@@ -122,7 +125,7 @@ process BIOC_QSMOOTH_GC_CONTENT_AWARE_SMOOTH_QUANTILE_NORMALIZATION {
     normalized_data <- qsmoothData(qs_norm_gc)
     
     # ==========================================
-    # 4. Save Outputs and Generate Diagnostic Plots
+    # --- Save Outputs and Generate Diagnostic Plots ---
     # ==========================================
     
     # Save the normalized expression matrix to CSV

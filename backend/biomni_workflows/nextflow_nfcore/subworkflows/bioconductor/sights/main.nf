@@ -50,7 +50,7 @@ process BIOC_SIGHTS_SIGHTS_HTS_PIPELINE {
     library(gridExtra)
     
     # ==========================================
-    # STAGE 1: Data Loading and Robust Preprocessing
+    # --- Data Loading and Robust Preprocessing ---
     # ==========================================
     
     # Read input defensively
@@ -100,7 +100,7 @@ process BIOC_SIGHTS_SIGHTS_HTS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 2: Pre-normalization QC Visualization
+    # --- Pre-normalization QC Visualization ---
     # ==========================================
     
     pdf("hts_analysis_plots.pdf", width = 10, height = 8)
@@ -152,7 +152,7 @@ process BIOC_SIGHTS_SIGHTS_HTS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: SPAWN Spatial Normalization
+    # --- SPAWN Spatial Normalization ---
     # ==========================================
     
     # SPAWN Normalization (without well correction since we don't have a separate bias template)
@@ -171,7 +171,7 @@ process BIOC_SIGHTS_SIGHTS_HTS_PIPELINE {
     write.csv(spawn_norm, "normalized_data.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Post-normalization QC Visualization
+    # --- Post-normalization QC Visualization ---
     # ==========================================
     
     # 1. Post-normalization Boxplot
@@ -221,7 +221,7 @@ process BIOC_SIGHTS_SIGHTS_HTS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Statistical Testing (RVM)
+    # --- Statistical Testing (RVM) ---
     # ==========================================
     
     rep_idx <- rep(1, ncol(spawn_norm))
@@ -248,7 +248,7 @@ process BIOC_SIGHTS_SIGHTS_HTS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Multiple Testing Correction (FDR)
+    # --- Multiple Testing Correction (FDR) ---
     # ==========================================
     
     fdr_results <- sights::statFDR(rvm_results, ctrlMethod = "smoother")

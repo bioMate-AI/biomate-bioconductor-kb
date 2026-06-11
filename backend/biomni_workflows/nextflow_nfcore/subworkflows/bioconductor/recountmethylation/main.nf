@@ -48,7 +48,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     library(recountmethylation)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ----------------------------------------------------------------------
     message("Loading input datasets...")
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
@@ -81,7 +81,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
     # ----------------------------------------------------------------------
-    # Stage 2: Filter Cross-Reactive Probes
+    # --- Filter Cross-Reactive Probes ---
     # ----------------------------------------------------------------------
     message("Identifying and filtering cross-reactive CpG probes...")
     cross_reactive_probes <- tryCatch({
@@ -107,7 +107,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     message("Saved filtered beta matrix to 'filtered_beta_matrix.csv'.")
     
     # ----------------------------------------------------------------------
-    # Stage 3: Variance and ANOVA-based Differential Analysis
+    # --- Variance and ANOVA-based Differential Analysis ---
     # ----------------------------------------------------------------------
     message("Calculating probe-wise summary statistics and performing ANOVA...")
     
@@ -142,7 +142,7 @@ process BIOC_RECOUNTMETHYLATION_RECOUNTMETHYLATION_PREPROCESSING_VARIANCE {
     message("Saved probe statistics to 'high_variance_probes.csv'.")
     
     # ----------------------------------------------------------------------
-    # Stage 4: Diagnostic and Quality Control Visualizations
+    # --- Diagnostic and Quality Control Visualizations ---
     # ----------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

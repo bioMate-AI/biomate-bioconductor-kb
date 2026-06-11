@@ -11,7 +11,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read the grayscale image. 2. Calculate and apply Maximum Entropy threshold for probe mask. 3. Filter out small/large artifacts fro
+//  * 1. [Input & Preparation] Read the grayscale image from the working directory
+//  * 2. [Input & Preparation] Calculate and apply Maximum Entropy threshold for probe
+//  * 3. [Input & Preparation] Filter out small/large artifacts from the probe mask
+//  * 4. [Input & Preparation] Calculate and apply Otsu threshold for cell/nuclei mask
+//  * 5. [Input & Preparation] Filter out small/large artifacts from the cell mask using
 
 nextflow.enable.dsl = 2
 
@@ -61,14 +65,14 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_PARTICLE_CLEANING {
     # Define the directory for intermediate and final outputs
     TempDir <- "."
     
-    # 1. Read the grayscale image from the working directory
+    # --- Read the grayscale image from the working directory ---
     f <- "SampleFISHgray.jpg"
     if (!file.exists(f)) {
       stop("Input file 'SampleFISHgray.jpg' not found in the working directory.")
     }
     img <- readImage(f)
     
-    # 2. Calculate and apply Maximum Entropy threshold for probe mask
+    # --- Calculate and apply Maximum Entropy threshold for probe ---
     t <- calculateMaxEntropy(img)
     img[img < t] <- 0
     img[img >= t] <- 1
@@ -77,12 +81,12 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_PARTICLE_CLEANING {
     fProbes1 <- paste(TempDir, '/', "exImgMaxEntropyProbes1.jpg", sep='')
     writeImage(img, fProbes1)
     
-    # 3. Filter out small/large artifacts from the probe mask using analyseParticles
+    # --- Filter out small/large artifacts from the probe mask ---
     img <- readImage(fProbes1)
     anaImgProbes <- analyseParticles(img, 20, 5, 0)
     writeImage(anaImgProbes, paste(TempDir, "exImgProbes1Clean.jpg", sep='/'))
     
-    # 4. Calculate and apply Otsu threshold for cell/nuclei mask
+    # --- Calculate and apply Otsu threshold for cell/nuclei mask ---
     img <- readImage(f)
     t <- calculateThreshold(img)
     img[img < t] <- 0
@@ -92,7 +96,7 @@ process BIOC_FISHALYSER_MANUAL_THRESHOLD_AND_PARTICLE_CLEANING {
     fCellMask <- paste(TempDir, '/', "exImgOtsuCellMask.jpg", sep='')
     writeImage(img, fCellMask)
     
-    # 5. Filter out small/large artifacts from the cell mask using analyseParticles
+    # --- Filter out small/large artifacts from the cell mask using ---
     img <- readImage(fCellMask)
     anaImgCells <- analyseParticles(img, 20000, 1000, 0)
     writeImage(anaImgCells, paste(TempDir, "exImgCellMaskClean.jpg", sep='/'))

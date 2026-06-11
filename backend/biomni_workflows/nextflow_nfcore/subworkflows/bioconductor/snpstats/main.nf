@@ -56,7 +56,7 @@ process BIOC_SNPSTATS_DATA_INPUT {
     library(snpStats)
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Read PED/INFO files using read.pedfile
+    # --- Read PED/INFO files using read.pedfile ---
     # -----------------------------------------------------------------------------
     
     # Define paths to the user-provided input files in the working directory
@@ -73,7 +73,7 @@ process BIOC_SNPSTATS_DATA_INPUT {
     write.csv(sample\$map, "ped_map.csv", row.names=TRUE)
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Read PLINK files using read.plink
+    # --- Read PLINK files using read.plink ---
     # -----------------------------------------------------------------------------
     
     # Define paths to the user-provided PLINK files in the working directory
@@ -99,7 +99,7 @@ process BIOC_SNPSTATS_DATA_INPUT {
     write.csv(subset\$map, "plink_subset_map.csv", row.names=TRUE)
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Read long-format files using read.long
+    # --- Read long-format files using read.long ---
     # -----------------------------------------------------------------------------
     
     # Define path to the user-provided long-format genotype file

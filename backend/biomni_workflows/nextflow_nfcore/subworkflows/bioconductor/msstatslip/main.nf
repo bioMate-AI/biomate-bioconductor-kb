@@ -56,26 +56,26 @@ process BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     library(MSstatsLiP)
     library(data.table)
     
-    # 1. Read User Inputs from the working directory
+    # --- Read User Inputs from the working directory ---
     LiPRawData <- data.table::fread("LiPRawData", data.table = FALSE)
     TrPRawData <- data.table::fread("TrPRawData", data.table = FALSE)
     fasta_file <- "ExampleFastaFile.fasta"
     
-    # 2. Convert raw data to MSstatsLiP format
+    # --- Convert raw data to MSstatsLiP format ---
     MSstatsLiP_data <- SpectronauttoMSstatsLiPFormat(LiPRawData, 
                                                      fasta_file, 
                                                      TrPRawData, 
                                                      use_log_file = FALSE, 
                                                      append = FALSE)
     
-    # 3. Align condition names
+    # --- Align condition names ---
     MSstatsLiP_data[["LiP"]][MSstatsLiP_data[["LiP"]]\$Condition == "Control", 
                              "Condition"] = "Ctrl"
     MSstatsLiP_data[["TrP"]]\$Condition = substr(MSstatsLiP_data[["TrP"]]\$Condition, 
                                                 1, 
                                                 nchar(MSstatsLiP_data[["TrP"]]\$Condition) - 1)
     
-    # 4. Summarize feature intensities
+    # --- Summarize feature intensities ---
     MSstatsLiP_Summarized <- dataSummarizationLiP(MSstatsLiP_data,
                                                   MBimpute = FALSE, 
                                                   use_log_file = FALSE, 
@@ -84,7 +84,7 @@ process BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     # Save summarized data object
     saveRDS(MSstatsLiP_Summarized, "MSstatsLiP_Summarized.rds")
     
-    # 5. Generate quality control, profile, and PCA plots
+    # --- Generate quality control, profile, and PCA plots ---
     # Open a PDF device to capture all diagnostic plots
     pdf("MSstatsLiP_QC_and_Profiling_Plots.pdf", width = 11, height = 8.5)
     
@@ -121,7 +121,7 @@ process BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     
     dev.off()
     
-    # 6. Run differential abundance modeling
+    # --- Run differential abundance modeling ---
     MSstatsLiP_model <- groupComparisonLiP(MSstatsLiP_Summarized,
                                            fasta = fasta_file,
                                            use_log_file = FALSE, 
@@ -140,7 +140,7 @@ process BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
       write.csv(MSstatsLiP_model[["TrP.Model"]], "MSstatsLiP_model_TrP.csv", row.names = FALSE)
     }
     
-    # 7. Visualize modeling results
+    # --- Visualize modeling results ---
     # Open a PDF device to capture all result plots
     pdf("MSstatsLiP_Modeling_Plots.pdf", width = 11, height = 8.5)
     

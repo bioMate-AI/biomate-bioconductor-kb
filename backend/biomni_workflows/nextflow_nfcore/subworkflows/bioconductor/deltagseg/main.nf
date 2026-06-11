@@ -97,28 +97,28 @@ process BIOC_DELTAGSEG_MACROSTATE_IDENTIFICATION {
       assignInNamespace("identify", mock_identify, ns="deltaGseg")
     }, error = function(e) NULL)
     
-    # 1. Load and parse trajectories from the working directory
+    # --- Load and parse trajectories from the working directory ---
     dir <- "."
     traj1 <- parseTraj(path=dir, files=c("D_GBTOT1","D_GBTOT2","D_GBTOT3"))
     
-    # 2. Split non-stationary trajectories into weakly-stationary subseries
+    # --- Split non-stationary trajectories into weakly-stationary ---
     traj1.tr <- transformSeries(object=traj1,method='splitting',breakpoints=1)
     
-    # 3. Optionally identify and choose custom breakpoints
+    # --- Optionally identify and choose custom breakpoints ---
     all_breakpoints <- splitTraj(traj1,segsplits=c(5,5,5))
     mybreaks <- chooseBreaks(all_breakpoints,numbreaks=3)
     traj1.sp.tr <- transformSeries(object=traj1,method='override_splitting',breakpoints=mybreaks)
     
-    # 4. Segment and denoise the subseries
+    # --- Segment and denoise the subseries ---
     traj1.denoise <- denoiseSegments(object=traj1.tr,seg_method="SegNeigh",maxQ=15,fn=1,factor=0.8,thresh_level=TRUE,minobs=200)
     
-    # 5. Calculate multi-scale bootstrap p-values
+    # --- Calculate multi-scale bootstrap p-values ---
     pvals <- clusterPV(object=traj1.denoise,bootstrap=500)
     
-    # 6. Group segments into subpopulations (uses the mocked non-interactive identify)
+    # --- Group segments into subpopulations (uses the mocked ---
     traj1.ss <- clusterSegments(object=traj1.denoise,intervention = "pvclust",pv=pvals)
     
-    # 7. Retrieve subpopulation intervals
+    # --- Retrieve subpopulation intervals ---
     intervals <- getIntervals(traj1.ss)
     
     # Save intervals to CSV
@@ -128,7 +128,7 @@ process BIOC_DELTAGSEG_MACROSTATE_IDENTIFICATION {
     )
     write.csv(intervals_df, "subpopulation_intervals.csv", row.names=FALSE)
     
-    # 8. Perform residual diagnostics and save plots to PDF
+    # --- Perform residual diagnostics and save plots to PDF ---
     pdf("diagnostic_plots.pdf", width=11, height=8.5)
     diagnosticPlots(object=traj1.ss,norm.test="KS",single.series=TRUE)
     dev.off()

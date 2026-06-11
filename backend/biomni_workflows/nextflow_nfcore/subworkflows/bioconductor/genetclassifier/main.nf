@@ -11,7 +11,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the gene expression dataset and define training samples. 2. Run geNetClassifier() to rank genes, train the SVM classifier, es
+//  * 1. [Visualization & Output] Load the gene expression dataset and define training
+//  * 2. [Visualization & Output] Run geNetClassifier() to rank genes, train the SVM
+//  * 3. [Visualization & Output] Inspect the ranked genes and significant gene counts
+//  * 4. [Visualization & Output] Evaluate classifier performance and generalization error
+//  * 5. [Visualization & Output] Export the constructed gene networks to text files
+//  * 6. [Visualization & Output] Save meaningful results to disk
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +56,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     library(Biobase)
     
     # ==========================================
-    # 1. Load the gene expression dataset and define training samples
+    # --- Load the gene expression dataset and define training ---
     # ==========================================
     
     if (!file.exists("expression_data.RData")) {
@@ -126,7 +131,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     }
     
     # ==========================================
-    # 2. Run geNetClassifier() to rank genes, train the SVM classifier, 
+    # --- Run geNetClassifier() to rank genes, train the SVM ---
     #    estimate generalization error, and build co-expression networks
     # ==========================================
     
@@ -139,7 +144,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     )
     
     # ==========================================
-    # 3. Inspect the ranked genes and significant gene counts
+    # --- Inspect the ranked genes and significant gene counts ---
     # ==========================================
     
     names(leukemiasClassifier)
@@ -166,7 +171,7 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     numSignificantGenes(leukemiasClassifier@genesRanking)
     
     # ==========================================
-    # 4. Evaluate classifier performance and generalization error
+    # --- Evaluate classifier performance and generalization error ---
     # ==========================================
     
     leukemiasClassifier@classifier
@@ -176,14 +181,14 @@ process BIOC_GENETCLASSIFIER_TRAIN_CLASSIFIER_AND_NETWORKS {
     leukemiasClassifier@generalizationError@probMatrix
     
     # ==========================================
-    # 5. Export the constructed gene networks to text files
+    # --- Export the constructed gene networks to text files ---
     # ==========================================
     
     leukemiasClassifier@genesNetwork
     network2txt(leukemiasClassifier@genesNetwork, filePrefix="leukemiasNetwork")
     
     # ==========================================
-    # 6. Save meaningful results to disk
+    # --- Save meaningful results to disk ---
     # ==========================================
     
     message("Saving pipeline results to disk...")

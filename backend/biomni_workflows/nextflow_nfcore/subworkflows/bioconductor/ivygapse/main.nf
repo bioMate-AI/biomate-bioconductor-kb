@@ -50,7 +50,7 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
     library(randomForest)
     
     # ==========================================
-    # Stage 1: Read and Align User Input Files
+    # --- Read and Align User Input Files ---
     # ==========================================
     
     # Read the gene-by-sample expression matrix (counts or normalized values)
@@ -73,7 +73,7 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Construct Compatible SummarizedExperiment
+    # --- Construct Compatible SummarizedExperiment ---
     # ==========================================
     
     # To leverage ivygapSE's metadata extraction and modeling workflows,
@@ -109,7 +109,7 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
     metadata(se)\$subBlockDetails <- sub_det
     
     # ==========================================
-    # Stage 3: Extract Metadata & Generate Design Plots
+    # --- Extract Metadata & Generate Design Plots ---
     # ==========================================
     
     # Generate design overview and nomenclature plots
@@ -136,7 +136,7 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
     write.csv(sub_details, "subblock_details.csv", row.names=FALSE)
     
     # ==========================================
-    # Stage 4: Differential Expression by Molecular Subtype
+    # --- Differential Expression by Molecular Subtype ---
     # ==========================================
     
     # Bind molecular subtype information to the expression sample annotation
@@ -173,7 +173,7 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
     write.csv(de_table, "limma_molecular_subtype_de.csv")
     
     # ==========================================
-    # Stage 5: Classification of Structural Character
+    # --- Classification of Structural Character ---
     # ==========================================
     
     refex\$struc <- factor(refex\$structure_acronym)
@@ -217,7 +217,7 @@ process BIOC_IVYGAPSE_IVYGAP_GLIOBLASTOMA_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 6: Run Package's Built-in Reference Limma
+    # --- Run Package's Built-in Reference Limma ---
     # ==========================================
     
     tryCatch({

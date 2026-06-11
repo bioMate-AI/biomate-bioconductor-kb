@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run non-partial correlation analysis using non_partial_cor
+//  * 1. [Core Analysis] READ USER INPUT FILES
+//  * 2. [Core Analysis] RUN NON-PARTIAL CORRELATION ANALYSIS
+//  * 3. [Core Analysis] WRITE OUTPUTS
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +52,7 @@ process BIOC_INDEED_NON_PARTIAL_CORRELATION_ANALYSIS {
     library(INDEED)
     
     # ==========================================
-    # 1. READ USER INPUT FILES
+    # --- READ USER INPUT FILES ---
     # ==========================================
     
     # Read expression data matrix (features as rows, subjects as columns)
@@ -102,14 +104,14 @@ process BIOC_INDEED_NON_PARTIAL_CORRELATION_ANALYSIS {
     }
     
     # ==========================================
-    # 2. RUN NON-PARTIAL CORRELATION ANALYSIS
+    # --- RUN NON-PARTIAL CORRELATION ANALYSIS ---
     # ==========================================
     
     # Execute the documented function call exactly as specified
     results <- non_partial_cor(data = Met_GU, class_label = Met_Group_GU, id = Met_name_GU, method = "spearman")
     
     # ==========================================
-    # 3. WRITE OUTPUTS
+    # --- WRITE OUTPUTS ---
     # ==========================================
     
     # Save the complete results object as an RDS file

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Build the KEGG graph from KEGGREST using buildGraphFromKEGGREST. 2. Build the local database files using buildDataFromGraph. 3. Lo
+//  * 1. [Visualization & Output] Build the KEGG graph from KEGGREST
+//  * 2. [Visualization & Output] Build the local database files
+//  * 3. [Visualization & Output] Load the KEGG database
+//  * 4. [Visualization & Output] Visualize the enriched subnetwork and save to PDF
+//  * 5. [Visualization & Output] Export results as a table
+//  * 6. [Visualization & Output] Export results as an igraph object
 
 nextflow.enable.dsl = 2
 
@@ -78,13 +83,13 @@ process BIOC_FELLA_KEGG_NETWORK_ENRICHMENT {
           stop("The input file 'list_of_compounds.txt' is empty.")
         }
         
-        # 1. Build the KEGG graph from KEGGREST
+        # --- Build the KEGG graph from KEGGREST ---
         message("Building KEGG graph from KEGGREST...")
         graph <- buildGraphFromKEGGREST(
             organism = "mmu", 
             filter.path = c("01100", "01200", "01210", "01212", "01230"))
         
-        # 2. Build the local database files
+        # --- Build the local database files ---
         tmpdir <- paste0(tempdir(), "/my_database")
         unlink(tmpdir, recursive = TRUE)  
         
@@ -97,7 +102,7 @@ process BIOC_FELLA_KEGG_NETWORK_ENRICHMENT {
             normality = "diffusion", 
             niter = 100)
         
-        # 3. Load the KEGG database
+        # --- Load the KEGG database ---
         message("Loading KEGG database...")
         fella.data <- loadKEGGdata(
             databaseDir = tmpdir, 
@@ -113,7 +118,7 @@ process BIOC_FELLA_KEGG_NETWORK_ENRICHMENT {
             method = "diffusion", 
             approx = "normality")
         
-        # 6. Visualize the enriched subnetwork and save to PDF
+        # --- Visualize the enriched subnetwork and save to PDF ---
         message("Generating enrichment plot...")
         pdf("enrichment_plot.pdf", width = 10, height = 10)
         plot(
@@ -124,7 +129,7 @@ process BIOC_FELLA_KEGG_NETWORK_ENRICHMENT {
             plotLegend = FALSE)
         dev.off()
         
-        # 7. Export results as a table
+        # --- Export results as a table ---
         message("Generating results table...")
         tab.all <- generateResultsTable(
             method = "diffusion", 
@@ -143,7 +148,7 @@ process BIOC_FELLA_KEGG_NETWORK_ENRICHMENT {
             object = analysis.nafld, 
             data = fella.data)
         
-        # 8. Export results as an igraph object
+        # --- Export results as an igraph object ---
         message("Generating results graph...")
         g.nafld <- generateResultsGraph(
             object = analysis.nafld, 

@@ -52,7 +52,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     library(rgl)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read count matrix and sample metadata
@@ -106,7 +106,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     )
     
     # ==========================================
-    # Stage 2: Control Group Adjustment (Part 1)
+    # --- Control Group Adjustment (Part 1) ---
     # ==========================================
     E <- 1
     Pw <- 1.1
@@ -124,7 +124,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     )
     
     # ==========================================
-    # Stage 3: Hyperrectangle Deviation Assessment
+    # --- Hyperrectangle Deviation Assessment ---
     # ==========================================
     TTMAP_part1_hda <- TTMap::hyperrectangle_deviation_assessment(
       x = TTMAP_part1prime,
@@ -137,7 +137,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     write.csv(TTMAP_part1_hda\$Dc.Dmat, "deviation_components.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Global-to-Local Mapper (Part 2)
+    # --- Global-to-Local Mapper (Part 2) ---
     # ==========================================
     ALPHA <- 1
     
@@ -181,7 +181,7 @@ process BIOC_TTMAP_TTMAP_ANOMALY_CLUSTERING {
     })
     
     # ==========================================
-    # Stage 5: Identify Significant Genes
+    # --- Identify Significant Genes ---
     # ==========================================
     TTMap::ttmap_sgn_genes(
       TTMAP_part2_gtlmap,

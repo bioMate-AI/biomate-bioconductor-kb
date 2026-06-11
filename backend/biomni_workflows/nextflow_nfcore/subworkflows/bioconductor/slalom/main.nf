@@ -49,7 +49,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     library(GSEABase)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -87,7 +87,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 2: Construct Gene Set Collection
+    # --- Construct Gene Set Collection ---
     # ==========================================
     
     message("Constructing gene sets from input genes...")
@@ -113,7 +113,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     genesets <- GeneSetCollection(gs_list)
     
     # ==========================================
-    # Stage 3: Initialize and Train Slalom Model
+    # --- Initialize and Train Slalom Model ---
     # ==========================================
     
     message("Initializing Slalom model...")
@@ -141,7 +141,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 4: Extract and Save Results
+    # --- Extract and Save Results ---
     # ==========================================
     
     message("Extracting results...")
@@ -157,7 +157,7 @@ process BIOC_SLALOM_SLALOM_LATENT_PATHWAY_ANALYSIS {
     write.csv(latent_factors, "slalom_latent_factors.csv")
     
     # ==========================================
-    # Stage 5: Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     # ==========================================
     
     message("Generating plots...")

@@ -45,13 +45,13 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(gtrellis)
     library(GenomicRanges)
     library(rtracklayer)
     library(grid)
     
-    # Stage 2: Import and preprocess input data
+    # --- Import and preprocess input data ---
     message("Reading input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
@@ -100,7 +100,7 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     }
     gr\$pt_color <- pt_cols
     
-    # Stage 3: Define custom genomic categories (chromosomes)
+    # --- Define custom genomic categories (chromosomes) ---
     chroms <- as.character(unique(seqnames(gr)))
     chrom_lengths <- sapply(chroms, function(chr) {
       max(end(gr[seqnames(gr) == chr]))
@@ -109,7 +109,7 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     # Create GRanges representing the genome layout
     category_gr <- GRanges(seqnames = chroms, ranges = IRanges(start = 1, end = chrom_lengths))
     
-    # Stage 4: Compute and write summary statistics
+    # --- Compute and write summary statistics ---
     message("Computing genomic summary statistics...")
     summary_df <- data.frame(
       chromosome = chroms,
@@ -121,7 +121,7 @@ process BIOC_GTRELLIS_GTRELLIS_GENOME_VISUALIZATION {
     write.csv(summary_df, "genomic_summary.csv", row.names = FALSE)
     message("Saved summary statistics to 'genomic_summary.csv'.")
     
-    # Stage 5: Initialize and plot Trellis layout
+    # --- Initialize and plot Trellis layout ---
     message("Generating Trellis visualization...")
     pdf("gtrellis_genome_plot.pdf", width = 12, height = 8)
     

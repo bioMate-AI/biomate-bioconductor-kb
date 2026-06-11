@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the package and inspect the input qPCR data matrix and group labels. 2. Run the unified Wilcoxon-Mann-Whitney test with overa
+//  * 1. [Visualization & Output] Load the package and inspect the input qPCR data matrix
+//  * 2. [Visualization & Output] Run the unified Wilcoxon-Mann-Whitney test with overall
+//  * 3. [Visualization & Output] Extract and subset the test results (log odds ratios,
+//  * 4. [Visualization & Output] Adjust the raw p-values for multiple testing using
+//  * 5. [Visualization & Output] Create a volcano plot to visualize effect sizes and
+//  * 6. [Visualization & Output] Create a forest plot to visualize estimated probabilities
+//  * 7. [Visualization & Output] Extract the underlying probabilistic index model
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +56,7 @@ process BIOC_UNIFIEDWMWQPCR_QPCR_OVERALL_NORMALIZATION {
     # Load library
     library('unifiedWMWqPCR')
     
-    # 1. Load the package and inspect the input qPCR data matrix and group labels.
+    # --- Load the package and inspect the input qPCR data matrix ---
     # Read NBmat
     if (file.exists("NBmat.rds")) {
       NBmat <- readRDS("NBmat.rds")
@@ -77,11 +83,11 @@ process BIOC_UNIFIEDWMWQPCR_QPCR_OVERALL_NORMALIZATION {
     table(NBgroups)
     max(NBmat)
     
-    # 2. Run the unified Wilcoxon-Mann-Whitney test with overall normalization using uWMW.
+    # --- Run the unified Wilcoxon-Mann-Whitney test with overall ---
     uWMW.out <- uWMW(NBmat, groups = NBgroups)
     uWMW.out
     
-    # 3. Extract and subset the test results (log odds ratios, standard errors, p-values).
+    # --- Extract and subset the test results (log odds ratios, ---
     uWMW.out[1:3]
     uWMW.out[1:3,]
     names.tmp <- rownames(NBmat)[1:3]
@@ -102,7 +108,7 @@ process BIOC_UNIFIEDWMWQPCR_QPCR_OVERALL_NORMALIZATION {
     
     uWMW.out[selection.miRNA]
     
-    # 4. Adjust the raw p-values for multiple testing using p.adjust.
+    # --- Adjust the raw p-values for multiple testing using ---
     adj.pvalues <- p.adjust(uWMW.out@p.value, method = "BH")
     selection.id <- match(selection.miRNA, names(uWMW.out))
     adj.pvalues[selection.id]
@@ -114,19 +120,19 @@ process BIOC_UNIFIEDWMWQPCR_QPCR_OVERALL_NORMALIZATION {
       message("hsa-mir-92 not found or could not be subsetted.")
     })
     
-    # 5. Create a volcano plot to visualize effect sizes and significance.
+    # --- Create a volcano plot to visualize effect sizes and ---
     pdf("volcano_plot.pdf")
     volcanoplot(uWMW.out, add.ref = c("both"), ref.x = c(-log(2),log(2)), 
     ref.y = -log10(0.001))
     dev.off()
     
-    # 6. Create a forest plot to visualize estimated probabilities and confidence intervals against the reference Delta.
+    # --- Create a forest plot to visualize estimated probabilities ---
     pdf("forest_plot.pdf")
     x.label <- expression("estimated "*P(Y[MNA] < Y[MNSC]))
     forestplot(uWMW.out, estimate = "p", order = selection.id, xlab = x.label) 
     dev.off()
     
-    # 7. Extract the underlying probabilistic index model coefficients and variance-covariance matrix.
+    # --- Extract the underlying probabilistic index model ---
     coef(uWMW.out)[1:3]
     vcov(uWMW.out)[1:3,1:3]
     

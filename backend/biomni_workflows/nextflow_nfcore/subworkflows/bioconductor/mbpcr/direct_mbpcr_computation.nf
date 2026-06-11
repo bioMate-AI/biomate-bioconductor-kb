@@ -102,14 +102,14 @@ process BIOC_MBPCR_DIRECT_MBPCR_COMPUTATION {
       stop("Error: Could not load 'jekoChr11Array250Knsp' from the working directory.")
     }
     
-    # 1. Extract the copy number vector y and position vector p
+    # --- Extract the copy number vector y and position vector p ---
     y <- jekoChr11Array250Knsp\$log2ratio[10600:11200]
     p <- jekoChr11Array250Knsp\$PhysicalPosition[10600:11200]
     
-    # 2. Compute the profile directly using computeMBPCR
+    # --- Compute the profile directly using computeMBPCR ---
     results <- computeMBPCR(y, nu=-3.012772e-10, rhoSquare=0.0479, sigmaSquare=0.0699, regr='BRC')
     
-    # 3. Plot the raw data and the estimated curves to a PDF file
+    # --- Plot the raw data and the estimated curves to a PDF file ---
     pdf("direct_mbpcr_profile.pdf", width = 8, height = 6)
     plot(p, y)
     points(p, results\$estPC, type='l', col='red')
@@ -117,7 +117,7 @@ process BIOC_MBPCR_DIRECT_MBPCR_COMPUTATION {
     legend(x='bottomleft', legend=c('mBPCR', 'BRC with K_2'), lty=c(1, 1), col=c(4, 2))
     dev.off()
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the full results object as an RDS file
     saveRDS(results, file = "mbpcr_results.rds")
     

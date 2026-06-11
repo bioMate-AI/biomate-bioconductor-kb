@@ -48,7 +48,7 @@ process BIOC_PEPXMLTAB_PEPXML_FDR_FILTERING_PIPELINE {
     library(pepXMLTab)
     
     # ==========================================
-    # STAGE 1: Read Input Data and Preprocess
+    # --- Read Input Data and Preprocess ---
     # ==========================================
     
     # Read the intensity matrix and experimental design
@@ -86,7 +86,7 @@ process BIOC_PEPXMLTAB_PEPXML_FDR_FILTERING_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 2: Generate Mock pepXML Search Results
+    # --- Generate Mock pepXML Search Results ---
     # ==========================================
     
     # To perform a realistic FDR calculation, we generate target and decoy PSMs.
@@ -179,7 +179,7 @@ process BIOC_PEPXMLTAB_PEPXML_FDR_FILTERING_PIPELINE {
     writeLines(xml_content, "simulated_search.pepXML")
     
     # ==========================================
-    # STAGE 3: Parse and Filter pepXML
+    # --- Parse and Filter pepXML ---
     # ==========================================
     
     # Parse the pepXML file to a tabular format
@@ -199,7 +199,7 @@ process BIOC_PEPXMLTAB_PEPXML_FDR_FILTERING_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Map Back and Filter Intensity Matrix
+    # --- Map Back and Filter Intensity Matrix ---
     # ==========================================
     
     # Extract original feature IDs from passed target proteins
@@ -218,7 +218,7 @@ process BIOC_PEPXMLTAB_PEPXML_FDR_FILTERING_PIPELINE {
     write.csv(filtered_intensity, "filtered_intensities.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Downstream Differential Expression
+    # --- Downstream Differential Expression ---
     # ==========================================
     
     # Calculate mean intensities per condition
@@ -263,7 +263,7 @@ process BIOC_PEPXMLTAB_PEPXML_FDR_FILTERING_PIPELINE {
     write.csv(mean_intensities, "differential_expression_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     
     pdf("pepxml_qc_analysis.pdf", width = 10, height = 5)

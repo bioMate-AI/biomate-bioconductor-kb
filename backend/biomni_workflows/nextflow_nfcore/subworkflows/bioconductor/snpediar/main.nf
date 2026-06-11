@@ -51,7 +51,7 @@ process BIOC_SNPEDIAR_SNPEDIA_VARIANT_ANNOTATION {
     api_delay <- 1
     
     # ==========================================
-    # STAGE 1: Read and Parse Input VCF & Metadata
+    # --- Read and Parse Input VCF & Metadata ---
     # ==========================================
     message("Stage 1: Reading input VCF and metadata...")
     
@@ -97,7 +97,7 @@ process BIOC_SNPEDIAR_SNPEDIA_VARIANT_ANNOTATION {
     }
     
     # ==========================================
-    # STAGE 2: Helper Functions for SNPedia API
+    # --- Helper Functions for SNPedia API ---
     # ==========================================
     message("Stage 2: Setting up SNPedia query helpers...")
     
@@ -150,7 +150,7 @@ process BIOC_SNPEDIAR_SNPEDIA_VARIANT_ANNOTATION {
     }
     
     # ==========================================
-    # STAGE 3: Query SNPedia and Annotate Variants
+    # --- Query SNPedia and Annotate Variants ---
     # ==========================================
     message("Stage 3: Querying SNPedia and annotating variants...")
     
@@ -252,7 +252,7 @@ process BIOC_SNPEDIAR_SNPEDIA_VARIANT_ANNOTATION {
     message("Saved detailed annotations to 'annotated_variants.csv'")
     
     # ==========================================
-    # STAGE 4: Generate Summary Statistics
+    # --- Generate Summary Statistics ---
     # ==========================================
     message("Stage 4: Generating summary statistics...")
     
@@ -283,7 +283,7 @@ process BIOC_SNPEDIAR_SNPEDIA_VARIANT_ANNOTATION {
     message("Saved summary statistics to 'variant_summary.csv'")
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Convert microarray object to a 3D array; 2. Apply rank transformation or relative log expression (RLE) transformation; 3. Plot the
+//  * 1. [Visualization & Output] Load User Input
+//  * 2. [Visualization & Output] Execute Documented Code Workflow
+//  * 3. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +54,7 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     library(scales)
     
     # -----------------------------------------------------------------------------
-    # 1. Load User Input
+    # --- Load User Input ---
     # -----------------------------------------------------------------------------
     input_file <- "raw_microarray_data.RData"
     if (!file.exists(input_file)) {
@@ -73,7 +75,7 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     Dilution <- temp_env[[object_names[1]]]
     
     # -----------------------------------------------------------------------------
-    # 2. Execute Documented Code Workflow
+    # --- Execute Documented Code Workflow ---
     # -----------------------------------------------------------------------------
     
     # Define custom divergent color palette
@@ -93,7 +95,7 @@ process BIOC_MIMAGER_TRANSFORMED_ARRAY_VISUALIZATION {
     rank_dim <- dim(DilutionRank)
     
     # -----------------------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------------------
     
     # Save the processed 3D arrays as RDS objects

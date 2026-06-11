@@ -54,7 +54,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     library(org.Dm.eg.db)
     
     # ==========================================
-    # STAGE 1: Read and Parse User Input Files
+    # --- Read and Parse User Input Files ---
     # ==========================================
     
     message("Reading input files...")
@@ -152,7 +152,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     names(regions) <- counts.df\$Position
     
     # ==========================================
-    # STAGE 2: Exploratory Data Analysis & QC
+    # --- Exploratory Data Analysis & QC ---
     # ==========================================
     
     message("Generating QC plots...")
@@ -165,7 +165,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Differential Methylation Analysis
+    # --- Differential Methylation Analysis ---
     # ==========================================
     
     message("Setting up edgeR analysis...")
@@ -177,7 +177,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 4: Peak Calling (Bridges)
+    # --- Peak Calling (Bridges) ---
     # ==========================================
     
     message("Identifying peaks...")
@@ -205,7 +205,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     write.csv(peaks, "peaks.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Gene Annotation
+    # --- Gene Annotation ---
     # ==========================================
     
     message("Collating genes and annotating peaks...")
@@ -233,7 +233,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     write.csv(annotation\$closest, "annotated_peaks_closest.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Gene Ontology Analysis
+    # --- Gene Ontology Analysis ---
     # ==========================================
     
     message("Running Gene Ontology analysis...")
@@ -254,7 +254,7 @@ process BIOC_DAMSEL_DAMSEL_DAMID_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 7: Visualizing Top Peak Coverage
+    # --- Visualizing Top Peak Coverage ---
     # ==========================================
     
     message("Plotting top peak coverage...")

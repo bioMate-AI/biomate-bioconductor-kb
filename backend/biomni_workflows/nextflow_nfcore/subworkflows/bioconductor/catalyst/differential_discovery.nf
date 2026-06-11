@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare the SingleCellExperiment object using prepData. 2. Perform FlowSOM clustering and ConsensusClusterPlus metaclustering usin
+//  * 1. [Visualization & Output] Read User Input Files & Data Preparation
+//  * 2. [Visualization & Output] Clustering & Manual Merging
+//  * 3. [Visualization & Output] Dimensionality Reduction
+//  * 4. [Visualization & Output] Differential Testing & Visualization
 
 nextflow.enable.dsl = 2
 
@@ -55,7 +58,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 library(scater)
                 
                 # ==========================================
-                # 1. Read User Input Files & Data Preparation
+                # --- Read User Input Files & Data Preparation ---
                 # ==========================================
                 
                 # Read metadata and panel files
@@ -90,7 +93,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 sce <- prepData(PBMC_fs, PBMC_panel, PBMC_md)
                 
                 # ==========================================
-                # 2. Clustering & Manual Merging
+                # --- Clustering & Manual Merging ---
                 # ==========================================
                 
                 # Perform FlowSOM clustering and ConsensusClusterPlus metaclustering
@@ -107,7 +110,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 sce <- mergeClusters(sce, k = "meta20", table = merging_table, id = "merging1")
                 
                 # ==========================================
-                # 3. Dimensionality Reduction
+                # --- Dimensionality Reduction ---
                 # ==========================================
                 
                 # Run UMAP on a subset of cells (safely bounded by total available cells)
@@ -125,7 +128,7 @@ process BIOC_CATALYST_DIFFERENTIAL_DISCOVERY {
                 dev.off()
                 
                 # ==========================================
-                # 4. Differential Testing & Visualization
+                # --- Differential Testing & Visualization ---
                 # ==========================================
                 
                 tryCatch({

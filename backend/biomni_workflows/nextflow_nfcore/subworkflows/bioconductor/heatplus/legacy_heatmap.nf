@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Generate basic legacy heatmap using heatmap_2. 2. Generate annotated legacy heatmap using heatmap_plus
+//  * 1. [Visualization & Output] Generate basic legacy heatmap using heatmap_2
+//  * 2. [Visualization & Output] Generate annotated legacy heatmap using heatmap_plus
 
 nextflow.enable.dsl = 2
 
@@ -57,7 +58,7 @@ process BIOC_HEATPLUS_LEGACY_HEATMAP {
     # sample_metadata.csv: data frame of sample annotations (rows = samples, columns = annotations)
     addvar <- read.csv("sample_metadata.csv", row.names = 1, check.names = FALSE)
     
-    # Stage 1: Generate basic legacy heatmap using heatmap_2
+    # --- Generate basic legacy heatmap using heatmap_2 ---
     pdf("heatmap_2_basic.pdf")
     heatmap_2(mm)
     dev.off()
@@ -66,7 +67,7 @@ process BIOC_HEATPLUS_LEGACY_HEATMAP {
     heatmap_2(mm, do.dendro=c(FALSE, TRUE), legend=1, legfrac=12)
     dev.off()
     
-    # Stage 2: Generate annotated legacy heatmap using heatmap_plus
+    # --- Generate annotated legacy heatmap using heatmap_plus ---
     pdf("heatmap_plus_basic.pdf")
     heatmap_plus(mm)
     dev.off()

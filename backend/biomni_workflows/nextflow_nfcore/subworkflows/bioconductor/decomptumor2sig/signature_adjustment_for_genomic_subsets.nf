@@ -58,7 +58,7 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_ADJUSTMENT_FOR_GENOMIC_SUBSETS {
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(BSgenome.Hsapiens.UCSC.hg19)
     
-    # 1. Read the original mutational signatures
+    # --- Read the original mutational signatures ---
     # Check if a local COSMIC signatures file exists in the working directory,
     # otherwise read/download using the package's default behavior.
     cosmic_file <- "cosmic_signatures.txt"
@@ -70,11 +70,11 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_ADJUSTMENT_FOR_GENOMIC_SUBSETS {
       signatures <- readAlexandrovSignatures()
     }
     
-    # 2. Define the target genomic regions (promoters) as a GRanges object
+    # --- Define the target genomic regions (promoters) as a ---
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
     regionsTarget <- promoters(txdb, upstream = 2000, downstream = 200)
     
-    # 3. Adjust the signatures to the target regions using the reference genome sequence
+    # --- Adjust the signatures to the target regions using the ---
     sign_adj <- adjustSignaturesForRegionSet(
       signatures,
       regionsTarget,
@@ -82,7 +82,7 @@ process BIOC_DECOMPTUMOR2SIG_SIGNATURE_ADJUSTMENT_FOR_GENOMIC_SUBSETS {
       refGenome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     )
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the adjusted signatures object as an RDS file
     saveRDS(sign_adj, file = "adjusted_signatures.rds")
     

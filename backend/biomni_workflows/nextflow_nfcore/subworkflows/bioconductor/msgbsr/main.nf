@@ -50,7 +50,7 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
     library(BSgenome.Rnorvegicus.UCSC.rn6)
     
     # ==========================================
-    # Stage 1: Load and Prepare Input Data
+    # --- Load and Prepare Input Data ---
     # ==========================================
     
     message("Loading input files...")
@@ -112,7 +112,7 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # Stage 2: Cut Site Verification & Filtering
+    # --- Cut Site Verification & Filtering ---
     # ==========================================
     
     message("Adjusting cut sites to cover recognition sequences...")
@@ -169,7 +169,7 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
     }
     
     # ==========================================
-    # Stage 3: Visualization of Read Counts
+    # --- Visualization of Read Counts ---
     # ==========================================
     
     message("Generating read counts diagnostic plot...")
@@ -183,7 +183,7 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 4: Differential Methylation Analysis
+    # --- Differential Methylation Analysis ---
     # ==========================================
     
     message("Running differential methylation analysis...")
@@ -216,7 +216,7 @@ process BIOC_MSGBSR_MSGBSR_EPIGENOMICS_PIPELINE {
     write.csv(top, "differential_methylation.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization of Cut Site Locations
+    # --- Visualization of Cut Site Locations ---
     # ==========================================
     
     message("Generating genomic circos plot...")

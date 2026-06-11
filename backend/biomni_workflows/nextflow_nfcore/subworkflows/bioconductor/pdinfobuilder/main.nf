@@ -48,7 +48,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     library(RSQLite)
     library(DBI)
     
-    # Stage 1: Read input files and extract feature IDs
+    # --- Read input files and extract feature IDs ---
     message("Stage 1: Reading input files...")
     matrix_file <- "matrix.csv"
     coldata_file <- "coldata.csv"
@@ -73,7 +73,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     
     message("Found ", length(feature_ids), " features.")
     
-    # Stage 2: Generate mock NimbleGen NDF and XYS files based on feature IDs
+    # --- Generate mock NimbleGen NDF and XYS files based on ---
     message("Stage 2: Generating mock NimbleGen NDF and XYS files...")
     probes_per_feature <- 3
     total_probes <- length(feature_ids) * probes_per_feature
@@ -123,7 +123,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     )
     write.table(xys_data, file = xys_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE, append = TRUE)
     
-    # Stage 3: Build Platform Design Info Package
+    # --- Build Platform Design Info Package ---
     message("Stage 3: Building Platform Design Info Package...")
     seed <- new("NgsExpressionPDInfoPkgSeed",
                 ndfFile = normalizePath(ndf_file),
@@ -154,7 +154,7 @@ process BIOC_PDINFOBUILDER_PD_INFO_BUILDER_PIPELINE {
     # Run package builder
     makePdInfoPackage(seed, destDir = ".")
     
-    # Stage 4: Verify and Query the SQLite Database
+    # --- Verify and Query the SQLite Database ---
     message("Stage 4: Verifying and Querying the SQLite Database...")
     pkg_dir <- "pd.mock.expr"
     if (!dir.exists(pkg_dir)) {

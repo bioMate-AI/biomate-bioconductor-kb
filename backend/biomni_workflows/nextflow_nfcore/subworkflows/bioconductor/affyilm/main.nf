@@ -44,7 +44,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
           }
         }
     
-    # Stage 1: Load libraries and install dependencies if necessary
+    # --- Load libraries and install dependencies if necessary ---
     message("Loading required packages...")
     if (!requireNamespace("BiocManager", quietly = TRUE)) {
       install.packages("BiocManager", repos = "https://cloud.r-project.org")
@@ -60,7 +60,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
     library(affyILM)
     library(hgfocusprobe)
     
-    # Stage 2: Read and preprocess user input
+    # --- Read and preprocess user input ---
     message("Reading user input files...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
@@ -99,7 +99,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
       common_probesets <- mapped_names
     }
     
-    # Stage 3: Generate mock CEL files in text format (v3)
+    # --- Generate mock CEL files in text format (v3) ---
     message("Generating mock CEL files...")
     cel_files <- c()
     
@@ -153,12 +153,12 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
       close(con)
     }
     
-    # Stage 4: Run affyILM analysis
+    # --- Run affyILM analysis ---
     message("Running affyILM Langmuir model estimation...")
     # Run ilm on the generated CEL files
     ilm_results <- ilm(cel_files, satLim = 12000)
     
-    # Stage 5: Extract results
+    # --- Extract results ---
     message("Extracting expression summaries and probe concentrations...")
     expr_summary <- getExprSummary(ilm_results)
     sd_summary <- getSDSummary(ilm_results)
@@ -176,7 +176,7 @@ process BIOC_AFFYILM_AFFY_ILM_LANGMUIR_PREPROCESSING {
     write.csv(probe_concs, "probe_concentrations.csv", row.names = TRUE)
     write.csv(probe_intens, "probe_intensities.csv", row.names = TRUE)
     
-    # Stage 6: Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     pdf("affyILM_diagnostics.pdf", width = 8, height = 6)
     

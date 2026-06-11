@@ -48,7 +48,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     library(miRcomp)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression/count matrix and sample metadata
@@ -77,7 +77,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     }
     
     # ==========================================
-    # STAGE 2: Simulate Quality Control Metrics
+    # --- Simulate Quality Control Metrics ---
     # ==========================================
     # Since the input only provides expression, we simulate two different QC methods
     # to demonstrate the comparative capabilities of the miRcomp package.
@@ -98,7 +98,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     object2 <- list(ct = ct_matrix, qc = qc_matrix2)
     
     # ==========================================
-    # STAGE 3: Quality Assessment
+    # --- Quality Assessment ---
     # ==========================================
     pdf("quality_assessment.pdf", width = 10, height = 8)
     tryCatch({
@@ -113,7 +113,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     dev.off()
     
     # ==========================================
-    # STAGE 4: Complete Features Assessment
+    # --- Complete Features Assessment ---
     # ==========================================
     cf_table <- tryCatch({
         completeFeatures(object1, qcThreshold1 = 1.25, object2 = object2, qcThreshold2 = 0.97, label1 = "Method1", label2 = "Method2")
@@ -124,7 +124,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     write.csv(as.data.frame(cf_table), "complete_features.csv")
     
     # ==========================================
-    # STAGE 5: Limit of Detection (LOD)
+    # --- Limit of Detection (LOD) ---
     # ==========================================
     pdf("limit_of_detection.pdf", width = 12, height = 6)
     lods_ma <- tryCatch({
@@ -145,7 +145,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     }
     
     # ==========================================
-    # STAGE 6: Titration Response
+    # --- Titration Response ---
     # ==========================================
     tr_table <- tryCatch({
         titrationResponse(object1, qcThreshold1 = 1.25, object2 = object2, qcThreshold2 = 0.97, label1 = "Method1", label2 = "Method2")
@@ -156,7 +156,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     write.csv(as.data.frame(tr_table), "titration_response.csv")
     
     # ==========================================
-    # STAGE 7: Accuracy (Signal Detect Slope)
+    # --- Accuracy (Signal Detect Slope) ---
     # ==========================================
     acc_df <- tryCatch({
         acc_res <- accuracy(object1, qcThreshold1 = 1.25, object2 = object2, qcThreshold2 = 0.97, label1 = "Method1", label2 = "Method2")
@@ -176,7 +176,7 @@ process BIOC_MIRCOMP_MIRNA_EXPRESSION_METHOD_ASSESSMENT {
     write.csv(acc_df, "accuracy_metrics.csv")
     
     # ==========================================
-    # STAGE 8: Precision (SD and CV)
+    # --- Precision (SD and CV) ---
     # ==========================================
     prec_summary <- tryCatch({
         prec_sd <- precision(object1, qcThreshold1 = 1.25, statistic = "sd")

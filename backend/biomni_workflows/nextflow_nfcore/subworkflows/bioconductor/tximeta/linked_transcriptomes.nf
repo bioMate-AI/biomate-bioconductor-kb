@@ -11,7 +11,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define paths to index, FASTA, and GTF. 2. Create a linked transcriptome using makeLinkedTxome(). 3. Import data using tximeta(). 4
+//  * 1. [Input & Preparation] Read the custom transcriptome FASTA and compute its
+//  * 2. [Input & Preparation] Create a mock Salmon index directory containing the digest
+//  * 3. [Input & Preparation] Set up the Salmon quantification directory structure
+//  * 4. [Input & Preparation] Define paths for the linked transcriptome
+//  * 5. [Input & Preparation] Create the linked transcriptome
+//  * 6. [Input & Preparation] Import data using tximeta
+//  * 7. [Input & Preparation] Demonstrate loading the shared linked transcriptome JSON
+//  * 8. [Input & Preparation] Write output files
 
 nextflow.enable.dsl = 2
 
@@ -65,7 +72,7 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         dir.create(temp_bfc, showWarnings = FALSE, recursive = TRUE)
         setTximetaBFC(temp_bfc)
         
-        # 1. Read the custom transcriptome FASTA and compute its SHA-256 digest
+        # --- Read the custom transcriptome FASTA and compute its ---
         # This replicates the exact sequence digest that Salmon and tximeta use.
         message("Reading custom transcriptome and computing sequence digest...")
         fasta_file <- "custom_transcriptome.fa.gz"
@@ -74,14 +81,14 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         sha256 <- digest::digest(seq_concat, algo = "sha256", serialize = FALSE)
         message("Computed SHA-256 digest: ", sha256)
         
-        # 2. Create a mock Salmon index directory containing the digest
+        # --- Create a mock Salmon index directory containing the digest ---
         # tximeta's makeLinkedTxome reads the digest from the index directory.
         indexDir <- normalizePath("custom_index", mustWork = FALSE)
         dir.create(indexDir, showWarnings = FALSE, recursive = TRUE)
         writeLines(paste0('{"index_seq_hash": "', sha256, '"}'), file.path(indexDir, "header.json"))
         writeLines(paste0('{"index_seq_hash": "', sha256, '"}'), file.path(indexDir, "info.json"))
         
-        # 3. Set up the Salmon quantification directory structure
+        # --- Set up the Salmon quantification directory structure ---
         # tximeta expects aux_info/meta_info.json relative to the quant.sf file.
         quant_dir <- "quant_output"
         dir.create(file.path(quant_dir, "aux_info"), showWarnings = FALSE, recursive = TRUE)
@@ -91,13 +98,13 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
           file.path(quant_dir, "aux_info", "meta_info.json")
         )
         
-        # 4. Define paths for the linked transcriptome
+        # --- Define paths for the linked transcriptome ---
         fastaFTP <- normalizePath(fasta_file)
         gtfPath <- normalizePath("custom_annotation.gtf.gz")
         tmp <- tempdir()
         jsonFile <- file.path(tmp, paste0(basename(indexDir), ".json"))
         
-        # 5. Create the linked transcriptome
+        # --- Create the linked transcriptome ---
         message("Creating linked transcriptome...")
         makeLinkedTxome(
           indexDir = indexDir,
@@ -110,7 +117,7 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
           jsonFile = jsonFile
         )
         
-        # 6. Import data using tximeta
+        # --- Import data using tximeta ---
         file <- file.path(quant_dir, "quant.sf")
         coldata <- data.frame(
           files = file,
@@ -127,7 +134,7 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         rowRanges(se)
         seqinfo(se)
         
-        # 7. Demonstrate loading the shared linked transcriptome JSON
+        # --- Demonstrate loading the shared linked transcriptome JSON ---
         message("Loading linked transcriptome from JSON...")
         jsonFile <- file.path(tmp, paste0(basename(indexDir), ".json"))
         loadLinkedTxome(jsonFile)
@@ -135,7 +142,7 @@ process BIOC_TXIMETA_LINKED_TRANSCRIPTOMES {
         message("Re-running tximeta import after loading JSON...")
         se <- tximeta(coldata)
         
-        # 8. Write output files
+        # --- Write output files ---
         message("Writing output files...")
         saveRDS(se, "tximeta_se.rds")
         

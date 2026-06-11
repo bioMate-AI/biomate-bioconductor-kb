@@ -50,7 +50,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Alleles
+    # --- Read and Preprocess Input Alleles ---
     # ==========================================
     input_file <- "input.csv"
     alleles <- character(0)
@@ -86,7 +86,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Reference Data Retrieval
+    # --- Reference Data Retrieval ---
     # ==========================================
     message("Retrieving reference tables...")
     valid_organisms <- get_valid_organisms()
@@ -105,7 +105,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 3: HLA Annotation and Conversion
+    # --- HLA Annotation and Conversion ---
     # ==========================================
     message("Annotating HLA alleles...")
     
@@ -161,7 +161,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     write.csv(annotations, "hla_annotations.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Format for Immunoinformatics Tools
+    # --- Format for Immunoinformatics Tools ---
     # ==========================================
     message("Formatting alleles for NetMHCpan...")
     mhcpan_mhc1 <- NULL
@@ -181,7 +181,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     write.csv(mhcpan_df, "mhcpan_inputs.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Query Worldwide Population Frequencies
+    # --- Query Worldwide Population Frequencies ---
     # ==========================================
     message("Querying population frequencies from AFND...")
     freq_list <- list()
@@ -216,7 +216,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 6: Query Population Details
+    # --- Query Population Details ---
     # ==========================================
     message("Querying population metadata...")
     pop_details <- NULL
@@ -242,7 +242,7 @@ process BIOC_IMMUNOTATION_IMMUNOTATION_HLA_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 7: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating allele frequency map...")
     pdf("allele_frequency_map.pdf", width = 10, height = 7)

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Construct a SingleCellExperiment object containing the reference count matrix and pseudotime covariates. 2. Run the scdesign3 func
+//  * 1. [Visualization & Output] Read user input files
+//  * 2. [Visualization & Output] Run scDesign3 simulation
+//  * 3. [Visualization & Output] Construct simulated SingleCellExperiment object
+//  * 4. [Visualization & Output] Visualization and comparison
 
 nextflow.enable.dsl = 2
 
@@ -95,7 +98,7 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
       stop(paste("Error: Could not find input file for", name, "in the working directory."))
     }
     
-    # 1. Read user input files
+    # --- Read user input files ---
     message("Loading input datasets...")
     ref_count <- load_data("counts")
     pseudotime <- load_data("pseudotime")
@@ -112,7 +115,7 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
       colData = DataFrame(pseudotime = pseudotime)
     )
 
-    # 2. Run scDesign3 simulation
+    # --- Run scDesign3 simulation ---
     message("Running scDesign3 simulation...")
     set.seed(123)
     ref_simu <- scdesign3(
@@ -139,7 +142,7 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
     message("Simulated count matrix dimensions:")
     print(dim(ref_simu\$new_count))
 
-    # 3. Construct simulated SingleCellExperiment object
+    # --- Construct simulated SingleCellExperiment object ---
     message("Processing simulated dataset...")
     logcounts(ref_sce) <- log1p(counts(ref_sce))
 
@@ -155,7 +158,7 @@ process BIOC_SCDESIGN3_SCRNA_TRAJECTORY_SIMULATION {
     )
     logcounts(simu_sce) <- log1p(counts(simu_sce))
 
-    # 4. Visualization and comparison
+    # --- Visualization and comparison ---
     message("Generating dimensionality reduction comparison plot...")
     set.seed(123)
     compare_figure <- plot_reduceddim(

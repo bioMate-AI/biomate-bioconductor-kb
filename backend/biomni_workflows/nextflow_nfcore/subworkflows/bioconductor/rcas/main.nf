@@ -58,11 +58,11 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     library(ggplot2)
     library(seqLogo)
     
-    # 1. Import BED and GTF files
+    # --- Import BED and GTF files ---
     queryRegions <- importBed(filePath = "queryRegions.bed", sampleN = 10000)
     gff <- importGtf(filePath = "annotation.gtf")
     
-    # 2. Query overlaps between query regions and reference annotations
+    # --- Query overlaps between query regions and reference ---
     overlaps <- as.data.table(queryGff(queryRegions = queryRegions, gffData = gff))
     
     # Find targeted gene types and plot
@@ -82,10 +82,10 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     ggsave("biotype_overlap_plot.pdf", plot = p1, width = 10, height = 8)
     write.csv(df_biotype, "biotype_overlaps.csv", row.names = FALSE)
     
-    # 3. Extract transcript features from the GTF
+    # --- Extract transcript features from the GTF ---
     txdbFeatures <- getTxdbFeaturesFromGRanges(gff)
     
-    # 4. Summarize query regions across transcript features
+    # --- Summarize query regions across transcript features ---
     summary <- summarizeQueryRegions(queryRegions = queryRegions, txdbFeatures = txdbFeatures)
     df_summary <- data.frame(summary)
     df_summary\$percent <- round((df_summary\$count / length(queryRegions)), 3) * 100
@@ -101,12 +101,12 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     ggsave("transcript_feature_overlap_plot.pdf", plot = p2, width = 10, height = 8)
     write.csv(df_summary, "transcript_feature_overlaps.csv", row.names = FALSE)
     
-    # 5. Generate targeted genes table
+    # --- Generate targeted genes table ---
     dt <- getTargetedGenesTable(queryRegions = queryRegions, txdbFeatures = txdbFeatures)
     dt <- dt[order(transcripts, decreasing = TRUE)]
     write.csv(dt, "targeted_genes_table.csv", row.names = FALSE)
     
-    # 6. Profile coverage at feature boundaries
+    # --- Profile coverage at feature boundaries ---
     cvgF <- getFeatureBoundaryCoverage(queryRegions = queryRegions, featureCoords = txdbFeatures\$transcripts, flankSize = 1000, boundaryType = 'fiveprime', sampleN = 10000)
     cvgT <- getFeatureBoundaryCoverage(queryRegions = queryRegions, featureCoords = txdbFeatures\$transcripts, flankSize = 1000, boundaryType = 'threeprime', sampleN = 10000)
     cvgF\$boundary <- 'fiveprime'
@@ -121,7 +121,7 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     
     ggsave("feature_boundary_coverage_plot.pdf", plot = p3, width = 10, height = 6)
     
-    # 7. Calculate coverage profiles across all features
+    # --- Calculate coverage profiles across all features ---
     cvgList <- calculateCoverageProfileList(queryRegions = queryRegions, targetRegionsList = txdbFeatures, sampleN = 10000)
     
     p4 <- ggplot2::ggplot(cvgList, aes(x = bins, y = meanCoverage)) + 
@@ -132,7 +132,7 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     
     ggsave("coverage_profile_list_plot.pdf", plot = p4, width = 12, height = 10)
     
-    # 8. Discover motifs and get summary table
+    # --- Discover motifs and get summary table ---
     motifResults <- runMotifDiscovery(queryRegions = queryRegions, resizeN = 15, sampleN = 10000, genomeVersion = 'hg19', motifWidth = 6, motifN = 1, nCores = 1)
     
     # Save sequence logo
@@ -143,14 +143,14 @@ process BIOC_RCAS_SINGLE_SAMPLE_RCAS_ANALYSIS {
     motif_summary <- getMotifSummaryTable(motifResults)
     write.csv(motif_summary, "motif_summary_table.csv", row.names = FALSE)
     
-    # 9. Find enriched functions
+    # --- Find enriched functions ---
     targetedGenes <- unique(overlaps\$gene_id)
     res <- RCAS::findEnrichedFunctions(targetGenes = targetedGenes, species = 'hsapiens')
     res <- res[order(res\$p_value),]
     resGO <- res[grep('GO:BP', res\$source),]
     write.csv(resGO, "enriched_functions_GO_BP.csv", row.names = FALSE)
     
-    # 10. Generate a full HTML report
+    # --- Generate a full HTML report ---
     runReport(queryFilePath = 'queryRegions.bed', gffFilePath = 'annotation.gtf')
 
     writeLines(c(

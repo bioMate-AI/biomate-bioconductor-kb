@@ -49,7 +49,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     library(BSgenome.Hsapiens.UCSC.hg18)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input data...")
@@ -88,7 +88,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     }
     
     # ==========================================
-    # Stage 2: Parse and Validate Genomic Coordinates
+    # --- Parse and Validate Genomic Coordinates ---
     # ==========================================
     
     message("Parsing genomic coordinates...")
@@ -124,7 +124,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
     }
     
     # ==========================================
-    # Stage 3: Create MEDMEset and Run Pipeline
+    # --- Create MEDMEset and Run Pipeline ---
     # ==========================================
     
     message("Initializing MEDMEset object...")
@@ -154,7 +154,7 @@ process BIOC_MEDME_MEDME_METHYLATION_PREDICTION {
                                wFunction = "linear")
     
     # ==========================================
-    # Stage 4: Export Results
+    # --- Export Results ---
     # ==========================================
     
     message("Exporting results...")

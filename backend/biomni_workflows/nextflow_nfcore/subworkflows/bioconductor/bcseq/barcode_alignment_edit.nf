@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Define paths for the input read file, reference barcode file, and output CSV file. 2. Run bcSeq_edit with specified mismatch toler
+//  * 1. [Visualization & Output] Define paths for the input read file, reference barcode
+//  * 2. [Visualization & Output] Run bcSeq_edit with specified mismatch tolerance,
+//  * 3. [Visualization & Output] Read the resulting CSV file containing barcode sequences
 
 nextflow.enable.dsl = 2
 
@@ -50,18 +52,18 @@ process BIOC_BCSEQ_BARCODE_ALIGNMENT_EDIT {
     library(Matrix)
     library(bcSeq)
     
-    # Stage 1: Define paths for the input read file, reference barcode file, and output CSV file
+    # --- Define paths for the input read file, reference barcode ---
     ReadFile <- "readFile.fastq"
     BarFile  <- "libFile.fasta"
     outFile  <- "count.csv"
     
-    # Stage 2: Run bcSeq_edit with specified mismatch tolerance, gap/extension penalties, and maximum penalty
+    # --- Run bcSeq_edit with specified mismatch tolerance, ---
     res <- bcSeq_edit(ReadFile, BarFile, outFile, misMatch = 2,
         tMat = NULL, numThread = 4, count_only = TRUE,
         gap_left = 2, ext_left = 1, gap_right = 2, ext_right = 1,
         pen_max = 7)
     
-    # Stage 3: Read the resulting CSV file containing barcode sequences and their corresponding alignment counts
+    # --- Read the resulting CSV file containing barcode sequences ---
     res <- read.csv(outFile, header=FALSE)
     
     # Display the first few rows of the results

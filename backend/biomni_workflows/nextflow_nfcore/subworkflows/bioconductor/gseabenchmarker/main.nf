@@ -49,7 +49,7 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -103,13 +103,13 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     compendium <- list(dataset1 = se)
     
     # ==========================================
-    # STAGE 2: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 2: Running differential expression analysis...")
     compendium <- runDE(compendium, de.method = "limma", padj.method = "flexible")
     
     # ==========================================
-    # STAGE 3: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ==========================================
     message("Stage 3: Performing GSEA benchmarking...")
     
@@ -137,7 +137,7 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Benchmarking & Evaluation
+    # --- Benchmarking & Evaluation ---
     # ==========================================
     message("Stage 4: Evaluating GSEA results...")
     
@@ -173,7 +173,7 @@ process BIOC_GSEABENCHMARKER_GSEA_BENCHMARK_PIPELINE {
     message(sprintf("Relevance Ratio: %.2f%%", (obs.score / opt.score) * 100))
     
     # ==========================================
-    # STAGE 5: Exporting Results and Visualizations
+    # --- Exporting Results and Visualizations ---
     # ==========================================
     message("Stage 5: Exporting outputs...")
     

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Harmonize genomic coordinates and filter assays to intersecting samples; 2. Convert segmented log2 copy number ratios to integer c
+//  * 1. [Visualization & Output] Read the user-provided MultiAssayExperiment from the
+//  * 2. [Visualization & Output] Harmonize genomic coordinates and filter assays to
+//  * 3. [Visualization & Output] Convert segmented log2 copy number ratios to integer copy
+//  * 4. [Visualization & Output] Run cnvEQTL on the MultiAssayExperiment
+//  * 5. [Visualization & Output] Save results to disk
+//  * 6. [Visualization & Output] Plot eQTL results if sufficient regions are found
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +59,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
     library(GenomeInfoDb)
     library(GenomicRanges)
     
-    # 1. Read the user-provided MultiAssayExperiment from the working directory
+    # --- Read the user-provided MultiAssayExperiment from the ---
     mae_file <- "MultiAssayExperiment.rds"
     if (!file.exists(mae_file)) {
         stop("Error: Required input file 'MultiAssayExperiment.rds' not found in the working directory.")
@@ -75,7 +80,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
         }
     }
     
-    # 2. Harmonize genomic coordinates and filter assays to intersecting samples
+    # --- Harmonize genomic coordinates and filter assays to ---
     gbm <- TCGAutils::symbolsToRanges(gbm, unmapped=FALSE)
     
     for(i in 1:3) 
@@ -91,7 +96,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
     gbm <- MultiAssayExperiment::intersectColumns(gbm)
     gbm <- TCGAutils::TCGAsplitAssays(gbm, sampleCodes="01")
     
-    # 3. Convert segmented log2 copy number ratios to integer copy number states
+    # --- Convert segmented log2 copy number ratios to integer copy ---
     ind <- grep("CNVSNP", names(gbm))
     smean <- mcols(gbm[[ind]])\$Segment_Mean
     state <- round(2^smean * 2)
@@ -100,15 +105,15 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_TCGA {
     gbm[[ind]] <- gbm[[ind]][state != 2,]
     mcols(gbm[[ind]]) <- mcols(gbm[[ind]])[,3:1]
     
-    # 4. Run cnvEQTL on the MultiAssayExperiment
+    # --- Run cnvEQTL on the MultiAssayExperiment ---
     res <- cnvEQTL(cnvrs="01_GBM_GISTIC_Peaks-20160128", calls="01_GBM_CNVSNP-20160128", rcounts="01_GBM_RNASeq2GeneNorm-20160128_ranged", data=gbm, window="1Mbp", verbose=TRUE)
     
-    # 5. Save results to disk
+    # --- Save results to disk ---
     saveRDS(res, "cnv_eqtl_results.rds")
     res_df <- as.data.frame(res)
     write.csv(res_df, "cnv_eqtl_results.csv", row.names=FALSE)
     
-    # 6. Plot eQTL results if sufficient regions are found
+    # --- Plot eQTL results if sufficient regions are found ---
     if (length(res) >= 2) {
         pdf("cnv_eqtl_plot.pdf", width=10, height=8)
         r <- GRanges(names(res)[2])

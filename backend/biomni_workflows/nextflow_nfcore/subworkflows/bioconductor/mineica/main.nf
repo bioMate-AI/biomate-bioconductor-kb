@@ -50,7 +50,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     library(Biobase)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression/count matrix and sample metadata
@@ -91,7 +91,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Run Independent Component Analysis
+    # --- Run Independent Component Analysis ---
     # ==========================================
     
     # Determine number of components
@@ -116,7 +116,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     colnames(A) <- colnames(exprs_mat)
     
     # ==========================================
-    # Stage 3: Build IcaSet Object
+    # --- Build IcaSet Object ---
     # ==========================================
     
     pData_obj <- new("AnnotatedDataFrame", data = coldata)
@@ -131,7 +131,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 4: Analyze and Mine Components
+    # --- Analyze and Mine Components ---
     # ==========================================
     
     # 1. Test association of components with the qualitative variable 'condition'
@@ -182,7 +182,7 @@ process BIOC_MINEICA_MINEICA_TRANSCRIPTOME_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 5: Visualizations and Diagnostics
+    # --- Visualizations and Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic and contribution plots...")

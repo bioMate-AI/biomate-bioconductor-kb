@@ -53,7 +53,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     library(tibble)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Load Input Data
+    # --- Load Input Data ---
     # ----------------------------------------------------------------------
     message("Loading input expression data...")
     counts_df <- read.csv("counts.csv", check.names = FALSE)
@@ -84,7 +84,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     coldata\$condition <- as.factor(coldata\$condition)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ----------------------------------------------------------------------
     message("Running DESeq2 differential expression analysis...")
     dds <- DESeqDataSetFromMatrix(countData = counts_matrix,
@@ -98,7 +98,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
         as_tibble()
     
     # ----------------------------------------------------------------------
-    # Stage 3: ID Mapping and GSEA Preparation
+    # --- ID Mapping and GSEA Preparation ---
     # ----------------------------------------------------------------------
     message("Mapping Ensembl IDs to Entrez IDs...")
     res_tbl <- res_tbl %>%
@@ -121,7 +121,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     }
     
     # ----------------------------------------------------------------------
-    # Stage 4: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ----------------------------------------------------------------------
     message("Performing Gene Ontology enrichment analysis...")
     go_results <- goana(de = sig_genes, universe = all_genes, species = "Hs") %>%
@@ -142,7 +142,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
         dplyr::select(-ONTOLOGYALL)
     
     # ----------------------------------------------------------------------
-    # Stage 5: Construct and Manipulate BiocSet
+    # --- Construct and Manipulate BiocSet ---
     # ----------------------------------------------------------------------
     message("Constructing BiocSet object...")
     # Rename columns to match BiocSet requirements (element, set)
@@ -166,7 +166,7 @@ process BIOC_BIOCSET_BIOCSET_DE_GSEA_PIPELINE {
     es_final <- url_ref(es_annotated)
     
     # ----------------------------------------------------------------------
-    # Stage 6: Export Results
+    # --- Export Results ---
     # ----------------------------------------------------------------------
     message("Exporting final tables...")
     # Export flat elementset table

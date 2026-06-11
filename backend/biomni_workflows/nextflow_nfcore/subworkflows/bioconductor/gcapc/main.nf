@@ -62,12 +62,12 @@ process BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING {
       stop("Error: Input file 'chipseq.bam' not found in the working directory.")
     }
     
-    # 1. Read 5' end coverage from BAM
+    # --- Read 5' end coverage from BAM ---
     message("Stage 1: Reading 5' end coverage...")
     cov <- read5endCoverage(bam)
     saveRDS(cov, "coverage.rds")
     
-    # 2. Estimate binding width and peak window half size
+    # --- Estimate binding width and peak window half size ---
     message("Stage 2: Estimating binding width...")
     bdw <- bindWidth(cov, range=c(50L,300L), step=10L)
     saveRDS(bdw, "binding_width.rds")
@@ -75,13 +75,13 @@ process BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING {
     # Open PDF device to capture all generated plots
     pdf("gcapc_analysis_plots.pdf", width=10, height=5)
     
-    # 3. Estimate GC effects using mixture models
+    # --- Estimate GC effects using mixture models ---
     message("Stage 3: Estimating GC effects...")
     layout(matrix(1:2,1,2))
     gcb <- gcEffects(cov, bdw, sampling=c(0.25,1), plot=TRUE, model='poisson')
     saveRDS(gcb, "gc_effects.rds")
     
-    # 4. Call peaks and evaluate significance
+    # --- Call peaks and evaluate significance ---
     message("Stage 4: Calling peaks and evaluating significance...")
     layout(matrix(1:2,1,2))
     peaks <- gcapcPeaks(cov, gcb, bdw, plot=TRUE, permute=100L)
@@ -89,7 +89,7 @@ process BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING {
     saveRDS(peaks, "peaks.rds")
     write.csv(as.data.frame(peaks), "peaks.csv", row.names=FALSE)
     
-    # 5. Refine peak significance
+    # --- Refine peak significance ---
     message("Stage 5: Refining peak significance...")
     newpeaks <- refinePeaks(cov, gcb, bdw, peaks=peaks, permute=50L)
     saveRDS(newpeaks, "refined_peaks.rds")

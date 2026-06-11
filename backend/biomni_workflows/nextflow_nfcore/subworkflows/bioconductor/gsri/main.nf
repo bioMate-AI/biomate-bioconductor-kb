@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the expression data and phenotype information. 2. Define or import a single gene set of interest, optionally filtering out co
+//  * 1. [Visualization & Output] Load Expression Data and Phenotypes
+//  * 2. [Visualization & Output] Define and Filter Gene Sets
+//  * 3. [Visualization & Output] Run GSRI with Custom Tests and Parameters
+//  * 4. [Visualization & Output] Save Results and Generate Plots
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +57,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     library(limma)
     
     # ==========================================
-    # 1. Load Expression Data and Phenotypes
+    # --- Load Expression Data and Phenotypes ---
     # ==========================================
     
     # Load the expression data from the working directory
@@ -123,7 +126,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     col_score <- if (length(num_cols) > 0) num_cols[1] else pheno_cols[1]
     
     # ==========================================
-    # 2. Define and Filter Gene Sets
+    # --- Define and Filter Gene Sets ---
     # ==========================================
     
     # Run GSRI on all probes
@@ -147,7 +150,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     gChr17 <- gsri(eset, phenotypes[[col_type]], gsChr17)
     
     # ==========================================
-    # 3. Run GSRI with Custom Tests and Parameters
+    # --- Run GSRI with Custom Tests and Parameters ---
     # ==========================================
     
     # Categorize the continuous score variable into classes dynamically
@@ -177,7 +180,7 @@ process BIOC_GSRI_SINGLE_GENE_SET_ANALYSIS {
     g3Limma <- gsri(eset, phenotypes[[col_type]], gsChr17, test=limmaTest)
     
     # ==========================================
-    # 4. Save Results and Generate Plots
+    # --- Save Results and Generate Plots ---
     # ==========================================
     
     # Save RDS objects of the GSRI results

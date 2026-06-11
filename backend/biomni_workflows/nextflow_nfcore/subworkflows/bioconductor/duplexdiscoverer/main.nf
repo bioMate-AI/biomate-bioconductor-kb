@@ -53,7 +53,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     library(BiocGenerics)
     
     # ==========================================
-    # STAGE 1: Input Loading & Mock Data Generation
+    # --- Input Loading & Mock Data Generation ---
     # ==========================================
     message("Stage 1: Loading inputs and preparing genomic annotations...")
     
@@ -133,7 +133,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: All-in-One Duplex Discovery Workflow
+    # --- All-in-One Duplex Discovery Workflow ---
     # ==========================================
     message("Stage 2: Running runDuplexDiscoverer...")
     
@@ -165,7 +165,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: Step-by-Step Customized Analysis
+    # --- Step-by-Step Customized Analysis ---
     # ==========================================
     message("Stage 3: Running step-by-step customized analysis...")
     
@@ -189,7 +189,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     collapsed_dgs <- collapse_duplex_groups(clustered_gi)
     
     # ==========================================
-    # STAGE 4: Advanced Clustering & Optimization
+    # --- Advanced Clustering & Optimization ---
     # ==========================================
     message("Stage 4: Performing advanced clustering with custom weights...")
     
@@ -215,7 +215,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Multi-sample Comparison (Replicates)
+    # --- Multi-sample Comparison (Replicates) ---
     # ==========================================
     message("Stage 5: Comparing multiple pseudo-replicates...")
     
@@ -242,7 +242,7 @@ process BIOC_DUPLEXDISCOVERER_DUPLEX_DISCOVERY_PIPELINE {
     write.csv(res_comp\$dt_upset, "replicate_comparison.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Visualization & Export
+    # --- Visualization & Export ---
     # ==========================================
     message("Stage 6: Exporting results and generating visualizations...")
     

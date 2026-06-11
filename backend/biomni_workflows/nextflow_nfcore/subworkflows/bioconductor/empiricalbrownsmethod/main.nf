@@ -44,10 +44,10 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
           }
         }
     
-    # Stage 1: Load libraries
+    # --- Load libraries ---
     library(EmpiricalBrownsMethod)
     
-    # Stage 2: Read and preprocess input files
+    # --- Read and preprocess input files ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' or 'coldata.csv' are missing.")
     }
@@ -72,7 +72,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
-    # Stage 3: Compute individual gene p-values comparing conditions
+    # --- Compute individual gene p-values comparing conditions ---
     conditions <- as.factor(coldata\$condition)
     p_values <- apply(counts_matrix, 1, function(row) {
       if (length(unique(conditions)) == 2) {
@@ -90,7 +90,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     counts_matrix <- counts_matrix[valid_genes, , drop = FALSE]
     p_values <- p_values[valid_genes]
     
-    # Stage 4: Define pathways (mock pathways based on gene list)
+    # --- Define pathways (mock pathways based on gene list) ---
     gene_ids <- rownames(counts_matrix)
     set.seed(42)
     # Create 5 mock pathways to group dependent genes
@@ -98,7 +98,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
     gene_pathways <- sample(pathway_names, length(gene_ids), replace = TRUE)
     pathway_list <- split(gene_ids, gene_pathways)
     
-    # Stage 5: Combine P-values using Empirical Brown's and Kost's Methods
+    # --- Combine P-values using Empirical Brown's and Kost's ---
     results <- data.frame(
       Pathway = character(),
       Num_Genes = integer(),
@@ -151,7 +151,7 @@ process BIOC_EMPIRICALBROWNSMETHOD_EMPIRICAL_BROWNS_PATHWAY_ANALYSIS {
       ))
     }
     
-    # Stage 6: Save outputs and generate plots
+    # --- Save outputs and generate plots ---
     write.csv(results, "pathway_results.csv", row.names = FALSE)
     
     pdf("pathway_significance.pdf", width = 8, height = 6)

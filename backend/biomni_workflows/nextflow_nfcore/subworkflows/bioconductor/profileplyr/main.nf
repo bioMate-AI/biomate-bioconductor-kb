@@ -55,7 +55,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     library(org.Hs.eg.db)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     # Read the feature-by-sample matrix
@@ -109,7 +109,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     })
     
     # ==========================================
-    # STAGE 2: Construct profileplyr Object
+    # --- Construct profileplyr Object ---
     # ==========================================
     
     # Create a SummarizedExperiment object
@@ -126,7 +126,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     sampleData(pro) <- DataFrame(coldata)
     
     # ==========================================
-    # STAGE 3: Genomic Annotation
+    # --- Genomic Annotation ---
     # ==========================================
     
     # Annotate genomic intervals with gene features using ChIPseeker via profileplyr
@@ -142,7 +142,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     })
     
     # ==========================================
-    # STAGE 4: Grouping and Ordering
+    # --- Grouping and Ordering ---
     # ==========================================
     
     # Group intervals using K-means clustering on the signal matrix
@@ -164,7 +164,7 @@ process BIOC_PROFILEPLYR_PROFILEPLYR_EPIGENOMIC_PROFILING {
     })
     
     # ==========================================
-    # STAGE 5: Visualization and Export
+    # --- Visualization and Export ---
     # ==========================================
     
     # Generate and save the heatmap

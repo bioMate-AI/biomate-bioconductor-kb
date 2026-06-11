@@ -48,7 +48,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     library(microbiome)
     
     # ==========================================
-    # STAGE 1: Data Loading & Preprocessing
+    # --- Data Loading & Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -84,7 +84,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     unlink("temp_meta.csv")
     
     # ==========================================
-    # STAGE 2: Quality Control & Profiling
+    # --- Quality Control & Profiling ---
     # ==========================================
     message("Stage 2: Profiling samples and taxa...")
     
@@ -115,7 +115,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     write.csv(sample_summary, "sample_summary.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: Alpha Diversity Analysis
+    # --- Alpha Diversity Analysis ---
     # ==========================================
     message("Stage 3: Analyzing alpha diversity...")
     
@@ -139,7 +139,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Compositional & Core Microbiome Analysis
+    # --- Compositional & Core Microbiome Analysis ---
     # ==========================================
     message("Stage 4: Analyzing taxonomic composition and core members...")
     
@@ -178,7 +178,7 @@ process BIOC_MICROBIOME_MICROBIOME_ANALYSIS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Taxon-Level Summary
+    # --- Taxon-Level Summary ---
     # ==========================================
     message("Stage 5: Generating taxon-level summary...")
     

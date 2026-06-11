@@ -49,7 +49,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # Stage 1: Read User Inputs & Prepare Data
+    # --- Read User Inputs & Prepare Data ---
     # ==========================================
     
     # Read intensity matrix and coldata
@@ -87,7 +87,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     protein_accessions[is_decoy] <- paste0("DECOY_", protein_accessions[is_decoy])
     
     # ==========================================
-    # Stage 2: Generate mzIdentML File Dynamically
+    # --- Generate mzIdentML File Dynamically ---
     # ==========================================
     
     # Construct a valid minimal mzIdentML XML structure matching the user's peptides
@@ -173,7 +173,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     writeLines(xml_lines, "generated_identifications.mzid")
     
     # ==========================================
-    # Stage 3: Parse mzIdentML & Extract Metadata
+    # --- Parse mzIdentML & Extract Metadata ---
     # ==========================================
     
     mzResults <- tryCatch({
@@ -212,7 +212,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     sink()
     
     # ==========================================
-    # Stage 4: Filter Decoys and Flatten Results
+    # --- Filter Decoys and Flatten Results ---
     # ==========================================
     
     if (!is.null(mzResults)) {
@@ -247,7 +247,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     write.csv(flatResults, "peptide_identifications.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Integrate Identifications with Abundance Data
+    # --- Integrate Identifications with Abundance Data ---
     # ==========================================
     
     # Merge flattened peptide identifications with the intensity matrix
@@ -279,7 +279,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     )
     
     # ==========================================
-    # Stage 6: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     # ==========================================
     
     conditions <- unique(coldata_filtered\$condition)
@@ -316,7 +316,7 @@ process BIOC_MZID_MZID_PROTEOMICS_PIPELINE {
     write.csv(diff_df, "differential_proteins.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 7: Visualizations
+    # --- Visualizations ---
     # ==========================================
     
     pdf("differential_abundance_plots.pdf", width = 8, height = 6)

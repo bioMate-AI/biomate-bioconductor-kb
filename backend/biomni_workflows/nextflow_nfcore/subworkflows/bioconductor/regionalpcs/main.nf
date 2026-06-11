@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Extract methylation values from the MethylSet object. 2. Map methylation data to genomic coordinates and convert to a GRanges obje
+//  * 1. [Input & Preparation] Load the user-provided input files
+//  * 2. [Input & Preparation] Extract methylation M-values from the MethylSet object
+//  * 3. [Input & Preparation] Map methylation data to genomic coordinates and convert
+//  * 4. [Input & Preparation] Extract target genomic regions (promoters) from the
+//  * 5. [Input & Preparation] Create a region map associating CpG sites with the target
+//  * 6. [Input & Preparation] Compute regional principal components using the
+//  * 7. [Input & Preparation] Compute regional principal components using the
+//  * 8. [Input & Preparation] Save meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -76,36 +83,36 @@ process BIOC_REGIONALPCS_REGIONAL_PC_SUMMARIZATION {
       return(obj)
     }
     
-    # 1. Load the user-provided input files
+    # --- Load the user-provided input files ---
     MsetEx.sub <- load_input("MsetEx.sub")
     txdb <- load_input("TxDb.Hsapiens.UCSC.hg19.knownGene")
     
-    # 2. Extract methylation M-values from the MethylSet object
+    # --- Extract methylation M-values from the MethylSet object ---
     mvals <- getM(MsetEx.sub)
     
-    # 3. Map methylation data to genomic coordinates and convert to a GRanges object
+    # --- Map methylation data to genomic coordinates and convert ---
     gset <- mapToGenome(MsetEx.sub)
     cpg_gr <- granges(gset)
     
-    # 4. Extract target genomic regions (promoters) from the transcript database
+    # --- Extract target genomic regions (promoters) from the ---
     promoters_gr <- suppressMessages(promoters(genes(txdb), 
                                                upstream=1000, 
                                                downstream=0))
     
-    # 5. Create a region map associating CpG sites with the target genomic regions
+    # --- Create a region map associating CpG sites with the target ---
     region_map <- regionalpcs::create_region_map(cpg_gr=cpg_gr, 
                                                  genes_gr=promoters_gr)
     
-    # 6. Compute regional principal components using the Gavish-Donoho (GD) method
+    # --- Compute regional principal components using the ---
     res <- compute_regional_pcs(meth=mvals, region_map=region_map, pc_method="gd")
     names(res)
     regional_pcs <- res\$regional_pcs
     
-    # 7. Compute regional principal components using the Marcenko-Pasteur (MP) method
+    # --- Compute regional principal components using the ---
     mp_res <- compute_regional_pcs(mvals, region_map, pc_method = "mp")
     mp_regional_pcs <- mp_res\$regional_pcs
     
-    # 8. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     # Save region map
     write.csv(region_map, "region_map.csv", row.names = FALSE)
     

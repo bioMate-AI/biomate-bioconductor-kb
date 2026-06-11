@@ -59,7 +59,7 @@ process BIOC_NUCLER_MNASE_BIAS_CORRECTION {
     library(ggplot2)
     
     # ------------------------------------------------------------------------------
-    # 1. Load User Input Files
+    # --- Load User Input Files ---
     # ------------------------------------------------------------------------------
     # Load nucleosomal coverage (RleList)
     if (!file.exists("nucleosomal_coverage.RData")) {
@@ -86,13 +86,13 @@ process BIOC_NUCLER_MNASE_BIAS_CORRECTION {
     ctr <- env_ctr[[ctr_objs[1]]]
     
     # ------------------------------------------------------------------------------
-    # 2. MNase Bias Correction
+    # --- MNase Bias Correction ---
     # ------------------------------------------------------------------------------
     # Correct nucleosomal DNA coverage profiles using the mock control sample
     corrected <- controlCorrection(exp, ctr)
     
     # ------------------------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # ------------------------------------------------------------------------------
     # Save the corrected coverage object
     saveRDS(corrected, file = "corrected_coverage.rds")

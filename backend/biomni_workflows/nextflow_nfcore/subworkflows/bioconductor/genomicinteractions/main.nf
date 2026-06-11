@@ -58,7 +58,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     library(GenomicRanges)
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Load ChIA-PET data using makeGenomicInteractionsFromFile
+    # --- Load ChIA-PET data using makeGenomicInteractionsFromFile ---
     # -----------------------------------------------------------------------------
     chiapet.data <- "chiapet.data"
     if (!file.exists(chiapet.data)) {
@@ -68,7 +68,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     k562.rep1 = makeGenomicInteractionsFromFile (chiapet.data, type= "chiapet.tool" , experiment_name= "k562" , description= "k562 pol2 8wg16" )
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Access and edit metadata (name, description)
+    # --- Access and edit metadata (name, description) ---
     # -----------------------------------------------------------------------------
     name (k562.rep1)
     description (k562.rep1) = "PolII-8wg16 Chia-PET for K562"
@@ -90,7 +90,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     k562.rep1[ sample ( length (k562.rep1), min(100, length(k562.rep1)) )]
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Filter for cis-interactions using is.cis and calculate distances
+    # --- Filter for cis-interactions using is.cis and calculate ---
     # -----------------------------------------------------------------------------
     k562.cis = k562.rep1[ is.cis (k562.rep1)]
     head ( calculateDistances (k562.cis, method= "midpoint" ))
@@ -106,7 +106,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     k562.rep1 = k562.rep1[sub]
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Define annotation features and annotate interactions
+    # --- Define annotation features and annotate interactions ---
     # -----------------------------------------------------------------------------
     # Load hg19.refseq.transcripts from working directory
     if (file.exists("hg19.refseq.transcripts")) {
@@ -140,7 +140,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     k562.rep1[p.one | p.two]
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Categorize interactions and subset by interaction types
+    # --- Categorize interactions and subset by interaction types ---
     # -----------------------------------------------------------------------------
     cat_ints = categoriseInteractions (k562.rep1)
     write.csv(cat_ints, "categorised_interactions.csv", row.names=FALSE)
@@ -151,7 +151,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     k562.rep1[ is.pt (k562.rep1)]
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Plot interaction annotations using plotInteractionAnnotations
+    # --- Plot interaction annotations using ---
     # -----------------------------------------------------------------------------
     pdf("interaction_annotations.pdf")
     plotInteractionAnnotations (k562.rep1, other= 5 )
@@ -162,7 +162,7 @@ process BIOC_GENOMICINTERACTIONS_CHIAPET_ANALYSIS_AND_FEATURE_SUMMARIZATION {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # Stage 7: Summarize interactions over specific features using summariseByFeatures
+    # --- Summarize interactions over specific features using ---
     # -----------------------------------------------------------------------------
     k562.rep1.promoter.annotation = summariseByFeatures (k562.rep1, refseq.promoters, "promoter" , distance.method= "midpoint" , annotate.self= TRUE )
     colnames (k562.rep1.promoter.annotation)

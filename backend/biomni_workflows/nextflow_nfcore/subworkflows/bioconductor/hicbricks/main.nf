@@ -65,7 +65,7 @@ process BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT {
         dir.create(out_dir, recursive = TRUE)
     }
     
-    # 1. Create the project directory and initialize the Brick objects using the bin table
+    # --- Create the project directory and initialize the Brick ---
     Create_many_Bricks(
         BinTable = Bintable_path, 
         bin_delim = " ", 
@@ -76,11 +76,11 @@ process BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT {
         resolution = 100000
     )
     
-    # 2. Load the BrickContainer
+    # --- Load the BrickContainer ---
     BrickContainer_dir <- out_dir
     My_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)
     
-    # 3. Populate the Brick objects with contact frequencies from the 2D matrix files
+    # --- Populate the Brick objects with contact frequencies from ---
     # Since only the chr2L matrix file is provided in the user input, we load chr2L.
     Chromosomes <- c("chr2L")
     for (chr in Chromosomes) {

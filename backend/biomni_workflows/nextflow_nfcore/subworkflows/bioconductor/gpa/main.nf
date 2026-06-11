@@ -48,7 +48,7 @@ process BIOC_GPA_GPA_PLEIOTROPY_ANNOTATION_ANALYSIS {
     library(GPA)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading and preprocessing input data...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
@@ -153,7 +153,7 @@ process BIOC_GPA_GPA_PLEIOTROPY_ANNOTATION_ANALYSIS {
     
     
     # ==========================================
-    # Stage 2: Fit GPA Models
+    # --- Fit GPA Models ---
     # ==========================================
     message("Stage 2: Fitting GPA models...")
     
@@ -168,7 +168,7 @@ process BIOC_GPA_GPA_PLEIOTROPY_ANNOTATION_ANALYSIS {
     
     
     # ==========================================
-    # Stage 3: Hypothesis Testing
+    # --- Hypothesis Testing ---
     # ==========================================
     message("Stage 3: Performing hypothesis testing...")
     
@@ -215,7 +215,7 @@ process BIOC_GPA_GPA_PLEIOTROPY_ANNOTATION_ANALYSIS {
     
     
     # ==========================================
-    # Stage 4: Association Mapping & Parameter Extraction
+    # --- Association Mapping & Parameter Extraction ---
     # ==========================================
     message("Stage 4: Extracting parameters and mapping associations...")
     
@@ -292,7 +292,7 @@ process BIOC_GPA_GPA_PLEIOTROPY_ANNOTATION_ANALYSIS {
     
     
     # ==========================================
-    # Stage 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     pdf("gpa_diagnostics.pdf", width = 10, height = 8)

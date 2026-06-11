@@ -50,7 +50,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' or 'coldata.csv' are missing.")
@@ -66,7 +66,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     protein_ids <- unique(intensity_df\$feature_id)
     
     # ==========================================
-    # STAGE 2: Retrieve Protein Sequences
+    # --- Retrieve Protein Sequences ---
     # ==========================================
     # Local database of common proteins for offline robustness
     local_db <- list(
@@ -115,7 +115,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     aa_seqs <- AAStringSet(sequences)
     
     # ==========================================
-    # STAGE 3: In-Silico Cleavage
+    # --- In-Silico Cleavage ---
     # ==========================================
     # Perform cleavage with 0 and 1 missed cleavages
     cleaved_peptides_0 <- cleave(aa_seqs, enzym = "trypsin", missedCleavages = 0)
@@ -162,7 +162,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     rownames(peptide_map) <- NULL
     
     # ==========================================
-    # STAGE 4: Integrate with Intensity Data
+    # --- Integrate with Intensity Data ---
     # ==========================================
     # Merge peptide map with original protein intensities
     peptide_intensities <- merge(peptide_map, intensity_df, by.x = "protein_id", by.y = "feature_id", all.x = TRUE)
@@ -189,7 +189,7 @@ process BIOC_CLEAVER_CLEAVER_PROTEOMICS_CLEAVAGE {
     write.csv(peptide_intensities, "peptide_intensities.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     pdf("cleavage_report.pdf", width = 8, height = 10)
     par(mfrow = c(3, 1), mar = c(5, 4, 4, 2) + 0.1)

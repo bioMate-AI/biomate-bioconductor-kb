@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Map genomic regions to genes using runseq2gene. 2. Run pathway enrichment analysis using gene2pathway_test with FAIME and Fisher's
+//  * 1. [Core Analysis] Load User Inputs
+//  * 2. [Core Analysis] Map genomic regions to genes using runseq2gene
+//  * 3. [Core Analysis] Run pathway enrichment analysis using gene2pathway_test
+//  * 4. [Core Analysis] Add detailed gene descriptions using addDescription
 
 nextflow.enable.dsl = 2
 
@@ -88,7 +91,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     }
     
     # ----------------------------------------------------------------------
-    # Step 0: Load User Inputs
+    # --- Load User Inputs ---
     # ----------------------------------------------------------------------
     message("Loading user input files...")
     Chipseq_Peak_demo <- load_input("Chipseq_Peak_demo")
@@ -96,7 +99,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     dat_chip          <- load_input("dat_chip")
     
     # ----------------------------------------------------------------------
-    # Step 1: Map genomic regions to genes using runseq2gene
+    # --- Map genomic regions to genes using runseq2gene ---
     # ----------------------------------------------------------------------
     message("Mapping genomic regions to genes...")
     Chipseq_anno <- runseq2gene(
@@ -112,7 +115,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     }
     
     # ----------------------------------------------------------------------
-    # Step 2: Run pathway enrichment analysis using gene2pathway_test
+    # --- Run pathway enrichment analysis using gene2pathway_test ---
     # ----------------------------------------------------------------------
     message("Running pathway enrichment analysis (FAIME & Fisher's Exact Test)...")
     result_FAIME <- gene2pathway_test(dat= dat_chip, DataBase= MsigDB_C5,
@@ -139,7 +142,7 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     }
     
     # ----------------------------------------------------------------------
-    # Step 3: Add detailed gene descriptions using addDescription
+    # --- Add detailed gene descriptions using addDescription ---
     # ----------------------------------------------------------------------
     message("Adding detailed gene descriptions...")
     gene_description <- addDescription(genome="hg38", genevector=as.vector(rownames(dat_chip)))

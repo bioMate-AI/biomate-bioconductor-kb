@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Subset the count matrix to keep only the selected spatially variable genes. 2. Separate the count matrix into reference (normal) a
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Execute Documented Workflow
+//  * 3. [Visualization & Output] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -79,7 +81,7 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
       }
     }
     
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     count_matrix <- read_matrix("count_matrix")
     barcode_reference <- read_vector("barcode_reference")
     barcode_mixed <- read_vector("barcode_mixed")
@@ -100,7 +102,7 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
       stop("No overlap between barcode_mixed and count_matrix column names.")
     }
     
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     filtered_mat <- count_matrix[gl, ]
     data.N1 <- as.matrix(filtered_mat[, barcode_reference])
     data.Y <- as.matrix(filtered_mat[, barcode_mixed])
@@ -112,7 +114,7 @@ process BIOC_DEMIXT_DEMIXNB_SPATIAL_DECONVOLUTION {
     # Run DeMixNB deconvolution
     test_simulation <- DeMixNB(data.Y = data.Y, data.N1 = data.N1, niter = 30, tol = 1e-3)
     
-    # 3. Write Outputs
+    # --- Write Outputs ---
     saveRDS(test_simulation, file = "demixnb_results.rds")
     
     if (!is.null(test_simulation\$pi_t_summary)) {

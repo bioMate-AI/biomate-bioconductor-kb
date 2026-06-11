@@ -49,7 +49,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     library(BubbleTree)
     
     # ---------------------------------------------------------
-    # Stage 1: Read and Preprocess Input Data Defensively
+    # --- Read and Preprocess Input Data Defensively ---
     # ---------------------------------------------------------
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -87,7 +87,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Parse Genomic Coordinates & Build GRanges
+    # --- Parse Genomic Coordinates & Build GRanges ---
     # ---------------------------------------------------------
     parse_coords <- function(ids) {
       n <- length(ids)
@@ -112,7 +112,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     coords <- parse_coords(rownames(df))
     
     # ---------------------------------------------------------
-    # Stage 3: Define Centromere Reference (Avoid data() demo)
+    # --- Define Centromere Reference (Avoid data() demo) ---
     # ---------------------------------------------------------
     # Standard hg19 centromere coordinates to avoid loading demo datasets
     chrs <- paste0("chr", c(1:22, "X", "Y"))
@@ -125,7 +125,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     centromere <- GRanges(seqnames=chrs, ranges=IRanges(start=starts, end=ends))
     
     # ---------------------------------------------------------
-    # Stage 4: Run BubbleTree Analysis & Generate Plots
+    # --- Run BubbleTree Analysis & Generate Plots ---
     # ---------------------------------------------------------
     results_summary <- data.frame(
       Sample = character(),
@@ -216,7 +216,7 @@ process BIOC_BUBBLETREE_BUBBLETREE_CNV_ANALYSIS {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 5: Save Results
+    # --- Save Results ---
     # ---------------------------------------------------------
     write.csv(results_summary, "purity_ploidy_results.csv", row.names=FALSE)
     message("BubbleTree analysis pipeline completed successfully.")

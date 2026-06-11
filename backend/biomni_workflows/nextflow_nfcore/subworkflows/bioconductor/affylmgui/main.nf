@@ -71,7 +71,7 @@ process BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE {
       }, silent = TRUE)
     }
     
-    # 1. Load Input Data
+    # --- Load Input Data ---
     # counts.csv contains the probe-by-sample normalized expression matrix
     exprs_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     # coldata.csv contains sample metadata with 'sample' and 'condition'
@@ -81,12 +81,12 @@ process BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE {
     sample_cols <- coldata_df\$sample
     exprs_matrix <- as.matrix(exprs_df[, sample_cols, drop = FALSE])
     
-    # 2. Create ExpressionSet
+    # --- Create ExpressionSet ---
     pheno_data <- AnnotatedDataFrame(coldata_df)
     rownames(pheno_data) <- coldata_df\$sample
     NormalizedAffyData <- ExpressionSet(assayData = exprs_matrix, phenoData = pheno_data)
     
-    # 3. Linear Model Fitting & Contrasts
+    # --- Linear Model Fitting & Contrasts ---
     design <- model.matrix(~0 + condition, data = coldata_df)
     colnames(design) <- gsub("condition", "", colnames(design))
     colnames(design) <- make.names(colnames(design))
@@ -113,7 +113,7 @@ process BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE {
     assign("eb", eb, envir = .GlobalEnv)
     assign("Targets", coldata_df, envir = .GlobalEnv)
     
-    # 4. Export Normalized Expression Values
+    # --- Export Normalized Expression Values ---
     tryCatch({
       ExportNormalizedExpressionValues()
     }, error = function(e) {
@@ -124,7 +124,7 @@ process BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE {
       write.csv(exprs_matrix, "normalized_expression.csv")
     }
     
-    # 5. Export Top Table
+    # --- Export Top Table ---
     if (requireNamespace("tcltk", quietly = TRUE)) {
       try({
         unlockBinding("tkgetSaveFile", asNamespace("tcltk"))
@@ -144,7 +144,7 @@ process BIOC_AFFYLMGUI_AFFYLMGUI_MICROARRAY_PIPELINE {
       write.csv(tt, "top_table.csv")
     }
     
-    # 6. Generate Diagnostic Plots
+    # --- Generate Diagnostic Plots ---
     pdf("diagnostic_plots.pdf", width = 8, height = 8)
     
     # Normalized Intensity Boxplot

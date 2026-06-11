@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Convert GWAS data frame to a GRanges object using createArrayData. 2. Map gene IDs in the GeneSetCollection to SNP IDs using geneT
+//  * 1. [Core Analysis] Read user input files
+//  * 2. [Core Analysis] Convert GWAS data frame to a GRanges object
+//  * 3. [Core Analysis] Map gene IDs in the GeneSetCollection to SNP IDs
+//  * 4. [Core Analysis] Run VEGAS
+//  * 5. [Core Analysis] Extract results
+//  * 6. [Core Analysis] Write outputs
+//  * 7. [Core Analysis] Generate visualization plot
 
 nextflow.enable.dsl = 2
 
@@ -52,28 +58,28 @@ process BIOC_CPVSNP_VEGAS_ANALYSIS {
         library(GSEABase)
         library(TxDb.Hsapiens.UCSC.hg19.knownGene)
         
-        # 1. Read user input files
+        # --- Read user input files ---
         arrayData_df <- read.csv("arrayData.csv", stringsAsFactors = FALSE)
         geneSets <- getGmt("gene_sets.gmt")
         ldMat <- readRDS("ld_matrix.rds")
         
-        # 2. Convert GWAS data frame to a GRanges object
+        # --- Convert GWAS data frame to a GRanges object ---
         arrayDataGR <- createArrayData(arrayData_df, positionName="Position")
         
-        # 3. Map gene IDs in the GeneSetCollection to SNP IDs
+        # --- Map gene IDs in the GeneSetCollection to SNP IDs ---
         txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
         genesHg19 <- genes(txdb)
         snpsGSC <- geneToSNPList(geneSets, arrayDataGR, genesHg19)
         
-        # 4. Run VEGAS
+        # --- Run VEGAS ---
         vRes <- vegas(snpsGSC, arrayDataGR, ldMat)
         
-        # 5. Extract results
+        # --- Extract results ---
         p_val <- pValue(vRes)
         df <- degreesOfFreedom(vRes)
         stat <- statistic(vRes)
         
-        # 6. Write outputs
+        # --- Write outputs ---
         results_df <- data.frame(
           GeneSet = names(p_val),
           PValue = unlist(p_val),
@@ -85,7 +91,7 @@ process BIOC_CPVSNP_VEGAS_ANALYSIS {
         write.csv(results_df, "vegas_results.csv", row.names = FALSE)
         saveRDS(vRes, "vegas_results.rds")
         
-        # 7. Generate visualization plot
+        # --- Generate visualization plot ---
         pdf("vegas_pval_plot.pdf")
         pvals <- arrayDataGR\$P
         names(pvals) <- arrayDataGR\$SNP

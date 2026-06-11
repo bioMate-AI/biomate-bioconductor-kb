@@ -48,7 +48,7 @@ process BIOC_DSTRUCT_DSTRUCT_DE_NOVO {
     library(dStruct)
     library(S4Vectors)
     
-    # Stage 1: Read and validate input files
+    # --- Read and validate input files ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -64,7 +64,7 @@ process BIOC_DSTRUCT_DSTRUCT_DE_NOVO {
     cond_A <- conds[1]
     cond_B <- conds[2]
     
-    # Stage 2: Map sample names to dStruct-compliant names (A1, A2, ..., B1, B2, ...)
+    # --- Map sample names to dStruct-compliant names (A1, A2, ..., ---
     coldata\$new_name <- ""
     idx_A <- which(coldata\$condition == cond_A)
     coldata\$new_name[idx_A] <- paste0("A", seq_along(idx_A))
@@ -74,7 +74,7 @@ process BIOC_DSTRUCT_DSTRUCT_DE_NOVO {
     reps_A <- length(idx_A)
     reps_B <- length(idx_B)
     
-    # Stage 3: Format data into a list of data.frames (one per transcript)
+    # --- Format data into a list of data.frames (one per ---
     if ("gene_id" %in% colnames(counts)) {
       gene_list <- split(counts, counts\$gene_id)
       gene_list <- lapply(gene_list, function(df) {
@@ -92,7 +92,7 @@ process BIOC_DSTRUCT_DSTRUCT_DE_NOVO {
       gene_list <- list(Transcript_1 = df_sub)
     }
     
-    # Stage 4: Normalize reactivities using the 2-8% method
+    # --- Normalize reactivities using the 2-8% method ---
     gene_list_norm <- lapply(gene_list, function(df) {
       norm_df <- lapply(df, function(col) {
         tryCatch({
@@ -105,7 +105,7 @@ process BIOC_DSTRUCT_DSTRUCT_DE_NOVO {
       as.data.frame(norm_df)
     })
     
-    # Stage 5: Run de novo differential region discovery
+    # --- Run de novo differential region discovery ---
     batches_enabled <- "batch" %in% colnames(coldata)
     
     res <- tryCatch({
@@ -123,7 +123,7 @@ process BIOC_DSTRUCT_DSTRUCT_DE_NOVO {
       NULL
     })
     
-    # Stage 6: Save results and generate diagnostic plots
+    # --- Save results and generate diagnostic plots ---
     if (!is.null(res) && length(res) > 0) {
       # Save regions to CSV
       res_df <- as.data.frame(res)

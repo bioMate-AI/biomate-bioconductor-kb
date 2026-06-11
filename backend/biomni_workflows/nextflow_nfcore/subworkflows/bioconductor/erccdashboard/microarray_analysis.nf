@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the input microarray data. 2. Run the complete analysis pipeline using runDashboard with datType="array". 3. Summarize and vi
+//  * 1. [Visualization & Output] Load the input microarray data
+//  * 2. [Visualization & Output] Run the complete analysis pipeline using runDashboard
+//  * 3. [Visualization & Output] Summarize and visualize the results
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_ERCCDASHBOARD_MICROARRAY_ANALYSIS {
     library(erccdashboard)
     library(gridExtra)
     
-    # Stage 1: Load the input microarray data
+    # --- Load the input microarray data ---
     if (file.exists("UHRR.HBRR.arrayDat")) {
       UHRR.HBRR.arrayDat <- tryCatch({
         read.table("UHRR.HBRR.arrayDat", header = TRUE, sep = "\t", check.names = FALSE, stringsAsFactors = FALSE)
@@ -62,7 +64,7 @@ process BIOC_ERCCDASHBOARD_MICROARRAY_ANALYSIS {
       stop("Required input file 'UHRR.HBRR.arrayDat' not found in the working directory.")
     }
     
-    # Stage 2: Run the complete analysis pipeline using runDashboard
+    # --- Run the complete analysis pipeline using runDashboard ---
     exDat <- runDashboard(datType="array", isNorm = FALSE,
                            exTable=UHRR.HBRR.arrayDat,
                            filenameRoot = "Lab13.array",
@@ -74,7 +76,7 @@ process BIOC_ERCCDASHBOARD_MICROARRAY_ANALYSIS {
                            totalRNAmass = 2.5*10^(3),
                            choseFDR=0.01)
     
-    # Stage 3: Summarize and visualize the results
+    # --- Summarize and visualize the results ---
     # Print summary to console
     summary(exDat)
     

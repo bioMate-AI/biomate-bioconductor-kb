@@ -48,7 +48,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     library(rtracklayer)
     library(GenomicRanges)
     
-    # Stage 1: Load Inputs
+    # --- Load Inputs ---
     message("Loading input files...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' not found.")
@@ -85,7 +85,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
       coldata\$Condition <- factor(coldata\$Condition)
     }
     
-    # Stage 2: Generate Expression Matrix
+    # --- Generate Expression Matrix ---
     # Since GenomicOZone requires an expression matrix corresponding to the genomic intervals,
     # we generate a synthetic expression matrix based on the input intervals and sample metadata.
     message("Preparing expression matrix...")
@@ -106,7 +106,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
       expr_matrix[diff_genes, treatment_samples] <- expr_matrix[diff_genes, treatment_samples] * 4
     }
     
-    # Stage 3: Create GOZDataSet and Run GenomicOZone
+    # --- Create GOZDataSet and Run GenomicOZone ---
     message("Initializing GOZDataSet...")
     GOZ.ds <- GOZDataSet(data = expr_matrix,
                          colData = coldata,
@@ -116,7 +116,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     message("Running GenomicOZone analysis...")
     GOZ.ds <- GenomicOZone(GOZ.ds)
     
-    # Stage 4: Extract Results
+    # --- Extract Results ---
     message("Extracting results...")
     
     # 1. Genes and their assigned zones
@@ -147,7 +147,7 @@ process BIOC_GENOMICOZONE_GENOMIC_OZONE_ANALYSIS {
     zone_exp <- extract_zone_expression(GOZ.ds)
     write.csv(as.data.frame(zone_exp), "zone_expression.csv", row.names = TRUE)
     
-    # Stage 5: Visualization
+    # --- Visualization ---
     message("Generating plots...")
     
     tryCatch({

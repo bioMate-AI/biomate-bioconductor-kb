@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the flowGraph object using flowGraphSubset with custom summary parameters and adjustments
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Initialize flowGraph Object using flowGraphSubset
+//  * 3. [Visualization & Output] Save Outputs and Generate Diagnostic Plots
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_FLOWGRAPH_FAST_FLOWGRAPH_SUBSET_ANALYSIS {
         library(flowGraph)
         
         # -----------------------------------------------------------------------------
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # -----------------------------------------------------------------------------
         
         # Read count matrix (sample x cell population numeric matrix)
@@ -97,7 +99,7 @@ process BIOC_FLOWGRAPH_FAST_FLOWGRAPH_SUBSET_ANALYSIS {
         no_cores <- 1
         
         # -----------------------------------------------------------------------------
-        # 2. Initialize flowGraph Object using flowGraphSubset (Documented Workflow)
+        # --- Initialize flowGraph Object using flowGraphSubset ---
         # -----------------------------------------------------------------------------
         
         fg <- flowGraphSubset(count_mat, meta=meta_df, no_cores=no_cores,
@@ -105,7 +107,7 @@ process BIOC_FLOWGRAPH_FAST_FLOWGRAPH_SUBSET_ANALYSIS {
                          summary_adjust=flowGraphSubset_summary_adjust())
         
         # -----------------------------------------------------------------------------
-        # 3. Save Outputs and Generate Diagnostic Plots
+        # --- Save Outputs and Generate Diagnostic Plots ---
         # -----------------------------------------------------------------------------
         
         # Save the complete flowGraph object

@@ -54,7 +54,7 @@ process BIOC_ICHECK_ICHECK_QC_AND_DE_PIPELINE {
     set.seed(12345)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix and metadata
@@ -128,7 +128,7 @@ process BIOC_ICHECK_ICHECK_QC_AND_DE_PIPELINE {
                            featureData = qc_featureData)
     
     # ==========================================
-    # Stage 2: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     # ==========================================
     
     # Exclude failed arrays if any
@@ -270,7 +270,7 @@ process BIOC_ICHECK_ICHECK_QC_AND_DE_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Normalization
+    # --- Normalization ---
     # ==========================================
     
     es.q <- lumiN(es.raw, method = "quantile")
@@ -295,7 +295,7 @@ process BIOC_ICHECK_ICHECK_QC_AND_DE_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 4: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     
     # 1. limma Wrapper
@@ -347,7 +347,7 @@ process BIOC_ICHECK_ICHECK_QC_AND_DE_PIPELINE {
     write.csv(res.lkh, "lkh_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Result Visualization
+    # --- Result Visualization ---
     # ==========================================
     
     pdf("expression_plots.pdf", width = 8, height = 6)

@@ -52,7 +52,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     library(utils)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Expression Data
+    # --- Load and Preprocess Expression Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing expression data...")
     
@@ -90,7 +90,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     names(y) <- rownames(log_cpm)
     
     # ==========================================
-    # STAGE 2: Generate Paired Methylation Profiles
+    # --- Generate Paired Methylation Profiles ---
     # ==========================================
     message("Stage 2: Generating paired methylation profiles...")
     
@@ -132,7 +132,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     names(meth_profiles) <- names(y)
     
     # ==========================================
-    # STAGE 3: Fit BPR Model (Feature Extraction)
+    # --- Fit BPR Model (Feature Extraction) ---
     # ==========================================
     message("Stage 3: Fitting BPR model to extract features...")
     
@@ -151,7 +151,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     write.csv(bpr_coefs, "bpr_coefficients.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Predict Gene Expression
+    # --- Predict Gene Expression ---
     # ==========================================
     message("Stage 4: Predicting gene expression from methylation profiles...")
     
@@ -211,7 +211,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     write.csv(predictions_df, "predictions.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Cluster Methylation Profiles
+    # --- Cluster Methylation Profiles ---
     # ==========================================
     message("Stage 5: Clustering methylation profiles...")
     
@@ -238,7 +238,7 @@ process BIOC_BPRMETH_BPRMETH_METHYLATION_EXPRESSION_PIPELINE {
     write.csv(clustering_df, "clustering_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Stage 6: Generating diagnostic plots...")
     

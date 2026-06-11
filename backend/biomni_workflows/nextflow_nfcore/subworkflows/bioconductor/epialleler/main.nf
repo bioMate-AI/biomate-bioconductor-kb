@@ -59,22 +59,22 @@ process BIOC_EPIALLELER_SHORT_READ_METHYLATION_ANALYSIS {
     capture.bam <- "capture.bam"
     capture.bed <- "capture.bed"
     
-    # 1. Preprocess BAM file using preprocessBam with target regions
+    # --- Preprocess BAM file using preprocessBam with target ---
     bam.data <- preprocessBam(capture.bam, targets=capture.bed)
     
-    # 2. Generate cytosine-level VEF report using generateCytosineReport
+    # --- Generate cytosine-level VEF report using ---
     generateCytosineReport(bam.data)
     cg.vef.report <- generateCytosineReport(bam.data)
     
-    # 3. Generate conventional cytosine report (beta values) by setting threshold.reads=FALSE
+    # --- Generate conventional cytosine report (beta values) by ---
     cg.report <- generateCytosineReport(bam.data, threshold.reads=FALSE)
     cx.report <- generateCytosineReport(bam.data, threshold.reads=FALSE, report.context="CX")
     
-    # 4. Generate region-level capture report using generateCaptureReport or generateBedReport
+    # --- Generate region-level capture report using ---
     capture.report <- generateCaptureReport(bam=capture.bam, bed=capture.bed)
     bed.report <- generateBedReport(bam=capture.bam, bed=capture.bed, bed.type="capture")
     
-    # 5. Generate linearized Methylated Haplotype Load (lMHL) report using generateMhlReport
+    # --- Generate linearized Methylated Haplotype Load (lMHL) ---
     mhl.report <- generateMhlReport(bam=capture.bam)
     
     # Write outputs to the working directory

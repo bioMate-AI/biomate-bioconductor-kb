@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Define the markers pool. 2. Run filter_subset_sig() on the list of datasets, specifying the target group, combination method (e.g.
+//  * 1. [Input & Preparation] Load User Inputs
+//  * 2. [Input & Preparation] Dynamically Determine Parameters from the First Dataset
+//  * 3. [Input & Preparation] Run the Documented Workflow Call
+//  * 4. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +55,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
     library(GSEABase)
     library(Biobase)
     
-    # 1. Load User Inputs
+    # --- Load User Inputs ---
     # Load the dataset list
     env_datasets <- new.env()
     load("user_dataset_list.RData", envir = env_datasets)
@@ -72,7 +75,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
       markers_vec <- as.character(markers_obj)
     }
     
-    # 2. Dynamically Determine Parameters from the First Dataset
+    # --- Dynamically Determine Parameters from the First Dataset ---
     obj1 <- dataset_list[[1]]
     if (inherits(obj1, "ExpressionSet")) {
       pdata <- Biobase::pData(obj1)
@@ -101,7 +104,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
       gene_id_type <- "SYMBOL"
     }
     
-    # 3. Run the Documented Workflow Call
+    # --- Run the Documented Workflow Call ---
     set.seed(123)
     m_ct_m <- filter_subset_sig(
       data = dataset_list,
@@ -116,7 +119,7 @@ process BIOC_MASTR_MULTI_DATASET_SIGNATURE_AGGREGATION {
       summary = FALSE
     )
     
-    # 4. Save Outputs
+    # --- Save Outputs ---
     # Save the aggregated signature as an RDS object
     saveRDS(m_ct_m, file = "aggregated_signature.rds")
     

@@ -50,7 +50,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     library(alabaster.spatial)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Preprocess
+    # --- Read Input Data & Preprocess ---
     # ==========================================
     
     # Read counts matrix
@@ -80,7 +80,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     coldata_df <- coldata_df[common_samples, , drop = FALSE]
     
     # ==========================================
-    # STAGE 2: Construct SpatialExperiment
+    # --- Construct SpatialExperiment ---
     # ==========================================
     
     # Extract or generate spatial coordinates
@@ -105,7 +105,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: Serialize using alabaster.spatial
+    # --- Serialize using alabaster.spatial ---
     # ==========================================
     
     # Define output directory for the serialized object
@@ -119,7 +119,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     alabaster.base::saveObject(se, save_dir)
     
     # ==========================================
-    # STAGE 4: Deserialize (Load) the Object
+    # --- Deserialize (Load) the Object ---
     # ==========================================
     
     # Read the object back to verify round-trip integrity
@@ -127,7 +127,7 @@ process BIOC_ALABASTER_SPATIAL_ALABASTER_SPATIAL_SERIALIZATION_PIPELINE {
     se_loaded <- alabaster.base::readObject(save_dir)
     
     # ==========================================
-    # STAGE 5: Downstream Analysis & QC
+    # --- Downstream Analysis & QC ---
     # ==========================================
     
     # Calculate basic QC metrics

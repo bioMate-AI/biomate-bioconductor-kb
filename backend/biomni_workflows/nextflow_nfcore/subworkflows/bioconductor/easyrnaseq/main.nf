@@ -53,7 +53,7 @@ process BIOC_EASYRNASEQ_EASY_RNASEQ_ANALYSIS {
     set.seed(42)
     
     # ==========================================
-    # Stage 1: Load and Pre-process Input Data
+    # --- Load and Pre-process Input Data ---
     # ==========================================
     message("Loading input datasets...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
@@ -77,7 +77,7 @@ process BIOC_EASYRNASEQ_EASY_RNASEQ_ANALYSIS {
     class(counts_matrix) <- "integer"
     
     # ==========================================
-    # Stage 2: Construct RangedSummarizedExperiment
+    # --- Construct RangedSummarizedExperiment ---
     # ==========================================
     message("Constructing RangedSummarizedExperiment...")
     gene_ids <- rownames(counts_matrix)
@@ -112,7 +112,7 @@ process BIOC_EASYRNASEQ_EASY_RNASEQ_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 3: RPKM Normalization
+    # --- RPKM Normalization ---
     # ==========================================
     message("Calculating RPKM normalization...")
     rpkm_values <- tryCatch({
@@ -132,7 +132,7 @@ process BIOC_EASYRNASEQ_EASY_RNASEQ_ANALYSIS {
     message("RPKM values saved to 'rpkm_values.csv'.")
     
     # ==========================================
-    # Stage 4: Biological QA & Visualisation
+    # --- Biological QA & Visualisation ---
     # ==========================================
     message("Performing Biological QA and generating plots...")
     pdf("biological_qa_plots.pdf", width = 8, height = 8)

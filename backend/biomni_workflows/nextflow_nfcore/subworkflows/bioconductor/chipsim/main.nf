@@ -52,7 +52,7 @@ process BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION {
       }
     }
     
-    # 1. Initialize random seed and load reference genome
+    # --- Initialize random seed and load reference genome ---
     library(ChIPsim)
     library(Biostrings)
     
@@ -64,7 +64,7 @@ process BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION {
     }
     genome <- readDNAStringSet("genome.fasta")
     
-    # 2. Define custom read sequence and quality generation functions
+    # --- Define custom read sequence and quality generation ---
     randomQuality <- function(read, ...){
     	paste(sample(unlist(strsplit(rawToChar(as.raw(64:104)),"")), 
     					nchar(read), replace = TRUE), collapse="")
@@ -89,16 +89,16 @@ process BIOC_CHIPSIM_NUCLEOSOME_POSITIONING_SIMULATION {
     			stringsAsFactors = FALSE)
     }
     
-    # 3. Retrieve default simulation functions and customize the read sequence function
+    # --- Retrieve default simulation functions and customize the ---
     myFunctions <- defaultFunctions()
     myFunctions\$readSequence <- dfReads 
     
-    # 4. Run the simulation using simChIP with customized control parameters
+    # --- Run the simulation using simChIP with customized control ---
     nReads <- 1000
     simulated <- simChIP(nReads, genome, file = "", functions = myFunctions,
     		control = defaultControl(readDensity=list(meanLength = 150)))
     
-    # 5. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete simulated object
     saveRDS(simulated, file = "simulated_nucleosomes.rds")
     

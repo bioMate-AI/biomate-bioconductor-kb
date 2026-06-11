@@ -51,7 +51,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read and Align Input Data
+    # --- Read and Align Input Data ---
     # ==========================================
     
     # Read abundance matrix (taxon-by-sample)
@@ -94,7 +94,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 2: Process Input into MbecData Object
+    # --- Process Input into MbecData Object ---
     # ==========================================
     
     # Construct list input for MBECS
@@ -104,7 +104,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     mbec.obj <- mbecProcessInput(input_list, required.col = c("group", "batch"))
     
     # ==========================================
-    # STAGE 3: Apply Normalizing Transformations
+    # --- Apply Normalizing Transformations ---
     # ==========================================
     
     # Total Sum Scaling (TSS)
@@ -114,7 +114,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     mbec.obj <- mbecTransform(mbec.obj, method = "clr", offset = 0.0001)
     
     # ==========================================
-    # STAGE 4: Exploratory Analysis (Pre-correction)
+    # --- Exploratory Analysis (Pre-correction) ---
     # ==========================================
     
     pdf("batch_evaluation_plots.pdf", width = 10, height = 8)
@@ -154,7 +154,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 5: Quantify Batch Effect Variance (Pre-correction)
+    # --- Quantify Batch Effect Variance (Pre-correction) ---
     # ==========================================
     
     pdf("variance_assessment_plots.pdf", width = 8, height = 6)
@@ -180,7 +180,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Run Batch Effect Corrections
+    # --- Run Batch Effect Corrections ---
     # ==========================================
     
     # Run ComBat (bat), limma removeBatchEffect (rbe), and Batch Mean Centering (bmc)
@@ -188,7 +188,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
                                    method = c("bat", "rbe", "bmc"), type = "clr")
     
     # ==========================================
-    # STAGE 7: Post-Correction Evaluation
+    # --- Post-Correction Evaluation ---
     # ==========================================
     
     pdf("variance_assessment_post_combat.pdf", width = 8, height = 6)
@@ -216,7 +216,7 @@ process BIOC_MBECS_MBECS_BATCH_CORRECTION_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 8: Export Corrected Abundances
+    # --- Export Corrected Abundances ---
     # ==========================================
     
     # Helper function to extract and save corrected OTU tables

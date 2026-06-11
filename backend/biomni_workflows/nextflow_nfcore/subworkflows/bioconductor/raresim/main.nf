@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit the number of variants function to target data using fit_nvariant to estimate phi and omega. 2. Calculate the expected number 
+//  * 1. [Core Analysis] User Parameters & Input Files
+//  * 2. [Core Analysis] Fit Number of Variants Function
+//  * 3. [Core Analysis] Calculate Expected Variants per Kb
+//  * 4. [Core Analysis] Scale Variants by Region Size
+//  * 5. [Core Analysis] Fit Allele Frequency Spectrum (AFS)
+//  * 6. [Core Analysis] Combine to Get Expected Variants per MAC Bin
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +57,7 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_FROM_TARGET_DATA {
     library(ggplot2)
     
     # ==========================================
-    # 1. User Parameters & Input Files
+    # --- User Parameters & Input Files ---
     # ==========================================
     # Define target simulation parameters
     target_N <- 8128          # Target simulation sample size
@@ -63,7 +68,7 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_FROM_TARGET_DATA {
     afs_target <- read.csv("afs_target.csv", stringsAsFactors = FALSE)
     
     # ==========================================
-    # 2. Fit Number of Variants Function
+    # --- Fit Number of Variants Function ---
     # ==========================================
     # Fit the number of variants function to target data to estimate phi and omega
     nvar <- fit_nvariant(nvariant_target)
@@ -80,19 +85,19 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_FROM_TARGET_DATA {
     dev.off()
     
     # ==========================================
-    # 3. Calculate Expected Variants per Kb
+    # --- Calculate Expected Variants per Kb ---
     # ==========================================
     # Calculate the expected number of variants per Kb for the target simulation sample size
     expected_per_kb <- nvariant(phi = nvar\$phi, omega = nvar\$omega, N = target_N)
     
     # ==========================================
-    # 4. Scale Variants by Region Size
+    # --- Scale Variants by Region Size ---
     # ==========================================
     # Scale the variants per Kb by the region size to get the total expected number of variants
     total_expected_var <- region_size_kb * expected_per_kb
     
     # ==========================================
-    # 5. Fit Allele Frequency Spectrum (AFS)
+    # --- Fit Allele Frequency Spectrum (AFS) ---
     # ==========================================
     # Fit the AFS function to target data to estimate alpha, beta, and b
     af <- fit_afs(Observed_bin_props = afs_target)
@@ -117,7 +122,7 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_FROM_TARGET_DATA {
     ggsave("afs_fit_plot.pdf", plot = p, width = 7, height = 5)
     
     # ==========================================
-    # 6. Combine to Get Expected Variants per MAC Bin
+    # --- Combine to Get Expected Variants per MAC Bin ---
     # ==========================================
     # Combine the total expected variants and the fitted AFS proportions to get expected variants per MAC bin
     bin_estimates <- expected_variants(Total_num_var = total_expected_var, mac_bin_prop = af\$Fitted_results)

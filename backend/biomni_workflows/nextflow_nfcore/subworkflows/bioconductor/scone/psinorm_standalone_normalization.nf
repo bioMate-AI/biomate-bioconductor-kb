@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run PsiNorm on the SingleCellExperiment object to compute size factors. 2. Compute log-normalized counts using logNormCounts. 3. (
+//  * 1. [Core Analysis] Read User Input
+//  * 2. [Core Analysis] Run PsiNorm and logNormCounts (Documented Code)
+//  * 3. [Core Analysis] Optional Seurat conversion (Documented Code)
+//  * 4. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +57,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
     library(DelayedArray)
     library(rhdf5)
     
-    # 1. Read User Input
+    # --- Read User Input ---
     if (file.exists("raw_counts.h5")) {
       message("Reading HDF5-backed raw counts...")
       h5_content <- h5ls("raw_counts.h5")
@@ -85,7 +88,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
       colnames(sce) <- paste0("Cell", seq_len(ncol(sce)))
     }
     
-    # 2. Run PsiNorm and logNormCounts (Documented Code)
+    # --- Run PsiNorm and logNormCounts (Documented Code) ---
     message("Running PsiNorm...")
     sce<-PsiNorm(sce)
     message("Running logNormCounts...")
@@ -93,7 +96,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
     message("Printing head of size factors:")
     head(sizeFactors(sce))
     
-    # 3. Optional Seurat conversion (Documented Code)
+    # --- Optional Seurat conversion (Documented Code) ---
     if (requireNamespace("Seurat", quietly = TRUE)) {
       message("Converting to Seurat object...")
       library(Seurat)
@@ -105,7 +108,7 @@ process BIOC_SCONE_PSINORM_STANDALONE_NORMALIZATION {
       message("Seurat package not installed. Skipping Seurat conversion.")
     }
     
-    # 4. Save Outputs
+    # --- Save Outputs ---
     sf <- sizeFactors(sce)
     cell_names <- names(sf)
     if (is.null(cell_names)) {

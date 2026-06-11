@@ -49,7 +49,7 @@ process BIOC_HICVENNDIAGRAM_HIC_VENN_DIAGRAM_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read and Parse Input Data
+    # --- Read and Parse Input Data ---
     # ==========================================
     message("Stage 1: Reading input files...")
     
@@ -78,7 +78,7 @@ process BIOC_HICVENNDIAGRAM_HIC_VENN_DIAGRAM_PIPELINE {
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
     # ==========================================
-    # STAGE 2: Parse Genomic Coordinates (BED vs BEDPE)
+    # --- Parse Genomic Coordinates (BED vs BEDPE) ---
     # ==========================================
     message("Stage 2: Parsing genomic coordinates...")
     
@@ -137,7 +137,7 @@ process BIOC_HICVENNDIAGRAM_HIC_VENN_DIAGRAM_PIPELINE {
     message(paste("Detected feature type:", parsed_type))
     
     # ==========================================
-    # STAGE 3: Identify Active Features & Write Temp Files
+    # --- Identify Active Features & Write Temp Files ---
     # ==========================================
     message("Stage 3: Identifying active features per condition...")
     
@@ -180,7 +180,7 @@ process BIOC_HICVENNDIAGRAM_HIC_VENN_DIAGRAM_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Overlap Calculation using hicVennDiagram
+    # --- Overlap Calculation using hicVennDiagram ---
     # ==========================================
     message("Stage 4: Calculating overlaps...")
     
@@ -198,7 +198,7 @@ process BIOC_HICVENNDIAGRAM_HIC_VENN_DIAGRAM_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Visualization (Venn & UpSet Plots)
+    # --- Visualization (Venn & UpSet Plots) ---
     # ==========================================
     message("Stage 5: Generating plots...")
     
@@ -257,7 +257,7 @@ process BIOC_HICVENNDIAGRAM_HIC_VENN_DIAGRAM_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Genomic Loops Enrichment (GLEAM)
+    # --- Genomic Loops Enrichment (GLEAM) ---
     # ==========================================
     message("Stage 6: Running GLEAM enrichment analysis...")
     

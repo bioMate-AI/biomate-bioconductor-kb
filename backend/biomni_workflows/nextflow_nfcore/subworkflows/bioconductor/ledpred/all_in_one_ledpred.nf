@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Run the all-in-one LedPred function to tune, rank, select features, and build the model. 2. Map features to unknown sequences usin
+//  * 1. [Input & Preparation] Run the all-in-one LedPred function to tune, rank, select
+//  * 2. [Input & Preparation] Map features to unknown sequences using mapFeaturesToCRMs
+//  * 3. [Input & Preparation] Score unknown sequences using scoreData
 
 nextflow.enable.dsl = 2
 
@@ -92,7 +94,7 @@ process BIOC_LEDPRED_ALL_IN_ONE_LEDPRED {
       ngs.files <- "ngs.files"
     }
     
-    # Step 1: Run the all-in-one LedPred function to tune, rank, select features, and build the model
+    # --- Run the all-in-one LedPred function to tune, rank, select ---
     cost.vector <- c(1,3,10)
     gamma.vector <- c(1,3,10)
     
@@ -101,11 +103,11 @@ process BIOC_LEDPRED_ALL_IN_ONE_LEDPRED {
     # Define ledpred.list to handle the vignette's typo in the scoreData call
     ledpred.list <- ledpred.obj
     
-    # Step 2: Map features to unknown sequences using mapFeaturesToCRMs
+    # --- Map features to unknown sequences using mapFeaturesToCRMs ---
     prediction.crm.features.obj2 <- mapFeaturesToCRMs(URL = 'http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php', positive.bed=positive.bed, pssm=TF.matrices, background.freqs=background.freqs, genome='dm3', ngs=ngs.files, feature.ranking=ledpred.obj\$feature.ranking, feature.nb=ledpred.obj\$feature.nb, crm.feature.file = "vignette2_pred.crm.features.tab", stderr.log.file = "vignette2_pred.stderr.log", stdout.log.file = "vignette2_pred.stdout.log")
     prediction.crm.features2 <- prediction.crm.features.obj2\$crm.features
     
-    # Step 3: Score unknown sequences using scoreData
+    # --- Score unknown sequences using scoreData ---
     pred.test2 <- scoreData(data=prediction.crm.features2, model=ledpred.list\$model.obj, score.file="vignette2_prediction.tab")
     
     # Save RDS outputs for downstream analysis

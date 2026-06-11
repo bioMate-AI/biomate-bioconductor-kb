@@ -75,7 +75,7 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
       stop("Required input file 'groupinfo' or 'groupinfo.rds' not found in the working directory.")
     }
     
-    # 1. Integrate multiple assays using integrate_pca()
+    # --- Integrate multiple assays using integrate_pca() ---
     exclude <- list(0, c(1, 9))
     int_PCA <- integrate_pca(Assays = c("H2az", "H3k9ac"), groupinfo = groupinfo, name = multi_assay, mergetype = 2, exclude = exclude, graph = FALSE)
     start_end = int_PCA\$start_end
@@ -84,7 +84,7 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
     # Save integrated PCA object
     saveRDS(int_PCA, "integrated_pca_results.rds")
     
-    # 2. Analyze integrated variables and individuals using analyse_integrated_variables() and analyse_integrated_individuals()
+    # --- Analyze integrated variables and individuals using ---
     pdf("integrated_variables_analysis.pdf")
     analyse_integrated_variables(start_end = start_end, name = name, choice = 1, title = "variance barplot", Assay = 1, addlabels = TRUE)
     analyse_integrated_variables(start_end = start_end, Assay = 1, name = name, choice = 2 , title = "Loadings of cell lines on PC1 and PC2", var_type = "contrib")
@@ -98,7 +98,7 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
     analyse_integrated_individuals(name = name, choice = 2, PC = c(1,2,3), col = c("RED", "BLACK","GREEN"), groupinfo = groupinfo)
     dev.off()
     
-    # 3. Perform density analysis on integrated data using plot_integrated_density() and plot_integrated_density_3D()
+    # --- Perform density analysis on integrated data using ---
     pdf("density_analysis_plots.pdf")
     densityplot <- plot_integrated_density(name = name, PC = 1, groups = c("WE","RE","IntE","NE"), groupinfo = groupinfo)
     print(densityplot)
@@ -107,10 +107,10 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
     try(plot_integrated_density_3D(name = name, PC1 = 1, PC2 = 2, group = c("WE","RE"), gridsize = 100, static = FALSE, groupinfo = groupinfo))
     dev.off()
     
-    # 4. Extract PCA data for clustering using extract()
+    # --- Extract PCA data for clustering using extract() ---
     data <- extract(name = name, PC = c(1:4), groups = c("WE","RE"), integrated = TRUE, rand = 600, groupinfo = groupinfo)
     
-    # 5. Determine optimal cluster parameters using cluster_parameters()
+    # --- Determine optimal cluster parameters using ---
     clusterstats <- cluster_parameters(name = data, optimal = FALSE, n = 2:6, comparisonAlgorithm = "clValid", distance = "euclidean", clusteringMethods = c("kmeans","pam"), validationMethods = c("internal","stability"))
     clusterstats <- cluster_parameters(name = data, n = 2:6, comparisonAlgorithm = "NbClust", distance = "euclidean", clusteringMethods = "kmeans", validationMethods = "all")
     
@@ -121,7 +121,7 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
     fviz_nbclust(clusterstats, method = c("silhouette", "wss", "gap_stat"))
     dev.off()
     
-    # 6. Cluster genomic features using cluster()
+    # --- Cluster genomic features using cluster() ---
     data <- extract(name = name, PC = c(1:4), groups = c("WE","RE"), integrated = TRUE, rand = 1000, groupinfo = groupinfo)
     
     pdf("clustering_results.pdf")
@@ -139,7 +139,7 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
     # Save clustered data
     write.csv(clustered_data, "clustered_data.csv", row.names = TRUE)
     
-    # 7. Validate clusters and identify misclassified points using daisy() and silhouette()
+    # --- Validate clusters and identify misclassified points using ---
     dist <- daisy(data)
     sil = silhouette(clusters\$cluster\$cluster,dist)
     misclassified <- which(sil[,3] < 0)
@@ -160,7 +160,7 @@ process BIOC_OMICSPCA_MULTI_ASSAY_INTEGRATION_AND_CLUSTERING {
       }
     }
     
-    # 8. Explore cluster characteristics using cluster_boxplot()
+    # --- Explore cluster characteristics using cluster_boxplot() ---
     pdf("cluster_boxplot.pdf")
     bp <- cluster_boxplot(name = multi_assay, Assay = "H2az", clusterobject = clustered_data, clustercolumn = 5)
     print(bp)

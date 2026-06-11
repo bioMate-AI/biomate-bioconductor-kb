@@ -50,7 +50,7 @@ process BIOC_CUSTOMCMPDB_CUSTOM_COMPOUND_ANNOTATION_PIPELINE {
     library(ChemmineR)
     
     # ==========================================
-    # Stage 1: Read and Parse Input Identifiers
+    # --- Read and Parse Input Identifiers ---
     # ==========================================
     message("Stage 1: Reading input compound identifiers...")
     if (!file.exists("input.csv")) {
@@ -77,7 +77,7 @@ process BIOC_CUSTOMCMPDB_CUSTOM_COMPOUND_ANNOTATION_PIPELINE {
     }
     
     # ==========================================
-    # Stage 2: Query Default Community Databases
+    # --- Query Default Community Databases ---
     # ==========================================
     message("Stage 2: Querying default community databases...")
     available_annots <- listAnnot()
@@ -98,7 +98,7 @@ process BIOC_CUSTOMCMPDB_CUSTOM_COMPOUND_ANNOTATION_PIPELINE {
     write.csv(qres_default, "query_results_default.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 3: Integrate Custom Annotations
+    # --- Integrate Custom Annotations ---
     # ==========================================
     message("Stage 3: Integrating custom annotations...")
     
@@ -148,7 +148,7 @@ process BIOC_CUSTOMCMPDB_CUSTOM_COMPOUND_ANNOTATION_PIPELINE {
     })
     
     # ==========================================
-    # Stage 4: Load and Visualize Structures
+    # --- Load and Visualize Structures ---
     # ==========================================
     message("Stage 4: Loading and plotting compound structures...")
     

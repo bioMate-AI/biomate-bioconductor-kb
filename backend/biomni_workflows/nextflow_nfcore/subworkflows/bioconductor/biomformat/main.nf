@@ -48,7 +48,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     library(biomformat)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read abundance matrix (taxon/OTU-by-sample)
@@ -90,7 +90,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Construct and Serialize BIOM Object
+    # --- Construct and Serialize BIOM Object ---
     # ==========================================
     
     # Build the BIOM object
@@ -114,7 +114,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: SummarizedExperiment Interoperability
+    # --- SummarizedExperiment Interoperability ---
     # ==========================================
     
     # Convert BIOM object to SummarizedExperiment
@@ -127,7 +127,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     write.csv(as.data.frame(colData(se)), "sample_metadata_enriched.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 4: Tidy Data Transformation & Diversity Analysis
+    # --- Tidy Data Transformation & Diversity Analysis ---
     # ==========================================
     
     # Convert BIOM object to tidy long-format data frame
@@ -152,7 +152,7 @@ process BIOC_BIOMFORMAT_BIOMFORMAT_METAGENOMICS_PIPELINE {
     write.csv(diversity_df, "shannon_diversity.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     
     # Generate diagnostic plots

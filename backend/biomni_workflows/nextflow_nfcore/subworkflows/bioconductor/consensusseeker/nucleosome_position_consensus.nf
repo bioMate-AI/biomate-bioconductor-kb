@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load nucleosome position and range datasets. 2. Assign software names as row names to the GRanges objects. 3. Define chromosome in
+//  * 1. [Input & Preparation] Load nucleosome position and range datasets
+//  * 2. [Input & Preparation] Assign software names as row names to the GRanges objects
+//  * 3. [Input & Preparation] Run findConsensusPeakRegions with custom parameters
+//  * 4. [Input & Preparation] Write named output files for the results
 
 nextflow.enable.dsl = 2
 
@@ -68,7 +71,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
       stop(paste("Missing required input files in the working directory:", paste(missing_files, collapse = ", ")))
     }
     
-    # 1. Load nucleosome position and range datasets
+    # --- Load nucleosome position and range datasets ---
     message("Loading input datasets...")
     NOrMAL_nucleosome_positions <- readRDS(normal_pos_file)
     NOrMAL_nucleosome_ranges <- readRDS(normal_range_file)
@@ -78,7 +81,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     NucPosSimulator_nucleosome_ranges <- readRDS(nucpos_range_file)
     chrList <- readRDS(chr_list_file)
     
-    # 2. Assign software names as row names to the GRanges objects
+    # --- Assign software names as row names to the GRanges objects ---
     message("Assigning software names to GRanges objects...")
     names(NOrMAL_nucleosome_positions) <- rep("NOrMAL", length(NOrMAL_nucleosome_positions))
     names(NOrMAL_nucleosome_ranges) <- rep("NOrMAL", length(NOrMAL_nucleosome_ranges))
@@ -91,7 +94,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     names(NucPosSimulator_nucleosome_ranges) <- rep("NucPosSimulator", 
                                     length(NucPosSimulator_nucleosome_ranges))
     
-    # 3. Run findConsensusPeakRegions with custom parameters
+    # --- Run findConsensusPeakRegions with custom parameters ---
     message("Finding consensus peak regions...")
     results <- findConsensusPeakRegions(
                 narrowPeaks = c(NOrMAL_nucleosome_ranges, PING_nucleosome_ranges,
@@ -112,7 +115,7 @@ process BIOC_CONSENSUSSEEKER_NUCLEOSOME_POSITION_CONSENSUS {
     message("\n--- First 3 Consensus Regions ---")
     print(head(results\$consensusRanges, n = 3))
     
-    # 4. Write named output files for the results
+    # --- Write named output files for the results ---
     message("\nSaving results...")
     
     # Save the complete results list object

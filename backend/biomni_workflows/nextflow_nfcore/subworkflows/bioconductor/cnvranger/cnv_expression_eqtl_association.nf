@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare CNV calls as a GRangesList and summarize them into population-level CNV regions; 2. Prepare RNA-seq counts as a RangedSumm
+//  * 1. [Visualization & Output] Prepare CNV calls as a GRangesList and summarize them
+//  * 2. [Visualization & Output] Prepare RNA-seq counts as a RangedSummarizedExperiment
+//  * 3. [Visualization & Output] Run cnvEQTL to test for expression differences
+//  * 4. [Visualization & Output] Plot eQTL results
 
 nextflow.enable.dsl = 2
 
@@ -57,7 +60,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     data.dir <- "."
     
     # ----------------------------------------------------------------------
-    # Stage 1: Prepare CNV calls as a GRangesList and summarize them
+    # --- Prepare CNV calls as a GRangesList and summarize them ---
     # ----------------------------------------------------------------------
     
     # Read the user-provided CNV calls
@@ -80,7 +83,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     
     
     # ----------------------------------------------------------------------
-    # Stage 2: Prepare RNA-seq counts as a RangedSummarizedExperiment
+    # --- Prepare RNA-seq counts as a RangedSummarizedExperiment ---
     # ----------------------------------------------------------------------
     
     # Retrieve Bos taurus gene annotations from AnnotationHub
@@ -121,7 +124,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     
     
     # ----------------------------------------------------------------------
-    # Stage 3: Run cnvEQTL to test for expression differences
+    # --- Run cnvEQTL to test for expression differences ---
     # ----------------------------------------------------------------------
     
     # Run the association testing exactly as documented
@@ -136,7 +139,7 @@ process BIOC_CNVRANGER_CNV_EXPRESSION_EQTL_ASSOCIATION {
     
     
     # ----------------------------------------------------------------------
-    # Stage 4: Plot eQTL results
+    # --- Plot eQTL results ---
     # ----------------------------------------------------------------------
     
     # Find the first tested region with results to plot

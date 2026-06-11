@@ -48,7 +48,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     library(proteinProfiles)
     
     # ==========================================
-    # Stage 1: Read and Validate Input Files
+    # --- Read and Validate Input Files ---
     # ==========================================
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing.")
@@ -65,7 +65,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Prepare the Intensity Matrix
+    # --- Prepare the Intensity Matrix ---
     # ==========================================
     feature_ids <- as.character(intensity_df\$feature_id)
     intensity_matrix <- as.matrix(intensity_df[, setdiff(colnames(intensity_df), "feature_id"), drop = FALSE])
@@ -79,7 +79,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     intensity_matrix <- intensity_matrix[, common_samples, drop = FALSE]
     
     # ==========================================
-    # Stage 3: Filter Features with Missing Data
+    # --- Filter Features with Missing Data ---
     # ==========================================
     message("Filtering features based on missing value threshold...")
     # filterFeatures removes features exceeding the specified fraction of NA values
@@ -93,7 +93,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 4: Create Annotation Data Frame
+    # --- Create Annotation Data Frame ---
     # ==========================================
     # To ensure the pipeline runs successfully on any user-provided dataset,
     # we dynamically annotate a subset of the actual features as "Ribosome" / "28S"
@@ -120,7 +120,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 5: Define Protein Groups of Interest
+    # --- Define Protein Groups of Interest ---
     # ==========================================
     message("Finding protein groups of interest using grepAnnotation...")
     index_28S <- grepAnnotation(annotation, pattern = "^28S", column = "Protein.Name")
@@ -130,7 +130,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     message(sprintf("Found %d proteins matching 'Ribosome' in KEGG", length(index_ribosome)))
     
     # ==========================================
-    # Stage 6: Compute Profile Distances & Significance
+    # --- Compute Profile Distances & Significance ---
     # ==========================================
     results_list <- list()
     
@@ -173,7 +173,7 @@ process BIOC_PROTEINPROFILES_PROTEIN_PROFILES_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # Stage 7: Export Results
+    # --- Export Results ---
     # ==========================================
     if (length(results_list) > 0) {
       final_results <- do.call(rbind, results_list)

@@ -11,7 +11,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Construct the metabolic graph with metabolite-level topology using makeMetabolicGraph, setting gene.de to NULL. 2. Score the graph
+//  * 1. [Visualization & Output] Read the declared user input file from the working
+//  * 2. [Visualization & Output] Download/load the required network and annotation
+//  * 3. [Visualization & Output] Construct the metabolic graph with metabolite-level
+//  * 4. [Visualization & Output] Score the graph
+//  * 5. [Visualization & Output] Solve the maximum weight connected subgraph problem
+//  * 6. [Visualization & Output] Abbreviate metabolite labels for improved readability
+//  * 7. [Visualization & Output] Visualize the resulting module (creates the widget object)
+//  * 8. [Visualization & Output] Save meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +68,7 @@ process BIOC_GATOM_LIPIDOMICS_METABOLITE_LEVEL_ACTIVE_MODULE {
     library(igraph)
     library(mwcsr)
     
-    # 1. Read the declared user input file from the working directory
+    # --- Read the declared user input file from the working ---
     input_file <- "met.de.lipids"
     if (!file.exists(input_file)) {
       if (file.exists("met.de.lipids.csv")) {
@@ -76,14 +83,14 @@ process BIOC_GATOM_LIPIDOMICS_METABOLITE_LEVEL_ACTIVE_MODULE {
     message("Reading user input: ", input_file)
     met.de.lipids <- data.table::fread(input_file)
     
-    # 2. Download/load the required network and annotation databases
+    # --- Download/load the required network and annotation ---
     message("Downloading Rhea lipid subnetwork and annotations...")
     network.lipids <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.rhea.lipids.rds"))
     met.lipids.db <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.lipids.db.rds"))
     org.Mm.eg.gatom.anno <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/org.Mm.eg.gatom.anno.rds"))
     gene2reaction.extra <- data.table::fread("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/gene2reaction.rhea.mmu.eg.tsv", colClasses="character")
     
-    # 3. Construct the metabolic graph with metabolite-level topology
+    # --- Construct the metabolic graph with metabolite-level ---
     message("Constructing metabolic graph...")
     lg <- makeMetabolicGraph(network=network.lipids,
                              topology="metabolites",
@@ -93,26 +100,26 @@ process BIOC_GATOM_LIPIDOMICS_METABOLITE_LEVEL_ACTIVE_MODULE {
                              met.de=met.de.lipids,
                              gene2reaction.extra=gene2reaction.extra)
     
-    # 4. Score the graph
+    # --- Score the graph ---
     message("Scoring graph...")
     lgs <- scoreGraph(lg, k.gene = NULL, k.met = 50)
     
-    # 5. Solve the maximum weight connected subgraph problem
+    # --- Solve the maximum weight connected subgraph problem ---
     message("Solving MWCS problem...")
     solver <- rnc_solver()
     set.seed(42)
     sol <- solve_mwcsp(solver, lgs)
     lm <- sol\$graph
     
-    # 6. Abbreviate metabolite labels for improved readability
+    # --- Abbreviate metabolite labels for improved readability ---
     message("Abbreviating labels...")
     lm1 <- abbreviateLabels(lm, orig.names = TRUE, abbrev.names = TRUE)
     
-    # 7. Visualize the resulting module (creates the widget object)
+    # --- Visualize the resulting module (creates the widget object) ---
     message("Creating visualization widget...")
     widget <- createShinyCyJSWidget(lm1)
     
-    # 8. Save meaningful results to output files
+    # --- Save meaningful results to output files ---
     message("Saving output files...")
     
     # Save the igraph object

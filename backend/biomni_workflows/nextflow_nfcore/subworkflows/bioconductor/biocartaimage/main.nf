@@ -44,14 +44,14 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(BioCartaImage)
     library(grid)
     if (!requireNamespace("EBImage", quietly = TRUE)) {
         stop("EBImage package is required to read the input microscopy image.")
     }
     
-    # Stage 2: Read and process the input microscopy image
+    # --- Read and process the input microscopy image ---
     message("Reading input microscopy image...")
     img <- EBImage::readImage("image.tif")
     img_arr <- as.array(img)
@@ -63,7 +63,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
         img_mat <- img_arr
     }
     
-    # Stage 3: Retrieve BioCarta Pathway Information
+    # --- Retrieve BioCarta Pathway Information ---
     pathway_id <- "h_RELAPathway"
     message(paste("Retrieving pathway information for:", pathway_id))
     p <- get_pathway(pathway_id)
@@ -73,7 +73,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
         stop("No genes found in the specified pathway.")
     }
     
-    # Stage 4: Map Image Intensities to Pathway Genes
+    # --- Map Image Intensities to Pathway Genes ---
     # Divide the microscopy image into sub-regions to simulate distinct gene expression levels
     dims <- dim(img_mat)
     rows <- seq(1, dims[1], length.out = 5)
@@ -122,7 +122,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     write.csv(df_out, "gene_pathway_mapping.csv", row.names = FALSE)
     message("Saved gene-to-pathway mapping to gene_pathway_mapping.csv")
     
-    # Stage 5: Standard Pathway Visualization
+    # --- Standard Pathway Visualization ---
     message("Generating standard pathway visualization...")
     pdf("biocarta_pathway_analysis.pdf", width = 10, height = 10)
     grid.newpage()
@@ -130,7 +130,7 @@ process BIOC_BIOCARTAIMAGE_BIOCARTA_PATHWAY_IMAGING {
     dev.off()
     message("Saved standard pathway visualization to biocarta_pathway_analysis.pdf")
     
-    # Stage 6: Advanced Custom Pathway Visualization
+    # --- Advanced Custom Pathway Visualization ---
     message("Generating advanced custom pathway visualization...")
     pdf("biocarta_custom_annotations.pdf", width = 10, height = 10)
     grid.newpage()

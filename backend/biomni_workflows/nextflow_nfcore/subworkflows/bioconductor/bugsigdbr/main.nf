@@ -48,7 +48,7 @@ process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     library(bugsigdbr)
     
     # ==========================================
-    # Stage 1: Read and Align Input Datasets
+    # --- Read and Align Input Datasets ---
     # ==========================================
     message("Reading input datasets...")
     abundance <- read.csv("abundance.csv", row.names = 1, check.names = FALSE)
@@ -63,7 +63,7 @@ process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     coldata <- coldata[match(common_samples, coldata\$sample), ]
     
     # ==========================================
-    # Stage 2: Identify User's Microbial Signature
+    # --- Identify User's Microbial Signature ---
     # ==========================================
     message("Performing differential abundance analysis...")
     groups <- as.factor(coldata\$group)
@@ -102,7 +102,7 @@ process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     user_sig <- sig_taxa_df\$taxon
     
     # ==========================================
-    # Stage 3: Import and Filter BugSigDB
+    # --- Import and Filter BugSigDB ---
     # ==========================================
     message("Importing BugSigDB database...")
     bsdb <- importBugSigDB()
@@ -120,7 +120,7 @@ process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     )
     
     # ==========================================
-    # Stage 4: Extract Signatures
+    # --- Extract Signatures ---
     # ==========================================
     # Determine if user taxa are NCBI IDs (numeric) or Taxon Names (character)
     is_numeric_id <- all(!is.na(suppressWarnings(as.numeric(user_sig))))
@@ -134,7 +134,7 @@ process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     }
     
     # ==========================================
-    # Stage 5: Hypergeometric Enrichment Analysis
+    # --- Hypergeometric Enrichment Analysis ---
     # ==========================================
     message("Performing hypergeometric enrichment analysis...")
     background_taxa <- rownames(abundance)
@@ -191,13 +191,13 @@ process BIOC_BUGSIGDBR_BUGSIGDB_ENRICHMENT {
     write.csv(enrichment_df, "enrichment_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Export Filtered Signatures to GMT
+    # --- Export Filtered Signatures to GMT ---
     # ==========================================
     message("Writing filtered BugSigDB signatures to GMT file...")
     writeGMT(bsdb_sigs, gmt.file = "bugsigdb_filtered.gmt")
     
     # ==========================================
-    # Stage 7: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating enrichment plot...")
     pdf("enrichment_plot.pdf", width = 10, height = 6)

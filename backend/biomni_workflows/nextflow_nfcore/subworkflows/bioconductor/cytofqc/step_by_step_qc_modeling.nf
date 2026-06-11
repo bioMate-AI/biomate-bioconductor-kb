@@ -59,7 +59,7 @@ process BIOC_CYTOFQC_STEP_BY_STEP_QC_MODELING {
     library(ggplot2)
     library(gridExtra)
     
-    # 1. Read FCS data and define QC channels using readCytof
+    # --- Read FCS data and define QC channels using readCytof ---
     f <- "raw_cytof.fcs"
     if (!file.exists(f)) {
       stop("Required input file 'raw_cytof.fcs' not found in the working directory.")
@@ -72,19 +72,19 @@ process BIOC_CYTOFQC_STEP_BY_STEP_QC_MODELING {
                    viability = "Live_Dead",
                    gaussian = c("Center", "Offset", "Width", "Residual"))
     
-    # 2. Initialize and label beads using initialBead and svmLabel
+    # --- Initialize and label beads using initialBead and svmLabel ---
     x <- initialBead(x)
     x <- svmLabel(x, type = "bead", n = 500)
     
-    # 3. Initialize and label debris using initialDebris and svmLabel
+    # --- Initialize and label debris using initialDebris and ---
     x <- initialDebris(x)
     x <- svmLabel(x, type = "debris", n = 500)
     
-    # 4. Initialize and label doublets using initialDoublet and svmLabel
+    # --- Initialize and label doublets using initialDoublet and ---
     x <- initialDoublet(x)
     x <- svmLabel(x, type = "doublet", n = 500)
     
-    # 5. Initialize and label dead cells using initialDead and svmLabel
+    # --- Initialize and label dead cells using initialDead and ---
     # Wrapped in tryCatch because if there are fewer than 100 dead cells, 
     # a classification model cannot be built and may throw an error or warning.
     x <- tryCatch({

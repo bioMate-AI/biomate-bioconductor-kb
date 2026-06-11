@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Calculate the optimal scaling factor using the SCBN function with housekeeping gene indices. 2. Extract the scaling factor and pre
+//  * 1. [Input & Preparation] Calculate the optimal scaling factor using the SCBN
+//  * 2. [Input & Preparation] Extract the scaling factor and prepare vectors for read
+//  * 3. [Input & Preparation] Compute p-values for each orthologous gene using the
 
 nextflow.enable.dsl = 2
 
@@ -63,10 +65,10 @@ process BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION {
     # We use the first 1000 genes (or fewer if the dataset is smaller) as housekeeping genes
     hkind <- 1:min(1000, nrow(orth_gene))
     
-    # 1. Calculate the optimal scaling factor using the SCBN function
+    # --- Calculate the optimal scaling factor using the SCBN ---
     factor <- SCBN(orth_gene=orth_gene, hkind=hkind, a=0.05)
     
-    # 2. Extract the scaling factor and prepare vectors for read counts, gene lengths, and library sizes
+    # --- Extract the scaling factor and prepare vectors for read ---
     scale <- factor\$scbn_val
     x <- orth_gene[, 2]
     y <- orth_gene[, 4]
@@ -75,7 +77,7 @@ process BIOC_SCBN_CROSS_SPECIES_DIFFERENTIAL_EXPRESSION {
     n1 <- sum(x)
     n2 <- sum(y)
     
-    # 3. Compute p-values for each orthologous gene using the sageTestNew function
+    # --- Compute p-values for each orthologous gene using the ---
     p_value <- sageTestNew(x, y, lengthx, lengthy, n1, n2, scale)
     
     # Prepare the final results data frame

@@ -51,17 +51,17 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
     library(dplyr)
     library(stringr)
     
-    # Stage 1: Load local count matrix and metadata
+    # --- Load local count matrix and metadata ---
     message("Loading local count matrix and metadata...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Connect to CuratedAtlasQueryR Database
+    # --- Connect to CuratedAtlasQueryR Database ---
     message("Connecting to CuratedAtlasQueryR metadata database...")
     # In real applications, we use the default remote_url (DATABASE_URL)
     hca_metadata <- get_metadata()
     
-    # Stage 3: Match local conditions to HCA tissues
+    # --- Match local conditions to HCA tissues ---
     message("Matching local conditions to HCA tissues...")
     # Collect unique tissues from HCA to find a match
     hca_tissues <- hca_metadata |> 
@@ -80,7 +80,7 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
       message(paste("No direct tissue match found. Defaulting to HCA tissue:", target_tissue))
     }
     
-    # Stage 4: Query and download reference SingleCellExperiment
+    # --- Query and download reference SingleCellExperiment ---
     message("Querying HCA reference data...")
     # To keep the download fast and robust, we find one file_id associated with the target tissue
     sample_file <- hca_metadata |>
@@ -123,7 +123,7 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
       )
     })
     
-    # Stage 5: Compare Local Data with HCA Reference
+    # --- Compare Local Data with HCA Reference ---
     message("Comparing local data with HCA reference...")
     # Calculate CPM for local counts
     local_counts_sub <- counts[intersect(rownames(counts), rownames(sce_ref)), , drop = FALSE]
@@ -160,7 +160,7 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
       )
     }
     
-    # Stage 6: Retrieve Unharmonised Metadata
+    # --- Retrieve Unharmonised Metadata ---
     message("Retrieving unharmonised metadata...")
     unharmonised_meta <- tryCatch({
       get_unharmonised_metadata(query_metadata)
@@ -168,7 +168,7 @@ process BIOC_CURATEDATLASQUERYR_CURATED_ATLAS_QUERY_HCA_COMPARISON {
       NULL
     })
     
-    # Stage 7: Save Outputs
+    # --- Save Outputs ---
     message("Saving outputs...")
     # 1. Save comparison table
     write.csv(comparison_df, "hca_comparison.csv", row.names = FALSE)

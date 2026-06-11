@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run GAGO to test Gene Ontology terms using the focus level multiple testing procedure. 2. Run GABroad to test Broad Institute MSig
+//  * 1. [Core Analysis] Run GAGO to test Gene Ontology terms using the focus
+//  * 2. [Core Analysis] Run GABroad to test Broad Institute MSigDB gene sets
 
 nextflow.enable.dsl = 2
 
@@ -124,7 +125,7 @@ process BIOC_GLOBALANCOVA_PUBLIC_GENE_SET_TESTING {
     # 4. Run Documented Workflow Functions
     # ----------------------------------------------------------------------
     
-    # Stage 1: Run GAGO to test Gene Ontology terms using the focus level multiple testing procedure
+    # --- Run GAGO to test Gene Ontology terms using the focus ---
     gago <- GAGO(
       xx = expr_mat, 
       formula.full = form_full, 
@@ -136,7 +137,7 @@ process BIOC_GLOBALANCOVA_PUBLIC_GENE_SET_TESTING {
       multtest = "focuslevel"
     )
     
-    # Stage 2: Run GABroad to test Broad Institute MSigDB gene sets
+    # --- Run GABroad to test Broad Institute MSigDB gene sets ---
     gabroad_res <- GABroad(
       xx = expr_mat, 
       formula.full = form_full, 

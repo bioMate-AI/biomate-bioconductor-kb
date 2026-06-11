@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate sample normalization factors using MedianNorm. 2. Assign isoforms to uncertainty groups (Ig groups) using GetNg. 3. Gene
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run EBSeq Multi-Condition Workflow
+//  * 3. [Core Analysis] Diagnostics and Visualization
+//  * 4. [Core Analysis] Write Output Files
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +54,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         library(EBSeq)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         # Read raw isoform counts matrix
@@ -68,7 +71,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         Conditions <- as.character(cond_df[[1]])
         
         # ==========================================
-        # 2. Run EBSeq Multi-Condition Workflow
+        # --- Run EBSeq Multi-Condition Workflow ---
         # ==========================================
         
         # Calculate sample normalization factors
@@ -91,7 +94,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         IsoMultiFC=GetMultiFC(IsoMultiOut)
         
         # ==========================================
-        # 3. Diagnostics and Visualization
+        # --- Diagnostics and Visualization ---
         # ==========================================
         
         # Save diagnostic plots to PDF
@@ -102,7 +105,7 @@ process BIOC_EBSEQ_ISOFORM_DE_MULTI_CONDITIONS {
         dev.off()
         
         # ==========================================
-        # 4. Write Output Files
+        # --- Write Output Files ---
         # ==========================================
         
         # Save posterior probabilities matrix

@@ -54,7 +54,7 @@ process BIOC_TCGAUTILS_TCGA_BARCODE_AND_ASSAY_PIPELINE {
     library(RaggedExperiment)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Files
+    # --- Load and Preprocess Input Files ---
     # ==========================================
     
     # Read coldata.csv if it exists, otherwise generate robust dummy TCGA clinical data
@@ -139,7 +139,7 @@ process BIOC_TCGAUTILS_TCGA_BARCODE_AND_ASSAY_PIPELINE {
     df_regions\$End <- as.numeric(df_regions\$End)
     
     # ==========================================
-    # Stage 2: Build MultiAssayExperiment
+    # --- Build MultiAssayExperiment ---
     # ==========================================
     
     # Convert copy number data frame to GRangesList
@@ -197,7 +197,7 @@ process BIOC_TCGAUTILS_TCGA_BARCODE_AND_ASSAY_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: TCGAutils Operations & Analysis
+    # --- TCGAutils Operations & Analysis ---
     # ==========================================
     
     # 1. Parse barcodes and extract biospecimen details
@@ -237,7 +237,7 @@ process BIOC_TCGAUTILS_TCGA_BARCODE_AND_ASSAY_PIPELINE {
     mae_tumors <- TCGAprimaryTumors(mae)
     
     # ==========================================
-    # Stage 4: Visualization (OncoPrint)
+    # --- Visualization (OncoPrint) ---
     # ==========================================
     
     pdf("oncoprint.pdf", width = 10, height = 8)

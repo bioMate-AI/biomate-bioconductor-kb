@@ -49,7 +49,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     library(Biobase)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -76,7 +76,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     coldata <- coldata[match(common_samples, coldata\$sample), , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Data Ranking (getRLs)
+    # --- Data Ranking (getRLs) ---
     # ==========================================
     message("Stage 2: Generating ranked lists of genes...")
     
@@ -121,7 +121,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     eset <- ExpressionSet(assayData = as.matrix(ranked_list), phenoData = pheno_data)
     
     # ==========================================
-    # Stage 3: Rank Merging
+    # --- Rank Merging ---
     # ==========================================
     message("Stage 3: Merging ranked lists by biological state...")
     
@@ -129,7 +129,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     MergingSet <- RankMerging(eset, "Spearman", weighted = TRUE)
     
     # ==========================================
-    # Stage 4: Similarity Measuring (GSEA & PGSEA)
+    # --- Similarity Measuring (GSEA & PGSEA) ---
     # ==========================================
     message("Stage 4: Measuring signature similarity...")
     
@@ -155,7 +155,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE_GENE_EXPRESSION_SIGNATURE_PIPELINE {
     )
     
     # ==========================================
-    # Stage 5: Export Results and Visualization
+    # --- Export Results and Visualization ---
     # ==========================================
     message("Stage 5: Exporting results and generating plots...")
     

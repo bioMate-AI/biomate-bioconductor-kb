@@ -51,7 +51,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     library(igraph)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading input data...")
     
@@ -119,7 +119,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
                           phenoData = AnnotatedDataFrame(coldata))
     
     # ==========================================
-    # Stage 2: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 2: Running spline-based differential expression analysis...")
     
@@ -140,7 +140,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     message(paste("Saved", nrow(diffExprs), "differentially expressed genes to diff_exprs.csv"))
     
     # ==========================================
-    # Stage 3: Visualization of Spline Curves
+    # --- Visualization of Spline Curves ---
     # ==========================================
     message("Stage 3: Generating spline plots...")
     
@@ -176,7 +176,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 4: Pathway Enrichment Analysis
+    # --- Pathway Enrichment Analysis ---
     # ==========================================
     message("Stage 4: Performing pathway enrichment analysis...")
     
@@ -206,7 +206,7 @@ process BIOC_SPLINETIMER_SPLINE_TIME_COURSE_ANALYSIS {
     if (file.exists("temp_pathways.gmt")) file.remove("temp_pathways.gmt")
     
     # ==========================================
-    # Stage 5: Network Reconstruction & Properties
+    # --- Network Reconstruction & Properties ---
     # ==========================================
     message("Stage 5: Reconstructing gene association network...")
     

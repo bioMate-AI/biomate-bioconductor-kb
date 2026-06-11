@@ -12,7 +12,16 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Compute Correspondence Analysis (CA) using cacomp. 2. Convert the object to a cacomp object using as.cacomp. 3. Determine the numb
+//  * 1. [Visualization & Output] Compute Correspondence Analysis (CA) using cacomp
+//  * 2. [Visualization & Output] Convert the object to a cacomp object using as.cacomp
+//  * 3. [Visualization & Output] Determine the number of dimensions to retain using
+//  * 4. [Visualization & Output] Subset the CA dimensions using subset_dims
+//  * 5. [Visualization & Output] Calculate Association Plot coordinates for a target cell
+//  * 6. [Visualization & Output] Plot the Association Plot using apl
+//  * 7. [Visualization & Output] Compute cluster-specificity (S_alpha) scores using
+//  * 8. [Visualization & Output] Plot the Association Plot with scores using apl with
+//  * 9. [Visualization & Output] Visualize CA projections using ca_biplot
+//  * 10. [Visualization & Output] Conduct GO enrichment analysis using apl_topGO and plot
 
 nextflow.enable.dsl = 2
 
@@ -60,7 +69,7 @@ process BIOC_APL_STEP_BY_STEP_APL {
       stop("Input file 'darmanis' or 'darmanis.rds' not found in the working directory.")
     }
     
-    # 1. Compute Correspondence Analysis (CA) using cacomp
+    # --- Compute Correspondence Analysis (CA) using cacomp ---
     logcounts <- logcounts(darmanis)
     ca <- cacomp(
       obj = logcounts,
@@ -75,10 +84,10 @@ process BIOC_APL_STEP_BY_STEP_APL {
       return_input = TRUE
     )
     
-    # 2. Convert the object to a cacomp object using as.cacomp
+    # --- Convert the object to a cacomp object using as.cacomp ---
     ca <- as.cacomp(darmanis)
     
-    # 3. Determine the number of dimensions to retain using pick_dims
+    # --- Determine the number of dimensions to retain using ---
     p_scree <- pick_dims(ca, method = "scree_plot") +
       xlim(c(0, 20))
     ggsave("scree_plot.pdf", plot = p_scree, width = 7, height = 5)
@@ -90,17 +99,17 @@ process BIOC_APL_STEP_BY_STEP_APL {
       reps = 3
     )
     
-    # 4. Subset the CA dimensions using subset_dims
+    # --- Subset the CA dimensions using subset_dims ---
     ca <- subset_dims(ca, dims = pd)
     
-    # 5. Calculate Association Plot coordinates for a target cell cluster using apl_coords
+    # --- Calculate Association Plot coordinates for a target cell ---
     # Specifying a cell cluster of interest
     endo <- which(darmanis\$cell.type == "endothelial")
     
     # Calculate Association Plot coordinates for endothelial cells
     ca <- apl_coords(ca, group = endo)
     
-    # 6. Plot the Association Plot using apl
+    # --- Plot the Association Plot using apl ---
     # endothelial marker genes
     marker_genes <- c("APOLD1", "TM4SF1", "SULT1B1", "ESM1", "SELE")
     
@@ -112,13 +121,13 @@ process BIOC_APL_STEP_BY_STEP_APL {
     )
     ggsave("apl_endothelial.pdf", plot = p_apl_endo, width = 7, height = 6)
     
-    # 7. Compute cluster-specificity (S_alpha) scores using apl_score
+    # --- Compute cluster-specificity (S_alpha) scores using ---
     ca <- apl_score(ca,
       mat = logcounts(darmanis),
       reps = 5
     )
     
-    # 8. Plot the Association Plot with scores using apl with show_score = TRUE
+    # --- Plot the Association Plot with scores using apl with ---
     p_apl_endo_score <- apl(ca,
       show_score = TRUE,
       type = "ggplot"
@@ -129,11 +138,11 @@ process BIOC_APL_STEP_BY_STEP_APL {
     scores_endo <- cacomp_slot(ca, "APL_score")
     write.csv(scores_endo, "endothelial_apl_scores.csv", row.names = FALSE)
     
-    # 9. Visualize CA projections using ca_biplot
+    # --- Visualize CA projections using ca_biplot ---
     p_biplot <- ca_biplot(ca, col_labels = endo, type = "ggplot")
     ggsave("ca_biplot_endothelial.pdf", plot = p_biplot, width = 7, height = 6)
     
-    # 10. Conduct GO enrichment analysis using apl_topGO and plot results using plot_enrichment
+    # --- Conduct GO enrichment analysis using apl_topGO and plot ---
     # Get indices of microglia cells
     microglia <- which(darmanis\$cell.type == "microglia")
     

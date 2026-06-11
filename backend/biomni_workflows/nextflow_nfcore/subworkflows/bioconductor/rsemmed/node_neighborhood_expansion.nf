@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Identify seed nodes of interest using find_nodes(). 2. Expand the seed nodes to their 1-neighborhood using grow_nodes(). 3. Summar
+//  * 1. [Visualization & Output] Identify seed nodes of interest using find_nodes()
+//  * 2. [Visualization & Output] Expand the seed nodes to their 1-neighborhood using
+//  * 3. [Visualization & Output] Summarize the semantic types of the neighboring nodes
+//  * 4. [Visualization & Output] Filter out uninteresting neighbor nodes using
 
 nextflow.enable.dsl = 2
 
@@ -59,17 +62,17 @@ process BIOC_RSEMMED_NODE_NEIGHBORHOOD_EXPANSION {
         stop("Required input file 'g_small' or 'g_small.rds' not found in the working directory.")
     }
     
-    # 1. Identify seed nodes of interest using find_nodes()
+    # --- Identify seed nodes of interest using find_nodes() ---
     nodes_sickle <- find_nodes(g_small, pattern = "sickle")
     nodes_sickle_trait <- nodes_sickle[intersect(2:3, seq_along(nodes_sickle))]
     
-    # 2. Expand the seed nodes to their 1-neighborhood using grow_nodes()
+    # --- Expand the seed nodes to their 1-neighborhood using ---
     nbrs_sickle_trait <- grow_nodes(g_small, nodes_sickle_trait)
     
-    # 3. Summarize the semantic types of the neighboring nodes using summarize_semtypes()
+    # --- Summarize the semantic types of the neighboring nodes ---
     nbrs_sickle_trait_summ <- summarize_semtypes(g_small, nbrs_sickle_trait, is_path = FALSE)
     
-    # 4. Filter out uninteresting neighbor nodes using find_nodes() with match = FALSE
+    # --- Filter out uninteresting neighbor nodes using ---
     nbrs_sickle_trait2 <- nbrs_sickle_trait %>%
         find_nodes(
             pattern = "^Mice",

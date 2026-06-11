@@ -49,7 +49,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     library(dplyr)
     library(ggplot2)
     
-    # 1. Read input files
+    # --- Read input files ---
     counts <- read.csv("counts.csv", check.names = FALSE)
     if ("gene_id" %in% colnames(counts)) {
       rownames(counts) <- counts\$gene_id
@@ -67,11 +67,11 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
       coldata <- coldata[, -1, drop = FALSE]
     }
     
-    # 2. Determine simulation dimensions based on input data
+    # --- Determine simulation dimensions based on input data ---
     n_cells <- max(ncol(counts), 80)
     n_genes <- max(nrow(counts), 110)
     
-    # 3. Infer a Gene Regulatory Network (GRN) from input counts
+    # --- Infer a Gene Regulatory Network (GRN) from input counts ---
     # Map genes to integer IDs 1:nrow(counts)
     gene_mapping <- data.frame(
       gene_name = rownames(counts),
@@ -110,7 +110,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
       )
     }
     
-    # 4. Run true counts simulation with RNA velocity and ATAC-seq enabled
+    # --- Run true counts simulation with RNA velocity and ATAC-seq ---
     options <- list(
       GRN = grn_df,
       num.cells = n_cells,
@@ -125,14 +125,14 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     message("Running true counts simulation...")
     results <- sim_true_counts(options)
     
-    # 5. Add technical noise and batch effects
+    # --- Add technical noise and batch effects ---
     message("Adding experimental noise...")
     add_expr_noise(results, alpha_mean = 1e4)
     
     message("Adding batch effects...")
     divide_batches(results, nbatch = 2, effect = 1)
     
-    # 6. Save simulated datasets
+    # --- Save simulated datasets ---
     message("Saving simulated outputs...")
     write.csv(as.matrix(results\$counts), "simulated_true_counts.csv")
     
@@ -154,7 +154,7 @@ process BIOC_SCMULTISIM_SCMULTISIM_MULTIMODAL_SIMULATION {
     
     write.csv(results\$cell_meta, "simulated_cell_metadata.csv", row.names = TRUE)
     
-    # 7. Generate diagnostic visualizations
+    # --- Generate diagnostic visualizations ---
     message("Generating diagnostic plots...")
     pdf("multimodal_plots.pdf", width = 10, height = 8)
     

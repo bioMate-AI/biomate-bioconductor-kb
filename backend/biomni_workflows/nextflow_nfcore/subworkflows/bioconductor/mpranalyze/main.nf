@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Initialize the MpraObject with count matrices, annotations, and control identifiers. 2. Estimate library depth normalization facto
+//  * 1. [Core Analysis] Read user input files from the working directory
+//  * 2. [Core Analysis] Initialize the MpraObject with count matrices,
+//  * 3. [Core Analysis] Estimate library depth normalization factors
+//  * 4. [Core Analysis] Fit the quantification model using DNA and RNA design
+//  * 5. [Core Analysis] Extract transcription rate estimates (alpha values)
+//  * 6. [Core Analysis] Test for enhancer activity against negative controls
+//  * 7. [Core Analysis] Write named output files for the results
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +56,7 @@ process BIOC_MPRANALYZE_QUANTIFICATION_ANALYSIS {
     # Load required library
     library(MPRAnalyze)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     dna_counts <- as.matrix(read.delim("dna_counts.tsv", header = TRUE, row.names = 1))
     rna_counts <- as.matrix(read.delim("rna_counts.tsv", header = TRUE, row.names = 1))
     col_annot <- read.delim("col_annotations.tsv", header = TRUE, row.names = 1)
@@ -60,16 +66,16 @@ process BIOC_MPRANALYZE_QUANTIFICATION_ANALYSIS {
     annot_cols <- colnames(col_annot)
     cond_col <- annot_cols[length(annot_cols)] # Assume the last column is the condition of interest
     
-    # 2. Initialize the MpraObject with count matrices, annotations, and control identifiers
+    # --- Initialize the MpraObject with count matrices, ---
     obj <- MpraObject(dnaCounts = dna_counts, rnaCounts = rna_counts, 
                       dnaAnnot = col_annot, rnaAnnot = col_annot, 
                       controls = controls)
     
-    # 3. Estimate library depth normalization factors
+    # --- Estimate library depth normalization factors ---
     obj <- estimateDepthFactors(obj, lib.factor = annot_cols,
                                 which.lib = "both")
     
-    # 4. Fit the quantification model using DNA and RNA design formulas
+    # --- Fit the quantification model using DNA and RNA design ---
     dna_design <- as.formula(paste("~", paste(annot_cols, collapse = " + ")))
     rna_design <- as.formula(paste("~", cond_col))
     
@@ -77,15 +83,15 @@ process BIOC_MPRANALYZE_QUANTIFICATION_ANALYSIS {
                                   dnaDesign = dna_design,
                                   rnaDesign = rna_design)
     
-    # 5. Extract transcription rate estimates (alpha values)
+    # --- Extract transcription rate estimates (alpha values) ---
     alpha <- getAlpha(obj, by.factor = cond_col)
     
-    # 6. Test for enhancer activity against negative controls using empirical testing
+    # --- Test for enhancer activity against negative controls ---
     # Use the first condition level dynamically instead of hardcoding 'MT'
     res.epi <- testEmpirical(obj = obj, 
                                    statistic = alpha[[1]])
     
-    # 7. Write named output files for the results
+    # --- Write named output files for the results ---
     # Save the fitted MPRAnalyze object
     saveRDS(obj, file = "mpra_object_quantification.rds")
     

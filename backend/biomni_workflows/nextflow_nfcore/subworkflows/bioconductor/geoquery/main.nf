@@ -48,7 +48,7 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
     library(S4Vectors)
     
     # ==========================================
-    # Stage 1: Load Local Input Data
+    # --- Load Local Input Data ---
     # ==========================================
     message("Loading local expression and metadata...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -65,7 +65,7 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
     coldata_subset <- coldata[common_samples, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Programmatic Search for Related GEO Studies
+    # --- Programmatic Search for Related GEO Studies ---
     # ==========================================
     message("Searching GEO for related studies...")
     # Retrieve available search fields to verify structure
@@ -94,7 +94,7 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
     write.csv(head(search_results, 50), "related_geo_studies.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 3: Retrieve Platform Annotation (GPL)
+    # --- Retrieve Platform Annotation (GPL) ---
     # ==========================================
     gpl_id <- "GPL96" # Default standard platform (Affymetrix Human Genome U133 Array)
     message(paste("Downloading and parsing GEO Platform:", gpl_id))
@@ -113,7 +113,7 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
     message(paste("Platform Technology:", gpl_meta\$technology))
     
     # ==========================================
-    # Stage 4: Map Local Probes to Gene Symbols
+    # --- Map Local Probes to Gene Symbols ---
     # ==========================================
     message("Mapping local probe IDs to GPL annotations...")
     local_probes <- rownames(counts_subset)
@@ -139,7 +139,7 @@ process BIOC_GEOQUERY_GEO_ANNOTATION_AND_LOOKUP {
     write.csv(annotated_counts, "annotated_gene_expression.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Construct SummarizedExperiment
+    # --- Construct SummarizedExperiment ---
     # ==========================================
     message("Building SummarizedExperiment container...")
     

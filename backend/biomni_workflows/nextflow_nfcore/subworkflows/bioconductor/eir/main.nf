@@ -57,7 +57,7 @@ process BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING {
     library(ChemmineR)
     
     # ----------------------------------------------------------------------
-    # Stage 0: Read User Input
+    # --- Read User Input ---
     # ----------------------------------------------------------------------
     # Read the user-provided 'sdfsample' file from the working directory.
     # We support both raw SDF format and RDS-serialized SDFset objects.
@@ -74,19 +74,19 @@ process BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING {
     })
     
     # ----------------------------------------------------------------------
-    # Stage 1: Initialize the database and compute descriptors
+    # --- Initialize the database and compute descriptors ---
     # ----------------------------------------------------------------------
     eiInit(sdfsample[1:99], priorityFn=randomPriorities)
     
     # ----------------------------------------------------------------------
-    # Stage 2: Create the searchable embedded database
+    # --- Create the searchable embedded database ---
     # ----------------------------------------------------------------------
     r <- 60 
     d <- 40 
     runId <- eiMakeDb(r, d)
     
     # ----------------------------------------------------------------------
-    # Stage 3: Query the database for similar compounds
+    # --- Query the database for similar compounds ---
     # ----------------------------------------------------------------------
     result = eiQuery(runId, sdfsample[45], K=10, asSimilarity=TRUE)
     print(result)
@@ -104,7 +104,7 @@ process BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING {
     dev.off()
     
     # ----------------------------------------------------------------------
-    # Stage 4: Add new compounds to the database
+    # --- Add new compounds to the database ---
     # ----------------------------------------------------------------------
     eiAdd(runId, sdfsample[100])
     
@@ -112,7 +112,7 @@ process BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING {
     Sys.sleep(1)
     
     # ----------------------------------------------------------------------
-    # Stage 5: Evaluate embedding and LSH performance
+    # --- Evaluate embedding and LSH performance ---
     # ----------------------------------------------------------------------
     perf_test <- eiPerformanceTest(runId, K=22)
     

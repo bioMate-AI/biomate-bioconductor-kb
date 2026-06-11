@@ -59,7 +59,7 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     library(cytomapper)
     
     # ==========================================
-    # 1. Load multiplexed images from TIFF files
+    # --- Load multiplexed images from TIFF files ---
     # ==========================================
     
     # Define input directory
@@ -128,7 +128,7 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     }
     
     # ==========================================
-    # 2. Perform cell segmentation
+    # --- Perform cell segmentation ---
     # ==========================================
     
     masks <- simpleSeg::simpleSeg(images,
@@ -172,13 +172,13 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     dev.off()
     
     # ==========================================
-    # 3. Summarise cell features
+    # --- Summarise cell features ---
     # ==========================================
     
     cellSCE <- cytomapper::measureObjects(masks, images, img_id = "imageID")
     
     # ==========================================
-    # 4. Normalising cells
+    # --- Normalising cells ---
     # ==========================================
     
     cellSCE <- normalizeCells(cellSCE,
@@ -214,7 +214,7 @@ process BIOC_SIMPLESEG_MULTIPLEXED_IMAGE_SEGMENTATION_AND_NORMALIZATION {
     dev.off()
     
     # ==========================================
-    # 5. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     
     # Save SingleCellExperiment and Masks

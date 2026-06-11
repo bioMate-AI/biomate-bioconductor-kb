@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load the SNAGEE package and the dataset. 2. Calculate individual sample quality scores using qualSample. 3. Identify samples with 
+//  * 1. [Input & Preparation] Save the quality scores to a CSV table
+//  * 2. [Input & Preparation] Save only the flagged samples to a separate CSV table
+//  * 3. [Input & Preparation] Save the raw quality scores as an RDS object
+//  * 4. [Input & Preparation] Generate a PDF plot of the quality scores
 
 nextflow.enable.dsl = 2
 
@@ -80,7 +83,7 @@ process BIOC_SNAGEE_SAMPLE_QUALITY_ASSESSMENT {
     flagged_count = sum(qs < -5)
     
     # Write named output files for the meaningful results
-    # 1. Save the quality scores to a CSV table
+    # --- Save the quality scores to a CSV table ---
     qs_df <- data.frame(
       Sample = names(qs),
       QualityScore = qs,
@@ -89,14 +92,14 @@ process BIOC_SNAGEE_SAMPLE_QUALITY_ASSESSMENT {
     )
     write.csv(qs_df, "sample_quality_scores.csv", row.names = FALSE)
     
-    # 2. Save only the flagged samples to a separate CSV table
+    # --- Save only the flagged samples to a separate CSV table ---
     flagged_df <- qs_df[qs_df\$Flagged, ]
     write.csv(flagged_df, "flagged_samples.csv", row.names = FALSE)
     
-    # 3. Save the raw quality scores as an RDS object
+    # --- Save the raw quality scores as an RDS object ---
     saveRDS(qs, "sample_quality_scores.rds")
     
-    # 4. Generate a PDF plot of the quality scores
+    # --- Generate a PDF plot of the quality scores ---
     pdf("sample_quality_plot.pdf", width = 8, height = 6)
     plot(qs, type = "h", lwd = 2, col = ifelse(qs < -5, "red", "blue"),
          main = "Sample Quality Scores (SNAGEE)",

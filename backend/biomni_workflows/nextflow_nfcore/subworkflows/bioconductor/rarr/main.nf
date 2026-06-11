@@ -49,7 +49,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     message("Stage 1: Loading input CSV files...")
     counts_df <- read.csv("counts.csv", row.names = "gene_id", check.names = FALSE)
@@ -64,7 +64,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     message(sprintf("Loaded dataset with %d genes and %d samples.", n_genes, n_samples))
     
     # ==========================================
-    # STAGE 2: Write Raw Counts to Zarr Array
+    # --- Write Raw Counts to Zarr Array ---
     # ==========================================
     message("Stage 2: Writing raw counts to a chunked Zarr array...")
     raw_zarr_path <- "raw_counts.zarr"
@@ -88,7 +88,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     zarr_overview(raw_zarr_path)
     
     # ==========================================
-    # STAGE 3: Out-of-Core Normalization (CPM)
+    # --- Out-of-Core Normalization (CPM) ---
     # ==========================================
     message("Stage 3: Performing chunk-wise CPM normalization...")
     
@@ -140,7 +140,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Feature Selection (Highly Variable Genes)
+    # --- Feature Selection (Highly Variable Genes) ---
     # ==========================================
     message("Stage 4: Identifying highly variable genes chunk-by-chunk...")
     gene_vars <- numeric(n_genes)
@@ -163,7 +163,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     colnames(top_norm_counts) <- colnames(count_matrix)
     
     # ==========================================
-    # STAGE 5: Downstream Analysis & Visualization
+    # --- Downstream Analysis & Visualization ---
     # ==========================================
     message("Stage 5: Constructing SummarizedExperiment and performing PCA...")
     
@@ -200,7 +200,7 @@ process BIOC_RARR_ZARR_TRANSCRIPTOMICS_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Export Full Normalized Matrix
+    # --- Export Full Normalized Matrix ---
     # ==========================================
     message("Stage 6: Exporting full normalized counts...")
     full_norm_matrix <- read_zarr_array(norm_zarr_path)

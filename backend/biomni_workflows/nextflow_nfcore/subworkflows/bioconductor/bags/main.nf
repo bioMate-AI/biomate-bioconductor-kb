@@ -48,7 +48,7 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     library(BAGS)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     cat("Reading input data...\n")
     if (!file.exists("input.csv")) {
@@ -105,7 +105,7 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     gene.nams <- rownames(gene.expr)
     
     # ==========================================
-    # Stage 2: Prepare Gene Sets
+    # --- Prepare Gene Sets ---
     # ==========================================
     cat("Constructing gene sets...\n")
     # Dynamically define minimum gene set size based on available genes
@@ -129,13 +129,13 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     }
     
     # ==========================================
-    # Stage 3: Prepare MCMC Data Set
+    # --- Prepare MCMC Data Set ---
     # ==========================================
     cat("Preparing MCMC dataset...\n")
     data.mcmc <- MCMCDataSet(gene.expr, data.gene.grps\$DataGeneSetsIds, phntp.list)
     
     # ==========================================
-    # Stage 4: Run Gibbs Sampler
+    # --- Run Gibbs Sampler ---
     # ==========================================
     cat("Running Gibbs sampler...\n")
     noRow <- dim(data.mcmc\$y.mu)[1]
@@ -162,7 +162,7 @@ process BIOC_BAGS_BAGS_GENESET_SIGNIFICANCE {
     )
     
     # ==========================================
-    # Stage 5: Post-processing and Diagnostics
+    # --- Post-processing and Diagnostics ---
     # ==========================================
     cat("Analyzing posterior chains...\n")
     burn.in <- floor(iter * 0.2)  # 20% burn-in

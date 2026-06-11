@@ -50,7 +50,7 @@ process BIOC_HILBERTVIS_HILBERT_CURVE_VISUALIZATION {
     library(lattice)
     
     # ==========================================
-    # STAGE 1: Read and Clean Input Data
+    # --- Read and Clean Input Data ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found in the working directory.")
@@ -101,7 +101,7 @@ process BIOC_HILBERTVIS_HILBERT_CURVE_VISUALIZATION {
     vec2[is.na(vec2)] <- 0
     
     # ==========================================
-    # STAGE 2: Interpolation & Normalization
+    # --- Interpolation & Normalization ---
     # ==========================================
     # HilbertVis is designed for very long vectors. To ensure high-quality 
     # visualization, we interpolate the input vectors to a standard target length.
@@ -134,7 +134,7 @@ process BIOC_HILBERTVIS_HILBERT_CURVE_VISUALIZATION {
     dev.off()
     
     # ==========================================
-    # STAGE 4: Hilbert Curve Templates
+    # --- Hilbert Curve Templates ---
     # ==========================================
     # Generate the first four levels of the Hilbert curve fractal for reference
     pdf("hilbert_curve_templates.pdf", width = 8, height = 8)
@@ -151,7 +151,7 @@ process BIOC_HILBERTVIS_HILBERT_CURVE_VISUALIZATION {
     dev.off()
     
     # ==========================================
-    # STAGE 5: Hilbert Image Generation & Comparison
+    # --- Hilbert Image Generation & Comparison ---
     # ==========================================
     # Generate 2D Hilbert matrices
     level <- 9
@@ -177,7 +177,7 @@ process BIOC_HILBERTVIS_HILBERT_CURVE_VISUALIZATION {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Downsampling and Data Export
+    # --- Downsampling and Data Export ---
     # ==========================================
     # Downsample the long vectors using shrinkVector to a manageable size (1000 bins)
     shrunk_vec1 <- shrinkVector(vec1_interp, newLength = 1000)

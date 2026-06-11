@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Identify the pathway(s) containing the candidate gene. 2. Compare the pathway gene list against the phenotypes of interest using h
+//  * 1. [Visualization & Output] READ USER INPUTS
+//  * 2. [Visualization & Output] PIPELINE EXECUTION (Faithful to Documented Code)
+//  * 3. [Visualization & Output] WRITE OUTPUT FILES
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     library(PCAN)
     
     # -----------------------------------------------------------------------------
-    # 1. READ USER INPUTS
+    # --- READ USER INPUTS ---
     # -----------------------------------------------------------------------------
     
     # Read genId (Entrez ID of the candidate gene)
@@ -112,7 +114,7 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     
     
     # -----------------------------------------------------------------------------
-    # 2. PIPELINE EXECUTION (Faithful to Documented Code)
+    # --- PIPELINE EXECUTION (Faithful to Documented Code) ---
     # -----------------------------------------------------------------------------
     
     # Identify the pathway(s) containing the candidate gene
@@ -173,7 +175,7 @@ process BIOC_PCAN_PATHWAY_CONSENSUS {
     
     
     # -----------------------------------------------------------------------------
-    # 3. WRITE OUTPUT FILES
+    # --- WRITE OUTPUT FILES ---
     # -----------------------------------------------------------------------------
     
     # Save the main comparison result object

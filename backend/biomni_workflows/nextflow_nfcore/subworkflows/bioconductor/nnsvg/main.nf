@@ -53,7 +53,7 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input data...")
     
@@ -116,7 +116,7 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
     )
     
     # ==========================================
-    # STAGE 2: Quality Control & Preprocessing
+    # --- Quality Control & Preprocessing ---
     # ==========================================
     message("Preprocessing and filtering data...")
     
@@ -147,7 +147,7 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
     }
     
     # ==========================================
-    # STAGE 3: Run nnSVG Analysis Pipeline
+    # --- Run nnSVG Analysis Pipeline ---
     # ==========================================
     if (has_multiple_samples) {
       message("Detected multiple samples. Running multi-sample rank-aggregation workflow...")
@@ -245,7 +245,7 @@ process BIOC_NNSVG_NNSVG_SPATIAL_VARIABLE_GENES {
     message("Saved SVG results to 'svg_results.csv'")
     
     # ==========================================
-    # STAGE 4: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating spatial visualization of the top SVG...")
     

@@ -50,7 +50,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 1: Load and Prepare Input Data
+    # --- Load and Prepare Input Data ---
     # ==========================================
     message("Stage 1: Loading input files...")
     
@@ -92,7 +92,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Batch Correction using SVA
+    # --- Batch Correction using SVA ---
     # ==========================================
     message("Stage 2: Running SVA correction...")
     
@@ -110,7 +110,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Calculate Log2 Fold Changes
+    # --- Calculate Log2 Fold Changes ---
     # ==========================================
     message("Stage 3: Calculating log2 fold changes...")
     
@@ -135,7 +135,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Feature Aggregation
+    # --- Feature Aggregation ---
     # ==========================================
     message("Stage 4: Aggregating features...")
     
@@ -149,7 +149,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Splitting and Merging SEs
+    # --- Splitting and Merging SEs ---
     # ==========================================
     message("Stage 5: Splitting and merging batches...")
     
@@ -174,7 +174,7 @@ process BIOC_SETOOLS_SETOOLS_TRANSCRIPTOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Visualization and Export
+    # --- Visualization and Export ---
     # ==========================================
     message("Stage 6: Exporting results and generating plots...")
     

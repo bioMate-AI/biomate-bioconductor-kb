@@ -49,7 +49,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     library(rcellminerData)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess User Data
+    # --- Load and Preprocess User Data ---
     # ==========================================
     message("Stage 1: Loading user expression data...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
@@ -64,7 +64,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     counts_mat <- as.matrix(counts)
     
     # ==========================================
-    # STAGE 2: Load CellMiner Database Data
+    # --- Load CellMiner Database Data ---
     # ==========================================
     message("Stage 2: Loading CellMiner database data...")
     drug_data_set <- rcellminerData::drugData
@@ -72,7 +72,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     drug_annot <- getFeatureAnnot(drug_data_set)[["drug"]]
     
     # ==========================================
-    # STAGE 3: Align Samples (Robust Matching)
+    # --- Align Samples (Robust Matching) ---
     # ==========================================
     message("Stage 3: Aligning user samples with NCI-60 cell lines...")
     nci60_names <- colnames(drug_act_full)
@@ -90,7 +90,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     }
     
     # ==========================================
-    # STAGE 4: Filter Drugs of Interest
+    # --- Filter Drugs of Interest ---
     # ==========================================
     message("Stage 4: Filtering drug activity profiles...")
     fda_drugs <- drug_annot[drug_annot\$FDA_STATUS == "FDA approved", "NSC"]
@@ -102,7 +102,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     drug_act_fda <- drug_act_fda[valid_drugs, , drop = FALSE]
     
     # ==========================================
-    # STAGE 5: Pattern Comparison (Gene vs Drugs)
+    # --- Pattern Comparison (Gene vs Drugs) ---
     # ==========================================
     # Select a representative gene of interest from the user's dataset
     gene_of_interest <- rownames(counts_mat)[1]
@@ -122,7 +122,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     drug_cors <- drug_cors[order(drug_cors\$PVAL), ]
     
     # ==========================================
-    # STAGE 6: Pattern Comparison (Drug vs Genes)
+    # --- Pattern Comparison (Drug vs Genes) ---
     # ==========================================
     # Use Camptothecin (NSC 94600) or fallback to the first available drug
     drug_nsc <- "94600"
@@ -139,7 +139,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     gene_cors <- gene_cors[order(gene_cors\$PVAL), ]
     
     # ==========================================
-    # STAGE 7: Pairwise Cross-Correlations
+    # --- Pairwise Cross-Correlations ---
     # ==========================================
     message("Stage 7: Computing pairwise cross-correlations...")
     top_genes <- head(rownames(counts_mat), min(10, nrow(counts_mat)))
@@ -149,7 +149,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     cross_cor_mat <- cross_results\$cor
     
     # ==========================================
-    # STAGE 8: Save Tabular Outputs
+    # --- Save Tabular Outputs ---
     # ==========================================
     message("Stage 8: Writing tabular outputs to disk...")
     write.csv(drug_cors, "drug_correlations.csv", row.names = FALSE)
@@ -157,7 +157,7 @@ process BIOC_RCELLMINER_RCELLMINER_PHARMACOGENOMICS_CORRELATION {
     write.csv(as.data.frame(cross_cor_mat), "pairwise_cross_cors.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 9: Visualizations
+    # --- Visualizations ---
     # ==========================================
     message("Stage 9: Generating diagnostic and profile plots...")
     pdf("cellminer_plots.pdf", width = 10, height = 8)

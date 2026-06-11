@@ -51,7 +51,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     library(ComplexHeatmap)
     
     # ==========================================
-    # Stage 1: Input Preparation & Formatting
+    # --- Input Preparation & Formatting ---
     # ==========================================
     message("Stage 1: Preparing input files from regions.bed...")
     
@@ -122,7 +122,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Signal Binarization
+    # --- Signal Binarization ---
     # ==========================================
     message("Stage 2: Binarizing BED files...")
     outputdir <- "binarized_outputs"
@@ -143,7 +143,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 3: Model Learning & Downstream Analysis
+    # --- Model Learning & Downstream Analysis ---
     # ==========================================
     model_success <- FALSE
     
@@ -214,7 +214,7 @@ process BIOC_SEGMENTER_CHROMATIN_SEGMENTATION_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 4: Robust Fallback Generation
+    # --- Robust Fallback Generation ---
     # ==========================================
     if (!model_success) {
       message("Stage 4: Generating fallback outputs due to execution constraints...")

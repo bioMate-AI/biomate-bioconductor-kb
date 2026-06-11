@@ -50,7 +50,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input data...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -74,7 +74,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     coldata\$sample <- as.factor(coldata\$sample)
     
     # ==========================================
-    # Stage 2: Quality Control & Normalization
+    # --- Quality Control & Normalization ---
     # ==========================================
     message("Performing quality control and normalization...")
     # Filter out genes with zero counts across all cells
@@ -92,7 +92,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     logcounts <- log2(cpm + 1)
     
     # ==========================================
-    # Stage 3: Unsupervised Cell Clustering
+    # --- Unsupervised Cell Clustering ---
     # ==========================================
     message("Performing unsupervised cell clustering...")
     # Identify top highly variable genes for PCA-based clustering
@@ -109,7 +109,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     coldata\$cluster <- clusters
     
     # ==========================================
-    # Stage 4: Build SingleCellExperiment Object
+    # --- Build SingleCellExperiment Object ---
     # ==========================================
     sce <- SingleCellExperiment(
         assays = list(
@@ -121,7 +121,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 5: Set up Experimental Design
+    # --- Set up Experimental Design ---
     # ==========================================
     message("Setting up experimental design...")
     # Extract unique sample-to-condition mapping
@@ -133,7 +133,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     rownames(design) <- sample_info\$sample
     
     # ==========================================
-    # Stage 6: Run Differential State Testing
+    # --- Run Differential State Testing ---
     # ==========================================
     message("Running distinct differential testing...")
     set.seed(61217)
@@ -150,7 +150,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     )
     
     # ==========================================
-    # Stage 7: Compute Log2 Fold Changes
+    # --- Compute Log2 Fold Changes ---
     # ==========================================
     message("Computing log2 fold changes...")
     res <- log2_FC(
@@ -167,7 +167,7 @@ process BIOC_DISTINCT_DISTINCT_DIFFERENTIAL_STATE_ANALYSIS {
     message("Results successfully written to distinct_results.csv")
     
     # ==========================================
-    # Stage 8: Visualization of Top Results
+    # --- Visualization of Top Results ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("distinct_plots.pdf", width = 10, height = 5)

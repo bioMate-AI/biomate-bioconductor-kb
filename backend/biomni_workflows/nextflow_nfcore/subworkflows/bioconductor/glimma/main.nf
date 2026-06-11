@@ -50,7 +50,7 @@ process BIOC_GLIMMA_DESEQ2_GLIMMA {
     library(htmlwidgets)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read counts and coldata
@@ -90,7 +90,7 @@ process BIOC_GLIMMA_DESEQ2_GLIMMA {
     rowData(dds)\$GeneID <- rownames(dds)
     
     # ==========================================
-    # Stage 2: Interactive MDS Plotting
+    # --- Interactive MDS Plotting ---
     # ==========================================
     
     # Generate and save interactive MDS plot
@@ -98,7 +98,7 @@ process BIOC_GLIMMA_DESEQ2_GLIMMA {
     htmlwidgets::saveWidget(mds_plot, "glimma_mds_deseq2.html", selfcontained = TRUE)
     
     # ==========================================
-    # Stage 3: Differential Expression & MA Plot
+    # --- Differential Expression & MA Plot ---
     # ==========================================
     
     # Run DESeq2 pipeline

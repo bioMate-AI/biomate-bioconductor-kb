@@ -44,7 +44,7 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
           }
         }
     
-    # Stage 1: Load libraries and read input data
+    # --- Load libraries and read input data ---
     library(ffpe)
     library(Biobase)
     
@@ -67,12 +67,12 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     pheno_data <- new("AnnotatedDataFrame", data = coldata_df)
     eset <- ExpressionSet(assayData = expr_matrix, phenoData = pheno_data)
     
-    # Stage 2: Initial Quality Control Visualization
+    # --- Initial Quality Control Visualization ---
     pdf("sorted_iqr_plot.pdf", width = 8, height = 6)
     sortedIqrPlot(eset, dolog2 = TRUE, main = "Sorted IQR Plot of Expression Intensities")
     dev.off()
     
-    # Stage 3: Sample Quality Control and Rejection
+    # --- Sample Quality Control and Rejection ---
     pdf("sample_qc_plot.pdf", width = 8, height = 6)
     QC <- sampleQC(eset, xaxis = "index", cor.to = "pseudochip", QCmeasure = "IQR")
     dev.off()
@@ -85,7 +85,7 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     )
     write.csv(qc_results, "sample_qc_results.csv", row.names = FALSE)
     
-    # Stage 4: Feature and Sample Filtering
+    # --- Feature and Sample Filtering ---
     # Keep only samples that passed QC
     passed_samples <- colnames(eset)[!QC\$rejectQC]
     if (length(passed_samples) < 2) {
@@ -102,7 +102,7 @@ process BIOC_FFPE_FFPE_QUALITY_CONTROL_AND_CONCORDANCE {
     # Save filtered expression matrix
     write.csv(exprs(eset_filtered), "filtered_expression.csv")
     
-    # Stage 5: Concordance at the Top (CAT) Analysis
+    # --- Concordance at the Top (CAT) Analysis ---
     # To demonstrate CAT-plot, we split the filtered samples into two mock replicate groups
     # and perform differential expression analysis on each group.
     tryCatch({

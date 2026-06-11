@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Integrate TWAS and colocalization results using INTACT::intact. 2. Perform Bayesian FDR control on the posterior probabilities usi
+//  * 1. [Core Analysis] Integrate TWAS and colocalization results using
+//  * 2. [Core Analysis] Integrate TWAS and colocalization results using
+//  * 3. [Core Analysis] Perform Bayesian FDR control on the posterior
 
 nextflow.enable.dsl = 2
 
@@ -94,13 +96,13 @@ process BIOC_INTACT_INTACT_INTEGRATION_AND_FDR {
     GLCP_vec <- as.numeric(GLCP_vec)
     z_vec <- as.numeric(z_vec)
     
-    # 1. Integrate TWAS and colocalization results using INTACT::intact (Default Prior)
+    # --- Integrate TWAS and colocalization results using ---
     rst <- INTACT::intact(GLCP_vec=GLCP_vec, z_vec=z_vec)
     
-    # 2. Integrate TWAS and colocalization results using INTACT::intact (Expit Prior)
+    # --- Integrate TWAS and colocalization results using ---
     rst1 <- INTACT::intact(GLCP_vec=GLCP_vec, prior_fun=INTACT::expit, z_vec = z_vec, t = 0.02, D = 0.09)
     
-    # 3. Perform Bayesian FDR control on the posterior probabilities using fdr_rst
+    # --- Perform Bayesian FDR control on the posterior ---
     fdr_example <- fdr_rst(rst1, alpha = 0.05)
     
     # Write outputs to the working directory

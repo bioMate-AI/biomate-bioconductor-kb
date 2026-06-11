@@ -48,7 +48,7 @@ process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     library(miRBaseConverter)
     
     # ==========================================
-    # Stage 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     message("Loading input expression data...")
     counts <- read.csv("counts.csv", check.names = FALSE)
@@ -62,7 +62,7 @@ process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     message(paste("Loaded", length(mirna_identifiers), "miRNA identifiers."))
     
     # ==========================================
-    # Stage 2: Identify Identifier Type & Version
+    # --- Identify Identifier Type & Version ---
     # ==========================================
     message("Checking identifier types (Accessions vs Names)...")
     # Accessions typically start with MIMAT (mature) or MI (precursor)
@@ -88,7 +88,7 @@ process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     }
     
     # ==========================================
-    # Stage 3: Retrieve Comprehensive Annotations
+    # --- Retrieve Comprehensive Annotations ---
     # ==========================================
     message("Retrieving target version (v22) names...")
     valid_accs <- accession_df\$Accession[!is.na(accession_df\$Accession) & accession_df\$Accession != ""]
@@ -122,7 +122,7 @@ process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     }
     
     # ==========================================
-    # Stage 4: Merge and Compile Annotations
+    # --- Merge and Compile Annotations ---
     # ==========================================
     message("Compiling annotation database...")
     annot <- accession_df
@@ -140,7 +140,7 @@ process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     write.csv(annotated_counts, "annotated_counts.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Retrieve History for Top Expressed miRNAs
+    # --- Retrieve History for Top Expressed miRNAs ---
     # ==========================================
     message("Retrieving historical version mappings for top expressed miRNAs...")
     mean_expr <- rowMeans(counts, na.rm = TRUE)
@@ -167,7 +167,7 @@ process BIOC_MIRBASECONVERTER_MIRNA_ANNOTATION_CONVERSION {
     }
     
     # ==========================================
-    # Stage 6: Visualizations and Diagnostics
+    # --- Visualizations and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     

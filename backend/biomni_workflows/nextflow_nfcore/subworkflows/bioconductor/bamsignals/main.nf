@@ -51,7 +51,7 @@ process BIOC_BAMSIGNALS_BAMSIGNALS_PROFILING_PIPELINE {
     library(rtracklayer)
     
     # ==========================================
-    # STAGE 1: Load Input Data and Metadata
+    # --- Load Input Data and Metadata ---
     # ==========================================
     message("Stage 1: Loading input regions and sample metadata...")
     
@@ -96,7 +96,7 @@ process BIOC_BAMSIGNALS_BAMSIGNALS_PROFILING_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 2: Basic and Strand-Specific Counting
+    # --- Basic and Strand-Specific Counting ---
     # ==========================================
     message("Stage 2: Computing read counts across regions...")
     
@@ -163,7 +163,7 @@ process BIOC_BAMSIGNALS_BAMSIGNALS_PROFILING_PIPELINE {
     write.csv(ss_counts_df, "region_strand_counts.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 3: High-Resolution Profiling & Alignment
+    # --- High-Resolution Profiling & Alignment ---
     # ==========================================
     message("Stage 3: Generating high-resolution profiles...")
     

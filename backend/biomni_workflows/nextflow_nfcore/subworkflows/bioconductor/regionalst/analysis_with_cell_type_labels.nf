@@ -59,7 +59,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS {
     library(gridExtra)
     library(ggplot2)
     
-    # 1. Load and preprocess spatial data
+    # --- Load and preprocess spatial data ---
     # Read Visium data from the specified user input directory
     sce <- readVisium("path/to/spaceranger/outs/")
     
@@ -98,7 +98,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS {
     # Assign to example_sce to match the documented code variables
     example_sce <- sce
     
-    # 2. Define cell type weights and calculate weighted entropy using discrete labels
+    # --- Define cell type weights and calculate weighted entropy ---
     # Dynamically define weights based on the actual cell types in the input data
     unique_cts <- unique(example_sce\$celltype)
     if (all(c("Cancer Epithelial", "CAFs", "T-cells") %in% unique_cts)) {
@@ -127,7 +127,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS {
     print(OneRad)
     dev.off()
     
-    # 3. Automatically select ROIs based on label entropy
+    # --- Automatically select ROIs based on label entropy ---
     example_sce <- RankCenterByEntropy(example_sce, 
                                weight,
                                selectN = round(length(example_sce\$spot)/2),
@@ -142,7 +142,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS {
     thisSelection <- S4Vectors::metadata(example_sce)\$selectCenters
     write.csv(thisSelection, "selected_ROI_centers.csv", row.names = FALSE)
     
-    # 4. Perform cross-regional differential expression using raw labels
+    # --- Perform cross-regional differential expression using raw ---
     CR12_DE <- tryCatch({
       GetCrossRegionalDE_raw(example_sce,
                              twoCenter = c(1,2),
@@ -199,7 +199,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_LABELS {
     exampleRes <- list(CR12_DE, CR13_DE, CR23_DE)
     saveRDS(exampleRes, "cross_regional_DE_all_pairs.rds")
     
-    # 5. Run GSEA pathway enrichment on the DE results
+    # --- Run GSEA pathway enrichment on the DE results ---
     allCTres <- tryCatch({
       DoGSEA(exampleRes, whichDB = "hallmark", withProp = TRUE)
     }, error = function(e) {

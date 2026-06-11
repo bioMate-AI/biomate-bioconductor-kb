@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the network and input scores. 2. Run diffusion using the diffuse function with a specified method (e.g., "raw" or "mc"). 3. M
+//  * 1. [Visualization & Output] Load the network and input scores
+//  * 2. [Visualization & Output] Run diffusion using the diffuse function with a specified
+//  * 3. [Visualization & Output] Map scores to colors and shapes using scores2colours and
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_DIFFUSTATS_SINGLE_NETWORK_DIFFUSION {
     library(igraph)
     library(diffuStats)
     
-    # 1. Load the network and input scores
+    # --- Load the network and input scores ---
     # Read the igraph network object
     graph_toy <- readRDS("network.graph")
     
@@ -63,13 +65,13 @@ process BIOC_DIFFUSTATS_SINGLE_NETWORK_DIFFUSION {
     input_vec <- input_mat[, 1]
     names(input_vec) <- rownames(input_mat)
     
-    # 2. Run diffusion using the diffuse function with a specified method ("raw")
+    # --- Run diffusion using the diffuse function with a specified ---
     output_vec <- diffuStats::diffuse(
         graph = graph_toy,
         method = "raw",
         scores = input_vec)
     
-    # 3. Map scores to colors and shapes using scores2colours and scores2shapes for network visualization
+    # --- Map scores to colors and shapes using scores2colours and ---
     # Save the visualization to a PDF file
     pdf("diffusion_plot.pdf", width = 8, height = 8)
     igraph::plot.igraph(

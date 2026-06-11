@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the input gene list and define the target resources. 2. Run hypergeometric enrichment testing using term_enrichment(). 3. Sum
+//  * 1. [Visualization & Output] Load the input gene list and define the target resources
+//  * 2. [Visualization & Output] Run hypergeometric enrichment testing using
+//  * 3. [Visualization & Output] Summarize and inspect the top enriched terms using
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +61,7 @@ process BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS {
         library(RITANdata)
         library(RITAN)
         
-        # 1. Load the input gene list and define the target resources
+        # --- Load the input gene list and define the target resources ---
         if (!file.exists("my_genes.txt")) {
           stop("Required input file 'my_genes.txt' not found in the working directory.")
         }
@@ -77,10 +79,10 @@ process BIOC_RITAN_TERM_ENRICHMENT_ANALYSIS {
         # Use the input genes as the query set 'gs' for the custom GMT enrichment
         gs <- my_genes
         
-        # 2. Run hypergeometric enrichment testing using term_enrichment()
+        # --- Run hypergeometric enrichment testing using ---
         e <- term_enrichment (my_genes, resources = resources, all_symbols = cached_coding_genes)
         
-        # 3. Summarize and inspect the top enriched terms using summary()
+        # --- Summarize and inspect the top enriched terms using ---
         summary (e)
         
         # Save standard enrichment results

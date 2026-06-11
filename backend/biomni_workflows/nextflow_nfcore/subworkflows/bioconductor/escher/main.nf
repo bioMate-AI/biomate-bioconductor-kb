@@ -13,7 +13,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize the plot using make_escheR(), optionally specifying a dimensionality reduction slot. 2. Add a fill layer using add_fill
+//  * 1. [Visualization & Output] Read the input SpatialExperiment object
+//  * 2. [Visualization & Output] Robustness checks: Ensure required columns and reduced
+//  * 3. [Visualization & Output] Execute the documented escheR workflow steps
+//  * 4. [Visualization & Output] Save the generated plots to the working directory
 
 nextflow.enable.dsl = 2
 
@@ -55,13 +58,13 @@ process BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION {
     library(scater)
     library(scuttle)
     
-    # 1. Read the input SpatialExperiment object
+    # --- Read the input SpatialExperiment object ---
     if (!file.exists("spe.rds")) {
       stop("Error: 'spe.rds' not found in the working directory.")
     }
     spe <- readRDS("spe.rds")
     
-    # 2. Robustness checks: Ensure required columns and reduced dimensions exist
+    # --- Robustness checks: Ensure required columns and reduced ---
     # Ensure 'cell_count' exists in colData
     if (!"cell_count" %in% colnames(colData(spe))) {
       message("'cell_count' column not found in colData. Creating a fallback from library sizes.")
@@ -104,7 +107,7 @@ process BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION {
       spe <- scater::runPCA(spe, ncomponents = 2)
     }
     
-    # 3. Execute the documented escheR workflow steps
+    # --- Execute the documented escheR workflow steps ---
     
     # Set up an escheR plot
     p <- make_escheR(spe)
@@ -137,7 +140,7 @@ process BIOC_ESCHER_SPATIAL_EXPERIMENT_VISUALIZATION {
     p_custom_scaled <- p_custom + 
        scale_fill_gradient(low = "white", high = "black")
     
-    # 4. Save the generated plots to the working directory
+    # --- Save the generated plots to the working directory ---
     ggsave("escheR_plot_fill.pdf", plot = p1, width = 8, height = 7)
     ggsave("escheR_plot_ground_symbol.pdf", plot = p3, width = 8, height = 7)
     ggsave("escheR_plot_dimred.pdf", plot = p_dimred, width = 8, height = 7)

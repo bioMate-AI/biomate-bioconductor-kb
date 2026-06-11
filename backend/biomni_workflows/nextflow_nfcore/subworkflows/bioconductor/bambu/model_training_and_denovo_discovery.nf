@@ -64,7 +64,7 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
     # Prepare annotations from the input file
     annotations <- prepareAnnotations(annotations_file)
     
-    # 1. Train the model on the annotated sample using bambu with returnModel = TRUE
+    # --- Train the model on the annotated sample using bambu with ---
     se = bambu(reads = sample1.bam, annotations = annotations, genome = fa.file, discovery = FALSE, quant = FALSE, opt.discovery = list(returnModel = TRUE))
     newDefaultModel = metadata(se[[1]])\$model
     
@@ -76,7 +76,7 @@ process BIOC_BAMBU_MODEL_TRAINING_AND_DENOVO_DISCOVERY {
     rcFile <- readRDS(pathToRcFile)
     newDefaultModel = trainBambu(rcFile)
     
-    # 2. Run bambu on the target sample with annotations = NULL, providing the trained model
+    # --- Run bambu on the target sample with annotations = NULL, ---
     se <- bambu(reads = sample2.bam, annotations = NULL, genome = fa.file2, opt.discovery = list(defaultModels = newDefaultModel, fitReadClassModel = FALSE))
     
     # Write outputs

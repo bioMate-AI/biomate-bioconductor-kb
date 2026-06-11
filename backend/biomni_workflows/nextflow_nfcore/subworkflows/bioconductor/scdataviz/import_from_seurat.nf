@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Convert Seurat object to SingleCellExperiment using as.SingleCellExperiment. 2. Manually assign the metadata slot. 3. Plot marker 
+//  * 1. [Visualization & Output] Read the user-provided Seurat object from the working
+//  * 2. [Visualization & Output] Convert Seurat object to SingleCellExperiment
+//  * 3. [Visualization & Output] Manually assign the metadata slot
+//  * 4. [Visualization & Output] Plot marker expression using markerExpression with custom
+//  * 5. [Visualization & Output] Perform marker enrichment using markerEnrichment
 
 nextflow.enable.dsl = 2
 
@@ -61,7 +65,7 @@ process BIOC_SCDATAVIZ_IMPORT_FROM_SEURAT {
     library(Seurat)
     library(ggplot2)
     
-    # 1. Read the user-provided Seurat object from the working directory
+    # --- Read the user-provided Seurat object from the working ---
     if (file.exists("pbmc")) {
       pbmc <- readRDS("pbmc")
     } else if (file.exists("pbmc.rds")) {
@@ -70,13 +74,13 @@ process BIOC_SCDATAVIZ_IMPORT_FROM_SEURAT {
       stop("Required input file 'pbmc' or 'pbmc.rds' not found in the working directory.")
     }
     
-    # 2. Convert Seurat object to SingleCellExperiment
+    # --- Convert Seurat object to SingleCellExperiment ---
     sce <- as.SingleCellExperiment(pbmc)
     
-    # 3. Manually assign the metadata slot
+    # --- Manually assign the metadata slot ---
     metadata(sce) <- data.frame(colData(sce))
     
-    # 4. Plot marker expression using markerExpression with custom assay and dimension names
+    # --- Plot marker expression using markerExpression with custom ---
     p_expr <- markerExpression(sce,
       assay = 'logcounts',
       reducedDim = 'UMAP',
@@ -86,7 +90,7 @@ process BIOC_SCDATAVIZ_IMPORT_FROM_SEURAT {
     # Save the marker expression plot
     ggsave("marker_expression_plot.pdf", plot = p_expr, width = 12, height = 4, device = "pdf")
     
-    # 5. Perform marker enrichment using markerEnrichment
+    # --- Perform marker enrichment using markerEnrichment ---
     enrich_res <- markerEnrichment(sce,
       assay = 'logcounts',
       method = 'quantile',

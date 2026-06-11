@@ -43,17 +43,17 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(cytoviewer)
     library(cytomapper)
     library(EBImage)
     library(S4Vectors)
     
-    # Stage 2: Read input image from the working directory
+    # --- Read input image from the working directory ---
     message("Reading input image...")
     img_raw <- EBImage::readImage("image.tif")
     
-    # Stage 3: Preprocess and construct CytoImageList for images
+    # --- Preprocess and construct CytoImageList for images ---
     message("Preparing image CytoImageList...")
     img_list <- list(sample_image = img_raw)
     img_cil <- cytomapper::CytoImageList(img_list)
@@ -66,7 +66,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
       channelNames(img_cil) <- paste0("Channel", seq_len(img_dim[3]))
     }
     
-    # Stage 4: Generate a segmentation mask from the image
+    # --- Generate a segmentation mask from the image ---
     message("Generating segmentation mask...")
     if (length(img_dim) == 3) {
       # Use the first channel for segmentation
@@ -86,12 +86,12 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     # Wrap the mask in a CytoImageList
     mask_cil <- cytomapper::CytoImageList(list(sample_image = labeled_mask))
     
-    # Stage 5: Link images and masks using metadata
+    # --- Link images and masks using metadata ---
     message("Linking image and mask metadata...")
     S4Vectors::mcols(img_cil)\$ImageNb <- "Image1"
     S4Vectors::mcols(mask_cil)\$ImageNb <- "Image1"
     
-    # Stage 6: Measure cell-specific features to generate a SingleCellExperiment
+    # --- Measure cell-specific features to generate a ---
     message("Measuring object features...")
     sce <- cytomapper::measureObjects(
       image = img_cil, 
@@ -103,7 +103,7 @@ process BIOC_CYTOVIEWER_CYTOVIEWER_INTERACTIVE_PIPELINE {
     measurements_df <- as.data.frame(SummarizedExperiment::colData(sce))
     write.csv(measurements_df, "cell_measurements.csv", row.names = FALSE)
     
-    # Stage 7: Build and serialize the cytoviewer Shiny application
+    # --- Build and serialize the cytoviewer Shiny application ---
     message("Building cytoviewer application...")
     app <- cytoviewer(
       image = img_cil,

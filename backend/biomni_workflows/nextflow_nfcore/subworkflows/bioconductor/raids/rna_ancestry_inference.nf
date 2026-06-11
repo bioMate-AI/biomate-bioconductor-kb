@@ -78,7 +78,7 @@ process BIOC_RAIDS_RNA_ANCESTRY_INFERENCE {
       stop(paste("Required input file not found:", base_name))
     }
     
-    # 1. Load pedigree information and study metadata
+    # --- Load pedigree information and study metadata ---
     demoPedigreeEx1 <- read_input_file("demoPedigreeEx1")
     studyDF <- read_input_file("studyDF")
     
@@ -86,7 +86,7 @@ process BIOC_RAIDS_RNA_ANCESTRY_INFERENCE {
     fileAnnotGDS <- "ex1_good_small_1KG_Annot.gds"
     pathGeno <- "snpPileupRNA"
     
-    # 2. Open reference GDS and select reference profiles using select1KGPop
+    # --- Open reference GDS and select reference profiles using ---
     set.seed(3043)
     gds1KG <- snpgdsOpen(fileGDS)
     dataRef <- select1KGPop(gds1KG, nbProfiles=2L)
@@ -95,7 +95,7 @@ process BIOC_RAIDS_RNA_ANCESTRY_INFERENCE {
     # Save selected reference profiles as an RDS object
     saveRDS(dataRef, "selected_reference_profiles.rds")
     
-    # 3. Load chromosome length information from BSgenome
+    # --- Load chromosome length information from BSgenome ---
     if (requireNamespace("Seqinfo", quietly=TRUE) && requireNamespace("BSgenome.Hsapiens.UCSC.hg38", quietly=TRUE)) {
         chrInfo <- Seqinfo::seqlengths(BSgenome.Hsapiens.UCSC.hg38::Hsapiens)[1:25]
         
@@ -112,7 +112,7 @@ process BIOC_RAIDS_RNA_ANCESTRY_INFERENCE {
             dir.create(pathOut, recursive=TRUE)
         }
         
-        # 4. Run RNA ancestry inference using runRNAAncestry with blockTypeID specified
+        # --- Run RNA ancestry inference using runRNAAncestry with ---
         runRNAAncestry(
             pedStudy=demoPedigreeEx1, 
             studyDF=studyDF, 
@@ -127,7 +127,7 @@ process BIOC_RAIDS_RNA_ANCESTRY_INFERENCE {
             genoSource="VCF"
         )
         
-        # 5. Read and inspect the output ancestry CSV file
+        # --- Read and inspect the output ancestry CSV file ---
         resAncestry <- read.csv(file.path(pathOut, paste0(demoPedigreeEx1\$Name.ID[1], ".Ancestry.csv")))
         print(resAncestry)
         

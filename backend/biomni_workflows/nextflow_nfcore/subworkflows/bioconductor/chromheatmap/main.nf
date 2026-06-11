@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map probe identifiers to chromosome coordinates using makeChrStrandData. 2. Plot the chromosome heatmap using plotChrMap with opti
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Map Probe Identifiers to Coordinates
+//  * 3. [Visualization & Output] Plot Chromosome Heatmaps
+//  * 4. [Visualization & Output] Extract Probe Identifiers and Map to Genes
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +55,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         library(AnnotationDbi)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         if (!file.exists("expression_matrix.csv")) {
           stop("Error: 'expression_matrix.csv' not found in the working directory.")
@@ -80,7 +83,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         library(anno_pkg, character.only = TRUE)
         
         # ==========================================
-        # 2. Map Probe Identifiers to Coordinates
+        # --- Map Probe Identifiers to Coordinates ---
         # ==========================================
         # Adapt the documented call: chrdata<-makeChrStrandData(exprs(ALLs), lib='hgu95av2')
         chrdata <- makeChrStrandData(expr_matrix, lib = gsub("\\\\.db\$", "", anno_pkg))
@@ -89,7 +92,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         saveRDS(chrdata, file = "chrdata.rds")
         
         # ==========================================
-        # 3. Plot Chromosome Heatmaps
+        # --- Plot Chromosome Heatmaps ---
         # ==========================================
         # Generate sample annotation colors matching the number of samples
         groupcol <- rep(c("red", "green"), length.out = ncol(expr_matrix))
@@ -113,7 +116,7 @@ process BIOC_CHROMHEATMAP_CHROM_HEATMAP_ANALYSIS {
         })
         
         # ==========================================
-        # 4. Extract Probe Identifiers and Map to Genes
+        # --- Extract Probe Identifiers and Map to Genes ---
         # ==========================================
         # Set up the symbol environment alias to match the exact documented code variable name
         symbol_env_name <- paste0(gsub("\\\\.db\$", "", anno_pkg), "SYMBOL")

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run qsmooth to compute weights and normalize the data. 2. Extract the normalized expression matrix using qsmoothData. 3. Plot the 
+//  * 1. [Visualization & Output] Run qsmooth to compute weights and normalize the data
+//  * 2. [Visualization & Output] Extract the normalized expression matrix using qsmoothData
+//  * 3. [Visualization & Output] Plot the computed weights across quantiles using
 
 nextflow.enable.dsl = 2
 
@@ -74,10 +76,10 @@ process BIOC_QSMOOTH_SMOOTH_QUANTILE_NORMALIZATION {
       stop("Error: The metadata must contain an 'organ' column representing the biological group.")
     }
     
-    # 1. Run qsmooth to compute weights and normalize the data
+    # --- Run qsmooth to compute weights and normalize the data ---
     qs_norm_e1 <- qsmooth(object = counts1, group_factor = pd1\$organ)
     
-    # 2. Extract the normalized expression matrix using qsmoothData
+    # --- Extract the normalized expression matrix using qsmoothData ---
     normalized_matrix <- qsmoothData(qs_norm_e1)
     
     # Save the normalized expression matrix to a CSV file
@@ -86,7 +88,7 @@ process BIOC_QSMOOTH_SMOOTH_QUANTILE_NORMALIZATION {
     # Save the full qsmooth object as an RDS file for downstream analysis
     saveRDS(qs_norm_e1, "qs_norm_e1.rds")
     
-    # 3. Plot the computed weights across quantiles using qsmoothPlotWeights and save as PDF
+    # --- Plot the computed weights across quantiles using ---
     pdf("qsmooth_weights.pdf", width = 7, height = 5)
     qsmoothPlotWeights(qs_norm_e1)
     dev.off()

@@ -49,7 +49,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     library(IsoCorrectoR)
     
     # ==========================================
-    # Stage 1: Load and Align User Input Data
+    # --- Load and Align User Input Data ---
     # ==========================================
     message("Stage 1: Loading and aligning input files...")
     
@@ -78,7 +78,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     
     # ==========================================
-    # Stage 2: Construct IsoCorrectoR Input Files
+    # --- Construct IsoCorrectoR Input Files ---
     # ==========================================
     message("Stage 2: Generating molecule, measurement, and element files...")
     
@@ -140,7 +140,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     write.csv(element_df, "temp_element.csv", row.names = FALSE, na = "")
     
     # ==========================================
-    # Stage 3: Perform Isotope Correction
+    # --- Perform Isotope Correction ---
     # ==========================================
     message("Stage 3: Running IsoCorrectoR algorithm...")
     
@@ -168,7 +168,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     file.remove("temp_measurement.csv", "temp_molecule.csv", "temp_element.csv")
     
     # ==========================================
-    # Stage 4: Export Corrected Results
+    # --- Export Corrected Results ---
     # ==========================================
     message("Stage 4: Exporting corrected data...")
     
@@ -181,7 +181,7 @@ process BIOC_ISOCORRECTORGUI_ISOCORRECTORGUI_ISOTOPE_CORRECTION {
     write.csv(mean_enrichment, "mean_enrichment.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 5: Visualization of Mean Enrichment
+    # --- Visualization of Mean Enrichment ---
     # ==========================================
     message("Stage 5: Generating diagnostic visualization...")
     

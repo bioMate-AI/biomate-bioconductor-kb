@@ -63,22 +63,22 @@ process BIOC_FRENCHFISH_CORRECT_AUTOMATED_COUNTS {
       stop(paste("Required input file missing:", fishalyserCsvPath))
     }
     
-    # 1. Convert FISHalyseR CSV to a formatted count matrix
+    # --- Convert FISHalyseR CSV to a formatted count matrix ---
     automatic_counts <- convertFishalyserCsvToCountMatrix(fishalyserCsvPath)
     
-    # 2. Set random seed for reproducibility
+    # --- Set random seed for reproducibility ---
     set.seed(366)
     
     # Define parameters
     nuclear_radius <- 40
     section_height <- 5
     
-    # 3. Run the homogenous Poisson Point Process model with nuclear volume correction
+    # --- Run the homogenous Poisson Point Process model with ---
     corrected_automatic_counts <- getAutomaticCountsEstimates(automatic_counts, 
                                                               nuclear_radius, 
                                                               section_height)
     
-    # 4. Print the corrected spot counts
+    # --- Print the corrected spot counts ---
     print(corrected_automatic_counts)
     
     # Write the meaningful results to output files

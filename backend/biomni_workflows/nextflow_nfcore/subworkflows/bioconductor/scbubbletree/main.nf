@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Determine the Louvain resolution parameter r using get_r. 2. Perform Louvain clustering and hierarchical grouping using get_bubble
+//  * 1. [Visualization & Output] Read User Inputs from Working Directory
+//  * 2. [Visualization & Output] Determine Louvain Resolution Parameter r Using get_r
+//  * 3. [Visualization & Output] Perform Louvain Clustering and Hierarchical Grouping
+//  * 4. [Visualization & Output] Annotate Bubbletree with Categorical Features
+//  * 5. [Visualization & Output] Annotate Bubbletree with Numeric Features
+//  * 6. [Visualization & Output] Visualize Individual Cell Features
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +68,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_LOUVAIN_WORKFLOW {
     library(patchwork)
     
     # ==========================================
-    # 1. Read User Inputs from Working Directory
+    # --- Read User Inputs from Working Directory ---
     # ==========================================
     
     # Read A (low-dimensional PCA embedding matrix)
@@ -112,7 +117,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_LOUVAIN_WORKFLOW {
     }
     
     # =========================================================================
-    # 2. Determine Louvain Resolution Parameter r Using get_r
+    # --- Determine Louvain Resolution Parameter r Using get_r ---
     # =========================================================================
     message("Determining clustering resolution...")
     b_r <- get_r(B_gap = 5,
@@ -144,7 +149,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_LOUVAIN_WORKFLOW {
     dev.off()
     
     # =========================================================================
-    # 3. Perform Louvain Clustering and Hierarchical Grouping
+    # --- Perform Louvain Clustering and Hierarchical Grouping ---
     # =========================================================================
     message("Performing Louvain clustering and building bubbletree...")
     l <- get_bubbletree_graph(x = A,
@@ -164,7 +169,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_LOUVAIN_WORKFLOW {
     write.csv(l\$tree_meta, "bubbletree_tree_meta.csv", row.names = FALSE)
     
     # =========================================================================
-    # 4. Annotate Bubbletree with Categorical Features
+    # --- Annotate Bubbletree with Categorical Features ---
     # =========================================================================
     message("Attaching categorical features...")
     # Ensure the metadata column exists; fallback to first column if not found
@@ -189,7 +194,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_LOUVAIN_WORKFLOW {
     dev.off()
     
     # =========================================================================
-    # 5. Annotate Bubbletree with Numeric Features
+    # --- Annotate Bubbletree with Numeric Features ---
     # =========================================================================
     message("Attaching numeric features...")
     w3 <- get_num_tiles(btd = l,
@@ -214,7 +219,7 @@ process BIOC_SCBUBBLETREE_SC_BUBBLETREE_LOUVAIN_WORKFLOW {
     dev.off()
     
     # =========================================================================
-    # 6. Visualize Individual Cell Features
+    # --- Visualize Individual Cell Features ---
     # =========================================================================
     message("Visualizing individual cell features...")
     g_cell_feature_1 <- get_num_cell_tiles(btd = l,

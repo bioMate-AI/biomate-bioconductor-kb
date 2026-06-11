@@ -45,7 +45,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
     
     library(rpx)
     
-    # Stage 1: Load and process user input files
+    # --- Load and process user input files ---
     message("Loading user input files...")
     intensity_df <- read.csv("intensity.csv", check.names = FALSE)
     coldata_df <- read.csv("coldata.csv", check.names = FALSE)
@@ -76,7 +76,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
       colData = DataFrame(coldata_df)
     )
     
-    # Stage 2: Query ProteomeXchange dynamically
+    # --- Query ProteomeXchange dynamically ---
     message("Querying ProteomeXchange...")
     px_id <- NULL
     
@@ -110,7 +110,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
     
     message("Selected ProteomeXchange ID: ", px_id)
     
-    # Stage 3: Retrieve PX Dataset and Metadata
+    # --- Retrieve PX Dataset and Metadata ---
     px_metadata <- data.frame(
       pxid = px_id,
       title = "Unknown",
@@ -157,7 +157,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
       write.csv(data.frame(file_name = "No files found"), "px_files_list.csv", row.names = FALSE)
     }
     
-    # Stage 4: Download a small file from the dataset
+    # --- Download a small file from the dataset ---
     downloaded_file_path <- NULL
     if (exists("px") && !is.null(px_files) && length(px_files) > 0 && !identical(px_files, "No files retrieved")) {
       # Look for a small text/readme file
@@ -179,7 +179,7 @@ process BIOC_RPX_RPX_PROTEOMEXCHANGE_PIPELINE {
       writeLines("No file downloaded or download failed.", "downloaded_px_file.txt")
     }
     
-    # Stage 5: Analyze user intensity data and export summary
+    # --- Analyze user intensity data and export summary ---
     message("Analyzing user intensity data...")
     conditions <- unique(colData(se)\$condition)
     mean_intensities <- sapply(conditions, function(cond) {

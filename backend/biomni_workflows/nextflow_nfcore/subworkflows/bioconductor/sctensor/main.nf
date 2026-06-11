@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Retrieve the organism-specific LRBase database from AnnotationHub. 2. Create a SingleCellExperiment object and assign 2D coordinat
+//  * 1. [Visualization & Output] Retrieve the organism-specific LRBase database from
+//  * 2. [Visualization & Output] Create a SingleCellExperiment object and assign 2D
+//  * 3. [Visualization & Output] Register cell types and the LRBase database using
+//  * 4. [Visualization & Output] Estimate optimal decomposition ranks using cellCellRanks
+//  * 5. [Visualization & Output] Perform non-negative Tucker decomposition using
+//  * 6. [Visualization & Output] Generate an interactive HTML report using cellCellReport
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +57,7 @@ process BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS {
             suppressPackageStartupMessages(library("scTensor"))
             suppressPackageStartupMessages(library("SingleCellExperiment"))
             
-            # 1. Retrieve the organism-specific LRBase database from AnnotationHub
+            # --- Retrieve the organism-specific LRBase database from ---
             ah <- AnnotationHub()
             dbfile <- query(ah, c("LRBaseDb", "Homo sapiens"))[[1]]
             LRBase.Hsa.eg.db <- LRBaseDbi::LRBaseDb(dbfile)
@@ -102,7 +107,7 @@ process BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS {
             }
             colnames(coords) <- c("Dim1", "Dim2")
             
-            # 2. Create a SingleCellExperiment object and assign 2D coordinates
+            # --- Create a SingleCellExperiment object and assign 2D ---
             sce <- SingleCellExperiment(assays=list(counts = expr_mat))
             reducedDims(sce) <- SimpleList(TSNE=coords)
             
@@ -111,21 +116,21 @@ process BIOC_SCTENSOR_CELL_CELL_INTERACTION_ANALYSIS {
             plot(reducedDims(sce)[[1]], col=as.factor(cell_types), pch=16, xlab="Dim1", ylab="Dim2", main="Cell Types Visualization")
             dev.off()
             
-            # 3. Register cell types and the LRBase database using cellCellSetting
+            # --- Register cell types and the LRBase database using ---
             cellCellSetting(sce, LRBase.Hsa.eg.db, cell_types)
             
-            # 4. Estimate optimal decomposition ranks using cellCellRanks
+            # --- Estimate optimal decomposition ranks using cellCellRanks ---
             rks <- cellCellRanks(sce)
             saveRDS(rks, "scTensor_estimated_ranks.rds")
             
-            # 5. Perform non-negative Tucker decomposition using cellCellDecomp
+            # --- Perform non-negative Tucker decomposition using ---
             set.seed(1234)
             cellCellDecomp(sce, ranks=rks\$selected)
             
             # Save the final SingleCellExperiment object containing decomposition results
             saveRDS(sce, "scTensor_sce_completed.rds")
             
-            # 6. Generate an interactive HTML report using cellCellReport
+            # --- Generate an interactive HTML report using cellCellReport ---
             cellCellReport(sce, out.dir = "./scTensor_report")
 
     writeLines(c(

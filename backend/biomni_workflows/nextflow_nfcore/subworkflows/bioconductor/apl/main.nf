@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run runAPL on the SingleCellExperiment object specifying the assay, top genes, and target cell group
+//  * 1. [Core Analysis] Read the user-provided input file
+//  * 2. [Core Analysis] Run the documented runAPL workflow exactly as specified
+//  * 3. [Core Analysis] Save the resulting plot to a PDF file
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +53,7 @@ process BIOC_APL_QUICK_START_APL {
     library(APL)
     library(ggplot2)
     
-    # 1. Read the user-provided input file
+    # --- Read the user-provided input file ---
     if (file.exists("darmanis")) {
       darmanis <- readRDS("darmanis")
     } else if (file.exists("darmanis.rds")) {
@@ -60,7 +62,7 @@ process BIOC_APL_QUICK_START_APL {
       stop("Required input file 'darmanis' or 'darmanis.rds' not found in the working directory.")
     }
     
-    # 2. Run the documented runAPL workflow exactly as specified
+    # --- Run the documented runAPL workflow exactly as specified ---
     association_plot <- runAPL(
       darmanis,
       assay = "logcounts",
@@ -69,7 +71,7 @@ process BIOC_APL_QUICK_START_APL {
       type = "ggplot"
     )
     
-    # 3. Save the resulting plot to a PDF file
+    # --- Save the resulting plot to a PDF file ---
     ggsave(
       filename = "oligodendrocytes_association_plot.pdf",
       plot = association_plot,

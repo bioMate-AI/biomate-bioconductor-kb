@@ -74,13 +74,13 @@ process BIOC_ACGH_READ_SPROC_FILES {
     dev.off()
     
     # Save the meaningful results
-    # 1. Save the complete aCGH object as an RDS file
+    # --- Save the complete aCGH object as an RDS file ---
     saveRDS(ex.acgh, file = "ex_acgh.rds")
     
-    # 2. Extract and save log2 ratios to a CSV file
+    # --- Extract and save log2 ratios to a CSV file ---
     write.csv(log2.ratios(ex.acgh), file = "log2_ratios.csv", row.names = TRUE)
     
-    # 3. Extract and save clone mapping information to a CSV file
+    # --- Extract and save clone mapping information to a CSV file ---
     write.csv(clones.info(ex.acgh), file = "clones_info.csv", row.names = FALSE)
 
     writeLines(c(

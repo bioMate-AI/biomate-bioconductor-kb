@@ -59,7 +59,7 @@ process BIOC_BIOBTREER_BIOBTREE_ID_MAPPING {
     })
     
     # ==========================================
-    # Stage 1: Initialize and Start Biobtree Server
+    # --- Initialize and Start Biobtree Server ---
     # ==========================================
     message("Stage 1: Initializing biobtree database...")
     
@@ -80,7 +80,7 @@ process BIOC_BIOBTREER_BIOBTREE_ID_MAPPING {
     bbStart()
     
     # ==========================================
-    # Stage 2: Read and Process Input Identifiers
+    # --- Read and Process Input Identifiers ---
     # ==========================================
     message("Stage 2: Reading input identifiers...")
     
@@ -162,7 +162,7 @@ process BIOC_BIOBTREER_BIOBTREE_ID_MAPPING {
     }
     
     # ==========================================
-    # Stage 3: Identifier Search & URL Retrieval
+    # --- Identifier Search & URL Retrieval ---
     # ==========================================
     message("Stage 3: Searching identifiers and retrieving database URLs...")
     
@@ -171,7 +171,7 @@ process BIOC_BIOBTREER_BIOBTREE_ID_MAPPING {
     message(paste("Saved search results to", search_out))
     
     # ==========================================
-    # Stage 4: Gene-Centric Transcript Mapping
+    # --- Gene-Centric Transcript Mapping ---
     # ==========================================
     message("Stage 4: Mapping genes to Ensembl transcripts and genomic regions...")
     
@@ -189,7 +189,7 @@ process BIOC_BIOBTREER_BIOBTREE_ID_MAPPING {
     }
     
     # ==========================================
-    # Stage 5: Protein-Centric Functional Annotation (GO)
+    # --- Protein-Centric Functional Annotation (GO) ---
     # ==========================================
     message("Stage 5: Mapping genes/proteins to Gene Ontology (GO) terms...")
     

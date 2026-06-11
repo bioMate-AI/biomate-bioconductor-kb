@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Perform basic quantile smoothing using quantsmooth. 2. Scale the smoothing parameter smooth.lambda based on probe density. 3. Perf
+//  * 1. [Visualization & Output] Perform basic quantile smoothing using quantsmooth
+//  * 2. [Visualization & Output] Scale the smoothing parameter smooth.lambda based on
+//  * 3. [Visualization & Output] Perform cross-validation using quantsmooth.cv to find the
+//  * 4. [Visualization & Output] Smooth and plot multiple percentiles (e.g., 25th and
+//  * 5. [Visualization & Output] Use plotSmoothed for automated multi-quantile plotting
+//  * 6. [Visualization & Output] Identify genomic regions with copy number changes using
 
 nextflow.enable.dsl = 2
 
@@ -94,38 +99,38 @@ process BIOC_QUANTSMOOTH_QUANTILE_SMOOTHING_AND_ABERRATION_DETECTION {
     
     pdf("quantsmooth_plots.pdf", width = 10, height = 8)
     
-    # Stage 1: Perform basic quantile smoothing using quantsmooth
+    # --- Perform basic quantile smoothing using quantsmooth ---
     plot(primary_cn[,1],pch=".")
     lines(quantsmooth(primary_cn[,1]),lwd=2)
     
     plot(primary_pos,primary_cn[,1],ylab="copy number",xlab="position",pch=".")
     lines(primary_pos,quantsmooth(primary_cn[,1]),lwd=2)
     
-    # Stage 2: Scale the smoothing parameter smooth.lambda based on probe density
+    # --- Scale the smoothing parameter smooth.lambda based on ---
     lambda.divisor<-50
     plot(primary_pos,primary_cn[,1],ylab="copy number",xlab="position",pch=".")
     lines(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor),lwd=2)
     
-    # Stage 3: Perform cross-validation using quantsmooth.cv to find the optimal lambda
+    # --- Perform cross-validation using quantsmooth.cv to find the ---
     lambdas<-2^seq(from=-2,to=5,by=0.25)
     lambda.res <- rep(NA, length(lambdas))
     for (lambda in 1:length(lambdas)) lambda.res[lambda] <- quantsmooth.cv(primary_cn[,1], lambdas[lambda])
     plot(lambdas,lambda.res,type="l")
     abline(v=lambdas[which.min(lambda.res)])
     
-    # Stage 4: Smooth and plot multiple percentiles (e.g., 25th and 75th) to show data variability
+    # --- Smooth and plot multiple percentiles (e.g., 25th and ---
     plot(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor),col="red",type="l",lwd=2)
     lines(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor,tau=0.25),col="red",lty=2)
     lines(primary_pos,quantsmooth(primary_cn[,1],smooth.lambda=length(primary_pos)/lambda.divisor,tau=0.75),col="red",lty=2)
     
-    # Stage 5: Use plotSmoothed for automated multi-quantile plotting
+    # --- Use plotSmoothed for automated multi-quantile plotting ---
     cn_min <- min(primary_cn[,1], na.rm = TRUE)
     cn_max <- max(primary_cn[,1], na.rm = TRUE)
     norm_val <- median(primary_cn[,1], na.rm = TRUE)
     
     plotSmoothed(primary_cn,primary_pos,ylim=c(cn_min,cn_max),normalized.to=norm_val,smooth.lambda=length(primary_pos)/lambda.divisor)
     
-    # Stage 6: Identify genomic regions with copy number changes using getChangedRegions
+    # --- Identify genomic regions with copy number changes using ---
     plotSmoothed(primary_cn[,1],primary_pos,ylim=c(cn_min,cn_max),normalized.to=norm_val,smooth.lambda=length(primary_pos)/lambda.divisor)
     res<-getChangedRegions(primary_cn[,1],primary_pos,normalized.to=norm_val,interval=0.5)
     

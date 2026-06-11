@@ -48,7 +48,7 @@ process BIOC_MEIGOR_MEIGOR_GLOBAL_OPTIMIZATION {
     library(MEIGOR)
     
     # ==========================================
-    # STAGE 1: Defensive Data Loading and Preprocessing
+    # --- Defensive Data Loading and Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -112,7 +112,7 @@ process BIOC_MEIGOR_MEIGOR_GLOBAL_OPTIMIZATION {
     message(sprintf("Data prepared: %d valid samples for optimization.", length(X)))
     
     # ==========================================
-    # STAGE 2: Continuous Global Optimization (eSSR)
+    # --- Continuous Global Optimization (eSSR) ---
     # ==========================================
     message("Stage 2: Setting up and running continuous global optimization (eSSR)...")
     
@@ -156,7 +156,7 @@ process BIOC_MEIGOR_MEIGOR_GLOBAL_OPTIMIZATION {
     })
     
     # ==========================================
-    # STAGE 3: Multistart Local Optimization
+    # --- Multistart Local Optimization ---
     # ==========================================
     message("Stage 3: Running Multistart local optimization...")
     
@@ -175,7 +175,7 @@ process BIOC_MEIGOR_MEIGOR_GLOBAL_OPTIMIZATION {
     })
     
     # ==========================================
-    # STAGE 4: Cooperative Global Optimization (CeSSR)
+    # --- Cooperative Global Optimization (CeSSR) ---
     # ==========================================
     message("Stage 4: Running Cooperative Enhanced Scatter Search (CeSSR)...")
     
@@ -195,7 +195,7 @@ process BIOC_MEIGOR_MEIGOR_GLOBAL_OPTIMIZATION {
     })
     
     # ==========================================
-    # STAGE 5: Integer Optimization (VNSR & CeVNSR)
+    # --- Integer Optimization (VNSR & CeVNSR) ---
     # ==========================================
     message("Stage 5: Running Integer Variable Neighbourhood Search (VNSR)...")
     
@@ -252,7 +252,7 @@ process BIOC_MEIGOR_MEIGOR_GLOBAL_OPTIMIZATION {
     })
     
     # ==========================================
-    # STAGE 6: Diagnostics, Exporting Results & Visualisation
+    # --- Diagnostics, Exporting Results & Visualisation ---
     # ==========================================
     message("Stage 6: Generating outputs and diagnostic plots...")
     

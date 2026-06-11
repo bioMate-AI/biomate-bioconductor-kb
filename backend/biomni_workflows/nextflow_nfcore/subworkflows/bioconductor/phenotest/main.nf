@@ -50,7 +50,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     library(Biobase)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (probes/genes as rows, samples as columns)
@@ -90,7 +90,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     )
     
     # ==========================================
-    # STAGE 2: Individual Gene Association Testing
+    # --- Individual Gene Association Testing ---
     # ==========================================
     
     # Run ExpressionPhenoTest
@@ -117,7 +117,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     message("Gene-level association testing completed and saved.")
     
     # ==========================================
-    # STAGE 3: Gene Set Signature Analysis
+    # --- Gene Set Signature Analysis ---
     # ==========================================
     
     # Define gene signatures dynamically based on available features
@@ -164,7 +164,7 @@ process BIOC_PHENOTEST_PHENOT_EXPRESSION_CORRELATION {
     })
     
     # ==========================================
-    # STAGE 4: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ==========================================
     
     # Run GSEA with permutation test

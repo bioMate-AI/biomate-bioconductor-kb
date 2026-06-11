@@ -53,7 +53,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Read Input Data & Metadata
+    # --- Read Input Data & Metadata ---
     # ==========================================
     message("Stage 1: Reading input counts and metadata...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -71,7 +71,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     gene_ids <- head(gene_ids, 50)
     
     # ==========================================
-    # STAGE 2: Generate Mock GTF and BED Files
+    # --- Generate Mock GTF and BED Files ---
     # ==========================================
     message("Stage 2: Generating mock GTF and BED files based on input data...")
     
@@ -149,7 +149,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     center_files <- c("TSS" = "tss_centers.bed")
     
     # ==========================================
-    # STAGE 3: Set Import Parameters
+    # --- Set Import Parameters ---
     # ==========================================
     message("Stage 3: Setting import parameters...")
     importParams <- setImportParams(
@@ -164,7 +164,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Peak Annotation Analysis
+    # --- Peak Annotation Analysis ---
     # ==========================================
     message("Stage 4: Running peak annotation...")
     pdf("peak_annotation_plots.pdf", width = 8, height = 8)
@@ -193,7 +193,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 5: Peak Overlap Analysis
+    # --- Peak Overlap Analysis ---
     # ==========================================
     message("Stage 5: Running peak overlap analysis...")
     pdf("overlap_plots.pdf", width = 8, height = 8)
@@ -218,7 +218,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Locus Profile Plotting
+    # --- Locus Profile Plotting ---
     # ==========================================
     message("Stage 6: Plotting locus profiles around TSS...")
     pdf("locus_profiles.pdf", width = 8, height = 8)
@@ -253,7 +253,7 @@ process BIOC_GENOMICPLOT_GENOMIC_PLOT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 7: Region Profile Plotting
+    # --- Region Profile Plotting ---
     # ==========================================
     message("Stage 7: Plotting region profiles across TSS regions...")
     pdf("region_profiles.pdf", width = 8, height = 8)

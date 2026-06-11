@@ -49,7 +49,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     library(magrittr)
     
     # ----------------------------------------------------------------------
-    # Stage 1: Defensive Input Parsing & Preprocessing
+    # --- Defensive Input Parsing & Preprocessing ---
     # ----------------------------------------------------------------------
     message("Stage 1: Reading and preprocessing input.csv defensively...")
     
@@ -98,7 +98,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     }
     
     # ----------------------------------------------------------------------
-    # Stage 2: Initialize pipeFrame Framework
+    # --- Initialize pipeFrame Framework ---
     # ----------------------------------------------------------------------
     message("Stage 2: Initializing pipeFrame framework...")
     
@@ -126,7 +126,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     printMap()
     
     # ----------------------------------------------------------------------
-    # Stage 3: Define Custom Step Classes and Methods
+    # --- Define Custom Step Classes and Methods ---
     # ----------------------------------------------------------------------
     message("Stage 3: Defining custom Step classes and methods...")
     
@@ -304,7 +304,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     )
     
     # ----------------------------------------------------------------------
-    # Stage 4: Execute the Pipeline
+    # --- Execute the Pipeline ---
     # ----------------------------------------------------------------------
     message("Stage 4: Executing the pipeFrame pipeline...")
     
@@ -317,7 +317,7 @@ process BIOC_PIPEFRAME_PIPEFRAME_MATRIX_PIPELINE {
     })
     
     # ----------------------------------------------------------------------
-    # Stage 5: Export Final Outputs
+    # --- Export Final Outputs ---
     # ----------------------------------------------------------------------
     message("Stage 5: Exporting final outputs...")
     

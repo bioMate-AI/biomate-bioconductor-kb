@@ -49,7 +49,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     library(SWATH2stats)
     
     # ==========================================
-    # STAGE 1: Import User Inputs & Mock SWATH Data
+    # --- Import User Inputs & Mock SWATH Data ---
     # ==========================================
     
     # Read genomic intervals from BED file
@@ -131,7 +131,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     data.annotated <- sample_annotation(data, Study_design, column_file = "align_origfilename")
     
     # ==========================================
-    # STAGE 2: Diagnostic Plotting & Signal Matrices
+    # --- Diagnostic Plotting & Signal Matrices ---
     # ==========================================
     
     # Subset non-decoy data for visualization and matrix generation
@@ -157,7 +157,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     write.csv(protein_matrix, "protein_matrix.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 3: FDR Estimation
+    # --- FDR Estimation ---
     # ==========================================
     
     # Assess overall FDR and write to CSV
@@ -173,7 +173,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
                     mscore_assay, mscore_pep, mscore_prot))
     
     # ==========================================
-    # STAGE 4: Filtering
+    # --- Filtering ---
     # ==========================================
     
     # Filter based on m-score and condition replication
@@ -189,7 +189,7 @@ process BIOC_SWATH2STATS_SWATH2STATS_PROTEOMICS_PIPELINE {
     data.filtered3 <- subset(data.filtered3, decoy == FALSE)
     
     # ==========================================
-    # STAGE 5: Format Conversion for Downstream Tools
+    # --- Format Conversion for Downstream Tools ---
     # ==========================================
     
     # Disaggregate to transition-level format

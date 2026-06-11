@@ -46,7 +46,7 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
     
     library(BloodGen3Module)
     
-    # 1. Load and validate inputs
+    # --- Load and validate inputs ---
     message("Loading input files...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
@@ -85,7 +85,7 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
       colData = coldata
     )
     
-    # 2. Run Group Comparison Analysis
+    # --- Run Group Comparison Analysis ---
     message("Running group comparison using limma...")
     Group_df <- tryCatch({
       Groupcomparisonlimma(
@@ -119,7 +119,7 @@ process BIOC_BLOODGEN3MODULE_GROUP_COMPARISON_REPERTOIRE {
       })
     })
     
-    # 3. Save results and generate visualization
+    # --- Save results and generate visualization ---
     if (!is.null(Group_df)) {
       write.csv(Group_df, "group_comparison_results.csv", row.names = TRUE)
       

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize metagene2 object; 2. Define experimental design; 3. Define region metadata; 4. Produce metagene plot
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Initialize metagene2 object
+//  * 3. [Visualization & Output] Define experimental design dynamically based on available
+//  * 4. [Visualization & Output] Define region metadata
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +54,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     library(metagene2)
     library(GenomicRanges)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     # Read BAM files
     bam_files <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
     if (length(bam_files) == 0) {
@@ -70,7 +73,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
       }
     }
     
-    # 2. Initialize metagene2 object
+    # --- Initialize metagene2 object ---
     mg <- metagene2\$new(regions = regions, 
                        bam_files = bam_files, 
                        assay='chipseq')
@@ -80,7 +83,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     print(mg\$produce_metagene(title = "Demo metagene plot"))
     dev.off()
     
-    # 3. Define experimental design dynamically based on available BAM files
+    # --- Define experimental design dynamically based on available ---
     n_bams <- length(bam_files)
     if (n_bams >= 3) {
       align1_vals <- rep(0, n_bams)
@@ -106,7 +109,7 @@ process BIOC_METAGENE2_CHIPSEQ_METAGENE_ANALYSIS {
     print(mg\$produce_metagene(design=example_design))
     dev.off()
     
-    # 4. Define region metadata
+    # --- Define region metadata ---
     # Extract post-processed GRanges to build metadata
     regions_gr <- mg\$get_regions()
     

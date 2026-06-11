@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Check size factors using degCheckFactors. 2. Run comprehensive QC (p-value distribution, mean-variance) using degQC. 3. Analyze co
+//  * 1. [Core Analysis] Check size factors using degCheckFactors
+//  * 2. [Core Analysis] Run comprehensive QC (p-value distribution,
+//  * 3. [Core Analysis] Analyze covariate effects on principal components using
+//  * 4. [Core Analysis] Test correlation among covariates and metrics using
 
 nextflow.enable.dsl = 2
 
@@ -84,17 +87,17 @@ process BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS {
     counts <- counts(dds, normalized = TRUE)
     design <- as.data.frame(colData(dds))
     
-    # 1. Check size factors using degCheckFactors
+    # --- Check size factors using degCheckFactors ---
     pdf("deg_check_factors.pdf", width = 8, height = 6)
     print(degCheckFactors(counts[, 1:min(6, ncol(counts)), drop = FALSE]))
     dev.off()
     
-    # 2. Run comprehensive QC (p-value distribution, mean-variance) using degQC
+    # --- Run comprehensive QC (p-value distribution, ---
     pdf("deg_qc.pdf", width = 10, height = 8)
     print(degQC(counts, design[["group"]], pvalue = res[["pvalue"]]))
     dev.off()
     
-    # 3. Analyze covariate effects on principal components using degCovariates
+    # --- Analyze covariate effects on principal components using ---
     pdf("deg_covariates.pdf", width = 10, height = 8)
     resCov <- degCovariates(log2(counts(dds)+0.5),
                             colData(dds))
@@ -102,7 +105,7 @@ process BIOC_DEGREPORT_QC_AND_COVARIATE_ANALYSIS {
     dev.off()
     saveRDS(resCov, "resCov.rds")
     
-    # 4. Test correlation among covariates and metrics using degCorCov
+    # --- Test correlation among covariates and metrics using ---
     pdf("deg_cor_cov.pdf", width = 8, height = 8)
     cor <- degCorCov(colData(dds))
     print(cor\$plot)

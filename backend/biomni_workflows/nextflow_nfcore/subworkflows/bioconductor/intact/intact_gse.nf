@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run INTACT::intactGSE to estimate enrichment parameters, standard errors, z-scores, and p-values for each gene set
+//  * 1. [Core Analysis] Read User Inputs from Working Directory
+//  * 2. [Core Analysis] Run INTACT-GSE Analysis (Documented Workflow)
+//  * 3. [Core Analysis] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +52,7 @@ process BIOC_INTACT_INTACT_GSE {
     library(INTACT)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Inputs from Working Directory
+    # --- Read User Inputs from Working Directory ---
     # -----------------------------------------------------------------------------
     
     # Read gene_data (expected as CSV or RDS)
@@ -87,7 +89,7 @@ process BIOC_INTACT_INTACT_GSE {
     }
     
     # -----------------------------------------------------------------------------
-    # 2. Run INTACT-GSE Analysis (Documented Workflow)
+    # --- Run INTACT-GSE Analysis (Documented Workflow) ---
     # -----------------------------------------------------------------------------
     
     # Run 1: Default settings
@@ -99,7 +101,7 @@ process BIOC_INTACT_INTACT_GSE {
     gse_results_step <- INTACT::intactGSE(gene_data = simdat, prior_fun = INTACT::step, t = 0.45, gene_sets = gene_set_list)
     
     # -----------------------------------------------------------------------------
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # -----------------------------------------------------------------------------
     
     # Save results as CSV tables

@@ -43,7 +43,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
           }
         }
     
-    # Stage 1: Load Libraries and Input Data
+    # --- Load Libraries and Input Data ---
     library(crisprDesign)
     library(crisprBase)
     library(org.Hs.eg.db)
@@ -57,7 +57,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
     counts <- read.csv("counts.csv", row.names=1, check.names=FALSE)
     coldata <- read.csv("coldata.csv", row.names=1, check.names=FALSE)
     
-    # Stage 2: Identify and Map Target Genes
+    # --- Identify and Map Target Genes ---
     message("Identifying top expressed genes for targeting...")
     mean_expr <- rowMeans(counts)
     gene_ids <- names(mean_expr)
@@ -96,7 +96,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
     }
     message("Selected target Entrez IDs: ", paste(target_entrez, collapse=", "))
     
-    # Stage 3: Retrieve Genomic Coordinates and Design Spacers
+    # --- Retrieve Genomic Coordinates and Design Spacers ---
     message("Retrieving genomic coordinates and designing spacers...")
     target_cds <- cds_by_gene[target_entrez]
     gr_target <- unlist(target_cds)
@@ -112,7 +112,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
         guideSet <- guideSet[1:50]
     }
     
-    # Stage 4: Comprehensive gRNA Annotation
+    # --- Comprehensive gRNA Annotation ---
     message("Annotating spacer sequence features...")
     guideSet <- addSequenceFeatures(guideSet)
     
@@ -151,7 +151,7 @@ process BIOC_CRISPRDESIGN_CRISPR_KO_GRNA_DESIGN {
         guideSet
     })
     
-    # Stage 5: Filter, Rank, and Export Results
+    # --- Filter, Rank, and Export Results ---
     message("Filtering and ranking designed gRNAs...")
     # Filter out gRNAs with extreme GC content or poly-T stretches
     if ("percentGC" %in% colnames(mcols(guideSet))) {

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Generate all possible expression patterns across conditions using GetPatterns. 2. Calculate sample normalization factors using Med
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Run the EBSeq Multi-Condition Workflow
+//  * 3. [Core Analysis] Perform diagnostics and save plots to PDF
+//  * 4. [Core Analysis] Save meaningful results to files
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +53,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         # Load required library
         library(EBSeq)
         
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         if (!file.exists("multi_condition_gene_counts.csv")) {
           stop("Error: 'multi_condition_gene_counts.csv' not found in the working directory.")
         }
@@ -62,7 +65,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         cond_data <- read.csv("multi_conditions.csv", stringsAsFactors = FALSE, header = TRUE)
         Conditions <- cond_data[[1]]
         
-        # 2. Run the EBSeq Multi-Condition Workflow
+        # --- Run the EBSeq Multi-Condition Workflow ---
         # Generate all possible expression patterns across conditions
         PosParti=GetPatterns(Conditions)
         
@@ -78,7 +81,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         # Calculate fold changes across conditions
         MultiFC=GetMultiFC(MultiOut)
         
-        # 3. Perform diagnostics and save plots to PDF
+        # --- Perform diagnostics and save plots to PDF ---
         pdf("diagnostic_plots.pdf", width = 8, height = 8)
         par(mfrow=c(2,2))
         tryCatch({
@@ -93,7 +96,7 @@ process BIOC_EBSEQ_GENE_DE_MULTI_CONDITIONS {
         })
         dev.off()
         
-        # 4. Save meaningful results to files
+        # --- Save meaningful results to files ---
         # Save the main output objects as RDS for downstream analysis
         saveRDS(MultiOut, "MultiOut.rds")
         saveRDS(MultiPP, "MultiPP.rds")

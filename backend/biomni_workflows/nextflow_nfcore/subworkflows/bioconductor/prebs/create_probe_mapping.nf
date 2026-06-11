@@ -57,7 +57,7 @@ process BIOC_PREBS_CREATE_PROBE_MAPPING {
       stop("Error: Required input file 'output_probe_mappings.map' not found in the working directory.")
     }
     
-    # 1. Load the platform's probe package and convert it to a data frame
+    # --- Load the platform's probe package and convert it to a ---
     if (!requireNamespace("hgu133plus2probe", quietly = TRUE)) {
       stop("Error: The 'hgu133plus2probe' package is required but not installed.")
     }
@@ -65,7 +65,7 @@ process BIOC_PREBS_CREATE_PROBE_MAPPING {
     probes <- as.data.frame(hgu133plus2probe)
     head(probes)
     
-    # 2. Filter out control probes (AFFX) and compute probe IDs using xy2indices
+    # --- Filter out control probes (AFFX) and compute probe IDs ---
     if (!requireNamespace("affy", quietly = TRUE)) {
       stop("Error: The 'affy' package is required but not installed.")
     }
@@ -73,16 +73,16 @@ process BIOC_PREBS_CREATE_PROBE_MAPPING {
     probes <- probes[substr(probes\$Probe.Set.Name, 1, 4) != "AFFX", ]
     probes\$Probe.ID <- xy2indices(probes\$x, probes\$y, cdf="hgu133plus2cdf")
     
-    # 3. Export probe sequences to a text file for alignment
+    # --- Export probe sequences to a text file for alignment ---
     write.table(probes, file="probes.txt", quote=FALSE, row.names=FALSE, col.names=TRUE)
     
-    # 4. Read the genomic alignment map file and adjust 0-based coordinates to 1-based
+    # --- Read the genomic alignment map file and adjust 0-based ---
     probe_mappings <- read.table("output_probe_mappings.map")
     colnames(probe_mappings) <- c("Probe.ID", "strand", 
                                   "chr", "start", "seq", "match", "multiple")
     probe_mappings\$start <- probe_mappings\$start + 1 
     
-    # 5. Merge the alignment coordinates with the probe information and write the final mapping file
+    # --- Merge the alignment coordinates with the probe ---
     probes <- read.table("probes.txt", head=TRUE)
     probes <- merge(probes, probe_mappings)
     

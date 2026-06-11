@@ -13,7 +13,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create the model matrix and define the contrast matrix using limma::makeContrasts. 2. Transform the model matrix to include the co
+//  * 1. [Input & Preparation] Create the model matrix and define the contrast matrix
+//  * 2. [Input & Preparation] Transform the model matrix to include the contrast as the
+//  * 3. [Input & Preparation] Initialize the batch random rotation object using
+//  * 4. [Input & Preparation] Define a custom statistic function that performs batch
+//  * 5. [Input & Preparation] Run the rotation using rotateStat and calculate p-values
 
 nextflow.enable.dsl = 2
 
@@ -99,7 +103,7 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
     }
     group <- as.factor(pdata[[group_col]])
     
-    # 1. Create the model matrix and define the contrast matrix using limma::makeContrasts
+    # --- Create the model matrix and define the contrast matrix ---
     mod.groups <- model.matrix(~ group)
     # Ensure column names are valid R variable names to prevent makeContrasts from failing on spaces/special characters
     colnames(mod.groups) <- make.names(colnames(mod.groups))
@@ -113,13 +117,13 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
     target_coef <- coef_names[2]
     contrasts1 <- limma::makeContrasts(contrasts = target_coef, levels = mod.groups)
     
-    # 2. Transform the model matrix to include the contrast as the last coefficient using contrastModel
+    # --- Transform the model matrix to include the contrast as the ---
     mod.cont <- contrastModel(X = mod.groups, C = contrasts1)
     
-    # 3. Initialize the batch random rotation object using initBatchRandrot
+    # --- Initialize the batch random rotation object using ---
     init1 <- initBatchRandrot(edata, mod.cont, batch = pdata\$batch)
     
-    # 4. Define a custom statistic function that performs batch correction, fits the contrast, and extracts absolute t-statistics
+    # --- Define a custom statistic function that performs batch ---
     statistic <- function(Y, batch, mod, cont){
       Y.tmp <- sva::ComBat(dat = Y, batch = batch, mod = mod)
       fit1 <- limma::lmFit(Y.tmp, mod)
@@ -128,7 +132,7 @@ process BIOC_RANDROTATION_CONTRAST_ANALYSIS_BATCH_CORRECTION {
       abs(fit1\$t[,1])
     }
     
-    # 5. Run the rotation using rotateStat and calculate p-values using pFdr
+    # --- Run the rotation using rotateStat and calculate p-values ---
     res1 <- rotateStat(initialised.obj = init1, R = 20, statistic = statistic,
                        batch = pdata\$batch, mod = mod.groups, cont = contrasts1)
     p.rot <- pFdr(res1)

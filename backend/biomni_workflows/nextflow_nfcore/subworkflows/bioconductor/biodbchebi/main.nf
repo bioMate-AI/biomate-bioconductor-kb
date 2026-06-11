@@ -44,7 +44,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
           }
         }
     
-    # Stage 1: Load required libraries and initialize biodb
+    # --- Load required libraries and initialize biodb ---
     message("Loading libraries...")
     library(biodb)
     library(biodbChebi)
@@ -68,7 +68,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
       })
     }
     
-    # Stage 2: Read and parse input file defensively
+    # --- Read and parse input file defensively ---
     message("Reading input file...")
     input_file <- "input.csv"
     
@@ -98,7 +98,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
     raw_ids <- as.character(raw_ids)
     raw_ids <- raw_ids[!is.na(raw_ids) & raw_ids != ""]
     
-    # Stage 3: Query ChEBI Database
+    # --- Query ChEBI Database ---
     annotations <- data.frame(
       query_id = character(),
       accession = character(),
@@ -209,7 +209,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
       )
     }
     
-    # Stage 4: Merge annotations back with original feature data
+    # --- Merge annotations back with original feature data ---
     message("Merging annotations with original feature data...")
     # Determine merge key
     if ("feature_id" %in% colnames(input_data)) {
@@ -221,7 +221,7 @@ process BIOC_BIODBCHEBI_CHEBI_CHEMICAL_ANNOTATION {
       annotated_features <- merge(annotations, input_data_with_key, by = "query_id", all.y = TRUE)
     }
     
-    # Stage 5: Write Outputs
+    # --- Write Outputs ---
     message("Writing output files...")
     write.csv(annotations, "chebi_annotations.csv", row.names = FALSE)
     write.csv(annotated_features, "annotated_features.csv", row.names = FALSE)

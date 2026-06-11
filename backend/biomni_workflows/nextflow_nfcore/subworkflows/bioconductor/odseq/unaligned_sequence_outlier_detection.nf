@@ -66,11 +66,11 @@ process BIOC_ODSEQ_UNALIGNED_SEQUENCE_OUTLIER_DETECTION {
       Biostrings::readDNAStringSet("seqs")
     })
     
-    # 1. Compute a similarity matrix using a string kernel from the kebabs package
+    # --- Compute a similarity matrix using a string kernel from ---
     sp <- spectrumKernel(k = 3)
     mat <- getKernelMatrix(sp, seqs)
     
-    # 2. Run outlier detection on the similarity matrix using odseq_unaligned
+    # --- Run outlier detection on the similarity matrix using ---
     outliers_unaligned <- odseq_unaligned(mat, B = 1000, type = "similarity")
     
     # Define ground_values to avoid "object not found" error since it is not in the user input.

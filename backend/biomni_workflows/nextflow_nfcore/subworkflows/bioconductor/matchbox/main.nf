@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Remove redundant features from each dataset using filterRedundant. 2. Merge datasets based on common identifiers using mergeData. 
+//  * 1. [Visualization & Output] Remove redundant features from each dataset using
+//  * 2. [Visualization & Output] Merge datasets based on common identifiers using mergeData
+//  * 3. [Visualization & Output] Compute CAT curves using computeCat
+//  * 4. [Visualization & Output] Compute probability intervals using calcHypPI
+//  * 5. [Visualization & Output] Plot the CAT curves and probability intervals using
 
 nextflow.enable.dsl = 2
 
@@ -66,16 +70,16 @@ process BIOC_MATCHBOX_CAT_CURVE_ANALYSIS {
     id_col <- colnames(matchBoxExpression[[1]])[1]
     by_col <- colnames(matchBoxExpression[[1]])[2]
     
-    # 1. Remove redundant features from each dataset using filterRedundant
+    # --- Remove redundant features from each dataset using ---
     allDataBySymbolAndT <- lapply(matchBoxExpression, filterRedundant, idCol=id_col, byCol=by_col, absolute=TRUE)
     
-    # 2. Merge datasets based on common identifiers using mergeData
+    # --- Merge datasets based on common identifiers using mergeData ---
     data <- mergeData(allDataBySymbolAndT, idCol=id_col, byCol=by_col)
     
     # Save merged data to CSV
     write.csv(data, file = "merged_data.csv", row.names = FALSE)
     
-    # 3. Compute CAT curves using computeCat
+    # --- Compute CAT curves using computeCat ---
     # Dynamically set the reference to the first dataset's statistic column
     ref_col <- colnames(data)[2]
     catHigh2LowWithRefByEqualRanks <- computeCat(data = data, idCol = 1, ref=ref_col,  method="equalRank", decreasing=TRUE)
@@ -83,13 +87,13 @@ process BIOC_MATCHBOX_CAT_CURVE_ANALYSIS {
     # Save CAT results to RDS
     saveRDS(catHigh2LowWithRefByEqualRanks, file = "cat_results.rds")
     
-    # 4. Compute probability intervals using calcHypPI
+    # --- Compute probability intervals using calcHypPI ---
     PIbyRefEqualRanks03 <- calcHypPI(data=data, expectedProp=0.3)
     
     # Save probability intervals to CSV
     write.csv(as.data.frame(PIbyRefEqualRanks03), file = "probability_intervals.csv", row.names = TRUE)
     
-    # 5. Plot the CAT curves and probability intervals using plotCat
+    # --- Plot the CAT curves and probability intervals using ---
     pdf("cat_plot.pdf", width = 10, height = 7)
     plotCat(catData = catHigh2LowWithRefByEqualRanks, 
     	preComputedPI=PIbyRefEqualRanks03,

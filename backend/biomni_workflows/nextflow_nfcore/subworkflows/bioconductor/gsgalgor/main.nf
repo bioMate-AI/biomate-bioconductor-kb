@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Scale the expression matrix using robust linear scaling. 2. Prepare the survival object using the survival package. 3. Run the Gal
+//  * 1. [Visualization & Output] Read User Input Files and Prepare Data
+//  * 2. [Visualization & Output] Execute Documented Workflow
+//  * 3. [Visualization & Output] Save Outputs to Working Directory
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +56,7 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
     library(survival)
     
     # ==========================================
-    # 1. Read User Input Files and Prepare Data
+    # --- Read User Input Files and Prepare Data ---
     # ==========================================
     
     # Read expression matrix (genes as rows, samples as columns)
@@ -112,7 +114,7 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
     Test <- Biobase::ExpressionSet(assayData = test_expr_raw, phenoData = Biobase::AnnotatedDataFrame(test_clinic))
     
     # ==========================================
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     # ==========================================
     
     # Robust linear scaling of expression matrix
@@ -187,7 +189,7 @@ process BIOC_GSGALGOR_DISEASE_SUBTYPE_DISCOVERY {
                                     distancetype = distancetype)
     
     # ==========================================
-    # 3. Save Outputs to Working Directory
+    # --- Save Outputs to Working Directory ---
     # ==========================================
     
     write.csv(outputDF, "galgo_solutions.csv", row.names = TRUE)

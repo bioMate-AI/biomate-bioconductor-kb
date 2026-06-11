@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Estimate mutant-allele tumor heterogeneity (MATH) scores using mathScore. 2. Calculate the area under the curve (AUC) of the cumul
+//  * 1. [Core Analysis] Estimate mutant-allele tumor heterogeneity (MATH) scores
+//  * 2. [Core Analysis] Calculate the area under the curve (AUC) of the
+//  * 3. [Core Analysis] Cluster mutations in one dimension by VAFs or CCFs
+//  * 4. [Core Analysis] Calculate Wright's fixation index (Fst) between regions
+//  * 5. [Core Analysis] Calculate Nei's genetic distance between regions
 
 nextflow.enable.dsl = 2
 
@@ -68,13 +72,13 @@ process BIOC_MESKIT_ITH_MEASUREMENT {
     # 2. Execute ITH Measurement Workflow
     # ==========================================
     
-    # Stage 1: Estimate mutant-allele tumor heterogeneity (MATH) scores
+    # --- Estimate mutant-allele tumor heterogeneity (MATH) scores ---
     message("Calculating MATH scores...")
     math_scores <- mathScore(maf)
     math_scores_df <- do.call(rbind, math_scores)
     write.csv(math_scores_df, file = "math_scores.csv", row.names = FALSE)
     
-    # Stage 2: Calculate the area under the curve (AUC) of the cumulative density function of CCFs
+    # --- Calculate the area under the curve (AUC) of the ---
     message("Calculating CCF AUC...")
     AUC <- ccfAUC(maf, use.tumorSampleLabel = TRUE)
     print(names(AUC))
@@ -89,7 +93,7 @@ process BIOC_MESKIT_ITH_MEASUREMENT {
       ggsave(filename = "ccf_density_plot.pdf", plot = AUC\$CCF.density.plot, width = 7, height = 6)
     }
     
-    # Stage 3: Cluster mutations in one dimension by VAFs or CCFs
+    # --- Cluster mutations in one dimension by VAFs or CCFs ---
     message("Clustering mutations...")
     mut.cluster <- mutCluster(maf, use.ccf = TRUE, use.tumorSampleLabel = TRUE)
     clusterPlots <- mut.cluster\$cluster.plot
@@ -102,7 +106,7 @@ process BIOC_MESKIT_ITH_MEASUREMENT {
       ggsave(filename = "mutation_clusters_plot.pdf", plot = p_grid, width = 12, height = 8)
     }
     
-    # Stage 4: Calculate Wright's fixation index (Fst) between regions
+    # --- Calculate Wright's fixation index (Fst) between regions ---
     message("Calculating Fst...")
     fst_all <- calFst(maf, plot = TRUE, use.tumorSampleLabel = TRUE, 
                       withinTumor  = TRUE, number.cex = 10)
@@ -119,7 +123,7 @@ process BIOC_MESKIT_ITH_MEASUREMENT {
       }
     }
     
-    # Stage 5: Calculate Nei's genetic distance between regions
+    # --- Calculate Nei's genetic distance between regions ---
     message("Calculating Nei's genetic distance...")
     nei_all <- calNeiDist(maf, use.tumorSampleLabel = TRUE, 
                           withinTumor  = TRUE, number.cex = 10)

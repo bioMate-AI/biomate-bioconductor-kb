@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Fit Gaussian mixture models to elution profiles using build_gaussians. 2. Calculate pairwise features using calculate_features. 3.
+//  * 1. [Core Analysis] Load User Input Files
+//  * 2. [Core Analysis] Fit Gaussian Mixture Models
+//  * 3. [Core Analysis] Calculate Pairwise Features
+//  * 4. [Core Analysis] Predict Interactions
+//  * 5. [Core Analysis] Plot and Save Precision Curve
+//  * 6. [Core Analysis] Threshold Network at User-Defined Precision
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +56,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         library(PrInCE)
         
         # ==========================================
-        # 1. Load User Input Files
+        # --- Load User Input Files ---
         # ==========================================
         # Read the co-elution matrix (CSV format, first column as row names/protein IDs)
         co_elution_file <- "co_elution_matrix.csv"
@@ -69,7 +74,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         gold_standard <- readRDS(gold_standard_file)
         
         # ==========================================
-        # 2. Fit Gaussian Mixture Models
+        # --- Fit Gaussian Mixture Models ---
         # ==========================================
         # Set seed to ensure reproducible output
         set.seed(0)
@@ -85,7 +90,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         profiles_filtered <- profiles[names(gauss), ]
         
         # ==========================================
-        # 3. Calculate Pairwise Features
+        # --- Calculate Pairwise Features ---
         # ==========================================
         message("Calculating pairwise features...")
         # Calculate features
@@ -95,7 +100,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         write.csv(feat, "calculated_features.csv", row.names = FALSE)
         
         # ==========================================
-        # 4. Predict Interactions
+        # --- Predict Interactions ---
         # ==========================================
         message("Predicting protein-protein interactions...")
         # Convert gold standard list to an adjacency matrix
@@ -115,7 +120,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         write.csv(ppi, "predicted_interactions.csv", row.names = FALSE)
         
         # ==========================================
-        # 5. Plot and Save Precision Curve
+        # --- Plot and Save Precision Curve ---
         # ==========================================
         message("Plotting precision curve...")
         pdf("precision_curve.pdf", width = 6, height = 6)
@@ -128,7 +133,7 @@ process BIOC_PRINCE_PREDICT_INTERACTIONS_WORKFLOW {
         dev.off()
         
         # ==========================================
-        # 6. Threshold Network at User-Defined Precision
+        # --- Threshold Network at User-Defined Precision ---
         # ==========================================
         message("Filtering predicted interactions at precision threshold...")
         # Threshold the network at 70% precision as documented

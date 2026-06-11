@@ -55,7 +55,7 @@ process BIOC_GOSEMSIM_GO_SEMANTIC_SIMILARITY_ANALYSIS {
     MEASURE <- "Wang"
     
     # -------------------------------------------------------------------------
-    # Stage 1: Import and Parse Inputs
+    # --- Import and Parse Inputs ---
     # -------------------------------------------------------------------------
     message("Stage 1: Importing genomic regions and metadata...")
     
@@ -86,7 +86,7 @@ process BIOC_GOSEMSIM_GO_SEMANTIC_SIMILARITY_ANALYSIS {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 2: Prepare GO Data
+    # --- Prepare GO Data ---
     # -------------------------------------------------------------------------
     message("Stage 2: Preparing GO database annotation...")
     
@@ -109,7 +109,7 @@ process BIOC_GOSEMSIM_GO_SEMANTIC_SIMILARITY_ANALYSIS {
     })
     
     # -------------------------------------------------------------------------
-    # Stage 3: Compute Gene Semantic Similarity
+    # --- Compute Gene Semantic Similarity ---
     # -------------------------------------------------------------------------
     message("Stage 3: Computing pairwise gene semantic similarity...")
     
@@ -140,7 +140,7 @@ process BIOC_GOSEMSIM_GO_SEMANTIC_SIMILARITY_ANALYSIS {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 4: Compute Cluster/Group Semantic Similarity
+    # --- Compute Cluster/Group Semantic Similarity ---
     # -------------------------------------------------------------------------
     message("Stage 4: Computing cluster-level semantic similarity...")
     
@@ -183,7 +183,7 @@ process BIOC_GOSEMSIM_GO_SEMANTIC_SIMILARITY_ANALYSIS {
     }
     
     # -------------------------------------------------------------------------
-    # Stage 5: Visualization
+    # --- Visualization ---
     # -------------------------------------------------------------------------
     message("Stage 5: Generating similarity heatmap...")
     

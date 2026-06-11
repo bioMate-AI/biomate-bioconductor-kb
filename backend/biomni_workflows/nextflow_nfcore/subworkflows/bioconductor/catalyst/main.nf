@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Ingest raw data and convert to SingleCellExperiment using prepData. 2. Perform bead-based normalization using normCytof. 3. Assign
+//  * 1. [Visualization & Output] Load User Input Files
+//  * 2. [Visualization & Output] Normalization
+//  * 3. [Visualization & Output] Debarcoding
+//  * 4. [Visualization & Output] Compensation
+//  * 5. [Visualization & Output] Exporting FCS
 
 nextflow.enable.dsl = 2
 
@@ -54,7 +58,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             library(cowplot)
             
             # ==========================================
-            # 1. Load User Input Files
+            # --- Load User Input Files ---
             # ==========================================
             
             # Read FCS files
@@ -69,7 +73,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             sample_key    <- as.matrix(sample_key_df)
             
             # ==========================================
-            # 2. Normalization
+            # --- Normalization ---
             # ==========================================
             
             sce <- prepData(raw_data)
@@ -86,7 +90,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             }
             
             # ==========================================
-            # 3. Debarcoding
+            # --- Debarcoding ---
             # ==========================================
             
             sce <- prepData(sample_ff)
@@ -109,7 +113,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             dev.off()
             
             # ==========================================
-            # 4. Compensation
+            # --- Compensation ---
             # ==========================================
             
             sce_ss <- prepData(ss_exp)
@@ -137,7 +141,7 @@ process BIOC_CATALYST_PREPROCESSING_AND_DECONVOLUTION {
             saveRDS(sce, "compensated_sce.rds")
             
             # ==========================================
-            # 5. Exporting FCS
+            # --- Exporting FCS ---
             # ==========================================
             
             # Export the debarcoded data

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load SummarizedExperiment and package. 2. Construct or load SummarizedExperiment with "FPKM" or "counts" assay and "age" column in
+//  * 1. [Visualization & Output] Read the user input SummarizedExperiment object from the
+//  * 2. [Visualization & Output] Predict age using predict_age_fromse
+//  * 3. [Visualization & Output] Write the meaningful results to output files
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +52,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_SUMMARIZED_EXPERIMENT {
     # Load required libraries
     library(RNAAgeCalc)
     
-    # 1. Read the user input SummarizedExperiment object from the working directory
+    # --- Read the user input SummarizedExperiment object from the ---
     input_file <- "se.rds"
     if (!file.exists(input_file)) {
       if (file.exists("se")) {
@@ -62,7 +64,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_SUMMARIZED_EXPERIMENT {
     
     se <- readRDS(input_file)
     
-    # 2. Predict age using predict_age_fromse
+    # --- Predict age using predict_age_fromse ---
     # Determine exprtype based on assay names
     expr_type <- if ("FPKM" %in% assayNames(se)) "FPKM" else "counts"
     res3 <- predict_age_fromse(se = se, exprtype = expr_type)
@@ -71,7 +73,7 @@ process BIOC_RNAAGECALC_PREDICT_AGE_SUMMARIZED_EXPERIMENT {
     print("Head of predicted age results:")
     print(head(res3))
     
-    # 3. Write the meaningful results to output files
+    # --- Write the meaningful results to output files ---
     # Save the prediction table as a CSV file
     write.csv(res3, file = "predicted_age_results.csv", row.names = TRUE)
     

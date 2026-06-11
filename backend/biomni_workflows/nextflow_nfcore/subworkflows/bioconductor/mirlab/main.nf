@@ -59,13 +59,13 @@ process BIOC_MIRLAB_VALIDATE_SPECIFIC_MIRNA_TARGETS {
     dataset <- "dataset.csv"
     groundtruth <- "groundtruth.csv"
     
-    # 1. Predict miRNA-mRNA relationships using Pearson correlation
+    # --- Predict miRNA-mRNA relationships using Pearson correlation ---
     pearson <- Pearson(dataset, 1:3, 4:18)
     
-    # 2. Extract the top predicted targets for a specific miRNA (the 3rd miRNA, top 10 targets)
+    # --- Extract the top predicted targets for a specific miRNA ---
     miR200aTop10 <- bRank(pearson, 3, 10, TRUE)
     
-    # 3. Validate the top predicted targets against the ground truth
+    # --- Validate the top predicted targets against the ground ---
     miR200aTop10Confirmed <- Validation(miR200aTop10, groundtruth)
     
     # Save the results to output files

@@ -70,31 +70,31 @@ process BIOC_CLUMSID_GC_EI_MS_LOWRES {
       stop(paste("Required input file missing:", annolist_file))
     }
     
-    # 1. Run peak picking and CAMERA annotation using metaMS::runCAMERA()
+    # --- Run peak picking and CAMERA annotation using ---
     # TSQXLS.GC is lazy-loaded from the metaMSdata package
     xA <- metaMS::runCAMERA(xcms::xcmsSet(pool), chrom = "GC", settings = metaMS::metaSetting(TSQXLS.GC, "CAMERA"))
     
-    # 2. Extract pseudospectra using extractPseudospectra()
+    # --- Extract pseudospectra using extractPseudospectra() ---
     pslist <- extractPseudospectra(xA, min_peaks = 0)
     saveRDS(pslist, "pslist.rds")
     
-    # 3. Export feature list for manual annotation using writeFeaturelist()
+    # --- Export feature list for manual annotation using ---
     writeFeaturelist(pslist, "GC_pre.csv")
     
-    # 4. Plot individual pseudospectra using specplot()
+    # --- Plot individual pseudospectra using specplot() ---
     pdf("specplot_27.pdf")
     specplot(pslist[[27]])
     dev.off()
     
-    # 5. Add external annotations using addAnnotations()
+    # --- Add external annotations using addAnnotations() ---
     apslist <- addAnnotations(featlist = pslist, annolist = annolist_file)
     saveRDS(apslist, "apslist.rds")
     
-    # 6. Generate a distance matrix with low-resolution mass tolerance using distanceMatrix()
+    # --- Generate a distance matrix with low-resolution mass ---
     pseudodistmat <- distanceMatrix(apslist, mz_tolerance = 0.02)
     saveRDS(pseudodistmat, "pseudodistmat.rds")
     
-    # 7. Visualize similarities using heatmaps, dendrograms, and correlation networks using HCplot() and networkplot()
+    # --- Visualize similarities using heatmaps, dendrograms, and ---
     pdf("HCplot_heatmap.pdf")
     HCplot(pseudodistmat, type = "heatmap", cexRow = 0.4, cexCol = 0.4, margins = c(7, 7))
     dev.off()
@@ -111,7 +111,7 @@ process BIOC_CLUMSID_GC_EI_MS_LOWRES {
     HCplot(pseudodistmat, h = 0.7, cex = 0.5)
     dev.off()
     
-    # 8. Search for specific diagnostic fragment ions using findFragment()
+    # --- Search for specific diagnostic fragment ions using ---
     fragmentlist <- findFragment(apslist, mz = 315, tolerance = 0.5 / 315)
     saveRDS(fragmentlist, "fragmentlist.rds")
     

@@ -55,7 +55,7 @@ process BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE {
     # Load required library
     library(RiboDiPA)
     
-    # 1. Define experimental design and comparison groups
+    # --- Define experimental design and comparison groups ---
     # Locate the user input files in the working directory
     bam_files <- list.files(pattern = "\\\\.bam\$", full.names = TRUE)
     gtf_files <- list.files(pattern = "\\\\.gtf\$", full.names = TRUE)
@@ -77,13 +77,13 @@ process BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE {
     )
     rownames(classlabel) <- c("mutant1","mutant2","wildtype1","wildtype2")
     
-    # 2. Run the wrapper function to map P-sites, bin data, and perform differential testing
+    # --- Run the wrapper function to map P-sites, bin data, and ---
     result.wrp <- RiboDiPA(bam_path[1:4], bam_path[5], classlabel, cores = 2)
     
-    # 3. View significant gene results
+    # --- View significant gene results ---
     head(result.wrp\$gene[order(result.wrp\$gene\$qvalue), ])
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the complete RiboDiPA result object
     saveRDS(result.wrp, file = "ribodipa_results.rds")
     

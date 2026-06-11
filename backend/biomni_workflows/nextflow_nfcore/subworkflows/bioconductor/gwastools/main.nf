@@ -62,13 +62,13 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     if (file.exists(gds_clean)) file.remove(gds_clean)
     
     # ==========================================
-    # STAGE 1: Convert VCF to GDS Format
+    # --- Convert VCF to GDS Format ---
     # ==========================================
     message("Stage 1: Converting VCF to GDS...")
     SNPRelate::snpgdsVCF2GDS(vcf_in, gds_temp, verbose = FALSE)
     
     # ==========================================
-    # STAGE 2: Load GDS and Build Annotations
+    # --- Load GDS and Build Annotations ---
     # ==========================================
     message("Stage 2: Loading GDS and building annotations...")
     gds <- GdsGenotypeReader(gds_temp)
@@ -126,7 +126,7 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     genoData <- GenotypeData(gds, snpAnnot = snpAnnot, scanAnnot = scanAnnot)
     
     # ==========================================
-    # STAGE 3: Quality Control (QC)
+    # --- Quality Control (QC) ---
     # ==========================================
     message("Stage 3: Performing Quality Control...")
     
@@ -175,7 +175,7 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     close(genoData)
     
     # ==========================================
-    # STAGE 4: Subsetting and Association Testing
+    # --- Subsetting and Association Testing ---
     # ==========================================
     message("Stage 4: Subsetting GDS and running association testing...")
     
@@ -226,7 +226,7 @@ process BIOC_GWASTOOLS_GWAS_VCF_PIPELINE {
     write.csv(assoc_results, "gwas_association_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     

@@ -57,7 +57,7 @@ process BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE {
     options(biobroom.return = "data.frame")
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Loading input data...")
     
@@ -83,7 +83,7 @@ process BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE {
     coldata\$condition <- as.factor(coldata\$condition)
     
     # ==========================================
-    # STAGE 2: DESeq2 Analysis & Tidying
+    # --- DESeq2 Analysis & Tidying ---
     # ==========================================
     message("Stage 2: Running DESeq2 analysis...")
     
@@ -105,7 +105,7 @@ process BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE {
     write.csv(tidy_deseq_res, "deseq_tidy_results.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: edgeR Analysis & Tidying
+    # --- edgeR Analysis & Tidying ---
     # ==========================================
     message("Stage 3: Running edgeR analysis...")
     
@@ -123,7 +123,7 @@ process BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE {
     glance_edger <- biobroom::glance(et, alpha = 0.05)
     
     # ==========================================
-    # STAGE 4: Multiple Hypothesis Testing with qvalue
+    # --- Multiple Hypothesis Testing with qvalue ---
     # ==========================================
     message("Stage 4: Estimating q-values...")
     
@@ -166,7 +166,7 @@ process BIOC_BIOBROOM_BIOBROOM_TRANSCRIPTOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     

@@ -70,16 +70,16 @@ process BIOC_PAST_GWAS_PATHWAY_ENRICHMENT {
                  paste(missing_files, collapse = ", ")))
     }
     
-    # 1. Load GWAS association and effects data
+    # --- Load GWAS association and effects data ---
     message("Loading GWAS data...")
     gwas_data <- load_GWAS_data(association_file, 
                                 effects_file)
     
-    # 2. Load Linkage Disequilibrium (LD) data
+    # --- Load Linkage Disequilibrium (LD) data ---
     message("Loading LD data...")
     LD <- load_LD(LD_file)
     
-    # 3. Assign SNPs to genes based on LD blocks and physical distance
+    # --- Assign SNPs to genes based on LD blocks and physical ---
     message("Assigning SNPs to genes...")
     genes <- assign_SNPs_to_genes(gwas_data, 
                                  LD, 
@@ -97,7 +97,7 @@ process BIOC_PAST_GWAS_PATHWAY_ENRICHMENT {
       message("Could not write genes to CSV, saved as RDS.")
     })
     
-    # 4. Calculate pathway enrichment scores and significance
+    # --- Calculate pathway enrichment scores and significance ---
     message("Calculating pathway significance...")
     rugplots_data <- find_pathway_significance(genes, 
                                                pathways_file, 
@@ -114,7 +114,7 @@ process BIOC_PAST_GWAS_PATHWAY_ENRICHMENT {
       message("Could not write pathway significance to CSV, saved as RDS.")
     })
     
-    # 5. Plot enrichment rugplots for significant pathways
+    # --- Plot enrichment rugplots for significant pathways ---
     message("Plotting pathways...")
     output_plot_dir <- "pathway_plots"
     if (!dir.exists(output_plot_dir)) {

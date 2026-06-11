@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Preprocess continuous data and create an OpenStatsList object using OpenStatsList. 2. Run the Reference Range Plus analysis using 
+//  * 1. [Input & Preparation] Preprocess continuous data and create an OpenStatsList
+//  * 2. [Input & Preparation] Run the Reference Range Plus analysis
+//  * 3. [Input & Preparation] Save outputs
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +60,7 @@ process BIOC_OPENSTATS_REFERENCE_RANGE_PLUS_WORKFLOW {
       stop(paste("Error: Input file", input_file, "not found in the working directory."))
     }
     
-    # 1. Preprocess continuous data and create an OpenStatsList object
+    # --- Preprocess continuous data and create an OpenStatsList ---
     test_Cont <- OpenStatsList(
       dataset = read.csv(input_file),
       testGenotype = "experimental",
@@ -71,14 +73,14 @@ process BIOC_OPENSTATS_REFERENCE_RANGE_PLUS_WORKFLOW {
       debug = FALSE
     )
     
-    # 2. Run the Reference Range Plus analysis
+    # --- Run the Reference Range Plus analysis ---
     RR_result <- OpenStatsAnalysis(
       OpenStatsList = test_Cont,
       method = "RR",
       RR_formula = data_point ~ Genotype + Sex
     )
     
-    # 3. Save outputs
+    # --- Save outputs ---
     # Save the complete analysis object
     saveRDS(RR_result, file = "RR_result.rds")
     

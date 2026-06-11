@@ -44,12 +44,12 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(rtracklayer)
     library(GenomicRanges)
     library(EnrichDO)
     
-    # Stage 2: Import and preprocess genomic intervals
+    # --- Import and preprocess genomic intervals ---
     message("Importing genomic regions from BED file...")
     gr <- rtracklayer::import("regions.bed")
     
@@ -65,7 +65,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
     
     message(paste("Successfully loaded", length(interest_genes), "unique Entrez IDs for enrichment analysis."))
     
-    # Stage 3: Disease Ontology Enrichment Analysis
+    # --- Disease Ontology Enrichment Analysis ---
     message("Running double-weighted Disease Ontology enrichment analysis...")
     weighted_res <- doEnrich(
       interestGenes = interest_genes,
@@ -79,7 +79,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
       traditional = FALSE
     )
     
-    # Stage 4: Extract and Export Results
+    # --- Extract and Export Results ---
     message("Extracting and writing results...")
     # Extract detailed results
     detail_res <- viewDetailResult(weighted_res)
@@ -97,7 +97,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
       P = 1
     )
     
-    # Stage 5: Visualization of Enrichment Results
+    # --- Visualization of Enrichment Results ---
     message("Generating diagnostic and enrichment plots...")
     
     # 1. Bar Graph
@@ -151,7 +151,7 @@ process BIOC_ENRICHDO_ENRICHDO_DISEASE_ONTOLOGY_ANALYSIS {
     })
     dev.off()
     
-    # Stage 6: Convenient Drawing from Saved Text File (Demonstrating convDraw)
+    # --- Convenient Drawing from Saved Text File (Demonstrating ---
     message("Demonstrating convDraw functionality from saved text results...")
     tryCatch({
       saved_data <- read.delim("enrichdo_results.txt")

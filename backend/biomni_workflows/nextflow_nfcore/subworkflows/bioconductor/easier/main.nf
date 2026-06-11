@@ -48,7 +48,7 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
     library(easier)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read counts and coldata
@@ -134,7 +134,7 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
     }
     
     # ==========================================
-    # STAGE 2: Compute Quantitative Descriptors
+    # --- Compute Quantitative Descriptors ---
     # ==========================================
     
     # 1. Compute hallmarks of immune response
@@ -163,7 +163,7 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
     write.csv(ccpair_scores, "ccpair_scores.csv")
     
     # ==========================================
-    # STAGE 3: Predict Immune Response
+    # --- Predict Immune Response ---
     # ==========================================
     
     predictions <- predict_immune_response(
@@ -177,7 +177,7 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
     )
     
     # ==========================================
-    # STAGE 4: Assess and Retrieve Scores
+    # --- Assess and Retrieve Scores ---
     # ==========================================
     
     # Evaluate predictions using patient response and TMB
@@ -210,7 +210,7 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
     write.csv(easier_derived_scores, "easier_derived_scores.csv")
     
     # ==========================================
-    # STAGE 5: Explore Systems Biomarkers
+    # --- Explore Systems Biomarkers ---
     # ==========================================
     
     output_biomarkers <- explore_biomarkers(

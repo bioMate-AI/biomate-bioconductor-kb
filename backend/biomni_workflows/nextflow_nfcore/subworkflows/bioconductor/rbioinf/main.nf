@@ -47,7 +47,7 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     library(RBioinf)
     library(S4Vectors)
     
-    # 1. Read Input Data
+    # --- Read Input Data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and 'coldata.csv' are missing.")
     }
@@ -68,13 +68,13 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     count_matrix <- as.matrix(counts_df)
     class(count_matrix) <- "integer"
     
-    # 2. Construct SummarizedExperiment
+    # --- Construct SummarizedExperiment ---
     se <- SummarizedExperiment(
       assays = list(counts = count_matrix),
       colData = DataFrame(coldata_df)
     )
     
-    # 3. S4 Class Architecture Analysis using RBioinf
+    # --- S4 Class Architecture Analysis using RBioinf ---
     # Inspect the class hierarchy of the SummarizedExperiment container
     se_class_name <- class(se)[1]
     
@@ -100,7 +100,7 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     )
     write.csv(class_struct_df, "class_structure.csv", row.names = FALSE)
     
-    # 4. Simulate Probe Sequences using RBioinf::randDNA
+    # --- Simulate Probe Sequences using RBioinf::randDNA ---
     # Generate a random DNA probe sequence of length 50 for each gene in the dataset
     gene_ids <- rownames(se)
     probe_length <- 50
@@ -122,7 +122,7 @@ process BIOC_RBIOINF_RBIOINF_S4_TRANSCRIPTOMICS_METADATA {
     )
     write.csv(probes_df, "gene_sequences.csv", row.names = FALSE)
     
-    # 5. Expression Summary Statistics
+    # --- Expression Summary Statistics ---
     # Compute basic expression statistics (mean and SD) per condition
     conditions <- unique(colData(se)\$condition)
     summary_list <- list()

@@ -53,7 +53,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Setup Metadata
+    # --- Read Input Data & Setup Metadata ---
     # ==========================================
     message("Reading input files...")
     counts <- read.csv("counts.csv", row.names = 1)
@@ -84,7 +84,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     replicates <- ave(seq_along(mapped_conditions), mapped_conditions, FUN = seq_along)
     
     # ==========================================
-    # STAGE 2: Generate Reference FASTA & GFF3
+    # --- Generate Reference FASTA & GFF3 ---
     # ==========================================
     message("Generating dummy reference FASTA and GFF3 files...")
     # Create dummy sequences of length 100 for the top genes
@@ -108,7 +108,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     writeLines(gff_lines, "dummy.gff3")
     
     # ==========================================
-    # STAGE 3: Generate Dummy BAM Files
+    # --- Generate Dummy BAM Files ---
     # ==========================================
     message("Generating dummy BAM files from count matrix...")
     create_dummy_sam <- function(sam_path, gene_ids, num_reads) {
@@ -162,7 +162,7 @@ process BIOC_RNAMODR_ALKANILINESEQ_RNAMODR_ALKANILINESEQ_ANALYSIS {
     write.csv(targets, "targets.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Run RNAmodR AlkAnilineSeq Pipeline
+    # --- Run RNAmodR AlkAnilineSeq Pipeline ---
     # ==========================================
     message("Running ModAlkAnilineSeq analysis...")
     mods_df <- data.frame(

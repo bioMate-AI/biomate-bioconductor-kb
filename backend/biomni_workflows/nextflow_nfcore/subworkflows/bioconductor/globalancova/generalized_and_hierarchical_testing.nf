@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run generalized GlobalAncova to test for global differences between groups. 2. Generate a features plot to visualize variable-wise
+//  * 1. [Visualization & Output] Run generalized GlobalAncova to test for global
+//  * 2. [Visualization & Output] Generate a features plot to visualize variable-wise
+//  * 3. [Visualization & Output] Cluster the variables to create a dendrogram hierarchy
+//  * 4. [Visualization & Output] Perform hierarchical testing down the dendrogram to
+//  * 5. [Visualization & Output] Plot the hierarchy highlighting significant paths
 
 nextflow.enable.dsl = 2
 
@@ -87,20 +91,20 @@ process BIOC_GLOBALANCOVA_GENERALIZED_AND_HIERARCHICAL_TESTING {
       stop("No matching sample IDs found between variable_matrix.csv and phenotype_data.csv.")
     }
     
-    # 1. Run generalized GlobalAncova to test for global differences between groups
+    # --- Run generalized GlobalAncova to test for global ---
     ga_global <- gGlobalAncova(X, formula.full=~group, model.dat=bindata, perm=1000)
     write.csv(ga_global\$ANOVA, "global_ancova_anova.csv", row.names = TRUE)
     write.csv(ga_global\$test.result, "global_ancova_test_results.csv", row.names = TRUE)
     
-    # 2. Generate a features plot to visualize variable-wise differences in model deviances
+    # --- Generate a features plot to visualize variable-wise ---
     pdf("features_plot.pdf", width = 10, height = 8)
     Plot.features(X, formula.full=~group, model.dat=bindata)
     dev.off()
     
-    # 3. Cluster the variables to create a dendrogram hierarchy
+    # --- Cluster the variables to create a dendrogram hierarchy ---
     dend <- as.dendrogram(hclust(dist(t(X))))
     
-    # 4. Perform hierarchical testing down the dendrogram to identify significant end nodes
+    # --- Perform hierarchical testing down the dendrogram to ---
     set.seed(555)
     res <- gGlobalAncova.hierarchical(X, H=dend, formula.full=~group, model.dat=bindata, alpha=0.05, perm=1000)
     
@@ -130,7 +134,7 @@ process BIOC_GLOBALANCOVA_GENERALIZED_AND_HIERARCHICAL_TESTING {
       )
     }
     
-    # 5. Plot the hierarchy highlighting significant paths
+    # --- Plot the hierarchy highlighting significant paths ---
     pdf("hierarchy_plot.pdf", width = 12, height = 8)
     Plot.hierarchy(res, dend)
     dev.off()

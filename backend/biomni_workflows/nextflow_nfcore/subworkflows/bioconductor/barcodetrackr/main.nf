@@ -57,7 +57,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     library(barcodetrackR)
     library(ggplot2)
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input data...")
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found.")
@@ -84,7 +84,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
       stop("No sample columns found in the input matrix.")
     }
     
-    # Stage 2: Create metadata and SummarizedExperiment
+    # --- Create metadata and SummarizedExperiment ---
     message("Creating metadata and SummarizedExperiment...")
     sample_names <- colnames(counts)
     
@@ -100,7 +100,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     # Create SummarizedExperiment using barcodetrackR helper
     se <- barcodetrackR::create_SE(assay_data = counts, col_data = metadata)
     
-    # Stage 3: Thresholding / Filtering
+    # --- Thresholding / Filtering ---
     message("Applying abundance thresholding...")
     # Filter out low-abundance background noise
     se_thresholded <- barcodetrackR::threshold_counts(se, threshold = 0.0005, type = "relative")
@@ -108,7 +108,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     # Save thresholded counts
     write.csv(assay(se_thresholded), "thresholded_counts.csv", row.names = TRUE)
     
-    # Stage 4: Clonal Diversity Analysis
+    # --- Clonal Diversity Analysis ---
     message("Plotting clonal diversity...")
     pdf("clonal_diversity.pdf", width = 8, height = 6)
     tryCatch({
@@ -127,7 +127,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     })
     dev.off()
     
-    # Stage 5: Barcode Heatmap Visualization
+    # --- Barcode Heatmap Visualization ---
     message("Generating barcode heatmap...")
     pdf("barcode_heatmap.pdf", width = 10, height = 8)
     tryCatch({
@@ -143,7 +143,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     })
     dev.off()
     
-    # Stage 6: Correlation Profiling
+    # --- Correlation Profiling ---
     message("Generating correlation plot...")
     pdf("correlation_plot.pdf", width = 8, height = 8)
     tryCatch({
@@ -158,7 +158,7 @@ process BIOC_BARCODETRACKR_BARCODETRACKR_CLONAL_ANALYSIS {
     })
     dev.off()
     
-    # Stage 7: Clonal Contribution Analysis
+    # --- Clonal Contribution Analysis ---
     message("Plotting clonal contribution...")
     pdf("clonal_contribution.pdf", width = 8, height = 6)
     tryCatch({

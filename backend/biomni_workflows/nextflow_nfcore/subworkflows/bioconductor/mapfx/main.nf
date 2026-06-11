@@ -78,7 +78,7 @@ process BIOC_MAPFX_MAPFX_FFC_PIPELINE {
         dir.create(Outpath, recursive = TRUE)
     }
     
-    # Stage 1: Read and validate input files
+    # --- Read and validate input files ---
     message("Reading input files...")
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'intensity.csv' and/or 'coldata.csv' are missing!")
@@ -95,7 +95,7 @@ process BIOC_MAPFX_MAPFX_FFC_PIPELINE {
     intensity_df <- intensity_df[, common_samples, drop = FALSE]
     coldata_df <- coldata_df[match(common_samples, coldata_df\$sample), , drop = FALSE]
     
-    # Stage 2: Simulate single-cell events per sample to satisfy PhenoGraph requirements (minimum cells)
+    # --- Simulate single-cell events per sample to satisfy ---
     message("Simulating single-cell events for MAPFX pipeline...")
     cells_per_sample <- 50
     proteins <- rownames(intensity_df)
@@ -149,7 +149,7 @@ process BIOC_MAPFX_MAPFX_FFC_PIPELINE {
         meta_df\$Batch <- rep(c("Batch1", "Batch2"), length.out = nrow(meta_df))
     }
     
-    # Stage 3: Run MapfxFFC pipeline
+    # --- Run MapfxFFC pipeline ---
     message("Running MapfxFFC...")
     MapfxFFC_obj <- MapfxFFC(
         runVignette = TRUE,
@@ -168,7 +168,7 @@ process BIOC_MAPFX_MAPFX_FFC_PIPELINE {
         plots.cluster.analysis.protein = TRUE
     )
     
-    # Stage 4: Extract and save downstream results
+    # --- Extract and save downstream results ---
     message("Processing and saving downstream results...")
     downstream_dir <- file.path(Outpath, "downstream")
     graph_dir <- file.path(Outpath, "graph")
@@ -210,7 +210,7 @@ process BIOC_MAPFX_MAPFX_FFC_PIPELINE {
         write.csv(data.frame(Error = "UMAP coordinates not found"), "umap_coordinates.csv")
     }
     
-    # Stage 5: Compile diagnostic plots into a single PDF
+    # --- Compile diagnostic plots into a single PDF ---
     message("Compiling diagnostic plots...")
     png_files <- list.files(graph_dir, pattern = "\\\\.png\$", full.names = TRUE)
     if (length(png_files) > 0) {

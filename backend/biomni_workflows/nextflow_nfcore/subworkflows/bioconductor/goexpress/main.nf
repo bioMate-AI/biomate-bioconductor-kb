@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the package and dataset. 2. Ensure the grouping factor is formatted as an R factor. 3. Run the supervised classification anal
+//  * 1. [Visualization & Output] Load the package and dataset
+//  * 2. [Visualization & Output] Ensure the grouping factor is formatted as an R factor
+//  * 3. [Visualization & Output] Run the supervised classification analysis using
+//  * 4. [Visualization & Output] Compute permutation-based p-values for GO terms using
+//  * 5. [Visualization & Output] Filter the results by ontology namespace, minimum gene
+//  * 6. [Visualization & Output] Visualize sample clustering and gene expression using
+//  * 7. [Visualization & Output] Extract gene details for a specific GO term using
+//  * 8. [Visualization & Output] Plot individual gene expression profiles across
 
 nextflow.enable.dsl = 2
 
@@ -47,7 +54,7 @@ process BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS {
           }
         }
                 
-                # 1. Load the package and dataset
+                # --- Load the package and dataset ---
                 library(GOexpress)
                 library(Biobase)
                 
@@ -102,21 +109,21 @@ process BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS {
                 }
                 # -------------------------------------
                 
-                # 2. Ensure the grouping factor is formatted as an R factor
+                # --- Ensure the grouping factor is formatted as an R factor ---
                 is.factor(AlvMac\$Treatment) # assertion test
                 AlvMac\$Treatment # visual inspection
                 AlvMac\$Treatment <- factor(AlvMac\$Treatment)
                 
-                # 3. Run the supervised classification analysis using GO_analyse
+                # --- Run the supervised classification analysis using ---
                 set.seed(4543) # set random seed for reproducibility
                 AlvMac_results <- GO_analyse(
                     eSet = AlvMac, f = "Treatment",
                     GO_genes=AlvMac_GOgenes, all_GO=AlvMac_allGO, all_genes=AlvMac_allgenes)
                 
-                # 4. Compute permutation-based p-values for GO terms using pValue_GO
+                # --- Compute permutation-based p-values for GO terms using ---
                 AlvMac_results.pVal = pValue_GO(result=AlvMac_results, N=100)
                 
-                # 5. Filter the results by ontology namespace, minimum gene count, and p-value using subset_scores
+                # --- Filter the results by ontology namespace, minimum gene ---
                 BP.5 <- subset_scores(
                     result = AlvMac_results.pVal,
                     namespace = "biological_process",
@@ -137,7 +144,7 @@ process BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS {
                 
                 top_gene_id <- rownames(BP.5\$genes)[1]
                 
-                # 6. Visualize sample clustering and gene expression using heatmap_GO or cluster_GO
+                # --- Visualize sample clustering and gene expression using ---
                 pdf(paste0("heatmap_", top_go_id_safe, ".pdf"), width=10, height=8)
                 heatmap_GO(
                     go_id = top_go_id, result = BP.5, eSet=AlvMac, cexRow=0.4,
@@ -155,14 +162,14 @@ process BIOC_GOEXPRESS_SUPERVISED_GO_ANALYSIS {
                     f="Group")
                 dev.off()
                 
-                # 7. Extract gene details for a specific GO term using table_genes or list_genes
+                # --- Extract gene details for a specific GO term using ---
                 tg <- table_genes(go_id = top_go_id, result = BP.5)[,c(1:3)]
                 write.csv(tg, paste0("table_genes_", top_go_id_safe, ".csv"), row.names=TRUE)
                 
                 lg <- list_genes(go_id = top_go_id, result = BP.5)
                 writeLines(lg, paste0("list_genes_", top_go_id_safe, ".txt"))
                 
-                # 8. Plot individual gene expression profiles across experimental factors using expression_plot or expression_profiles
+                # --- Plot individual gene expression profiles across ---
                 pdf(paste0("expression_plot_", top_gene_id, ".pdf"), width=8, height=6)
                 expression_plot(
                     gene_id = top_gene_id, result = BP.5, eSet=AlvMac,

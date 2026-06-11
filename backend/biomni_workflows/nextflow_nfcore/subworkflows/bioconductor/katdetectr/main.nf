@@ -56,7 +56,7 @@ process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     library(katdetectr)
     
     # ==========================================
-    # 1. Import genomic variants from user input
+    # --- Import genomic variants from user input ---
     # ==========================================
     # Read the declared user input files from the working directory
     pathToVCF <- "pathToVCF"
@@ -64,7 +64,7 @@ process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     syntheticData <- readRDS("syntheticData")
     
     # ==========================================
-    # 2. Detect kataegis foci
+    # --- Detect kataegis foci ---
     # ==========================================
     # Detect kataegis foci within the given VCF file
     kdVCF <- detectKataegis(genomicVariants = pathToVCF)
@@ -81,7 +81,7 @@ process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     saveRDS(kdSynthetic, "kdSynthetic.rds")
     
     # ==========================================
-    # 3. Summarize and inspect KatDetect objects
+    # --- Summarize and inspect KatDetect objects ---
     # ==========================================
     summary(kdVCF)
     print(kdVCF)
@@ -89,7 +89,7 @@ process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     kdVCF
     
     # ==========================================
-    # 4. Extract underlying data using getters
+    # --- Extract underlying data using getters ---
     # ==========================================
     vcf_variants <- getGenomicVariants(kdVCF)
     vcf_segments <- getSegments(kdVCF)
@@ -103,7 +103,7 @@ process BIOC_KATDETECTR_STANDARD_KATAEGIS_DETECTION {
     saveRDS(vcf_info, "kdVCF_info.rds")
     
     # ==========================================
-    # 5. Visualize results using rainfallPlot
+    # --- Visualize results using rainfallPlot ---
     # ==========================================
     pdf("rainfall_plots.pdf", width = 12, height = 8)
     

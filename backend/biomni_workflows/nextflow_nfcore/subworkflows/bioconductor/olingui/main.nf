@@ -50,7 +50,7 @@ process BIOC_OLINGUI_OLINGUI_MICROARRAY_PIPELINE {
     library(OLIN)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     # Read the feature-by-sample numeric matrix
@@ -88,7 +88,7 @@ process BIOC_OLINGUI_OLINGUI_MICROARRAY_PIPELINE {
     Rf <- Rf[, 1:min_cols, drop = FALSE]
     
     # ==========================================
-    # Stage 2: Construct marrayRaw and XY Objects
+    # --- Construct marrayRaw and XY Objects ---
     # ==========================================
     
     # Create a standard marrayLayout object
@@ -133,7 +133,7 @@ process BIOC_OLINGUI_OLINGUI_MICROARRAY_PIPELINE {
     assign("sw.xy", sw_xy, envir = .GlobalEnv)
     
     # ==========================================
-    # Stage 3: Programmatic OLIN Normalization
+    # --- Programmatic OLIN Normalization ---
     # ==========================================
     
     norm_data <- tryCatch({
@@ -171,7 +171,7 @@ process BIOC_OLINGUI_OLINGUI_MICROARRAY_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Statistical Bias Testing
+    # --- Statistical Bias Testing ---
     # ==========================================
     
     sink("statistical_tests.txt")
@@ -199,7 +199,7 @@ process BIOC_OLINGUI_OLINGUI_MICROARRAY_PIPELINE {
     sink()
     
     # ==========================================
-    # Stage 5: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     
     pdf("diagnostic_plots.pdf", width = 10, height = 8)
@@ -236,7 +236,7 @@ process BIOC_OLINGUI_OLINGUI_MICROARRAY_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 6: Launch OLINgui (Interactive Only)
+    # --- Launch OLINgui (Interactive Only) ---
     # ==========================================
     
     if (interactive()) {

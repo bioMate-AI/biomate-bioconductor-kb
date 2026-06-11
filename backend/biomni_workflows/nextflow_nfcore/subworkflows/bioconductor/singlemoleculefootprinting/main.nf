@@ -52,7 +52,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING {
     library(ggplot2)
     library(parallel)
     
-    # Stage 1: Load Inputs
+    # --- Load Inputs ---
     message("Stage 1: Loading inputs...")
     regions <- rtracklayer::import("regions.bed")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -70,7 +70,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING {
     sample_file_path <- "sample_file.txt"
     write.table(coldata[, c("FileName", "SampleName")], file = sample_file_path, sep = "\t", row.names = FALSE, quote = FALSE)
     
-    # Stage 2: Quality Control
+    # --- Quality Control ---
     message("Stage 2: Running Quality Control...")
     bait_eff_val <- tryCatch({
       clObj <- parallel::makeCluster(2)
@@ -92,7 +92,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING {
     })
     write.csv(data.frame(ConversionRate = conv_rate_val), "conversion_rate.csv", row.names = FALSE)
     
-    # Stage 3: Methylation Calling
+    # --- Methylation Calling ---
     message("Stage 3: Calling Context Methylation...")
     # Use the first region for detailed single-molecule analysis
     roi <- regions[1]
@@ -119,7 +119,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING {
       bulk_meth_df <- as.data.frame(meth_data[[1]])
       write.csv(bulk_meth_df, "bulk_methylation.csv", row.names = FALSE)
       
-      # Stage 4: Unsupervised Footprinting with FootprintCharter
+      # --- Unsupervised Footprinting with FootprintCharter ---
       message("Stage 4: Running FootprintCharter...")
       roi_80 <- IRanges::resize(roi, 80, "center")
       sample_name <- coldata\$SampleName[1]
@@ -151,7 +151,7 @@ process BIOC_SINGLEMOLECULEFOOTPRINTING_UNSUPERVISED_FOOTPRINTING {
       if (!is.null(fc_results)) {
         write.csv(fc_results\$footprints.df, "detected_footprints.csv", row.names = FALSE)
         
-        # Stage 5: Visualization
+        # --- Visualization ---
         message("Stage 5: Generating Plots...")
         p_avg <- tryCatch({
           PlotAvgSMF(MethGR = meth_data[[1]], RegionOfInterest = roi_resized, TFBSs = TFBSs)

@@ -48,7 +48,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     library(BiRewire)
     
     # ---------------------------------------------------------
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ---------------------------------------------------------
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found.")
@@ -84,7 +84,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     }
     
     # ---------------------------------------------------------
-    # Stage 2: Compute Analytical Bound for Switching Steps
+    # --- Compute Analytical Bound for Switching Steps ---
     # ---------------------------------------------------------
     # Compute the minimal number of switching steps to maximize dissimilarity (Jaccard distance)
     bound <- tryCatch({
@@ -95,7 +95,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     })
     
     # ---------------------------------------------------------
-    # Stage 3: Visual Monitoring of Markov Chain Convergence
+    # --- Visual Monitoring of Markov Chain Convergence ---
     # ---------------------------------------------------------
     # Open PDF device to save diagnostic plots
     pdf("birewire_diagnostic_plots.pdf", width = 8, height = 6)
@@ -114,7 +114,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 4: Perform Network Rewiring
+    # --- Perform Network Rewiring ---
     # ---------------------------------------------------------
     # Rewire the bipartite network using the computed analytical bound
     rewired <- tryCatch({
@@ -125,7 +125,7 @@ process BIOC_BIREWIRE_BIPARTITE_NETWORK_REWIRING {
     })
     
     # ---------------------------------------------------------
-    # Stage 5: Compute Similarity and Save Outputs
+    # --- Compute Similarity and Save Outputs ---
     # ---------------------------------------------------------
     # Compute Jaccard similarity between original and rewired matrix
     sim <- tryCatch({

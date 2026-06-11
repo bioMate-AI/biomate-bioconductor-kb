@@ -48,7 +48,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     library(data.table)
     
     # ==========================================
-    # Stage 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     message("Stage 1: Reading and parsing input.csv...")
     if (!file.exists("input.csv")) {
@@ -91,7 +91,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     long_dt[, sample_tissue := "Unknown"]
     
     # ==========================================
-    # Stage 2: Configure TREDataMapper
+    # --- Configure TREDataMapper ---
     # ==========================================
     message("Stage 2: Configuring TREDataMapper...")
     dm <- TREDataMapper(rawdata = long_dt)
@@ -117,13 +117,13 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: Construct TreatmentResponseExperiment
+    # --- Construct TreatmentResponseExperiment ---
     # ==========================================
     message("Stage 3: Constructing TreatmentResponseExperiment...")
     tre <- metaConstruct(dm)
     
     # ==========================================
-    # Stage 4: Query and Subset the TRE
+    # --- Query and Subset the TRE ---
     # ==========================================
     message("Stage 4: Querying and subsetting the TRE...")
     # Get unique treatments to perform a safe query
@@ -137,7 +137,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     ]
     
     # ==========================================
-    # Stage 5: Extract and Summarize Assays
+    # --- Extract and Summarize Assays ---
     # ==========================================
     message("Stage 5: Extracting and summarizing assays...")
     sens_assay <- assay(tre, "sensitivity")
@@ -159,7 +159,7 @@ process BIOC_COREGX_COREGX_TREATMENT_RESPONSE_PIPELINE {
     )
     
     # ==========================================
-    # Stage 6: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     message("Stage 6: Writing outputs...")
     fwrite(summary_dt, "tre_summary.csv")

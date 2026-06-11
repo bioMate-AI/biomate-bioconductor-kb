@@ -55,7 +55,7 @@ process BIOC_MSA2DIST_MSA2DIST_EVOLUTIONARY_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Read Input Files
+    # --- Read Input Files ---
     # ==========================================
     message("Stage 1: Reading input files...")
     
@@ -85,7 +85,7 @@ process BIOC_MSA2DIST_MSA2DIST_EVOLUTIONARY_ANALYSIS {
     samples <- coldata\$sample_id
     
     # ==========================================
-    # STAGE 2: Helper Function for Mock Alignment
+    # --- Helper Function for Mock Alignment ---
     # ==========================================
     # Since we only have genomic coordinates, we generate synthetic coding sequence alignments
     # for each region across all samples to perform a realistic evolutionary analysis.
@@ -119,7 +119,7 @@ process BIOC_MSA2DIST_MSA2DIST_EVOLUTIONARY_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 3: Pairwise Distance & Ka/Ks Analysis
+    # --- Pairwise Distance & Ka/Ks Analysis ---
     # ==========================================
     message("Stage 3: Running evolutionary analysis across regions...")
     
@@ -166,7 +166,7 @@ process BIOC_MSA2DIST_MSA2DIST_EVOLUTIONARY_ANALYSIS {
     message("Saved pairwise distance matrices for the first region.")
     
     # ==========================================
-    # STAGE 4: Codon-level Selection Profiling
+    # --- Codon-level Selection Profiling ---
     # ==========================================
     message("Stage 4: Generating codon selection profile...")
     
@@ -194,7 +194,7 @@ process BIOC_MSA2DIST_MSA2DIST_EVOLUTIONARY_ANALYSIS {
     message("Saved codon selection profile plot.")
     
     # ==========================================
-    # STAGE 5: Phylogenetic Tree Comparison
+    # --- Phylogenetic Tree Comparison ---
     # ==========================================
     message("Stage 5: Comparing DNA and AA phylogenetic trees...")
     

@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Detect rank-invariant (RI) or nearly rank-invariant (NRI) features using mbqnGetNRIfeatures. 2. Perform classical quantile normali
+//  * 1. [Visualization & Output] Detect rank-invariant (RI) or nearly rank-invariant (NRI)
+//  * 2. [Visualization & Output] Perform classical quantile normalization, full MBQN, or
+//  * 3. [Visualization & Output] Visualize and compare the normalized intensities
 
 nextflow.enable.dsl = 2
 
@@ -70,14 +72,14 @@ process BIOC_MBQN_MBQN_NORMALIZATION_WORKFLOW {
           mode(mtx) <- "numeric"
         }
         
-        # 1. Detect rank-invariant (RI) or nearly rank-invariant (NRI) features
+        # --- Detect rank-invariant (RI) or nearly rank-invariant (NRI) ---
         res <- mbqnGetNRIfeatures(mtx, low_thr = 0.5)
         
-        # 2. Perform classical quantile normalization, full MBQN, or selective NRI-balanced quantile normalization
+        # --- Perform classical quantile normalization, full MBQN, or ---
         mbqn.mtx <- mbqnNRI(x = mtx, FUN = median, verbose = FALSE)
         qn.mtx <- mbqnNRI(x = mtx, FUN = NULL, verbose = FALSE)
         
-        # 3. Visualize and compare the normalized intensities
+        # --- Visualize and compare the normalized intensities ---
         # We save the boxplot to a PDF file
         pdf("mbqn_boxplot.pdf", width = 7, height = 6)
         plot.new()

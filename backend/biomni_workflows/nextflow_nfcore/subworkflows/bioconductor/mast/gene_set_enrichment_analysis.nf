@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Bootstrap the variance-covariance matrix of the fit using bootVcov1. 2. Load gene sets from a GMT file using getGmt and map to ind
+//  * 1. [Visualization & Output] Load User Inputs
+//  * 2. [Visualization & Output] Documented Code Execution
+//  * 3. [Visualization & Output] Save Outputs and Generate Plots
 
 nextflow.enable.dsl = 2
 
@@ -55,7 +57,7 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
         library(ggplot2)
         
         # -----------------------------------------------------------------------------
-        # 1. Load User Inputs
+        # --- Load User Inputs ---
         # -----------------------------------------------------------------------------
         if (!file.exists("fitted_zlm_model.rds")) {
             stop("Error: 'fitted_zlm_model.rds' not found in the working directory.")
@@ -90,7 +92,7 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
         min_gene_in_module <- 5
         
         # -----------------------------------------------------------------------------
-        # 2. Documented Code Execution
+        # --- Documented Code Execution ---
         # -----------------------------------------------------------------------------
         boots <- bootVcov1(zlmCond, R = 4)
         gene_set <- getGmt(module_file)
@@ -101,7 +103,7 @@ process BIOC_MAST_GENE_SET_ENRICHMENT_ANALYSIS {
         z_stat_comb <- summary(gsea, testType='normal')
         
         # -----------------------------------------------------------------------------
-        # 3. Save Outputs and Generate Plots
+        # --- Save Outputs and Generate Plots ---
         # -----------------------------------------------------------------------------
         # Save the GSEA summary table
         fwrite(z_stat_comb, "gsea_results.csv")

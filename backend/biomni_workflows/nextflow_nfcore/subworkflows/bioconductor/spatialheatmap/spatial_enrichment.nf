@@ -67,12 +67,12 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
       stop(paste("Required input file missing:", input_svg))
     }
     
-    # 1. Load User Input Data
+    # --- Load User Input Data ---
     message("Loading input expression data and anatomical map...")
     rse.mus <- readRDS(input_expression)
     svg.mus <- read_svg(input_svg)
     
-    # 2. Subset spatial features and variables of interest using sf_var
+    # --- Subset spatial features and variables of interest using ---
     message("Subsetting spatial features and variables...")
     sub.mus <- sf_var(
       data = rse.mus, 
@@ -83,7 +83,7 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
       com.by = 'ft'
     )
     
-    # 3. Filter low-expression data using filter_data
+    # --- Filter low-expression data using filter_data ---
     message("Filtering low-expression data...")
     sub.mus.fil <- filter_data(
       data = sub.mus, 
@@ -92,7 +92,7 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
       verbose = FALSE
     )
     
-    # 4. Perform spatial enrichment analysis using spatial_enrich
+    # --- Perform spatial enrichment analysis using spatial_enrich ---
     message("Performing spatial enrichment analysis...")
     enr.res <- spatial_enrich(
       sub.mus.fil, 
@@ -106,7 +106,7 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
     # Save enrichment results object
     saveRDS(enr.res, "spatial_enrichment_results.rds")
     
-    # 5. Visualize enrichment overlaps across features using ovl_enrich
+    # --- Visualize enrichment overlaps across features using ---
     message("Visualizing enrichment overlaps...")
     pdf("enrichment_overlap_upset.pdf", width = 10, height = 8)
     tryCatch({
@@ -116,7 +116,7 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
     })
     dev.off()
     
-    # 6. Query enriched/depleted genes for a target tissue using query_enrich
+    # --- Query enriched/depleted genes for a target tissue using ---
     message("Querying enriched genes for brain...")
     en.brain <- query_enrich(enr.res, 'brain')
     
@@ -124,7 +124,7 @@ process BIOC_SPATIALHEATMAP_SPATIAL_ENRICHMENT {
     saveRDS(en.brain, "brain_enrichment_query.rds")
     write.csv(as.data.frame(rowData(en.brain)), "brain_enrichment_table.csv", row.names = TRUE)
     
-    # 7. Plot enrichment spatial heatmaps using shm
+    # --- Plot enrichment spatial heatmaps using shm ---
     message("Generating spatial heatmaps...")
     dat.enrich <- SPHM(svg = svg.mus, bulk = en.brain)
     

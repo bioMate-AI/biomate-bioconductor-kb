@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Initialize the MpraObject. 2. Estimate library depth normalization factors. 3. Fit the comparative models in scalable mode (mode="
+//  * 1. [Core Analysis] Read the user input files from the working directory
+//  * 2. [Core Analysis] Initialize the MpraObject
+//  * 3. [Core Analysis] Estimate library depth normalization factors using valid
+//  * 4. [Core Analysis] Fit the comparative models in scalable mode
+//  * 5. [Core Analysis] Perform a Likelihood Ratio Test to identify
+//  * 6. [Core Analysis] Write outputs to the working directory
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +55,7 @@ process BIOC_MPRANALYZE_SCALABLE_COMPARATIVE_ANALYSIS {
         # Load required libraries
         library(MPRAnalyze)
         
-        # 1. Read the user input files from the working directory
+        # --- Read the user input files from the working directory ---
         dna_counts_file <- "dna_counts.tsv"
         rna_counts_file <- "rna_counts.tsv"
         col_annotations_file <- "col_annotations.tsv"
@@ -78,7 +83,7 @@ process BIOC_MPRANALYZE_SCALABLE_COMPARATIVE_ANALYSIS {
           ce.control <- rep(FALSE, nrow(ce.dnaCounts))
         }
         
-        # 2. Initialize the MpraObject
+        # --- Initialize the MpraObject ---
         obj <- MpraObject(dnaCounts = ce.dnaCounts, rnaCounts = ce.rnaCounts, 
                           dnaAnnot = ce.colAnnot, rnaAnnot = ce.colAnnot, 
                           controls = ce.control)
@@ -96,11 +101,11 @@ process BIOC_MPRANALYZE_SCALABLE_COMPARATIVE_ANALYSIS {
           valid_cols <- colnames(ce.colAnnot)[1]
         }
         
-        # 3. Estimate library depth normalization factors using valid annotation columns
+        # --- Estimate library depth normalization factors using valid ---
         obj <- estimateDepthFactors(obj, lib.factor = valid_cols,
                                     which.lib = "both")
         
-        # 4. Fit the comparative models in scalable mode (mode="scale") without a DNA design
+        # --- Fit the comparative models in scalable mode ---
         # Dynamically construct the RNA design formula using valid annotation columns
         rna_design_formula <- as.formula(paste("~", paste(valid_cols, collapse = " + ")))
         
@@ -109,10 +114,10 @@ process BIOC_MPRANALYZE_SCALABLE_COMPARATIVE_ANALYSIS {
                                   reducedDesign = ~ 1, 
                                   mode="scale")
         
-        # 5. Perform a Likelihood Ratio Test to identify differentially active enhancers
+        # --- Perform a Likelihood Ratio Test to identify ---
         res.scale <- testLrt(obj)
         
-        # 6. Write outputs to the working directory
+        # --- Write outputs to the working directory ---
         write.csv(res.scale, file = "comparative_analysis_scale_results.csv", row.names = TRUE)
         saveRDS(obj, file = "mpra_object_scale.rds")
         

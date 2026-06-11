@@ -49,7 +49,7 @@ process BIOC_AFFY_AFFY_MICROARRAY_PIPELINE {
     library(Biobase)
     
     # ==========================================
-    # STAGE 1: Data Loading & AffyBatch Creation
+    # --- Data Loading & AffyBatch Creation ---
     # ==========================================
     
     # Read input files
@@ -109,7 +109,7 @@ process BIOC_AFFY_AFFY_MICROARRAY_PIPELINE {
                   ncol = as.integer(ab_ncol))
     
     # ==========================================
-    # STAGE 2: Quality Control & Diagnostics
+    # --- Quality Control & Diagnostics ---
     # ==========================================
     
     # Run RNA degradation analysis
@@ -165,7 +165,7 @@ process BIOC_AFFY_AFFY_MICROARRAY_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Normalization & Summarization
+    # --- Normalization & Summarization ---
     # ==========================================
     
     # 1. RMA-like processing using the modular 'expresso' function
@@ -186,7 +186,7 @@ process BIOC_AFFY_AFFY_MICROARRAY_PIPELINE {
     pvals_matrix <- assayData(calls_mas5)[["se.exprs"]]
     
     # ==========================================
-    # STAGE 4: Exporting Results & Comparison
+    # --- Exporting Results & Comparison ---
     # ==========================================
     
     # Combine all metrics into a single comprehensive data frame

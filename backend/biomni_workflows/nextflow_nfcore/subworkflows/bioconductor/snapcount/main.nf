@@ -51,7 +51,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     library(BiocGenerics)
     
     # ==========================================
-    # STAGE 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Reading input files...")
     
@@ -73,7 +73,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Query Snaptron for Gene & Junctions
+    # --- Query Snaptron for Gene & Junctions ---
     # ==========================================
     message("Stage 2: Querying Snaptron for gene: ", gene_of_interest)
     
@@ -95,7 +95,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     jx_rse <- query_jx(sb)
     
     # ==========================================
-    # STAGE 3: Compare Local and Public Expression
+    # --- Compare Local and Public Expression ---
     # ==========================================
     message("Stage 3: Analyzing public GTEx tissue expression...")
     
@@ -115,7 +115,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(gtex_tissue_summary, "gtex_tissue_expression.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Tissue Specificity of Top Junction
+    # --- Tissue Specificity of Top Junction ---
     # ==========================================
     message("Stage 4: Calculating tissue specificity for the top junction...")
     
@@ -146,7 +146,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(ts_results, "tissue_specificity_top_junction.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Junction Union & Intersection (GTEx vs TCGA)
+    # --- Junction Union & Intersection (GTEx vs TCGA) ---
     # ==========================================
     message("Stage 5: Performing GTEx vs TCGA junction comparison...")
     
@@ -177,7 +177,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(comparison_summary, "junction_comparison_gtex_tcga.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 6: High-Level Splicing (PSI)
+    # --- High-Level Splicing (PSI) ---
     # ==========================================
     message("Stage 6: Calculating Percent Spliced In (PSI) for reference cassette exon...")
     
@@ -203,7 +203,7 @@ process BIOC_SNAPCOUNT_SNAPCOUNT_PUBLIC_SPLICING_ANALYSIS {
     write.csv(psi_df, "psi_splicing_events.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Visualisation & Reporting
+    # --- Visualisation & Reporting ---
     # ==========================================
     message("Stage 7: Generating PDF report...")
     

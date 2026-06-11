@@ -62,7 +62,7 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
         stop(paste("Input file", idf, "does not exist in the working directory."))
     }
     
-    # 1. Load PSM data and filter
+    # --- Load PSM data and filter ---
     message("Loading and filtering PSM data...")
     id <- PSM(idf) |> filterPSMs()
     
@@ -76,12 +76,12 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
     # Save filtered PSMs
     saveRDS(id, "filtered_psms.rds")
     
-    # 2. Reduce PSMs by spectrum ID
+    # --- Reduce PSMs by spectrum ID ---
     message("Reducing PSMs by spectrum ID...")
     id2 <- reducePSMs(id, id\$spectrumID)
     saveRDS(id2, "reduced_psms.rds")
     
-    # 3. Build adjacency matrix and connected components
+    # --- Build adjacency matrix and connected components ---
     message("Building adjacency matrix and connected components...")
     adj <- makeAdjacencyMatrix(id)
     cc <- ConnectedComponents(adj)
@@ -102,7 +102,7 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
         }
     })
     
-    # 4. Visualize adjacency matrix
+    # --- Visualize adjacency matrix ---
     message("Plotting adjacency matrices...")
     pdf("adjacency_matrix_plots.pdf", width = 8, height = 8)
     
@@ -127,7 +127,7 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
         message("Failed to plot adjacency matrix with protColors = 2: ", e\$message)
     })
     
-    # 5. Color peptide nodes by search engine score
+    # --- Color peptide nodes by search engine score ---
     message("Coloring peptide nodes by score...")
     score <- id\$MS.GF.RawScore
     if (is.null(score) || all(is.na(score))) {
@@ -152,7 +152,7 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
     
     dev.off()
     
-    # 6. Prioritize connected components
+    # --- Prioritize connected components ---
     message("Prioritizing connected components...")
     cctab <- prioritiseConnectedComponents(cc)
     print(head(cctab))

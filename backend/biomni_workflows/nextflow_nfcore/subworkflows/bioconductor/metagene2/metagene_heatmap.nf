@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Generate heatmap; 2. Generate heatmap with custom coverage ordering
+//  * 1. [Visualization & Output] Generate heatmap
+//  * 2. [Visualization & Output] Generate heatmap with custom coverage ordering
 
 nextflow.enable.dsl = 2
 
@@ -58,7 +59,7 @@ process BIOC_METAGENE2_METAGENE_HEATMAP {
       stop("Error: User input file 'mg' (RDS format) not found in the working directory.")
     }
     
-    # Stage 1: Generate heatmap
+    # --- Generate heatmap ---
     message("Generating default heatmap...")
     p1 <- metagene2_heatmap(mg)
     pdf("heatmap_default.pdf")
@@ -66,7 +67,7 @@ process BIOC_METAGENE2_METAGENE_HEATMAP {
     dev.off()
     message("Saved default heatmap to 'heatmap_default.pdf'")
     
-    # Stage 2: Generate heatmap with custom coverage ordering
+    # --- Generate heatmap with custom coverage ordering ---
     message("Generating ordered heatmap...")
     tryCatch({
       p2 <- metagene2_heatmap(mg, coverage_order(mg, "align1_rep1"))

@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Convert legacy phyloseq objects to TreeSummarizedExperiment format. 2. Inspect available taxonomic ranks and identify empty classi
+//  * 1. [Input & Preparation] Read User Input Files
+//  * 2. [Input & Preparation] Convert Legacy Phyloseq Object
+//  * 3. [Input & Preparation] Inspect Taxonomic Ranks and Labels
+//  * 4. [Input & Preparation] Agglomerate Feature Counts
+//  * 5. [Input & Preparation] Construct and Update Taxonomic Tree
+//  * 6. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +67,7 @@ process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     library("TreeSummarizedExperiment")
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     # Read the esophagus phyloseq object
     esophagus_phyloseq <- readRDS("esophagus.RDS")
@@ -71,7 +76,7 @@ process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     tse <- readRDS("GlobalPatterns.RDS")
     
     # ==========================================
-    # 2. Convert Legacy Phyloseq Object
+    # --- Convert Legacy Phyloseq Object ---
     # ==========================================
     esophagus <- convertFromPhyloseq(esophagus_phyloseq)
     
@@ -79,7 +84,7 @@ process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     saveRDS(esophagus, "esophagus_tse.RDS")
     
     # ==========================================
-    # 3. Inspect Taxonomic Ranks and Labels
+    # --- Inspect Taxonomic Ranks and Labels ---
     # ==========================================
     colnames(rowData(tse))
     taxonomyRanks(tse)
@@ -94,7 +99,7 @@ process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     write.csv(data.frame(TaxonomyLabels = tax_labels_head), "taxonomy_labels_head.csv", row.names = FALSE)
     
     # ==========================================
-    # 4. Agglomerate Feature Counts
+    # --- Agglomerate Feature Counts ---
     # ==========================================
     # Agglomerate at Family rank without shrinking the tree
     x1 <- agglomerateByRank(tse, rank = "Family")
@@ -113,7 +118,7 @@ process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     tse <- agglomerateByRanks(tse)
     
     # ==========================================
-    # 5. Construct and Update Taxonomic Tree
+    # --- Construct and Update Taxonomic Tree ---
     # ==========================================
     taxa <- rowData(altExp(tse, "Species"))[, taxonomyRanks(tse)]
     taxa_res <- resolveLoop(as.data.frame(taxa))
@@ -128,7 +133,7 @@ process BIOC_MIA_TAXONOMIC_AGGLOMERATION_AND_TREE_CONSTRUCTION {
     )
     
     # ==========================================
-    # 6. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     # Save the final updated TreeSummarizedExperiment object
     saveRDS(tse, "tse_agglomerated.RDS")

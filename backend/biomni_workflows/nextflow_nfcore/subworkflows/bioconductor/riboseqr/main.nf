@@ -50,7 +50,7 @@ process BIOC_RIBOSEQR_RIBOSEQR_TRANSLATION_ANALYSIS {
     library(baySeq)
     
     # ==========================================
-    # Stage 1: Load Input Data and Metadata
+    # --- Load Input Data and Metadata ---
     # ==========================================
     message("Stage 1: Loading input data and metadata...")
     
@@ -92,7 +92,7 @@ process BIOC_RIBOSEQR_RIBOSEQR_TRANSLATION_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 2: Read Ribosome Profiling Data
+    # --- Read Ribosome Profiling Data ---
     # ==========================================
     message("Stage 2: Reading alignment data...")
     
@@ -103,7 +103,7 @@ process BIOC_RIBOSEQR_RIBOSEQR_TRANSLATION_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 3: Frame Counting and Reading Frame Estimation
+    # --- Frame Counting and Reading Frame Estimation ---
     # ==========================================
     message("Stage 3: Counting frames and estimating reading frames...")
     
@@ -116,7 +116,7 @@ process BIOC_RIBOSEQR_RIBOSEQR_TRANSLATION_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # Stage 4: Dynamic Filtering of Footprints
+    # --- Dynamic Filtering of Footprints ---
     # ==========================================
     message("Stage 4: Filtering footprint hits...")
     
@@ -159,7 +159,7 @@ process BIOC_RIBOSEQR_RIBOSEQR_TRANSLATION_ANALYSIS {
     })
     
     # ==========================================
-    # Stage 5: Metagene and Transcript Visualization
+    # --- Metagene and Transcript Visualization ---
     # ==========================================
     message("Stage 5: Generating diagnostic plots...")
     
@@ -188,7 +188,7 @@ process BIOC_RIBOSEQR_RIBOSEQR_TRANSLATION_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # Stage 6: Count Extraction and Differential Translation
+    # --- Count Extraction and Differential Translation ---
     # ==========================================
     message("Stage 6: Extracting counts and performing differential translation analysis...")
     

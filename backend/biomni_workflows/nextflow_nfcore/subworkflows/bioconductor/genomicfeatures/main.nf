@@ -50,7 +50,7 @@ process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     
     # ==========================================
-    # STAGE 1: Import User Regions (BED format)
+    # --- Import User Regions (BED format) ---
     # ==========================================
     message("Stage 1: Importing user regions from regions.bed...")
     
@@ -82,7 +82,7 @@ process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     )
     
     # ==========================================
-    # STAGE 2: Load and Configure TxDb Annotation
+    # --- Load and Configure TxDb Annotation ---
     # ==========================================
     message("Stage 2: Loading TxDb annotation database...")
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
@@ -100,7 +100,7 @@ process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     }
     
     # ==========================================
-    # STAGE 3: Extract Genomic Features
+    # --- Extract Genomic Features ---
     # ==========================================
     message("Stage 3: Extracting genomic features from TxDb...")
     tx <- transcripts(txdb)
@@ -109,7 +109,7 @@ process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     proms <- promoters(txdb, upstream=2000, downstream=400)
     
     # ==========================================
-    # STAGE 4: Annotate User Regions with Overlaps
+    # --- Annotate User Regions with Overlaps ---
     # ==========================================
     message("Stage 4: Annotating user regions with genomic context...")
     user_gr\$overlap_transcript <- countOverlaps(user_gr, tx) > 0
@@ -136,7 +136,7 @@ process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     message("Saved annotated regions to 'annotated_regions.csv'")
     
     # ==========================================
-    # STAGE 5: Map Regions to Transcript Coordinates
+    # --- Map Regions to Transcript Coordinates ---
     # ==========================================
     message("Stage 5: Mapping genomic regions to transcript-relative coordinates...")
     ex_by_tx <- exonsBy(txdb, by="tx")
@@ -165,7 +165,7 @@ process BIOC_GENOMICFEATURES_GENOMIC_FEATURES_ANNOTATION {
     }
     
     # ==========================================
-    # STAGE 6: Compute Coverage by Transcript
+    # --- Compute Coverage by Transcript ---
     # ==========================================
     message("Stage 6: Computing coverage across transcripts...")
     cov_by_tx <- tryCatch({

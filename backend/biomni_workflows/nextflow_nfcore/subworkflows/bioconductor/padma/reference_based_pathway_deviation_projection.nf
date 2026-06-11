@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Format multi-omic data as a MultiAssayExperiment. 2. Define reference (base_ids) and supplementary (supp_ids) individual IDs. 3. R
+//  * 1. [Input & Preparation] Read the input MultiAssayExperiment object from the
+//  * 2. [Input & Preparation] Define the pathway name
+//  * 3. [Input & Preparation] Run padma with base_ids and supp_ids specified (exactly
+//  * 4. [Input & Preparation] Save the results to output files
 
 nextflow.enable.dsl = 2
 
@@ -51,10 +54,10 @@ process BIOC_PADMA_REFERENCE_BASED_PATHWAY_DEVIATION_PROJECTION {
     library(MultiAssayExperiment)
     library(ggplot2)
     
-    # 1. Read the input MultiAssayExperiment object from the working directory
+    # --- Read the input MultiAssayExperiment object from the ---
     mae <- readRDS("mae.rds")
     
-    # 2. Define the pathway name
+    # --- Define the pathway name ---
     D4GDI <- "c2_cp_BIOCARTA_D4GDI_PATHWAY"
     
     # Safely determine base_ids and supp_ids to avoid out-of-bounds and duplicates
@@ -74,13 +77,13 @@ process BIOC_PADMA_REFERENCE_BASED_PATHWAY_DEVIATION_PROJECTION {
       }
     }
     
-    # 3. Run padma with base_ids and supp_ids specified (exactly as documented)
+    # --- Run padma with base_ids and supp_ids specified (exactly ---
     run_padma_supp <- 
       padma(mae, pathway_name = D4GDI, verbose = FALSE,
             base_ids = base_samples,
             supp_ids = supp_samples)
     
-    # 4. Save the results to output files
+    # --- Save the results to output files ---
     saveRDS(run_padma_supp, "run_padma_supp.rds")
     
     # Export pathway deviation scores

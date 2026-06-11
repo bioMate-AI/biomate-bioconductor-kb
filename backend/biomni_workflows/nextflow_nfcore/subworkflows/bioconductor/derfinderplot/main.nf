@@ -56,7 +56,7 @@ process BIOC_DERFINDERPLOT_DERFINDER_COVERAGE_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 1: Read Input Data & Preprocess
+    # --- Read Input Data & Preprocess ---
     # ==========================================
     message("Stage 1: Reading input files...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -70,7 +70,7 @@ process BIOC_DERFINDERPLOT_DERFINDER_COVERAGE_ANALYSIS {
     counts <- counts[, sample_names, drop = FALSE]
     
     # ==========================================
-    # STAGE 2: Map Genes to hg19 Coordinates
+    # --- Map Genes to hg19 Coordinates ---
     # ==========================================
     message("Stage 2: Mapping genes to hg19 chr21 coordinates...")
     txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
@@ -111,7 +111,7 @@ process BIOC_DERFINDERPLOT_DERFINDER_COVERAGE_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 3: Construct Base-Level Coverage
+    # --- Construct Base-Level Coverage ---
     # ==========================================
     message("Stage 3: Constructing base-level coverage Rle objects...")
     build_sample_rle <- function(counts_vec, starts, ends, chrom_len = 48129895) {
@@ -149,7 +149,7 @@ process BIOC_DERFINDERPLOT_DERFINDER_COVERAGE_ANALYSIS {
     fullCov <- list(chr21 = IRanges::SimpleRleList(rle_list))
     
     # ==========================================
-    # STAGE 4: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 4: Running derfinder analysis...")
     collapsedFullCov <- collapseFullCoverage(fullCov)
@@ -188,7 +188,7 @@ process BIOC_DERFINDERPLOT_DERFINDER_COVERAGE_ANALYSIS {
     write.csv(as.data.frame(regions), "derfinder_regions.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Annotation & Coverage Extraction
+    # --- Annotation & Coverage Extraction ---
     # ==========================================
     message("Stage 5: Annotating regions and extracting coverage...")
     annotation <- bumphunter::matchGenes(regions, txdb)
@@ -197,7 +197,7 @@ process BIOC_DERFINDERPLOT_DERFINDER_COVERAGE_ANALYSIS {
     regionCov <- getRegionCoverage(fullCov, regions)
     
     # ==========================================
-    # STAGE 6: Visualization & Plotting
+    # --- Visualization & Plotting ---
     # ==========================================
     message("Stage 6: Generating diagnostic and coverage plots...")
     pdf("derfinder_plots.pdf", width = 10, height = 8)

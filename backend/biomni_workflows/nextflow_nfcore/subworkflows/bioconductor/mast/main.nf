@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Compute expression threshold (Et) from cycle threshold (Ct) using computeEtFromCt. 2. Import flat data frame into a FluidigmAssay 
+//  * 1. [Visualization & Output] Read the user input file
+//  * 2. [Visualization & Output] Compute expression threshold (Et) from cycle threshold
+//  * 3. [Visualization & Output] Import flat data frame into a FluidigmAssay object
+//  * 4. [Visualization & Output] Subset and split the assay by cell metadata
+//  * 5. [Visualization & Output] Filter low-quality wells and plot concordance
+//  * 6. [Visualization & Output] Fit a Hurdle model and perform differential expression
 
 nextflow.enable.dsl = 2
 
@@ -52,13 +57,13 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
     library(ggplot2)
     library(data.table)
     
-    # 1. Read the user input file
+    # --- Read the user input file ---
     if (!file.exists("qpcr_data.csv")) {
       stop("Error: 'qpcr_data.csv' not found in the working directory.")
     }
     vbeta <- read.csv("qpcr_data.csv", stringsAsFactors = TRUE)
     
-    # 2. Compute expression threshold (Et) from cycle threshold (Ct)
+    # --- Compute expression threshold (Et) from cycle threshold ---
     vbeta <- computeEtFromCt(vbeta)
     
     # Dynamically identify columns to avoid hardcoding vignette-specific names
@@ -72,7 +77,7 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
     }
     first_meta <- meta_cols[1]
     
-    # 3. Import flat data frame into a FluidigmAssay object
+    # --- Import flat data frame into a FluidigmAssay object ---
     vbeta.fa <- FromFlatDF(vbeta, 
                            idvars = meta_cols,
                            primerid = gene_col, 
@@ -86,7 +91,7 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
     # Save the imported assay object
     saveRDS(vbeta.fa, "vbeta_assay.rds")
     
-    # 4. Subset and split the assay by cell metadata
+    # --- Subset and split the assay by cell metadata ---
     sub1 <- vbeta.fa[, 1:min(10, ncol(vbeta.fa))]
     
     first_level <- as.character(unique(colData(vbeta.fa)[[first_meta]])[1])
@@ -103,7 +108,7 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
     
     vbeta.split <- split(vbeta.fa, first_meta)
     
-    # 5. Filter low-quality wells and plot concordance
+    # --- Filter low-quality wells and plot concordance ---
     pdf("concordance_plot.pdf", width=8, height=6)
     if (length(vbeta.split) >= 2) {
       plotSCAConcordance(vbeta.split[[1]], vbeta.split[[2]],
@@ -125,7 +130,7 @@ process BIOC_MAST_QPCR_FLUIDIGM_WORKFLOW {
     burdenOfFiltering(vbeta.fa, first_meta, byGroup=TRUE)
     dev.off()
     
-    # 6. Fit a Hurdle model and perform differential expression testing
+    # --- Fit a Hurdle model and perform differential expression ---
     vbeta.1 <- vbeta.fa[1:min(20, nrow(vbeta.fa)), ]
     
     valid_covariates <- Filter(function(x) length(unique(colData(vbeta.1)[[x]])) > 1, meta_cols)

@@ -51,7 +51,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     library(BSgenome.Hsapiens.UCSC.hg19)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input files...")
@@ -117,7 +117,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     }
     
     # ==========================================
-    # Stage 2: Initialize and Populate qseaSet
+    # --- Initialize and Populate qseaSet ---
     # ==========================================
     
     message("Initializing qseaSet...")
@@ -139,7 +139,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     qseaSet@libraries\$lib_size <- colSums(count_matrix)
     
     # ==========================================
-    # Stage 3: Normalization & Parameter Estimation
+    # --- Normalization & Parameter Estimation ---
     # ==========================================
     
     message("Estimating library factors and pattern density...")
@@ -166,7 +166,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     }
     
     # ==========================================
-    # Stage 4: Differential Methylation Analysis
+    # --- Differential Methylation Analysis ---
     # ==========================================
     
     message("Fitting Negative Binomial GLM...")
@@ -197,7 +197,7 @@ process BIOC_QSEA_QSEA_DIFFERENTIAL_METHYLATION {
     message("Results successfully written to 'differential_methylation_results.csv'.")
     
     # ==========================================
-    # Stage 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     message("Generating diagnostic plots...")

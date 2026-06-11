@@ -68,7 +68,7 @@ process BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS {
     ptcs_output_csv  <- "detected_ptcs.csv"
     anno_output_csv  <- "annotated_orfs.csv"
     
-    # 1. Predict true ORFs using predictORF
+    # --- Predict true ORFs using predictORF ---
     message("Predicting ORFs...")
     ORFs <- predictORF(
       tr = trans_fasta,
@@ -79,7 +79,7 @@ process BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS {
     # Save predicted ORF coordinates to a tab-delimited file (required for subsequent steps)
     write.table(ORFs, file = orfs_coords_file, sep = "\t", quote = FALSE, row.names = FALSE)
     
-    # 2. Extract ORF sequences using getSeqORFs
+    # --- Extract ORF sequences using getSeqORFs ---
     message("Extracting ORF sequences...")
     seq_orfs <- getSeqORFs(
       orfs = orfs_coords_file,
@@ -91,7 +91,7 @@ process BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS {
     # Save extracted ORF sequences to FASTA (required for translation)
     writeXStringSet(seq_orfs, filepath = orfs_seqs_fasta)
     
-    # 3. Detect premature termination codons (PTCs) using findPTCs
+    # --- Detect premature termination codons (PTCs) using findPTCs ---
     message("Detecting premature termination codons (PTCs)...")
     ptcs <- findPTCs(
       orfs = orfs_coords_file,
@@ -102,7 +102,7 @@ process BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS {
     # Save PTC results
     write.csv(ptcs, file = ptcs_output_csv, row.names = FALSE)
     
-    # 4. Translate ORFs in silico using translateORFs
+    # --- Translate ORFs in silico using translateORFs ---
     message("Translating ORFs...")
     prot_seqs <- translateORFs(
       seqORFs = orfs_seqs_fasta
@@ -111,7 +111,7 @@ process BIOC_ORFHUNTER_PREDICT_AND_ANNOTATE_ORFS {
     # Save translated protein sequences to FASTA (required for annotation)
     writeXStringSet(prot_seqs, filepath = proteins_fasta)
     
-    # 5. Annotate identified ORFs using annotateORFs
+    # --- Annotate identified ORFs using annotateORFs ---
     message("Annotating identified ORFs...")
     anno_orfs <- annotateORFs(
       orfs = orfs_coords_file,

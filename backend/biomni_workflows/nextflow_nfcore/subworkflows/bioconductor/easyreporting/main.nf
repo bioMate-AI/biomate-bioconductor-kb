@@ -58,15 +58,15 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
       author = "Bioconductor easyreporting Pipeline"
     )
     
-    # 1. Introduction Section
+    # --- Introduction Section ---
     mkdTitle(er, title = "Introduction", level = 1)
     mkdGeneralMsg(er, message = "This report presents an automated exploratory data analysis (EDA) of the input dataset. It dynamically detects whether the input is a feature-by-sample matrix or a single-column list, and performs appropriate summary statistics and visualizations.")
     
-    # 2. Variable Assignment (setting analysis parameters)
+    # --- Variable Assignment (setting analysis parameters) ---
     mkdTitle(er, title = "Analysis Parameters", level = 2)
     mkdVariableAssignment(er, name = "log_transform", value = TRUE, show = TRUE)
     
-    # 3. Data Loading and Preprocessing Chunk
+    # --- Data Loading and Preprocessing Chunk ---
     mkdTitle(er, title = "Data Loading and Preprocessing", level = 1)
     
     load_code <- "
@@ -89,7 +89,7 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
     "
     mkdCodeChunkComplete(er, code = load_code)
     
-    # 4. Summary Statistics Chunk
+    # --- Summary Statistics Chunk ---
     mkdTitle(er, title = "Summary Statistics", level = 1)
     
     stats_code <- "
@@ -115,7 +115,7 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
       code = stats_code
     )
     
-    # 5. Visualizations Chunk
+    # --- Visualizations Chunk ---
     mkdTitle(er, title = "Data Visualizations", level = 1)
     
     viz_code <- "
@@ -153,7 +153,7 @@ process BIOC_EASYREPORTING_EASYREPORTING_AUTOMATED_EDA {
     "
     mkdCodeChunkComplete(er, code = viz_code)
     
-    # 6. Compile the report with robust error handling
+    # --- Compile the report with robust error handling ---
     message("Compiling the easyreporting Rmarkdown report...")
     tryCatch({
       compile(er)

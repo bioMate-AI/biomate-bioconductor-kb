@@ -48,7 +48,7 @@ process BIOC_BRIDGEDBR_BRIDGEDB_IDENTIFIER_MAPPING {
     library(BridgeDbR)
     
     # ==========================================
-    # STAGE 1: Read and Parse Input Data
+    # --- Read and Parse Input Data ---
     # ==========================================
     message("Stage 1: Reading input data...")
     
@@ -83,7 +83,7 @@ process BIOC_BRIDGEDBR_BRIDGEDB_IDENTIFIER_MAPPING {
     message(sprintf("Found %d unique identifiers to map.", length(clean_ids)))
     
     # ==========================================
-    # STAGE 2: Source Database Detection
+    # --- Source Database Detection ---
     # ==========================================
     message("Stage 2: Detecting source database...")
     
@@ -115,7 +115,7 @@ process BIOC_BRIDGEDBR_BRIDGEDB_IDENTIFIER_MAPPING {
     message(sprintf("Detected Source Database: %s (System Code: %s)", best_source, source_system))
     
     # ==========================================
-    # STAGE 3: Load Mapping Database
+    # --- Load Mapping Database ---
     # ==========================================
     message("Stage 3: Loading BridgeDb mapping database...")
     
@@ -162,7 +162,7 @@ process BIOC_BRIDGEDBR_BRIDGEDB_IDENTIFIER_MAPPING {
     message("Database loaded successfully.")
     
     # ==========================================
-    # STAGE 4: Perform Identifier Mapping
+    # --- Perform Identifier Mapping ---
     # ==========================================
     message("Stage 4: Mapping identifiers...")
     
@@ -221,7 +221,7 @@ process BIOC_BRIDGEDBR_BRIDGEDB_IDENTIFIER_MAPPING {
     }
     
     # ==========================================
-    # STAGE 5: Post-processing and Merging
+    # --- Post-processing and Merging ---
     # ==========================================
     message("Stage 5: Merging mapping results back to original dataset...")
     
@@ -249,7 +249,7 @@ process BIOC_BRIDGEDBR_BRIDGEDB_IDENTIFIER_MAPPING {
     message("Saved mapped dataset to 'mapped_features.csv'.")
     
     # ==========================================
-    # STAGE 6: Diagnostics and Visualization
+    # --- Diagnostics and Visualization ---
     # ==========================================
     message("Stage 6: Generating diagnostics and summary...")
     

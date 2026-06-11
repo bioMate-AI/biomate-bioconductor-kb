@@ -55,7 +55,7 @@ process BIOC_METASEQR2_P_VALUE_COMBINATION {
     # Load required library
     library(metaseqR2)
     
-    # 1. Load external p-value data
+    # --- Load external p-value data ---
     # The pipeline reads EXACTLY the 'hg19pvalues' file from the working directory.
     if (file.exists("hg19pvalues")) {
         hg19pvalues <- tryCatch({
@@ -74,16 +74,16 @@ process BIOC_METASEQR2_P_VALUE_COMBINATION {
     # Ensure the data is in matrix format for apply operations
     hg19pvalues <- as.matrix(hg19pvalues)
     
-    # 2. Combine p-values using Simes method with combineSimes
+    # --- Combine p-values using Simes method with combineSimes ---
     pSimes <- apply(hg19pvalues, 1, combineSimes)
     
-    # 3. Retrieve PANDORA weights using getWeights
+    # --- Retrieve PANDORA weights using getWeights ---
     w <- getWeights("human")
     
-    # 4. Combine p-values using Harmonic Mean method with combineHarmonic
+    # --- Combine p-values using Harmonic Mean method with ---
     pHarm <- apply(hg19pvalues, 1, combineHarmonic, w)
     
-    # 5. Combine p-values using PANDORA weighted method with combineWeight
+    # --- Combine p-values using PANDORA weighted method with ---
     pPandora <- apply(hg19pvalues, 1, combineWeight, w)
     
     # Construct a combined data frame of results

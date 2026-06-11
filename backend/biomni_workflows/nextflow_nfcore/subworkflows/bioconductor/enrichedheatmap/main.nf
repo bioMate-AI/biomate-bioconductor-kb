@@ -51,7 +51,7 @@ process BIOC_ENRICHEDHEATMAP_ENRICHED_HEATMAP_PIPELINE {
     library(ComplexHeatmap)
     library(circlize)
     
-    # 1. Load Input Data
+    # --- Load Input Data ---
     message("Loading target regions from regions.bed...")
     if (!file.exists("regions.bed")) {
       stop("Required input file 'regions.bed' is missing.")
@@ -74,7 +74,7 @@ process BIOC_ENRICHEDHEATMAP_ENRICHED_HEATMAP_PIPELINE {
       coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     }
     
-    # 2. Simulate/Generate Genomic Signal
+    # --- Simulate/Generate Genomic Signal ---
     # Since EnrichedHeatmap requires a signal source (GRanges or bigWig) to project onto targets,
     # we generate a synthetic signal GRanges centered around the target regions to ensure
     # a realistic, runnable, and visually meaningful enrichment pattern.
@@ -93,7 +93,7 @@ process BIOC_ENRICHEDHEATMAP_ENRICHED_HEATMAP_PIPELINE {
     signal_peaks <- c(peaks_center, peaks_left, peaks_right)
     signal_peaks\$score <- runif(length(signal_peaks), min = 5, max = 100)
     
-    # 3. Normalize Signal to Target Matrix
+    # --- Normalize Signal to Target Matrix ---
     message("Normalizing genomic signal to target matrix...")
     # We extend 5000 bp upstream and downstream of targets, using 50 bp windows
     mat <- normalizeToMatrix(
@@ -105,7 +105,7 @@ process BIOC_ENRICHEDHEATMAP_ENRICHED_HEATMAP_PIPELINE {
       mean_mode = "w0"
     )
     
-    # 4. Prepare Heatmap Annotations and Splits
+    # --- Prepare Heatmap Annotations and Splits ---
     row_split <- NULL
     if (!is.null(coldata) && nrow(coldata) == length(targets)) {
       # Attempt to find a categorical column for splitting
@@ -122,7 +122,7 @@ process BIOC_ENRICHEDHEATMAP_ENRICHED_HEATMAP_PIPELINE {
     if (is.na(max_val) || max_val <= 0) max_val <- 100
     col_fun <- colorRamp2(c(0, max_val), c("white", "red"))
     
-    # 5. Generate and Save Enriched Heatmap
+    # --- Generate and Save Enriched Heatmap ---
     message("Generating enriched heatmap plot...")
     pdf("enriched_heatmap.pdf", width = 7, height = 9)
     
@@ -145,7 +145,7 @@ process BIOC_ENRICHEDHEATMAP_ENRICHED_HEATMAP_PIPELINE {
     dev.off()
     message("Heatmap saved to enriched_heatmap.pdf")
     
-    # 6. Export Summary Statistics
+    # --- Export Summary Statistics ---
     message("Exporting enrichment summary statistics...")
     bin_means <- colMeans(mat, na.rm = TRUE)
     bin_positions <- seq(-5000, 5000, length.out = length(bin_means))

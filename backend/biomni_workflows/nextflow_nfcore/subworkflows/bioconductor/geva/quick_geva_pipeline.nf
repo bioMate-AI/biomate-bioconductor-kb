@@ -55,20 +55,20 @@ process BIOC_GEVA_QUICK_GEVA_PIPELINE {
     # Load the required Bioconductor package
     library(geva)
     
-    # 1. Read the user input file (GEVAInput object) from the working directory
+    # --- Read the user input file (GEVAInput object) from the ---
     # The input is expected to be a serialized GEVAInput object named 'ginput.rds'
     if (!file.exists("ginput.rds")) {
       stop("Error: 'ginput.rds' not found in the working directory.")
     }
     ginput <- readRDS("ginput.rds")
     
-    # 2. Run the shortcut function geva.quick on the input data
+    # --- Run the shortcut function geva.quick on the input data ---
     gresults <- geva.quick(ginput, resolution=0.25)
     
-    # 3. Re-analyze or fine-tune parameters by calling geva.quick on the results object
+    # --- Re-analyze or fine-tune parameters by calling geva.quick ---
     gresults <- geva.quick(gresults, summary.method='median')
     
-    # 4. Write named output files for the meaningful results
+    # --- Write named output files for the meaningful results ---
     # Save the final GEVAResults object
     saveRDS(gresults, file = "gresults.rds")
     

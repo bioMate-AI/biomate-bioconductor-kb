@@ -51,7 +51,7 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Import Query Regions and Metadata
+    # --- Import Query Regions and Metadata ---
     # ==========================================
     message("Loading input genomic intervals...")
     if (!file.exists("regions.bed")) {
@@ -76,7 +76,7 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     }
     
     # ==========================================
-    # Stage 2: Generate Subject Annotation Set
+    # --- Generate Subject Annotation Set ---
     # ==========================================
     # To perform annotation, we construct a realistic subject GRanges (e.g., gene models)
     # based on the chromosomes present in the query to ensure meaningful overlaps.
@@ -105,7 +105,7 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     subject <- do.call(c, subject_list)
     
     # ==========================================
-    # Stage 3: Annotate Query using hiAnnotator
+    # --- Annotate Query using hiAnnotator ---
     # ==========================================
     message("Running hiAnnotator pipeline...")
     
@@ -149,14 +149,14 @@ process BIOC_HIANNOTATOR_GENOMIC_INTERVAL_ANNOTATION {
     })
     
     # ==========================================
-    # Stage 4: Export Annotated Results
+    # --- Export Annotated Results ---
     # ==========================================
     message("Exporting annotated regions...")
     df_annotated <- as.data.frame(annotated_query)
     write.csv(df_annotated, "annotated_regions.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Diagnostic Visualizations
+    # --- Diagnostic Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("annotation_summary.pdf", width = 8, height = 6)

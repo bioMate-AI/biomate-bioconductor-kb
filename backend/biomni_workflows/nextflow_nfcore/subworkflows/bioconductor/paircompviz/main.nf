@@ -55,7 +55,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     num_features <- 6
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found.")
@@ -81,7 +81,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     }
     
     # ==========================================
-    # Stage 2: Feature Selection & Reshaping
+    # --- Feature Selection & Reshaping ---
     # ==========================================
     # Select the top highly variable features to keep the Hasse diagram readable
     feature_variances <- apply(data_matrix, 1, var, na.rm = TRUE)
@@ -97,7 +97,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     df_long <- na.omit(df_long)
     
     # ==========================================
-    # Stage 3: Pairwise Comparisons & CSV Export
+    # --- Pairwise Comparisons & CSV Export ---
     # ==========================================
     # Perform pairwise t-test
     pairwise_results <- pairwise.t.test(
@@ -117,7 +117,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     write.csv(p_df, "pairwise_pvalues.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Hasse Diagram Visualization (paircomp)
+    # --- Hasse Diagram Visualization (paircomp) ---
     # ==========================================
     # Helper function to safely generate and save Hasse diagrams
     generate_hasse_pdf <- function(filename, compress, title) {
@@ -158,7 +158,7 @@ process BIOC_PAIRCOMPVIZ_PAIRCOMP_VISUALIZATION {
     )
     
     # ==========================================
-    # Stage 5: Manual Hasse Diagram Construction
+    # --- Manual Hasse Diagram Construction ---
     # ==========================================
     # Demonstrate manual construction using transReduct and hasse
     pdf("hasse_diagram_manual.pdf", width = 8, height = 8)

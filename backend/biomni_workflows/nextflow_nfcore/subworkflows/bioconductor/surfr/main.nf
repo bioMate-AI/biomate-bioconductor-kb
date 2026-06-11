@@ -49,7 +49,7 @@ process BIOC_SURFR_SURFR_SURFACE_PROTEIN_PIPELINE {
     library(SurfR)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read counts and coldata
@@ -92,7 +92,7 @@ process BIOC_SURFR_SURFR_SURFACE_PROTEIN_PIPELINE {
     Nreplica <- min(table(coldata\$condition))
     
     # ==========================================
-    # Stage 2: Differential Gene Expression (DGE)
+    # --- Differential Gene Expression (DGE) ---
     # ==========================================
     
     df_dge <- DGE(
@@ -112,7 +112,7 @@ process BIOC_SURFR_SURFR_SURFACE_PROTEIN_PIPELINE {
     write.csv(df_dge, "dge_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 3: Surface Protein Identification
+    # --- Surface Protein Identification ---
     # ==========================================
     
     # Select significant DEGs (fallback to top 50 by p-value if none are significant)
@@ -133,7 +133,7 @@ process BIOC_SURFR_SURFR_SURFACE_PROTEIN_PIPELINE {
     write.csv(SP, "surface_proteins.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 4: Functional Enrichment & Annotation
+    # --- Functional Enrichment & Annotation ---
     # ==========================================
     
     dfList <- list(Dataset = df_dge)
@@ -161,7 +161,7 @@ process BIOC_SURFR_SURFR_SURFACE_PROTEIN_PIPELINE {
     write.csv(annotated, "annotated_pathways.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     # 1. PCA Plot

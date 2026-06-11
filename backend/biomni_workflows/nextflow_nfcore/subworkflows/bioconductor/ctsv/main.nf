@@ -45,14 +45,14 @@ process BIOC_CTSV_CTSV_SPATIAL_VARIABLE_GENES {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     suppressPackageStartupMessages({
         library(CTSV)
         library(SpatialExperiment)
         library(S4Vectors)
     })
     
-    # Stage 2: Read and preprocess user input files
+    # --- Read and preprocess user input files ---
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", check.names = FALSE)
@@ -70,7 +70,7 @@ process BIOC_CTSV_CTSV_SPATIAL_VARIABLE_GENES {
     # Filter out genes with zero expression across all selected samples
     counts_matrix <- counts_matrix[rowSums(counts_matrix > 0) > 0, , drop = FALSE]
     
-    # Stage 3: Extract or generate spatial coordinates
+    # --- Extract or generate spatial coordinates ---
     message("Processing spatial coordinates...")
     x_col <- grep("^x\$|coord_x|spatial1|pos_x|east", colnames(coldata), ignore.case = TRUE, value = TRUE)[1]
     y_col <- grep("^y\$|coord_y|spatial2|pos_y|north", colnames(coldata), ignore.case = TRUE, value = TRUE)[1]
@@ -87,7 +87,7 @@ process BIOC_CTSV_CTSV_SPATIAL_VARIABLE_GENES {
     }
     rownames(spatial_coords) <- coldata\$sample
     
-    # Stage 4: Extract or generate cell-type proportions (W)
+    # --- Extract or generate cell-type proportions (W) ---
     message("Processing cell-type proportions...")
     prop_cols <- grep("prop|celltype|fraction", colnames(coldata), ignore.case = TRUE, value = TRUE)
     if (length(prop_cols) >= 2) {
@@ -102,7 +102,7 @@ process BIOC_CTSV_CTSV_SPATIAL_VARIABLE_GENES {
         rownames(W) <- coldata\$sample
     }
     
-    # Stage 5: Construct SpatialExperiment object
+    # --- Construct SpatialExperiment object ---
     message("Constructing SpatialExperiment object...")
     spe <- SpatialExperiment::SpatialExperiment(
         assays = list(counts = counts_matrix),
@@ -110,7 +110,7 @@ process BIOC_CTSV_CTSV_SPATIAL_VARIABLE_GENES {
         spatialCoords = spatial_coords
     )
     
-    # Stage 6: Run CTSV analysis
+    # --- Run CTSV analysis ---
     message("Running CTSV analysis...")
     # Retrieve parameters
     fdr_thresh <- as.numeric(Sys.getenv("fdr_threshold", unset = "0.05"))
@@ -118,11 +118,11 @@ process BIOC_CTSV_CTSV_SPATIAL_VARIABLE_GENES {
     
     result <- CTSV::CTSV(spe, W, num_core = cores)
     
-    # Stage 7: Identify Spatially Variable (SV) genes
+    # --- Identify Spatially Variable (SV) genes ---
     message("Identifying spatially variable genes...")
     re <- CTSV::svGene(result\$qval, fdr_thresh)
     
-    # Stage 8: Format and save outputs
+    # --- Format and save outputs ---
     message("Writing output files...")
     
     # 1. Save full q-value matrix

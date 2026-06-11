@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Preprocess the count matrix using process_Y. 2. Run the FEAST or FEAST_fast wrapper function to obtain ranked gene indices
+//  * 1. [Core Analysis] Preprocess the count matrix using process_Y
+//  * 2. [Core Analysis] Run the FEAST wrapper function to obtain ranked gene
 
 nextflow.enable.dsl = 2
 
@@ -90,10 +91,10 @@ process BIOC_FEAST_FAST_FEATURE_SELECTION {
     
     # --- FEAST Workflow ---
     
-    # 1. Preprocess the count matrix using process_Y
+    # --- Preprocess the count matrix using process_Y ---
     Y = process_Y(Y, thre = 2)
     
-    # 2. Run the FEAST wrapper function to obtain ranked gene indices
+    # --- Run the FEAST wrapper function to obtain ranked gene ---
     ixs = FEAST(Y, k=k)
     
     # Alternative fast wrapper calls (reproduced from documented code comments)

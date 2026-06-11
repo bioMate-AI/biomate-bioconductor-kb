@@ -45,7 +45,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
           }
         }
     
-    # Stage 1: Load libraries and install dependencies if missing
+    # --- Load libraries and install dependencies if missing ---
     library(BiocGenerics)
     library(S4Vectors)
     
@@ -72,7 +72,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
     }
     library(mesh_db, character.only = TRUE)
     
-    # Stage 2: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -90,7 +90,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
     cpm <- t(t(counts) / libsizes) * 1e6
     log_cpm <- log2(cpm + 1)
     
-    # Stage 3: Differential Expression Analysis (Base R)
+    # --- Differential Expression Analysis (Base R) ---
     message("Performing differential expression analysis...")
     groups <- as.factor(coldata\$condition)
     levels <- levels(groups)
@@ -119,7 +119,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
     )
     de_res\$padj <- p.adjust(de_res\$pvalue, method = "BH")
     
-    # Stage 4: Select Genes for Over-Representation Analysis (ORA)
+    # --- Select Genes for Over-Representation Analysis (ORA) ---
     # MeSH enrichment requires Entrez Gene IDs. We assume gene_id contains Entrez IDs.
     sig_genes <- de_res\$gene_id[which(de_res\$padj < 0.05 & abs(de_res\$log2FC) > 1)]
     
@@ -133,7 +133,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
         sig_genes <- de_res\$gene_id[order(de_res\$pvalue)[1:min(100, nrow(de_res))]]
     }
     
-    # Stage 5: MeSH Over-Representation Analysis (ORA)
+    # --- MeSH Over-Representation Analysis (ORA) ---
     message("Running MeSH Over-Representation Analysis...")
     organism <- get_organism(mesh_db)
     message(paste("Organism detected:", organism))
@@ -150,7 +150,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
         return(NULL)
     })
     
-    # Stage 6: MeSH Gene Set Enrichment Analysis (GSEA)
+    # --- MeSH Gene Set Enrichment Analysis (GSEA) ---
     message("Running MeSH Gene Set Enrichment Analysis...")
     # Prepare ranked gene list
     gene_list <- de_res\$log2FC
@@ -169,7 +169,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
         return(NULL)
     })
     
-    # Stage 7: Semantic Similarity Analysis
+    # --- Semantic Similarity Analysis ---
     message("Computing semantic similarity...")
     sim_matrix <- NULL
     sem_data <- tryCatch({
@@ -190,7 +190,7 @@ process BIOC_MESHES_MESH_ENRICHMENT_AND_SEMANTIC_ANALYSIS {
         })
     }
     
-    # Stage 8: Save Results and Generate Visualizations
+    # --- Save Results and Generate Visualizations ---
     message("Writing output files...")
     
     # Helper to write tables safely

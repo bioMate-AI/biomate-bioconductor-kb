@@ -50,7 +50,7 @@ process BIOC_CELLSCORE_CELLSCORE_IDENTITY_EVALUATION {
     library(Biobase)
     
     # ==========================================
-    # Stage 1: Read and Preprocess Input Data
+    # --- Read and Preprocess Input Data ---
     # ==========================================
     
     message("Reading input files...")
@@ -103,7 +103,7 @@ process BIOC_CELLSCORE_CELLSCORE_IDENTITY_EVALUATION {
                           phenoData = AnnotatedDataFrame(coldata))
     
     # ==========================================
-    # Stage 2: Define Transition and Extract Markers
+    # --- Define Transition and Extract Markers ---
     # ==========================================
     
     # Identify donor and target groups dynamically
@@ -166,7 +166,7 @@ process BIOC_CELLSCORE_CELLSCORE_IDENTITY_EVALUATION {
     marker.genes <- ensure_markers(marker.genes, eset, donor, target)
     
     # ==========================================
-    # Stage 3: Calculate CellScore
+    # --- Calculate CellScore ---
     # ==========================================
     
     message("Calculating CellScore...")
@@ -189,7 +189,7 @@ process BIOC_CELLSCORE_CELLSCORE_IDENTITY_EVALUATION {
     message("Cell scores saved to cell_scores.csv")
     
     # ==========================================
-    # Stage 4: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     
     transition_name <- paste0(donor, " to ", target)

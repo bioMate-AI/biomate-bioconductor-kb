@@ -44,19 +44,19 @@ process BIOC_TIDYSBML_TIDYSBML_GENOMIC_PIPELINE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(tidysbml)
     library(rtracklayer)
     library(GenomicRanges)
     library(S4Vectors)
     library(BiocGenerics)
     
-    # Stage 2: Import input files from the working directory
+    # --- Import input files from the working directory ---
     message("Reading input genomic intervals and metadata...")
     regions <- rtracklayer::import("regions.bed")
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 3: Construct a valid SBML XML representation from genomic data
+    # --- Construct a valid SBML XML representation from genomic ---
     # We map chromosomes to Compartments, genomic regions to Species, and sequential transitions to Reactions.
     message("Generating SBML model from genomic regions...")
     sbml_lines <- c(
@@ -132,7 +132,7 @@ process BIOC_TIDYSBML_TIDYSBML_GENOMIC_PIPELINE {
     writeLines(sbml_lines, sbml_file)
     message("SBML model written to: ", sbml_file)
     
-    # Stage 4: Validate the generated SBML file
+    # --- Validate the generated SBML file ---
     message("Validating SBML file...")
     validation_status <- tryCatch({
       tidysbml::sbml_validate(sbml_file)
@@ -141,7 +141,7 @@ process BIOC_TIDYSBML_TIDYSBML_GENOMIC_PIPELINE {
       NULL
     })
     
-    # Stage 5: Convert SBML to R list and extract tidy data frames
+    # --- Convert SBML to R list and extract tidy data frames ---
     message("Converting SBML to R list and extracting data frames...")
     sbml_list <- tidysbml::sbml_as_list(sbml_file)
     list_of_dfs <- tidysbml::as_dfs(sbml_list, type = "list")
@@ -195,7 +195,7 @@ process BIOC_TIDYSBML_TIDYSBML_GENOMIC_PIPELINE {
       }
     }
     
-    # Stage 6: Extract and process annotations
+    # --- Extract and process annotations ---
     message("Processing annotations from species data frame...")
     mapped_annotations <- data.frame(species_id = character(), annotation_uri = character(), uniprot_id = character(), stringsAsFactors = FALSE)
     
@@ -223,7 +223,7 @@ process BIOC_TIDYSBML_TIDYSBML_GENOMIC_PIPELINE {
       }
     }
     
-    # Stage 7: Write all outputs to CSV files
+    # --- Write all outputs to CSV files ---
     message("Writing output tables...")
     write.csv(df_compartments, "sbml_compartments.csv", row.names = FALSE)
     write.csv(df_species, "sbml_species.csv", row.names = FALSE)

@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Initialize deconvolution parameters (iterations and number of components L). 2. Run reference-free deconvolution using `retrofit::
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Reference-free Deconvolution
+//  * 3. [Core Analysis] Option A: Cell-type Annotation via annotated single-cell
+//  * 4. [Core Analysis] Option B: Cell-type Annotation via known marker genes
 
 nextflow.enable.dsl = 2
 
@@ -63,7 +66,7 @@ process BIOC_RETROFIT_TWO_STEP_DECONVOLUTION_AND_ANNOTATION {
         library(grDevices)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         # Load Spatial Transcriptomics Matrix X (G x S)
@@ -96,7 +99,7 @@ process BIOC_RETROFIT_TWO_STEP_DECONVOLUTION_AND_ANNOTATION {
         sc_ref <- as.matrix(sc_ref)
         
         # ==========================================
-        # 2. Reference-free Deconvolution
+        # --- Reference-free Deconvolution ---
         # ==========================================
         iterations = 4000
         L = 20
@@ -115,7 +118,7 @@ process BIOC_RETROFIT_TWO_STEP_DECONVOLUTION_AND_ANNOTATION {
         saveRDS(result, "decomposed_result.rds")
         
         # ==========================================
-        # 3. Option A: Cell-type Annotation via annotated single-cell reference
+        # --- Option A: Cell-type Annotation via annotated single-cell ---
         # ==========================================
         message("Running cell-type annotation via single-cell reference...")
         K = ncol(sc_ref) # number of cell types
@@ -157,7 +160,7 @@ process BIOC_RETROFIT_TWO_STEP_DECONVOLUTION_AND_ANNOTATION {
         })
         
         # ==========================================
-        # 4. Option B: Cell-type Annotation via known marker genes
+        # --- Option B: Cell-type Annotation via known marker genes ---
         # ==========================================
         message("Running cell-type annotation via known marker genes...")
         K = length(marker_ref) # number of cell types

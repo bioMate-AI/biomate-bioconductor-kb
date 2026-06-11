@@ -48,7 +48,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     
     # Read user input files
@@ -82,7 +82,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     coldata <- coldata[common_samples, , drop = FALSE]
     
     # ==========================================
-    # Stage 2: Construct SummarizedExperiment
+    # --- Construct SummarizedExperiment ---
     # ==========================================
     
     se <- SummarizedExperiment(
@@ -91,7 +91,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     # ==========================================
     
     # Filter out features with too many missing values (NAs or NaNs)
@@ -100,7 +100,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     se_filtered <- se[missing_prop <= missing_cutoff, ]
     
     # ==========================================
-    # Stage 4: Log Transformation & Normalization
+    # --- Log Transformation & Normalization ---
     # ==========================================
     
     # Replace 0 with NA to represent missing values typically found in mass spectrometry
@@ -121,7 +121,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     assay(se_filtered, "normalized") <- norm_vals
     
     # ==========================================
-    # Stage 5: Peptide-to-Protein Aggregation
+    # --- Peptide-to-Protein Aggregation ---
     # ==========================================
     
     n_feats <- nrow(se_filtered)
@@ -157,7 +157,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     }
     
     # ==========================================
-    # Stage 6: Differential Abundance Analysis
+    # --- Differential Abundance Analysis ---
     # ==========================================
     
     conditions <- colData(protein_se)\$condition
@@ -203,7 +203,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     }
     
     # ==========================================
-    # Stage 7: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     
     pdf("qc_plots.pdf", width = 12, height = 6)
@@ -245,7 +245,7 @@ process BIOC_MSDATAHUB_PROTEOMICS_SUMMARIZED_EXPERIMENT_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 8: Export Results
+    # --- Export Results ---
     # ==========================================
     
     write.csv(as.data.frame(assay(protein_se, "normalized")), "protein_intensities.csv", row.names = TRUE)

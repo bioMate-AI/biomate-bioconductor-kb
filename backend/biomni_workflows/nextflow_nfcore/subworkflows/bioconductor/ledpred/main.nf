@@ -69,7 +69,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
       stop(paste("Missing required input files:", paste(missing_files, collapse = ", ")))
     }
     
-    # Step 1: Map features to positive and negative CRMs to build the training set matrix
+    # --- Map features to positive and negative CRMs to build the ---
     crm.feature.list <- mapFeaturesToCRMs(
       URL = 'http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php', 
       positive.bed = positive.regions, 
@@ -87,7 +87,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     # Save the mapped training features
     write.csv(crm.features, file = "mapped_crm_features.csv", row.names = TRUE)
     
-    # Step 2: Tune SVM cost and gamma parameters using cross-validation
+    # --- Tune SVM cost and gamma parameters using cross-validation ---
     cost.vector <- c(1, 3, 10)
     gamma.vector <- c(1, 3, 10)
     c.g.obj <- mcTune(
@@ -102,7 +102,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     # Save tuning results
     saveRDS(c.g.obj, file = "svm_parameter_tuning.rds")
     
-    # Step 3: Rank features using Recursive Feature Elimination (RFE)
+    # --- Rank features using Recursive Feature Elimination (RFE) ---
     feature.ranking <- rankFeatures(
       data = crm.features, 
       cost = cost, 
@@ -112,7 +112,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     )
     write.csv(feature.ranking, file = "feature_ranking.csv", row.names = FALSE)
     
-    # Step 4: Determine the optimal number of features using Cohen's kappa coefficient
+    # --- Determine the optimal number of features using Cohen's ---
     feature.nb.tuner.obj <- tuneFeatureNb(
       data = crm.features, 
       feature.ranking = feature.ranking, 
@@ -129,7 +129,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
       feature.nb <- min(60, nrow(feature.ranking))
     }
     
-    # Step 5: Create the final SVM model
+    # --- Create the final SVM model ---
     model.obj <- createModel(
       data = crm.features, 
       cost = cost, 
@@ -144,7 +144,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     feature.weights <- as.data.frame(t(t(model.obj\$model\$coefs) %*% model.obj\$model\$SV))
     write.csv(feature.weights, file = "feature_weights.csv", row.names = TRUE)
     
-    # Step 6: Evaluate model performance with ROC and Precision-Recall curves
+    # --- Evaluate model performance with ROC and Precision-Recall ---
     probs.labels.list <- evaluateModelPerformance(
       data = crm.features, 
       feature.ranking = feature.ranking, 
@@ -155,7 +155,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     )
     saveRDS(probs.labels.list, file = "model_evaluation_probs.rds")
     
-    # Step 7: Map features to unknown sequences without negative regions
+    # --- Map features to unknown sequences without negative regions ---
     prediction.crm.features.list <- mapFeaturesToCRMs(
       URL = 'http://ifbprod.aitorgonzalezlab.org/map_features_to_crms.php', 
       positive.bed = positive.bed, 
@@ -172,7 +172,7 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     prediction.crm.features <- prediction.crm.features.list\$crm.features
     write.csv(prediction.crm.features, file = "prediction_crm_features.csv", row.names = TRUE)
     
-    # Step 8: Score the unknown sequences using the trained model
+    # --- Score the unknown sequences using the trained model ---
     pred.test <- scoreData(
       data = prediction.crm.features, 
       model = model.obj, 

@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Pre-filter raw count data using PreFL to remove low-abundance/rare OTUs. 2. Transform filtered counts using CLR transformation wit
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Pre-filtering
+//  * 3. [Visualization & Output] Transformation
+//  * 4. [Visualization & Output] Batch Effect Detection & Visualization Setup
+//  * 5. [Visualization & Output] Batch Effect Correction
+//  * 6. [Visualization & Output] Assessing Batch Effect Correction
+//  * 7. [Visualization & Output] Variable Selection
+//  * 8. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -57,7 +64,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         library(ggplot2)
         
         # ==========================================
-        # 1. Read User Input Files
+        # --- Read User Input Files ---
         # ==========================================
         
         # Read ad.count
@@ -118,7 +125,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         names(ad.batch) <- names(ad.trt) <- rownames(ad.metadata)
         
         # ==========================================
-        # 2. Pre-filtering
+        # --- Pre-filtering ---
         # ==========================================
         ad.filter.res <- PreFL(data = ad.count)
         ad.filter <- ad.filter.res\$data.filter
@@ -131,13 +138,13 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         write.csv(filter_stats, "filtering_statistics.csv", row.names = FALSE)
         
         # ==========================================
-        # 3. Transformation
+        # --- Transformation ---
         # ==========================================
         ad.clr <- logratio.transfo(X = ad.filter, logratio = "CLR", offset = 1)
         class(ad.clr) <- "matrix"
         
         # ==========================================
-        # 4. Batch Effect Detection & Visualization Setup
+        # --- Batch Effect Detection & Visualization Setup ---
         # ==========================================
         # Open PDF device to capture all diagnostic and assessment plots
         pdf("PLSDAbatch_microbiome_correction_plots.pdf", width = 11, height = 8.5)
@@ -224,7 +231,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         print(ad.rda.before\$part\$indfract)
         
         # ==========================================
-        # 5. Batch Effect Correction
+        # --- Batch Effect Correction ---
         # ==========================================
         # Determine optimal components dynamically
         ncomp_trt <- nlevels(ad.trt) - 1
@@ -270,7 +277,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         ad.sPLSDA_batch.cnc <- ad.sPLSDA_batch.res.cnc\$X.nobatch
         
         # ==========================================
-        # 6. Assessing Batch Effect Correction
+        # --- Assessing Batch Effect Correction ---
         # ==========================================
         # Post-correction PCA
         ad.pca.PLSDA_batch.cnc <- pca(ad.PLSDA_batch.cnc, ncomp = 3, scale = TRUE)
@@ -515,7 +522,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         dev.off()
         
         # ==========================================
-        # 7. Variable Selection
+        # --- Variable Selection ---
         # ==========================================
         keepX_sel <- min(50, ncol(ad.clr))
         
@@ -535,7 +542,7 @@ process BIOC_PLSDABATCH_MICROBIOME_BATCH_CORRECTION {
         cat("Overlap count between PLSDA-batch and sPLSDA-batch selected variables:", overlap_count, "\n")
         
         # ==========================================
-        # 8. Save Outputs
+        # --- Save Outputs ---
         # ==========================================
         saveRDS(ad.PLSDA_batch.reg, "ad.PLSDA_batch.reg.rds")
         saveRDS(ad.sPLSDA_batch.reg, "ad.sPLSDA_batch.reg.rds")

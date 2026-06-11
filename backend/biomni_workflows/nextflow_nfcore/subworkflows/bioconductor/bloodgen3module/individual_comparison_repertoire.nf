@@ -46,7 +46,7 @@ process BIOC_BLOODGEN3MODULE_INDIVIDUAL_COMPARISON_REPERTOIRE {
     
     library(BloodGen3Module)
     
-    # 1. Load and validate inputs
+    # --- Load and validate inputs ---
     message("Loading input files...")
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
@@ -83,7 +83,7 @@ process BIOC_BLOODGEN3MODULE_INDIVIDUAL_COMPARISON_REPERTOIRE {
       colData = coldata
     )
     
-    # 2. Run Individual Comparison Analysis
+    # --- Run Individual Comparison Analysis ---
     message("Running individual comparison...")
     Individual_df <- tryCatch({
       Individualcomparison(
@@ -100,7 +100,7 @@ process BIOC_BLOODGEN3MODULE_INDIVIDUAL_COMPARISON_REPERTOIRE {
       NULL
     })
     
-    # 3. Save results and generate visualization
+    # --- Save results and generate visualization ---
     if (!is.null(Individual_df)) {
       write.csv(Individual_df, "individual_comparison_results.csv", row.names = TRUE)
       

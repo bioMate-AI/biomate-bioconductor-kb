@@ -61,13 +61,13 @@ process BIOC_DELTAGSEG_DIFFERENTIATION_TRANSFORMATION {
     }
     simtraj.tr <- readRDS("simtraj.tr")
     
-    # 1. Apply differentiation transformation using transformSeries with method='differentiation'
+    # --- Apply differentiation transformation using ---
     simtraj.tr2 <- transformSeries(object = simtraj.tr, method = 'differentiation')
     
     # Save the transformed TransTrajectories object
     saveRDS(simtraj.tr2, file = "simtraj.tr2.rds")
     
-    # 2. Visualize the differentiated series and identified segments using plotDiff
+    # --- Visualize the differentiated series and identified ---
     # We redirect the plot to a PDF file for pipeline output
     pdf("plotDiff_1_2.pdf", width = 8, height = 6)
     plotDiff(simtraj.tr2, name = "1_2")

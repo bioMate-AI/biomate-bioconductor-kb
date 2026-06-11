@@ -49,7 +49,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     library(rtracklayer)
     
     # ==========================================
-    # Stage 1: Import and Preprocess Input Data
+    # --- Import and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Importing genomic regions and metadata...")
     
@@ -136,7 +136,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     cgh_data <- cgh_data[o, ]
     
     # ==========================================
-    # Stage 2: Run CGHnormaliter Pipeline
+    # --- Run CGHnormaliter Pipeline ---
     # ==========================================
     message("Stage 2: Running CGHnormaliter normalization...")
     
@@ -148,7 +148,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     )
     
     # ==========================================
-    # Stage 3: Export Normalized Data and Calls
+    # --- Export Normalized Data and Calls ---
     # ==========================================
     message("Stage 3: Exporting results to files...")
     
@@ -180,7 +180,7 @@ process BIOC_CGHNORMALITER_CGHNORMALITER_PIPELINE {
     }
     
     # ==========================================
-    # Stage 4: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     # ==========================================
     message("Stage 4: Generating diagnostic plots...")
     

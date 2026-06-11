@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize metagene2 object with region_mode="stitch"; 2. Produce metagene plot
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Initialize metagene2 Object (Stitch Mode)
+//  * 3. [Visualization & Output] Produce Metagene Plot and Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +54,7 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read the GRangesList of exons grouped by gene/transcript
@@ -78,7 +80,7 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     }
     
     # ==========================================
-    # 2. Initialize metagene2 Object (Stitch Mode)
+    # --- Initialize metagene2 Object (Stitch Mode) ---
     # ==========================================
     
     # Initialize the metagene2 object using the exact documented arguments
@@ -92,7 +94,7 @@ process BIOC_METAGENE2_RNASEQ_METAGENE_ANALYSIS {
     saveRDS(processed_regions, "processed_regions.rds")
     
     # ==========================================
-    # 3. Produce Metagene Plot and Save Outputs
+    # --- Produce Metagene Plot and Save Outputs ---
     # ==========================================
     
     # Generate and save the metagene plot to a PDF file

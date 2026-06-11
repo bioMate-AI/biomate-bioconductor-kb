@@ -67,13 +67,13 @@ process BIOC_KMCUT_OPTIMAL_CUTOFF_PERMUTATION {
       stop("Required input file 'survival_data.txt' is missing from the working directory.")
     }
     
-    # Stage 1: Create a SummarizedExperiment object from the input files
+    # --- Create a SummarizedExperiment object from the input files ---
     se <- create_se_object(efile = fdat, sfile = sdat)
     
     # Save the constructed SummarizedExperiment object as an RDS file
     saveRDS(se, file = "se_object.rds")
     
-    # Stage 2: Run the permutation test and cutoff optimization
+    # --- Run the permutation test and cutoff optimization ---
     # Using the exact documented function call and arguments
     km_opt_pcut(
       obj = se,

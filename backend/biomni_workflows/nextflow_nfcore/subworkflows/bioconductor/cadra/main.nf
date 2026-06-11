@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Pre-filter the binary feature set based on occurrence frequency using `prefilter_data`. 2. Run the heuristic candidate search usin
+//  * 1. [Visualization & Output] Read in binary features
+//  * 2. [Visualization & Output] Read in input score
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +51,7 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
     # Load R packages
     library(CaDrA)
     
-    # 1. Read in binary features
+    # --- Read in binary features ---
     if (!file.exists("binary_features.csv")) {
       stop("Error: binary_features.csv not found in the working directory.")
     }
@@ -58,7 +59,7 @@ process BIOC_CADRA_CANDIDATE_DRIVER_ANALYSIS {
     FS_mat <- as.matrix(bin_feat_df)
     eset_mut_scna <- SummarizedExperiment::SummarizedExperiment(assays = list(FS_mat))
     
-    # 2. Read in input score
+    # --- Read in input score ---
     if (!file.exists("functional_scores.csv")) {
       stop("Error: functional_scores.csv not found in the working directory.")
     }

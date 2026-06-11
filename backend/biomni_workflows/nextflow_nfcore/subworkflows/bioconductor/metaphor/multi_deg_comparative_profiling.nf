@@ -58,7 +58,7 @@ process BIOC_METAPHOR_MULTI_DEG_COMPARATIVE_PROFILING {
     # Set seed for reproducible bootstrapping in pathwayAnalysis
     set.seed(1234)
     
-    # Stage 1: Run pathway analysis for BRCA using the user-provided DEG list
+    # --- Run pathway analysis for BRCA using the user-provided DEG ---
     brca <- pathwayAnalysis(
       DEGpath = "BRCA_DEGS.csv",
       genename = "X",
@@ -70,7 +70,7 @@ process BIOC_METAPHOR_MULTI_DEG_COMPARATIVE_PROFILING {
     # Save the calculated BRCA scores to a CSV file
     write.csv(brca, "BRCA_Scores.csv", row.names = TRUE)
     
-    # Stage 2: Load pre-calculated scores for comparison conditions from user input
+    # --- Load pre-calculated scores for comparison conditions from ---
     ovca <- read.csv(
       "OVCA_Scores.csv",
       header = TRUE,
@@ -83,14 +83,14 @@ process BIOC_METAPHOR_MULTI_DEG_COMPARATIVE_PROFILING {
       row.names = 1
     )
     
-    # Stage 3: Combine the scores into a list
+    # --- Combine the scores into a list ---
     all.scores <- list(brca, ovca, prad)
     names <- c("BRCA", "OVCA", "PRAD")
     
     # Save the combined scores list as an RDS object
     saveRDS(all.scores, "all_scores.rds")
     
-    # Stage 4: Generate and save the comparative heatmap
+    # --- Generate and save the comparative heatmap ---
     pdf("comparative_heatmap.pdf", width = 10, height = 8)
     metaHeatmap(
       scorelist = all.scores,

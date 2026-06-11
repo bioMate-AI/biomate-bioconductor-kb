@@ -48,7 +48,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     library(cn.mops)
     library(GenomicRanges)
     
-    # Stage 1: Read and Preprocess Input
+    # --- Read and Preprocess Input ---
     message("Reading input data...")
     df <- read.csv("input.csv", header=TRUE, check.names=FALSE, stringsAsFactors=FALSE)
     
@@ -79,7 +79,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     count_matrix[is.na(count_matrix)] <- 0
     count_matrix[count_matrix < 0] <- 0
     
-    # Stage 2: Parse Genomic Coordinates or Generate Dummy Coordinates
+    # --- Parse Genomic Coordinates or Generate Dummy Coordinates ---
     message("Parsing genomic coordinates...")
     features <- rownames(count_matrix)
     parsed <- FALSE
@@ -117,7 +117,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     # Append read counts as metadata columns to the GRanges object
     mcols(gr) <- as.data.frame(count_matrix)
     
-    # Stage 3: Run cn.mops Pipeline
+    # --- Run cn.mops Pipeline ---
     message("Running cn.mops copy number estimation...")
     # cn.mops works best with multiple samples (ideally 3 or more)
     res <- cn.mops(
@@ -131,7 +131,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     message("Calculating integer copy numbers...")
     res <- calcIntegerCopyNumbers(res)
     
-    # Stage 4: Extract and Export Results
+    # --- Extract and Export Results ---
     message("Extracting results...")
     
     # 1. Individual CNV calls
@@ -149,7 +149,7 @@ process BIOC_CN_MOPS_CN_MOPS_MULTISAMPLE_CNV {
     icn_df <- data.frame(feature_id = rownames(count_matrix), icn_matrix, check.names=FALSE)
     write.csv(icn_df, "integer_copy_numbers.csv", row.names=FALSE)
     
-    # Stage 5: Visualization
+    # --- Visualization ---
     message("Generating diagnostic plots...")
     pdf("cn_mops_plot.pdf", width=10, height=8)
     num_samples <- ncol(count_matrix)

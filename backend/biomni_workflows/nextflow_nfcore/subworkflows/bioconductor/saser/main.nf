@@ -67,7 +67,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     library(txdbmaker)
     
     # -----------------------------------------------------------------------------
-    # 1. USER INPUTS
+    # --- USER INPUTS ---
     # Read GTF and BAM files from the working directory
     # -----------------------------------------------------------------------------
     gtfFileName <- list.files(pattern = "\\\\.gtf\$", full.names = TRUE)[1]
@@ -89,13 +89,13 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     )
     
     # -----------------------------------------------------------------------------
-    # 2. GENOME ANNOTATION & FEATURE EXTRACTION
+    # --- GENOME ANNOTATION & FEATURE EXTRACTION ---
     # -----------------------------------------------------------------------------
     genomeTxDb <- txdbmaker::makeTxDbFromGFF(gtfFileName)
     features <- binGenome(genomeTxDb, logTo = NULL)
     
     # -----------------------------------------------------------------------------
-    # 3. READ COUNTING
+    # --- READ COUNTING ---
     # -----------------------------------------------------------------------------
     ASpliSE <- BamtoAspliCounts(
       features = features,
@@ -106,7 +106,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     )
     
     # -----------------------------------------------------------------------------
-    # 4. ABERRANT EXPRESSION ANALYSIS PIPELINE
+    # --- ABERRANT EXPRESSION ANALYSIS PIPELINE ---
     # -----------------------------------------------------------------------------
     # Extract gene counts
     SEgenes <- convertASpli(ASpliSE, type = "gene")
@@ -133,7 +133,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     )
     
     # -----------------------------------------------------------------------------
-    # 5. WRITE OUTPUTS
+    # --- WRITE OUTPUTS ---
     # -----------------------------------------------------------------------------
     # Save the complete SummarizedExperiment object
     saveRDS(SEgenes, file = "aberrant_expression_results.rds")

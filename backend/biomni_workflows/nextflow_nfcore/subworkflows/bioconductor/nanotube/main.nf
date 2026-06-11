@@ -51,7 +51,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Data Loading and Preprocessing
+    # --- Data Loading and Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing data...")
     
@@ -80,7 +80,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     exprs(dat) <- log2(exprs(dat) + 1)
     
     # ==========================================
-    # Stage 2: Quality Control & PCA
+    # --- Quality Control & PCA ---
     # ==========================================
     message("Stage 2: Generating PCA plot...")
     
@@ -90,7 +90,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 3: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     # ==========================================
     message("Stage 3: Running differential expression analysis...")
     
@@ -118,7 +118,7 @@ process BIOC_NANOTUBE_NANOTUBE_NANOSTRING_PIPELINE {
     dev.off()
     
     # ==========================================
-    # Stage 4: Gene Set Enrichment Analysis (GSEA)
+    # --- Gene Set Enrichment Analysis (GSEA) ---
     # ==========================================
     message("Stage 4: Running Gene Set Enrichment Analysis...")
     

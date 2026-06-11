@@ -46,7 +46,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     # Load required libraries
     library(metabolomicsWorkbenchR)
     
-    # Stage 1: Load local data
+    # --- Load local data ---
     message("Stage 1: Loading local data...")
     if (!file.exists("intensity.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'intensity.csv' or 'coldata.csv' are missing.")
@@ -63,14 +63,14 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     intensity <- intensity[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, , drop = FALSE]
     
-    # Stage 2: Create SummarizedExperiment
+    # --- Create SummarizedExperiment ---
     message("Stage 2: Creating SummarizedExperiment...")
     se <- SummarizedExperiment(
         assays = list(intensity = as.matrix(intensity)),
         colData = DataFrame(coldata)
     )
     
-    # Stage 3: Query Metabolomics Workbench for related studies
+    # --- Query Metabolomics Workbench for related studies ---
     message("Stage 3: Querying Metabolomics Workbench for related studies...")
     conditions <- unique(coldata\$condition)
     study_list <- list()
@@ -111,7 +111,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
         )
     }
     
-    # Stage 4: Query Metabolomics Workbench for feature annotations
+    # --- Query Metabolomics Workbench for feature annotations ---
     message("Stage 4: Querying Metabolomics Workbench for feature annotations...")
     feature_ids <- rownames(se)
     # Limit to first 20 features to avoid API rate limits/timeout
@@ -199,7 +199,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
         )
     }
     
-    # Stage 5: Integrate annotations into SummarizedExperiment rowData
+    # --- Integrate annotations into SummarizedExperiment rowData ---
     message("Stage 5: Integrating annotations into SummarizedExperiment...")
     row_df <- data.frame(feature_id = feature_ids, row.names = feature_ids, stringsAsFactors = FALSE)
     if (nrow(annotations_df) > 0 && "feature_id" %in% colnames(annotations_df)) {
@@ -209,7 +209,7 @@ process BIOC_METABOLOMICSWORKBENCHR_METABOLOMICS_WORKBENCH_ANNOTATION {
     }
     rowData(se) <- DataFrame(row_df)
     
-    # Stage 6: Write outputs
+    # --- Write outputs ---
     message("Stage 6: Writing outputs...")
     write.csv(matched_studies, "matched_studies.csv", row.names = FALSE)
     write.csv(row_df, "feature_annotations.csv", row.names = FALSE)

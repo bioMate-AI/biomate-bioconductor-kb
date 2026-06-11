@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare the MIDTList object from separate tables or a MultiAssayExperiment. 2. Inspect the missingness pattern using missPattern. 
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Prepare the MIDTList Object (Documented Code)
+//  * 3. [Visualization & Output] Perform MI-MFA (Documented Code)
+//  * 4. [Visualization & Output] Extract Configurations and Metadata (Documented Code)
+//  * 5. [Visualization & Output] Inspect Missingness Pattern (Documented Code)
+//  * 6. [Visualization & Output] Plot Individuals and Visualize Uncertainty (Documented
+//  * 7. [Visualization & Output] Plot Variables (Documented Code)
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +58,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     library(MultiAssayExperiment)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     # The pipeline reads exactly these files from the working directory:
     # - table1.csv (transcriptomic expression matrix with missing rows)
@@ -83,7 +89,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     NCI60\$mae <- mae_obj
     
     # ==========================================
-    # 2. Prepare the MIDTList Object (Documented Code)
+    # --- Prepare the MIDTList Object (Documented Code) ---
     # ==========================================
     tableList <- NCI60\$dataTables[1:2]
     cell.line <- NCI60\$dataTables\$cell.line
@@ -92,7 +98,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
                         assayNames=c("trans", "prote"))
     
     # ==========================================
-    # 3. Perform MI-MFA (Documented Code)
+    # --- Perform MI-MFA (Documented Code) ---
     # ==========================================
     set.seed(123)
     # Dynamically determine ncomp to avoid failing on small datasets, capped at 50
@@ -105,7 +111,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     saveRDS(midt, "midt_mfa_results.rds")
     
     # ==========================================
-    # 4. Extract Configurations and Metadata (Documented Code)
+    # --- Extract Configurations and Metadata (Documented Code) ---
     # ==========================================
     names(midt)
     
@@ -116,7 +122,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     write.csv(conf, "configurations_M5.csv", row.names = TRUE)
     
     # ==========================================
-    # 5. Inspect Missingness Pattern (Documented Code)
+    # --- Inspect Missingness Pattern (Documented Code) ---
     # ==========================================
     pdf("plot_missing_pattern.pdf")
     patt <- missPattern(midt, colMissing="grey70")
@@ -128,7 +134,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     writeLines(capture.output(print(patt)), "missing_pattern_summary.txt")
     
     # ==========================================
-    # 6. Plot Individuals and Visualize Uncertainty (Documented Code)
+    # --- Plot Individuals and Visualize Uncertainty (Documented ---
     # ==========================================
     pdf("plot_ind_missing_white.pdf")
     print(plotInd(midt, colMissing="white"))
@@ -143,7 +149,7 @@ process BIOC_MISSROWS_MI_MFA_ANALYSIS_AND_VISUALIZATION {
     dev.off()
     
     # ==========================================
-    # 7. Plot Variables (Documented Code)
+    # --- Plot Variables (Documented Code) ---
     # ==========================================
     pdf("plot_var_rad0.5.pdf")
     print(plotVar(midt, radIn=0.5))

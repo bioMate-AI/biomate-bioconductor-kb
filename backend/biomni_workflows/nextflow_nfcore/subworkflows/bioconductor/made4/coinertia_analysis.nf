@@ -49,7 +49,7 @@ process BIOC_MADE4_COINERTIA_ANALYSIS {
     library(ade4)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Data
+    # --- Load and Preprocess Data ---
     # ---------------------------------------------------------
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
@@ -67,7 +67,7 @@ process BIOC_MADE4_COINERTIA_ANALYSIS {
     counts_df <- made4::asDataFrame(counts)
     
     # ---------------------------------------------------------
-    # Stage 2: Split Dataset to Simulate Two Platforms/Assays
+    # --- Split Dataset to Simulate Two Platforms/Assays ---
     # ---------------------------------------------------------
     # To demonstrate Coinertia Analysis (CIA), we split the gene expression matrix 
     # into two distinct subsets of genes (e.g., odd and even rows) representing 
@@ -84,7 +84,7 @@ process BIOC_MADE4_COINERTIA_ANALYSIS {
     }
     
     # ---------------------------------------------------------
-    # Stage 3: Coinertia Analysis (CIA)
+    # --- Coinertia Analysis (CIA) ---
     # ---------------------------------------------------------
     # Run CIA to find co-structure between the two datasets
     coin <- made4::cia(df1, df2)
@@ -98,7 +98,7 @@ process BIOC_MADE4_COINERTIA_ANALYSIS {
     write.csv(cia_summary, "cia_results.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 4: Visualization
+    # --- Visualization ---
     # ---------------------------------------------------------
     pdf("cia_plot.pdf", width = 10, height = 8)
     tryCatch({

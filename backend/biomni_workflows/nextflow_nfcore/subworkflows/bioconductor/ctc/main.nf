@@ -52,7 +52,7 @@ process BIOC_CTC_HIERARCHICAL_CLUSTERING_EXPORT {
     linkage_method <- "complete"
     distance_metric <- "euclidean"
     
-    # Stage 1: Read and preprocess the input data defensively
+    # --- Read and preprocess the input data defensively ---
     if (!file.exists("input.csv")) {
       stop("Input file 'input.csv' not found.")
     }
@@ -89,7 +89,7 @@ process BIOC_CTC_HIERARCHICAL_CLUSTERING_EXPORT {
       stop("Not enough features with non-zero variance for clustering.")
     }
     
-    # Stage 2: Perform Hierarchical Clustering
+    # --- Perform Hierarchical Clustering ---
     message("Performing hierarchical clustering on rows and columns...")
     # Row clustering (features)
     dist_rows <- dist(mat, method = distance_metric)
@@ -99,7 +99,7 @@ process BIOC_CTC_HIERARCHICAL_CLUSTERING_EXPORT {
     dist_cols <- dist(t(mat), method = distance_metric)
     hc <- hclust(dist_cols, method = linkage_method)
     
-    # Stage 3: Export to Newick Format
+    # --- Export to Newick Format ---
     message("Exporting trees to Newick format...")
     newick_rows <- ctc::hc2Newick(hr)
     newick_cols <- ctc::hc2Newick(hc)
@@ -107,13 +107,13 @@ process BIOC_CTC_HIERARCHICAL_CLUSTERING_EXPORT {
     write(newick_rows, file = "dendrogram_rows.newick")
     write(newick_cols, file = "dendrogram_cols.newick")
     
-    # Stage 4: Export to TreeView / Freeview Formats (ATR, GTR, CDT)
+    # --- Export to TreeView / Freeview Formats (ATR, GTR, CDT) ---
     message("Exporting trees to TreeView formats...")
     ctc::r2atr(hc, file = "treeview_cluster.atr")
     ctc::r2gtr(hr, file = "treeview_cluster.gtr")
     ctc::r2cdt(hr, hc, mat, file = "treeview_cluster.cdt")
     
-    # Stage 5: Generate Diagnostic Heatmap Visualization
+    # --- Generate Diagnostic Heatmap Visualization ---
     message("Generating diagnostic heatmap...")
     pdf("heatmap_diagnostic.pdf", width = 10, height = 10)
     tryCatch({

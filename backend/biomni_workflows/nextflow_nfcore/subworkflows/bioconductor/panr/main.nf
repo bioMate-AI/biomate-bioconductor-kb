@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Initialize a BetaMixture object with the phenotype matrix using new("BetaMixture", ...). 2. Fit the NULL distribution representing
+//  * 1. [Visualization & Output] Read User Input Files
+//  * 2. [Visualization & Output] Execute PANR Workflow
+//  * 3. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -62,7 +64,7 @@ process BIOC_PANR_PAN_INFERENCE_AND_MODULE_SEARCH {
     library(RedeR)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     # Read Bakal2007 phenotype matrix
@@ -105,7 +107,7 @@ process BIOC_PANR_PAN_INFERENCE_AND_MODULE_SEARCH {
     }
     
     # ==========================================
-    # 2. Execute PANR Workflow
+    # --- Execute PANR Workflow ---
     # ==========================================
     
     # Initialize BetaMixture object
@@ -181,7 +183,7 @@ process BIOC_PANR_PAN_INFERENCE_AND_MODULE_SEARCH {
     sink()
     
     # ==========================================
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # ==========================================
     saveRDS(bm1, "bm1_fitted.rds")
     saveRDS(pan, "pan_results.rds")

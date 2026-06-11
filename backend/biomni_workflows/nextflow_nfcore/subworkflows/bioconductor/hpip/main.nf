@@ -44,7 +44,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
           }
         }
     
-    # Stage 1: Load libraries and read input files
+    # --- Load libraries and read input files ---
     library(dplyr)
     library(tibble)
     library(stringr)
@@ -62,7 +62,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
       protein_ids <- c("P0DTC2", "P0DTC7", "Q9UBM1", "Q8WVX9", "P62861", "O75489")
     }
     
-    # Stage 2: Define Host and Pathogen proteins and construct Gold Standard Reference Set
+    # --- Define Host and Pathogen proteins and construct Gold ---
     # Split proteins: 30% designated as pathogen, 70% as host
     n_pathogen <- max(1, round(length(protein_ids) * 0.3))
     pathogen_prots <- protein_ids[1:n_pathogen]
@@ -104,7 +104,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     median_cor <- median(all_pairs\$correlation)
     all_pairs\$class <- ifelse(all_pairs\$correlation >= median_cor, 1, 0)
     
-    # Stage 3: Retrieve or generate FASTA sequences
+    # --- Retrieve or generate FASTA sequences ---
     fasta_list <- tryCatch({
       getFASTA(protein_ids, filename = "retrieved_fasta.RData", path = tempdir())
     }, error = function(e) {
@@ -130,7 +130,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
       )
     }
     
-    # Stage 4: Sequence-based Feature Extraction
+    # --- Sequence-based Feature Extraction ---
     aac_df <- calculateAAC(fasta_df)
     ctdc_df <- calculateCTDC(fasta_df)
     ctdt_df <- calculateCTDT(fasta_df)
@@ -155,7 +155,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     pathogen_features <- features_all %>% filter(UniprotID %in% pathogen_prots)
     host_features <- features_all %>% filter(UniprotID %in% host_prots)
     
-    # Stage 5: Combine Host-Pathogen Interaction Descriptors
+    # --- Combine Host-Pathogen Interaction Descriptors ---
     pathogen_feat_m <- as.matrix(pathogen_features[, -1])
     rownames(pathogen_feat_m) <- pathogen_features\$UniprotID
     
@@ -180,7 +180,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     non_zero_sd_cols <- names(sd_vals)[!is.na(sd_vals) & sd_vals != 0]
     xx <- x_hpi[, c("PPI", "class", non_zero_sd_cols)]
     
-    # Stage 6: Feature Selection (Correlation & RFE)
+    # --- Feature Selection (Correlation & RFE) ---
     set.seed(101)
     x_FS <- tryCatch({
       FSmethod(xx, type = "both",
@@ -223,7 +223,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     }
     dev.off()
     
-    # Stage 7: Ensemble Learning & Interaction Prediction
+    # --- Ensemble Learning & Interaction Prediction ---
     gs_df <- x_FS\$rf.result\$rfdf
     gd_labels <- gs_df[, c("class", "PPI")]
     ind_data <- gs_df[, -which(colnames(gs_df) == "class")]
@@ -260,7 +260,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     }
     write.csv(high_conf_ppi, "predicted_interactions.csv", row.names = FALSE)
     
-    # Stage 8: Network Visualization & Degree Distribution
+    # --- Network Visualization & Degree Distribution ---
     plot_df <- high_conf_ppi[, c("Pathogen_protein", "Host_protein", "ensemble")]
     if (nrow(plot_df) > 20) {
       plot_df <- plot_df[1:20, ]
@@ -284,7 +284,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     })
     dev.off()
     
-    # Stage 9: Complex Prediction (Community Detection)
+    # --- Complex Prediction (Community Detection) ---
     predcpx <- tryCatch({
       run_clustering(high_conf_ppi[, c("Pathogen_protein", "Host_protein", "ensemble")], method = "FC")
     }, error = function(e) {
@@ -297,7 +297,7 @@ process BIOC_HPIP_HOST_PATHOGEN_PPI_PREDICTION {
     })
     write.csv(predcpx, "predicted_complexes.csv", row.names = FALSE)
     
-    # Stage 10: Functional Enrichment Analysis
+    # --- Functional Enrichment Analysis ---
     enrich_result <- tryCatch({
       enrichfindP(high_conf_ppi[, c("Pathogen_protein", "Host_protein", "ensemble")],
                   threshold = 0.05,

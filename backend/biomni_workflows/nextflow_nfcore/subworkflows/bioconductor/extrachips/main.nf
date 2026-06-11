@@ -54,7 +54,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     library(scales)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -101,7 +101,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     assay(se, "logCPM") <- edgeR::cpm(assay(se, "counts"), lib.size = se\$totals, log = TRUE)
     
     # ==========================================
-    # STAGE 2: Quality Control & Diagnostics
+    # --- Quality Control & Diagnostics ---
     # ==========================================
     
     message("Generating QC and diagnostic plots...")
@@ -124,7 +124,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Differential Signal Testing
+    # --- Differential Signal Testing ---
     # ==========================================
     
     message("Performing differential signal testing...")
@@ -142,7 +142,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 4: Genomic Feature & Gene Mapping
+    # --- Genomic Feature & Gene Mapping ---
     # ==========================================
     
     message("Mapping differential regions to genes and genomic features...")
@@ -192,7 +192,7 @@ process BIOC_EXTRACHIPS_EXTRA_CHIPS_DIFFERENTIAL_ANALYSIS {
       factor(levels = names(regions_list))
     
     # ==========================================
-    # STAGE 5: Downstream Visualization & Export
+    # --- Downstream Visualization & Export ---
     # ==========================================
     
     message("Generating downstream visualization plots...")

@@ -51,7 +51,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     library(cowplot)
     
     # ==========================================
-    # STAGE 1: Load and Parse Input Data
+    # --- Load and Parse Input Data ---
     # ==========================================
     message("Loading input files...")
     intensity <- read.csv("intensity.csv", check.names = FALSE)
@@ -88,7 +88,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     AT <- annotation_table(data = df_ann, id_column = "feature_id")
     
     # ==========================================
-    # STAGE 2: Build and Run MetMashR Workflow
+    # --- Build and Run MetMashR Workflow ---
     # ==========================================
     message("Building MetMashR workflow...")
     
@@ -127,7 +127,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     W_applied <- model_apply(W, AT)
     
     # ==========================================
-    # STAGE 3: Merge Annotations with Intensities
+    # --- Merge Annotations with Intensities ---
     # ==========================================
     message("Merging annotations back with intensity data...")
     
@@ -142,7 +142,7 @@ process BIOC_METMASHR_METMASHR_METABOLITE_ANNOTATION {
     message("Saved annotated intensity matrix to 'annotated_intensity.csv'")
     
     # ==========================================
-    # STAGE 4: Generate Diagnostic Visualizations
+    # --- Generate Diagnostic Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     

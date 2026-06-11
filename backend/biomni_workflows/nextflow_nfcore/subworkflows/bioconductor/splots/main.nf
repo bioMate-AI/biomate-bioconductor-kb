@@ -47,7 +47,7 @@ process BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION {
     # Load required libraries
     library(splots)
     
-    # Stage 1: Load and preprocess input data
+    # --- Load and preprocess input data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -69,7 +69,7 @@ process BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION {
     coldata <- coldata[coldata\$sample %in% common_samples, ]
     coldata\$intensity <- well_intensities[coldata\$sample]
     
-    # Stage 2: Map samples to microtitre plate layout (96-well format: 12 columns x 8 rows)
+    # --- Map samples to microtitre plate layout (96-well format: ---
     nx <- 12
     ny <- 8
     wells_per_plate <- nx * ny
@@ -81,7 +81,7 @@ process BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION {
     coldata\$row <- ((coldata\$well_idx - 1) %/% nx) + 1
     coldata\$col <- ((coldata\$well_idx - 1) %% nx) + 1
     
-    # Stage 3: Format data structure for splots::plotScreen
+    # --- Format data structure for splots::plotScreen ---
     plates <- unique(coldata\$plate)
     xl <- lapply(plates, function(pl) {
       plate_data <- coldata[coldata\$plate == pl, ]
@@ -92,7 +92,7 @@ process BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION {
     })
     names(xl) <- plates
     
-    # Stage 4: Generate spatial plate visualization
+    # --- Generate spatial plate visualization ---
     pdf("plate_screen_visualization.pdf", width = 10, height = 8)
     tryCatch({
       splots::plotScreen(
@@ -111,7 +111,7 @@ process BIOC_SPLOTS_SPLOTS_PLATE_VISUALIZATION {
     })
     dev.off()
     
-    # Stage 5: Save mapped layout metadata
+    # --- Save mapped layout metadata ---
     write.csv(coldata, "plate_layout_metadata.csv", row.names = FALSE)
 
     writeLines(c(

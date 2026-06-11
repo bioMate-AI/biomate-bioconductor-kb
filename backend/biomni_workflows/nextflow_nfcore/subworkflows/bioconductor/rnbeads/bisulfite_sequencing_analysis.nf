@@ -82,10 +82,10 @@ process BIOC_RNBEADS_BISULFITE_SEQUENCING_ANALYSIS {
       disk.dump.big.matrices = TRUE
     )
     
-    # 1. Define the data source paths (EXACTLY as documented)
+    # --- Define the data source paths (EXACTLY as documented) ---
     data.source <- c(idat.dir, sample.annotation)
     
-    # 2. Run the complete analysis pipeline specifying the sequencing data type (EXACTLY as documented)
+    # --- Run the complete analysis pipeline specifying the ---
     rnb.run.analysis(dir.reports=report.dir, data.source=data.source,
         data.type="bs.bed.dir")
     

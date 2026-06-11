@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Prepare a list of expression matrices and a corresponding list of design vectors for all time points. 2. Run the time course analy
+//  * 1. [Visualization & Output] Prepare a list of expression matrices and a corresponding
+//  * 2. [Visualization & Output] Run the time course analysis using tc
+//  * 3. [Visualization & Output] Summarize the time course results (inertia ratios, active
+//  * 4. [Visualization & Output] Visualize the results across time points using plot
 
 nextflow.enable.dsl = 2
 
@@ -50,7 +53,7 @@ process BIOC_ACDE_TIME_COURSE_ANALYSIS {
     # Load the required package
     library(acde)
     
-    # 1. Prepare a list of expression matrices and a corresponding list of design vectors for all time points.
+    # --- Prepare a list of expression matrices and a corresponding ---
     # Read the declared USER INPUT files from the working directory.
     if (file.exists("phytophthora.rds")) {
       phytophthora <- readRDS("phytophthora.rds")
@@ -68,11 +71,11 @@ process BIOC_ACDE_TIME_COURSE_ANALYSIS {
       stop("Error: 'desPI' input file not found in the working directory.")
     }
     
-    # 2. Run the time course analysis using tc.
+    # --- Run the time course analysis using tc ---
     # Keep the documented function call and its argument names EXACTLY as shown in the vignette.
     tcPI <- tc(phytophthora, desPI)
     
-    # 3. Summarize the time course results (inertia ratios, active timepoint, and group conformations)
+    # --- Summarize the time course results (inertia ratios, active ---
     # using summary and print the object.
     summary_stats <- summary(tcPI)
     print(summary_stats)
@@ -86,7 +89,7 @@ process BIOC_ACDE_TIME_COURSE_ANALYSIS {
     print(tcPI)
     sink()
     
-    # 4. Visualize the results across time points using plot.
+    # --- Visualize the results across time points using plot ---
     # Save the generated plots to a PDF file
     pdf("tcPI_plots.pdf", width = 10, height = 8)
     plot(tcPI)

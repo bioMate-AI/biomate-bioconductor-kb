@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Load the microarray data; 2. Visualize a single array or multiple arrays in a grid layout; 3. Customize probe selection and row-fi
+//  * 1. [Visualization & Output] Load the microarray data
+//  * 2. [Visualization & Output] Visualize a single array
+//  * 3. [Visualization & Output] Visualize multiple arrays in a grid layout
+//  * 4. [Visualization & Output] Customize probe selection and row-filling options
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +54,7 @@ process BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION {
     library(mimager)
     library(Biobase)
     
-    # 1. Load the microarray data
+    # --- Load the microarray data ---
     load("raw_microarray_data.RData")
     
     # Identify the loaded microarray object dynamically
@@ -69,17 +72,17 @@ process BIOC_MIMAGER_RAW_MICROARRAY_VISUALIZATION {
       Dilution <- get(objs[1])
     }
     
-    # 2. Visualize a single array
+    # --- Visualize a single array ---
     pdf("mimage_single.pdf", width = 7, height = 7)
     mimage(Dilution, select = 1)
     dev.off()
     
-    # 3. Visualize multiple arrays in a grid layout
+    # --- Visualize multiple arrays in a grid layout ---
     pdf("mimage_all.pdf", width = 10, height = 10)
     mimage(Dilution)
     dev.off()
     
-    # 4. Customize probe selection and row-filling options
+    # --- Customize probe selection and row-filling options ---
     pdf("mimage_grid.pdf", width = 12, height = 4)
     mimage(Dilution, probes = "all", empty.rows = "ignore", nrow = 1)
     dev.off()

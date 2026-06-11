@@ -51,7 +51,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
     # Define parameters
     bonf_prob <- 0.5
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     message("Reading input files...")
     expr_mat <- as.matrix(read.csv("counts.csv", row.names = 1, check.names = FALSE))
     coldata <- read.csv("coldata.csv", check.names = FALSE)
@@ -73,7 +73,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
         expr_mat <- log2(expr_mat + 1)
     }
     
-    # Stage 2: Create artificial overlapping datasets to simulate multi-study comparison
+    # --- Create artificial overlapping datasets to simulate ---
     # This guarantees we have known doppelgängers to find and validate the pipeline.
     message("Creating artificial study datasets with overlapping samples...")
     # Study A: All samples
@@ -95,7 +95,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
     esetB <- ExpressionSet(assayData = expr_B, phenoData = AnnotatedDataFrame(coldata_B))
     testesets <- list(StudyA = esetA, StudyB = esetB)
     
-    # Stage 3: Run doppelgangR
+    # --- Run doppelgangR ---
     message("Running doppelgangR...")
     results <- tryCatch({
         # Try running with both expression and phenotype matching
@@ -114,7 +114,7 @@ process BIOC_DOPPELGANGR_DOPPELGANGER_ANALYSIS {
         )
     })
     
-    # Stage 4: Save outputs and diagnostics
+    # --- Save outputs and diagnostics ---
     message("Saving results...")
     
     # 1. Save text summary

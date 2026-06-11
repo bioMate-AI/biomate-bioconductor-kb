@@ -55,7 +55,7 @@ process BIOC_CHIPENRICH_PROXIMITY_ANALYSIS {
     # Load required library
     library(chipenrich)
     
-    # Stage 1: Define the path to the gene sets file and load the peaks
+    # --- Define the path to the gene sets file and load the peaks ---
     # Read the user-provided peaks file and format it as a data.frame with required columns
     peaks_df = read.table("peaks_E2F4.bed", header = FALSE, sep = "\t", stringsAsFactors = FALSE)
     colnames(peaks_df)[1:3] = c("chrom", "start", "end")
@@ -64,10 +64,10 @@ process BIOC_CHIPENRICH_PROXIMITY_ANALYSIS {
     # Define the path to the gene sets file
     gs_path = "vignette_genesets.txt"
     
-    # Stage 2: Run proxReg() to calculate peak-to-TSS/enhancer distances and perform a signed Wilcoxon rank-sum test
+    # --- Run proxReg() to calculate peak-to-TSS/enhancer distances ---
     results.prox = proxReg(peaks_E2F4, reglocation = 'tss',	genome = 'hg19', genesets=gs_path, out_name=NULL)
     
-    # Stage 3: Extract and inspect the proximity results
+    # --- Extract and inspect the proximity results ---
     results.prox = results.prox\$results
     print(results.prox[1:5,1:7])
     

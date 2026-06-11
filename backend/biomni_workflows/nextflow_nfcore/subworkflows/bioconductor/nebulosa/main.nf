@@ -60,7 +60,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     library("patchwork")
     library("ggplot2")
     
-    # 1. Import 10X data into a SingleCellExperiment object
+    # --- Import 10X data into a SingleCellExperiment object ---
     # Read the local file from the working directory as specified
     untar("pbmc3k_filtered_gene_bc_matrices.tar.gz", exdir = tempdir())
     pbmc <- read10xCounts(file.path(tempdir(),
@@ -71,7 +71,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     rownames(pbmc) <- uniquifyFeatureNames(rowData(pbmc)[["ID"]],
                                            rowData(pbmc)[["Symbol"]])
     
-    # 2. Pre-process and filter features and cells
+    # --- Pre-process and filter features and cells ---
     i <- rowSums(counts(pbmc) > 0)
     is_expressed <- i > 3
     pbmc <- pbmc[is_expressed, ]
@@ -84,10 +84,10 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     qcstats <- perCellQCMetrics(pbmc, subsets = list(Mito = is_mito))
     qcfilter <- quickPerCellQC(qcstats, percent_subsets = c("subsets_Mito_percent"))
     
-    # 3. Normalize data using log-transformation
+    # --- Normalize data using log-transformation ---
     logcounts(pbmc) <- log1p(counts(pbmc) / colSums(counts(pbmc)) * 1e4)
     
-    # 4. Identify highly variable genes and perform PCA and UMAP dimensionality reduction
+    # --- Identify highly variable genes and perform PCA and UMAP ---
     dec <- modelGeneVar(pbmc)
     top_hvgs <- getTopHVGs(dec, n = 3000)
     
@@ -96,12 +96,12 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     
     pbmc <- runUMAP(pbmc, dimred = "PCA")
     
-    # 5. Cluster cells using SNN graph and Louvain clustering
+    # --- Cluster cells using SNN graph and Louvain clustering ---
     g <- buildSNNGraph(pbmc, k = 10, use.dimred = "PCA")
     clust <- igraph::cluster_louvain(g)\$membership
     colLabels(pbmc) <- factor(clust)
     
-    # 6. Visualize single-gene density and multi-gene joint density using plot_density
+    # --- Visualize single-gene density and multi-gene joint ---
     # Plot 1: CD4 single-gene density
     p1 <- plot_density(pbmc, "CD4")
     ggsave("density_CD4.pdf", plot = p1, width = 8, height = 6)

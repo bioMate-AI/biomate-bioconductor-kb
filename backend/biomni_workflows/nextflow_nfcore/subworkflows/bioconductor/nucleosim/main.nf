@@ -50,7 +50,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Input Parsing & Parameter Setup
+    # --- Input Parsing & Parameter Setup ---
     # ==========================================
     
     # Robust input handling: Create dummy files if they do not exist to ensure runnability
@@ -99,7 +99,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     read.len  <- if ("read.len" %in% colnames(coldata)) coldata\$read.len[1] else 45
     
     # ==========================================
-    # STAGE 2: Multi-Region Simulation Loop
+    # --- Multi-Region Simulation Loop ---
     # ==========================================
     
     all_reads_list <- list()
@@ -176,7 +176,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     combined_fuz   <- do.call(rbind, all_fuz_list)
     
     # ==========================================
-    # STAGE 3: Exporting Simulated Datasets
+    # --- Exporting Simulated Datasets ---
     # ==========================================
     
     # Convert simulated reads to GRanges and export as BED
@@ -195,7 +195,7 @@ process BIOC_NUCLEOSIM_NUCLEOSIM_SYNTHETIC_GENERATION {
     message("Successfully exported nucleosome positions to CSV files.")
     
     # ==========================================
-    # STAGE 4: Tiling Array Simulation & Plotting
+    # --- Tiling Array Simulation & Plotting ---
     # ==========================================
     
     # Simulate a separate hybridization tiling array dataset (ratio-based)

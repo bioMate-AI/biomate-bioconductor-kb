@@ -51,7 +51,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
     
     set.seed(123)
     
-    # 1. Read input files and extract gene IDs
+    # --- Read input files and extract gene IDs ---
     message("Reading input files...")
     gr <- rtracklayer::import("regions.bed", format = "BED")
     gene_ids <- gr\$name
@@ -64,7 +64,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
       gene_ids <- unique(c(gene_ids, paste0("mock_gene_", 1:100)))
     }
     
-    # 2. Create mock orthogroups for two species
+    # --- Create mock orthogroups for two species ---
     message("Creating mock orthogroups...")
     n_genes <- length(gene_ids)
     species <- rep(c("SpeciesA", "SpeciesB"), length.out = n_genes)
@@ -76,7 +76,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
       stringsAsFactors = FALSE
     )
     
-    # 3. Create mock Interpro annotations
+    # --- Create mock Interpro annotations ---
     message("Creating mock Interpro annotations...")
     annotation_list <- lapply(unique(species), function(sp) {
       sp_genes <- gene_ids[species == sp]
@@ -88,7 +88,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
     })
     names(annotation_list) <- unique(species)
     
-    # 4. Assess orthogroups
+    # --- Assess orthogroups ---
     message("Assessing orthogroups...")
     og_assessment <- tryCatch({
       assess_orthogroups(og_df, annotation_list)
@@ -98,7 +98,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
     })
     write.csv(og_assessment, "orthogroup_assessment.csv", row.names = FALSE)
     
-    # 5. Calculate orthogroup overlap
+    # --- Calculate orthogroup overlap ---
     message("Calculating orthogroup overlap...")
     og_overlap <- tryCatch({
       get_og_overlap(og_df)
@@ -107,7 +107,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
     })
     write.csv(og_overlap, "orthogroup_overlap.csv", row.names = FALSE)
     
-    # 6. Plot orthogroup sizes and overlaps
+    # --- Plot orthogroup sizes and overlaps ---
     message("Plotting orthogroup metrics...")
     pdf("orthogroup_sizes.pdf")
     plot_og_sizes(og_df, log = TRUE)
@@ -121,7 +121,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
     })
     dev.off()
     
-    # 7. Create mock synteny network and assess it
+    # --- Create mock synteny network and assess it ---
     message("Assessing synteny network...")
     # Generate a connected mock network to ensure CC > 0 and valid Rsquared
     n_edges <- min(150, length(gene_ids) * 2)
@@ -148,7 +148,7 @@ process BIOC_COGEQC_COMPARATIVE_GENOMICS_QC {
     })
     write.csv(synnet_list_assessment, "synteny_list_assessment.csv", row.names = FALSE)
     
-    # 8. Plot species tree
+    # --- Plot species tree ---
     message("Plotting species tree...")
     mock_tree <- ape::rtree(n = 2, tip.label = c("SpeciesA", "SpeciesB"))
     pdf("species_tree_plot.pdf")

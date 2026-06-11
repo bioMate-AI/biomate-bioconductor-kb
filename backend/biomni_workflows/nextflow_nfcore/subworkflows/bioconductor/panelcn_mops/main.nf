@@ -51,7 +51,7 @@ process BIOC_PANELCN_MOPS_PANELCN_MOPS_CNV_DETECTION {
     message("Starting panelcn.mops CNV analysis pipeline...")
     
     # ==========================================
-    # STAGE 1: Read and Parse Input Defensively
+    # --- Read and Parse Input Defensively ---
     # ==========================================
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
@@ -85,7 +85,7 @@ process BIOC_PANELCN_MOPS_PANELCN_MOPS_CNV_DETECTION {
     }
     
     # ==========================================
-    # STAGE 2: Parse Genomic Coordinates & Build GRanges
+    # --- Parse Genomic Coordinates & Build GRanges ---
     # ==========================================
     message("Parsing genomic coordinates from feature IDs...")
     
@@ -140,7 +140,7 @@ process BIOC_PANELCN_MOPS_PANELCN_MOPS_CNV_DETECTION {
     mcols(countWindows)\$gene <- mcols(input_gr)\$gene
     
     # ==========================================
-    # STAGE 3: Define Test and Control Samples
+    # --- Define Test and Control Samples ---
     # ==========================================
     # panelcn.mops requires a set of control samples to build the baseline.
     # If fewer than 6 samples are provided, we generate synthetic controls to ensure stability.
@@ -167,7 +167,7 @@ process BIOC_PANELCN_MOPS_PANELCN_MOPS_CNV_DETECTION {
     message("Test samples: ", paste(testIdx, collapse = ", "))
     
     # ==========================================
-    # STAGE 4: Run panelcn.mops CNV Detection
+    # --- Run panelcn.mops CNV Detection ---
     # ==========================================
     message("Running panelcn.mops CNV detection...")
     result <- runPanelcnMops(
@@ -180,7 +180,7 @@ process BIOC_PANELCN_MOPS_PANELCN_MOPS_CNV_DETECTION {
     )
     
     # ==========================================
-    # STAGE 5: Extract and Format Results
+    # --- Extract and Format Results ---
     # ==========================================
     message("Creating result tables...")
     resultTable <- createResultTable(
@@ -211,7 +211,7 @@ process BIOC_PANELCN_MOPS_PANELCN_MOPS_CNV_DETECTION {
     message("Results successfully written to cnv_results.csv")
     
     # ==========================================
-    # STAGE 6: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("cnv_plots.pdf", width = 10, height = 7)

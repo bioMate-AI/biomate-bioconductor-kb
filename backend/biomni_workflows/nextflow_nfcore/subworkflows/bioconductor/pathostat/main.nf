@@ -47,7 +47,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     library(PathoStat)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Loading input data...")
     abundance_df <- read.csv("abundance.csv", row.names = 1, check.names = FALSE)
@@ -63,7 +63,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     group <- coldata_df\$group
     
     # ==========================================
-    # Stage 2: Data Transformation & Normalization
+    # --- Data Transformation & Normalization ---
     # ==========================================
     message("Performing data transformations...")
     count_matrix <- as.matrix(abundance_df)
@@ -81,7 +81,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     write.csv(pam_matrix, "presence_absence_matrix.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 3: Taxonomy Resolution
+    # --- Taxonomy Resolution ---
     # ==========================================
     message("Resolving taxonomy...")
     taxon_ids <- rownames(abundance_df)
@@ -105,7 +105,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     write.csv(taxonomy_df, "taxonomy_matrix.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Statistical Association Testing
+    # --- Statistical Association Testing ---
     # ==========================================
     message("Running statistical tests...")
     # Transpose matrices for sample-wise analysis (samples as rows, taxa as columns)
@@ -137,7 +137,7 @@ process BIOC_PATHOSTAT_PATHOSTAT_METAGENOMICS_PIPELINE {
     write.csv(pam_test_results, "pam_test_results.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 5: Biomarker Identification & Classification
+    # --- Biomarker Identification & Classification ---
     # ==========================================
     message("Running biomarker classification...")
     auc_results <- tryCatch({

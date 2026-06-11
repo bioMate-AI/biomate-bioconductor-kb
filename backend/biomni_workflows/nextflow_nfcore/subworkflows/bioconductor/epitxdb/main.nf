@@ -53,7 +53,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read input files from the working directory
@@ -110,7 +110,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     tx_ids <- top_tx\$transcript_id
     
     # ==========================================
-    # STAGE 2: Build Custom EpiTxDb Object
+    # --- Build Custom EpiTxDb Object ---
     # ==========================================
     
     # Generate mock RNA modification sites on the selected transcripts
@@ -154,7 +154,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 3: Query and Access EpiTxDb
+    # --- Query and Access EpiTxDb ---
     # ==========================================
     
     # Retrieve all modifications from the database
@@ -174,7 +174,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Coordinate Shifting & Rescaling
+    # --- Coordinate Shifting & Rescaling ---
     # ==========================================
     
     # Construct a mock GRangesList representing genomic exons for the transcripts
@@ -215,7 +215,7 @@ process BIOC_EPITXDB_EPITRANSCRIPTOMIC_ANNOTATION_PIPELINE {
     genomic_df\$rescaled_position <- start(rescaled_mods)
     
     # ==========================================
-    # STAGE 5: Integration & Visualization
+    # --- Integration & Visualization ---
     # ==========================================
     
     # Merge genomic modifications with expression data

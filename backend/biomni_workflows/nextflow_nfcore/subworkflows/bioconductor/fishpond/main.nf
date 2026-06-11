@@ -12,7 +12,11 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Read sample metadata and import quantification data using tximeta. 2. Scale inferential replicates using scaleInfReps. 3. Filter o
+//  * 1. [Input & Preparation] Read sample metadata
+//  * 2. [Input & Preparation] Import quantification data using tximeta
+//  * 3. [Input & Preparation] Scale inferential replicates
+//  * 4. [Input & Preparation] Filter out low-expression features
+//  * 5. [Input & Preparation] Run Swish differential expression testing
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +55,7 @@ process BIOC_FISHPOND_BULK_DIFFERENTIAL_EXPRESSION {
         library(tximeta)
         library(fishpond)
         
-        # 1. Read sample metadata
+        # --- Read sample metadata ---
         if (!file.exists("coldata.csv")) {
           stop("Error: coldata.csv not found in the working directory.")
         }
@@ -78,22 +82,22 @@ process BIOC_FISHPOND_BULK_DIFFERENTIAL_EXPRESSION {
           coldata\$pair <- as.factor(coldata\$pair)
         }
         
-        # 2. Import quantification data using tximeta
+        # --- Import quantification data using tximeta ---
         message("Importing quantification data using tximeta...")
         y <- tximeta(coldata)
         
-        # 3. Scale inferential replicates
+        # --- Scale inferential replicates ---
         message("Scaling inferential replicates...")
         y <- scaleInfReps(y)
         
-        # 4. Filter out low-expression features
+        # --- Filter out low-expression features ---
         message("Labeling features to keep...")
         y <- labelKeep(y)
         
         # Subset to keep only the labeled features
         y <- y[mcols(y)\$keep, ]
         
-        # 5. Run Swish differential expression testing
+        # --- Run Swish differential expression testing ---
         set.seed(1)
         
         # Run the simplest Swish case if 'condition' is present and not paired

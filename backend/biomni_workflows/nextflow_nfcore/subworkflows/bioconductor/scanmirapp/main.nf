@@ -49,7 +49,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # Stage 1: Load and Process Expression Data
+    # --- Load and Process Expression Data ---
     # ==========================================
     message("Loading expression data...")
     counts <- read.csv("counts.csv", row.names = 1)
@@ -59,7 +59,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     avg_expr <- rowMeans(counts)
     
     # ==========================================
-    # Stage 2: Initialize Annotation and Scan
+    # --- Initialize Annotation and Scan ---
     # ==========================================
     message("Initializing ScanMiR annotation...")
     # Using the lightweight "fake" annotation for a runnable pipeline
@@ -81,7 +81,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     expressed_txs <- names(avg_expr[avg_expr > 0])
     
     # ==========================================
-    # Stage 3: Save Scan Results as IndexedFst
+    # --- Save Scan Results as IndexedFst ---
     # ==========================================
     message("Saving scan results as IndexedFst...")
     # Save the GRanges scan results indexed by transcript (seqnames)
@@ -93,7 +93,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     print(summary(indexed_scan))
     
     # ==========================================
-    # Stage 4: Detect Enriched miRNA-Target Pairs
+    # --- Detect Enriched miRNA-Target Pairs ---
     # ==========================================
     message("Detecting enriched miRNA-target pairs...")
     enriched <- enrichedMirTxPairs(scan_gr)
@@ -125,7 +125,7 @@ process BIOC_SCANMIRAPP_SCANMIR_TARGET_ENRICHMENT_PIPELINE {
     message("Enriched pairs saved to enriched_mir_tx_pairs.csv")
     
     # ==========================================
-    # Stage 5: Visualize Top Enriched Site
+    # --- Visualize Top Enriched Site ---
     # ==========================================
     message("Visualizing top enriched miRNA-target site...")
     tx_id <- "ENSTFAKE0000056456" # Default fallback

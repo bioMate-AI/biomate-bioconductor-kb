@@ -50,7 +50,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Data Loading and Object Creation
+    # --- Data Loading and Object Creation ---
     # ==========================================
     
     # Read input files
@@ -78,7 +78,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 2: Quality Control & Filtering
+    # --- Quality Control & Filtering ---
     # ==========================================
     
     # Convert zero values to NA (standard practice in mass spectrometry proteomics)
@@ -88,7 +88,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     scp_obj <- filterNA(scp_obj, i = names(scp_obj), pNA = 0.99)
     
     # ==========================================
-    # STAGE 3: Feature Aggregation
+    # --- Feature Aggregation ---
     # ==========================================
     
     # To demonstrate aggregation from peptide/PSM level to protein level,
@@ -108,7 +108,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 4: Normalization & Log Transformation
+    # --- Normalization & Log Transformation ---
     # ==========================================
     
     # Median-center the protein-level assay
@@ -129,7 +129,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     )
     
     # ==========================================
-    # STAGE 5: Missing Value & Sensitivity Diagnostics
+    # --- Missing Value & Sensitivity Diagnostics ---
     # ==========================================
     
     # Report missing values grouped by experimental condition
@@ -164,7 +164,7 @@ process BIOC_SCP_SCP_SINGLE_CELL_PROTEOMICS_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Output Generation & Visualization
+    # --- Output Generation & Visualization ---
     # ==========================================
     
     # Save the final processed protein expression matrix

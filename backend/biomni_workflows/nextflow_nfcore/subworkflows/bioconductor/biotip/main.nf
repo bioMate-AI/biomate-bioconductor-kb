@@ -54,7 +54,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     library(igraph)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     # Read expression matrix (probe/gene-by-sample)
@@ -89,7 +89,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     message("Successfully loaded ", nrow(df), " genes and ", ncol(df), " samples across ", length(samplesL), " states.")
     
     # ==========================================
-    # Stage 2: Gene Pre-selection
+    # --- Gene Pre-selection ---
     # ==========================================
     
     # Select highly oscillating transcripts using standard deviation selection
@@ -114,7 +114,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     }
     
     # ==========================================
-    # Stage 3: Network Partitioning
+    # --- Network Partitioning ---
     # ==========================================
     
     # Build co-expression networks for each state
@@ -124,7 +124,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     cluster <- getCluster_methods(igraphL)
     
     # ==========================================
-    # Stage 4: Identify Putative Critical Transition Signals (CTS)
+    # --- Identify Putative Critical Transition Signals (CTS) ---
     # ==========================================
     
     # Calculate Module-Criticality Index (MCI) for each module
@@ -154,7 +154,7 @@ process BIOC_BIOTIP_BIOTIP_TIPPING_POINT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # Stage 5: Tipping Point Evaluation (Ic Score)
+    # --- Tipping Point Evaluation (Ic Score) ---
     # ==========================================
     
     if (length(CTS) > 0 && length(CTS[[1]]) > 0) {

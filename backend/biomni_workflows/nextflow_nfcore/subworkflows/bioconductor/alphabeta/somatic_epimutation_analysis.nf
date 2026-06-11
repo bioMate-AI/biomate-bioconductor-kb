@@ -63,7 +63,7 @@ process BIOC_ALPHABETA_SOMATIC_EPIMUTATION_ANALYSIS {
     treeEdges <- "SOMA_edgelist.fn"
     out.dir <- getwd()
     
-    # 1. Build the somatic pedigree and calculate pairwise divergence values
+    # --- Build the somatic pedigree and calculate pairwise ---
     outputTree <- buildPedigree(
       nodelist = treeSamples,
       edgelist = treeEdges,
@@ -75,7 +75,7 @@ process BIOC_ALPHABETA_SOMATIC_EPIMUTATION_ANALYSIS {
     saveRDS(outputTree, file = "outputTree.rds")
     write.csv(outputTree\$Pdata, file = "pedigree_divergence_values.csv", row.names = FALSE)
     
-    # 2. Generate diagnostic somatic pedigree plots
+    # --- Generate diagnostic somatic pedigree plots ---
     plotPedigree(
       nodelist = treeSamples,
       edgelist = treeEdges,
@@ -93,7 +93,7 @@ process BIOC_ALPHABETA_SOMATIC_EPIMUTATION_ANALYSIS {
     Tree_p0uu_in <- outputTree\$tmpp0
     pedigree.Tree <- outputTree\$Pdata
     
-    # 3. Fit the neutral somatic epimutation model
+    # --- Fit the neutral somatic epimutation model ---
     outputABneutralSOMA <- ABneutralSOMA(
       pedigree.data = pedigree.Tree,
       p0uu = Tree_p0uu_in,
@@ -108,7 +108,7 @@ process BIOC_ALPHABETA_SOMATIC_EPIMUTATION_ANALYSIS {
     saveRDS(outputABneutralSOMA, file = "outputABneutralSOMA.rds")
     write.csv(outputABneutralSOMA\$estimates, file = "ABneutralSOMA_estimates.csv", row.names = FALSE)
     
-    # 4. Fit somatic selection models
+    # --- Fit somatic selection models ---
     outputABselectMMSOMA <- ABselectMMSOMA(
       pedigree.data = pedigree.Tree,
       p0uu = Tree_p0uu_in,
@@ -135,7 +135,7 @@ process BIOC_ALPHABETA_SOMATIC_EPIMUTATION_ANALYSIS {
     saveRDS(outputABselectUUSOMA, file = "outputABselectUUSOMA.rds")
     write.csv(outputABselectUUSOMA\$estimates, file = "ABselectUUSOMA_estimates.csv", row.names = FALSE)
     
-    # 5. Perform bootstrap analysis on the somatic model
+    # --- Perform bootstrap analysis on the somatic model ---
     inputModelSOMA <- file.path(getwd(), "ABneutralSOMA_CG_global_estimates.Rdata")
     
     Boutput <- BOOTmodel(
@@ -149,7 +149,7 @@ process BIOC_ALPHABETA_SOMATIC_EPIMUTATION_ANALYSIS {
     saveRDS(Boutput, file = "Boutput.rds")
     write.csv(as.data.frame(Boutput\$standard.errors), file = "Boutput_standard_errors.csv")
     
-    # 6. Plot the final somatic model fit
+    # --- Plot the final somatic model fit ---
     ABfilesoma <- file.path(getwd(), "ABneutralSOMA_CG_global_estimates.Rdata")
     
     ABplot(

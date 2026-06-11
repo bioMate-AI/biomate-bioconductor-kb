@@ -49,7 +49,7 @@ process BIOC_MSIMPUTE_MSIMPUTE_PROTEOMICS_PIPELINE {
     library(msImpute)
     
     # ==========================================
-    # Stage 1: Load and Align Input Data
+    # --- Load and Align Input Data ---
     # ==========================================
     message("Stage 1: Loading and aligning input data...")
     
@@ -76,7 +76,7 @@ process BIOC_MSIMPUTE_MSIMPUTE_PROTEOMICS_PIPELINE {
     group <- as.factor(coldata\$condition)
     
     # ==========================================
-    # Stage 2: Preprocessing & Normalization
+    # --- Preprocessing & Normalization ---
     # ==========================================
     message("Stage 2: Preprocessing and normalizing data...")
     
@@ -95,7 +95,7 @@ process BIOC_MSIMPUTE_MSIMPUTE_PROTEOMICS_PIPELINE {
     y_norm <- t(t(y) - col_medians + grand_median)
     
     # ==========================================
-    # Stage 3: Missingness Pattern Diagnosis
+    # --- Missingness Pattern Diagnosis ---
     # ==========================================
     message("Stage 3: Diagnosing missingness patterns...")
     
@@ -104,7 +104,7 @@ process BIOC_MSIMPUTE_MSIMPUTE_PROTEOMICS_PIPELINE {
     write.csv(hdp, "selected_features.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Low-Rank Imputation (MAR & MNAR)
+    # --- Low-Rank Imputation (MAR & MNAR) ---
     # ==========================================
     message("Stage 4: Running low-rank imputations...")
     
@@ -119,7 +119,7 @@ process BIOC_MSIMPUTE_MSIMPUTE_PROTEOMICS_PIPELINE {
     write.csv(y_mnar, "imputed_mnar.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 5: Structural Metrics Evaluation
+    # --- Structural Metrics Evaluation ---
     # ==========================================
     message("Stage 5: Evaluating structural preservation...")
     
@@ -137,7 +137,7 @@ process BIOC_MSIMPUTE_MSIMPUTE_PROTEOMICS_PIPELINE {
     write.csv(metrics_df, "structural_metrics.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Diagnostic Visualization
+    # --- Diagnostic Visualization ---
     # ==========================================
     message("Stage 6: Generating diagnostic plots...")
     

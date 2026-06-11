@@ -44,7 +44,7 @@ process BIOC_LIMMAGUI_LIMMAGUI_MICROARRAY_PIPELINE {
           }
         }
     
-    # Stage 1: Load Data and Setup
+    # --- Load Data and Setup ---
     message("Stage 1: Loading input data...")
     
     # Read expression matrix (counts.csv holds probe-by-sample normalized expression matrix)
@@ -80,7 +80,7 @@ process BIOC_LIMMAGUI_LIMMAGUI_MICROARRAY_PIPELINE {
     write.csv(M_matrix, "m_values.csv", row.names = TRUE)
     write.csv(A_matrix, "a_values.csv", row.names = TRUE)
     
-    # Stage 2: Attempt limmaGUI Analysis with Headless Mocks
+    # --- Attempt limmaGUI Analysis with Headless Mocks ---
     message("Stage 2: Attempting limmaGUI analysis...")
     
     limmagui_success <- FALSE
@@ -169,7 +169,7 @@ process BIOC_LIMMAGUI_LIMMAGUI_MICROARRAY_PIPELINE {
       message("limmaGUI analysis failed or was bypassed: ", e\$message)
     })
     
-    # Stage 3: Fallback Analysis (if limmaGUI failed)
+    # --- Fallback Analysis (if limmaGUI failed) ---
     if (!limmagui_success) {
       message("Stage 3: Running robust base R fallback analysis...")
       
@@ -205,7 +205,7 @@ process BIOC_LIMMAGUI_LIMMAGUI_MICROARRAY_PIPELINE {
       message("Fallback analysis completed successfully.")
     }
     
-    # Stage 4: Visualizations
+    # --- Visualizations ---
     message("Stage 4: Generating diagnostic plots...")
     pdf("diagnostic_plots.pdf", width = 10, height = 8)
     par(mfrow = c(1, 2))

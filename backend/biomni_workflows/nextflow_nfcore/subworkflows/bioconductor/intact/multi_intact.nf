@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Estimate the multivariate Wald chi-square statistic from summary-level data using INTACT::chisq_sumstat. 2. Run INTACT::multi_inta
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Estimate the Chi-square Statistic From Summary-level Data
+//  * 3. [Visualization & Output] Run Multi-INTACT (Standard Workflow)
+//  * 4. [Visualization & Output] Run Multi-INTACT with Model Posteriors
+//  * 5. [Visualization & Output] Run Multi-INTACT without EM Algorithm
+//  * 6. [Visualization & Output] Visualization of Results
 
 nextflow.enable.dsl = 2
 
@@ -103,7 +108,7 @@ process BIOC_INTACT_MULTI_INTACT {
     }
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     # -----------------------------------------------------------------------------
     message("Reading input files...")
     
@@ -123,7 +128,7 @@ process BIOC_INTACT_MULTI_INTACT {
     multi_simdat <- as.data.frame(multi_simdat)
     
     # -----------------------------------------------------------------------------
-    # 2. Estimate the Chi-square Statistic From Summary-level Data
+    # --- Estimate the Chi-square Statistic From Summary-level Data ---
     # -----------------------------------------------------------------------------
     message("Estimating multivariate Wald chi-square statistic...")
     
@@ -138,7 +143,7 @@ process BIOC_INTACT_MULTI_INTACT {
     write.table(chisq_val, "chisq_sumstat_result.txt", row.names = FALSE, col.names = FALSE)
     
     # -----------------------------------------------------------------------------
-    # 3. Run Multi-INTACT (Standard Workflow)
+    # --- Run Multi-INTACT (Standard Workflow) ---
     # -----------------------------------------------------------------------------
     message("Running Multi-INTACT (standard)...")
     
@@ -151,7 +156,7 @@ process BIOC_INTACT_MULTI_INTACT {
     }
     
     # -----------------------------------------------------------------------------
-    # 4. Run Multi-INTACT with Model Posteriors
+    # --- Run Multi-INTACT with Model Posteriors ---
     # -----------------------------------------------------------------------------
     message("Running Multi-INTACT with model posteriors...")
     
@@ -164,7 +169,7 @@ process BIOC_INTACT_MULTI_INTACT {
     }
     
     # -----------------------------------------------------------------------------
-    # 5. Run Multi-INTACT without EM Algorithm
+    # --- Run Multi-INTACT without EM Algorithm ---
     # -----------------------------------------------------------------------------
     message("Running Multi-INTACT without EM algorithm...")
     
@@ -177,7 +182,7 @@ process BIOC_INTACT_MULTI_INTACT {
     }
     
     # -----------------------------------------------------------------------------
-    # 6. Visualization of Results
+    # --- Visualization of Results ---
     # -----------------------------------------------------------------------------
     message("Generating diagnostic plots...")
     

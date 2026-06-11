@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Run rescaleBatches to obtain a corrected expression matrix wrapped in a SingleCellExperiment
+//  * 1. [Core Analysis] Save the complete corrected SingleCellExperiment object
+//  * 2. [Core Analysis] Save a diagnostic PCA plot showing the aligned batches
+//  * 3. [Core Analysis] Save a subset of the corrected expression matrix to a CSV
 
 nextflow.enable.dsl = 2
 
@@ -96,16 +98,16 @@ process BIOC_BATCHELOR_BATCH_RESCALING {
     rescale.out <- runPCA(rescale.out, subset_row=chosen.hvgs, exprs_values="corrected")
     
     # Save outputs
-    # 1. Save the complete corrected SingleCellExperiment object
+    # --- Save the complete corrected SingleCellExperiment object ---
     saveRDS(rescale.out, "rescale_output.rds")
     
-    # 2. Save a diagnostic PCA plot showing the aligned batches
+    # --- Save a diagnostic PCA plot showing the aligned batches ---
     pdf("rescale_pca_plot.pdf", width=8, height=6)
     p <- plotPCA(rescale.out, colour_by="batch")
     print(p)
     dev.off()
     
-    # 3. Save a subset of the corrected expression matrix to a CSV file
+    # --- Save a subset of the corrected expression matrix to a CSV ---
     corrected_matrix <- assay(rescale.out, "corrected")
     subset_genes <- head(chosen.hvgs, min(100, length(chosen.hvgs)))
     write.csv(as.matrix(corrected_matrix[subset_genes, ]), "corrected_expression_subset.csv")

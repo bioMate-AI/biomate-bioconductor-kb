@@ -59,13 +59,13 @@ process BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW {
     library(dplyr)
     library(readr)
     
-    # 1. Generate the ProteoDiscography reference database
+    # --- Generate the ProteoDiscography reference database ---
     ProteoDiscography.hg19 <- ProteoDisco::generateProteoDiscography(
       TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene, 
       genomeSeqs = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     )
     
-    # 2. Import splice junctions
+    # --- Import splice junctions ---
     # Import from the user-provided BED file
     ProteoDiscography.hg19 <- ProteoDisco::importSpliceJunctions(
       ProteoDiscography = ProteoDiscography.hg19, 
@@ -86,7 +86,7 @@ process BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW {
       removeExisting = FALSE
     )
     
-    # 3. Generate junction models
+    # --- Generate junction models ---
     ProteoDiscography.hg19 <- ProteoDisco::generateJunctionModels(
       ProteoDiscography = ProteoDiscography.hg19, 
       maxDistance = 150, 
@@ -94,7 +94,7 @@ process BIOC_PROTEODISCO_SPLICE_JUNCTIONS_WORKFLOW {
       threads = 1
     )
     
-    # 4. Export the customized database to FASTA
+    # --- Export the customized database to FASTA ---
     ProteoDisco::exportProteoDiscography(
       ProteoDiscography = ProteoDiscography.hg19, 
       outFile = 'exported_junctions.fasta', 

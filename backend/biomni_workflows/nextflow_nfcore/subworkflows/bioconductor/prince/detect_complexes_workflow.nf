@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Filter low-information chromatograms using filter_profiles. 2. Clean and smooth chromatograms using clean_profiles. 3. Calculate s
+//  * 1. [Core Analysis] CSV table of Z-scores
+//  * 2. [Core Analysis] RDS object of Z-scores
+//  * 3. [Core Analysis] PDF plot of Z-scores distribution
 
 nextflow.enable.dsl = 2
 
@@ -85,7 +87,7 @@ process BIOC_PRINCE_DETECT_COMPLEXES_WORKFLOW {
     print(head(sort(z_scores, decreasing = TRUE)))
     
     # Write outputs
-    # 1. CSV table of Z-scores
+    # --- CSV table of Z-scores ---
     z_scores_df <- data.frame(
       Complex = names(z_scores),
       Z_Score = as.numeric(z_scores),
@@ -93,10 +95,10 @@ process BIOC_PRINCE_DETECT_COMPLEXES_WORKFLOW {
     )
     write.csv(z_scores_df, "z_scores_results.csv", row.names = FALSE)
     
-    # 2. RDS object of Z-scores
+    # --- RDS object of Z-scores ---
     saveRDS(z_scores, "z_scores_results.rds")
     
-    # 3. PDF plot of Z-scores distribution
+    # --- PDF plot of Z-scores distribution ---
     pdf("z_scores_distribution.pdf", width = 7, height = 5)
     hist(z_scores, 
          breaks = 20, 

@@ -50,7 +50,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Data Loading & Preprocessing
+    # --- Data Loading & Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing input data...")
     
@@ -112,7 +112,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     htc_list <- HTClist(list(chr1chr1 = htc_obj))
     
     # ==========================================
-    # STAGE 2: Quality Control
+    # --- Quality Control ---
     # ==========================================
     message("Stage 2: Performing Quality Control...")
     
@@ -127,7 +127,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Binning & Region Extraction
+    # --- Binning & Region Extraction ---
     # ==========================================
     message("Stage 3: Binning and region extraction...")
     
@@ -153,7 +153,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Normalization
+    # --- Normalization ---
     # ==========================================
     message("Stage 4: Normalizing interaction counts...")
     
@@ -171,7 +171,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Downstream Analysis (DI & PCA)
+    # --- Downstream Analysis (DI & PCA) ---
     # ==========================================
     message("Stage 5: Computing Directionality Index and PCA...")
     
@@ -192,7 +192,7 @@ process BIOC_HITC_HITC_CHROMOSOME_CONFORMATION_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Visualization & Export
+    # --- Visualization & Export ---
     # ==========================================
     message("Stage 6: Generating heatmaps and exporting results...")
     

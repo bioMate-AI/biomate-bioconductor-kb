@@ -75,15 +75,15 @@ process BIOC_BIOCSKLEARN_MANUAL_INCREMENTAL_PCA {
       np\$genfromtxt(irismat_file)
     })
     
-    # 1. Define slicer utility
+    # --- Define slicer utility ---
     ta = np \$ take
     
-    # 2. Initialize and update PCA state iteratively using skPartialPCA_step
+    # --- Initialize and update PCA state iteratively using ---
     ipc = skPartialPCA_step ( ta (irismat, 0 : 49 ,0L))
     ipc = skPartialPCA_step ( ta (irismat, 50 : 99 ,0L), obj= ipc)
     ipc = skPartialPCA_step ( ta (irismat, 100 : 149 ,0L), obj= ipc)
     
-    # 3. Transform a subset of data using the final PCA object
+    # --- Transform a subset of data using the final PCA object ---
     transformed_py = ipc \$ transform ( ta (irismat, 0 : 5 ,0L))
     
     # Convert the transformed python object to an R matrix for output

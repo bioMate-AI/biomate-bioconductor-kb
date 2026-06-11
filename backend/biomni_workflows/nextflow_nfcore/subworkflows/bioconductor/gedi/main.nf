@@ -54,7 +54,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     library(igraph)
     
     # ==========================================
-    # STAGE 1: Read Input and Extract Genes
+    # --- Read Input and Extract Genes ---
     # ==========================================
     message("Reading input data...")
     input_data <- read.csv("input.csv", stringsAsFactors = FALSE)
@@ -105,7 +105,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     }
     
     # ==========================================
-    # STAGE 2: Run Functional Enrichment Analysis
+    # --- Run Functional Enrichment Analysis ---
     # ==========================================
     message("Running Gene Ontology enrichment analysis...")
     enrich_res <- tryCatch({
@@ -149,7 +149,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     })
     
     # ==========================================
-    # STAGE 3: Calculate Distance Matrices
+    # --- Calculate Distance Matrices ---
     # ==========================================
     message("Calculating geneset distance matrices...")
     
@@ -232,7 +232,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     write.csv(distances_df, "geneset_distances.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 4: Cluster Genesets
+    # --- Cluster Genesets ---
     # ==========================================
     message("Clustering genesets...")
     
@@ -262,7 +262,7 @@ process BIOC_GEDI_GEDI_GENESET_ANALYSIS {
     write.csv(clustering_df, "geneset_clustering.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 5: Visualizations
+    # --- Visualizations ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("gedi_plots.pdf", width = 10, height = 8)

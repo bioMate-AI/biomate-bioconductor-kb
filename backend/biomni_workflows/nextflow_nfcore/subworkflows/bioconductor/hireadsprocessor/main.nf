@@ -50,7 +50,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Read Input and Generate Sequences
+    # --- Read Input and Generate Sequences ---
     # ==========================================
     message("Stage 1: Reading input and preparing sequences...")
     
@@ -90,7 +90,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     reads <- Biostrings::DNAStringSet(seqs)
     
     # ==========================================
-    # STAGE 2: Create and Read Metadata Template
+    # --- Create and Read Metadata Template ---
     # ==========================================
     message("Stage 2: Creating and reading metadata template...")
     
@@ -122,7 +122,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 3: Demultiplexing and Trimming
+    # --- Demultiplexing and Trimming ---
     # ==========================================
     message("Stage 3: Finding LTR/Primers and Adapters/Linkers...")
     
@@ -152,7 +152,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 4: Dereplication and Clustering
+    # --- Dereplication and Clustering ---
     # ==========================================
     message("Stage 4: Dereplicating and clustering reads...")
     
@@ -171,7 +171,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 5: Integration Site Identification
+    # --- Integration Site Identification ---
     # ==========================================
     message("Stage 5: Mapping and identifying integration sites...")
     
@@ -203,7 +203,7 @@ process BIOC_HIREADSPROCESSOR_HIREADSPROCESSOR_LMPCR_PIPELINE {
     })
     
     # ==========================================
-    # STAGE 6: Exporting Results and Diagnostics
+    # --- Exporting Results and Diagnostics ---
     # ==========================================
     message("Stage 6: Exporting results and generating plots...")
     

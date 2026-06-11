@@ -49,7 +49,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # STAGE 1: Load and Validate Input Data
+    # --- Load and Validate Input Data ---
     # ==========================================
     message("Stage 1: Loading input data...")
     
@@ -75,7 +75,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     groups <- as.factor(coldata\$condition)
     
     # ==========================================
-    # STAGE 2: Normalization and Quality Control
+    # --- Normalization and Quality Control ---
     # ==========================================
     message("Stage 2: Normalizing data and generating MDS plot...")
     
@@ -101,7 +101,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 3: Differential Enrichment Analysis
+    # --- Differential Enrichment Analysis ---
     # ==========================================
     message("Stage 3: Calculating differential enrichment...")
     
@@ -122,7 +122,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     overall_mean <- rowMeans(norm_enrichment)
     
     # ==========================================
-    # STAGE 4: CpG Density Simulation & Binning
+    # --- CpG Density Simulation & Binning ---
     # ==========================================
     message("Stage 4: Simulating CpG density and binning features...")
     
@@ -141,7 +141,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     )
     
     # ==========================================
-    # STAGE 5: Repitools Visualization (binPlots)
+    # --- Repitools Visualization (binPlots) ---
     # ==========================================
     message("Stage 5: Generating bin plots...")
     
@@ -164,7 +164,7 @@ process BIOC_REPITOOLS_REPITOOLS_ENRICHMENT_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # STAGE 6: Export Results
+    # --- Export Results ---
     # ==========================================
     message("Stage 6: Exporting analysis summary...")
     

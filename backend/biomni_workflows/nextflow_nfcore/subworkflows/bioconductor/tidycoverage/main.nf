@@ -58,7 +58,7 @@ process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
     library(rtracklayer)
     library(ggplot2)
     
-    # 1. Load genomic tracks as a BigWigFileList from the working directory
+    # --- Load genomic tracks as a BigWigFileList from the working ---
     tracks <- list(
         Scc1 = "Scc1.bw", 
         RNA_fwd = "RNA.fwd.bw",
@@ -67,10 +67,10 @@ process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
         MNase = "MNase.bw"
     ) |> BigWigFileList()
     
-    # 2. Define the genomic locus of interest as a GRanges object
+    # --- Define the genomic locus of interest as a GRanges object ---
     locus <- GRanges("II:450001-475000")
     
-    # 3. Instantiate a CoverageExperiment object
+    # --- Instantiate a CoverageExperiment object ---
     CE_chrII <- CoverageExperiment(
         tracks = tracks, 
         features = locus,
@@ -80,8 +80,8 @@ process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
     # Save the raw CoverageExperiment object
     saveRDS(CE_chrII, file = "CE_chrII.rds")
     
-    # 4. Coarsen the coverage resolution using coarsen()
-    # 5. Expand the object into a tidy tibble using expand()
+    # --- Coarsen the coverage resolution using coarsen() ---
+    # --- Expand the object into a tidy tibble using expand() ---
     expanded_df <- CE_chrII |> 
         coarsen(window = 10) |> 
         expand()
@@ -89,7 +89,7 @@ process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
     # Save the expanded tidy tibble to a CSV file
     write.csv(expanded_df, file = "expanded_coverage.csv", row.names = FALSE)
     
-    # 6. Plot the coverage tracks using ggplot2 and geom_coverage()
+    # --- Plot the coverage tracks using ggplot2 and geom_coverage() ---
     p <- expanded_df |> 
         ggplot() + 
         geom_coverage(aes(fill = track)) + 

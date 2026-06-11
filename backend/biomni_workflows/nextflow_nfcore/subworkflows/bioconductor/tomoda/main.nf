@@ -55,7 +55,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     N_PERMUTATIONS <- 1000
     
     # ==========================================
-    # Stage 1: Data Loading and Preprocessing
+    # --- Data Loading and Preprocessing ---
     # ==========================================
     
     message("Loading input datasets...")
@@ -79,7 +79,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     colData(zh) <- cbind(colData(zh), coldata)
     
     # ==========================================
-    # Stage 2: Correlation & Dimensionality Reduction
+    # --- Correlation & Dimensionality Reduction ---
     # ==========================================
     
     message("Performing section correlation analysis...")
@@ -115,7 +115,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     })
     
     # ==========================================
-    # Stage 3: Clustering Analysis
+    # --- Clustering Analysis ---
     # ==========================================
     
     message("Performing hierarchical clustering...")
@@ -138,7 +138,7 @@ process BIOC_TOMODA_TOMODA_TOMO_SEQ_PIPELINE {
     write.csv(as.data.frame(colData(zh)), "section_metadata_with_results.csv", row.names = TRUE)
     
     # ==========================================
-    # Stage 4: Peak Gene Analysis
+    # --- Peak Gene Analysis ---
     # ==========================================
     
     message("Identifying spatially upregulated (peak) genes...")

@@ -57,7 +57,7 @@ process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {
     library(rtracklayer)
     
     # -----------------------------------------------------------------------------
-    # Stage 1: Read User Input Files from Working Directory
+    # --- Read User Input Files from Working Directory ---
     # -----------------------------------------------------------------------------
     
     # 1. Read the ncRNA gene list
@@ -82,7 +82,7 @@ process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {
     }
     
     # -----------------------------------------------------------------------------
-    # Stage 2: Set Neighborhood Parameters
+    # --- Set Neighborhood Parameters ---
     # -----------------------------------------------------------------------------
     type <- c('downstream', 'upstream')
     value <- c(2000, 30000)
@@ -90,7 +90,7 @@ process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {
     setParameters("searchRegion", "exon")
     
     # -----------------------------------------------------------------------------
-    # Stage 3: Run GO Enrichment based on Neighborhood
+    # --- Run GO Enrichment based on Neighborhood ---
     # -----------------------------------------------------------------------------
     ncGO <- geneGOEnricher(
       gene = brain_disorder_ncRNA, 
@@ -103,7 +103,7 @@ process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {
     saveRDS(ncGO, "ncGO_neighborhood.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 4: Run GO Enrichment incorporating Custom TAD Boundaries
+    # --- Run GO Enrichment incorporating Custom TAD Boundaries ---
     # -----------------------------------------------------------------------------
     tad_custom <- rtracklayer::import(cus_TAD, format = 'bed')
     
@@ -119,7 +119,7 @@ process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {
     saveRDS(ncGO_tad, "ncGO_tad.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 5: Run GO Enrichment incorporating Correlation Analysis
+    # --- Run GO Enrichment incorporating Correlation Analysis ---
     # -----------------------------------------------------------------------------
     ncGO_corr <- geneGOEnricher(
       gene = brain_disorder_ncRNA, 
@@ -135,7 +135,7 @@ process BIOC_NORCE_GO_ENRICHMENT_NCRNA_GENES {
     saveRDS(ncGO_corr, "ncGO_corr.rds")
     
     # -----------------------------------------------------------------------------
-    # Stage 6: Export and Visualize Results
+    # --- Export and Visualize Results ---
     # -----------------------------------------------------------------------------
     
     # Export tabular results

@@ -63,7 +63,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     message("Starting proActiv alternative promoter analysis pipeline...")
     
     # ==========================================
-    # 1. Prepare Promoter Annotations
+    # --- Prepare Promoter Annotations ---
     # ==========================================
     
     # Search for GTF or TxDb files in the current working directory
@@ -91,7 +91,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     }
     
     # ==========================================
-    # 2. Quantify Promoter Activity
+    # --- Quantify Promoter Activity ---
     # ==========================================
     
     # Search for STAR/TopHat2 junction files or BAM files in the working directory
@@ -130,7 +130,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     saveRDS(result, "proactiv_raw_result.rds")
     
     # ==========================================
-    # 3. Filter Single-Exon Transcripts
+    # --- Filter Single-Exon Transcripts ---
     # ==========================================
     message("Filtering out single-exon transcripts/promoters with NA counts...")
     result <- result[complete.cases(assays(result)\$promoterCounts),]
@@ -139,7 +139,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     saveRDS(result, "proactiv_filtered_result.rds")
     
     # ==========================================
-    # 4. Identify Alternative Promoters
+    # --- Identify Alternative Promoters ---
     # ==========================================
     referenceCondition <- unique(condition)[1]
     message("Identifying alternative promoters using reference condition: ", referenceCondition)
@@ -163,7 +163,7 @@ process BIOC_PROACTIV_ALTERNATIVE_PROMOTER_ANALYSIS {
     }
     
     # ==========================================
-    # 5. Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating visualization plots...")
     

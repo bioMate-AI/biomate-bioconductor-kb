@@ -45,7 +45,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
           }
         }
     
-    # Stage 1: Load libraries and input datasets
+    # --- Load libraries and input datasets ---
     library(tenXplore)
     
     message("Loading input datasets...")
@@ -67,7 +67,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     counts <- counts[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, drop = FALSE]
     
-    # Stage 2: Construct and Preprocess SummarizedExperiment
+    # --- Construct and Preprocess SummarizedExperiment ---
     message("Preprocessing user dataset...")
     se_user <- SummarizedExperiment(
       assays = list(counts = as.matrix(counts)),
@@ -84,7 +84,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     cpm <- sweep(assay(se_user, "counts"), 2, libsizes, "/") * 1e6
     assay(se_user, "logcpm") <- log2(cpm + 1)
     
-    # Stage 3: Load Reference Dataset and Perform Comparative Analysis
+    # --- Load Reference Dataset and Perform Comparative Analysis ---
     message("Loading reference 1.3M neuron dataset...")
     se_ref <- tryCatch({
       se1.3M()
@@ -118,7 +118,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
       write.csv(data.frame(Error = "Reference dataset se1.3M could not be loaded"), "reference_correlation.csv")
     }
     
-    # Stage 4: Visualization
+    # --- Visualization ---
     message("Generating expression heatmap...")
     pdf("expression_heatmap.pdf", width = 8, height = 6)
     gene_vars <- apply(assay(se_user, "logcpm"), 1, var)
@@ -136,7 +136,7 @@ process BIOC_TENXPLORE_TENXPLORE_NEURON_ANALYSIS {
     }
     dev.off()
     
-    # Stage 5: App Initialization and Serialization
+    # --- App Initialization and Serialization ---
     message("Initializing tenXplore app object...")
     app <- tryCatch({
       tenXplore()

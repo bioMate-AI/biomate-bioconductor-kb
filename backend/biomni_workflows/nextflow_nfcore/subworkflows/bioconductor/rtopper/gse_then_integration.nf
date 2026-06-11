@@ -11,7 +11,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Convert the genomic and phenotypic data into a gene-centered list using convertToDr. 2. Compute separate gene-to-phenotype associa
+//  * 1. [Core Analysis] Convert the genomic and phenotypic data into a
+//  * 2. [Core Analysis] Compute separate gene-to-phenotype association scores for
+//  * 3. [Core Analysis] Perform separate batch GSE analyses for each platform
+//  * 4. [Core Analysis] Integrate the separate GSE p-values across platforms
 
 nextflow.enable.dsl = 2
 
@@ -64,16 +67,16 @@ process BIOC_RTOPPER_GSE_THEN_INTEGRATION {
     pheno <- readRDS("pheno.rds")
     fgsList <- readRDS("fgsList.rds")
     
-    # 1. Convert the genomic and phenotypic data into a gene-centered list
+    # --- Convert the genomic and phenotypic data into a ---
     dataDr <- convertToDr(dat, pheno, length(dat))
     
-    # 2. Compute separate gene-to-phenotype association scores for each platform
+    # --- Compute separate gene-to-phenotype association scores for ---
     bicStatSep <- computeDrStat(dataDr, columns = 1:length(dat), method="bic", integrate = FALSE)
     
-    # 3. Perform separate batch GSE analyses for each platform
+    # --- Perform separate batch GSE analyses for each platform ---
     gseABS.sep <- runBatchGSE(dataList=bicStatSep, fgsList=fgsList)
     
-    # 4. Integrate the separate GSE p-values across platforms
+    # --- Integrate the separate GSE p-values across platforms ---
     gseABS.geoMean.sep <- combineGSE(gseABS.sep, method="geometricMean")
     
     # Save meaningful results to output files

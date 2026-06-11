@@ -55,7 +55,7 @@ process BIOC_ADACGH2_RAM_OBJECTS_FORKING {
     # Load required library
     library(ADaCGH2)
     
-    # 1. Read the declared USER INPUT file from the working directory
+    # --- Read the declared USER INPUT file from the working ---
     input_file <- "inputEx.RData"
     if (!file.exists(input_file)) {
       stop(paste("Required input file", input_file, "not found in the working directory."))
@@ -68,20 +68,20 @@ process BIOC_ADACGH2_RAM_OBJECTS_FORKING {
       stop("The loaded RData file did not contain an object named 'inputEx'.")
     }
     
-    # 2. Prepare RAM objects from the input data frame
+    # --- Prepare RAM objects from the input data frame ---
     cgh.dat <- inputEx[, -c(1, 2, 3)]
     chrom.dat <- as.integer(inputEx[, 2])
     pos.dat <- inputEx[, 3]
     probenames.dat <- as.character(inputEx[, 1])
     
-    # 3. Run parallelized segmentation using HaarSeg with forking
+    # --- Run parallelized segmentation using HaarSeg with forking ---
     # (Reproducing the documented function call and arguments exactly)
     haar.RAM.fork <- pSegmentHaarSeg(cgh.dat, chrom.dat,
                                      merging = "MAD",
                                      typeParall = "fork",
                                      mc.cores = 2)
     
-    # 4. Plot the chromosome results
+    # --- Plot the chromosome results ---
     # (Reproducing the documented function call and arguments exactly)
     pChromPlot(haar.RAM.fork,
                cghRDataName = cgh.dat,
@@ -92,7 +92,7 @@ process BIOC_ADACGH2_RAM_OBJECTS_FORKING {
                typeParall = "fork",
                mc.cores = 2)
     
-    # 5. Write meaningful output files
+    # --- Write meaningful output files ---
     # Save the segmentation results object
     saveRDS(haar.RAM.fork, file = "haar_RAM_fork_results.rds")
     

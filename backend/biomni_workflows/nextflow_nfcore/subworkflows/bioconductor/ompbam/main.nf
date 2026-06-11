@@ -49,7 +49,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
     library(GenomicRanges)
     library(BiocGenerics)
     
-    # Stage 1: Read input files from working directory
+    # --- Read input files from working directory ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -57,7 +57,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
     coldata <- read.csv("coldata.csv", stringsAsFactors = FALSE)
     
-    # Stage 2: Create and compile the custom ompBAM-based package
+    # --- Create and compile the custom ompBAM-based package ---
     pkg_name <- "MyOmpBampPkg"
     pkg_path <- file.path(getwd(), pkg_name)
     
@@ -82,7 +82,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
       warning("Failed to compile the ompBAM package. Proceeding with fallback. Error: ", e\$message)
     })
     
-    # Stage 3: Generate BAM files from counts.csv and run idxstats
+    # --- Generate BAM files from counts.csv and run idxstats ---
     results_list <- list()
     
     # We will attempt to use Rsamtools to generate real BAM files if compilation succeeded
@@ -152,7 +152,7 @@ process BIOC_OMPBAM_OMP_BAM_PACKAGE_GENERATION {
       )
     }
     
-    # Stage 4: Write outputs
+    # --- Write outputs ---
     if (length(results_list) > 0) {
       final_df <- do.call(rbind, results_list)
       rownames(final_df) <- NULL

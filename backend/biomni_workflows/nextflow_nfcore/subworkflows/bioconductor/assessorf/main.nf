@@ -12,7 +12,12 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Map evolutionary conservation and/or proteomics data to the central genome using MapAssessmentData. 2. Parse gene prediction coord
+//  * 1. [Visualization & Output] Read User Inputs
+//  * 2. [Visualization & Output] Extract Identifiers from the SQLite Database
+//  * 3. [Visualization & Output] Map Evolutionary Conservation Data
+//  * 4. [Visualization & Output] Assess Predicted Genes
+//  * 5. [Visualization & Output] Visualize and Save Results
+//  * 6. [Visualization & Output] Compare Results with an Alternative Prediction Set
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +57,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     library(RSQLite)
     
     # -----------------------------------------------------------------------------
-    # 1. Read User Inputs
+    # --- Read User Inputs ---
     # -----------------------------------------------------------------------------
     databaseFile <- "databaseFile"
     if (!file.exists(databaseFile) && file.exists("databaseFile.sqlite")) {
@@ -72,7 +77,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     geneStrand <- readLines("geneStrand")
     
     # -----------------------------------------------------------------------------
-    # 2. Extract Identifiers from the SQLite Database
+    # --- Extract Identifiers from the SQLite Database ---
     # -----------------------------------------------------------------------------
     dbConn <- dbConnect(SQLite(), databaseFile)
     tables <- dbListTables(dbConn)
@@ -88,7 +93,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     }
     
     # -----------------------------------------------------------------------------
-    # 3. Map Evolutionary Conservation Data
+    # --- Map Evolutionary Conservation Data ---
     # -----------------------------------------------------------------------------
     # If there are no related genomes, fallback to using the central genome identifier
     related_IDs <- identifiers[-1]
@@ -105,7 +110,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     currMapObj <- myMapObj
     
     # -----------------------------------------------------------------------------
-    # 4. Assess Predicted Genes
+    # --- Assess Predicted Genes ---
     # -----------------------------------------------------------------------------
     prodigalLeft <- geneLeftPos
     prodigalRight <- geneRightPos
@@ -118,7 +123,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
                               geneSource = "Prodigal")
     
     # -----------------------------------------------------------------------------
-    # 5. Visualize and Save Results
+    # --- Visualize and Save Results ---
     # -----------------------------------------------------------------------------
     # Print summary to console and save to text file
     print(currResObj)
@@ -161,7 +166,7 @@ process BIOC_ASSESSORF_ASSESS_ORF_PREDICTIONS {
     dev.off()
     
     # -----------------------------------------------------------------------------
-    # 6. Compare Results with an Alternative Prediction Set
+    # --- Compare Results with an Alternative Prediction Set ---
     # -----------------------------------------------------------------------------
     # Simulate a second prediction program (e.g., GeneMarkS2) using a subset of the genes
     half_idx <- seq(1, length(geneLeftPos), by = 2)

@@ -51,7 +51,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     library(reshape2)
     
     # ==========================================
-    # STAGE 1: Data Loading and Preprocessing
+    # --- Data Loading and Preprocessing ---
     # ==========================================
     message("Stage 1: Loading and preprocessing expression data...")
     
@@ -91,7 +91,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     tfs <- top_genes[1:min(3, length(top_genes))]
     
     # ==========================================
-    # STAGE 2: Constructing Prior Networks (Motif and PPI)
+    # --- Constructing Prior Networks (Motif and PPI) ---
     # ==========================================
     message("Stage 2: Constructing Motif and PPI prior networks...")
     
@@ -116,7 +116,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 3: Aggregate Network Reconstruction (PANDA)
+    # --- Aggregate Network Reconstruction (PANDA) ---
     # ==========================================
     message("Stage 3: Reconstructing aggregate network using PANDA...")
     
@@ -135,7 +135,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Single-Sample Network Reconstruction (LIONESS)
+    # --- Single-Sample Network Reconstruction (LIONESS) ---
     # ==========================================
     message("Stage 4: Reconstructing single-sample networks using LIONESS...")
     
@@ -166,7 +166,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Differential Network Analysis (MONSTER)
+    # --- Differential Network Analysis (MONSTER) ---
     # ==========================================
     message("Stage 5: Estimating network transition states using MONSTER...")
     
@@ -197,7 +197,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 6: Differential Community Detection (ALPACA)
+    # --- Differential Community Detection (ALPACA) ---
     # ==========================================
     message("Stage 6: Detecting differential communities using ALPACA...")
     
@@ -242,7 +242,7 @@ process BIOC_NETZOOR_NETZOOR_REGULATORY_NETWORK_PIPELINE {
     write.csv(alpaca_df, "alpaca_communities.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Stage 7: Generating diagnostic plots...")
     

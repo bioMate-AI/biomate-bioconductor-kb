@@ -47,7 +47,7 @@ process BIOC_EBSEA_EBSEA_DIFFERENTIAL_EXPRESSION {
     # Load required libraries
     library(EBSEA)
     
-    # Stage 1: Read and preprocess input data
+    # --- Read and preprocess input data ---
     if (!file.exists("counts.csv") || !file.exists("coldata.csv")) {
         stop("Required input files 'counts.csv' and/or 'coldata.csv' are missing.")
     }
@@ -84,25 +84,25 @@ process BIOC_EBSEA_EBSEA_DIFFERENTIAL_EXPRESSION {
         rownames(counts) <- paste0(rownames(counts), ":001")
     }
     
-    # Stage 2: Prepare design and group data frame
+    # --- Prepare design and group data frame ---
     group <- data.frame(group = as.factor(coldata\$condition))
     rownames(group) <- coldata\$sample
     design <- ~ group
     
-    # Stage 3: Filter lowly expressed exons
+    # --- Filter lowly expressed exons ---
     message("Filtering lowly expressed exons...")
     filtCounts <- filterCounts(counts)
     
-    # Stage 4: Run EBSEA analysis
+    # --- Run EBSEA analysis ---
     message("Running EBSEA statistical testing and gene-level aggregation...")
     ebsea.out <- EBSEA(filtCounts, group, design)
     
-    # Stage 5: Export results
+    # --- Export results ---
     message("Exporting results...")
     write.csv(ebsea.out\$ExonTable, "exon_results.csv", row.names = TRUE)
     write.csv(ebsea.out\$GeneTable, "gene_results.csv", row.names = FALSE)
     
-    # Stage 6: Visualization of the top significant gene
+    # --- Visualization of the top significant gene ---
     message("Generating visualization for the top significant gene...")
     gene_table <- ebsea.out\$GeneTable
     

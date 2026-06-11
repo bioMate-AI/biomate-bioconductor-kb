@@ -51,7 +51,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     library(BiocGenerics)
     
     # ==========================================
-    # Stage 1: Load Input Data
+    # --- Load Input Data ---
     # ==========================================
     message("Stage 1: Loading input counts and coldata...")
     
@@ -78,7 +78,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     coldata_df <- coldata_df[common_samples, drop = FALSE]
     
     # ==========================================
-    # Stage 2: Construct RangedSummarizedExperiment
+    # --- Construct RangedSummarizedExperiment ---
     # ==========================================
     message("Stage 2: Constructing RangedSummarizedExperiment...")
     
@@ -102,7 +102,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     )
     
     # ==========================================
-    # Stage 3: Inject recount3-specific Metadata
+    # --- Inject recount3-specific Metadata ---
     # ==========================================
     message("Stage 3: Injecting recount3-specific QC metrics...")
     
@@ -116,7 +116,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     colData(rse)\$mapped_read_count <- colSums(counts_mat)
     
     # ==========================================
-    # Stage 4: Transform Counts using recount3
+    # --- Transform Counts using recount3 ---
     # ==========================================
     message("Stage 4: Transforming counts using recount3 methods...")
     
@@ -143,7 +143,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     })
     
     # ==========================================
-    # Stage 5: Downstream Diagnostics & PCA
+    # --- Downstream Diagnostics & PCA ---
     # ==========================================
     message("Stage 5: Performing PCA diagnostics...")
     
@@ -169,7 +169,7 @@ process BIOC_RECOUNT3_RECOUNT3_LOCAL_TRANSFORMATION {
     dev.off()
     
     # ==========================================
-    # Stage 6: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     message("Stage 6: Writing output files...")
     

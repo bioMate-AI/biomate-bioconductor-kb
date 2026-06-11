@@ -49,7 +49,7 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
     library(dplyr)
     library(zellkonverter)
     
-    # 1. Read local input files
+    # --- Read local input files ---
     counts_file <- "counts.csv"
     coldata_file <- "coldata.csv"
     
@@ -67,11 +67,11 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
       colData = coldata
     )
     
-    # 2. Initialize CELLxGENE database
+    # --- Initialize CELLxGENE database ---
     message("Connecting to CELLxGENE database...")
     cellxgene_db <- db()
     
-    # 3. Query and filter for a matching reference dataset
+    # --- Query and filter for a matching reference dataset ---
     message("Querying CELLxGENE datasets...")
     datasets_df <- datasets(cellxgene_db)
     
@@ -101,7 +101,7 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
     # Write reference metadata to output
     write.csv(as.data.frame(selected_dataset), "reference_metadata.csv", row.names = FALSE)
     
-    # 4. Download and compare (with tryCatch for network robustness)
+    # --- Download and compare (with tryCatch for network ---
     comparison_results <- data.frame(
       Gene = character(),
       Local_Mean = numeric(),
@@ -159,7 +159,7 @@ process BIOC_CELLXGENEDP_CELLXGENEDP_REFERENCE_COMPARISON {
     )
     write.csv(summary_df, "comparison_summary.csv", row.names = FALSE)
     
-    # 5. Generate visualization
+    # --- Generate visualization ---
     pdf("expression_correlation_plot.pdf", width = 6, height = 6)
     if (nrow(comparison_results) > 0 && !is.na(correlation_value)) {
       plot(

@@ -49,7 +49,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     library(graph)
     
     # ==========================================
-    # STAGE 1: Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     message("Stage 1: Reading input files...")
@@ -82,7 +82,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     }
     
     # ==========================================
-    # STAGE 2: Create Mock Packages based on Input
+    # --- Create Mock Packages based on Input ---
     # ==========================================
     
     message("Stage 2: Creating mock packages based on input data...")
@@ -149,7 +149,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     )
     
     # ==========================================
-    # STAGE 3: Generate Repository Control Files
+    # --- Generate Repository Control Files ---
     # ==========================================
     
     message("Stage 3: Generating repository control files (PACKAGES and VIEWS)...")
@@ -163,7 +163,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     }
     
     # ==========================================
-    # STAGE 4: Generate Repository HTML Pages
+    # --- Generate Repository HTML Pages ---
     # ==========================================
     
     message("Stage 4: Generating repository HTML detail pages...")
@@ -172,7 +172,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     writeRepositoryHtml(reposRoot, title="Custom Genomic Analysis Repository")
     
     # ==========================================
-    # STAGE 5: Query Repository and Build biocViews
+    # --- Query Repository and Build biocViews ---
     # ==========================================
     
     message("Stage 5: Querying repository and building biocViews HTML...")
@@ -197,7 +197,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     writeBiocViews(bioc_views_objs, dir=views_html_dir)
     
     # ==========================================
-    # STAGE 6: Recommend biocViews for New Package
+    # --- Recommend biocViews for New Package ---
     # ==========================================
     
     message("Stage 6: Recommending biocViews for a new package description...")
@@ -212,7 +212,7 @@ process BIOC_BIOCVIEWS_BIOCVIEWS_PACKAGE_REPO_GENERATION {
     })
     
     # ==========================================
-    # STAGE 7: Write Outputs
+    # --- Write Outputs ---
     # ==========================================
     
     message("Stage 7: Writing final outputs...")

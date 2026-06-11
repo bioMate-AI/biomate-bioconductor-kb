@@ -12,7 +12,14 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Import and quantify CTSSs from BigWig files using quantifyCTSSs. 2. Normalize counts to TPM using calcTPM and calculate pooled sig
+//  * 1. [Visualization & Output] Load User Inputs and Setup Design
+//  * 2. [Visualization & Output] Quantify and Normalize CTSSs
+//  * 3. [Visualization & Output] Clustering (TSSs and Enhancers)
+//  * 4. [Visualization & Output] Quantify and Annotate Clusters
+//  * 5. [Visualization & Output] Shape and Spatial Analysis
+//  * 6. [Visualization & Output] Gene-Level Analysis
+//  * 7. [Visualization & Output] Visualization with Gviz
+//  * 8. [Visualization & Output] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -55,7 +62,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         library(rtracklayer)
         
         # ==========================================
-        # 1. Load User Inputs and Setup Design
+        # --- Load User Inputs and Setup Design ---
         # ==========================================
         
         # Read design matrix
@@ -122,7 +129,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         })
         
         # ==========================================
-        # 2. Quantify and Normalize CTSSs
+        # --- Quantify and Normalize CTSSs ---
         # ==========================================
         
         # Quantify CTSSs
@@ -148,7 +155,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         supportedCTSSs <- calcPooled(supportedCTSSs)
         
         # ==========================================
-        # 3. Clustering (TSSs and Enhancers)
+        # --- Clustering (TSSs and Enhancers) ---
         # ==========================================
         
         # Unidirectional clustering (TSSs)
@@ -165,7 +172,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         enhancers <- subset(enhancers, bidirectionality > 0)
         
         # ==========================================
-        # 4. Quantify and Annotate Clusters
+        # --- Quantify and Annotate Clusters ---
         # ==========================================
         
         # Convert GRanges clusters to RangedSummarizedExperiment by quantifying
@@ -214,7 +221,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
                                        txType %in% c("intron", "intergenic"))
         
         # ==========================================
-        # 5. Shape and Spatial Analysis
+        # --- Shape and Spatial Analysis ---
         # ==========================================
         
         # Calculate shape statistics
@@ -264,7 +271,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         }
         
         # ==========================================
-        # 6. Gene-Level Analysis
+        # --- Gene-Level Analysis ---
         # ==========================================
         
         # Re-normalize and filter TSSs for gene-level analysis
@@ -347,7 +354,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         }
         
         # ==========================================
-        # 7. Visualization with Gviz
+        # --- Visualization with Gviz ---
         # ==========================================
         
         # Prepare tracks
@@ -466,7 +473,7 @@ process BIOC_CAGEFIGHTR_CAGE_5END_ANALYSIS_PIPELINE {
         dev.off()
         
         # ==========================================
-        # 8. Save Outputs
+        # --- Save Outputs ---
         # ==========================================
         
         # Save GRanges objects

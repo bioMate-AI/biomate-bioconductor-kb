@@ -12,7 +12,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Extract the expression matrix for the target pathway. 2. Define the sample group labels. 3. Run individual statistical tests (WWte
+//  * 1. [Visualization & Output] Read user input files from the working directory
+//  * 2. [Visualization & Output] Execute the documented workflow exactly as specified
+//  * 3. [Visualization & Output] Write output files
 
 nextflow.enable.dsl = 2
 
@@ -59,7 +61,7 @@ process BIOC_GSAR_MICROARRAY_GSA {
     # Load required libraries
     library(GSAR)
     
-    # 1. Read user input files from the working directory
+    # --- Read user input files from the working directory ---
     if (file.exists("p53DataSet.rds")) {
       p53DataSet <- readRDS("p53DataSet.rds")
     } else if (file.exists("p53DataSet.csv")) {
@@ -82,7 +84,7 @@ process BIOC_GSAR_MICROARRAY_GSA {
       stop("Error: group.label file not found (expected group.label.rds or group.label.txt)")
     }
     
-    # 2. Execute the documented workflow exactly as specified
+    # --- Execute the documented workflow exactly as specified ---
     # Intersect all pathway genes with dataset row names to avoid NAs
     c2.pathways <- lapply(c2.pathways, intersect, rownames(p53DataSet))
     
@@ -113,7 +115,7 @@ process BIOC_GSAR_MICROARRAY_GSA {
     # Use head() to dynamically determine the number of pathways to test and avoid out-of-bounds errors
     results <- TestGeneSets(object=p53DataSet, group=group.label, geneSets=head(c2.pathways, 3), min.size=10, max.size=100, test="GSNCAtest")
     
-    # 3. Write output files
+    # --- Write output files ---
     # Save individual test p-values
     pvalues_df <- data.frame(
       Test = c("WWtest", "KStest", "MDtest", "ADtest", "CVMtest", "RKStest", "RMDtest", "RADtest", "RCVMtest", "AggrFtest", "GSNCAtest"),

@@ -114,13 +114,13 @@ process BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY {
     # 2. EXECUTING THE WORKFLOW
     # ==========================================
     
-    # Stage 1: Count RPF reads
+    # --- Count RPF reads ---
     cnts <- countReads(RPFs, gtf=gtf, level="gene", bestpsite=13, readsLen=c(28,29))
     
     # Save raw counts
     write.csv(cnts\$RPFs, "rpf_counts.csv", row.names = TRUE)
     
-    # Stage 2: Differential expression analysis using edgeR
+    # --- Differential expression analysis using edgeR ---
     y <- DGEList(counts = cnts\$RPFs, group = gp)
     y <- calcNormFactors(y)
     design <- model.matrix(~0+gp)
@@ -139,10 +139,10 @@ process BIOC_RIBOSOMEPROFILINGQC_DIFFERENTIAL_ANALYSIS_RPF_ONLY {
     lrt_tags <- topTags(lrt, n=3)
     write.csv(as.data.frame(topTags(lrt, n=nrow(lrt))), "edgeR_lrt_results.csv")
     
-    # Stage 3: Calculate coverage depth
+    # --- Calculate coverage depth ---
     coverage <- coverageDepth(RPFs[grepl("KD1|WT", RPFs)], gtf=txdb, level="gene", region="feature with extension")
     
-    # Stage 4: Alternative splicing/translation events detection and plotting
+    # --- Alternative splicing/translation events detection and ---
     se <- spliceEvent(coverage, group1, group2)
     write.csv(as.data.frame(se), "splice_events.csv", row.names = FALSE)
     

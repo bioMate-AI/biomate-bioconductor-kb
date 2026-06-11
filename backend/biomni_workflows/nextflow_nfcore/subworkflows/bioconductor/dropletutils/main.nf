@@ -58,7 +58,7 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
     library(Matrix)
     
     # ==========================================
-    # 1. Load the 10X count matrix
+    # --- Load the 10X count matrix ---
     # ==========================================
     
     # Define input directory name
@@ -88,7 +88,7 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
     }
     
     # ==========================================
-    # 2. Compute barcode rank statistics
+    # --- Compute barcode rank statistics ---
     # ==========================================
     
     br.out <- barcodeRanks(my.counts)
@@ -107,7 +107,7 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
     write.csv(as.data.frame(br.out), "barcode_ranks_stats.csv", row.names=TRUE)
     
     # ==========================================
-    # 3. Detect cell-containing droplets
+    # --- Detect cell-containing droplets ---
     # ==========================================
     
     set.seed(100)
@@ -117,7 +117,7 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
     write.csv(as.data.frame(e.out), "empty_drops_results.csv", row.names=TRUE)
     
     # ==========================================
-    # 4. Filter results based on FDR
+    # --- Filter results based on FDR ---
     # ==========================================
     
     is.cell <- e.out\$FDR <= 0.01

@@ -45,11 +45,11 @@ process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(isomiRs)
     library(DESeq2)
     
-    # Stage 2: Read input files
+    # --- Read input files ---
     message("Reading input files...")
     counts_df <- read.csv("counts.csv", check.names = FALSE, stringsAsFactors = FALSE)
     if ("gene_id" %in% colnames(counts_df)) {
@@ -69,7 +69,7 @@ process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
     counts_matrix <- counts_matrix[, common_samples, drop = FALSE]
     coldata <- coldata[common_samples, , drop = FALSE]
     
-    # Stage 3: Reconstruct raw data list for IsomirDataSeqFromRawData
+    # --- Reconstruct raw data list for IsomirDataSeqFromRawData ---
     message("Parsing isomiR names and reconstructing raw data...")
     parse_isomirs <- function(ids_vector) {
       n <- length(ids_vector)
@@ -127,18 +127,18 @@ process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
       raw_list[[sample_name]] <- df
     }
     
-    # Stage 4: Create IsomirDataSeq and collapse counts
+    # --- Create IsomirDataSeq and collapse counts ---
     message("Creating IsomirDataSeq object...")
     ids <- IsomirDataSeqFromRawData(raw_list, design = coldata)
     ids <- isoCounts(ids)
     
-    # Stage 5: Normalization
+    # --- Normalization ---
     message("Normalizing counts...")
     ids <- isoNorm(ids, formula = ~ condition)
     norm_counts <- counts(ids, norm = TRUE)
     write.csv(as.data.frame(norm_counts), "normalized_counts.csv")
     
-    # Stage 6: Annotation and Top IsomiRs
+    # --- Annotation and Top IsomiRs ---
     message("Generating annotations and extracting top features...")
     tryCatch({
       ann <- isoAnnotate(ids)
@@ -156,7 +156,7 @@ process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
       write.csv(data.frame(Status = "isoTop failed"), "top_isomirs.csv")
     })
     
-    # Stage 7: Select top miRNA for detailed inspection
+    # --- Select top miRNA for detailed inspection ---
     tryCatch({
       top_mirna <- rownames(counts(ids))[order(rowMeans(counts(ids)), decreasing = TRUE)[1]]
       if (!is.na(top_mirna)) {
@@ -170,7 +170,7 @@ process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
       write.csv(data.frame(Status = "isoSelect failed"), "selected_top_mirna_isomirs.csv")
     })
     
-    # Stage 8: Diagnostic Plotting
+    # --- Diagnostic Plotting ---
     message("Generating diagnostic plots...")
     pdf("isomirs_plots.pdf", width = 10, height = 8)
     tryCatch({
@@ -188,7 +188,7 @@ process BIOC_ISOMIRS_ISOMIRS_CHARACTERIZATION_AND_DE {
     })
     dev.off()
     
-    # Stage 9: Differential Expression Analysis
+    # --- Differential Expression Analysis ---
     message("Running differential expression analysis...")
     pdf("de_plots.pdf", width = 10, height = 8)
     par(mfrow = c(2, 1))

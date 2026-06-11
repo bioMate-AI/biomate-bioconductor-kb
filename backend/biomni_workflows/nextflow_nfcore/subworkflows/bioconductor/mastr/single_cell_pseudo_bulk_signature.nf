@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Aggregate single-cell counts into pseudo-bulk samples using pseudo_samples(). 2. Convert the pseudo-bulk matrix into a DGEList obj
+//  * 1. [Core Analysis] Aggregate single-cell counts into pseudo-bulk samples
+//  * 2. [Core Analysis] Convert the pseudo-bulk matrix into a DGEList object
+//  * 3. [Core Analysis] Run filter_subset_sig() to identify the target group's
 
 nextflow.enable.dsl = 2
 
@@ -65,16 +67,16 @@ process BIOC_MASTR_SINGLE_CELL_PSEUDO_BULK_SIGNATURE {
     counts <- as.matrix(counts)
     meta <- as.data.frame(meta)
     
-    # 1. Aggregate single-cell counts into pseudo-bulk samples using pseudo_samples()
+    # --- Aggregate single-cell counts into pseudo-bulk samples ---
     pb <- pseudo_samples(counts, by = meta)
     
-    # 2. Convert the pseudo-bulk matrix into a DGEList object
+    # --- Convert the pseudo-bulk matrix into a DGEList object ---
     pb <- edgeR::DGEList(counts = pb, group = gsub("\\\\..*", "", colnames(pb)))
     
     # Dynamically select the first available group as the target group
     target_group <- as.character(unique(pb\$samples\$group)[1])
     
-    # 3. Run filter_subset_sig() to identify the target group's signature
+    # --- Run filter_subset_sig() to identify the target group's ---
     sig <- filter_subset_sig(pb, group_col = "group", target_group = target_group)
     
     # Write named output files for the meaningful results

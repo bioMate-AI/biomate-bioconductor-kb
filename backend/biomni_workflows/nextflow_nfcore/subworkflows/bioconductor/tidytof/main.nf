@@ -52,7 +52,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read and Format Input Data
+    # --- Read and Format Input Data ---
     # ==========================================
     message("Reading input files...")
     intensity <- readr::read_csv("intensity.csv")
@@ -78,7 +78,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
       dplyr::mutate(across(dplyr::all_of(protein_cols), ~dplyr::if_else(is.na(.x), 0, .x)))
     
     # ==========================================
-    # STAGE 2: Preprocessing (Arcsinh Transformation)
+    # --- Preprocessing (Arcsinh Transformation) ---
     # ==========================================
     message("Applying arcsinh transformation...")
     # tidytof provides tof_arcsinh for transforming cytometry/proteomics intensity values
@@ -86,7 +86,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
       dplyr::mutate(across(dplyr::all_of(protein_cols), ~tidytof::tof_arcsinh(.x, cofactor = 5)))
     
     # ==========================================
-    # STAGE 3: Dimensionality Reduction (PCA)
+    # --- Dimensionality Reduction (PCA) ---
     # ==========================================
     message("Performing dimensionality reduction...")
     num_samples <- nrow(df_preprocessed)
@@ -112,7 +112,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Clustering (K-means)
+    # --- Clustering (K-means) ---
     # ==========================================
     message("Clustering samples...")
     if (num_samples > 2) {
@@ -145,7 +145,7 @@ process BIOC_TIDYTOF_TIDYTOF_PROTEOMICS_PIPELINE {
     message("Saved processed data to tidy_proteomics_processed.csv")
     
     # ==========================================
-    # STAGE 5: Visualization and Diagnostics
+    # --- Visualization and Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("diagnostic_plots.pdf", width = 10, height = 8)

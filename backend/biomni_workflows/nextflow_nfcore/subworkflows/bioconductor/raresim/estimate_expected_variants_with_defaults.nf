@@ -11,7 +11,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate the expected number of variants per Kb using default parameters for a specified ancestry with nvariant. 2. Scale the var
+//  * 1. [Core Analysis] Calculate the expected number of variants per Kb using
+//  * 2. [Core Analysis] Estimate the proportion of variants in each MAC bin using
+//  * 3. [Core Analysis] Combine the total expected variants (scaled by region
 
 nextflow.enable.dsl = 2
 
@@ -53,13 +55,13 @@ process BIOC_RARESIM_ESTIMATE_EXPECTED_VARIANTS_WITH_DEFAULTS {
         # The file mac_bins.csv must contain the lower and upper boundaries of the MAC bins
         mac <- read.csv("mac_bins.csv")
         
-        # 1. Calculate the expected number of variants per Kb using default parameters for AFR ancestry
+        # --- Calculate the expected number of variants per Kb using ---
         nvariant_default <- nvariant(N = 8128, pop = 'AFR')
         
-        # 2. Estimate the proportion of variants in each MAC bin using default parameters
+        # --- Estimate the proportion of variants in each MAC bin using ---
         afs_default <- afs(mac_bins = mac, pop = 'AFR')
         
-        # 3. Combine the total expected variants (scaled by region size 19.029 Kb) and default AFS proportions
+        # --- Combine the total expected variants (scaled by region ---
         # using expected_variants to get the expected number of variants per MAC bin.
         # This call uses the exact documented parameters and structure.
         bin_estimates <- expected_variants(Total_num_var = 19.029 * nvariant_default,

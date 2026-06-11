@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Identify the direct neighbors of the candidate gene in the interaction network. 2. Compare the neighbor gene list against the phen
+//  * 1. [Core Analysis] Identify the direct neighbors of the candidate gene in
+//  * 2. [Core Analysis] Compare the neighbor gene list against the phenotypes of
 
 nextflow.enable.dsl = 2
 
@@ -108,14 +109,14 @@ process BIOC_PCAN_NETWORK_CONSENSUS {
     # 2. Execute Documented Workflow
     # -----------------------------------------------------------------------------
     
-    # Stage 1: Identify the direct neighbors of the candidate gene in the interaction network
+    # --- Identify the direct neighbors of the candidate gene in ---
     neighbors <- unique(c(
         hqStrNw\$gene1[which(hqStrNw\$gene2==genId)],
         hqStrNw\$gene2[which(hqStrNw\$gene1==genId)],
         genId
     ))
     
-    # Stage 2: Compare the neighbor gene list against the phenotypes of interest using hpGeneListComp
+    # --- Compare the neighbor gene list against the phenotypes of ---
     neighRes <- hpGeneListComp(
         geneList=neighbors,
         ssMatByGene = hpMatByGene,

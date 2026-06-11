@@ -91,7 +91,7 @@ process BIOC_SHORTREAD_FASTQ_FILTERING_AND_TRIMMING {
     myFilterAndTrim(input_file, output_file)
     
     # Generate downstream analysis and summary outputs
-    # 1. Compare read and nucleotide counts before and after filtering
+    # --- Compare read and nucleotide counts before and after ---
     counts_in <- countFastq(input_file)
     counts_out <- countFastq(output_file)
     
@@ -101,7 +101,7 @@ process BIOC_SHORTREAD_FASTQ_FILTERING_AND_TRIMMING {
     )
     write.csv(counts_df, "fastq_filtering_counts.csv", row.names = TRUE)
     
-    # 2. Read the processed FASTQ file to summarize sequence occurrences
+    # --- Read the processed FASTQ file to summarize sequence ---
     fq_out <- readFastq(output_file)
     tbls <- tables(fq_out)
     
@@ -115,7 +115,7 @@ process BIOC_SHORTREAD_FASTQ_FILTERING_AND_TRIMMING {
     # Save sequence occurrence distribution
     write.csv(tbls\$distribution, "sequence_distribution.csv", row.names = FALSE)
     
-    # 3. Perform Quality Assessment (QA) on the filtered file
+    # --- Perform Quality Assessment (QA) on the filtered file ---
     qa_summary <- qa(output_file, type = "fastq")
     saveRDS(qa_summary, "qa_summary_filtered.rds")
     

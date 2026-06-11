@@ -49,7 +49,7 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Read Local Input Data
+    # --- Read Local Input Data ---
     # ==========================================
     message("Reading local input files...")
     counts_df <- read.csv("counts.csv", check.names = FALSE)
@@ -62,7 +62,7 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     coldata_df <- read.csv("coldata.csv", check.names = FALSE)
     
     # ==========================================
-    # STAGE 2: Query Firehose Metadata
+    # --- Query Firehose Metadata ---
     # ==========================================
     message("Querying Firehose metadata...")
     datasets <- getFirehoseDatasets()
@@ -77,7 +77,7 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     write.csv(metadata_summary, "firehose_metadata.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 3: Download and Extract TCGA Data
+    # --- Download and Extract TCGA Data ---
     # ==========================================
     message("Downloading TCGA clinical data for comparison...")
     # We attempt to download clinical data for the Adrenocortical Carcinoma (ACC) cohort
@@ -111,7 +111,7 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     }
     
     # ==========================================
-    # STAGE 4: Build SummarizedExperiment & Analyze
+    # --- Build SummarizedExperiment & Analyze ---
     # ==========================================
     message("Integrating local data into SummarizedExperiment...")
     # Align coldata with counts columns
@@ -144,7 +144,7 @@ process BIOC_RTCGATOOLBOX_RTCGATOOLBOX_TCGA_INTEGRATION {
     write.csv(local_summary, "local_sample_summary.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 5: Visualization
+    # --- Visualization ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("library_sizes.pdf", width = 7, height = 5)

@@ -44,12 +44,12 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
           }
         }
     
-    # Stage 1: Load required libraries
+    # --- Load required libraries ---
     library(MethylAid)
     library(minfi)
     library(ggplot2)
     
-    # Stage 2: Read user input files
+    # --- Read user input files ---
     if (!file.exists("matrix.csv") || !file.exists("coldata.csv")) {
       stop("Required input files 'matrix.csv' and/or 'coldata.csv' are missing.")
     }
@@ -65,7 +65,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     matrix_df <- matrix_df[, samples, drop = FALSE]
     coldata_df <- coldata_df[samples, drop = FALSE]
     
-    # Stage 3: Auto-detect array type and load appropriate manifest
+    # --- Auto-detect array type and load appropriate manifest ---
     if (nrow(matrix_df) > 600000) {
       message("Detecting EPIC array platform...")
       if (!requireNamespace("IlluminaHumanMethylationEPICmanifest", quietly = TRUE)) {
@@ -84,12 +84,12 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
       panel_type <- "450k"
     }
     
-    # Stage 4: Extract control probe information
+    # --- Extract control probe information ---
     ctrls <- getControlAddress(manifest)
     ctrl_addresses <- as.character(ctrls)
     ctrl_types <- names(ctrls)
     
-    # Stage 5: Construct pseudo-intensities from Beta values
+    # --- Construct pseudo-intensities from Beta values ---
     # Beta = M / (M + U). We assume a baseline total intensity of 10,000.
     M <- matrix_df * 10000
     U <- (1 - matrix_df) * 10000
@@ -120,7 +120,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     rownames(Gcontrols) <- ctrl_addresses
     colnames(Gcontrols) <- samples
     
-    # Stage 6: Dynamically construct the S4 summarizedData object
+    # --- Dynamically construct the S4 summarizedData object ---
     slots_available <- slotNames("summarizedData")
     args_list <- list(Class = "summarizedData")
     
@@ -151,7 +151,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     
     sum_data <- do.call(new, args_list)
     
-    # Stage 7: Demonstrate the 'combine' and 'show' workflow
+    # --- Demonstrate the 'combine' and 'show' workflow ---
     # Split the dataset into two batches to demonstrate combining
     n_samples <- length(samples)
     if (n_samples >= 2) {
@@ -189,7 +189,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     message("Displaying combined summarizedData object:")
     show(combined_data)
     
-    # Stage 8: Generate diagnostic outputs
+    # --- Generate diagnostic outputs ---
     # 1. Save the combined object for interactive visualization
     save(combined_data, file = "methylaid_combined.RData")
     
@@ -225,7 +225,7 @@ process BIOC_METHYLAID_METHYLAID_QUALITY_CONTROL {
     
     ggsave("methylaid_mu_plot.pdf", plot = mu_plot, width = 7, height = 6)
     
-    # Stage 9: Interactive visualization (skipped in non-interactive environments)
+    # --- Interactive visualization (skipped in non-interactive ---
     if (interactive()) {
       message("Launching interactive Shiny application...")
       visualize(combined_data)

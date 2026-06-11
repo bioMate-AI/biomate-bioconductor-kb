@@ -52,7 +52,7 @@ process BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD {
         dir.create(dest_dir, recursive = TRUE)
     }
     
-    # Stage 1: Read input metadata
+    # --- Read input metadata ---
     message("Reading input metadata...")
     coldata_path <- "coldata.csv"
     if (!file.exists(coldata_path)) {
@@ -60,7 +60,7 @@ process BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD {
     }
     coldata <- read.csv(coldata_path, stringsAsFactors = FALSE)
     
-    # Stage 2: Extract GEO Accessions dynamically from input
+    # --- Extract GEO Accessions dynamically from input ---
     message("Searching for GEO accessions in coldata.csv...")
     # Search all columns for GSM (sample) or GSE (series) patterns to avoid hardcoding
     all_values <- as.character(unlist(coldata))
@@ -96,7 +96,7 @@ process BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD {
         )
     }
     
-    # Stage 3: Download FASTQ files from ENA
+    # --- Download FASTQ files from ENA ---
     download_results <- data.frame(
         run = character(),
         gsm_name = character(),
@@ -138,7 +138,7 @@ process BIOC_GEOFASTQ_GEO_FASTQ_DOWNLOAD {
         message("No metadata available to download.")
     }
     
-    # Stage 4: Write Outputs
+    # --- Write Outputs ---
     message("Writing outputs...")
     write.csv(srp_meta, "geo_metadata.csv", row.names = FALSE)
     write.csv(download_results, "download_status.csv", row.names = FALSE)

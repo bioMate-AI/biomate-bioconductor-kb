@@ -57,26 +57,26 @@ process BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2 {
     library(DESeq2)
     library(ggplot2)
     
-    # 1. Read the user input file (phyloseq S4 object)
+    # --- Read the user input file (phyloseq S4 object) ---
     kostic <- readRDS("phyloseq_object")
     
     # Define alpha threshold for significance filtering
     alpha <- 0.01
     
-    # 2. Filter out low-read samples and clean up metadata
+    # --- Filter out low-read samples and clean up metadata ---
     kostic <- subset_samples(kostic, DIAGNOSIS != "None")
     kostic <- prune_samples(sample_sums(kostic) > 500, kostic)
     
-    # 3. Convert the phyloseq object to a DESeq2 dataset
+    # --- Convert the phyloseq object to a DESeq2 dataset ---
     diagdds = phyloseq_to_deseq2(kostic, ~ DIAGNOSIS)
     
-    # 4. Estimate size factors using geometric means and run DESeq2
+    # --- Estimate size factors using geometric means and run DESeq2 ---
     gm_mean = function(x, na.rm=TRUE){ exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x)) }
     geoMeans = apply(counts(diagdds), 1, gm_mean)
     diagdds = estimateSizeFactors(diagdds, geoMeans = geoMeans)
     diagdds = DESeq(diagdds, fitType="local")
     
-    # 5. Extract and filter significant results
+    # --- Extract and filter significant results ---
     res = results(diagdds)
     res = res[order(res\$padj, na.last=NA), ]
     sigtab = res[(res\$padj < alpha), ]
@@ -89,13 +89,13 @@ process BIOC_PHYLOSEQ_DIFFERENTIAL_ABUNDANCE_DESEQ2 {
       sigtabgen = sigtab
     }
     
-    # 6. Visualize the results using ggplot2
+    # --- Visualize the results using ggplot2 ---
     p <- ggplot(sigtabgen, aes(y=Genus, x=log2FoldChange, color=Phylum)) + 
       geom_vline(xintercept = 0.0, color = "gray", size = 0.5) + 
       geom_point(size=6) + 
       theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
     
-    # 7. Save outputs to the working directory
+    # --- Save outputs to the working directory ---
     write.csv(as.data.frame(res), "deseq2_results_all.csv", row.names = TRUE)
     write.csv(as.data.frame(sigtab), "deseq2_results_significant.csv", row.names = TRUE)
     saveRDS(diagdds, "deseq2_dataset.rds")

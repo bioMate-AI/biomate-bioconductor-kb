@@ -50,7 +50,7 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
     library(ggcyto)
     library(ggplot2)
     
-    # Stage 1: Read image and convert to flow cytometry data structures
+    # --- Read image and convert to flow cytometry data structures ---
     message("Reading image.tif...")
     img <- tryCatch({
       EBImage::readImage("image.tif")
@@ -113,7 +113,7 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
       scale_fill_gradientn(colours = rainbow(7)) +
       theme_bw()
     
-    # Stage 4: Gating and Statistics
+    # --- Gating and Statistics ---
     message("Applying rectangle gate and calculating statistics...")
     # Define a rectangle gate to capture high-intensity pixels
     rect_gate <- flowCore::rectangleGate(
@@ -127,13 +127,13 @@ process BIOC_GGCYTO_GGCYTO_PIXEL_FLOW_ANALYSIS {
       geom_gate(rect_gate) + 
       geom_stats(size = 4, color = "white", fill = "black")
     
-    # Stage 5: In-line Transformations
+    # --- In-line Transformations ---
     message("Applying logicle transformations...")
     p_transformed <- p_gated + 
       scale_x_logicle() + 
       scale_y_logicle()
     
-    # Stage 6: Exporting Plots and Statistics
+    # --- Exporting Plots and Statistics ---
     message("Converting to pure ggplot objects and saving...")
     gg_1d <- as.ggplot(p_1d)
     gg_transformed <- as.ggplot(p_transformed)

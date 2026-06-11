@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Perform pairwise CCF comparison of mutations between sample pairs using compareCCF. 2. Calculate the Jaccard similarity index (JSI
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Execute Documented Workflow Steps
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +54,7 @@ process BIOC_MESKIT_METASTATIC_ROUTES_AND_NEUTRALITY {
     library(RColorBrewer)
     library(ggplot2)
     
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     if (file.exists("maf.rds")) {
       maf <- readRDS("maf.rds")
     } else {
@@ -68,7 +69,7 @@ process BIOC_MESKIT_METASTATIC_ROUTES_AND_NEUTRALITY {
       stop("Error: 'driverGene.rds' or 'driverGene.txt' not found in the working directory.")
     }
     
-    # 2. Execute Documented Workflow Steps
+    # --- Execute Documented Workflow Steps ---
     
     # Step 2.1: Pairwise CCF comparison of mutations between sample pairs
     ccf.list <- compareCCF(maf, pairByTumor = TRUE, min.ccf = 0.02,

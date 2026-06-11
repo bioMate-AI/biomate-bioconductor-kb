@@ -12,7 +12,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Run tuneM to evaluate the stability of configurations across different numbers of imputations. 2. Inspect the stability statistics
+//  * 1. [Visualization & Output] Run tuneM to evaluate the stability of configurations
+//  * 2. [Visualization & Output] Inspect the stability statistics and plot the RV
 
 nextflow.enable.dsl = 2
 
@@ -63,13 +64,13 @@ process BIOC_MISSROWS_TUNE_IMPUTATIONS {
       stop("Error: 'midt' object not found in 'midt.RData'.")
     }
     
-    # 1. Run tuneM to evaluate the stability of configurations across different numbers of imputations.
+    # --- Run tuneM to evaluate the stability of configurations ---
     set.seed(1)
     tune <- tuneM(midt, ncomp=2, Mmax=100, inc=10, N=20, showPlot=FALSE)
     
     print(tune)
     
-    # 2. Inspect the stability statistics and plot the RV coefficients.
+    # --- Inspect the stability statistics and plot the RV ---
     print(tune\$stats)
     
     # Save the stability statistics to a CSV file

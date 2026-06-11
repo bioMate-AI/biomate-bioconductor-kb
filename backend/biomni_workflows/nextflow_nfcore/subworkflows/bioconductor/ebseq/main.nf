@@ -12,7 +12,13 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Core Analysis] Calculate sample normalization factors using MedianNorm. 2. Run the empirical Bayes test for two conditions using EBTest. 3. Extra
+//  * 1. [Core Analysis] Read User Input Files
+//  * 2. [Core Analysis] Calculate Sample Normalization Factors
+//  * 3. [Core Analysis] Run Empirical Bayes Test (Two Conditions)
+//  * 4. [Core Analysis] Extract DE Results and Posterior Probabilities
+//  * 5. [Core Analysis] Calculate Posterior Fold Changes
+//  * 6. [Core Analysis] Check EM Convergence and Model Fit Diagnostics
+//  * 7. [Core Analysis] Write Output Files
 
 nextflow.enable.dsl = 2
 
@@ -51,7 +57,7 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     library(EBSeq)
     
     # ==========================================
-    # 1. Read User Input Files
+    # --- Read User Input Files ---
     # ==========================================
     
     if (!file.exists("gene_counts.csv")) {
@@ -80,27 +86,27 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     }
     
     # ==========================================
-    # 2. Calculate Sample Normalization Factors
+    # --- Calculate Sample Normalization Factors ---
     # ==========================================
     Sizes=MedianNorm(GeneMat)
     
     # ==========================================
-    # 3. Run Empirical Bayes Test (Two Conditions)
+    # --- Run Empirical Bayes Test (Two Conditions) ---
     # ==========================================
     EBOut=EBTest(Data=GeneMat, Conditions=Conditions_factor, sizeFactors=Sizes, maxround=5)
     
     # ==========================================
-    # 4. Extract DE Results and Posterior Probabilities
+    # --- Extract DE Results and Posterior Probabilities ---
     # ==========================================
     EBDERes=GetDEResults(EBOut, FDR=0.05)
     
     # ==========================================
-    # 5. Calculate Posterior Fold Changes
+    # --- Calculate Posterior Fold Changes ---
     # ==========================================
     GeneFC=PostFC(EBOut)
     
     # ==========================================
-    # 6. Check EM Convergence and Model Fit Diagnostics
+    # --- Check EM Convergence and Model Fit Diagnostics ---
     # ==========================================
     # Print EM convergence parameters to console
     cat("=== EM Convergence Parameters ===\n")
@@ -137,7 +143,7 @@ process BIOC_EBSEQ_GENE_DE_TWO_CONDITIONS {
     dev.off()
     
     # ==========================================
-    # 7. Write Output Files
+    # --- Write Output Files ---
     # ==========================================
     # Save RDS objects for downstream analysis
     saveRDS(EBOut, "EBOut.rds")

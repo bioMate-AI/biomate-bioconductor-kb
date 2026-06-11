@@ -45,10 +45,10 @@ process BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION {
           }
         }
     
-    # Stage 1: Load required libraries safely
+    # --- Load required libraries safely ---
     library(gemma.R)
     
-    # Stage 2: Read and parse input defensively
+    # --- Read and parse input defensively ---
     input_file <- "input.csv"
     if (!file.exists(input_file)) {
       stop("Input file 'input.csv' not found.")
@@ -81,7 +81,7 @@ process BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION {
       stop("No valid gene identifiers found in input.csv.")
     }
     
-    # Stage 3: Query Gemma API for Gene Metadata
+    # --- Query Gemma API for Gene Metadata ---
     message("Querying Gemma for gene metadata...")
     genes_meta <- tryCatch({
       gemma.R::get_genes(genes = gene_ids)
@@ -90,7 +90,7 @@ process BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION {
       NULL
     })
     
-    # Stage 4: Query Gemma API for Differential Expression Evidence
+    # --- Query Gemma API for Differential Expression Evidence ---
     message("Querying Gemma for differential expression values...")
     diff_exp <- tryCatch({
       gemma.R::get_gene_differential_expression_values(genes = gene_ids)
@@ -99,7 +99,7 @@ process BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION {
       NULL
     })
     
-    # Stage 5: Handle empty/null results with robust fallbacks
+    # --- Handle empty/null results with robust fallbacks ---
     if (is.null(genes_meta) || nrow(genes_meta) == 0) {
       genes_meta <- data.frame(
         input_id = gene_ids,
@@ -119,11 +119,11 @@ process BIOC_GEMMA_R_GEMMA_GENE_ANNOTATION_AND_EXPRESSION {
       )
     }
     
-    # Stage 6: Write outputs to CSV
+    # --- Write outputs to CSV ---
     write.csv(genes_meta, "gene_annotations.csv", row.names = FALSE)
     write.csv(diff_exp, "diff_exp_evidence.csv", row.names = FALSE)
     
-    # Stage 7: Generate Diagnostic Visualization
+    # --- Generate Diagnostic Visualization ---
     pdf("gemma_analysis_plot.pdf", width = 8, height = 6)
     
     # Check if we have valid differential expression data to plot

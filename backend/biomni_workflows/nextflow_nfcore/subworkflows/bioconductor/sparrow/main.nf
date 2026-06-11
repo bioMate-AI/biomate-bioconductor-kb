@@ -53,7 +53,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     library(ggplot2)
     
     # ==========================================
-    # Stage 1: Data Loading and Defensive Preprocessing
+    # --- Data Loading and Defensive Preprocessing ---
     # ==========================================
     
     if (!file.exists("input.csv")) {
@@ -95,7 +95,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     expr_mat <- as.matrix(expr_data)
     
     # ==========================================
-    # Stage 2: Experimental Design & Contrast Setup
+    # --- Experimental Design & Contrast Setup ---
     # ==========================================
     
     # Create a balanced two-group design based on the available samples
@@ -105,7 +105,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     contrast <- limma::makeContrasts(GroupBvA = GroupB - GroupA, levels = design)
     
     # ==========================================
-    # Stage 3: Gene Set Database Construction
+    # --- Gene Set Database Construction ---
     # ==========================================
     
     # Construct a custom GeneSetDb using the features present in the dataset to guarantee overlap
@@ -128,7 +128,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     gdb <- GeneSetDb(gs_df)
     
     # ==========================================
-    # Stage 4: Multi-method GSEA Execution (seas)
+    # --- Multi-method GSEA Execution (seas) ---
     # ==========================================
     
     message("Running multi-method GSEA using sparrow::seas...")
@@ -148,7 +148,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     })
     
     # ==========================================
-    # Stage 5: Single Sample Gene Set Scoring
+    # --- Single Sample Gene Set Scoring ---
     # ==========================================
     
     message("Computing single-sample gene set scores...")
@@ -169,7 +169,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     write.csv(scores, "single_sample_scores.csv", row.names = FALSE)
     
     # ==========================================
-    # Stage 6: Extracting and Saving Results
+    # --- Extracting and Saving Results ---
     # ==========================================
     
     if (!is.null(mg)) {
@@ -187,7 +187,7 @@ process BIOC_SPARROW_SPARROW_GSEA_PIPELINE {
     }
     
     # ==========================================
-    # Stage 7: Visualization and Plotting
+    # --- Visualization and Plotting ---
     # ==========================================
     
     message("Generating diagnostic and visualization plots...")

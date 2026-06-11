@@ -48,7 +48,7 @@ process BIOC_DTA_DYNAMIC_TRANSCRIPTOME_ANALYSIS {
     library(DTA)
     
     # ---------------------------------------------------------
-    # Stage 1: Read Input Data and Preprocess
+    # --- Read Input Data and Preprocess ---
     # ---------------------------------------------------------
     
     # Read the expression matrix and sample metadata
@@ -93,7 +93,7 @@ process BIOC_DTA_DYNAMIC_TRANSCRIPTOME_ANALYSIS {
     phenomat <- as.matrix(phenomat)
     
     # ---------------------------------------------------------
-    # Stage 2: Handle Missing Fractions (Robustness Fallback)
+    # --- Handle Missing Fractions (Robustness Fallback) ---
     # ---------------------------------------------------------
     # DTA requires Total (T), Labeled (L), and Unlabeled (U) fractions.
     # If the user input is standard RNA-seq (only Total fraction), we simulate
@@ -138,7 +138,7 @@ process BIOC_DTA_DYNAMIC_TRANSCRIPTOME_ANALYSIS {
     }
     
     # ---------------------------------------------------------
-    # Stage 3: Generate Uridine/Thymine Counts (tnumber)
+    # --- Generate Uridine/Thymine Counts (tnumber) ---
     # ---------------------------------------------------------
     # DTA requires the number of uridines (thymines in cDNA) for bias correction.
     # Since sequence info is not in counts.csv, we generate a realistic mock tnumber vector.
@@ -147,7 +147,7 @@ process BIOC_DTA_DYNAMIC_TRANSCRIPTOME_ANALYSIS {
     names(tnumber) <- rownames(datamat)
     
     # ---------------------------------------------------------
-    # Stage 4: Quality Control and Filtering
+    # --- Quality Control and Filtering ---
     # ---------------------------------------------------------
     # Identify reliable genes based on expression threshold in Total fraction
     total_cols <- which(phenomat[, "fraction"] == "T")
@@ -175,7 +175,7 @@ process BIOC_DTA_DYNAMIC_TRANSCRIPTOME_ANALYSIS {
                 saveit = TRUE, notinR = TRUE, folder = ".")
     
     # ---------------------------------------------------------
-    # Stage 5: Run DTA Estimation
+    # --- Run DTA Estimation ---
     # ---------------------------------------------------------
     message("Running DTA estimation...")
     res <- tryCatch({
@@ -197,7 +197,7 @@ process BIOC_DTA_DYNAMIC_TRANSCRIPTOME_ANALYSIS {
     })
     
     # ---------------------------------------------------------
-    # Stage 6: Export Results and Visualizations
+    # --- Export Results and Visualizations ---
     # ---------------------------------------------------------
     if (!is.null(res)) {
       # Combine results across all labeling times into a single data frame

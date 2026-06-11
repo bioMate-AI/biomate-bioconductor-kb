@@ -51,7 +51,7 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     library(ggplot2)
     
     # ==========================================
-    # STAGE 1: Read Input Data & Preprocess
+    # --- Read Input Data & Preprocess ---
     # ==========================================
     
     # Read counts and coldata
@@ -74,7 +74,7 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     coldata\$condition <- as.factor(coldata\$condition)
     
     # ==========================================
-    # STAGE 2: Construct Mock Single-Cell Dataset
+    # --- Construct Mock Single-Cell Dataset ---
     # ==========================================
     # To leverage dreamlet's multi-cell-type capabilities, we simulate two cell types 
     # ("CellType_A" and "CellType_B") for each sample by introducing controlled variation.
@@ -103,7 +103,7 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     )
     
     # ==========================================
-    # STAGE 3: Pseudobulk Aggregation
+    # --- Pseudobulk Aggregation ---
     # ==========================================
     message("Aggregating single-cell counts to pseudobulk...")
     pb <- aggregateToPseudoBulk(
@@ -115,19 +115,19 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     )
     
     # ==========================================
-    # STAGE 4: Voom Processing & Normalization
+    # --- Voom Processing & Normalization ---
     # ==========================================
     message("Processing assays with voom...")
     res.proc <- processAssays(pb, ~ condition, min.count = 2)
     
     # ==========================================
-    # STAGE 5: Variance Partitioning
+    # --- Variance Partitioning ---
     # ==========================================
     message("Running variance partitioning...")
     vp.lst <- fitVarPart(res.proc, ~ condition)
     
     # ==========================================
-    # STAGE 6: Differential Expression (dreamlet)
+    # --- Differential Expression (dreamlet) ---
     # ==========================================
     message("Running dreamlet differential expression...")
     res.dl <- dreamlet(res.proc, ~ condition)
@@ -144,7 +144,7 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     write.csv(df_de, "differential_expression.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 7: Gene Set Analysis (zenith)
+    # --- Gene Set Analysis (zenith) ---
     # ==========================================
     message("Running Zenith gene set analysis...")
     # Create a robust mock GeneSetCollection using genes present in the dataset
@@ -158,7 +158,7 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     write.csv(res_zenith, "gene_set_analysis.csv", row.names = FALSE)
     
     # ==========================================
-    # STAGE 8: Compare Clusters & Specificity
+    # --- Compare Clusters & Specificity ---
     # ==========================================
     message("Comparing cell clusters...")
     fit_cc <- dreamletCompareClusters(pb, c("CellType_A", "CellType_B"), method = "fixed")
@@ -170,7 +170,7 @@ process BIOC_DREAMLET_DREAMLET_DIFFERENTIAL_EXPRESSION {
     write.csv(df_cts, "cell_type_specificity.csv", row.names = TRUE)
     
     # ==========================================
-    # STAGE 9: Generate Diagnostic & Results Plots
+    # --- Generate Diagnostic & Results Plots ---
     # ==========================================
     message("Generating plots...")
     pdf("dreamlet_analysis_plots.pdf", width = 10, height = 8)

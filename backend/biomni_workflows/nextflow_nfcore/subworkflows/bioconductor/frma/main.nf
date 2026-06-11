@@ -49,7 +49,7 @@ process BIOC_FRMA_FRMA_MICROARRAY_PREPROCESSING_AND_BARCODE {
     library(frma)
     
     # ==========================================
-    # STAGE 1: Data Loading & Preprocessing Setup
+    # --- Data Loading & Preprocessing Setup ---
     # ==========================================
     message("Stage 1: Loading and aligning input data...")
     
@@ -125,7 +125,7 @@ process BIOC_FRMA_FRMA_MICROARRAY_PREPROCESSING_AND_BARCODE {
                        phenoData = phenoData)
     
     # ==========================================
-    # STAGE 2: Frozen Robust Multi-Array Analysis
+    # --- Frozen Robust Multi-Array Analysis ---
     # ==========================================
     message("Stage 2: Running fRMA preprocessing...")
     
@@ -179,7 +179,7 @@ process BIOC_FRMA_FRMA_MICROARRAY_PREPROCESSING_AND_BARCODE {
     })
     
     # ==========================================
-    # STAGE 3: Quality Control with GNUSE
+    # --- Quality Control with GNUSE ---
     # ==========================================
     message("Stage 3: Performing GNUSE Quality Control...")
     
@@ -205,7 +205,7 @@ process BIOC_FRMA_FRMA_MICROARRAY_PREPROCESSING_AND_BARCODE {
     dev.off()
     
     # ==========================================
-    # STAGE 4: Gene Expression Barcode
+    # --- Gene Expression Barcode ---
     # ==========================================
     message("Stage 4: Generating Gene Expression Barcodes...")
     
@@ -226,7 +226,7 @@ process BIOC_FRMA_FRMA_MICROARRAY_PREPROCESSING_AND_BARCODE {
     })
     
     # ==========================================
-    # STAGE 5: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     message("Stage 5: Generating expression heatmap...")
     

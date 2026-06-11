@@ -58,7 +58,7 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     library(rtracklayer)
     
     # ==========================================
-    # 1. Load sequence into a DNAString object
+    # --- Load sequence into a DNAString object ---
     # ==========================================
     # Read the user-provided FASTA file from the working directory
     fasta_file <- "sequence.fa"
@@ -75,7 +75,7 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     seq <- dna_set[[1]]
     
     # ==========================================
-    # 2. Run pqsfinder to detect potential G-quadruplexes
+    # --- Run pqsfinder to detect potential G-quadruplexes ---
     # ==========================================
     # Basic quadruplex detection
     pqs <- pqsfinder(seq, min_score = 20)
@@ -96,7 +96,7 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     print(pqs_overlap)
     
     # ==========================================
-    # 3. Extract metadata and calculate density
+    # --- Extract metadata and calculate density ---
     # ==========================================
     # Run pqsfinder with deep = TRUE to enable density calculation
     pqs <- pqsfinder(seq, deep = TRUE, min_score = 20)
@@ -113,7 +113,7 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     dev.off()
     
     # ==========================================
-    # 4. Convert results to GRanges and export to GFF3
+    # --- Convert results to GRanges and export to GFF3 ---
     # ==========================================
     gr <- as(pqs, "GRanges")
     print("GRanges representation:")
@@ -123,7 +123,7 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     export(gr, "test.gff", version = "3")
     
     # ==========================================
-    # 5. Convert results to DNAStringSet and export to FASTA
+    # --- Convert results to DNAStringSet and export to FASTA ---
     # ==========================================
     dss <- as(pqs, "DNAStringSet")
     print("DNAStringSet representation:")

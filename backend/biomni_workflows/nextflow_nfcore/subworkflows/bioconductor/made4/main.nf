@@ -50,7 +50,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     library(scatterplot3d)
     
     # ---------------------------------------------------------
-    # Stage 1: Load and Preprocess Data
+    # --- Load and Preprocess Data ---
     # ---------------------------------------------------------
     # Read expression matrix (probe/gene-by-sample) and sample metadata
     counts <- read.csv("counts.csv", row.names = 1, check.names = FALSE)
@@ -79,7 +79,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     message(paste("Using ordination type:", ord_type))
     
     # ---------------------------------------------------------
-    # Stage 2: Diagnostic Overview (QC)
+    # --- Diagnostic Overview (QC) ---
     # ---------------------------------------------------------
     pdf("overview_plot.pdf", width = 8, height = 6)
     tryCatch({
@@ -92,7 +92,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     dev.off()
     
     # ---------------------------------------------------------
-    # Stage 3: Unsupervised Ordination
+    # --- Unsupervised Ordination ---
     # ---------------------------------------------------------
     k.coa <- made4::ord(counts_df, type = ord_type)
     
@@ -117,7 +117,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     write.csv(top_df, "top_genes.csv", row.names = FALSE)
     
     # ---------------------------------------------------------
-    # Stage 4: Supervised Between Group Analysis (BGA)
+    # --- Supervised Between Group Analysis (BGA) ---
     # ---------------------------------------------------------
     k.bga <- made4::bga(counts_df, type = ord_type, classvec = classvec)
     
@@ -153,7 +153,7 @@ process BIOC_MADE4_SUPERVISED_AND_UNSUPERVISED_ORDINATION {
     }
     
     # ---------------------------------------------------------
-    # Stage 5: Heatmap and 3D Visualizations
+    # --- Heatmap and 3D Visualizations ---
     # ---------------------------------------------------------
     pdf("heatplot.pdf", width = 8, height = 8)
     tryCatch({

@@ -50,7 +50,7 @@ process BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS {
     library(GenomicRanges)
     
     # ==========================================
-    # Stage 1: Import and Preprocess Input Data
+    # --- Import and Preprocess Input Data ---
     # ==========================================
     message("Stage 1: Importing regions.bed...")
     gr <- rtracklayer::import("regions.bed")
@@ -72,7 +72,7 @@ process BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS {
     write.table(genome_df, file = genome_file, sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
     
     # ==========================================
-    # Stage 2: Merge Overlapping Intervals
+    # --- Merge Overlapping Intervals ---
     # ==========================================
     message("Stage 2: Merging overlapping intervals...")
     merged_gr <- tryCatch({
@@ -87,7 +87,7 @@ process BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS {
     rtracklayer::export(merged_gr, "merged_regions.bed", format = "bed")
     
     # ==========================================
-    # Stage 3: Compute Genomic Coverage
+    # --- Compute Genomic Coverage ---
     # ==========================================
     message("Stage 3: Computing genomic coverage...")
     cov_gr <- tryCatch({
@@ -114,7 +114,7 @@ process BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS {
     dev.off()
     
     # ==========================================
-    # Stage 4: Identify Genomic Gaps (Complement)
+    # --- Identify Genomic Gaps (Complement) ---
     # ==========================================
     message("Stage 4: Finding genomic gaps (complement)...")
     gaps_gr <- tryCatch({
@@ -129,7 +129,7 @@ process BIOC_HELLORANGES_HELLORANGES_GENOMIC_INTERVALS_ANALYSIS {
     rtracklayer::export(gaps_gr, "genomic_gaps.bed", format = "bed")
     
     # ==========================================
-    # Stage 5: Split Comparison & Jaccard Similarity
+    # --- Split Comparison & Jaccard Similarity ---
     # ==========================================
     message("Stage 5: Calculating Jaccard similarity between split sets...")
     

@@ -11,7 +11,8 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Load NarrowPeak files using readNarrowPeakFile to extract both regions and peak positions. 2. Assign experiment names as row names
+//  * 1. [Input & Preparation] Load Input Files
+//  * 2. [Input & Preparation] Write Outputs
 
 nextflow.enable.dsl = 2
 
@@ -52,7 +53,7 @@ process BIOC_CONSENSUSSEEKER_CHIP_SEQ_CONSENSUS_FROM_NARROWPEAK {
             library(rtracklayer)
             
             # -----------------------------------------------------------------------------
-            # Stage 1: Load Input Files
+            # --- Load Input Files ---
             # -----------------------------------------------------------------------------
             
             # Locate narrowPeak files in the working directory
@@ -139,7 +140,7 @@ process BIOC_CONSENSUSSEEKER_CHIP_SEQ_CONSENSUS_FROM_NARROWPEAK {
             print(head(results\$consensusRanges, n = 3))
             
             # -----------------------------------------------------------------------------
-            # Stage 6: Write Outputs
+            # --- Write Outputs ---
             # -----------------------------------------------------------------------------
             
             # Save the consensus ranges as an RDS object

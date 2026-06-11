@@ -13,7 +13,9 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Input & Preparation] Create the design model matrix using model.matrix. 2. Initialize the batch random rotation object using initBatchRandrot, specifyi
+//  * 1. [Input & Preparation] Load User Input Files
+//  * 2. [Input & Preparation] Execute Documented Workflow
+//  * 3. [Input & Preparation] Save Outputs
 
 nextflow.enable.dsl = 2
 
@@ -53,7 +55,7 @@ process BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION {
     library(sva)
     library(limma)
     
-    # 1. Load User Input Files
+    # --- Load User Input Files ---
     if (file.exists("pdata.rds")) {
       pdata <- readRDS("pdata.rds")
     } else if (file.exists("pdata.csv")) {
@@ -79,7 +81,7 @@ process BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION {
     pdata\$phenotype <- as.factor(pdata\$phenotype)
     edata <- as.matrix(edata)
     
-    # 2. Execute Documented Workflow
+    # --- Execute Documented Workflow ---
     mod1 <- model.matrix(~1+phenotype, pdata)
     rr <- initBatchRandrot(Y = edata, X = mod1, coef.h = 2, batch = pdata\$batch)
     
@@ -98,7 +100,7 @@ process BIOC_RANDROTATION_LINEAR_MODEL_BATCH_CORRECTION {
     fdr.qu <- pFdr(rs1, "fdr.qu")
     fdr.BH <- pFdr(rs1, "BH")
     
-    # 3. Save Outputs
+    # --- Save Outputs ---
     # Save RDS of the rotation statistics object
     saveRDS(rs1, "rotate_stat_results.rds")
     

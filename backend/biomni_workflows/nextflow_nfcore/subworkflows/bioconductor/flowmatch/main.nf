@@ -12,7 +12,10 @@
 // ============================================================
 
 // Steps:
-//  * 1. [Visualization & Output] Cluster both samples using a clustering algorithm (e.g., kmeans). 2. Create ClusteredSample S4 objects for both samples to encapsu
+//  * 1. [Visualization & Output] Cluster both samples using a clustering algorithm (kmeans)
+//  * 2. [Visualization & Output] Create ClusteredSample S4 objects for both samples
+//  * 3. [Visualization & Output] Match clusters across the sample pair using match.clusters
+//  * 4. [Visualization & Output] Retrieve and summarize the matching results
 
 nextflow.enable.dsl = 2
 
@@ -57,20 +60,20 @@ process BIOC_FLOWMATCH_PAIRWISE_CLUSTER_MATCHING {
     sample1 <- as.matrix(read.csv("sample1.csv"))
     sample2 <- as.matrix(read.csv("sample2.csv"))
     
-    # 1. Cluster both samples using a clustering algorithm (kmeans)
+    # --- Cluster both samples using a clustering algorithm (kmeans) ---
     clust1 = kmeans(sample1, centers=4, nstart=20)
     clust2 = kmeans(sample2, centers=4, nstart=20)
     cluster.labels1 = clust1\$cluster
     cluster.labels2 = clust2\$cluster
     
-    # 2. Create ClusteredSample S4 objects for both samples
+    # --- Create ClusteredSample S4 objects for both samples ---
     clustSample1 = ClusteredSample(labels=cluster.labels1, sample=sample1)
     clustSample2 = ClusteredSample(labels=cluster.labels2, sample=sample2)
     
-    # 3. Match clusters across the sample pair using match.clusters
+    # --- Match clusters across the sample pair using match.clusters ---
     mec = match.clusters(clustSample1, clustSample2, dist.type="Mahalanobis", unmatch.penalty=99999)
     
-    # 4. Retrieve and summarize the matching results
+    # --- Retrieve and summarize the matching results ---
     class_info <- class(mec)
     print(class_info)
     

@@ -64,14 +64,14 @@ process BIOC_ABSEQR_BASIC_AND_COMPARATIVE_REPORT {
         stop(paste("Error: Input directory 'dataPath' does not exist at:", normalizePath(dataPath, mustWork = FALSE)))
     }
     
-    # 1. Configure parallelization parameters based on the operating system
+    # --- Configure parallelization parameters based on the ---
     if (Sys.info()["sysname"] == "Darwin") {
         BPPARAM <- BiocParallel::SerialParam()
     } else {
         BPPARAM <- BiocParallel::bpparam()
     }
     
-    # 2. Run abseqReport to generate static/interactive plots and HTML reports
+    # --- Run abseqReport to generate static/interactive plots and ---
     # for individual samples and specified comparative groups.
     samples <- abseqReport(dataPath,
                            compare = c("PCR1, PCR2, PCR3"),

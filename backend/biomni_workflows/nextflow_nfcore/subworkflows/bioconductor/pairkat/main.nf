@@ -49,7 +49,7 @@ process BIOC_PAIRKAT_PAIRKAT_PATHWAY_ASSOCIATION {
     library(dplyr)
     
     # ==========================================
-    # Stage 1: Load and Preprocess Input Data
+    # --- Load and Preprocess Input Data ---
     # ==========================================
     
     message("Loading input files...")
@@ -90,7 +90,7 @@ process BIOC_PAIRKAT_PAIRKAT_PATHWAY_ASSOCIATION {
     }
     
     # ==========================================
-    # Stage 2: Construct SummarizedExperiment
+    # --- Construct SummarizedExperiment ---
     # ==========================================
     
     message("Constructing SummarizedExperiment object...")
@@ -108,7 +108,7 @@ process BIOC_PAIRKAT_PAIRKAT_PATHWAY_ASSOCIATION {
     )
     
     # ==========================================
-    # Stage 3: Query KEGG and Build Networks
+    # --- Query KEGG and Build Networks ---
     # ==========================================
     
     message("Querying KEGG database to build networks...")
@@ -135,7 +135,7 @@ process BIOC_PAIRKAT_PAIRKAT_PATHWAY_ASSOCIATION {
     })
     
     # ==========================================
-    # Stage 4: Run PaIRKAT Association Testing
+    # --- Run PaIRKAT Association Testing ---
     # ==========================================
     
     results_df <- data.frame(pathway = character(), Q.adj = numeric(), p.value = numeric())
@@ -154,7 +154,7 @@ process BIOC_PAIRKAT_PAIRKAT_PATHWAY_ASSOCIATION {
     }
     
     # ==========================================
-    # Stage 5: Export Results and Visualizations
+    # --- Export Results and Visualizations ---
     # ==========================================
     
     if (!is.null(output) && !is.null(output\$results) && nrow(output\$results) > 0) {

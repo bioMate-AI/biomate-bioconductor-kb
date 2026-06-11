@@ -50,13 +50,13 @@ process BIOC_MEGADEPTH_MEGADEPTH_COVERAGE_JUNCTION_PIPELINE {
     library(S4Vectors)
     
     # ==========================================
-    # STAGE 1: Install Megadepth Utility
+    # --- Install Megadepth Utility ---
     # ==========================================
     message("Installing/verifying Megadepth binary...")
     install_megadepth(force = TRUE)
     
     # ==========================================
-    # STAGE 2: Read Input Metadata & Prepare Annotation
+    # --- Read Input Metadata & Prepare Annotation ---
     # ==========================================
     message("Reading input metadata...")
     counts <- read.csv("counts.csv", row.names = 1)
@@ -88,7 +88,7 @@ process BIOC_MEGADEPTH_MEGADEPTH_COVERAGE_JUNCTION_PIPELINE {
     message("Created genomic annotation BED file: ", annotation_bed)
     
     # ==========================================
-    # STAGE 3: Coverage Quantification with Megadepth
+    # --- Coverage Quantification with Megadepth ---
     # ==========================================
     # Define expected BigWig file paths based on sample metadata
     bw_files <- paste0(coldata\$sample, ".bw")
@@ -124,7 +124,7 @@ process BIOC_MEGADEPTH_MEGADEPTH_COVERAGE_JUNCTION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 4: Junction Extraction from BAMs
+    # --- Junction Extraction from BAMs ---
     # ==========================================
     bam_files <- paste0(coldata\$sample, ".bam")
     names(bam_files) <- coldata\$sample
@@ -172,7 +172,7 @@ process BIOC_MEGADEPTH_MEGADEPTH_COVERAGE_JUNCTION_PIPELINE {
     }
     
     # ==========================================
-    # STAGE 5: Downstream Integration (SummarizedExperiment)
+    # --- Downstream Integration (SummarizedExperiment) ---
     # ==========================================
     message("Integrating coverage data into SummarizedExperiment...")
     
@@ -202,7 +202,7 @@ process BIOC_MEGADEPTH_MEGADEPTH_COVERAGE_JUNCTION_PIPELINE {
     message("Saved SummarizedExperiment and coverage matrix.")
     
     # ==========================================
-    # STAGE 6: Visualization & Diagnostics
+    # --- Visualization & Diagnostics ---
     # ==========================================
     message("Generating diagnostic plots...")
     pdf("megadepth_coverage_boxplot.pdf", width = 8, height = 6)
