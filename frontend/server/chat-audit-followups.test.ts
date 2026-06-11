@@ -81,23 +81,28 @@ describe("Q2: compression dialog offers 'Start a new chat' at ≥85%", () => {
   });
 });
 
-describe("Q4: chat-stream resolves a projectId via ensureDefaultProject", () => {
+describe("Q4: project framework — helper present, wiring gated on LTM schema PR", () => {
+  // 2026-06-11 audit found the LTM tables (projects/episodes/procedures/
+  // knowledge/conversation_messages) are NOT migrated on dev. Calling
+  // ensureDefaultProject on every chat-stream request just spammed
+  // "relation \"projects\" does not exist". The helper stays for the
+  // future migration PR; the chat-stream call is parked until then.
   const ROUTES = fs.readFileSync(path.join(ROOT, "routes.ts"), "utf-8");
   const MEMORY = fs.readFileSync(path.join(ROOT, "memory-repository.ts"), "utf-8");
 
-  it("MemoryService exposes ensureDefaultProject(userId): Promise<string|null>", () => {
+  it("MemoryService still exposes ensureDefaultProject(userId): Promise<string|null>", () => {
     expect(/async\s+ensureDefaultProject\s*\(\s*userId\s*:\s*string\s*\)\s*:\s*Promise<string\s*\|\s*null>/.test(MEMORY)).toBe(true);
-  });
-
-  it("ensureDefaultProject returns the first active project when present", () => {
     expect(/getUserProjects\(\s*userId\s*,\s*['"]active['"]\s*\)/.test(MEMORY)).toBe(true);
     expect(/createProject\(/.test(MEMORY)).toBe(true);
     expect(MEMORY.includes("Default Workspace")).toBe(true);
   });
 
-  it("chat-stream calls ensureDefaultProject and attaches projectId to enrichedContext", () => {
+  it("chat-stream attaches projectId from client context (no DB call yet)", () => {
     expect(/_resolvedProjectId\s*:\s*string\s*\|\s*undefined/.test(ROUTES)).toBe(true);
-    expect(/memoryService\.ensureDefaultProject/.test(ROUTES)).toBe(true);
     expect(/projectId\s*:\s*_resolvedProjectId/.test(ROUTES)).toBe(true);
+  });
+
+  it("chat-stream does NOT call ensureDefaultProject (would spam logs until schema migration)", () => {
+    expect(/memoryService\.ensureDefaultProject/.test(ROUTES)).toBe(false);
   });
 });

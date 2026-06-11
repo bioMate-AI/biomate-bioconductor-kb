@@ -5243,23 +5243,16 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Project framework — Q4 from the chat-context audit. The memory
-      // backend's project-scoped paths (procedures, episodes, knowledge)
-      // have been gated on context.projectId since they were written,
-      // but the chat-stream endpoint never set it. Auto-resolve a
-      // default project per user here so memory-integration's project
-      // branches come online without requiring a UI selector.
-      // See docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q4).
-      let _resolvedProjectId: string | undefined = context?.projectId;
-      if (!_resolvedProjectId && req.user) {
-        try {
-          const { memoryService } = await import('./memory-repository');
-          const _pid = await memoryService.ensureDefaultProject(String((req.user as any).id));
-          if (_pid) _resolvedProjectId = _pid;
-        } catch (e: any) {
-          console.warn('[chat-stream] ensureDefaultProject failed:', e?.message ?? e);
-        }
-      }
+      // Project framework — Q4 from the chat-context audit.
+      // ensureDefaultProject() is implemented in MemoryService but
+      // NOT called here because the LTM schema (projects / episodes /
+      // procedures / knowledge / conversation_messages) is not yet
+      // migrated on dev (see audit 2026-06-11). Calling it on every
+      // request produced "relation \"projects\" does not exist" log spam
+      // with zero functional benefit because the table doesn't exist.
+      // Re-enable this block in a follow-up PR that ships the LTM
+      // migration (0012_ltm_schema.sql) — the helper is already there.
+      const _resolvedProjectId: string | undefined = context?.projectId;
 
       const enrichedContext = {
         ...(context || {}),
